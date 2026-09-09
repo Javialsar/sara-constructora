@@ -5,19 +5,22 @@ const equipo = [
     nombre: "ING. JAVIER SARANGO GAONA",
     cargo: "GERENTE GENERAL",
     telefono: "098 180 4023",
-    link: "593981804023"
+    link: "593981804023",
+    imagen: "/images/team/javier.png"
   },
   {
     nombre: "ING. KEVIN JAVIER SARANGO",
     cargo: "INGENIERO CIVIL",
     telefono: "+593 99 186 7021",
-    link: "593991867021"
+    link: "593991867021",
+    imagen: "/images/team/kevin.png"
   },
   {
     nombre: "ARQ. DAVID SARANGO",
     cargo: "ARQUITECTO",
     telefono: "+593 96 290 5439",
-    link: "593962905439"
+    link: "593962905439",
+    imagen: "/images/team/david.png"
   }
 ]
 
@@ -86,7 +89,7 @@ export default function NosotrosPage() {
                    {/* Fotografía profesional placeholder */}
                    <div 
                      className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500"
-                     style={{ backgroundImage: "url('https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=600')" }} // Generic placeholder for professionals
+                     style={{ backgroundImage: `url(${miembro.imagen})` }} 
                    />
                    <div className="absolute inset-0 bg-brand-dark/0 group-hover:bg-brand-dark/10 transition-colors" />
                 </div>
