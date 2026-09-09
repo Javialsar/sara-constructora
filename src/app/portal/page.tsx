@@ -1,92 +1,168 @@
 "use client"
+import { useState } from "react"
 import { motion } from "framer-motion"
-import { Lock, FileText, Camera, Video, MapPin } from "lucide-react"
+import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield } from "lucide-react"
 
-export default function PortalClientePage() {
+export default function PortalLoginPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
+    // Simular autenticación (aquí se conectará con Supabase en producción)
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    if (email && password) {
+      // Guardar sesión temporal
+      sessionStorage.setItem("sara_portal_auth", JSON.stringify({ 
+        email, 
+        authenticated: true,
+        timestamp: Date.now() 
+      }))
+      window.location.href = "/portal/dashboard"
+    } else {
+      setError("Por favor ingrese sus credenciales.")
+      setIsLoading(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen pt-28 pb-24 bg-gray-50">
-      <div className="container mx-auto px-4 md:px-8">
-        <header className="mb-12 max-w-3xl">
-          <div className="flex items-center gap-3 text-brand-sage font-bold uppercase tracking-widest text-xs mb-4">
-            <Lock size={16} /> Portal de Clientes
-          </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-brand-dark tracking-tighter mb-4 uppercase">
-            Seguimiento de Proyecto
-          </h1>
-          <p className="text-gray-500 text-lg">
-            Bienvenido. Aquí puedes supervisar el avance de tu obra en tiempo real mediante fotografías, videos y reportes técnicos.
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-8">
-            <div className="bg-white p-6 border border-gray-200 shadow-sm">
-              <h3 className="font-bold text-brand-dark mb-4 uppercase tracking-widest text-sm border-b pb-4">Detalles del Proyecto</h3>
-              <ul className="space-y-4 text-sm">
-                <li>
-                  <span className="block text-gray-400 font-bold text-xs uppercase mb-1">Nombre</span>
-                  <span className="font-medium">Residencia Familia Martínez</span>
-                </li>
-                <li>
-                  <span className="block text-gray-400 font-bold text-xs uppercase mb-1">Ubicación</span>
-                  <span className="flex items-center gap-1 font-medium"><MapPin size={14} className="text-brand-sage"/> Cariamanga, Loja</span>
-                </li>
-                <li>
-                  <span className="block text-gray-400 font-bold text-xs uppercase mb-1">Estado</span>
-                  <span className="inline-block bg-brand-sage text-brand-dark px-2 py-1 font-bold text-xs uppercase rounded-sm">En Construcción (65%)</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-white p-6 border border-gray-200 shadow-sm">
-              <h3 className="font-bold text-brand-dark mb-4 uppercase tracking-widest text-sm border-b pb-4">Documentos</h3>
-              <ul className="space-y-3">
-                <li><a href="#" className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-sage"><FileText size={16}/> Planos Arquitectónicos v2.pdf</a></li>
-                <li><a href="#" className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-sage"><FileText size={16}/> Permisos Municipales.pdf</a></li>
-                <li><a href="#" className="flex items-center gap-2 text-sm text-gray-600 hover:text-brand-sage"><FileText size={16}/> Cronograma de Avance.xlsx</a></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-6 border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-6 border-b pb-4">
-                <h3 className="font-bold text-brand-dark uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Camera size={18} className="text-brand-sage"/> Últimas Fotografías (Avance Semanal)
-                </h3>
-                <span className="text-xs text-gray-400">Hace 2 días</span>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Background */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070')" }}
+      />
+      <div className="absolute inset-0 bg-brand-dark/80 backdrop-blur-sm" />
+      
+      {/* Login Card */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 w-full max-w-md mx-4"
+      >
+        <div className="bg-white shadow-2xl overflow-hidden">
+          {/* Header */}
+          <div className="bg-brand-dark px-8 py-10 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-brand-sage/20 flex items-center justify-center">
+                <Shield size={32} className="text-brand-sage" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="aspect-video bg-gray-200 rounded relative group overflow-hidden">
-                  <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform" style={{backgroundImage: "url('https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800')"}} />
-                </div>
-                <div className="aspect-video bg-gray-200 rounded relative group overflow-hidden">
-                  <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform" style={{backgroundImage: "url('https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=800')"}} />
-                </div>
+            </div>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight mb-1">
+              Portal de Clientes
+            </h1>
+            <p className="text-gray-400 text-sm font-light">
+              Accede al seguimiento de tu proyecto en tiempo real
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="p-8 space-y-6">
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm rounded"
+              >
+                {error}
+              </motion.div>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-xs font-bold uppercase tracking-widest text-gray-500">
+                Correo Electrónico
+              </label>
+              <div className="relative">
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="cliente@correo.com"
+                  className="w-full pl-12 pr-4 py-3.5 border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-brand-sage focus:ring-2 focus:ring-brand-sage/20 transition-all"
+                  required
+                />
               </div>
             </div>
 
-            <div className="bg-white p-6 border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-6 border-b pb-4">
-                <h3 className="font-bold text-brand-dark uppercase tracking-widest text-sm flex items-center gap-2">
-                  <Video size={18} className="text-brand-sage"/> Recorrido Virtual / Drone
-                </h3>
-                <span className="text-xs text-gray-400">Hace 1 semana</span>
-              </div>
-              <div className="aspect-video bg-gray-900 rounded flex items-center justify-center relative overflow-hidden group cursor-pointer">
-                <div className="absolute inset-0 opacity-50 bg-cover bg-center" style={{backgroundImage: "url('https://images.unsplash.com/photo-1578509378904-71648a04b19c?q=80&w=800')"}} />
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform">
-                  <div className="w-0 h-0 border-t-8 border-t-transparent border-l-[14px] border-l-white border-b-8 border-b-transparent ml-1" />
-                </div>
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-xs font-bold uppercase tracking-widest text-gray-500">
+                Contraseña
+              </label>
+              <div className="relative">
+                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-12 pr-12 py-3.5 border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-brand-sage focus:ring-2 focus:ring-brand-sage/20 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
+
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 accent-brand-sage" />
+                <span className="text-gray-500">Recordarme</span>
+              </label>
+              <a href="#" className="text-brand-sage hover:text-brand-dark font-medium transition-colors">
+                ¿Olvidó su contraseña?
+              </a>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-brand-dark hover:bg-brand-dark/90 text-white py-4 font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  Iniciar Sesión
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="px-8 pb-8 text-center">
+            <p className="text-xs text-gray-400">
+              ¿No tiene cuenta? Solicite acceso contactando a{" "}
+              <a href="mailto:sara.constructora593@gmail.com" className="text-brand-sage font-medium hover:underline">
+                SARA Constructora
+              </a>
+            </p>
           </div>
-          
         </div>
-      </div>
+
+        {/* Branding */}
+        <div className="text-center mt-6">
+          <p className="text-white/40 text-xs font-bold tracking-widest uppercase">
+            SARA CONSTRUCTORA © {new Date().getFullYear()}
+          </p>
+        </div>
+      </motion.div>
     </div>
   )
 }
