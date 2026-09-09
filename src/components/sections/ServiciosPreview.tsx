@@ -1,4 +1,6 @@
+"use client"
 import Link from "next/link"
+import { motion } from "framer-motion"
 import { ArrowRight, Compass, HardHat, Ruler, Building2, Map, Calculator, Wrench, Eye, Box, FileSignature } from "lucide-react"
 
 const servicios = [
@@ -16,56 +18,77 @@ const servicios = [
 
 export default function ServiciosPreview() {
   return (
-    <section className="py-24 bg-brand-dark text-white">
-      <div className="container mx-auto px-4 md:px-8">
-        <div className="mb-16 md:flex md:justify-between md:items-end">
-          <div className="max-w-2xl">
-            <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Nuestros Servicios</h2>
-            <h3 className="text-4xl md:text-5xl font-extrabold leading-tight">
-              SOLUCIONES PARA CADA ETAPA <br className="hidden md:block"/>
-              DE TU PROYECTO.
+    <section className="py-32 bg-brand-dark text-white relative">
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 z-0 opacity-[0.03]"
+        style={{
+          backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+          backgroundSize: '2rem 2rem'
+        }}
+      />
+      
+      <div className="container relative z-10 mx-auto px-4 md:px-8">
+        <div className="mb-20 md:flex md:justify-between md:items-end">
+          <div className="max-w-3xl">
+            <h2 className="flex items-center gap-4 text-xs font-bold tracking-[0.3em] text-brand-sage uppercase mb-6">
+              <span className="w-12 h-px bg-brand-sage" /> Nuestros Servicios
+            </h2>
+            <h3 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.1] tracking-tighter">
+              SOLUCIONES TÉCNICAS PARA <br className="hidden md:block"/>
+              CADA ETAPA DE TU PROYECTO.
             </h3>
           </div>
-          <Link href="/servicios" className="hidden md:inline-flex items-center gap-2 text-brand-sage font-bold hover:text-white transition-colors uppercase tracking-wider text-sm group">
-            Ver todos los servicios
-            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          <Link href="/servicios" className="hidden md:inline-flex items-center gap-3 text-brand-sage font-bold hover:text-white transition-colors uppercase tracking-[0.2em] text-xs group pb-4">
+            Ver portafolio de servicios
+            <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[1px] bg-white/10 border border-white/10">
           {servicios.map((s, index) => {
             const Icon = s.icon
             return (
-              <Link 
-                key={s.id} 
-                href={`/servicios#${s.id}`}
-                className={`group relative bg-white/5 border border-white/10 p-8 hover:bg-white/10 transition-colors duration-300 ${index === 0 || index === 1 ? 'xl:col-span-2' : ''}`}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.05 }}
+                key={s.id}
+                className={`group relative bg-brand-dark overflow-hidden ${index === 0 || index === 1 ? 'xl:col-span-2' : ''}`}
               >
-                <div className="flex justify-between items-start mb-12">
-                  <div className="p-3 bg-brand-sage/20 text-brand-sage rounded-sm group-hover:bg-brand-sage group-hover:text-brand-dark transition-colors">
-                    <Icon size={24} />
+                <Link 
+                  href={`/servicios#${s.id}`}
+                  className="block p-10 h-full hover:bg-white/[0.02] transition-colors duration-500"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand-sage/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="relative z-10 flex justify-between items-start mb-16">
+                    <div className="text-brand-sage">
+                      <Icon size={32} strokeWidth={1.5} />
+                    </div>
+                    <span className="text-white/20 font-mono text-xl font-light tracking-widest">{s.id}</span>
                   </div>
-                  <span className="text-brand-sage/50 font-mono text-xl font-light">{s.id}</span>
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold mb-3">{s.title}</h4>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-2">
-                    {s.desc}
-                  </p>
-                  <div className="flex items-center gap-2 text-brand-sage text-sm font-bold uppercase tracking-wider group-hover:text-white transition-colors">
-                    Conocer más
-                    <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform duration-300" />
+                  
+                  <div className="relative z-10">
+                    <h4 className="text-xl font-bold mb-4 tracking-wide">{s.title}</h4>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-8 line-clamp-2 font-light">
+                      {s.desc}
+                    </p>
+                    <div className="flex items-center gap-3 text-brand-sage text-xs font-bold uppercase tracking-[0.2em] opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                      Conocer más
+                      <ArrowRight size={14} />
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </motion.div>
             )
           })}
         </div>
         
-        <div className="mt-12 md:hidden">
-          <Link href="/servicios" className="inline-flex items-center gap-2 text-brand-sage font-bold hover:text-white transition-colors uppercase tracking-wider text-sm">
-            Ver todos los servicios
-            <ArrowRight size={18} />
+        <div className="mt-16 md:hidden">
+          <Link href="/servicios" className="inline-flex items-center gap-3 text-brand-sage font-bold hover:text-white transition-colors uppercase tracking-[0.2em] text-xs">
+            Ver portafolio de servicios
+            <ArrowRight size={16} />
           </Link>
         </div>
       </div>
