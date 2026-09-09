@@ -58,16 +58,13 @@ export default function NosotrosPage() {
             </p>
           </div>
 
-          <div className="bg-gray-200 aspect-[4/3] relative flex flex-col items-center justify-center text-center p-8 overflow-hidden group">
-             <div 
-               className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700 ease-out"
-               style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=1200')" }}
+          <div className="bg-white flex items-center justify-center p-8 lg:p-16 relative">
+             <div className="absolute inset-0 bg-brand-dark/5" />
+             <img 
+               src="/images/logo-sara.png" 
+               alt="SARA Constructora Logotipo Oficial" 
+               className="relative z-10 w-full max-w-sm md:max-w-md lg:max-w-lg object-contain opacity-90 drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-out"
              />
-             <div className="absolute inset-0 bg-brand-dark/25" />
-             <div className="relative z-10">
-               <p className="text-xl text-white font-medium italic mb-2 tracking-wide">"Una idea es el inicio. Nosotros la convertimos en realidad."</p>
-               <div className="w-12 h-px bg-brand-sage mx-auto mt-4" />
-             </div>
           </div>
         </div>
 
