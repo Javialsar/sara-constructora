@@ -3,6 +3,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
 
 export default function PortalLoginPage() {
   const [email, setEmail] = useState("")
@@ -16,19 +17,44 @@ export default function PortalLoginPage() {
     setError("")
     setIsLoading(true)
 
-    // Simular autenticación (aquí se conectará con Supabase en producción)
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    try {
+      if (email && password) {
+        // Query database
+        const { data, error: dbError } = await supabase
+          .from('clientes')
+          .select('*')
+          .eq('email', email)
+          .single()
 
-    if (email && password) {
-      // Guardar sesión temporal
-      sessionStorage.setItem("sara_portal_auth", JSON.stringify({ 
-        email, 
-        authenticated: true,
-        timestamp: Date.now() 
-      }))
-      window.location.href = "/portal/dashboard"
-    } else {
-      setError("Por favor ingrese sus credenciales.")
+        if (dbError || !data) {
+          throw new Error("Credenciales inválidas.")
+        }
+
+        const password_hash = btoa(password)
+        if (data.password_hash !== password_hash) {
+          throw new Error("Credenciales inválidas.")
+        }
+
+        if (data.estado === 'inactivo') {
+          throw new Error("Su cuenta está inactiva.")
+        }
+
+        // Guardar sesión temporal
+        sessionStorage.setItem("sara_portal_auth", JSON.stringify({ 
+          email: data.email, 
+          nombre: data.nombre,
+          apellido: data.apellido,
+          cliente_id: data.id,
+          authenticated: true,
+          timestamp: Date.now() 
+        }))
+        window.location.href = "/portal/dashboard"
+      } else {
+        setError("Por favor ingrese sus credenciales.")
+      }
+    } catch (err: any) {
+      setError(err.message || "Error al autenticar.")
+    } finally {
       setIsLoading(false)
     }
   }

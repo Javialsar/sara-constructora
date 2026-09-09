@@ -3,6 +3,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowRight, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
 
 export default function PortalRegistroPage() {
   const [formData, setFormData] = useState({
@@ -39,11 +40,36 @@ export default function PortalRegistroPage() {
 
     setIsLoading(true)
 
-    // Simular registro (aquí se conectará con Supabase en producción)
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      // Basic encode for demo, DO NOT USE IN PROD
+      const password_hash = btoa(formData.password)
 
-    setIsLoading(false)
-    setSuccess(true)
+      const { data, error: dbError } = await supabase
+        .from('clientes')
+        .insert([
+          { 
+            nombre: formData.nombre,
+            apellido: formData.apellido,
+            telefono: formData.telefono,
+            email: formData.email,
+            usuario: formData.usuario,
+            password_hash: password_hash
+          }
+        ])
+
+      if (dbError) {
+        if (dbError.code === '23505') {
+          throw new Error("El correo o usuario ya está registrado.")
+        }
+        throw dbError
+      }
+
+      setSuccess(true)
+    } catch (err: any) {
+      setError(err.message || "Error al conectar con la base de datos.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (success) {
