@@ -54,36 +54,33 @@ export default function ServiciosPreview() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
                 key={s.id}
-                className={`group relative bg-brand-dark overflow-hidden ${index === 0 || index === 1 ? 'xl:col-span-2' : ''}`}
+                className={`group relative bg-brand-dark overflow-hidden flex flex-col ${index === 0 || index === 1 ? 'xl:col-span-2' : ''}`}
               >
                 <Link 
                   href={`/servicios#${s.id}`}
-                  className="block p-10 h-full relative z-10 transition-colors duration-500"
+                  className="flex flex-col h-full hover:bg-white/[0.02] transition-colors duration-500"
                 >
-                  {/* Background Image on Hover */}
-                  <div 
-                    className="absolute inset-0 bg-cover bg-center opacity-0 group-hover:opacity-40 transition-opacity duration-700 ease-in-out z-0"
-                    style={{ backgroundImage: `url(${s.image})` }}
-                  />
-                  {/* Dark overlay to ensure text is readable when image appears */}
-                  <div className="absolute inset-0 bg-brand-dark/80 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-0" />
-                  
-                  {/* Default gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand-sage/5 to-transparent opacity-0 group-hover:opacity-0 transition-opacity duration-500 z-0" />
-                  
-                  <div className="relative z-20 flex justify-between items-start mb-16">
-                    <div className="text-brand-sage group-hover:text-white transition-colors duration-500">
-                      <Icon size={32} strokeWidth={1.5} />
-                    </div>
-                    <span className="text-white/20 group-hover:text-white/60 font-mono text-xl font-light tracking-widest transition-colors duration-500">{s.id}</span>
+                  <div className="h-48 w-full relative overflow-hidden">
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                      style={{ backgroundImage: `url(${s.image})` }}
+                    />
+                    <div className="absolute inset-0 bg-brand-dark/20 group-hover:bg-transparent transition-colors duration-500" />
                   </div>
                   
-                  <div className="relative z-20">
-                    <h4 className="text-xl font-bold mb-4 tracking-wide group-hover:text-white transition-colors duration-500">{s.title}</h4>
-                    <p className="text-gray-400 group-hover:text-gray-200 text-sm leading-relaxed mb-8 line-clamp-2 font-light transition-colors duration-500">
+                  <div className="p-8 flex-1 flex flex-col relative z-10">
+                    <div className="flex justify-between items-start mb-10">
+                      <div className="text-brand-sage">
+                        <Icon size={24} strokeWidth={1.5} />
+                      </div>
+                      <span className="text-white/20 font-mono text-xl font-light tracking-widest">{s.id}</span>
+                    </div>
+                    
+                    <h4 className="text-xl font-bold mb-4 tracking-wide group-hover:text-brand-sage transition-colors duration-300">{s.title}</h4>
+                    <p className="text-gray-400 text-sm leading-relaxed mb-8 line-clamp-2 font-light flex-1">
                       {s.desc}
                     </p>
-                    <div className="flex items-center gap-3 text-brand-sage group-hover:text-white text-xs font-bold uppercase tracking-[0.2em] opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
+                    <div className="flex items-center gap-3 text-brand-sage text-xs font-bold uppercase tracking-[0.2em] opacity-80 group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300">
                       Conocer más
                       <ArrowRight size={14} />
                     </div>

@@ -18,8 +18,8 @@ export default function Hero() {
       />
       
       {/* Lighter gradient overlay for better visibility of the background image */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/60 to-transparent" />
-      <div className="absolute inset-0 z-10 bg-black/20" /> {/* Subtle overall darkening to ensure text is readable */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/90 via-brand-dark/40 to-transparent" />
+      <div className="absolute inset-0 z-10 bg-black/10" /> {/* Subtle overall darkening to ensure text is readable */}
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
 
@@ -31,15 +31,6 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="flex flex-col items-start gap-6"
           >
-            {/* Logotipo proporcionado y sin marco exagerado */}
-            <div className="mb-4">
-              <img 
-                src="/images/logo-sara.png" 
-                alt="SARA Constructora Logo" 
-                className="w-auto h-20 md:h-28 lg:h-32 object-contain drop-shadow-md"
-              />
-            </div>
-
             <div className="flex items-center gap-4">
               <div className="w-12 h-px bg-brand-sage" />
               <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm">

@@ -14,7 +14,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-manrope);
+  --font-sans: var(--font-montserrat);
   
   --color-brand-dark: var(--color-sara-dark);
   --color-brand-sage: var(--color-sara-sage);
@@ -24,7 +24,7 @@
 body {
   background: var(--background);
   color: var(--color-sara-black);
-  font-family: var(--font-manrope), sans-serif;
+  font-family: var(--font-montserrat), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -47,14 +47,13 @@ export default function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center space-x-8">
+        <nav className="hidden lg:flex items-center gap-8">
           {navLinks.map((link) => (
-            <Link
-              key={link.name}
+            <Link 
+              key={link.name} 
               href={link.href}
-              className={cn(
-                "text-sm font-semibold uppercase tracking-wider hover:text-brand-sage transition-colors",
-                isScrolled ? "text-brand-black" : "text-brand-black"
+              className={cn("text-xs font-bold uppercase tracking-widest hover:text-brand-sage transition-colors",
+                isScrolled ? "text-brand-black" : "text-gray-300"
               )}
             >
               {link.name}
@@ -62,18 +61,24 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Desktop CTA */}
-        <div className="hidden lg:block">
-          <Button variant="primary">Solicitar Cotización</Button>
-        </div>
+        {/* CTA & Mobile Menu Toggle */}
+        <div className="flex items-center gap-4">
+          <Link href="/portal" className={cn("hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest hover:text-brand-sage transition-colors", isScrolled ? "text-brand-black" : "text-white")}>
+             Portal Clientes
+          </Link>
+          
+          <Button variant={isScrolled ? "primary" : "sage"} className="hidden md:inline-flex" asChild>
+            <Link href="/contacto">Solicitar Cotización</Link>
+          </Button>
 
-        {/* Mobile Menu Toggle */}
-        <button
-          className="lg:hidden relative z-50 p-2 text-brand-black"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-        </button>
+          {/* Mobile Menu Toggle */}
+          <button
+            className="lg:hidden relative z-50 p-2 text-brand-black"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Nav Overlay */}
