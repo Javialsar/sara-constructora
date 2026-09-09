@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield } from "lucide-react"
+import Link from "next/link"
 
 export default function PortalLoginPage() {
   const [email, setEmail] = useState("")
@@ -148,10 +149,10 @@ export default function PortalLoginPage() {
           {/* Footer */}
           <div className="px-8 pb-8 text-center">
             <p className="text-xs text-gray-400">
-              ¿No tiene cuenta? Solicite acceso contactando a{" "}
-              <a href="mailto:sara.constructora593@gmail.com" className="text-brand-sage font-medium hover:underline">
-                SARA Constructora
-              </a>
+              ¿No tiene cuenta?{" "}
+              <Link href="/portal/registro" className="text-brand-sage font-bold hover:underline">
+                Registrarse aquí
+              </Link>
             </p>
           </div>
         </div>
