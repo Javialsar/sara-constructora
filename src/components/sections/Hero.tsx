@@ -7,56 +7,42 @@ import { motion } from "framer-motion"
 export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-brand-dark">
-      {/* Background Architectural Grid */}
-      <div className="absolute inset-0 z-0 opacity-20"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '4rem 4rem'
-        }}
-      />
       
       {/* High-quality background image */}
       <motion.div 
-        initial={{ scale: 1.1, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.5 }}
+        initial={{ scale: 1.05, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 2, ease: "easeOut" }}
-        className="absolute right-0 top-0 w-full lg:w-3/4 h-full bg-cover bg-center z-0"
+        className="absolute right-0 top-0 w-full h-full bg-cover bg-center z-0"
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop')" }}
       />
       
-      {/* Gradient overlay for blending */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark via-brand-dark/90 to-transparent lg:to-brand-dark/20" />
+      {/* Lighter gradient overlay for better visibility of the background image */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/60 to-transparent" />
+      <div className="absolute inset-0 z-10 bg-black/20" /> {/* Subtle overall darkening to ensure text is readable */}
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
-        
-        {/* Geometric Accents */}
-        <motion.div 
-          initial={{ height: 0 }}
-          animate={{ height: "120px" }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="absolute left-6 md:left-12 top-0 w-px bg-brand-sage hidden md:block" 
-        />
 
-        <div className="max-w-5xl space-y-10 md:pl-8">
+        <div className="max-w-4xl space-y-8 md:pl-8">
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex flex-col items-start gap-8"
+            className="flex flex-col items-start gap-6"
           >
-            {/* Logotipo impactante */}
-            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10 shadow-2xl">
+            {/* Logotipo proporcionado y sin marco exagerado */}
+            <div className="mb-4">
               <img 
                 src="/images/logo-sara.png" 
                 alt="SARA Constructora Logo" 
-                className="w-auto h-32 md:h-48 lg:h-56 object-contain drop-shadow-2xl"
+                className="w-auto h-20 md:h-28 lg:h-32 object-contain drop-shadow-md"
               />
             </div>
 
-            <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-4">
               <div className="w-12 h-px bg-brand-sage" />
-              <h2 className="text-brand-sage font-bold tracking-[0.3em] uppercase text-xs md:text-sm">
+              <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm">
                 Ingeniería · Arquitectura · Construcción
               </h2>
             </div>
@@ -67,10 +53,10 @@ export default function Hero() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-5xl md:text-6xl lg:text-[5rem] font-extrabold text-white leading-[0.95] tracking-tighter"
+              className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight"
             >
-              DISEÑAMOS <span className="font-light italic text-transparent bg-clip-text bg-gradient-to-r from-brand-sage to-white">IDEAS.</span><br />
-              CONSTRUIMOS <br className="md:hidden" />FUTURO.
+              DISEÑAMOS <span className="font-light italic text-brand-sage">IDEAS.</span><br />
+              CONSTRUIMOS FUTURO.
             </motion.h1>
           </div>
           
@@ -78,7 +64,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="text-lg md:text-xl text-gray-300 max-w-2xl leading-relaxed font-light border-l-2 border-white/20 pl-6"
+            className="text-base md:text-lg text-gray-200 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6"
           >
             Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.
           </motion.p>
