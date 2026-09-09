@@ -1,0 +1,105 @@
+import Link from "next/link"
+import { Phone, Mail, MapPin } from "lucide-react"
+
+export default function Footer() {
+  return (
+    <footer className="bg-brand-dark text-white pt-16 pb-24 md:pb-8">
+      <div className="container mx-auto px-4 md:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          
+          {/* Brand Info */}
+          <div className="space-y-6">
+            <Link href="/" className="inline-flex flex-col">
+              <span className="font-extrabold text-3xl tracking-tighter leading-none text-white">
+                SARA
+              </span>
+              <span className="text-[0.7rem] tracking-[0.2em] font-medium text-brand-sage">
+                CONSTRUCTORA
+              </span>
+            </Link>
+            <p className="text-sm text-gray-300 uppercase tracking-widest font-semibold leading-relaxed">
+              Ingeniería Civil · Arquitectura<br/>Construcción · Consultoría
+            </p>
+            <p className="text-brand-sage font-medium italic">
+              "Diseñamos ideas. Construimos futuro."
+            </p>
+          </div>
+
+          {/* Contact Info */}
+          <div className="space-y-6">
+            <h4 className="text-lg font-bold tracking-wider uppercase border-b border-brand-sage/30 pb-2 inline-block">
+              Contacto
+            </h4>
+            <ul className="space-y-4 text-sm text-gray-300">
+              <li className="flex items-start gap-3">
+                <MapPin className="text-brand-sage shrink-0" size={20} />
+                <span>Cariamanga – Loja – Ecuador</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail className="text-brand-sage shrink-0" size={20} />
+                <a href="mailto:sara.constructora593@gmail.com" className="hover:text-white transition-colors">
+                  sara.constructora593@gmail.com
+                </a>
+              </li>
+              <li className="flex items-center gap-3">
+                <Phone className="text-brand-sage shrink-0" size={20} />
+                <a href="tel:0981804023" className="hover:text-white transition-colors">
+                  098 180 4023
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Links */}
+          <div className="space-y-6">
+            <h4 className="text-lg font-bold tracking-wider uppercase border-b border-brand-sage/30 pb-2 inline-block">
+              Navegación
+            </h4>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm text-gray-300">
+              <li><Link href="/" className="hover:text-brand-sage transition-colors">Inicio</Link></li>
+              <li><Link href="/nosotros" className="hover:text-brand-sage transition-colors">Nosotros</Link></li>
+              <li><Link href="/servicios" className="hover:text-brand-sage transition-colors">Servicios</Link></li>
+              <li><Link href="/proyectos" className="hover:text-brand-sage transition-colors">Proyectos</Link></li>
+              <li><Link href="/clientes" className="hover:text-brand-sage transition-colors">Clientes</Link></li>
+              <li><Link href="/equipo" className="hover:text-brand-sage transition-colors">Equipo</Link></li>
+              <li><Link href="/contacto" className="hover:text-brand-sage transition-colors">Contacto</Link></li>
+              <li><Link href="/privacidad" className="hover:text-brand-sage transition-colors">Privacidad</Link></li>
+            </ul>
+          </div>
+
+          {/* Social */}
+          <div className="space-y-6">
+            <h4 className="text-lg font-bold tracking-wider uppercase border-b border-brand-sage/30 pb-2 inline-block">
+              Redes Sociales
+            </h4>
+            <div className="flex gap-4">
+              <a href="#" className="bg-white/10 p-3 rounded-none hover:bg-brand-sage hover:text-brand-dark transition-colors flex items-center justify-center" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+                </svg>
+              </a>
+              <a href="#" className="bg-white/10 p-3 rounded-none hover:bg-brand-sage hover:text-brand-dark transition-colors flex items-center justify-center" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
+                </svg>
+              </a>
+              <a href="#" className="bg-white/10 p-3 rounded-none hover:bg-brand-sage hover:text-brand-dark transition-colors flex items-center justify-center font-bold" aria-label="TikTok">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z" />
+                </svg>
+              </a>
+            </div>
+          </div>
+          
+        </div>
+
+        <div className="mt-16 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
+          <p>© {new Date().getFullYear()} SARA CONSTRUCTORA. Todos los derechos reservados.</p>
+          <p className="font-bold tracking-widest uppercase text-brand-sage">Ideas que construyen realidades.</p>
+        </div>
+      </div>
+    </footer>
+  )
+}
