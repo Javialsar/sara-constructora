@@ -33,7 +33,7 @@ export default function Footer() {
             <ul className="space-y-4 text-sm text-gray-300">
               <li className="flex items-start gap-3">
                 <MapPin className="text-brand-sage shrink-0" size={20} />
-                <span>Cariamanga – Loja – Ecuador</span>
+                <span>Cariamanga - Loja - Ecuador</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="text-brand-sage shrink-0" size={20} />
@@ -61,8 +61,8 @@ export default function Footer() {
               <li><Link href="/servicios" className="hover:text-brand-sage transition-colors">Servicios</Link></li>
               <li><Link href="/proyectos" className="hover:text-brand-sage transition-colors">Proyectos</Link></li>
               <li><Link href="/clientes" className="hover:text-brand-sage transition-colors">Clientes</Link></li>
-              <li><Link href="/equipo" className="hover:text-brand-sage transition-colors">Equipo</Link></li>
               <li><Link href="/contacto" className="hover:text-brand-sage transition-colors">Contacto</Link></li>
+              <li><Link href="/portal" className="hover:text-brand-sage transition-colors">Portal</Link></li>
               <li><Link href="/privacidad" className="hover:text-brand-sage transition-colors">Privacidad</Link></li>
             </ul>
           </div>
