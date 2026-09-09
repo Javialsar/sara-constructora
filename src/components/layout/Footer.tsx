@@ -9,13 +9,12 @@ export default function Footer() {
           
           {/* Brand Info */}
           <div className="space-y-6">
-            <Link href="/" className="inline-flex flex-col">
-              <span className="font-extrabold text-3xl tracking-tighter leading-none text-white">
-                SARA
-              </span>
-              <span className="text-[0.7rem] tracking-[0.2em] font-medium text-brand-sage">
-                CONSTRUCTORA
-              </span>
+            <Link href="/" className="inline-block">
+              <img 
+                src="/images/logo-sara.png" 
+                alt="SARA Constructora" 
+                className="h-16 w-auto object-contain brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
+              />
             </Link>
             <p className="text-sm text-gray-300 uppercase tracking-widest font-semibold leading-relaxed">
               Ingeniería Civil · Arquitectura<br/>Construcción · Consultoría

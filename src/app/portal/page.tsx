@@ -147,12 +147,15 @@ export default function PortalLoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="px-8 pb-8 text-center">
-            <p className="text-xs text-gray-400">
-              ¿No tiene cuenta?{" "}
-              <Link href="/portal/registro" className="text-brand-sage font-bold hover:underline">
-                Registrarse aquí
-              </Link>
+          <div className="px-8 pb-8 space-y-4">
+            <Link 
+              href="/portal/registro"
+              className="w-full block text-center border-2 border-brand-sage text-brand-sage hover:bg-brand-sage hover:text-white py-3.5 font-bold uppercase tracking-widest text-sm transition-all"
+            >
+              Registrarse
+            </Link>
+            <p className="text-xs text-gray-400 text-center">
+              ¿Ya tiene cuenta? Use el formulario de arriba para iniciar sesión.
             </p>
           </div>
         </div>
