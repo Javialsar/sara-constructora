@@ -18,7 +18,8 @@ const servicios = [
 
 export default function ServiciosPreview() {
   return (
-    <section className="py-32 bg-brand-dark text-white relative">
+    <section className="py-32 bg-brand-dark/40 text-white relative">
+      <div className="absolute inset-0 bg-[#0D0D0D] -z-10" />
       {/* Subtle grid background */}
       <div className="absolute inset-0 z-0 opacity-[0.03]"
         style={{

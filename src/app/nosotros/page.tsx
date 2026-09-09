@@ -63,7 +63,7 @@ export default function NosotrosPage() {
                className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700 ease-out"
                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=1200')" }}
              />
-             <div className="absolute inset-0 bg-brand-dark/40" />
+             <div className="absolute inset-0 bg-brand-dark/25" />
              <div className="relative z-10">
                <p className="text-xl text-white font-medium italic mb-2 tracking-wide">"Una idea es el inicio. Nosotros la convertimos en realidad."</p>
                <div className="w-12 h-px bg-brand-sage mx-auto mt-4" />
