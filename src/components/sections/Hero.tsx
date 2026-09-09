@@ -43,12 +43,23 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="flex items-center gap-4"
+            className="flex flex-col items-start gap-8"
           >
-            <div className="w-12 h-px bg-brand-sage" />
-            <h2 className="text-brand-sage font-bold tracking-[0.3em] uppercase text-xs md:text-sm">
-              Ingeniería · Arquitectura · Construcción
-            </h2>
+            {/* Logotipo impactante */}
+            <div className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl border border-white/10 shadow-2xl">
+              <img 
+                src="/images/logo-sara.png" 
+                alt="SARA Constructora Logo" 
+                className="w-auto h-32 md:h-48 lg:h-56 object-contain drop-shadow-2xl"
+              />
+            </div>
+
+            <div className="flex items-center gap-4 mt-4">
+              <div className="w-12 h-px bg-brand-sage" />
+              <h2 className="text-brand-sage font-bold tracking-[0.3em] uppercase text-xs md:text-sm">
+                Ingeniería · Arquitectura · Construcción
+              </h2>
+            </div>
           </motion.div>
           
           <div className="space-y-4">
@@ -56,7 +67,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-5xl md:text-7xl lg:text-[6rem] font-extrabold text-white leading-[0.95] tracking-tighter"
+              className="text-5xl md:text-6xl lg:text-[5rem] font-extrabold text-white leading-[0.95] tracking-tighter"
             >
               DISEÑAMOS <span className="font-light italic text-transparent bg-clip-text bg-gradient-to-r from-brand-sage to-white">IDEAS.</span><br />
               CONSTRUIMOS <br className="md:hidden" />FUTURO.

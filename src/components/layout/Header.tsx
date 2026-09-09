@@ -38,17 +38,12 @@ export default function Header() {
     >
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="relative z-50 flex flex-col">
-          <span className={cn("font-extrabold text-2xl tracking-tighter leading-none transition-colors", 
-            isScrolled ? "text-brand-dark" : "text-brand-dark"
-          )}>
-            SARA
-          </span>
-          <span className={cn("text-[0.65rem] tracking-[0.2em] font-medium transition-colors",
-            isScrolled ? "text-brand-black" : "text-brand-black"
-          )}>
-            CONSTRUCTORA
-          </span>
+        <Link href="/" className="relative z-50 flex items-center gap-3">
+          <img 
+            src="/images/logo-sara.png" 
+            alt="SARA Constructora Logo" 
+            className="h-10 md:h-12 w-auto object-contain transition-opacity hover:opacity-80" 
+          />
         </Link>
 
         {/* Desktop Nav */}
