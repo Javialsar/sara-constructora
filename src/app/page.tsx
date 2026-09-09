@@ -1,4 +1,5 @@
 import Hero from "@/components/sections/Hero"
+import ProyectosMarquesina from "@/components/sections/ProyectosMarquesina"
 import Trayectoria from "@/components/sections/Trayectoria"
 import EditorialTransition from "@/components/sections/EditorialTransition"
 import NosotrosPreview from "@/components/sections/NosotrosPreview"
@@ -10,9 +11,9 @@ export default function Home() {
   return (
     <>
       <Hero />
+      <ProyectosMarquesina />
       <Trayectoria />
       <EditorialTransition />
-      <ProyectosDestacados />
       <NosotrosPreview />
       <ServiciosPreview />
       <ProcesoTimeline />
