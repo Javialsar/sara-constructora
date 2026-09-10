@@ -8,6 +8,8 @@ export default function AdminAvances() {
   const [proyectos, setProyectos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
   
   const [formData, setFormData] = useState({
     proyecto_id: "",
@@ -60,13 +62,36 @@ export default function AdminAvances() {
       return
     }
 
+    let finalUrl = formData.url;
+
+    if (file) {
+      setUploadingFile(true)
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avances')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) {
+        alert("Error al subir el archivo (recuerda correr el código SQL para crear el bucket 'avances'): " + uploadError.message);
+        setUploadingFile(false);
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath);
+      finalUrl = publicUrlData.publicUrl;
+      setUploadingFile(false);
+    }
+
     // 1. Guardar el registro del avance (Bitácora)
     const payload = {
       proyecto_id: formData.proyecto_id,
       titulo: formData.titulo,
       descripcion: formData.descripcion,
       tipo: formData.tipo,
-      url: formData.url
+      url: finalUrl
     }
 
     const { error: errAvance } = await supabase.from("avances").insert([payload])
@@ -82,6 +107,7 @@ export default function AdminAvances() {
     if (!errAvance) {
       setIsModalOpen(false)
       setFormData({ proyecto_id: "", titulo: "", descripcion: "", tipo: "foto", url: "", nuevo_porcentaje: "" })
+      setFile(null)
       fetchData()
     } else {
       alert("Error al guardar el avance: " + errAvance.message)
@@ -235,15 +261,25 @@ export default function AdminAvances() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-sm font-bold text-gray-700">URL (Enlace de la imagen o video)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ej. https://mi-imagen.com/foto.jpg"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
-                    value={formData.url}
-                    onChange={(e) => setFormData({...formData, url: e.target.value})}
-                  />
-                  <p className="text-[10px] text-gray-400">Pega el link de la foto o el enlace del video.</p>
+                  <label className="text-sm font-bold text-gray-700">Subir Archivo o URL</label>
+                  <div className="flex flex-col gap-2">
+                    <input 
+                      type="file" 
+                      accept="image/*,video/*,.pdf"
+                      onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brand-sage file:text-brand-dark hover:file:bg-brand-dark hover:file:text-white"
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 whitespace-nowrap">O ingresa un enlace:</span>
+                      <input 
+                        type="text" 
+                        placeholder="https://youtube.com/..."
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none text-sm"
+                        value={formData.url}
+                        onChange={(e) => setFormData({...formData, url: e.target.value})}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-1 md:col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-100 flex items-center gap-4">
@@ -277,9 +313,10 @@ export default function AdminAvances() {
                 </button>
                 <button 
                   type="submit"
-                  className="px-6 py-2.5 rounded-lg font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors"
+                  disabled={uploadingFile}
+                  className="px-6 py-2.5 rounded-lg font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50"
                 >
-                  Guardar y Notificar al Cliente
+                  {uploadingFile ? "Subiendo archivo..." : "Guardar y Notificar al Cliente"}
                 </button>
               </div>
             </form>
