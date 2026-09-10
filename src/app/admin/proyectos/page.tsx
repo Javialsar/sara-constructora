@@ -9,6 +9,7 @@ export default function AdminProyectos() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   
+  const [editId, setEditId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     nombre: "",
     ubicacion: "",
@@ -42,6 +43,36 @@ export default function AdminProyectos() {
     setLoading(false)
   }
 
+  const openNewModal = () => {
+    setEditId(null)
+    setFormData({ nombre: "", ubicacion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "" })
+    setIsModalOpen(true)
+  }
+
+  const handleEdit = (p: any) => {
+    setEditId(p.id)
+    setFormData({
+      nombre: p.nombre,
+      ubicacion: p.ubicacion,
+      estado: p.estado,
+      latitud: p.latitud ? p.latitud.toString() : "",
+      longitud: p.longitud ? p.longitud.toString() : "",
+      cliente_id: p.cliente_id || ""
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este proyecto?")) return;
+    
+    setProyectos(proyectos.filter(p => p.id !== id)) // Optimistic update
+    const { error } = await supabase.from("proyectos").delete().eq("id", id)
+    if (error) {
+      alert("Error al eliminar el proyecto: " + error.message)
+      fetchData() // Revert on error
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const payload = {
@@ -53,11 +84,17 @@ export default function AdminProyectos() {
       cliente_id: formData.cliente_id || null
     }
 
-    const { error } = await supabase.from("proyectos").insert([payload])
+    let error;
+    if (editId) {
+      const { error: err } = await supabase.from("proyectos").update(payload).eq("id", editId)
+      error = err;
+    } else {
+      const { error: err } = await supabase.from("proyectos").insert([payload])
+      error = err;
+    }
     
     if (!error) {
       setIsModalOpen(false)
-      setFormData({ nombre: "", ubicacion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "" })
       fetchData()
     } else {
       alert("Error al guardar el proyecto: " + error.message)
@@ -90,7 +127,7 @@ export default function AdminProyectos() {
           <p className="text-gray-500 text-sm mt-1">Administra todas las obras y ubícalas en el mapa.</p>
         </div>
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={openNewModal}
           className="flex items-center gap-2 bg-brand-dark hover:bg-brand-sage hover:text-brand-dark text-white px-4 py-2 rounded-lg font-bold transition-colors"
         >
           <Plus size={20} />
@@ -144,10 +181,18 @@ export default function AdminProyectos() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
-                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleEdit(p)}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
+                        >
                           <Pencil size={16} />
                         </button>
-                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleDelete(p.id)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
                           <Trash2 size={16} />
                         </button>
                       </td>
@@ -160,12 +205,12 @@ export default function AdminProyectos() {
         )}
       </div>
 
-      {/* Modal Nuevo Proyecto */}
+      {/* Modal Proyecto */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-xl font-bold text-brand-dark">Crear Nuevo Proyecto</h3>
+              <h3 className="text-xl font-bold text-brand-dark">{editId ? "Editar Proyecto" : "Crear Nuevo Proyecto"}</h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors">
                 <X size={24} />
               </button>
@@ -267,7 +312,7 @@ export default function AdminProyectos() {
                   type="submit"
                   className="px-6 py-2.5 rounded-lg font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors"
                 >
-                  Guardar Proyecto
+                  {editId ? "Guardar Cambios" : "Guardar Proyecto"}
                 </button>
               </div>
             </form>
