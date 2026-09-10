@@ -9,11 +9,11 @@ export default function Footer() {
           
           {/* Brand Info */}
           <div className="space-y-6">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-block bg-white p-2 rounded-sm">
               <img 
                 src="/images/logo-sara.png" 
                 alt="SARA Constructora" 
-                className="h-16 w-auto object-contain brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
+                className="h-16 w-auto object-contain opacity-90 hover:opacity-100 transition-opacity"
               />
             </Link>
             <p className="text-sm text-gray-300 uppercase tracking-widest font-semibold leading-relaxed">
