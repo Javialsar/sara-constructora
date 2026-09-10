@@ -39,8 +39,9 @@ export default function SplashScreen() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
           className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center"
+          style={{ perspective: 1200 }}
         >
-          {/* Logo Giratorio en 360 */}
+          {/* Logo Giratorio en 360 con Ilusión 3D */}
           <motion.div
             animate={{ rotateY: 360 }}
             transition={{ 
@@ -49,13 +50,15 @@ export default function SplashScreen() {
               repeat: Infinity,
               repeatType: "loop"
             }}
-            className="relative w-48 h-48 md:w-64 md:h-64 mb-12"
+            className="relative w-48 h-48 md:w-64 md:h-64 mb-12 transform-style-3d"
+            style={{ transformStyle: "preserve-3d" }}
           >
             <Image 
               src="/images/logo-sara.png"
               alt="SARA Constructora Logo"
               fill
-              className="object-contain drop-shadow-xl"
+              className="object-contain drop-shadow-2xl"
+              style={{ backfaceVisibility: "visible", transform: "translateZ(50px)" }}
               priority
             />
           </motion.div>
