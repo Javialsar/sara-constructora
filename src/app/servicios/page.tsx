@@ -6,11 +6,11 @@ const servicios = [
   { id: "03", icon: Ruler, title: "Ingeniería y Cálculo Estructural", desc: "Análisis y diseño estructural garantizando la máxima seguridad sísmica y estabilidad de las edificaciones.", image: "/images/servicios/03-calculo.png" },
   { id: "04", icon: HardHat, title: "Estudios de Suelos", desc: "Análisis geotécnico fundamental para cimentar correctamente cada proyecto.", image: "/images/servicios/04-suelos.png" },
   { id: "05", icon: Map, title: "Topografía y Planimetría", desc: "Levantamientos topográficos precisos necesarios para una correcta planificación espacial.", image: "/images/servicios/05-topografia.png" },
-  { id: "06", icon: Calculator, title: "Presupuestos y APU", desc: "Cálculo detallado de costos, cantidades de obra y análisis de precios unitarios (APU).", image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop" },
-  { id: "07", icon: Wrench, title: "Remodelaciones y Ampliaciones", desc: "Intervención, transformación y mejora técnica de espacios e infraestructuras existentes.", image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop" },
-  { id: "08", icon: Eye, title: "Dirección y Supervisión de Obras", desc: "Fiscalización, control técnico y administrativo permanente durante toda la ejecución del proyecto.", image: "https://images.unsplash.com/photo-1504307651254-35680f356f58?q=80&w=800&auto=format&fit=crop" },
-  { id: "09", icon: Box, title: "Modelado 3D y Renders", desc: "Visualización fotorrealista para entender y comercializar el proyecto antes de construirlo.", image: "https://images.unsplash.com/photo-1600607687989-ce4d31d94f28?q=80&w=800&auto=format&fit=crop" },
-  { id: "10", icon: FileSignature, title: "Consultoría Técnica", desc: "Asesoría especializada, revisión de planos y gestión técnica integral en desarrollo inmobiliario.", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop" },
+  { id: "06", icon: Calculator, title: "Presupuestos y APU", desc: "Cálculo detallado de costos, cantidades de obra y análisis de precios unitarios (APU).", image: "/images/servicios/06-presupuestos.png" },
+  { id: "07", icon: Wrench, title: "Remodelaciones y Ampliaciones", desc: "Intervención, transformación y mejora técnica de espacios e infraestructuras existentes.", image: "/images/servicios/07-remodelaciones.png" },
+  { id: "08", icon: Eye, title: "Dirección y Supervisión de Obras", desc: "Fiscalización, control técnico y administrativo permanente durante toda la ejecución del proyecto.", image: "/images/servicios/08-supervision.png" },
+  { id: "09", icon: Box, title: "Modelado 3D y Renders", desc: "Visualización fotorrealista para entender y comercializar el proyecto antes de construirlo.", image: "/images/servicios/09-renders.png" },
+  { id: "10", icon: FileSignature, title: "Consultoría Técnica", desc: "Asesoría especializada, revisión de planos y gestión técnica integral en desarrollo inmobiliario.", image: "/images/servicios/10-consultoria.png" },
 ]
 
 export default function ServiciosPage() {
@@ -40,33 +40,7 @@ export default function ServiciosPage() {
                     className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700 ease-out"
                     style={{ backgroundImage: `url(${s.image})` }}
                   />
-                  <div className="absolute inset-0 bg-brand-dark/20 group-hover:bg-transparent transition-colors duration-500" />
-                  
-                  {/* Badge con Número */}
-                  {parseInt(s.id) > 5 && (
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm text-brand-dark px-3 py-1 font-mono font-bold text-sm">
-                      {s.id}
-                    </div>
-                  )}
                 </div>
-
-                {/* Contenido */}
-                {parseInt(s.id) > 5 && (
-                  <div className="p-8 flex-1 flex flex-col">
-                    <h3 className="text-2xl font-bold text-brand-dark mb-4 tracking-tight group-hover:text-brand-sage transition-colors">
-                      {s.title}
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed font-light text-sm flex-1">
-                      {s.desc}
-                    </p>
-                    <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between">
-                      <span className="text-brand-dark font-bold text-xs uppercase tracking-widest group-hover:text-brand-sage transition-colors">Solicitar</span>
-                      <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-brand-sage group-hover:bg-brand-sage group-hover:text-white transition-colors">
-                        <ArrowRight size={14} />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )
           })}
