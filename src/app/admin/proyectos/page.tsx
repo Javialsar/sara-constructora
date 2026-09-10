@@ -1,8 +1,280 @@
-export default function AdminProyectos() { 
+"use client"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
+import { Plus, MapPin, Building2, Pencil, Trash2, X } from "lucide-react"
+
+export default function AdminProyectos() {
+  const [proyectos, setProyectos] = useState<any[]>([])
+  const [clientes, setClientes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    nombre: "",
+    ubicacion: "",
+    estado: "en_diseno",
+    latitud: "",
+    longitud: "",
+    cliente_id: ""
+  })
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setLoading(true)
+    // Cargar proyectos
+    const { data: dataProyectos, error: errProyectos } = await supabase
+      .from("proyectos")
+      .select(`*, clientes (nombre, apellido)`)
+      .order('created_at', { ascending: false })
+      
+    if (dataProyectos) setProyectos(dataProyectos)
+    
+    // Cargar clientes para el selector
+    const { data: dataClientes } = await supabase
+      .from("clientes")
+      .select("id, nombre, apellido")
+      
+    if (dataClientes) setClientes(dataClientes)
+    
+    setLoading(false)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const payload = {
+      nombre: formData.nombre,
+      ubicacion: formData.ubicacion,
+      estado: formData.estado,
+      latitud: formData.latitud ? parseFloat(formData.latitud) : null,
+      longitud: formData.longitud ? parseFloat(formData.longitud) : null,
+      cliente_id: formData.cliente_id || null
+    }
+
+    const { error } = await supabase.from("proyectos").insert([payload])
+    
+    if (!error) {
+      setIsModalOpen(false)
+      setFormData({ nombre: "", ubicacion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "" })
+      fetchData()
+    } else {
+      alert("Error al guardar el proyecto: " + error.message)
+    }
+  }
+
+  const getStatusColor = (estado: string) => {
+    switch (estado) {
+      case 'en_diseno': return 'bg-yellow-100 text-yellow-800'
+      case 'en_construccion': return 'bg-blue-100 text-blue-800'
+      case 'finalizado': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getStatusLabel = (estado: string) => {
+    switch (estado) {
+      case 'en_diseno': return 'En Diseño'
+      case 'en_construccion': return 'En Construcción'
+      case 'finalizado': return 'Finalizado'
+      default: return estado
+    }
+  }
+
   return (
-    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Gestión de Proyectos</h2>
-      <p className="text-gray-500">Módulo en construcción... Aquí podrás crear proyectos y agregar sus coordenadas (latitud y longitud).</p>
+    <div className="space-y-6 relative">
+      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Gestión de Proyectos</h2>
+          <p className="text-gray-500 text-sm mt-1">Administra todas las obras y ubícalas en el mapa.</p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-brand-dark hover:bg-brand-sage hover:text-brand-dark text-white px-4 py-2 rounded-lg font-bold transition-colors"
+        >
+          <Plus size={20} />
+          <span>Nuevo Proyecto</span>
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="p-12 flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-dark"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-500">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-100">
+                <tr>
+                  <th className="px-6 py-4 font-bold">Proyecto</th>
+                  <th className="px-6 py-4 font-bold">Cliente</th>
+                  <th className="px-6 py-4 font-bold">Ubicación</th>
+                  <th className="px-6 py-4 font-bold">Estado</th>
+                  <th className="px-6 py-4 font-bold text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {proyectos.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                      <Building2 size={48} className="mx-auto mb-3 opacity-20" />
+                      <p>No hay proyectos registrados aún.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  proyectos.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-gray-900">{p.nombre}</p>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-600">
+                        {p.clientes ? `${p.clientes.nombre} ${p.clientes.apellido}` : <span className="text-gray-400 italic">Sin asignar</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-1">
+                          <MapPin size={14} className="text-brand-sage" />
+                          <span>{p.ubicacion}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusColor(p.estado)}`}>
+                          {getStatusLabel(p.estado)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right space-x-2">
+                        <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                          <Pencil size={16} />
+                        </button>
+                        <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal Nuevo Proyecto */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-xl font-bold text-brand-dark">Crear Nuevo Proyecto</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-gray-700">Nombre del Proyecto *</label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Ej. Casa Familia Pérez"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-gray-700">Cliente Asignado</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white"
+                    value={formData.cliente_id}
+                    onChange={(e) => setFormData({...formData, cliente_id: e.target.value})}
+                  >
+                    <option value="">-- Ninguno (Proyecto Público) --</option>
+                    {clientes.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-sm font-bold text-gray-700">Ciudad / Sector *</label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Ej. Cariamanga, Barrio Central"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
+                    value={formData.ubicacion}
+                    onChange={(e) => setFormData({...formData, ubicacion: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-bold text-gray-700">Estado Actual</label>
+                  <select 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white"
+                    value={formData.estado}
+                    onChange={(e) => setFormData({...formData, estado: e.target.value})}
+                  >
+                    <option value="en_diseno">En Diseño</option>
+                    <option value="en_construccion">En Construcción</option>
+                    <option value="finalizado">Finalizado</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1 md:col-span-2 mt-4 pt-4 border-t border-gray-100">
+                  <h4 className="font-bold text-brand-dark mb-2">Coordenadas del Mapa</h4>
+                  <p className="text-xs text-gray-500 mb-4">Ingresa las coordenadas de Google Maps para que aparezca en el mapa de proyectos (opcional).</p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-bold text-gray-700">Latitud</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ej. -4.3276"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
+                        value={formData.latitud}
+                        onChange={(e) => setFormData({...formData, latitud: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-bold text-gray-700">Longitud</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ej. -79.5447"
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
+                        value={formData.longitud}
+                        onChange={(e) => setFormData({...formData, longitud: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-8">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="px-6 py-2.5 rounded-lg font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors"
+                >
+                  Guardar Proyecto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
-  ) 
+  )
 }
