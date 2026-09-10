@@ -17,75 +17,70 @@ export default function Hero() {
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop')" }}
       />
       
-      {/* Lighter gradient overlay for better visibility of the background image (Reduced to ~30% intensity as requested) */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/50 via-brand-dark/30 to-transparent" />
-      <div className="absolute inset-0 z-10 bg-black/10" />
+      {/* Smooth linear gradient from left to right for text readability without blocking the house */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/90 via-brand-dark/40 to-transparent w-full md:w-[120%]" />
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
 
-        <div className="max-w-3xl relative">
-          {/* Glassmorphism Panel */}
-          <div className="absolute inset-0 bg-brand-dark/40 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl -z-10" />
+        <div className="max-w-3xl space-y-8 md:pl-8">
           
-          <div className="p-8 md:p-12 space-y-8 relative z-10">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="flex flex-col items-start gap-6"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-px bg-brand-sage" />
-                <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
-                  Ingeniería · Arquitectura · Construcción
-                </h2>
-              </div>
-            </motion.div>
-            
-            <div className="space-y-4">
-              <motion.h1 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-lg"
-              >
-                DISEÑAMOS <span className="font-light italic text-brand-sage">IDEAS.</span><br />
-                CONSTRUIMOS FUTURO.
-              </motion.h1>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="flex flex-col items-start gap-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-px bg-brand-sage" />
+              <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
+                Ingeniería · Arquitectura · Construcción
+              </h2>
             </div>
-            
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
+          </motion.div>
+          
+          <div className="space-y-4">
+            <motion.h1 
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-md"
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl"
             >
-              Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.
-            </motion.p>
-
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className="flex flex-col sm:flex-row items-center gap-6 pt-6"
-            >
-              <Button variant="sage" size="lg" className="w-full sm:w-auto group relative overflow-hidden bg-brand-sage text-brand-dark hover:text-white transition-colors shadow-lg" asChild>
-                <Link href="/contacto">
-                  <span className="relative z-10 flex items-center gap-2">
-                    Solicitar Cotización <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-brand-dark scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 ease-out z-0" />
-                </Link>
-              </Button>
-              
-              <Link href="/proyectos" className="group flex items-center gap-3 text-white text-sm font-bold uppercase tracking-widest hover:text-brand-sage transition-colors drop-shadow-md">
-                <span className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center group-hover:border-brand-sage bg-white/5 backdrop-blur-sm transition-colors">
-                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                </span>
-                Conocer Proyectos
-              </Link>
-            </motion.div>
+              DISEÑAMOS <span className="font-light italic text-brand-sage">IDEAS.</span><br />
+              CONSTRUIMOS FUTURO.
+            </motion.h1>
           </div>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg"
+          >
+            Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="flex flex-col sm:flex-row items-center gap-6 pt-6"
+          >
+            <Button variant="sage" size="lg" className="w-full sm:w-auto group relative overflow-hidden bg-brand-sage text-brand-dark hover:text-white transition-colors shadow-xl" asChild>
+              <Link href="/contacto">
+                <span className="relative z-10 flex items-center gap-2">
+                  Solicitar Cotización <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </span>
+                <div className="absolute inset-0 bg-brand-dark scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 ease-out z-0" />
+              </Link>
+            </Button>
+            
+            <Link href="/proyectos" className="group flex items-center gap-3 text-white text-sm font-bold uppercase tracking-widest hover:text-brand-sage transition-colors drop-shadow-lg">
+              <span className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center group-hover:border-brand-sage bg-white/5 backdrop-blur-sm transition-colors">
+                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              </span>
+              Conocer Proyectos
+            </Link>
+          </motion.div>
         </div>
       </div>
       

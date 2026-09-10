@@ -15,10 +15,10 @@ export default function SplashScreen() {
     if (hasSeenSplash) {
       setIsVisible(false)
     } else {
-      // Hide automatically after 3 seconds
+      // Hide automatically after 1.5 seconds
       const timer = setTimeout(() => {
         handleSkip()
-      }, 3500)
+      }, 1500)
       return () => clearTimeout(timer)
     }
   }, [])
@@ -45,7 +45,7 @@ export default function SplashScreen() {
           <motion.div
             animate={{ rotateY: 360 }}
             transition={{ 
-              duration: 2.5, 
+              duration: 1.5, 
               ease: "easeInOut",
               repeat: Infinity,
               repeatType: "loop"
