@@ -14,11 +14,6 @@ export const metadata: Metadata = {
   keywords: "SARA Constructora, Constructora Cariamanga, Constructora en Cariamanga, Constructora Loja, Arquitectura Cariamanga, Arquitectos Cariamanga, Ingeniería Civil Cariamanga, Ingeniería Civil Loja",
 };
 
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import MobileActionBar from "@/components/layout/MobileActionBar";
-import SplashScreen from "@/components/ui/SplashScreen";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,13 +22,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={montserrat.variable}>
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
-        <SplashScreen />
-        <Header />
-        <main className="flex-1">
-          {children}
-        </main>
-        <Footer />
-        <MobileActionBar />
+        {children}
       </body>
     </html>
   );

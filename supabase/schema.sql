@@ -68,12 +68,24 @@ CREATE TABLE IF NOT EXISTS cotizaciones (
   created_at timestamptz DEFAULT now()
 );
 
+-- 6. TABLA: Testimonios (Comentarios y Calificaciones de los Clientes)
+CREATE TABLE IF NOT EXISTS testimonios (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  cliente_id uuid REFERENCES clientes(id) ON DELETE CASCADE,
+  proyecto_id uuid REFERENCES proyectos(id),
+  comentario text NOT NULL,
+  calificacion integer NOT NULL CHECK (calificacion >= 1 AND calificacion <= 5),
+  estado text DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobado', 'rechazado')),
+  created_at timestamptz DEFAULT now()
+);
+
 -- Habilitar Row Level Security (RLS)
 ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proyectos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE avances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE solicitudes_servicio ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cotizaciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE testimonios ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de acceso público para insertar (registro y contacto)
 CREATE POLICY "Permitir registro de clientes" ON clientes
