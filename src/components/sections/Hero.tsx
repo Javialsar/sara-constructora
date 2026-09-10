@@ -17,9 +17,9 @@ export default function Hero() {
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop')" }}
       />
       
-      {/* Lighter gradient overlay for better visibility of the background image */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/90 via-brand-dark/40 to-transparent" />
-      <div className="absolute inset-0 z-10 bg-black/10" /> {/* Subtle overall darkening to ensure text is readable */}
+      {/* Lighter gradient overlay for better visibility of the background image (Reduced to ~30% intensity as requested) */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/50 via-brand-dark/30 to-transparent" />
+      <div className="absolute inset-0 z-10 bg-black/10" />
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
 
