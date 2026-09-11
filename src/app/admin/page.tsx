@@ -1,110 +1,161 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
-import { Building2, Users, FileCheck, Star, ArrowUpRight, Activity } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
+import { 
+  Building2, 
+  Users, 
+  FileCheck, 
+  Star,
+  ArrowUpRight
+} from "lucide-react"
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts"
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
     proyectosActivos: 0,
     clientesRegistrados: 0,
     cotizacionesPendientes: 0,
-    testimoniosNuevos: 0
+    testimoniosPendientes: 0,
   })
-
-  const [projectStatusData, setProjectStatusData] = useState([
-    { name: 'En Diseño', value: 0, color: '#83A881' },
-    { name: 'En Construcción', value: 0, color: '#1F422F' },
-    { name: 'Finalizados', value: 0, color: '#0D0D0D' },
-  ])
-
-  const [actividad, setActividad] = useState<any[]>([])
+  const [projectStatusData, setProjectStatusData] = useState<any[]>([])
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Para el gráfico de barras dejaremos datos fijos o semi-fijos por simplicidad,
-  // ya que requeriría cruzar fechas, pero lo ideal es mapearlo si se desea.
-  const monthlyData = [
-    { name: 'Ene', proyectos: 2, clientes: 4 },
-    { name: 'Feb', proyectos: 3, clientes: 3 },
-    { name: 'Mar', proyectos: 1, clientes: 5 },
-    { name: 'Abr', proyectos: 4, clientes: 8 },
-    { name: 'May', proyectos: 2, clientes: 6 },
-    { name: 'Jun', proyectos: 5, clientes: 10 },
-  ]
-
   useEffect(() => {
-    async function fetchDashboardData() {
-      // 1. Proyectos (Activos y breakdown)
-      const { data: proyectos } = await supabase.from('proyectos').select('estado, created_at')
-      let enDiseno = 0, enConstruccion = 0, finalizados = 0;
-      if (proyectos) {
-        proyectos.forEach(p => {
-          if (p.estado === 'en_diseno') enDiseno++;
-          else if (p.estado === 'en_construccion') enConstruccion++;
-          else if (p.estado === 'finalizado') finalizados++;
-        })
-      }
-
-      // 2. Clientes
-      const { count: clientesCount } = await supabase.from('clientes').select('*', { count: 'exact', head: true })
-      
-      // 3. Cotizaciones Pendientes
-      const { count: cotiCount } = await supabase.from('cotizaciones').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente')
-      
-      // 4. Testimonios Pendientes
-      const { count: testCount } = await supabase.from('testimonios').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente')
-
-      setStats({
-        proyectosActivos: enDiseno + enConstruccion,
-        clientesRegistrados: clientesCount || 0,
-        cotizacionesPendientes: cotiCount || 0,
-        testimoniosNuevos: testCount || 0
-      })
-
-      setProjectStatusData([
-        { name: 'En Diseño', value: enDiseno, color: '#83A881' },
-        { name: 'En Construcción', value: enConstruccion, color: '#1F422F' },
-        { name: 'Finalizados', value: finalizados, color: '#0D0D0D' },
-      ])
-
-      // 5. Actividad Reciente (Últimas 5 cotizaciones y testimonios)
-      const { data: ultimasCoti } = await supabase.from('cotizaciones').select('id, nombre, tipo_proyecto, estado, created_at').order('created_at', { ascending: false }).limit(3)
-      const { data: ultimosTest } = await supabase.from('testimonios').select('id, comentario, estado, created_at, clientes(nombre, apellido)').order('created_at', { ascending: false }).limit(3)
-
-      let combinada: any[] = []
-      
-      if (ultimasCoti) {
-        ultimasCoti.forEach(c => combinada.push({
-          id: `cot-${c.id}`,
-          usuario: c.nombre,
-          accion: `Solicitó cotización de ${c.tipo_proyecto}`,
-          fecha: new Date(c.created_at),
-          estado: c.estado,
-          tipo: 'cotizacion'
-        }))
-      }
-      
-      if (ultimosTest) {
-        ultimosTest.forEach(t => {
-          const cliente = Array.isArray(t.clientes) ? t.clientes[0] : t.clientes;
-          combinada.push({
-            id: `test-${t.id}`,
-            usuario: cliente ? `${(cliente as any).nombre} ${(cliente as any).apellido}` : 'Cliente Desconocido',
-            accion: `Dejó un testimonio`,
-            fecha: new Date(t.created_at),
-            estado: t.estado,
-            tipo: 'testimonio'
-          })
-        })
-      }
-
-      combinada.sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
-      setActividad(combinada.slice(0, 5))
-      setLoading(false)
-    }
-
     fetchDashboardData()
   }, [])
+
+  const fetchDashboardData = async () => {
+    setLoading(true)
+
+    // 1. Proyectos activos (en_diseno + en_construccion)
+    const { data: proyectos } = await supabase.from("proyectos").select("id, estado")
+    const totalProyectos = proyectos?.filter(p => p.estado === 'en_diseno' || p.estado === 'en_construccion').length || 0
+    const enDiseno = proyectos?.filter(p => p.estado === 'en_diseno').length || 0
+    const enConstruccion = proyectos?.filter(p => p.estado === 'en_construccion').length || 0
+    const finalizados = proyectos?.filter(p => p.estado === 'finalizado').length || 0
+
+    // 2. Clientes registrados
+    const { count: totalClientes } = await supabase.from("clientes").select("id", { count: 'exact', head: true })
+
+    // 3. Cotizaciones pendientes
+    const { count: cotPendientes } = await supabase.from("cotizaciones").select("id", { count: 'exact', head: true }).eq("estado", "pendiente")
+
+    // 4. Testimonios pendientes
+    const { count: testPendientes } = await supabase.from("testimonios").select("id", { count: 'exact', head: true }).eq("estado", "pendiente")
+
+    setStats({
+      proyectosActivos: totalProyectos,
+      clientesRegistrados: totalClientes || 0,
+      cotizacionesPendientes: cotPendientes || 0,
+      testimoniosPendientes: testPendientes || 0,
+    })
+
+    setProjectStatusData([
+      { name: 'En Diseño', value: enDiseno, color: '#83A881' },
+      { name: 'En Construcción', value: enConstruccion, color: '#1F422F' },
+      { name: 'Finalizados', value: finalizados, color: '#0D0D0D' },
+    ])
+
+    // 5. Actividad reciente: combinar las últimas cotizaciones, testimonios y clientes
+    const activities: any[] = []
+
+    const { data: recentCotizaciones } = await supabase
+      .from("cotizaciones")
+      .select("id, nombre, tipo_proyecto, estado, created_at")
+      .order("created_at", { ascending: false })
+      .limit(3)
+
+    recentCotizaciones?.forEach(c => {
+      activities.push({
+        id: `cot-${c.id}`,
+        nombre: c.nombre,
+        accion: `Solicitó cotización de "${c.tipo_proyecto}"`,
+        fecha: c.created_at,
+        estado: c.estado,
+      })
+    })
+
+    const { data: recentTestimonios } = await supabase
+      .from("testimonios")
+      .select("id, estado, created_at, clientes(nombre, apellido)")
+      .order("created_at", { ascending: false })
+      .limit(3)
+
+    recentTestimonios?.forEach(t => {
+      const clienteNombre = t.clientes ? `${(t.clientes as any).nombre} ${(t.clientes as any).apellido}` : 'Cliente'
+      activities.push({
+        id: `test-${t.id}`,
+        nombre: clienteNombre,
+        accion: 'Dejó un testimonio',
+        fecha: t.created_at,
+        estado: t.estado,
+      })
+    })
+
+    const { data: recentClientes } = await supabase
+      .from("clientes")
+      .select("id, nombre, apellido, estado, created_at")
+      .order("created_at", { ascending: false })
+      .limit(3)
+
+    recentClientes?.forEach(c => {
+      activities.push({
+        id: `cli-${c.id}`,
+        nombre: `${c.nombre} ${c.apellido}`,
+        accion: 'Se registró en el portal de clientes',
+        fecha: c.created_at,
+        estado: c.estado,
+      })
+    })
+
+    // Ordenar por fecha más reciente
+    activities.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+    setRecentActivity(activities.slice(0, 6))
+
+    setLoading(false)
+  }
+
+  const getStatusBadge = (estado: string) => {
+    switch (estado) {
+      case 'pendiente': return 'bg-yellow-100 text-yellow-800'
+      case 'aprobado': case 'aprobada': case 'activo': return 'bg-green-100 text-green-800'
+      case 'rechazado': case 'rechazada': case 'inactivo': return 'bg-red-100 text-red-800'
+      case 'cotizada': return 'bg-blue-100 text-blue-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const timeAgo = (dateStr: string) => {
+    const now = new Date()
+    const date = new Date(dateStr)
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (diff < 60) return 'Hace unos segundos'
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} horas`
+    if (diff < 172800) return 'Ayer'
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-dark"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -123,7 +174,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="mt-auto flex items-center gap-1 text-sm text-green-600 font-medium">
             <ArrowUpRight size={16} />
-            <span>Actualizado</span>
+            <span>En diseño o construcción</span>
           </div>
         </div>
 
@@ -139,7 +190,7 @@ export default function AdminDashboardPage() {
           </div>
           <div className="mt-auto flex items-center gap-1 text-sm text-green-600 font-medium">
             <ArrowUpRight size={16} />
-            <span>Actualizado</span>
+            <span>Total registrados</span>
           </div>
         </div>
 
@@ -154,7 +205,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           <div className="mt-auto flex items-center gap-1 text-sm text-orange-600 font-medium">
-            <span>Requieren atención</span>
+            <span>{stats.cotizacionesPendientes > 0 ? 'Requieren atención' : 'Todo al día'}</span>
           </div>
         </div>
 
@@ -162,14 +213,14 @@ export default function AdminDashboardPage() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-gray-500 text-sm font-medium mb-1">Testimonios Nuevos</p>
-              <h3 className="text-3xl font-bold text-brand-black">{stats.testimoniosNuevos}</h3>
+              <h3 className="text-3xl font-bold text-brand-black">{stats.testimoniosPendientes}</h3>
             </div>
             <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600">
               <Star size={20} />
             </div>
           </div>
           <div className="mt-auto flex items-center gap-1 text-sm text-gray-500 font-medium">
-            <span>Pendientes de aprobar</span>
+            <span>{stats.testimoniosPendientes > 0 ? 'Pendientes de aprobar' : 'Sin pendientes'}</span>
           </div>
         </div>
       </div>
@@ -177,51 +228,38 @@ export default function AdminDashboardPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Bar Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-2">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Crecimiento Mensual</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#6B7280'}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#6B7280'}} />
-                <Tooltip 
-                  cursor={{fill: '#F3F4F6'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-                <Bar dataKey="clientes" name="Nuevos Clientes" fill="#83A881" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="proyectos" name="Nuevos Proyectos" fill="#1F422F" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Pie Chart */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        {/* Pie Chart - Estado de Proyectos */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-1">
           <h3 className="text-lg font-bold text-gray-800 mb-6">Estado de Proyectos</h3>
           <div className="h-72 flex flex-col items-center">
-            <ResponsiveContainer width="100%" height="80%">
-              <PieChart>
-                <Pie
-                  data={projectStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {projectStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {projectStatusData.every(d => d.value === 0) ? (
+              <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+                No hay proyectos registrados aún.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="80%">
+                <PieChart>
+                  <Pie
+                    data={projectStatusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {projectStatusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
             
+            {/* Custom Legend */}
             <div className="flex flex-col gap-2 w-full mt-2">
               {projectStatusData.map((item, i) => (
                 <div key={i} className="flex items-center justify-between text-sm">
@@ -236,54 +274,47 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-      </div>
-
-      {/* Recent Activity Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-800">Actividad Reciente</h3>
-          <Activity size={18} className="text-gray-400" />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-500">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-700">
-              <tr>
-                <th className="px-6 py-4 font-medium">Usuario / Cliente</th>
-                <th className="px-6 py-4 font-medium">Acción</th>
-                <th className="px-6 py-4 font-medium">Fecha</th>
-                <th className="px-6 py-4 font-medium">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
+        {/* Recent Activity Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden lg:col-span-2">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-gray-800">Actividad Reciente</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-gray-500">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-700">
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-400">Cargando actividad...</td>
+                  <th className="px-6 py-4 font-medium">Usuario / Cliente</th>
+                  <th className="px-6 py-4 font-medium">Acción</th>
+                  <th className="px-6 py-4 font-medium">Fecha</th>
+                  <th className="px-6 py-4 font-medium">Estado</th>
                 </tr>
-              ) : actividad.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-400">No hay actividad reciente.</td>
-                </tr>
-              ) : (
-                actividad.map(act => (
-                  <tr key={act.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{act.usuario}</td>
-                    <td className="px-6 py-4">{act.accion}</td>
-                    <td className="px-6 py-4">{act.fecha.toLocaleDateString()} {act.fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        act.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : 
-                        act.estado === 'aprobado' || act.estado === 'cotizada' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {act.estado}
-                      </span>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {recentActivity.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-400">
+                      No hay actividad reciente registrada.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  recentActivity.map((a) => (
+                    <tr key={a.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-gray-900">{a.nombre}</td>
+                      <td className="px-6 py-4">{a.accion}</td>
+                      <td className="px-6 py-4">{timeAgo(a.fecha)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge(a.estado)}`}>
+                          {a.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
       </div>
 
     </div>
