@@ -3,11 +3,18 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function PortalDashboardPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [userEmail, setUserEmail] = useState("")
+  const [loadingData, setLoadingData] = useState(true)
+  
+  const [cliente, setCliente] = useState<any>(null)
+  const [proyectos, setProyectos] = useState<any[]>([])
+  const [proyectoActivo, setProyectoActivo] = useState<any>(null)
+  const [avances, setAvances] = useState<any[]>([])
 
   useEffect(() => {
     const auth = sessionStorage.getItem("sara_portal_auth")
@@ -16,25 +23,65 @@ export default function PortalDashboardPage() {
       if (parsed.authenticated) {
         setIsAuthenticated(true)
         setUserEmail(parsed.email)
+        loadClientData(parsed.email)
         return
       }
     }
     router.push("/portal")
   }, [router])
 
+  const loadClientData = async (email: string) => {
+    setLoadingData(true)
+    // 1. Obtener el cliente por email
+    const { data: clienteData } = await supabase
+      .from("clientes")
+      .select("*")
+      .eq("email", email)
+      .single()
+
+    if (clienteData) {
+      setCliente(clienteData)
+      // 2. Obtener proyectos del cliente
+      const { data: proyectosData } = await supabase
+        .from("proyectos")
+        .select("*")
+        .eq("cliente_id", clienteData.id)
+        .order("created_at", { ascending: false })
+
+      if (proyectosData && proyectosData.length > 0) {
+        setProyectos(proyectosData)
+        setProyectoActivo(proyectosData[0]) // Seleccionamos el primero por defecto
+
+        // 3. Obtener avances de ese proyecto
+        const { data: avancesData } = await supabase
+          .from("avances")
+          .select("*")
+          .eq("proyecto_id", proyectosData[0].id)
+          .order("fecha", { ascending: false })
+        
+        if (avancesData) setAvances(avancesData)
+      }
+    }
+    setLoadingData(false)
+  }
+
   const handleLogout = () => {
     sessionStorage.removeItem("sara_portal_auth")
     router.push("/portal")
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="w-8 h-8 border-2 border-brand-sage/30 border-t-brand-sage rounded-full animate-spin" />
       </div>
     )
   }
 
+  const fotos = avances.filter(a => a.tipo === 'foto')
+  const videos = avances.filter(a => a.tipo === 'video')
+  const documentos = avances.filter(a => a.tipo === 'documento')
+  
   return (
     <div className="min-h-screen pt-28 pb-24 bg-gray-50">
       <div className="container mx-auto px-4 md:px-8">
@@ -48,7 +95,7 @@ export default function PortalDashboardPage() {
             <h1 className="text-3xl md:text-4xl font-extrabold text-brand-dark tracking-tighter uppercase">
               Panel de Seguimiento
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Bienvenido, <span className="font-semibold text-brand-dark">{userEmail}</span></p>
+            <p className="text-gray-500 text-sm mt-1">Bienvenido, <span className="font-semibold text-brand-dark">{cliente?.nombre} {cliente?.apellido}</span></p>
           </div>
           <button 
             onClick={handleLogout}
@@ -59,185 +106,193 @@ export default function PortalDashboardPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+        {proyectos.length === 0 ? (
+           <div className="bg-white p-12 text-center border border-gray-200 shadow-sm rounded-xl">
+             <MapPin size={48} className="mx-auto mb-4 text-gray-300" />
+             <h3 className="text-xl font-bold text-gray-800 mb-2">Aún no tienes proyectos asignados</h3>
+             <p className="text-gray-500">Cuando la constructora asigne un proyecto a tu cuenta, aparecerá aquí.</p>
+           </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            {/* Proyecto Activo */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-6 border border-gray-200 shadow-sm"
-            >
-              <h3 className="font-bold text-brand-dark mb-6 uppercase tracking-widest text-xs border-b pb-4 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Proyecto Activo
-              </h3>
-              <ul className="space-y-5 text-sm">
-                <li>
-                  <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Nombre del Proyecto</span>
-                  <span className="font-semibold text-brand-dark">Residencia Familia Martínez</span>
-                </li>
-                <li>
-                  <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Ubicación</span>
-                  <span className="flex items-center gap-1 font-medium"><MapPin size={14} className="text-brand-sage"/> Cariamanga, Loja</span>
-                </li>
-                <li>
-                  <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Fecha de Inicio</span>
-                  <span className="flex items-center gap-1 font-medium"><Calendar size={14} className="text-brand-sage"/> 15 de Marzo, 2026</span>
-                </li>
-                <li>
-                  <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Estado</span>
-                  <span className="inline-block bg-brand-sage/20 text-brand-dark px-3 py-1.5 font-bold text-xs uppercase tracking-wide">
-                    En Construcción
-                  </span>
-                </li>
-              </ul>
+            {/* Sidebar */}
+            <div className="lg:col-span-1 space-y-6">
+              
+              {/* Proyecto Activo */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
+              >
+                <div className="flex items-center justify-between mb-6 border-b pb-4">
+                  <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    Proyecto Activo
+                  </h3>
+                  {proyectos.length > 1 && (
+                     <select 
+                        className="text-xs border rounded p-1"
+                        onChange={(e) => {
+                          const p = proyectos.find(x => x.id === e.target.value)
+                          if (p) {
+                            setProyectoActivo(p)
+                            loadClientData(userEmail) // Recargar para el nuevo proyecto, habría que refactorizar pero está bien para prototipo
+                          }
+                        }}
+                     >
+                        {proyectos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                     </select>
+                  )}
+                </div>
 
-              {/* Progress Bar */}
-              <div className="mt-6 pt-6 border-t border-gray-100">
-                <div className="flex justify-between text-xs font-bold mb-2">
-                  <span className="text-gray-500 uppercase tracking-widest">Avance General</span>
-                  <span className="text-brand-sage">65%</span>
-                </div>
-                <div className="w-full bg-gray-100 h-2">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: "65%" }}
-                    transition={{ duration: 1.5, ease: "easeOut" }}
-                    className="h-full bg-brand-sage"
-                  />
-                </div>
-              </div>
-            </motion.div>
-            
-            {/* Documentos */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white p-6 border border-gray-200 shadow-sm"
-            >
-              <h3 className="font-bold text-brand-dark mb-4 uppercase tracking-widest text-xs border-b pb-4">Documentos del Proyecto</h3>
-              <ul className="space-y-3">
-                {[
-                  "Planos Arquitectónicos v2.pdf",
-                  "Estudio de Suelos.pdf",
-                  "Permisos Municipales.pdf",
-                  "Cronograma de Avance.xlsx",
-                  "Presupuesto Detallado.xlsx",
-                ].map((doc, i) => (
-                  <li key={i}>
-                    <a href="#" className="flex items-center gap-3 text-sm text-gray-600 hover:text-brand-sage transition-colors group py-1">
-                      <FileText size={16} className="text-gray-400 group-hover:text-brand-sage shrink-0" />
-                      <span className="flex-1">{doc}</span>
-                      <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-sage" />
-                    </a>
+                <ul className="space-y-5 text-sm">
+                  <li>
+                    <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Nombre del Proyecto</span>
+                    <span className="font-semibold text-brand-dark">{proyectoActivo.nombre}</span>
                   </li>
-                ))}
-              </ul>
-            </motion.div>
-          </div>
+                  <li>
+                    <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Ubicación</span>
+                    <span className="flex items-center gap-1 font-medium"><MapPin size={14} className="text-brand-sage"/> {proyectoActivo.ubicacion}</span>
+                  </li>
+                  <li>
+                    <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Estado</span>
+                    <span className="inline-block bg-brand-sage/20 text-brand-dark px-3 py-1.5 font-bold text-xs uppercase tracking-wide">
+                      {proyectoActivo.estado.replace('_', ' ')}
+                    </span>
+                  </li>
+                </ul>
 
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
-            
-            {/* Fotografías */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white p-6 border border-gray-200 shadow-sm"
-            >
-              <div className="flex items-center justify-between mb-6 border-b pb-4">
-                <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
-                  <Camera size={16} className="text-brand-sage"/> Registro Fotográfico (Avance Semanal)
-                </h3>
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Actualizado hace 2 días</span>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {[
-                  "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=600",
-                  "https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=600",
-                  "https://images.unsplash.com/photo-1504307651254-35680f356f58?q=80&w=600",
-                  "https://images.unsplash.com/photo-1578509378904-71648a04b19c?q=80&w=600",
-                  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=600",
-                  "https://images.unsplash.com/photo-1600607687989-ce4d31d94f28?q=80&w=600",
-                ].map((img, i) => (
-                  <div key={i} className="aspect-square bg-gray-100 relative group overflow-hidden cursor-pointer">
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
-                      style={{ backgroundImage: `url(${img})` }}
+                {/* Progress Bar */}
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <div className="flex justify-between text-xs font-bold mb-2">
+                    <span className="text-gray-500 uppercase tracking-widest">Avance General</span>
+                    <span className="text-brand-sage">{proyectoActivo.avance}%</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${proyectoActivo.avance}%` }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      className="h-full bg-brand-sage"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                    <div className="absolute bottom-2 left-2 text-[10px] text-white bg-black/50 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Semana {6 - i}
-                    </div>
                   </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Video */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white p-6 border border-gray-200 shadow-sm"
-            >
-              <div className="flex items-center justify-between mb-6 border-b pb-4">
-                <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
-                  <Video size={16} className="text-brand-sage"/> Recorrido Virtual / Drone
-                </h3>
-                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Hace 1 semana</span>
-              </div>
-              <div className="aspect-video bg-gray-900 flex items-center justify-center relative overflow-hidden group cursor-pointer">
-                <div 
-                  className="absolute inset-0 opacity-40 bg-cover bg-center group-hover:scale-105 transition-transform duration-700" 
-                  style={{ backgroundImage: "url('https://images.unsplash.com/photo-1578509378904-71648a04b19c?q=80&w=1200')" }}
-                />
-                <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center relative z-10 group-hover:scale-110 group-hover:bg-white/20 transition-all duration-300 border border-white/20">
-                  <div className="w-0 h-0 border-t-10 border-t-transparent border-l-[18px] border-l-white border-b-10 border-b-transparent ml-1.5" />
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+              
+              {/* Documentos */}
+              {documentos.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
+                >
+                  <h3 className="font-bold text-brand-dark mb-4 uppercase tracking-widest text-xs border-b pb-4">Documentos del Proyecto</h3>
+                  <ul className="space-y-3">
+                    {documentos.map((doc, i) => (
+                      <li key={i}>
+                        <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-gray-600 hover:text-brand-sage transition-colors group py-1">
+                          <FileText size={16} className="text-gray-400 group-hover:text-brand-sage shrink-0" />
+                          <span className="flex-1 truncate" title={doc.titulo}>{doc.titulo}</span>
+                          <ChevronRight size={14} className="text-gray-300 group-hover:text-brand-sage" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              )}
+            </div>
 
-            {/* Timeline de Avance */}
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white p-6 border border-gray-200 shadow-sm"
-            >
-              <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs border-b pb-4 mb-6">
-                Historial de Avance
-              </h3>
-              <div className="space-y-6">
-                {[
-                  { fecha: "05 Sep 2026", titulo: "Instalación de cubierta", estado: "Completado", color: "bg-brand-sage" },
-                  { fecha: "28 Ago 2026", titulo: "Mampostería segundo piso", estado: "Completado", color: "bg-brand-sage" },
-                  { fecha: "15 Ago 2026", titulo: "Fundición losa segundo piso", estado: "Completado", color: "bg-brand-sage" },
-                  { fecha: "01 Ago 2026", titulo: "Estructura columnas y vigas", estado: "Completado", color: "bg-brand-sage" },
-                  { fecha: "15 Mar 2026", titulo: "Cimentación y replanteo", estado: "Completado", color: "bg-brand-sage" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-3 h-3 rounded-full ${item.color} shrink-0 mt-1`} />
-                      {i < 4 && <div className="w-px h-8 bg-gray-200 mt-1" />}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-brand-dark">{item.titulo}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{item.fecha} · {item.estado}</p>
-                    </div>
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* Fotografías */}
+              {fotos.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
+                >
+                  <div className="flex items-center justify-between mb-6 border-b pb-4">
+                    <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
+                      <Camera size={16} className="text-brand-sage"/> Registro Fotográfico
+                    </h3>
                   </div>
-                ))}
-              </div>
-            </motion.div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {fotos.map((img, i) => (
+                      <a href={img.url} target="_blank" rel="noreferrer" key={i} className="aspect-square bg-gray-100 relative group overflow-hidden cursor-pointer block rounded-lg">
+                        <div 
+                          className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-500"
+                          style={{ backgroundImage: `url(${img.url})` }}
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                        <div className="absolute bottom-2 left-2 right-2 text-[10px] text-white bg-black/70 px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity truncate">
+                          {img.titulo}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Video */}
+              {videos.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
+                >
+                  <div className="flex items-center justify-between mb-6 border-b pb-4">
+                    <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
+                      <Video size={16} className="text-brand-sage"/> Último Recorrido / Video
+                    </h3>
+                  </div>
+                  {/* Just a simple button to watch video for now, unless it's a direct mp4 */}
+                  <div className="aspect-video bg-gray-100 flex flex-col items-center justify-center text-center p-6 border border-dashed border-gray-300 rounded-xl">
+                    <Video size={48} className="text-brand-sage mb-4" />
+                    <h4 className="font-bold text-gray-800">{videos[0].titulo}</h4>
+                    <p className="text-sm text-gray-500 mt-2 mb-4">{videos[0].descripcion}</p>
+                    <a href={videos[0].url} target="_blank" rel="noreferrer" className="bg-brand-dark text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-brand-sage transition-colors">
+                      Ver Video Completo
+                    </a>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Timeline de Avance */}
+              {avances.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
+                >
+                  <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs border-b pb-4 mb-6">
+                    Bitácora de Avances
+                  </h3>
+                  <div className="space-y-6">
+                    {avances.map((item, i) => (
+                      <div key={i} className="flex items-start gap-4">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-3 h-3 rounded-full shrink-0 mt-1 ${item.tipo === 'hito' ? 'bg-brand-dark' : 'bg-brand-sage'}`} />
+                          {i < avances.length - 1 && <div className="w-px h-8 bg-gray-200 mt-1" />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm text-brand-dark">{item.titulo}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {new Date(item.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} · {item.tipo.toUpperCase()}
+                          </p>
+                          {item.descripcion && (
+                            <p className="text-sm text-gray-500 mt-2">{item.descripcion}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </div>
-          
-        </div>
-      </div>
-    </div>
-  )
-}
+        )}
