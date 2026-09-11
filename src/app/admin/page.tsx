@@ -85,14 +85,17 @@ export default function AdminDashboardPage() {
       }
       
       if (ultimosTest) {
-        ultimosTest.forEach(t => combinada.push({
-          id: `test-${t.id}`,
-          usuario: `${t.clientes?.nombre} ${t.clientes?.apellido}`,
-          accion: `Dejó un testimonio`,
-          fecha: new Date(t.created_at),
-          estado: t.estado,
-          tipo: 'testimonio'
-        }))
+        ultimosTest.forEach(t => {
+          const cliente = Array.isArray(t.clientes) ? t.clientes[0] : t.clientes;
+          combinada.push({
+            id: `test-${t.id}`,
+            usuario: cliente ? `${(cliente as any).nombre} ${(cliente as any).apellido}` : 'Cliente Desconocido',
+            accion: `Dejó un testimonio`,
+            fecha: new Date(t.created_at),
+            estado: t.estado,
+            tipo: 'testimonio'
+          })
+        })
       }
 
       combinada.sort((a, b) => b.fecha.getTime() - a.fecha.getTime())
