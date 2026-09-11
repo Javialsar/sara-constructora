@@ -1,24 +1,63 @@
-import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
+"use client"
+import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
+import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
-export const revalidate = 0; // Para que siempre busque los últimos proyectos en Vercel
+const getStatusLabel = (estado: string) => {
+  switch (estado) {
+    case 'en_diseno': return 'Diseño'
+    case 'en_construccion': return 'Construcción'
+    case 'finalizado': return 'Finalizado'
+    default: return estado.replace('_', ' ')
+  }
+}
 
-export default async function ProyectosPage() {
-  // Fetch from Supabase
-  const { data: proyectos } = await supabase
-    .from("proyectos")
-    .select("*")
-    .order("created_at", { ascending: false })
+export default function ProyectosPage() {
+  const [proyectos, setProyectos] = useState<any[]>([])
+  const [filtro, setFiltro] = useState("TODOS")
+  const [flyTo, setFlyTo] = useState<{ lat: number; lng: number; id: string } | null>(null)
+  const mapRef = useRef<HTMLDivElement>(null)
 
-  // Filtramos solo los que tienen coordenadas para el mapa
-  const proyectosConMapa = proyectos?.filter(p => p.latitud && p.longitud).map(p => ({
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from("proyectos")
+        .select("*")
+        .order("created_at", { ascending: false })
+
+      if (data) setProyectos(data)
+    }
+    load()
+  }, [])
+
+  const proyectosConMapa = proyectos.filter(p => p.latitud && p.longitud).map(p => ({
     id: p.id,
     title: p.nombre,
-    category: p.estado, // temporary
-    status: p.estado,
+    category: getStatusLabel(p.estado),
+    status: getStatusLabel(p.estado),
     lat: p.latitud,
     lng: p.longitud
-  })) || []
+  }))
+
+  const filteredProyectos = proyectos.filter(p => {
+    if (filtro === "TODOS") return true
+    if (filtro === "DISEÑO") return p.estado === 'en_diseno'
+    if (filtro === "CONSTRUCCIÓN") return p.estado === 'en_construccion'
+    if (filtro === "FINALIZADOS") return p.estado === 'finalizado'
+    return true
+  })
+
+  const handleCardClick = (project: any) => {
+    if (project.latitud && project.longitud) {
+      // Scroll suave al mapa
+      mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      
+      // Pequeño delay para que el scroll termine antes del flyTo
+      setTimeout(() => {
+        setFlyTo({ lat: project.latitud, lng: project.longitud, id: project.id })
+      }, 600)
+    }
+  }
 
   return (
     <div className="pt-24 pb-16 min-h-screen">
@@ -33,13 +72,13 @@ export default async function ProyectosPage() {
         </header>
 
         {/* Map Section */}
-        <section className="mb-20">
+        <section className="mb-20" ref={mapRef}>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-bold text-brand-black">Mapa de Proyectos</h3>
             <span className="text-sm font-bold bg-brand-sage text-brand-dark px-3 py-1 rounded">Visualización Global</span>
           </div>
           <div className="border border-gray-200 shadow-sm overflow-hidden bg-white">
-            <ProjectsMapClient projects={proyectosConMapa} />
+            <ProjectsMapClient projects={proyectosConMapa} flyTo={flyTo} />
           </div>
         </section>
 
@@ -47,16 +86,30 @@ export default async function ProyectosPage() {
         <section>
           <div className="flex gap-4 mb-8 overflow-x-auto pb-4 hide-scrollbar">
             {["TODOS", "DISEÑO", "CONSTRUCCIÓN", "FINALIZADOS"].map(filter => (
-              <button key={filter} className="whitespace-nowrap px-4 py-2 border border-gray-200 text-sm font-bold uppercase tracking-wider hover:bg-brand-dark hover:text-white transition-colors">
+              <button 
+                key={filter} 
+                onClick={() => setFiltro(filter)}
+                className={`whitespace-nowrap px-4 py-2 border text-sm font-bold uppercase tracking-wider transition-colors ${
+                  filtro === filter 
+                    ? 'bg-brand-dark text-white border-brand-dark' 
+                    : 'border-gray-200 text-gray-600 hover:bg-brand-dark hover:text-white'
+                }`}
+              >
                 {filter}
               </button>
             ))}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {proyectos && proyectos.length > 0 ? (
-              proyectos.map(project => (
-                <div key={project.id} className="group border border-gray-200 overflow-hidden bg-white hover:shadow-lg transition-shadow">
+            {filteredProyectos.length > 0 ? (
+              filteredProyectos.map(project => (
+                <div 
+                  key={project.id} 
+                  onClick={() => handleCardClick(project)}
+                  className={`group border border-gray-200 overflow-hidden bg-white hover:shadow-lg transition-all ${
+                    project.latitud && project.longitud ? 'cursor-pointer' : ''
+                  } ${flyTo?.id === project.id ? 'ring-2 ring-brand-sage shadow-lg' : ''}`}
+                >
                   <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
                      <div className="absolute inset-0 bg-brand-dark/5 group-hover:bg-transparent transition-colors z-10" />
                      {project.imagen_url ? (
@@ -64,13 +117,18 @@ export default async function ProyectosPage() {
                      ) : (
                        <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium">Sin imagen</div>
                      )}
+                     {project.latitud && project.longitud && (
+                       <div className="absolute bottom-3 right-3 z-20 bg-brand-dark/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                         📍 Ver en mapa
+                       </div>
+                     )}
                   </div>
                   <div className="p-6">
-                    <span className="text-xs font-bold text-brand-sage uppercase tracking-wider mb-2 block">{project.estado.replace('_', ' ')}</span>
+                    <span className="text-xs font-bold text-brand-sage uppercase tracking-wider mb-2 block">{getStatusLabel(project.estado)}</span>
                     <h4 className="text-xl font-bold text-brand-dark mb-4">{project.nombre}</h4>
                     <div className="flex items-center justify-between text-sm font-medium text-gray-500">
                       <span className="truncate">{project.ubicacion}</span>
-                      <span>2026</span>
+                      <span>{new Date(project.created_at).getFullYear()}</span>
                     </div>
                   </div>
                 </div>
