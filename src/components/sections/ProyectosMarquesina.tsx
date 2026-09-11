@@ -1,18 +1,44 @@
 "use client"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { supabase } from "@/lib/supabase"
 
-const proyectosDestacados = [
-  { id: 1, name: "Torre Empresarial ZENT", location: "Loja", status: "Finalizado", img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800" },
-  { id: 2, name: "Residencial Los Álamos", location: "Cariamanga", status: "En Construcción", img: "https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=800" },
-  { id: 3, name: "Complejo Deportivo", location: "Macará", status: "Diseño", img: "https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=800" },
-  { id: 4, name: "Edificio Vista Alta", location: "Loja", status: "Finalizado", img: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800" },
-  { id: 5, name: "Casa Hacienda", location: "Catamayo", status: "En Construcción", img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800" },
-]
+const getStatusLabel = (estado: string) => {
+  switch (estado) {
+    case 'en_diseno': return 'Diseño'
+    case 'en_construccion': return 'En Construcción'
+    case 'finalizado': return 'Finalizado'
+    default: return estado.replace('_', ' ')
+  }
+}
 
 export default function ProyectosMarquesina() {
-  // Duplicamos el array para crear el efecto infinito suave
-  const proyectos = [...proyectosDestacados, ...proyectosDestacados]
+  const [proyectosDB, setProyectosDB] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchProyectos() {
+      const { data } = await supabase
+        .from('proyectos')
+        .select('id, nombre, ubicacion, estado, imagen_url')
+        .order('created_at', { ascending: false })
+
+      if (data && data.length > 0) {
+        setProyectosDB(data)
+      }
+      setLoading(false)
+    }
+    fetchProyectos()
+  }, [])
+
+  // Si aún está cargando o no hay proyectos, no renderizar la sección
+  if (loading || proyectosDB.length === 0) {
+    return null
+  }
+
+  // Duplicamos el array para el efecto infinito
+  const proyectos = [...proyectosDB, ...proyectosDB]
 
   return (
     <section className="bg-white py-12 md:py-20 overflow-hidden border-t border-b border-gray-100">
@@ -37,7 +63,7 @@ export default function ProyectosMarquesina() {
           animate={{ x: ["0%", "-50%"] }}
           transition={{
             ease: "linear",
-            duration: 40, // Ajusta la velocidad aquí
+            duration: Math.max(20, proyectosDB.length * 8),
             repeat: Infinity,
           }}
         >
@@ -46,27 +72,33 @@ export default function ProyectosMarquesina() {
               key={`${proyecto.id}-${idx}`} 
               className="relative w-[300px] md:w-[450px] aspect-[4/3] group overflow-hidden bg-brand-black flex-shrink-0 cursor-pointer"
             >
-              <div 
-                className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700"
-                style={{ backgroundImage: `url(${proyecto.img})` }}
-              />
+              {proyecto.imagen_url ? (
+                <div 
+                  className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700"
+                  style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-brand-black flex items-center justify-center">
+                  <span className="text-white/20 text-6xl font-extrabold uppercase">{proyecto.nombre?.charAt(0)}</span>
+                </div>
+              )}
               {/* Overlays */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
               
               <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-between">
                 <div className="flex justify-between items-start">
                   <span className="bg-brand-sage text-brand-dark text-[10px] font-bold uppercase tracking-widest px-3 py-1">
-                    {proyecto.status}
+                    {getStatusLabel(proyecto.estado)}
                   </span>
                 </div>
                 
                 <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                   <h3 className="text-white font-bold text-xl md:text-2xl tracking-tight mb-1">
-                    {proyecto.name}
+                    {proyecto.nombre}
                   </h3>
                   <p className="text-gray-400 text-sm flex items-center gap-2">
                     <span className="w-4 h-[1px] bg-brand-sage inline-block" />
-                    {proyecto.location}
+                    {proyecto.ubicacion}
                   </p>
                 </div>
               </div>
