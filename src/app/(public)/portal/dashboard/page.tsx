@@ -296,3 +296,7 @@ export default function PortalDashboardPage() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
