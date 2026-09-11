@@ -121,7 +121,7 @@ export default function PortalDashboardPage() {
           /* VISTA DE LISTA DE PROYECTOS */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {proyectos.map((p) => {
-              const isActive = p.estado === 'ejecucion';
+              const isActive = p.estado === 'en_diseno' || p.estado === 'en_construccion';
               return (
                 <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
                   <div className="p-6 flex-1">
