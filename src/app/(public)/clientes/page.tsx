@@ -52,10 +52,14 @@ export default function ClientesPage() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {clientes.map((c) => (
-                <div key={c.id} className="aspect-video bg-gray-50 border border-gray-100 flex items-center justify-center grayscale hover:grayscale-0 transition-all opacity-80 hover:opacity-100 px-4 text-center">
-                  <span className="font-bold text-gray-600 text-sm md:text-base uppercase tracking-wider">
-                    {c.nombre} {c.apellido}
-                  </span>
+                <div key={c.id} className="aspect-video bg-white border border-gray-100 flex flex-col items-center justify-center grayscale hover:grayscale-0 transition-all opacity-80 hover:opacity-100 p-4 text-center overflow-hidden relative shadow-sm">
+                  {c.imagen_url ? (
+                    <img src={c.imagen_url} alt={`${c.nombre} ${c.apellido}`} className="w-full h-full object-contain p-2" />
+                  ) : (
+                    <span className="font-bold text-gray-400 text-sm md:text-base uppercase tracking-wider">
+                      {c.nombre} {c.apellido}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>

@@ -6,6 +6,19 @@ import { Users, Mail, Phone, ShieldCheck, ShieldAlert, MoreVertical } from "luci
 export default function AdminClientes() {
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
+  const [formData, setFormData] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    telefono: "",
+    usuario: "",
+    password: "",
+    imagen_url: ""
+  })
 
   useEffect(() => {
     fetchData()
@@ -119,9 +132,25 @@ export default function AdminClientes() {
                         </button>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
-                        {/* Botón de acciones adicionales (placeholder) */}
-                        <button className="p-2 text-gray-400 hover:text-brand-dark rounded-lg transition-colors">
-                          <MoreVertical size={18} />
+                        <button 
+                          onClick={() => {
+                            setEditId(c.id)
+                            setFormData({
+                              nombre: c.nombre,
+                              apellido: c.apellido,
+                              email: c.email,
+                              telefono: c.telefono,
+                              usuario: c.usuario,
+                              password: c.password,
+                              imagen_url: c.imagen_url || ""
+                            })
+                            setFile(null)
+                            setIsModalOpen(true)
+                          }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Subir Logo / Editar"
+                        >
+                          Editar Logo
                         </button>
                       </td>
                     </tr>
@@ -132,6 +161,104 @@ export default function AdminClientes() {
           </div>
         )}
       </div>
+
+      {/* Modal Logo */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-xl font-bold text-brand-dark">Logo del Cliente</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                <span className="text-xl">×</span>
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              let finalUrl = formData.imagen_url;
+
+              if (file) {
+                setUploadingFile(true)
+                const fileExt = file.name.split('.').pop()
+                const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+                const filePath = `logos/${fileName}`
+
+                const { error: uploadError } = await supabase.storage
+                  .from('avances')
+                  .upload(filePath, file, { cacheControl: '3600', upsert: false })
+
+                if (uploadError) {
+                  alert("Error al subir la imagen: " + uploadError.message)
+                  setUploadingFile(false)
+                  return
+                }
+                
+                const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath)
+                finalUrl = publicUrlData.publicUrl
+                setUploadingFile(false)
+              }
+
+              const { error: err } = await supabase.from("clientes").update({ imagen_url: finalUrl }).eq("id", editId)
+              
+              if (!err) {
+                setIsModalOpen(false)
+                fetchData()
+              } else {
+                alert("Error al guardar logo: " + err.message)
+              }
+            }} className="p-6">
+              
+              <div className="space-y-4 mb-6">
+                <p className="text-sm text-gray-500">
+                  Sube el logotipo o foto de la empresa/cliente que se mostrará en la sección "Nuestros Clientes".
+                </p>
+                
+                {formData.imagen_url && !file && (
+                  <div className="mb-2 relative w-32 h-32 mx-auto rounded-lg overflow-hidden border border-gray-200">
+                    <img src={formData.imagen_url} alt="Logo" className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({...formData, imagen_url: ""})}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                    >
+                      <span className="text-xs px-1">×</span>
+                    </button>
+                  </div>
+                )}
+
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setFile(e.target.files[0])
+                    }
+                  }}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20"
+                />
+              </div>
+              
+              <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors"
+                  disabled={uploadingFile}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={uploadingFile}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {uploadingFile ? "Subiendo..." : "Guardar Logo"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
