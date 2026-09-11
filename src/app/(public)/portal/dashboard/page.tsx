@@ -13,6 +13,9 @@ export default function PortalDashboardPage() {
   
   const [cliente, setCliente] = useState<any>(null)
   const [proyectos, setProyectos] = useState<any[]>([])
+  
+  // view can be 'list' or 'detail'
+  const [view, setView] = useState<'list' | 'detail'>('list')
   const [proyectoActivo, setProyectoActivo] = useState<any>(null)
   const [avances, setAvances] = useState<any[]>([])
 
@@ -32,7 +35,6 @@ export default function PortalDashboardPage() {
 
   const loadClientData = async (email: string) => {
     setLoadingData(true)
-    // 1. Obtener el cliente por email
     const { data: clienteData } = await supabase
       .from("clientes")
       .select("*")
@@ -41,27 +43,30 @@ export default function PortalDashboardPage() {
 
     if (clienteData) {
       setCliente(clienteData)
-      // 2. Obtener proyectos del cliente
       const { data: proyectosData } = await supabase
         .from("proyectos")
         .select("*")
         .eq("cliente_id", clienteData.id)
         .order("created_at", { ascending: false })
 
-      if (proyectosData && proyectosData.length > 0) {
+      if (proyectosData) {
         setProyectos(proyectosData)
-        setProyectoActivo(proyectosData[0]) // Seleccionamos el primero por defecto
-
-        // 3. Obtener avances de ese proyecto
-        const { data: avancesData } = await supabase
-          .from("avances")
-          .select("*")
-          .eq("proyecto_id", proyectosData[0].id)
-          .order("fecha", { ascending: false })
-        
-        if (avancesData) setAvances(avancesData)
       }
     }
+    setLoadingData(false)
+  }
+
+  const handleSelectProject = async (proyecto: any) => {
+    setProyectoActivo(proyecto)
+    setLoadingData(true)
+    const { data: avancesData } = await supabase
+      .from("avances")
+      .select("*")
+      .eq("proyecto_id", proyecto.id)
+      .order("fecha", { ascending: false })
+    
+    if (avancesData) setAvances(avancesData)
+    setView('detail')
     setLoadingData(false)
   }
 
@@ -93,7 +98,7 @@ export default function PortalDashboardPage() {
               <Lock size={14} /> Portal de Clientes
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-brand-dark tracking-tighter uppercase">
-              Panel de Seguimiento
+              {view === 'list' ? 'Mis Proyectos' : 'Panel de Seguimiento'}
             </h1>
             <p className="text-gray-500 text-sm mt-1">Bienvenido, <span className="font-semibold text-brand-dark">{cliente?.nombre} {cliente?.apellido}</span></p>
           </div>
@@ -112,40 +117,85 @@ export default function PortalDashboardPage() {
              <h3 className="text-xl font-bold text-gray-800 mb-2">Aún no tienes proyectos asignados</h3>
              <p className="text-gray-500">Cuando la constructora asigne un proyecto a tu cuenta, aparecerá aquí.</p>
            </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-6">
-              
-              {/* Proyecto Activo */}
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
-              >
-                <div className="flex items-center justify-between mb-6 border-b pb-4">
-                  <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    Proyecto Activo
-                  </h3>
-                  {proyectos.length > 1 && (
-                     <select 
-                        className="text-xs border rounded p-1"
-                        onChange={(e) => {
-                          const p = proyectos.find(x => x.id === e.target.value)
-                          if (p) {
-                            setProyectoActivo(p)
-                            loadClientData(userEmail) // Recargar para el nuevo proyecto, habría que refactorizar pero está bien para prototipo
-                          }
-                        }}
-                     >
-                        {proyectos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                     </select>
-                  )}
-                </div>
+        ) : view === 'list' ? (
+          /* VISTA DE LISTA DE PROYECTOS */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {proyectos.map((p) => {
+              const isActive = p.estado === 'ejecucion';
+              return (
+                <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                  <div className="p-6 flex-1">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="font-bold text-lg text-brand-dark leading-tight">{p.nombre}</h3>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded tracking-wider ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {p.estado.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+                      <MapPin size={14} className="text-brand-sage"/>
+                      <span>{p.ubicacion}</span>
+                    </div>
 
-                <ul className="space-y-5 text-sm">
+                    <div className="mt-auto">
+                      <div className="flex justify-between text-xs font-bold mb-2">
+                        <span className="text-gray-500 uppercase">Avance</span>
+                        <span className="text-brand-sage">{p.avance}%</span>
+                      </div>
+                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full ${isActive ? 'bg-brand-sage' : 'bg-gray-300'}`}
+                          style={{ width: `${p.avance}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 border-t border-gray-100 bg-gray-50">
+                    <button
+                      onClick={() => handleSelectProject(p)}
+                      disabled={!isActive}
+                      className={`w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                        isActive 
+                        ? 'bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark' 
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isActive ? 'Ver Avance de Obra' : 'Proyecto Inactivo'}
+                      {isActive && <ChevronRight size={16} />}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          /* VISTA DE DETALLE DEL PROYECTO */
+          <div className="space-y-6">
+            <button 
+              onClick={() => setView('list')}
+              className="flex items-center gap-2 text-sm font-bold text-brand-sage hover:text-brand-dark transition-colors mb-4"
+            >
+              <div className="rotate-180"><ChevronRight size={16} /></div>
+              Volver a mis proyectos
+            </button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* Sidebar */}
+              <div className="lg:col-span-1 space-y-6">
+                
+                {/* Proyecto Activo */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white p-6 border border-gray-200 shadow-sm rounded-xl"
+                >
+                  <div className="flex items-center justify-between mb-6 border-b pb-4">
+                    <h3 className="font-bold text-brand-dark uppercase tracking-widest text-xs flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      Proyecto Activo
+                    </h3>
+                  </div>
+
+                  <ul className="space-y-5 text-sm">
                   <li>
                     <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Nombre del Proyecto</span>
                     <span className="font-semibold text-brand-dark">{proyectoActivo.nombre}</span>
@@ -293,6 +343,7 @@ export default function PortalDashboardPage() {
                   </div>
                 </motion.div>
               )}
+            </div>
             </div>
           </div>
         )}
