@@ -10,13 +10,17 @@ export default function AdminProyectos() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   
   const [editId, setEditId] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploadingFile, setUploadingFile] = useState(false)
+
   const [formData, setFormData] = useState({
     nombre: "",
     ubicacion: "",
     estado: "en_diseno",
     latitud: "",
     longitud: "",
-    cliente_id: ""
+    cliente_id: "",
+    imagen_url: ""
   })
 
   useEffect(() => {
@@ -45,19 +49,22 @@ export default function AdminProyectos() {
 
   const openNewModal = () => {
     setEditId(null)
-    setFormData({ nombre: "", ubicacion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "" })
+    setFile(null)
+    setFormData({ nombre: "", ubicacion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "" })
     setIsModalOpen(true)
   }
 
   const handleEdit = (p: any) => {
     setEditId(p.id)
+    setFile(null)
     setFormData({
       nombre: p.nombre,
       ubicacion: p.ubicacion,
       estado: p.estado,
       latitud: p.latitud ? p.latitud.toString() : "",
       longitud: p.longitud ? p.longitud.toString() : "",
-      cliente_id: p.cliente_id || ""
+      cliente_id: p.cliente_id || "",
+      imagen_url: p.imagen_url || ""
     })
     setIsModalOpen(true)
   }
@@ -75,13 +82,38 @@ export default function AdminProyectos() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    let finalUrl = formData.imagen_url;
+
+    if (file) {
+      setUploadingFile(true)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+      const filePath = `portadas/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avances')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false })
+
+      if (uploadError) {
+        alert("Error al subir la imagen: " + uploadError.message)
+        setUploadingFile(false)
+        return
+      }
+      
+      const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath)
+      finalUrl = publicUrlData.publicUrl
+      setUploadingFile(false)
+    }
+
     const payload = {
       nombre: formData.nombre,
       ubicacion: formData.ubicacion,
       estado: formData.estado,
       latitud: formData.latitud ? parseFloat(formData.latitud) : null,
       longitud: formData.longitud ? parseFloat(formData.longitud) : null,
-      cliente_id: formData.cliente_id || null
+      cliente_id: formData.cliente_id || null,
+      imagen_url: finalUrl
     }
 
     let error;
@@ -250,10 +282,39 @@ export default function AdminProyectos() {
                   <input 
                     required
                     type="text" 
-                    placeholder="Ej. Cariamanga, Barrio Central"
+                    placeholder="Ej. Machala, El Oro"
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
                     value={formData.ubicacion}
                     onChange={(e) => setFormData({...formData, ubicacion: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-sm font-bold text-gray-700">Fotografía Principal del Proyecto</label>
+                  <p className="text-xs text-gray-500 mb-2">Esta imagen se mostrará en la página principal y en las tarjetas.</p>
+                  
+                  {formData.imagen_url && !file && (
+                    <div className="mb-2 relative w-32 h-24 rounded-lg overflow-hidden border border-gray-200">
+                      <img src={formData.imagen_url} alt="Portada" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => setFormData({...formData, imagen_url: ""})}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
+
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setFile(e.target.files[0])
+                      }
+                    }}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20"
                   />
                 </div>
 
@@ -300,19 +361,28 @@ export default function AdminProyectos() {
 
               </div>
               
-              <div className="flex justify-end gap-3 mt-8">
+              <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
                 <button 
-                  type="button"
+                  type="button" 
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-2.5 rounded-lg font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors"
+                  disabled={uploadingFile}
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="px-6 py-2.5 rounded-lg font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors"
+                  disabled={uploadingFile}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {editId ? "Guardar Cambios" : "Guardar Proyecto"}
+                  {uploadingFile ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Subiendo...
+                    </>
+                  ) : (
+                    editId ? "Guardar Cambios" : "Guardar Proyecto"
+                  )}
                 </button>
               </div>
             </form>
