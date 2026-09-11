@@ -5,10 +5,10 @@ import { supabase } from "@/lib/supabase"
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<any[]>([])
   const [testimonios, setTestimonios] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function loadData() {
-      // 1. Cargar Clientes (solo los aprobados/activos si tienen estado, sino todos)
       const { data: clientesData } = await supabase
         .from('clientes')
         .select('*')
@@ -17,8 +17,6 @@ export default function ClientesPage() {
       
       if (clientesData) setClientes(clientesData)
 
-      // Si no usas 'estado' en clientes, puedes quitar ese .eq() 
-      // y si los testimonios tienen estado 'aprobado' sí usalo ahí:
       const { data: testimoniosData } = await supabase
         .from('testimonios')
         .select(`*, clientes(nombre, apellido), proyectos(nombre)`)
@@ -27,6 +25,7 @@ export default function ClientesPage() {
         .limit(3)
         
       if (testimoniosData) setTestimonios(testimoniosData)
+      setLoading(false)
     }
 
     loadData()
@@ -45,9 +44,13 @@ export default function ClientesPage() {
         </header>
 
         <section className="mb-24">
-          {clientes.length === 0 ? (
+          {loading ? (
             <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
               Cargando clientes...
+            </div>
+          ) : clientes.length === 0 ? (
+            <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+              No hay clientes públicos para mostrar por el momento.
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
