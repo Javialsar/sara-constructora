@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight } from "lucide-react"
+import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight, HardHat } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export default function PortalDashboardPage() {
@@ -123,6 +123,19 @@ export default function PortalDashboardPage() {
               const isActive = p.estado === 'en_diseno' || p.estado === 'en_construccion';
               return (
                 <div key={p.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                  {p.imagen_url ? (
+                    <div 
+                      className="h-40 bg-gray-200 bg-cover bg-center shrink-0 border-b border-gray-100 relative" 
+                      style={{ backgroundImage: `url(${p.imagen_url})` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    </div>
+                  ) : (
+                    <div className="h-40 bg-gradient-to-tr from-brand-dark to-gray-800 shrink-0 flex items-center justify-center border-b border-gray-100 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
+                      <HardHat className="text-white/20" size={64} />
+                    </div>
+                  )}
                   <div className="p-6 flex-1">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="font-bold text-lg text-brand-dark leading-tight">{p.nombre}</h3>
