@@ -29,7 +29,11 @@ export default function AdminLayout({
   ]
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <>
+      {pathname === '/admin/login' ? (
+        children
+      ) : (
+        <div className="flex h-screen bg-gray-50 overflow-hidden">
       
       {/* Sidebar */}
       <aside className="w-64 bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20">
@@ -102,7 +106,8 @@ export default function AdminLayout({
           {children}
         </div>
       </main>
-
     </div>
+      )}
+    </>
   )
 }
