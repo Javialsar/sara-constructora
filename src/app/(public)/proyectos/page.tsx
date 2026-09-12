@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
 const getStatusLabel = (estado: string) => {
@@ -13,6 +13,7 @@ const getStatusLabel = (estado: string) => {
 }
 
 export default function ProyectosPage() {
+  const supabase = createClient()
   const [proyectos, setProyectos] = useState<any[]>([])
   const [filtro, setFiltro] = useState("TODOS")
   const [flyTo, setFlyTo] = useState<{ lat: number; lng: number; id: string } | null>(null)

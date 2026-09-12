@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 const getStatusLabel = (estado: string) => {
   switch (estado) {
@@ -14,6 +14,7 @@ const getStatusLabel = (estado: string) => {
 }
 
 export default function ProyectosMarquesina() {
+  const supabase = createClient()
   const [proyectosDB, setProyectosDB] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 

@@ -3,13 +3,13 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 export default function PortalDashboardPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [userEmail, setUserEmail] = useState("")
   const [loadingData, setLoadingData] = useState(true)
+  const supabase = createClient()
   
   const [cliente, setCliente] = useState<any>(null)
   const [proyectos, setProyectos] = useState<any[]>([])
@@ -20,25 +20,24 @@ export default function PortalDashboardPage() {
   const [avances, setAvances] = useState<any[]>([])
 
   useEffect(() => {
-    const auth = sessionStorage.getItem("sara_portal_auth")
-    if (auth) {
-      const parsed = JSON.parse(auth)
-      if (parsed.authenticated) {
-        setIsAuthenticated(true)
-        setUserEmail(parsed.email)
-        loadClientData(parsed.email)
+    const init = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser()
+      if (error || !user) {
+        router.push("/portal")
         return
       }
+      setIsAuthenticated(true)
+      loadClientData(user.id)
     }
-    router.push("/portal")
-  }, [router])
+    init()
+  }, [router, supabase])
 
-  const loadClientData = async (email: string) => {
+  const loadClientData = async (userId: string) => {
     setLoadingData(true)
     const { data: clienteData } = await supabase
       .from("clientes")
       .select("*")
-      .eq("email", email)
+      .eq("id", userId)
       .single()
 
     if (clienteData) {
@@ -46,7 +45,7 @@ export default function PortalDashboardPage() {
       const { data: proyectosData } = await supabase
         .from("proyectos")
         .select("*")
-        .eq("cliente_id", clienteData.id)
+        .eq("cliente_id", userId)
         .order("created_at", { ascending: false })
 
       if (proyectosData) {
@@ -70,8 +69,8 @@ export default function PortalDashboardPage() {
     setLoadingData(false)
   }
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("sara_portal_auth")
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     router.push("/portal")
   }
 

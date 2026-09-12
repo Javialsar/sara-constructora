@@ -1,8 +1,9 @@
 "use client"
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ClientesPage() {
+  const supabase = createClient()
   const [clientes, setClientes] = useState<any[]>([])
   const [testimonios, setTestimonios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

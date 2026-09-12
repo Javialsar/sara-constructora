@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { Plus, Image as ImageIcon, Video, FileText, MapPin, X, Percent } from "lucide-react"
 
 export default function AdminAvances() {
+  const supabase = createClient()
   const [avances, setAvances] = useState<any[]>([])
   const [proyectos, setProyectos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

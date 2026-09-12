@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { Star, MessageSquareQuote, CheckCircle, XCircle, Trash2 } from "lucide-react"
 
 export default function AdminTestimonios() {
+  const supabase = createClient()
   const [testimonios, setTestimonios] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 

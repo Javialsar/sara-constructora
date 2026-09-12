@@ -69,10 +69,18 @@ export default function AdminLayout({
             <Settings size={16} />
             <span>Configuración</span>
           </Link>
-          <Link href="/" className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm">
+          <button 
+            onClick={async () => {
+              const { createClient } = await import('@/lib/supabase/client')
+              const supabase = createClient()
+              await supabase.auth.signOut()
+              window.location.href = '/'
+            }} 
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm"
+          >
             <LogOut size={16} />
-            <span>Salir al sitio web</span>
-          </Link>
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </aside>
 

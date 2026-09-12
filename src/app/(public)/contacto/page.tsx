@@ -1,10 +1,11 @@
 "use client"
 import { useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/Button"
 import { MapPin, Phone, Mail, CheckCircle2 } from "lucide-react"
 
 export default function ContactoPage() {
+  const supabase = createClient()
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",

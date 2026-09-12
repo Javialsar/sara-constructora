@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { 
   Building2, 
   Users, 
@@ -22,6 +22,7 @@ import {
 } from "recharts"
 
 export default function AdminDashboardPage() {
+  const supabase = createClient()
   const [stats, setStats] = useState({
     proyectosActivos: 0,
     clientesRegistrados: 0,

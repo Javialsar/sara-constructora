@@ -1,16 +1,30 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
 export default function PortalLoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const supabase = createClient()
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push("/portal/dashboard")
+      }
+    }
+    checkUser()
+  }, [router, supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,40 +32,42 @@ export default function PortalLoginPage() {
     setIsLoading(true)
 
     try {
-      if (email && password) {
-        // Query database
-        const { data, error: dbError } = await supabase
-          .from('clientes')
-          .select('*')
-          .eq('email', email)
-          .single()
-
-        if (dbError || !data) {
-          throw new Error("Credenciales inválidas.")
-        }
-
-        const password_hash = btoa(password)
-        if (data.password_hash !== password_hash) {
-          throw new Error("Credenciales inválidas.")
-        }
-
-        if (data.estado === 'inactivo') {
-          throw new Error("Su cuenta está inactiva.")
-        }
-
-        // Guardar sesión temporal
-        sessionStorage.setItem("sara_portal_auth", JSON.stringify({ 
-          email: data.email, 
-          nombre: data.nombre,
-          apellido: data.apellido,
-          cliente_id: data.id,
-          authenticated: true,
-          timestamp: Date.now() 
-        }))
-        window.location.href = "/portal/dashboard"
-      } else {
-        setError("Por favor ingrese sus credenciales.")
+      if (!email || !password) {
+        throw new Error("Por favor ingrese sus credenciales.")
       }
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        throw new Error(signInError.message === 'Invalid login credentials' ? 'Credenciales inválidas.' : signInError.message)
+      }
+
+      // Check if user status is active from the clientes table
+      const { data: cliente, error: clienteError } = await supabase
+        .from('clientes')
+        .select('estado, es_admin')
+        .eq('id', data.user.id)
+        .single()
+
+      if (clienteError) {
+        console.error("No se pudo obtener perfil del cliente:", clienteError)
+      }
+
+      if (cliente?.estado === 'inactivo') {
+        await supabase.auth.signOut()
+        throw new Error("Su cuenta está inactiva.")
+      }
+
+      // Redirect to correct dashboard
+      if (cliente?.es_admin) {
+        router.push("/admin")
+      } else {
+        router.push("/portal/dashboard")
+      }
+      
     } catch (err: any) {
       setError(err.message || "Error al autenticar.")
     } finally {
@@ -146,20 +162,10 @@ export default function PortalLoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-brand-sage" />
-                <span className="text-gray-500">Recordarme</span>
-              </label>
-              <a href="#" className="text-brand-sage hover:text-brand-dark font-medium transition-colors">
-                ¿Olvidó su contraseña?
-              </a>
-            </div>
-
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-brand-dark hover:bg-brand-dark/90 text-white py-4 font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-brand-dark hover:bg-brand-dark/90 text-white py-4 font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -180,9 +186,6 @@ export default function PortalLoginPage() {
             >
               Registrarse
             </Link>
-            <p className="text-xs text-gray-400 text-center">
-              ¿Ya tiene cuenta? Use el formulario de arriba para iniciar sesión.
-            </p>
           </div>
         </div>
 
@@ -196,3 +199,4 @@ export default function PortalLoginPage() {
     </div>
   )
 }
+

@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { Calculator, Mail, Phone, Calendar, DollarSign, CheckCircle2, Clock, Ban } from "lucide-react"
 
 export default function AdminCotizaciones() {
+  const supabase = createClient()
   const [cotizaciones, setCotizaciones] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 

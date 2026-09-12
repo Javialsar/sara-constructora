@@ -3,7 +3,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { User, Mail, Phone, Lock, Eye, EyeOff, ArrowRight, UserPlus } from "lucide-react"
 import Link from "next/link"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 export default function PortalRegistroPage() {
   const [formData, setFormData] = useState({
@@ -11,7 +11,6 @@ export default function PortalRegistroPage() {
     apellido: "",
     telefono: "",
     email: "",
-    usuario: "",
     password: "",
     confirmPassword: "",
   })
@@ -19,6 +18,7 @@ export default function PortalRegistroPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const supabase = createClient()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -41,27 +41,20 @@ export default function PortalRegistroPage() {
     setIsLoading(true)
 
     try {
-      // Basic encode for demo, DO NOT USE IN PROD
-      const password_hash = btoa(formData.password)
-
-      const { data, error: dbError } = await supabase
-        .from('clientes')
-        .insert([
-          { 
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
             nombre: formData.nombre,
             apellido: formData.apellido,
             telefono: formData.telefono,
-            email: formData.email,
-            usuario: formData.usuario,
-            password_hash: password_hash
-          }
-        ])
+          },
+        },
+      })
 
-      if (dbError) {
-        if (dbError.code === '23505') {
-          throw new Error("El correo o usuario ya está registrado.")
-        }
-        throw dbError
+      if (signUpError) {
+        throw new Error(signUpError.message)
       }
 
       setSuccess(true)
@@ -96,7 +89,7 @@ export default function PortalRegistroPage() {
               ¡Registro Exitoso!
             </h2>
             <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-              Su solicitud de registro ha sido recibida. Nuestro equipo revisará sus datos y le enviará las credenciales de acceso a su correo electrónico.
+              Su cuenta ha sido creada. Por favor, inicie sesión. (En un entorno de producción con confirmación de email activada, tendría que verificar su correo primero).
             </p>
             <Link 
               href="/portal"
@@ -231,25 +224,6 @@ export default function PortalRegistroPage() {
               </div>
             </div>
 
-            {/* Usuario */}
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                Nombre de Usuario
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">@</span>
-                <input
-                  name="usuario"
-                  type="text"
-                  value={formData.usuario}
-                  onChange={handleChange}
-                  placeholder="juanperez"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-brand-sage focus:ring-2 focus:ring-brand-sage/20 transition-all"
-                  required
-                />
-              </div>
-            </div>
-
             {/* Contraseña y Confirmar */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -332,3 +306,4 @@ export default function PortalRegistroPage() {
     </div>
   )
 }
+

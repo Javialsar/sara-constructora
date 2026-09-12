@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { Users, Mail, Phone, ShieldCheck, ShieldAlert, MoreVertical } from "lucide-react"
 
 export default function AdminClientes() {
+  const supabase = createClient()
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)

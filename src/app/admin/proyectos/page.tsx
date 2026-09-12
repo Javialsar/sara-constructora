@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 import { Plus, MapPin, Building2, Pencil, Trash2, X } from "lucide-react"
 
 export default function AdminProyectos() {
+  const supabase = createClient()
   const [proyectos, setProyectos] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

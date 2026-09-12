@@ -5,8 +5,8 @@
   --foreground: #000000;
   
   /* Brand Colors */
-  --color-sara-dark: #1F422F; /* Verde Oscuro Corporativo */
-  --color-sara-sage: #83A881; /* Verde Salvia / Verde Claro */
+  --color-sara-dark: #0F172A; /* Azul Pizarra muy oscuro / Navy */
+  --color-sara-sage: #EA580C; /* Naranja Terracota / Óxido */
   --color-sara-black: #0D0D0D; /* Negro */
   --color-sara-white: #FFFFFF; /* Blanco Neutro */
 }
