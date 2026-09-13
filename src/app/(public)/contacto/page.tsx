@@ -60,10 +60,19 @@ export default function ContactoPage() {
   }
 
   return (
-    <div className="pt-36 pb-16 min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 md:px-8">
+    <div className="pt-36 pb-16 min-h-screen relative overflow-hidden bg-gray-50">
+      {/* Cuadrícula de fondo arquitectónica muy suave */}
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{ 
+          backgroundImage: 'linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }}
+      ></div>
+
+      <div className="container relative z-10 mx-auto px-4 md:px-8">
         
-        <header className="mb-16 text-center max-w-3xl mx-auto">
+        <header className="mb-12 text-center max-w-3xl mx-auto">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-brand-dark tracking-tighter mb-4 uppercase">
             ¿TIENES UN PROYECTO EN MENTE?
           </h1>
@@ -72,16 +81,17 @@ export default function ContactoPage() {
           </h2>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl mx-auto">
           
           {/* Contact Info */}
-          <div className="lg:col-span-4 space-y-8">
-            <div className="bg-brand-dark text-white p-8 space-y-8">
-              <h3 className="text-xl font-bold uppercase tracking-wider border-b border-white/20 pb-4">
+          <div className="lg:col-span-4 h-full">
+            <div className="bg-brand-dark text-white p-8 rounded-2xl shadow-xl h-full space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-sage/10 rounded-full blur-3xl"></div>
+              <h3 className="text-xl font-bold uppercase tracking-wider border-b border-white/20 pb-4 relative z-10">
                 Información de Contacto
               </h3>
               
-              <ul className="space-y-6">
+              <ul className="space-y-6 relative z-10">
                 <li className="flex items-start gap-4">
                   <MapPin className="text-brand-sage shrink-0 mt-1" size={24} />
                   <div>
@@ -112,8 +122,8 @@ export default function ContactoPage() {
           </div>
 
           {/* Registration / Request Portal Form */}
-          <div className="lg:col-span-8 bg-white p-8 md:p-12 border border-gray-200 shadow-sm">
-            <h3 className="text-2xl font-bold text-brand-black mb-8 border-b border-gray-100 pb-4">
+          <div className="lg:col-span-8 bg-white p-8 md:p-10 border border-gray-100 rounded-2xl shadow-xl relative z-10">
+            <h3 className="text-2xl font-bold text-brand-black mb-6 border-b border-gray-100 pb-4">
               Portal de Solicitudes y Cotización
             </h3>
             
@@ -129,33 +139,33 @@ export default function ContactoPage() {
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label htmlFor="nombre" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Nombre *</label>
-                    <input type="text" id="nombre" value={formData.nombre} onChange={(e)=>setFormData({...formData, nombre: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="nombre" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nombre *</label>
+                    <input type="text" id="nombre" value={formData.nombre} onChange={(e)=>setFormData({...formData, nombre: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
                   </div>
-                  <div className="space-y-2">
-                    <label htmlFor="apellido" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Apellido *</label>
-                    <input type="text" id="apellido" value={formData.apellido} onChange={(e)=>setFormData({...formData, apellido: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label htmlFor="telefono" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Teléfono / WhatsApp *</label>
-                    <input type="tel" id="telefono" value={formData.telefono} onChange={(e)=>setFormData({...formData, telefono: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Email *</label>
-                    <input type="email" id="email" value={formData.email} onChange={(e)=>setFormData({...formData, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
+                  <div className="space-y-1.5">
+                    <label htmlFor="apellido" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Apellido *</label>
+                    <input type="text" id="apellido" value={formData.apellido} onChange={(e)=>setFormData({...formData, apellido: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label htmlFor="tipo" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Tipo de Proyecto *</label>
-                    <select id="tipo" value={formData.tipo} onChange={(e)=>setFormData({...formData, tipo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all appearance-none" required>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="telefono" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Teléfono / WhatsApp *</label>
+                    <input type="tel" id="telefono" value={formData.telefono} onChange={(e)=>setFormData({...formData, telefono: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="email" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Email *</label>
+                    <input type="email" id="email" value={formData.email} onChange={(e)=>setFormData({...formData, email: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" required />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="tipo" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Tipo de Proyecto *</label>
+                    <select id="tipo" value={formData.tipo} onChange={(e)=>setFormData({...formData, tipo: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all appearance-none" required>
                       <option value="">Selecciona una opción</option>
                       <option value="vivienda">Vivienda</option>
                       <option value="edificio">Edificio</option>
@@ -169,9 +179,9 @@ export default function ContactoPage() {
                       <option value="otro">Otro</option>
                     </select>
                   </div>
-                  <div className="space-y-2">
-                    <label htmlFor="etapa" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Etapa del Proyecto</label>
-                    <select id="etapa" value={formData.etapa} onChange={(e)=>setFormData({...formData, etapa: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all appearance-none">
+                  <div className="space-y-1.5">
+                    <label htmlFor="etapa" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Etapa del Proyecto</label>
+                    <select id="etapa" value={formData.etapa} onChange={(e)=>setFormData({...formData, etapa: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all appearance-none">
                       <option value="idea">Solo tengo una idea</option>
                       <option value="planos">Ya tengo planos</option>
                       <option value="terreno">Tengo terreno</option>
@@ -180,19 +190,19 @@ export default function ContactoPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="ubicacion" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Ubicación (Ciudad / Sector)</label>
-                  <input type="text" id="ubicacion" value={formData.ubicacion} onChange={(e)=>setFormData({...formData, ubicacion: e.target.value})} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" />
+                <div className="space-y-1.5">
+                  <label htmlFor="ubicacion" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Ubicación (Ciudad / Sector)</label>
+                  <input type="text" id="ubicacion" value={formData.ubicacion} onChange={(e)=>setFormData({...formData, ubicacion: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all" />
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="mensaje" className="text-sm font-bold text-brand-dark uppercase tracking-wider">Mensaje / Detalles Adicionales *</label>
-                  <textarea id="mensaje" value={formData.mensaje} onChange={(e)=>setFormData({...formData, mensaje: e.target.value})} rows={5} className="w-full bg-gray-50 border border-gray-200 px-4 py-3 focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all resize-none" required></textarea>
+                <div className="space-y-1.5">
+                  <label htmlFor="mensaje" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Mensaje / Detalles Adicionales *</label>
+                  <textarea id="mensaje" value={formData.mensaje} onChange={(e)=>setFormData({...formData, mensaje: e.target.value})} rows={3} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all resize-none" required></textarea>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <input type="checkbox" id="privacidad" className="mt-1" required />
-                  <label htmlFor="privacidad" className="text-sm text-gray-600">
+                <div className="flex items-start gap-3 pt-2">
+                  <input type="checkbox" id="privacidad" className="mt-1 border-gray-300 rounded text-brand-sage focus:ring-brand-sage" required />
+                  <label htmlFor="privacidad" className="text-[12px] text-gray-500 leading-relaxed">
                     Acepto la política de privacidad y el tratamiento de mis datos para ser contactado por SARA Constructora.
                   </label>
                 </div>
