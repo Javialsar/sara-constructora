@@ -15,7 +15,7 @@ const servicios = [
 
 export default function ServiciosPage() {
   return (
-    <div className="pt-28 pb-24 min-h-screen bg-gray-50">
+    <div className="pt-36 pb-24 min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 md:px-8">
         <header className="mb-16">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-brand-dark tracking-tighter mb-4 uppercase">

@@ -105,25 +105,6 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
                 />
               </div>
             </div>
-
-            {/* Mapa de Ubicación */}
-            {proyecto.latitud && proyecto.longitud && (
-              <div className="pt-8">
-                <h3 className="font-bold text-brand-dark text-xl mb-6 flex items-center gap-2">
-                  <MapPin className="text-brand-sage" /> Ubicación del Proyecto
-                </h3>
-                <div className="w-full h-[400px] rounded-lg overflow-hidden border border-gray-100 shadow-sm">
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    style={{ border: 0 }} 
-                    loading="lazy" 
-                    allowFullScreen 
-                    src={`https://maps.google.com/maps?q=${proyecto.latitud},${proyecto.longitud}&hl=es&z=16&output=embed`}
-                  ></iframe>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Sidebar / Info */}
