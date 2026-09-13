@@ -5,13 +5,14 @@ import { MapPin, ArrowLeft, Calendar, Activity, Info } from "lucide-react"
 
 export const revalidate = 0;
 
-export default async function ProyectoDetailPage({ params }: { params: { id: string } }) {
+export default async function ProyectoDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createClient()
   
   const { data: proyecto, error } = await supabase
     .from('proyectos')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !proyecto) {
