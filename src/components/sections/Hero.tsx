@@ -62,11 +62,11 @@ export default function Hero() {
           <div
             key={img}
             className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 
-              ${isLogo ? 'bg-contain bg-center lg:bg-right bg-no-repeat' : 'bg-cover bg-center lg:bg-left'} 
+              ${isLogo ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat' : 'bg-cover bg-center lg:bg-left'} 
               ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
             style={{ 
               backgroundImage: `url('${img}')`, 
-              opacity: index === currentIndex ? (isLogo ? 0.15 : 1) : 0 
+              opacity: index === currentIndex ? (isLogo ? 0.08 : 1) : 0 
             }}
           >
             {/* Máscara de desvanecimiento para las fotografías (mezcla suave con el fondo verde) */}

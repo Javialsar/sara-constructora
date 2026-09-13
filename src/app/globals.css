@@ -5,10 +5,10 @@
   --foreground: #000000;
   
   /* Paleta de Verdes (Teal & Lime & Mint) */
-  --color-sara-dark: #0b1a13; /* Verde bosque muy oscuro (Casi Negro) */
+  --color-sara-dark: #040907; /* Verde casi negro */
   --color-sara-sage: #3c7a52; /* Verde Bosque (Forest Green) */
   --color-sara-light: #f0f7f4; /* Menta súper claro / Blanco */
-  --color-sara-black: #08110c; /* Negro verdoso */
+  --color-sara-black: #000000; /* Negro puro */
   --color-sara-white: #FFFFFF; /* Blanco Neutro */
 }
 
