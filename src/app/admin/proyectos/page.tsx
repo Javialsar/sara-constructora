@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, MapPin, Building2, Pencil, Trash2, X } from "lucide-react"
+import { Plus, MapPin, Building2, Pencil, Trash2, X, Star } from "lucide-react"
 
 export default function AdminProyectos() {
   const supabase = createClient()
@@ -11,7 +11,7 @@ export default function AdminProyectos() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   
   const [editId, setEditId] = useState<string | null>(null)
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [uploadingFile, setUploadingFile] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -23,7 +23,8 @@ export default function AdminProyectos() {
     longitud: "",
     cliente_id: "",
     imagen_url: "",
-    destacado: false
+    destacado: false,
+    galeria: [] as string[]
   })
 
   useEffect(() => {
@@ -52,14 +53,14 @@ export default function AdminProyectos() {
 
   const openNewModal = () => {
     setEditId(null)
-    setFile(null)
-    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false })
+    setFiles([])
+    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false, galeria: [] })
     setIsModalOpen(true)
   }
 
   const handleEdit = (p: any) => {
     setEditId(p.id)
-    setFile(null)
+    setFiles([])
     setFormData({
       nombre: p.nombre,
       ubicacion: p.ubicacion,
@@ -69,7 +70,8 @@ export default function AdminProyectos() {
       longitud: p.longitud ? p.longitud.toString() : "",
       cliente_id: p.cliente_id || "",
       imagen_url: p.imagen_url || "",
-      destacado: p.destacado || false
+      destacado: p.destacado || false,
+      galeria: p.galeria || []
     })
     setIsModalOpen(true)
   }
@@ -89,25 +91,31 @@ export default function AdminProyectos() {
     e.preventDefault()
 
     let finalUrl = formData.imagen_url;
+    let finalGaleria = [...formData.galeria];
 
-    if (file) {
+    if (files.length > 0) {
       setUploadingFile(true)
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
-      const filePath = `portadas/${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avances')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false })
-
-      if (uploadError) {
-        alert("Error al subir la imagen: " + uploadError.message)
-        setUploadingFile(false)
-        return
-      }
       
-      const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath)
-      finalUrl = publicUrlData.publicUrl
+      for (const f of files) {
+        const fileExt = f.name.split('.').pop()
+        const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
+        const filePath = `galeria/${fileName}`
+
+        const { error: uploadError } = await supabase.storage
+          .from('avances')
+          .upload(filePath, f, { cacheControl: '3600', upsert: false })
+
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath)
+          const uploadedUrl = publicUrlData.publicUrl
+          
+          if (!finalUrl) {
+            finalUrl = uploadedUrl
+          } else {
+            finalGaleria.push(uploadedUrl)
+          }
+        }
+      }
       setUploadingFile(false)
     }
 
@@ -120,7 +128,8 @@ export default function AdminProyectos() {
       longitud: formData.longitud ? parseFloat(formData.longitud) : null,
       cliente_id: formData.cliente_id || null,
       imagen_url: finalUrl,
-      destacado: formData.destacado
+      destacado: formData.destacado,
+      galeria: finalGaleria
     }
 
     let error;
@@ -138,6 +147,32 @@ export default function AdminProyectos() {
     } else {
       alert("Error al guardar el proyecto: " + error.message)
     }
+  }
+
+  const setAsCover = (url: string) => {
+    const newGaleria = formData.galeria.filter(u => u !== url)
+    if (formData.imagen_url) {
+      newGaleria.push(formData.imagen_url)
+    }
+    setFormData({ ...formData, imagen_url: url, galeria: newGaleria })
+  }
+  
+  const removeExistingUrl = (url: string) => {
+    if (url === formData.imagen_url) {
+       if (formData.galeria.length > 0) {
+          const newGaleria = [...formData.galeria]
+          const nextCover = newGaleria.shift()!
+          setFormData({ ...formData, imagen_url: nextCover, galeria: newGaleria })
+       } else {
+          setFormData({ ...formData, imagen_url: "", galeria: [] })
+       }
+    } else {
+       setFormData({ ...formData, galeria: formData.galeria.filter(u => u !== url) })
+    }
+  }
+
+  const removePendingFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index))
   }
 
   const getStatusColor = (estado: string) => {
@@ -316,31 +351,72 @@ export default function AdminProyectos() {
                   </div>
 
                   <div className="space-y-1 md:col-span-2">
-                    <label className="text-sm font-bold text-gray-700">Fotografía Principal del Proyecto</label>
-                    <p className="text-xs text-gray-500 mb-2">Esta imagen se mostrará en la página principal y en las tarjetas.</p>
+                    <label className="text-sm font-bold text-gray-700">Galería de Imágenes</label>
+                    <p className="text-xs text-gray-500 mb-2">Selecciona múltiples imágenes. Marca con la estrella (⭐) la que quieres que sea la Portada.</p>
                     
-                    {formData.imagen_url && !file && (
-                      <div className="mb-2 relative w-32 h-24 rounded-lg overflow-hidden border border-gray-200">
-                        <img src={formData.imagen_url} alt="Portada" className="w-full h-full object-cover" />
-                        <button 
-                          type="button"
-                          onClick={() => setFormData({...formData, imagen_url: ""})}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
+                      {/* Mostrar imágenes ya subidas */}
+                      {[...(formData.imagen_url ? [formData.imagen_url] : []), ...formData.galeria].map((url) => (
+                        <div key={url} className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${url === formData.imagen_url ? 'border-brand-sage shadow-md' : 'border-gray-200'}`}>
+                          <img src={url} alt="Proyecto" className="w-full h-full object-cover" />
+                          
+                          {/* Botón de Estrella */}
+                          <button 
+                            type="button"
+                            onClick={() => setAsCover(url)}
+                            title={url === formData.imagen_url ? "Portada actual" : "Elegir como portada"}
+                            className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors ${url === formData.imagen_url ? 'bg-brand-sage text-brand-dark' : 'bg-black/50 text-white hover:bg-black/70'}`}
+                          >
+                            <Star size={14} className={url === formData.imagen_url ? "fill-brand-dark" : ""} />
+                          </button>
+
+                          {/* Botón de Eliminar */}
+                          <button 
+                            type="button"
+                            onClick={() => removeExistingUrl(url)}
+                            title="Eliminar foto"
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                          
+                          {url === formData.imagen_url && (
+                            <div className="absolute bottom-0 inset-x-0 bg-brand-sage text-brand-dark text-[10px] font-bold text-center py-1 uppercase tracking-wider">
+                              Portada
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Mostrar previsualización de archivos nuevos (pendientes de subir) */}
+                      {files.map((f, idx) => (
+                        <div key={idx} className="relative aspect-[4/3] rounded-lg overflow-hidden border-2 border-dashed border-gray-300 opacity-70 hover:opacity-100 transition-opacity">
+                          <img src={URL.createObjectURL(f)} alt="Nuevo" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/20" />
+                          <span className="absolute bottom-2 left-2 right-2 text-[10px] font-bold text-white bg-black/50 px-2 py-1 rounded truncate text-center">
+                            Nuevo (Se subirá)
+                          </span>
+                          <button 
+                            type="button"
+                            onClick={() => removePendingFile(idx)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors z-10"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
 
                     <input 
                       type="file" 
                       accept="image/*"
+                      multiple
                       onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          setFile(e.target.files[0])
+                        if (e.target.files) {
+                          setFiles([...files, ...Array.from(e.target.files)])
                         }
                       }}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20 cursor-pointer"
                     />
                   </div>
 

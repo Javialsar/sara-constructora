@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { MapPin, ArrowLeft, Calendar, Activity, Info } from "lucide-react"
+import { MapPin, ArrowLeft, Calendar, Activity, Info, Camera } from "lucide-react"
 import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
 export const revalidate = 0;
@@ -125,6 +125,27 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
                     }]} 
                     flyTo={{ lat: proyecto.latitud, lng: proyecto.longitud, id: proyecto.id }}
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Galería de Perspectivas */}
+            {proyecto.galeria && proyecto.galeria.length > 0 && (
+              <div className="mt-12">
+                <h3 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-6 flex items-center gap-2">
+                  <Camera size={16} /> Perspectivas del Proyecto
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {proyecto.galeria.map((url: string, index: number) => (
+                    <div key={index} className="relative group overflow-hidden rounded-lg aspect-[4/3] bg-gray-100">
+                      <img 
+                        src={url} 
+                        alt={`${proyecto.nombre} - Perspectiva ${index + 1}`}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-brand-dark/0 group-hover:bg-brand-dark/20 transition-colors duration-500" />
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
