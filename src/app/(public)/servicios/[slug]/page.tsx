@@ -97,7 +97,15 @@ export default async function ServicioDetailPage({ params }: { params: Promise<{
     .order('created_at', { ascending: false })
 
   return (
-    <div className="pt-24 pb-20 min-h-screen bg-gray-50">
+    <div className="pt-24 pb-20 min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Cuadrícula de fondo arquitectónica muy suave */}
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{ 
+          backgroundImage: 'linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }}
+      ></div>
       
       {/* Header del Servicio */}
       <header className="relative bg-brand-dark text-white pt-20 pb-24 overflow-hidden">
@@ -121,7 +129,7 @@ export default async function ServicioDetailPage({ params }: { params: Promise<{
       </header>
 
       {/* Contenido Principal */}
-      <div className="container mx-auto px-4 md:px-8 -mt-10 relative z-20">
+      <div className="container mx-auto px-4 md:px-8 mt-10 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           {/* Detalles del Servicio */}
