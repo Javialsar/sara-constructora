@@ -87,7 +87,7 @@ export default function PortalDashboardPage() {
   const documentos = avances.filter(a => a.tipo === 'documento')
   
   return (
-    <div className="min-h-screen pt-28 pb-24 bg-gray-50">
+    <div className="min-h-screen pt-40 pb-24 bg-gray-50">
       <div className="container mx-auto px-4 md:px-8">
         
         {/* Top Bar */}
