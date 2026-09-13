@@ -1,7 +1,7 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { MessageSquare, X, Send, Bot, User } from "lucide-react"
+import { MessageSquare, X, Send, Bot, User, HardHat } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export default function Chatbot() {
@@ -94,7 +94,7 @@ export default function Chatbot() {
               onClick={() => setIsOpen(true)}
               className="w-14 h-14 bg-brand-dark text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 transition-transform hover:scale-110 relative"
             >
-              <MessageSquare size={24} />
+              <HardHat size={26} />
               <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
             </motion.button>
           )}
@@ -114,7 +114,7 @@ export default function Chatbot() {
               <div className="bg-brand-dark px-4 py-4 flex items-center justify-between text-white shadow-md z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                    <Bot size={22} className="text-brand-sage" />
+                    <HardHat size={22} className="text-brand-sage" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm">SARA IA</h3>
@@ -143,7 +143,7 @@ export default function Chatbot() {
                   >
                     <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                       <div className={`w-8 h-8 rounded-full flex shrink-0 items-center justify-center ${msg.role === 'user' ? 'bg-gray-200 text-gray-600' : 'bg-brand-sage text-brand-dark'}`}>
-                        {msg.role === 'user' ? <User size={16} /> : <Bot size={18} />}
+                        {msg.role === 'user' ? <User size={16} /> : <HardHat size={18} />}
                       </div>
                       <div 
                         className={`p-3 rounded-2xl text-sm shadow-sm ${
