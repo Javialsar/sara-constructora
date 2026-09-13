@@ -2,27 +2,27 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, X, Send, Bot, User } from "lucide-react"
-
-const faqs = [
-  { keywords: ["servicios", "que hacen", "ofrecen", "arquitectura"], text: "Ofrecemos soluciones integrales en Arquitectura, Ingeniería Civil, Construcción y Consultoría Técnica, incluyendo diseño, construcción, ingeniería, topografía, presupuestos y remodelaciones." },
-  { keywords: ["todo el proyecto", "diseño hasta la construccion", "llave en mano", "completo"], text: "Sí. Podemos acompañarte durante todas las etapas: estudios preliminares, diseño, ingeniería, planificación, presupuesto, construcción y supervisión." },
-  { keywords: ["personalizadas", "viviendas", "casa", "mi casa"], text: "Sí. Diseñamos viviendas personalizadas de acuerdo a tus necesidades, estilo de vida, terreno y presupuesto, equilibrando estética y funcionalidad." },
-  { keywords: ["edificios", "mayor escala", "comerciales"], text: "Sí. Nuestra propuesta abarca viviendas, edificios residenciales, comerciales e institucionales, integrando arquitectura e ingeniería." },
-  { keywords: ["suelos", "estudio de suelos", "calculo estructural", "estructura"], text: "Son vitales para conocer las condiciones del terreno y definir la cimentación. Garantizan la seguridad, estabilidad y desempeño de tu proyecto." },
-  { keywords: ["topografia", "levantamiento", "planimetria", "terreno"], text: "Sí. Realizamos levantamientos topográficos y planimetría para conocer las dimensiones del terreno, indispensable para planificar correctamente." },
-  { keywords: ["presupuesto", "cotizacion", "apu", "costo", "precios"], text: "Sí. Elaboramos presupuestos detallados, cantidades de obra y Análisis de Precios Unitarios (APU) para estimar los costos con precisión antes de iniciar." },
-  { keywords: ["visualizar", "3d", "renders", "maqueta", "imagen"], text: "¡Claro! Mediante modelado 3D y renders fotorrealistas podrás ver tu proyecto (espacios, materiales y fachadas) antes de construirlo." },
-  { keywords: ["remodelaciones", "ampliaciones", "supervision", "existentes"], text: "Sí. Desarrollamos proyectos de remodelación, ampliación y ofrecemos dirección/supervisión técnica para controlar procesos constructivos." },
-  { keywords: ["contacto", "hablar", "asesoria", "asesor", "whatsapp"], text: "Puedes solicitar una asesoría contactándonos directamente. Nuestro equipo analizará tus necesidades. ¿Te gustaría ir a nuestra página de contacto?", isLink: true }
-]
+import { createClient } from "@/lib/supabase/client"
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false)
+  const [faqs, setFaqs] = useState<any[]>([])
   const [messages, setMessages] = useState<{role: 'bot'|'user', text: string}[]>([
     { role: 'bot', text: '¡Hola! Soy SARA, el asistente virtual de la constructora. ¿En qué te puedo ayudar hoy?' }
   ])
   const [input, setInput] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('preguntas_frecuentes').select('respuesta, palabras_clave').eq('estado', 'publicado')
+      if (data) {
+        setFaqs(data)
+      }
+    }
+    fetchFaqs()
+  }, [])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -43,12 +43,20 @@ export default function Chatbot() {
     setTimeout(() => {
       const lowerInput = userMessage.toLowerCase()
       
-      // Buscar coincidencia en FAQs
-      const match = faqs.find(faq => faq.keywords.some(kw => lowerInput.includes(kw)))
+      // Buscar coincidencia en FAQs dinámicas
+      let match: any = null;
+      for (const faq of faqs) {
+        if (!faq.palabras_clave) continue;
+        const keywords = faq.palabras_clave.split(',').map((k: string) => k.trim().toLowerCase());
+        if (keywords.some((kw: string) => lowerInput.includes(kw) && kw.length > 2)) {
+          match = faq;
+          break;
+        }
+      }
       
       if (match) {
-        setMessages(prev => [...prev, { role: 'bot', text: match.text }])
-        if (match.isLink) {
+        setMessages(prev => [...prev, { role: 'bot', text: match.respuesta }])
+        if (match.palabras_clave.includes('contacto') || match.palabras_clave.includes('whatsapp')) {
           setTimeout(() => {
             setMessages(prev => [...prev, { role: 'bot', text: 'Haz clic aquí para ir a contacto: [Ir a Contacto](/contacto)' }])
           }, 800)

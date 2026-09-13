@@ -1,53 +1,28 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown } from "lucide-react"
-
-const faqs = [
-  {
-    pregunta: "¿Qué servicios ofrece SARA CONSTRUCTORA?",
-    respuesta: "Ofrecemos soluciones integrales en Arquitectura, Ingeniería Civil, Construcción y Consultoría Técnica, incluyendo diseño arquitectónico, construcción de viviendas y edificios, ingeniería y cálculo estructural, estudios de suelos, topografía y planimetría, presupuestos y APU, remodelaciones y ampliaciones, dirección y supervisión de obras, modelado 3D, renders y asesoría técnica."
-  },
-  {
-    pregunta: "¿Pueden encargarse de todo el proyecto, desde el diseño hasta la construcción?",
-    respuesta: "Sí. Podemos acompañar al cliente durante las diferentes etapas del proyecto: estudios preliminares, diseño arquitectónico, ingeniería, planificación, presupuesto, construcción y supervisión, permitiendo una gestión integral y coordinada."
-  },
-  {
-    pregunta: "¿Realizan diseños y construcción de viviendas personalizadas?",
-    respuesta: "Sí. Diseñamos viviendas de acuerdo con las necesidades, estilo de vida, características del terreno, presupuesto y expectativas del cliente, buscando equilibrio entre funcionalidad, estética, seguridad y aprovechamiento de los espacios."
-  },
-  {
-    pregunta: "¿SARA CONSTRUCTORA también desarrolla edificios y proyectos de mayor escala?",
-    respuesta: "Sí. Nuestra propuesta profesional comprende viviendas, edificios residenciales, comerciales, institucionales y otros proyectos de infraestructura, integrando arquitectura e ingeniería de acuerdo con las características y requerimientos de cada obra."
-  },
-  {
-    pregunta: "¿Por qué son importantes el estudio de suelos y el cálculo estructural antes de construir?",
-    respuesta: "Porque permiten conocer las condiciones del terreno y definir técnicamente la estructura y cimentación requeridas. Estos estudios son fundamentales para proyectar una construcción con adecuados criterios de seguridad, estabilidad y desempeño estructural."
-  },
-  {
-    pregunta: "¿Realizan levantamientos topográficos y planimetría?",
-    respuesta: "Sí. Realizamos levantamientos topográficos y trabajos de planimetría necesarios para conocer las características, dimensiones y condiciones del terreno, información indispensable para una correcta planificación y desarrollo del proyecto."
-  },
-  {
-    pregunta: "¿Pueden elaborar el presupuesto de una obra antes de comenzar la construcción?",
-    respuesta: "Sí. Elaboramos presupuestos, cantidades de obra y Análisis de Precios Unitarios (APU) para estimar técnicamente los costos del proyecto y facilitar una mejor planificación y control de los recursos."
-  },
-  {
-    pregunta: "¿Puedo visualizar mi vivienda o edificio antes de construirlo?",
-    respuesta: "Sí. Mediante modelado 3D y renders fotorrealistas podemos representar visualmente el proyecto antes de su ejecución, facilitando la comprensión de espacios, materiales, fachadas y acabados, así como la toma de decisiones durante el diseño."
-  },
-  {
-    pregunta: "¿Realizan remodelaciones, ampliaciones y supervisión de obras existentes?",
-    respuesta: "Sí. Desarrollamos proyectos de remodelación y ampliación, además de servicios de dirección y supervisión técnica para controlar procesos constructivos y verificar que la ejecución corresponda a las especificaciones y planificación establecidas."
-  },
-  {
-    pregunta: "¿Cómo puedo solicitar una asesoría o cotización para mi proyecto?",
-    respuesta: "Puede comunicarse con SARA CONSTRUCTORA y contarnos qué desea construir, remodelar o desarrollar. Nuestro equipo analizará inicialmente sus necesidades y podrá orientarlo sobre los estudios, diseño, ingeniería, presupuesto y servicios técnicos que requiera su proyecto."
-  }
-]
+import { createClient } from "@/lib/supabase/client"
 
 export default function FAQ() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [faqs, setFaqs] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchFaqs = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('preguntas_frecuentes')
+        .select('pregunta, respuesta')
+        .eq('estado', 'publicado')
+        .order('orden', { ascending: true })
+      
+      if (data) {
+        setFaqs(data)
+      }
+    }
+    fetchFaqs()
+  }, [])
 
   const toggleFaq = (index: number) => {
     setActiveIndex(activeIndex === index ? null : index)

@@ -10,7 +10,10 @@ import {
   FileText,
   Settings,
   LogOut,
-  Newspaper
+  Newspaper,
+  HelpCircle,
+  Menu,
+  X
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -41,6 +44,7 @@ export default function AdminLayout({
     { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
     { href: "/admin/documentos", label: "Gestor Documental", icon: FileText },
     { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
+    { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
     { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
     { href: "/admin/cotizaciones", label: "Cotizaciones", icon: FileText },
   ]
