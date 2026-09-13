@@ -75,7 +75,7 @@ export default function ConfiguracionPage() {
   }
 
   const addMiembro = () => {
-    setEquipo([...equipo, { id: Date.now().toString(), nombre: "", cargo: "", imagen_url: "" }])
+    setEquipo([...equipo, { id: Date.now().toString(), nombre: "", cargo: "", imagen_url: "", telefono: "", email: "" }])
   }
 
   const removeMiembro = (index: number) => {
@@ -357,6 +357,26 @@ export default function ConfiguracionPage() {
                       value={miembro.cargo} 
                       onChange={(e) => handleEquipoChange(index, 'cargo', e.target.value)}
                       placeholder="Ej. Gerente General"
+                      className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand-sage outline-none bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Teléfono / WhatsApp</label>
+                    <input 
+                      type="text" 
+                      value={miembro.telefono || ""} 
+                      onChange={(e) => handleEquipoChange(index, 'telefono', e.target.value)}
+                      placeholder="Ej. +593 999999999"
+                      className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand-sage outline-none bg-white" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Email</label>
+                    <input 
+                      type="email" 
+                      value={miembro.email || ""} 
+                      onChange={(e) => handleEquipoChange(index, 'email', e.target.value)}
+                      placeholder="Ej. contacto@sara.com"
                       className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-brand-sage outline-none bg-white" 
                     />
                   </div>

@@ -1,30 +1,11 @@
-import { Phone, ShieldCheck, Target, Award, CheckCircle2, Lightbulb, Users } from "lucide-react"
+import { Phone, Mail, ShieldCheck, Target, Award, CheckCircle2, Lightbulb, Users } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
 
-const equipo = [
-  {
-    nombre: "ING. JAVIER SARANGO GAONA",
-    cargo: "GERENTE GENERAL",
-    telefono: "098 180 4023",
-    link: "593981804023",
-    imagen: "/images/team/javier.png"
-  },
-  {
-    nombre: "ING. KEVIN JAVIER SARANGO",
-    cargo: "INGENIERO CIVIL",
-    telefono: "+593 99 186 7021",
-    link: "593991867021",
-    imagen: "/images/team/kevin.png"
-  },
-  {
-    nombre: "ARQ. DAVID SARANGO",
-    cargo: "ARQUITECTO",
-    telefono: "+593 96 290 5439",
-    link: "593962905439",
-    imagen: "/images/team/david.png"
-  }
-]
+export default async function NosotrosPage() {
+  const supabase = await createClient()
+  const { data: config } = await supabase.from('configuracion_empresa').select('equipo_directivo').limit(1).single()
+  const equipo = config?.equipo_directivo || []
 
-export default function NosotrosPage() {
   return (
     <div className="min-h-screen bg-transparent">
       
@@ -172,27 +153,38 @@ export default function NosotrosPage() {
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {equipo.map((miembro, i) => (
-              <div key={i} className="bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group overflow-hidden">
-                <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
-                   <div 
-                     className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500"
-                     style={{ backgroundImage: `url(${miembro.imagen})` }} 
-                   />
-                   <div className="absolute inset-0 bg-brand-dark/0 group-hover:bg-brand-dark/10 transition-colors" />
-                </div>
-                <div className="p-6 text-center">
-                  <h3 className="font-bold text-brand-dark text-lg mb-1 tracking-tight">{miembro.nombre}</h3>
-                  <p className="text-brand-sage font-bold text-xs tracking-widest uppercase mb-4">{miembro.cargo}</p>
-                  <div className="pt-4 border-t border-gray-100 flex justify-center">
-                    <a href={`https://wa.me/${miembro.link}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-brand-sage font-medium transition-colors">
-                      <Phone size={16} />
-                      {miembro.telefono}
-                    </a>
+            {equipo.map((miembro: any, i: number) => {
+              const phoneLink = miembro.telefono ? miembro.telefono.replace(/\D/g, '') : ''
+              return (
+                <div key={i} className="bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group overflow-hidden">
+                  <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
+                     <div 
+                       className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500"
+                       style={{ backgroundImage: `url(${miembro.imagen_url})` }} 
+                     />
+                     <div className="absolute inset-0 bg-brand-dark/0 group-hover:bg-brand-dark/10 transition-colors" />
+                  </div>
+                  <div className="p-6 text-center">
+                    <h3 className="font-bold text-brand-dark text-lg mb-1 tracking-tight">{miembro.nombre}</h3>
+                    <p className="text-brand-sage font-bold text-xs tracking-widest uppercase mb-4">{miembro.cargo}</p>
+                    <div className="pt-4 border-t border-gray-100 flex flex-col items-center gap-2">
+                      {miembro.telefono && (
+                        <a href={`https://wa.me/${phoneLink}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-brand-sage font-medium transition-colors">
+                          <Phone size={14} />
+                          {miembro.telefono}
+                        </a>
+                      )}
+                      {miembro.email && (
+                        <a href={`mailto:${miembro.email}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-brand-sage font-medium transition-colors">
+                          <Mail size={14} />
+                          {miembro.email}
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
