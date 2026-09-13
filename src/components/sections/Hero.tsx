@@ -36,9 +36,9 @@ export default function Hero() {
         urls = fallbackData?.map((p: any) => p.imagen_url).filter(Boolean) || []
       }
 
-      if (urls.length > 0) {
-        setImages(urls)
-      }
+      urls = ['/logo-hero.png', ...urls]
+
+      setImages(urls)
     }
     fetchProjects()
   }, [])
@@ -58,8 +58,8 @@ export default function Hero() {
       {images.map((img, index) => (
         <div
           key={img}
-          className={`absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-[1500ms] ease-in-out z-0 ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundImage: `url('${img}')` }}
+          className={`absolute inset-0 w-full h-full bg-center transition-opacity duration-[1500ms] ease-in-out z-0 ${img === '/logo-hero.png' ? 'bg-contain md:bg-auto bg-no-repeat' : 'bg-cover'} ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+          style={{ backgroundImage: `url('${img}')`, opacity: index === currentIndex ? (img === '/logo-hero.png' ? 0.2 : 1) : 0 }}
         />
       ))}
       
