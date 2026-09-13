@@ -86,16 +86,16 @@ export default function AdminNoticias() {
     const filePath = `noticias/${fileName}`
 
     const { error: uploadError } = await supabase.storage
-      .from('public')
+      .from('avances')
       .upload(filePath, file)
 
     if (uploadError) {
-      alert("Error al subir imagen")
+      alert("Error al subir imagen: " + uploadError.message)
       setUploadingFile(false)
       return formData.imagen_url
     }
 
-    const { data } = supabase.storage.from('public').getPublicUrl(filePath)
+    const { data } = supabase.storage.from('avances').getPublicUrl(filePath)
     setUploadingFile(false)
     return data.publicUrl
   }
