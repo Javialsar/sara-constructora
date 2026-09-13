@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
+import Image from "next/image"
 
 const getStatusLabel = (estado: string) => {
   switch (estado) {
@@ -119,7 +120,7 @@ export default function ProyectosPage() {
                   <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
                      <div className="absolute inset-0 bg-brand-dark/5 group-hover:bg-transparent transition-colors z-10" />
                      {project.imagen_url ? (
-                       <img src={project.imagen_url} alt={project.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                       <Image src={project.imagen_url} alt={project.nombre} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                      ) : (
                        <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium">Sin imagen</div>
                      )}
