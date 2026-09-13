@@ -18,7 +18,8 @@ export default function AdminAvances() {
     descripcion: "",
     tipo: "foto",
     url: "",
-    nuevo_porcentaje: ""
+    nuevo_porcentaje: "",
+    notificar_cliente: true
   })
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function AdminAvances() {
     // Cargar proyectos para el selector
     const { data: dataProyectos } = await supabase
       .from("proyectos")
-      .select("id, nombre, avance")
+      .select("id, nombre, avance, cliente_id")
       
     if (dataProyectos) setProyectos(dataProyectos)
     
@@ -106,8 +107,25 @@ export default function AdminAvances() {
     }
     
     if (!errAvance) {
+      if (formData.notificar_cliente) {
+        const proyectoData = proyectos.find(p => p.id === formData.proyecto_id)
+        if (proyectoData) {
+          fetch('/api/notificaciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cliente_id: proyectoData.cliente_id,
+              proyecto_nombre: proyectoData.nombre,
+              tipo_notificacion: "Nuevo Avance de Obra",
+              titulo_avance: formData.titulo,
+              enlace_portal: window.location.origin + "/portal"
+            })
+          }).catch(err => console.error("Error al notificar", err))
+        }
+      }
+
       setIsModalOpen(false)
-      setFormData({ proyecto_id: "", titulo: "", descripcion: "", tipo: "foto", url: "", nuevo_porcentaje: "" })
+      setFormData({ proyecto_id: "", titulo: "", descripcion: "", tipo: "foto", url: "", nuevo_porcentaje: "", notificar_cliente: true })
       setFile(null)
       fetchData()
     } else {
@@ -302,9 +320,22 @@ export default function AdminAvances() {
                   </div>
                 </div>
 
+                <div className="md:col-span-2 mt-4 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="notificar"
+                    checked={formData.notificar_cliente}
+                    onChange={(e) => setFormData({...formData, notificar_cliente: e.target.checked})}
+                    className="w-4 h-4 text-brand-dark bg-gray-100 border-gray-300 rounded focus:ring-brand-sage"
+                  />
+                  <label htmlFor="notificar" className="text-sm font-bold text-gray-700">
+                    Notificar al cliente por WhatsApp/Email sobre este avance
+                  </label>
+                </div>
+
               </div>
               
-              <div className="flex justify-end gap-3 mt-8 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}

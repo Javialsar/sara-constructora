@@ -17,6 +17,7 @@ export default function AdminDocumentos() {
     proyecto_id: "",
     titulo: "",
     descripcion: "",
+    notificar_cliente: true
   })
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function AdminDocumentos() {
     // Cargar proyectos para el selector
     const { data: proys } = await supabase
       .from("proyectos")
-      .select("id, nombre")
+      .select("id, nombre, cliente_id")
       
     if (proys) setProyectos(proys)
     
@@ -45,7 +46,7 @@ export default function AdminDocumentos() {
 
   const openNewModal = () => {
     setFile(null)
-    setFormData({ proyecto_id: "", titulo: "", descripcion: "" })
+    setFormData({ proyecto_id: "", titulo: "", descripcion: "", notificar_cliente: true })
     setIsModalOpen(true)
   }
 
@@ -111,6 +112,22 @@ export default function AdminDocumentos() {
     if (insertError) {
       alert("Error al registrar el documento en la base de datos: " + insertError.message)
     } else {
+      if (formData.notificar_cliente) {
+        const proyectoData = proyectos.find(p => p.id === formData.proyecto_id)
+        if (proyectoData) {
+          fetch('/api/notificaciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              cliente_id: proyectoData.cliente_id,
+              proyecto_nombre: proyectoData.nombre,
+              tipo_notificacion: "Nuevo Documento Legal",
+              titulo_avance: formData.titulo,
+              enlace_portal: window.location.origin + "/portal"
+            })
+          }).catch(err => console.error("Error al notificar", err))
+        }
+      }
       setIsModalOpen(false)
       fetchData()
     }
@@ -263,6 +280,19 @@ export default function AdminDocumentos() {
                   value={formData.descripcion}
                   onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
                 />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="notificar"
+                  checked={formData.notificar_cliente}
+                  onChange={(e) => setFormData({...formData, notificar_cliente: e.target.checked})}
+                  className="w-4 h-4 text-brand-dark bg-gray-100 border-gray-300 rounded focus:ring-brand-sage"
+                />
+                <label htmlFor="notificar" className="text-sm font-bold text-gray-700">
+                  Notificar al cliente por WhatsApp/Email
+                </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
