@@ -58,8 +58,8 @@ export default function Hero() {
       {images.map((img, index) => (
         <div
           key={img}
-          className={`absolute inset-0 w-full h-full bg-center transition-opacity duration-[1500ms] ease-in-out z-0 ${img === '/logo-hero.png' ? 'bg-contain md:bg-auto bg-no-repeat' : 'bg-cover'} ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundImage: `url('${img}')`, opacity: index === currentIndex ? (img === '/logo-hero.png' ? 0.2 : 1) : 0 }}
+          className={`absolute inset-0 w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 ${img === '/logo-hero.png' ? 'bg-contain bg-center lg:bg-right bg-no-repeat opacity-40' : 'bg-cover bg-center'} ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+          style={{ backgroundImage: `url('${img}')`, opacity: index === currentIndex ? (img === '/logo-hero.png' ? 0.25 : 1) : 0 }}
         />
       ))}
       
