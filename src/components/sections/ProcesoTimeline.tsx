@@ -9,10 +9,10 @@ const proceso = [
 
 export default function ProcesoTimeline() {
   return (
-    <section className="py-24 bg-white overflow-hidden">
+    <section className="pt-8 pb-16 bg-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Nuestro Proceso</h2>
+        <div className="text-center mb-12">
+          <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-3">Nuestro Proceso</h2>
           <h3 className="text-4xl md:text-5xl font-extrabold text-brand-dark">CÓMO LO HACEMOS</h3>
         </div>
 

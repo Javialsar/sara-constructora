@@ -3,7 +3,7 @@ import { motion } from "framer-motion"
 
 export default function Trayectoria() {
   return (
-    <section className="bg-brand-sage text-brand-dark py-16">
+    <section className="bg-brand-sage text-brand-dark py-12 md:py-16">
       <div className="container mx-auto px-4 md:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 text-center divide-x-0 md:divide-x border-brand-dark/20">
           
