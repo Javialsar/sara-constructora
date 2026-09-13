@@ -24,7 +24,8 @@ export default function AdminProyectos() {
     cliente_id: "",
     imagen_url: "",
     destacado: false,
-    galeria: [] as string[]
+    galeria: [] as string[],
+    servicio_id: "diseno-arquitectonico"
   })
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function AdminProyectos() {
   const openNewModal = () => {
     setEditId(null)
     setFiles([])
-    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false, galeria: [] })
+    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false, galeria: [], servicio_id: "diseno-arquitectonico" })
     setIsModalOpen(true)
   }
 
@@ -71,7 +72,8 @@ export default function AdminProyectos() {
       cliente_id: p.cliente_id || "",
       imagen_url: p.imagen_url || "",
       destacado: p.destacado || false,
-      galeria: p.galeria || []
+      galeria: p.galeria || [],
+      servicio_id: p.servicio_id || "diseno-arquitectonico"
     })
     setIsModalOpen(true)
   }
@@ -129,7 +131,8 @@ export default function AdminProyectos() {
       cliente_id: formData.cliente_id || null,
       imagen_url: finalUrl,
       destacado: formData.destacado,
-      galeria: finalGaleria
+      galeria: finalGaleria,
+      servicio_id: formData.servicio_id
     }
 
     let error;
@@ -327,7 +330,7 @@ export default function AdminProyectos() {
                     </select>
                   </div>
 
-                  <div className="space-y-1 md:col-span-2">
+                  <div className="space-y-1">
                     <label className="text-sm font-bold text-gray-700">Ciudad / Sector *</label>
                     <input 
                       required
@@ -337,6 +340,28 @@ export default function AdminProyectos() {
                       value={formData.ubicacion}
                       onChange={(e) => setFormData({...formData, ubicacion: e.target.value})}
                     />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700">Servicio Asociado *</label>
+                    <select 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white"
+                      value={formData.servicio_id}
+                      onChange={(e) => setFormData({...formData, servicio_id: e.target.value})}
+                      required
+                    >
+                      <option value="diseno-arquitectonico">Diseño Arquitectónico</option>
+                      <option value="construccion-de-obras">Construcción de Obras</option>
+                      <option value="ingenieria-y-calculo-estructural">Ingeniería y Cálculo Estructural</option>
+                      <option value="estudios-de-suelos">Estudios de Suelos</option>
+                      <option value="topografia-y-planimetria">Topografía y Planimetría</option>
+                      <option value="presupuestos-y-apu">Presupuestos y APU</option>
+                      <option value="remodelaciones-y-ampliaciones">Remodelaciones y Ampliaciones</option>
+                      <option value="direccion-y-supervision">Dirección y Supervisión de Obras</option>
+                      <option value="modelado-3d-y-renders">Modelado 3D y Renders</option>
+                      <option value="consultoria-tecnica">Consultoría Técnica</option>
+                      <option value="otros">Otros</option>
+                    </select>
                   </div>
 
                   <div className="space-y-1 md:col-span-2">
