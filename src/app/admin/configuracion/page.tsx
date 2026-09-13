@@ -8,6 +8,8 @@ interface MiembroEquipo {
   nombre: string
   cargo: string
   imagen_url: string
+  telefono?: string
+  email?: string
 }
 
 export default function ConfiguracionPage() {
