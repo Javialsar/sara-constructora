@@ -32,10 +32,10 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
   return (
     <div className="min-h-screen bg-white pb-24">
       {/* Hero Section */}
-      <div className="relative h-[60vh] md:h-[70vh] bg-brand-dark w-full overflow-hidden">
+      <div className="relative min-h-[85vh] lg:min-h-screen bg-brand-dark w-full overflow-hidden">
         {proyecto.imagen_url ? (
           <div 
-            className="absolute inset-0 bg-cover bg-center"
+            className="absolute inset-0 bg-cover bg-center md:bg-fixed"
             style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
           />
         ) : (
@@ -43,10 +43,10 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
             <span className="text-white/10 text-9xl font-extrabold uppercase">{proyecto.nombre?.charAt(0)}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/95 via-brand-dark/40 to-transparent" />
         
         <div className="absolute inset-0 flex flex-col justify-end">
-          <div className="container mx-auto px-4 md:px-8 pb-12">
+          <div className="container mx-auto px-4 md:px-8 pb-20">
             <Link href="/proyectos" className="inline-flex items-center gap-2 text-white/70 hover:text-brand-sage mb-6 transition-colors text-sm font-bold tracking-widest uppercase">
               <ArrowLeft size={16} /> Volver a Proyectos
             </Link>
