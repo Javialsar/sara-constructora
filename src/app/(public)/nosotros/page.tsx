@@ -3,8 +3,9 @@ import { createClient } from "@/lib/supabase/server"
 
 export default async function NosotrosPage() {
   const supabase = await createClient()
-  const { data: config } = await supabase.from('configuracion_empresa').select('equipo_directivo').limit(1).single()
+  const { data: config } = await supabase.from('configuracion_empresa').select('equipo_directivo, logo_url').limit(1).single()
   const equipo = config?.equipo_directivo || []
+  const logoUrl = config?.logo_url || '/images/logo-sra-constructora.png'
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -28,13 +29,13 @@ export default async function NosotrosPage() {
       </div>
 
       {/* Main Content & Image */}
-      <div className="container mx-auto px-4 md:px-8 -mt-12 relative z-20">
-        <div className="bg-white/80 backdrop-blur-md shadow-2xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-lg">
+      <div className="container mx-auto px-4 md:px-8 py-12 relative z-20">
+        <div className="bg-white/80 backdrop-blur-md shadow-xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-lg">
           
-          <div className="lg:w-1/2 relative min-h-[400px] bg-white flex items-center justify-center p-8">
+          <div className="lg:w-1/2 relative min-h-[400px] bg-white flex items-center justify-center p-12 lg:p-20">
              <img 
-               src="/images/nosotros-sara.jpg" 
-               alt="SARA Constructora 3D Logo" 
+               src={logoUrl} 
+               alt="SARA Constructora Logo" 
                className="w-full h-full object-contain drop-shadow-md hover:scale-105 transition-transform duration-700"
              />
           </div>
@@ -126,7 +127,7 @@ export default async function NosotrosPage() {
         </div>
 
         {/* Esencia */}
-        <div className="mb-24 text-center max-w-4xl mx-auto space-y-8">
+        <div className="mb-12 text-center max-w-4xl mx-auto space-y-8">
           <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">NUESTRA ESENCIA</h2>
           <h3 className="text-3xl md:text-4xl font-extrabold text-brand-dark tracking-tight leading-tight">
             Seguridad para construir. <br/>Calidad para perdurar. <br className="md:hidden"/>Confianza para crecer.
@@ -142,7 +143,7 @@ export default async function NosotrosPage() {
         </div>
 
         {/* Equipo */}
-        <div className="pt-24 border-t border-gray-200">
+        <div className="pt-16">
           <header className="mb-16 text-center max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-extrabold text-brand-dark tracking-tighter mb-4 uppercase">
               Nuestro Equipo
