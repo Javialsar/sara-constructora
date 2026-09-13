@@ -29,8 +29,17 @@ export default function FAQ() {
   }
 
   return (
-    <section id="faq" className="py-24 bg-gray-50 border-t border-gray-200">
-      <div className="container mx-auto px-4 md:px-8 max-w-4xl">
+    <section id="faq" className="py-24 relative bg-gray-50 border-t border-gray-200 overflow-hidden">
+      {/* Cuadrícula de fondo arquitectónica muy suave */}
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{ 
+          backgroundImage: 'linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }}
+      ></div>
+
+      <div className="container relative z-10 mx-auto px-4 md:px-8 max-w-4xl">
         <div className="text-center mb-16">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
