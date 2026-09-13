@@ -2,6 +2,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import MobileActionBar from "@/components/layout/MobileActionBar";
 import SplashScreen from "@/components/ui/SplashScreen";
+import Chatbot from "@/components/ui/Chatbot";
 
 export default function PublicLayout({
   children,
@@ -17,6 +18,7 @@ export default function PublicLayout({
       </main>
       <Footer />
       <MobileActionBar />
+      <Chatbot />
     </>
   );
 }
