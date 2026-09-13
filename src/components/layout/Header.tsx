@@ -71,6 +71,16 @@ export default function Header() {
             <Link 
               key={link.name} 
               href={link.href}
+              onClick={(e) => {
+                if (link.href.startsWith('/#')) {
+                  const targetId = link.href.replace('/#', '');
+                  const target = document.getElementById(targetId);
+                  if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }
+              }}
               className="text-xs font-bold uppercase tracking-widest text-brand-black hover:text-brand-sage transition-colors"
             >
               {link.name}
@@ -111,7 +121,19 @@ export default function Header() {
               key={link.name}
               href={link.href}
               className="text-2xl font-bold uppercase tracking-widest text-brand-dark hover:text-brand-sage transition-colors"
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={(e) => {
+                setMobileMenuOpen(false);
+                if (link.href.startsWith('/#')) {
+                  const targetId = link.href.replace('/#', '');
+                  setTimeout(() => {
+                    const target = document.getElementById(targetId);
+                    if (target) {
+                      e.preventDefault();
+                      target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 100);
+                }
+              }}
             >
               {link.name}
             </Link>
