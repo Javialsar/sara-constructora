@@ -5,10 +5,10 @@
   --foreground: #000000;
   
   /* Paleta de Verdes (Teal & Lime & Mint) */
-  --color-sara-dark: #040907; /* Verde casi negro */
+  --color-sara-dark: #07130d; /* Verde oscuro (Un poco más claro para intensidad) */
   --color-sara-sage: #3c7a52; /* Verde Bosque (Forest Green) */
   --color-sara-light: #f0f7f4; /* Menta súper claro / Blanco */
-  --color-sara-black: #000000; /* Negro puro */
+  --color-sara-black: #030805; /* Negro puro verdoso */
   --color-sara-white: #FFFFFF; /* Blanco Neutro */
 }
 
@@ -20,6 +20,13 @@
   --color-brand-dark: var(--color-sara-dark);
   --color-brand-sage: var(--color-sara-sage);
   --color-brand-black: var(--color-sara-black);
+
+  --animate-marquee: marquee 40s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
 }
 
 body {

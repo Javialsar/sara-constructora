@@ -62,11 +62,11 @@ export default function Hero() {
           <div
             key={img}
             className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 
-              ${isLogo ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat' : 'bg-cover bg-center lg:bg-left'} 
+              ${isLogo ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat mix-blend-lighten' : 'bg-cover bg-center lg:bg-left'} 
               ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
             style={{ 
               backgroundImage: `url('${img}')`, 
-              opacity: index === currentIndex ? (isLogo ? 0.35 : 1) : 0 
+              opacity: index === currentIndex ? (isLogo ? 0.9 : 1) : 0 
             }}
           >
             {/* Máscara de desvanecimiento para las fotografías (mezcla suave con el fondo verde) */}
@@ -83,7 +83,10 @@ export default function Hero() {
       })}
       
       {/* Very subtle gradient (20% intensity) just to keep text crisp */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/60 via-brand-dark/30 to-transparent w-full md:w-[120%]" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/90 via-brand-dark/40 to-transparent w-full md:w-[120%]" />
+      
+      {/* Intense subtle green glow behind text to make it pop and look more alive */}
+      <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-20 pointer-events-none" />
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
 

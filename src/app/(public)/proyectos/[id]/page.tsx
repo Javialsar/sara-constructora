@@ -31,32 +31,32 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
 
   return (
     <div className="min-h-screen bg-white pb-24">
-      {/* Hero Section */}
-      <div className="relative min-h-[85vh] lg:min-h-screen bg-brand-dark w-full overflow-hidden">
+      {/* Hero Section Split Layout */}
+      <div className="relative min-h-[85vh] lg:min-h-screen flex items-center pt-20 overflow-hidden bg-brand-dark">
         {proyecto.imagen_url ? (
-          <>
-            <div 
-              className="absolute inset-0 bg-cover bg-center md:bg-fixed opacity-20 blur-2xl scale-110"
-              style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
-            />
-            <div 
-              className="absolute inset-0 bg-contain bg-center lg:bg-[position:center_top] bg-no-repeat mt-24"
-              style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
-            />
-          </>
+          <div 
+            className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full z-0 bg-cover bg-center lg:bg-left"
+            style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
+          >
+            <div className="hidden lg:block absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-brand-dark to-transparent z-10" />
+            <div className="lg:hidden absolute inset-0 bg-brand-dark/70 z-10" />
+          </div>
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-dark to-brand-black">
+          <div className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full z-0 flex items-center justify-center bg-brand-black">
             <span className="text-white/10 text-9xl font-extrabold uppercase">{proyecto.nombre?.charAt(0)}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/100 via-brand-dark/60 to-transparent z-0 pointer-events-none" />
         
-        <div className="absolute inset-0 flex flex-col justify-end z-10">
-          <div className="container mx-auto px-4 md:px-8 pb-20">
-            <Link href="/proyectos" className="inline-flex items-center gap-2 text-white/70 hover:text-brand-sage mb-6 transition-colors text-sm font-bold tracking-widest uppercase">
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/90 via-brand-dark/40 to-transparent w-full md:w-[120%]" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-20 pointer-events-none" />
+        
+        <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
+          <div className="max-w-3xl space-y-6 md:pl-8">
+            <Link href="/proyectos" className="inline-flex items-center gap-2 text-white/70 hover:text-brand-sage mb-2 transition-colors text-sm font-bold tracking-widest uppercase">
               <ArrowLeft size={16} /> Volver a Proyectos
             </Link>
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            
+            <div className="flex flex-wrap items-center gap-3">
               <span className="bg-brand-sage text-brand-dark px-3 py-1 text-xs font-bold uppercase tracking-wider">
                 {getStatusLabel(proyecto.estado)}
               </span>
@@ -64,12 +64,14 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
                 Avance: {proyecto.avance}%
               </span>
             </div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tighter mb-4 drop-shadow-lg">
+            
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
               {proyecto.nombre}
             </h1>
-            <div className="flex items-center gap-2 text-white/80 text-lg md:text-xl">
+            
+            <div className="flex items-center gap-2 text-white/80 text-lg md:text-xl border-l-2 border-brand-sage/50 pl-4 mt-4">
               <MapPin className="text-brand-sage" size={24} />
-              <span>{proyecto.ubicacion}</span>
+              <span className="font-light">{proyecto.ubicacion}</span>
             </div>
           </div>
         </div>
@@ -77,12 +79,13 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
 
       {/* Galería Tipo Marquesina (Carousel) */}
       {proyecto.galeria && proyecto.galeria.length > 0 && (
-        <div className="w-full bg-brand-dark py-6 border-t border-white/5 relative">
-          <div className="flex gap-4 px-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {proyecto.galeria.map((url: string, index: number) => (
+        <div className="w-full bg-brand-dark py-6 border-t border-white/5 relative overflow-hidden group">
+          {/* Se duplica el arreglo para que el scroll sea infinito */}
+          <div className="flex gap-4 px-4 w-max animate-[marquee_30s_linear_infinite] hover:[animation-play-state:paused]">
+            {[...proyecto.galeria, ...proyecto.galeria, ...proyecto.galeria].map((url: string, index: number) => (
               <div 
                 key={index} 
-                className="relative flex-none w-[280px] md:w-[400px] aspect-[4/3] snap-center overflow-hidden rounded-lg bg-black/50"
+                className="relative flex-none w-[280px] md:w-[400px] aspect-[4/3] overflow-hidden rounded-lg bg-black/50"
               >
                 <img 
                   src={url} 
