@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { MapPin, ArrowLeft, Calendar, Activity, Info } from "lucide-react"
+import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
 export const revalidate = 0;
 
@@ -105,6 +106,28 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
                 />
               </div>
             </div>
+
+            {/* Mapa de Ubicación */}
+            {proyecto.latitud && proyecto.longitud && (
+              <div className="bg-gray-50 border border-gray-100 p-8">
+                <h3 className="font-bold text-brand-dark text-xl mb-4 flex items-center gap-2">
+                  <MapPin className="text-brand-sage" /> Ubicación del Proyecto
+                </h3>
+                <div className="w-full h-[350px] bg-white border border-gray-200">
+                  <ProjectsMapClient 
+                    projects={[{
+                      id: proyecto.id,
+                      title: proyecto.nombre,
+                      category: getStatusLabel(proyecto.estado),
+                      status: getStatusLabel(proyecto.estado),
+                      lat: proyecto.latitud,
+                      lng: proyecto.longitud
+                    }]} 
+                    flyTo={{ lat: proyecto.latitud, lng: proyecto.longitud, id: proyecto.id }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar / Info */}
