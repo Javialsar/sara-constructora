@@ -113,7 +113,7 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
                 <h3 className="font-bold text-brand-dark text-xl mb-4 flex items-center gap-2">
                   <MapPin className="text-brand-sage" /> Ubicación del Proyecto
                 </h3>
-                <div className="w-full h-[350px] bg-white border border-gray-200">
+                <div className="w-full h-[350px] bg-white border border-gray-200 z-0 relative rounded overflow-hidden">
                   <ProjectsMapClient 
                     projects={[{
                       id: proyecto.id,

@@ -50,12 +50,12 @@ export default function ProjectsMap({ projects, flyTo }: ProjectsMapProps) {
     setMounted(true)
   }, [])
 
-  if (!mounted || !customIcon) return <div className="h-[400px] w-full bg-gray-100 animate-pulse flex items-center justify-center">Cargando mapa...</div>
+  if (!mounted || !customIcon) return <div className="h-full min-h-[300px] w-full bg-gray-100 animate-pulse flex items-center justify-center">Cargando mapa...</div>
 
   const center: [number, number] = [-4.3276, -79.5447]
 
   return (
-    <div className="h-[400px] md:h-[600px] w-full z-0 relative">
+    <div className="h-full w-full z-0 relative overflow-hidden rounded">
       <MapContainer 
         center={center} 
         zoom={10} 

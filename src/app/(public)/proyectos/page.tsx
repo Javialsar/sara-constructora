@@ -72,7 +72,7 @@ export default function ProyectosPage() {
             <h3 className="text-2xl font-bold text-brand-black">Mapa de Proyectos</h3>
             <span className="text-sm font-bold bg-brand-sage text-brand-dark px-3 py-1 rounded">Visualización Global</span>
           </div>
-          <div className="border border-gray-200 shadow-sm overflow-hidden bg-white">
+          <div className="border border-gray-200 shadow-sm bg-white rounded z-0 relative h-[400px] md:h-[600px]">
             <ProjectsMapClient projects={proyectosConMapa} flyTo={flyTo} />
           </div>
         </section>
