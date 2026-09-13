@@ -26,7 +26,7 @@ const equipo = [
 
 export default function NosotrosPage() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-transparent">
       
       {/* Hero Section */}
       <div className="relative pt-32 pb-20 md:pt-40 md:pb-28 bg-brand-dark overflow-hidden">
@@ -48,13 +48,13 @@ export default function NosotrosPage() {
 
       {/* Main Content & Image */}
       <div className="container mx-auto px-4 md:px-8 -mt-12 relative z-20">
-        <div className="bg-white shadow-2xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row">
+        <div className="bg-white/80 backdrop-blur-md shadow-2xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-lg">
           
-          <div className="lg:w-1/2 relative min-h-[400px]">
+          <div className="lg:w-1/2 relative min-h-[400px] bg-white flex items-center justify-center p-8">
              <img 
                src="/images/nosotros-sara.jpg" 
                alt="SARA Constructora 3D Logo" 
-               className="absolute inset-0 w-full h-full object-cover"
+               className="w-full h-full object-contain drop-shadow-md hover:scale-105 transition-transform duration-700"
              />
           </div>
 
