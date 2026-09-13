@@ -17,6 +17,7 @@ export default function AdminProyectos() {
   const [formData, setFormData] = useState({
     nombre: "",
     ubicacion: "",
+    descripcion: "",
     estado: "en_diseno",
     latitud: "",
     longitud: "",
@@ -51,7 +52,7 @@ export default function AdminProyectos() {
   const openNewModal = () => {
     setEditId(null)
     setFile(null)
-    setFormData({ nombre: "", ubicacion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "" })
+    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "" })
     setIsModalOpen(true)
   }
 
@@ -61,6 +62,7 @@ export default function AdminProyectos() {
     setFormData({
       nombre: p.nombre,
       ubicacion: p.ubicacion,
+      descripcion: p.descripcion || "",
       estado: p.estado,
       latitud: p.latitud ? p.latitud.toString() : "",
       longitud: p.longitud ? p.longitud.toString() : "",
@@ -110,6 +112,7 @@ export default function AdminProyectos() {
     const payload = {
       nombre: formData.nombre,
       ubicacion: formData.ubicacion,
+      descripcion: formData.descripcion,
       estado: formData.estado,
       latitud: formData.latitud ? parseFloat(formData.latitud) : null,
       longitud: formData.longitud ? parseFloat(formData.longitud) : null,
@@ -287,6 +290,17 @@ export default function AdminProyectos() {
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none"
                     value={formData.ubicacion}
                     onChange={(e) => setFormData({...formData, ubicacion: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-sm font-bold text-gray-700">Descripción del Proyecto</label>
+                  <textarea 
+                    rows={4}
+                    placeholder="Describe los detalles del proyecto, tipo de edificación, metros cuadrados..."
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none resize-none"
+                    value={formData.descripcion}
+                    onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
                   />
                 </div>
 
