@@ -6,6 +6,40 @@ import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
 export const revalidate = 0;
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient()
+  
+  const { data: proyecto } = await supabase
+    .from('proyectos')
+    .select('nombre, descripcion')
+    .eq('id', id)
+    .single()
+
+  const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+  
+  const title = proyecto?.nombre ? `${proyecto.nombre} | SARA Constructora` : 'SARA Constructora'
+  const description = proyecto?.descripcion?.substring(0, 160) || 'Detalles del proyecto.'
+  // El usuario solicitó específicamente que aparezca el logotipo actual al compartir el proyecto
+  const ogImage = config?.logo_url || '/images/logo-sara-transparent.png'
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [ogImage],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [ogImage],
+    }
+  }
+}
+
 export default async function ProyectoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient()
