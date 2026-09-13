@@ -2,8 +2,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/Button"
-import { MapPin, Phone, Mail, CheckCircle2 } from "lucide-react"
-
+import { MapPin, Phone, Mail, CheckCircle2, Clock, Instagram, Facebook, Linkedin, User } from "lucide-react"
 export default function ContactoPage() {
   const supabase = createClient()
   const [formData, setFormData] = useState({
@@ -118,6 +117,56 @@ export default function ContactoPage() {
                   </div>
                 </li>
               </ul>
+
+              <hr className="border-white/10 my-6 relative z-10" />
+
+              {/* Atención Directa */}
+              <div className="relative z-10 space-y-6">
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Atención Directa</h4>
+                  <ul className="space-y-4">
+                    <li className="flex items-start gap-3">
+                      <User className="text-gray-400 shrink-0 mt-0.5" size={18} />
+                      <div>
+                        <p className="text-sm font-bold text-white">Arq. Sara</p>
+                        <p className="text-xs text-gray-400">Directora de Proyectos</p>
+                        <a href="mailto:gerencia@saraconstructora.com" className="text-xs text-brand-sage hover:text-white transition-colors">gerencia@saraconstructora.com</a>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <User className="text-gray-400 shrink-0 mt-0.5" size={18} />
+                      <div>
+                        <p className="text-sm font-bold text-white">Ing. Luis</p>
+                        <p className="text-xs text-gray-400">Ingeniería & Operaciones</p>
+                        <a href="mailto:operaciones@saraconstructora.com" className="text-xs text-brand-sage hover:text-white transition-colors">operaciones@saraconstructora.com</a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Horario</h4>
+                  <div className="flex items-start gap-3">
+                    <Clock className="text-gray-400 shrink-0 mt-0.5" size={18} />
+                    <p className="text-sm text-gray-300">Lunes a Viernes<br/>8:00 AM - 6:00 PM</p>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Síguenos</h4>
+                  <div className="flex gap-4">
+                    <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
+                      <Instagram size={18} />
+                    </a>
+                    <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
+                      <Facebook size={18} />
+                    </a>
+                    <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
+                      <Linkedin size={18} />
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
