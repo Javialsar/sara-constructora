@@ -7,16 +7,20 @@ import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
 
 export default function Hero() {
-  const [images, setImages] = useState<string[]>([
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop"
-  ])
+  const [logoUrl, setLogoUrl] = useState<string>('/logo-hero.png')
+  const [images, setImages] = useState<string[]>(['/logo-hero.png'])
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchData = async () => {
       const supabase = createClient()
       
-      // Intentar traer primero solo los proyectos destacados
+      // Obtener Logo Oficial
+      const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+      const actualLogo = config?.logo_url || '/logo-hero.png'
+      setLogoUrl(actualLogo)
+
+      // Obtener Proyectos
       const { data, error } = await supabase
         .from('proyectos')
         .select('imagen_url')
@@ -25,7 +29,6 @@ export default function Hero() {
       
       let urls = data?.map((p: any) => p.imagen_url).filter(Boolean) || []
 
-      // Si no hay destacados (o si da error porque aún no existe la columna), traer cualquiera
       if (urls.length === 0) {
         const { data: fallbackData } = await supabase
           .from('proyectos')
@@ -36,11 +39,9 @@ export default function Hero() {
         urls = fallbackData?.map((p: any) => p.imagen_url).filter(Boolean) || []
       }
 
-      urls = ['/logo-hero.png', ...urls]
-
-      setImages(urls)
+      setImages([actualLogo, ...urls])
     }
-    fetchProjects()
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -54,14 +55,32 @@ export default function Hero() {
   return (
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-brand-dark">
       
-      {/* High-quality background image carousel */}
-      {images.map((img, index) => (
-        <div
-          key={img}
-          className={`absolute inset-0 w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 ${img === '/logo-hero.png' ? 'bg-contain bg-center lg:bg-right bg-no-repeat opacity-40' : 'bg-cover bg-center'} ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
-          style={{ backgroundImage: `url('${img}')`, opacity: index === currentIndex ? (img === '/logo-hero.png' ? 0.25 : 1) : 0 }}
-        />
-      ))}
+      {/* Split Layout: Background Images on Right Side (Desktop), Full Screen (Mobile) */}
+      {images.map((img, index) => {
+        const isLogo = img === logoUrl;
+        return (
+          <div
+            key={img}
+            className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 
+              ${isLogo ? 'bg-contain bg-center lg:bg-right bg-no-repeat' : 'bg-cover bg-center lg:bg-left'} 
+              ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+            style={{ 
+              backgroundImage: `url('${img}')`, 
+              opacity: index === currentIndex ? (isLogo ? 0.15 : 1) : 0 
+            }}
+          >
+            {/* Máscara de desvanecimiento para las fotografías (mezcla suave con el fondo verde) */}
+            {!isLogo && (
+              <div className="hidden lg:block absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-brand-dark to-transparent z-10" />
+            )}
+            
+            {/* Oscurecimiento sutil en móviles para asegurar lectura */}
+            {!isLogo && (
+              <div className="lg:hidden absolute inset-0 bg-brand-dark/70 z-10" />
+            )}
+          </div>
+        )
+      })}
       
       {/* Very subtle gradient (20% intensity) just to keep text crisp */}
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/60 via-brand-dark/30 to-transparent w-full md:w-[120%]" />

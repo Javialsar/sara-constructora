@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 const navLinks = [
   { name: "Inicio", href: "/" },
@@ -17,6 +18,7 @@ const navLinks = [
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [logo, setLogo] = useState("/images/logo-sara.png")
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +26,17 @@ export default function Header() {
     }
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+      if (data?.logo_url) {
+        setLogo(data.logo_url)
+      }
+    }
+    fetchLogo()
   }, [])
 
   return (
@@ -42,7 +55,7 @@ export default function Header() {
         {/* Logo */}
         <Link href="/" className="relative flex items-center gap-3">
           <img 
-            src="/images/logo-sara.png" 
+            src={logo} 
             alt="SARA Constructora Logo" 
             className={cn("w-auto object-contain transition-all duration-300 hover:opacity-80 mix-blend-multiply",
               isScrolled ? "h-14 md:h-16" : "h-16 md:h-20"

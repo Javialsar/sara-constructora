@@ -18,6 +18,7 @@ export default function ConfiguracionPage() {
 
   const [formData, setFormData] = useState({
     nombre_empresa: "",
+    logo_url: "",
     email_contacto: "",
     telefono_principal: "",
     whatsapp: "",
@@ -29,6 +30,8 @@ export default function ConfiguracionPage() {
   })
 
   const [equipo, setEquipo] = useState<MiembroEquipo[]>([])
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
 
   useEffect(() => {
     loadConfig()
@@ -46,6 +49,7 @@ export default function ConfiguracionPage() {
       setConfigId(data.id)
       setFormData({
         nombre_empresa: data.nombre_empresa || "",
+        logo_url: data.logo_url || "",
         email_contacto: data.email_contacto || "",
         telefono_principal: data.telefono_principal || "",
         whatsapp: data.whatsapp || "",
@@ -110,10 +114,39 @@ export default function ConfiguracionPage() {
 
   const handleSave = async () => {
     setSaving(true)
+    let finalLogoUrl = formData.logo_url;
+
+    if (logoFile) {
+      setUploadingLogo(true)
+      const fileExt = logoFile.name.split('.').pop()
+      const fileName = `logo-${Date.now()}.${fileExt}`
+      const filePath = `identidad/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('sara-assets')
+        .upload(filePath, logoFile)
+
+      if (uploadError) {
+        alert("Error subiendo el logo: " + uploadError.message)
+        setUploadingLogo(false)
+        setSaving(false)
+        return
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('sara-assets')
+        .getPublicUrl(filePath)
+      
+      finalLogoUrl = publicUrl
+      setUploadingLogo(false)
+      setFormData(prev => ({ ...prev, logo_url: publicUrl }))
+    }
+
     const { error } = await supabase
       .from('configuracion_empresa')
       .update({
         ...formData,
+        logo_url: finalLogoUrl,
         equipo_directivo: equipo
       })
       .eq('id', configId)
@@ -149,6 +182,47 @@ export default function ConfiguracionPage() {
           {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
           {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+        <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+          <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
+            <Camera size={20} />
+          </div>
+          <h2 className="text-xl font-bold text-gray-800">Identidad Visual</h2>
+        </div>
+        <div className="flex items-center gap-8">
+          {/* Preview del logo actual */}
+          <div className="w-48 h-32 bg-brand-dark rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 relative overflow-hidden">
+            {logoFile ? (
+              <img src={URL.createObjectURL(logoFile)} alt="Nuevo Logo" className="max-w-full max-h-full object-contain p-2" />
+            ) : formData.logo_url ? (
+              <img src={formData.logo_url} alt="Logo Actual" className="max-w-full max-h-full object-contain p-2" />
+            ) : (
+              <span className="text-gray-400 text-sm">Sin Logo</span>
+            )}
+            {uploadingLogo && (
+              <div className="absolute inset-0 bg-brand-dark/80 flex items-center justify-center">
+                <Loader2 className="animate-spin text-brand-sage" size={24} />
+              </div>
+            )}
+          </div>
+          
+          <div className="flex-1">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Logotipo de la Empresa</label>
+            <p className="text-xs text-gray-500 mb-4">Sube el logotipo oficial (formato PNG con fondo transparente recomendado). Se actualizará en toda la plataforma (Menús, Footer, Hero, etc).</p>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  setLogoFile(e.target.files[0])
+                }
+              }}
+              className="w-full max-w-sm border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20 cursor-pointer"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

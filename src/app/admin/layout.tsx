@@ -11,6 +11,8 @@ import {
   Settings,
   LogOut
 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function AdminLayout({
   children,
@@ -18,6 +20,18 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const [logo, setLogo] = useState("/images/logo-sara.png")
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      const supabase = createClient()
+      const { data } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+      if (data?.logo_url) {
+        setLogo(data.logo_url)
+      }
+    }
+    fetchLogo()
+  }, [])
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -39,7 +53,7 @@ export default function AdminLayout({
       <aside className="w-64 bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20">
         <div className="p-6 border-b border-white/10 flex items-center gap-3">
           <div className="w-8 h-8 bg-white rounded flex items-center justify-center p-1">
-            <img src="/images/logo-sara.png" alt="SARA Logo" className="w-full h-full object-contain" />
+            <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-bold tracking-wider text-sm">ADMINISTRADOR</h1>

@@ -1,7 +1,12 @@
 import Link from "next/link"
 import { Phone, Mail, MapPin } from "lucide-react"
+import { createClient } from "@/lib/supabase/server"
 
-export default function Footer() {
+export default async function Footer() {
+  const supabase = createClient()
+  const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+  const logo = config?.logo_url || "/images/logo-sara-transparent.png"
+
   return (
     <footer className="bg-brand-dark text-white pt-16 pb-24 md:pb-8">
       <div className="container mx-auto px-4 md:px-8">
@@ -9,9 +14,9 @@ export default function Footer() {
           
           {/* Brand Info */}
           <div className="space-y-6">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-block bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
               <img 
-                src="/images/logo-sara-transparent.png" 
+                src={logo} 
                 alt="SARA Constructora" 
                 className="h-20 md:h-24 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
               />
