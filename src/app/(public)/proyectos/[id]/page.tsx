@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
-import { MapPin, ArrowLeft, Calendar, Activity, Info, Camera } from "lucide-react"
+import { MapPin, ArrowLeft, Calendar, Activity, Info, Camera, User } from "lucide-react"
 import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
 export const revalidate = 0;
@@ -12,7 +12,7 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
   
   const { data: proyecto, error } = await supabase
     .from('proyectos')
-    .select('*')
+    .select('*, clientes (nombre, apellido, empresa)')
     .eq('id', id)
     .single()
 
@@ -69,10 +69,33 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
               {proyecto.nombre}
             </h1>
             
-            <div className="flex items-center gap-2 text-white/80 text-lg md:text-xl border-l-2 border-brand-sage/50 pl-4 mt-4">
-              <MapPin className="text-brand-sage" size={24} />
-              <span className="font-light">{proyecto.ubicacion}</span>
+            <div className="flex flex-col gap-3 mt-6">
+              <div className="flex items-center gap-3 text-white/80 text-lg md:text-xl border-l-2 border-brand-sage/50 pl-4">
+                <MapPin className="text-brand-sage" size={24} />
+                <span className="font-light">{proyecto.ubicacion}</span>
+              </div>
+              
+              {proyecto.clientes && (
+                <div className="flex items-center gap-3 text-white/70 text-base md:text-lg border-l-2 border-brand-sage/30 pl-4">
+                  <User className="text-brand-sage/80" size={22} />
+                  <span className="font-light">
+                    {proyecto.clientes.empresa ? (
+                      <>Cliente: <span className="font-medium">{proyecto.clientes.empresa}</span></>
+                    ) : (
+                      <>Cliente: <span className="font-medium">{proyecto.clientes.nombre} {proyecto.clientes.apellido}</span></>
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {proyecto.descripcion && (
+              <p className="text-white/60 font-light text-lg max-w-xl leading-relaxed mt-8 border-t border-white/10 pt-6">
+                {proyecto.descripcion.length > 160 
+                  ? proyecto.descripcion.substring(0, 160) + '...' 
+                  : proyecto.descripcion}
+              </p>
+            )}
           </div>
         </div>
       </div>
