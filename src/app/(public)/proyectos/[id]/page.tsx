@@ -12,7 +12,7 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
   
   const { data: proyecto, error } = await supabase
     .from('proyectos')
-    .select('*, clientes (nombre, apellido, empresa)')
+    .select('*, clientes (nombre, apellido)')
     .eq('id', id)
     .single()
 
@@ -79,11 +79,7 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
                 <div className="flex items-center gap-3 text-white/70 text-base md:text-lg border-l-2 border-brand-sage/30 pl-4">
                   <User className="text-brand-sage/80" size={22} />
                   <span className="font-light">
-                    {proyecto.clientes.empresa ? (
-                      <>Cliente: <span className="font-medium">{proyecto.clientes.empresa}</span></>
-                    ) : (
-                      <>Cliente: <span className="font-medium">{proyecto.clientes.nombre} {proyecto.clientes.apellido}</span></>
-                    )}
+                    Cliente: <span className="font-medium">{proyecto.clientes.nombre} {proyecto.clientes.apellido}</span>
                   </span>
                 </div>
               )}
