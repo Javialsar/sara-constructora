@@ -66,7 +66,7 @@ export default function Hero() {
               ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
             style={{ 
               backgroundImage: `url('${img}')`, 
-              opacity: index === currentIndex ? (isLogo ? 0.08 : 1) : 0 
+              opacity: index === currentIndex ? (isLogo ? 0.35 : 1) : 0 
             }}
           >
             {/* Máscara de desvanecimiento para las fotografías (mezcla suave con el fondo verde) */}

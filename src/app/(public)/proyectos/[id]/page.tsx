@@ -34,18 +34,24 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
       {/* Hero Section */}
       <div className="relative min-h-[85vh] lg:min-h-screen bg-brand-dark w-full overflow-hidden">
         {proyecto.imagen_url ? (
-          <div 
-            className="absolute inset-0 bg-cover bg-center md:bg-fixed"
-            style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
-          />
+          <>
+            <div 
+              className="absolute inset-0 bg-cover bg-center md:bg-fixed opacity-20 blur-2xl scale-110"
+              style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
+            />
+            <div 
+              className="absolute inset-0 bg-contain bg-center lg:bg-[position:center_top] bg-no-repeat mt-24"
+              style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
+            />
+          </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-brand-dark to-brand-black">
             <span className="text-white/10 text-9xl font-extrabold uppercase">{proyecto.nombre?.charAt(0)}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/95 via-brand-dark/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/100 via-brand-dark/60 to-transparent z-0 pointer-events-none" />
         
-        <div className="absolute inset-0 flex flex-col justify-end">
+        <div className="absolute inset-0 flex flex-col justify-end z-10">
           <div className="container mx-auto px-4 md:px-8 pb-20">
             <Link href="/proyectos" className="inline-flex items-center gap-2 text-white/70 hover:text-brand-sage mb-6 transition-colors text-sm font-bold tracking-widest uppercase">
               <ArrowLeft size={16} /> Volver a Proyectos
@@ -68,6 +74,26 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
           </div>
         </div>
       </div>
+
+      {/* Galería Tipo Marquesina (Carousel) */}
+      {proyecto.galeria && proyecto.galeria.length > 0 && (
+        <div className="w-full bg-brand-dark py-6 border-t border-white/5 relative">
+          <div className="flex gap-4 px-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {proyecto.galeria.map((url: string, index: number) => (
+              <div 
+                key={index} 
+                className="relative flex-none w-[280px] md:w-[400px] aspect-[4/3] snap-center overflow-hidden rounded-lg bg-black/50"
+              >
+                <img 
+                  src={url} 
+                  alt={`${proyecto.nombre} - Perspectiva ${index + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Content Section */}
       <div className="container mx-auto px-4 md:px-8 py-16">
@@ -129,26 +155,6 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
               </div>
             )}
 
-            {/* Galería de Perspectivas */}
-            {proyecto.galeria && proyecto.galeria.length > 0 && (
-              <div className="mt-12">
-                <h3 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-6 flex items-center gap-2">
-                  <Camera size={16} /> Perspectivas del Proyecto
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {proyecto.galeria.map((url: string, index: number) => (
-                    <div key={index} className="relative group overflow-hidden rounded-lg aspect-[4/3] bg-gray-100">
-                      <img 
-                        src={url} 
-                        alt={`${proyecto.nombre} - Perspectiva ${index + 1}`}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-brand-dark/0 group-hover:bg-brand-dark/20 transition-colors duration-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Sidebar / Info */}
