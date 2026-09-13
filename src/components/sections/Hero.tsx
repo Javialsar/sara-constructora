@@ -42,17 +42,13 @@ export default function Hero() {
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-brand-dark">
       
       {/* High-quality background image carousel */}
-      <AnimatePresence mode="wait">
-        <motion.div 
-          key={currentIndex}
-          initial={{ scale: 1.05, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          className="absolute right-0 top-0 w-full h-full bg-cover bg-center z-0"
-          style={{ backgroundImage: `url('${images[currentIndex]}')` }}
+      {images.map((img, index) => (
+        <div
+          key={img}
+          className={`absolute inset-0 w-full h-full bg-cover bg-center transition-opacity duration-[1500ms] ease-in-out z-0 ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+          style={{ backgroundImage: `url('${img}')` }}
         />
-      </AnimatePresence>
+      ))}
       
       {/* Very subtle gradient (20% intensity) just to keep text crisp */}
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/60 via-brand-dark/30 to-transparent w-full md:w-[120%]" />

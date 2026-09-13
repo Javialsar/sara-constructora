@@ -51,7 +51,20 @@ export default function ProyectosPage() {
   })
 
   const handleCardClick = (project: any) => {
-    router.push(`/proyectos/${project.id}`)
+    if (project.latitud && project.longitud) {
+      setFlyTo({ lat: project.latitud, lng: project.longitud, id: project.id })
+      
+      if (mapRef.current) {
+        const y = mapRef.current.getBoundingClientRect().top + window.scrollY - 100
+        window.scrollTo({ top: y, behavior: 'smooth' })
+      }
+
+      setTimeout(() => {
+        router.push(`/proyectos/${project.id}`)
+      }, 1500)
+    } else {
+      router.push(`/proyectos/${project.id}`)
+    }
   }
 
   return (
