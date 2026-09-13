@@ -4,8 +4,12 @@ import { createClient } from "@/lib/supabase/server"
 
 export default async function Footer() {
   const supabase = await createClient()
-  const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+  const { data: config } = await supabase.from('configuracion_empresa').select('*').limit(1).single()
   const logo = config?.logo_url || "/images/logo-sara-transparent.png"
+  const direccion = config?.direccion || "Quito - Cuenca - Loja"
+  const email = config?.email_contacto || "sara.constructora593@gmail.com"
+  const telefono = config?.telefono_principal || "098 180 4023"
+  const phoneLink = telefono.replace(/\D/g, '')
 
   return (
     <footer className="bg-brand-dark text-white pt-16 pb-24 md:pb-8">
@@ -37,18 +41,18 @@ export default async function Footer() {
             <ul className="space-y-4 text-sm text-gray-300">
               <li className="flex items-start gap-3">
                 <MapPin className="text-brand-sage shrink-0" size={20} />
-                <span>Cariamanga - Loja - Ecuador</span>
+                <span>{direccion}</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="text-brand-sage shrink-0" size={20} />
-                <a href="mailto:sara.constructora593@gmail.com" className="hover:text-white transition-colors">
-                  sara.constructora593@gmail.com
+                <a href={`mailto:${email}`} className="hover:text-white transition-colors">
+                  {email}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="text-brand-sage shrink-0" size={20} />
-                <a href="tel:0981804023" className="hover:text-white transition-colors">
-                  098 180 4023
+                <a href={`https://wa.me/${phoneLink}`} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
+                  {telefono}
                 </a>
               </li>
             </ul>

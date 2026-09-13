@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/Button"
 import { MapPin, Phone, Mail, CheckCircle2 } from "lucide-react"
@@ -18,6 +18,16 @@ export default function ContactoPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  
+  const [config, setConfig] = useState<any>(null)
+  
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const { data } = await supabase.from('configuracion_empresa').select('*').limit(1).single()
+      if (data) setConfig(data)
+    }
+    fetchConfig()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,21 +86,25 @@ export default function ContactoPage() {
                   <MapPin className="text-brand-sage shrink-0 mt-1" size={24} />
                   <div>
                     <h4 className="font-bold mb-1">Ubicación</h4>
-                    <p className="text-gray-300 text-sm">Cariamanga – Loja – Ecuador</p>
+                    <p className="text-gray-300 text-sm">{config?.direccion || "Quito - Cuenca - Loja"}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-4">
                   <Phone className="text-brand-sage shrink-0 mt-1" size={24} />
                   <div>
                     <h4 className="font-bold mb-1">Teléfono / WhatsApp</h4>
-                    <a href="tel:0981804023" className="text-gray-300 text-sm hover:text-white transition-colors">098 180 4023</a>
+                    <a href={`https://wa.me/${(config?.telefono_principal || "098 180 4023").replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-gray-300 text-sm hover:text-white transition-colors">
+                      {config?.telefono_principal || "098 180 4023"}
+                    </a>
                   </div>
                 </li>
                 <li className="flex items-start gap-4">
                   <Mail className="text-brand-sage shrink-0 mt-1" size={24} />
                   <div>
                     <h4 className="font-bold mb-1">Email</h4>
-                    <a href="mailto:sara.constructora593@gmail.com" className="text-gray-300 text-sm hover:text-white transition-colors">sara.constructora593@gmail.com</a>
+                    <a href={`mailto:${config?.email_contacto || "sara.constructora593@gmail.com"}`} className="text-gray-300 text-sm hover:text-white transition-colors">
+                      {config?.email_contacto || "sara.constructora593@gmail.com"}
+                    </a>
                   </div>
                 </li>
               </ul>
