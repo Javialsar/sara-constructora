@@ -4,16 +4,16 @@ import { motion } from "framer-motion"
 import { ArrowRight, Compass, HardHat, Ruler, Building2, Map, Calculator, Wrench, Eye, Box, FileSignature } from "lucide-react"
 
 const servicios = [
-  { id: "01", icon: Compass, title: "Diseño Arquitectónico", desc: "Conceptualización y diseño de espacios funcionales y estéticos.", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop" },
-  { id: "02", icon: Building2, title: "Construcción de Obras", desc: "Ejecución integral de proyectos residenciales, comerciales e institucionales.", image: "https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=800&auto=format&fit=crop" },
-  { id: "03", icon: Ruler, title: "Ingeniería y Cálculo", desc: "Análisis y diseño para garantizar la seguridad y estabilidad.", image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop" },
-  { id: "04", icon: HardHat, title: "Estudios de Suelos", desc: "Análisis geotécnico para fundamentar correctamente cada proyecto.", image: "https://images.unsplash.com/photo-1578509378904-71648a04b19c?q=80&w=800&auto=format&fit=crop" },
-  { id: "05", icon: Map, title: "Topografía y Planimetría", desc: "Levantamientos topográficos precisos para planificación y ejecución.", image: "https://images.unsplash.com/photo-1524815436321-db9b53177651?q=80&w=800&auto=format&fit=crop" },
-  { id: "06", icon: Calculator, title: "Presupuestos y APU", desc: "Cálculo detallado de costos y análisis de precios unitarios.", image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop" },
-  { id: "07", icon: Wrench, title: "Remodelaciones", desc: "Transformación y mejora de espacios existentes.", image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop" },
-  { id: "08", icon: Eye, title: "Supervisión de Obras", desc: "Control técnico y administrativo durante la ejecución.", image: "https://images.unsplash.com/photo-1504307651254-35680f356f58?q=80&w=800&auto=format&fit=crop" },
-  { id: "09", icon: Box, title: "Modelado 3D y Renders", desc: "Visualización fotorrealista para entender el proyecto.", image: "https://images.unsplash.com/photo-1600607687989-ce4d31d94f28?q=80&w=800&auto=format&fit=crop" },
-  { id: "10", icon: FileSignature, title: "Consultoría Técnica", desc: "Asesoría especializada en todas las etapas del desarrollo.", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop" },
+  { id: "01", slug: "diseno-arquitectonico", icon: Compass, title: "Diseño Arquitectónico", desc: "Conceptualización y diseño de espacios funcionales y estéticos.", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=800&auto=format&fit=crop" },
+  { id: "02", slug: "construccion-de-obras", icon: Building2, title: "Construcción de Obras", desc: "Ejecución integral de proyectos residenciales, comerciales e institucionales.", image: "https://images.unsplash.com/photo-1541888086425-d81bb19240f5?q=80&w=800&auto=format&fit=crop" },
+  { id: "03", slug: "ingenieria-y-calculo-estructural", icon: Ruler, title: "Ingeniería y Cálculo", desc: "Análisis y diseño para garantizar la seguridad y estabilidad.", image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop" },
+  { id: "04", slug: "estudios-de-suelos", icon: HardHat, title: "Estudios de Suelos", desc: "Análisis geotécnico para fundamentar correctamente cada proyecto.", image: "https://images.unsplash.com/photo-1578509378904-71648a04b19c?q=80&w=800&auto=format&fit=crop" },
+  { id: "05", slug: "topografia-y-planimetria", icon: Map, title: "Topografía y Planimetría", desc: "Levantamientos topográficos precisos para planificación y ejecución.", image: "https://images.unsplash.com/photo-1524815436321-db9b53177651?q=80&w=800&auto=format&fit=crop" },
+  { id: "06", slug: "presupuestos-y-apu", icon: Calculator, title: "Presupuestos y APU", desc: "Cálculo detallado de costos y análisis de precios unitarios.", image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?q=80&w=800&auto=format&fit=crop" },
+  { id: "07", slug: "remodelaciones-y-ampliaciones", icon: Wrench, title: "Remodelaciones", desc: "Transformación y mejora de espacios existentes.", image: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=800&auto=format&fit=crop" },
+  { id: "08", slug: "direccion-y-supervision", icon: Eye, title: "Supervisión de Obras", desc: "Control técnico y administrativo durante la ejecución.", image: "https://images.unsplash.com/photo-1504307651254-35680f356f58?q=80&w=800&auto=format&fit=crop" },
+  { id: "09", slug: "modelado-3d-y-renders", icon: Box, title: "Modelado 3D y Renders", desc: "Visualización fotorrealista para entender el proyecto.", image: "https://images.unsplash.com/photo-1600607687989-ce4d31d94f28?q=80&w=800&auto=format&fit=crop" },
+  { id: "10", slug: "consultoria-tecnica", icon: FileSignature, title: "Consultoría Técnica", desc: "Asesoría especializada en todas las etapas del desarrollo.", image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop" },
 ]
 
 export default function ServiciosPreview() {
@@ -58,7 +58,7 @@ export default function ServiciosPreview() {
                 className={`group relative bg-brand-dark overflow-hidden flex flex-col ${index === 0 || index === 1 ? 'xl:col-span-2' : ''}`}
               >
                 <Link 
-                  href={`/servicios#${s.id}`}
+                  href={`/servicios/${s.slug}`}
                   className="flex flex-col h-full hover:bg-white/[0.02] transition-colors duration-500"
                 >
                   <div className="h-48 w-full relative overflow-hidden">

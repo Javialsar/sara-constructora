@@ -78,8 +78,9 @@ const serviciosData: Record<string, any> = {
   }
 }
 
-export default async function ServicioDetailPage({ params }: { params: { slug: string } }) {
-  const { slug } = params
+export default async function ServicioDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params
+  const { slug } = resolvedParams
   const data = serviciosData[slug]
 
   if (!data) {
