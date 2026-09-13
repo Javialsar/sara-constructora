@@ -5,10 +5,10 @@
   --foreground: #000000;
   
   /* Paleta de Verdes (Teal & Lime & Mint) */
-  --color-sara-dark: #2C977D; /* Verde Esmeralda/Teal Oscuro */
-  --color-sara-sage: #6CC569; /* Verde Lima Brillante */
-  --color-sara-light: #9AE3B7; /* Verde Menta Claro */
-  --color-sara-black: #0D0D0D; /* Negro */
+  --color-sara-dark: #0b1a13; /* Verde bosque muy oscuro (Casi Negro) */
+  --color-sara-sage: #3c7a52; /* Verde Bosque (Forest Green) */
+  --color-sara-light: #f0f7f4; /* Menta súper claro / Blanco */
+  --color-sara-black: #08110c; /* Negro verdoso */
   --color-sara-white: #FFFFFF; /* Blanco Neutro */
 }
 
@@ -23,7 +23,12 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--color-sara-white);
+  /* Cuadrícula sutil (Grid) en el fondo de todas las pantallas blancas */
+  background-image: 
+    linear-gradient(to right, #f0f7f4 1px, transparent 1px),
+    linear-gradient(to bottom, #f0f7f4 1px, transparent 1px);
+  background-size: 40px 40px;
   color: var(--color-sara-black);
   font-family: var(--font-montserrat), sans-serif;
   -webkit-font-smoothing: antialiased;

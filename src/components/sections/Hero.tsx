@@ -1,24 +1,61 @@
 "use client"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/Button"
 import { MapPin, ArrowRight } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
+import { createClient } from "@/lib/supabase/client"
 
 export default function Hero() {
+  const [images, setImages] = useState<string[]>([
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop"
+  ])
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('proyectos')
+        .select('imagen_url')
+        .not('imagen_url', 'is', null)
+      
+      if (data && data.length > 0) {
+        const urls = data.map((p: any) => p.imagen_url).filter(Boolean)
+        if (urls.length > 0) {
+          setImages(urls)
+        }
+      }
+    }
+    fetchProjects()
+  }, [])
+
+  useEffect(() => {
+    if (images.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % images.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [images])
+
   return (
     <section className="relative min-h-screen flex items-center pt-20 overflow-hidden bg-brand-dark">
       
-      {/* High-quality background image */}
-      <motion.div 
-        initial={{ scale: 1.05, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 2, ease: "easeOut" }}
-        className="absolute right-0 top-0 w-full h-full bg-cover bg-center z-0"
-        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop')" }}
-      />
+      {/* High-quality background image carousel */}
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={currentIndex}
+          initial={{ scale: 1.05, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          className="absolute right-0 top-0 w-full h-full bg-cover bg-center z-0"
+          style={{ backgroundImage: `url('${images[currentIndex]}')` }}
+        />
+      </AnimatePresence>
       
       {/* Very subtle gradient (20% intensity) just to keep text crisp */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/30 via-brand-dark/10 to-transparent w-full md:w-[120%]" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/60 via-brand-dark/30 to-transparent w-full md:w-[120%]" />
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[80vh]">
 
