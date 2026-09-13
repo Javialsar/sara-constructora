@@ -122,28 +122,31 @@ export default function ContactoPage() {
 
               {/* Atención Directa */}
               <div className="relative z-10 space-y-6">
-                <div>
-                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Atención Directa</h4>
-                  <ul className="space-y-4">
-                    <li className="flex items-start gap-3">
-                      <User className="text-gray-400 shrink-0 mt-0.5" size={18} />
-                      <div>
-                        <p className="text-sm font-bold text-white">Arq. Sara</p>
-                        <p className="text-xs text-gray-400">Directora de Proyectos</p>
-                        <a href="mailto:gerencia@saraconstructora.com" className="text-xs text-brand-sage hover:text-white transition-colors">gerencia@saraconstructora.com</a>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <User className="text-gray-400 shrink-0 mt-0.5" size={18} />
-                      <div>
-                        <p className="text-sm font-bold text-white">Ing. Luis</p>
-                        <p className="text-xs text-gray-400">Ingeniería & Operaciones</p>
-                        <a href="mailto:operaciones@saraconstructora.com" className="text-xs text-brand-sage hover:text-white transition-colors">operaciones@saraconstructora.com</a>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-
+                {config?.equipo_directivo && config.equipo_directivo.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Atención Directa</h4>
+                    <ul className="space-y-4">
+                      {config.equipo_directivo.map((miembro: any) => (
+                        <li key={miembro.id || miembro.nombre} className="flex items-start gap-3">
+                          <User className="text-gray-400 shrink-0 mt-0.5" size={18} />
+                          <div>
+                            <p className="text-sm font-bold text-white">{miembro.nombre}</p>
+                            <p className="text-xs text-gray-400">{miembro.cargo}</p>
+                            {miembro.telefono && (
+                              <p className="text-xs text-gray-300 mt-0.5">{miembro.telefono}</p>
+                            )}
+                            {miembro.email && (
+                              <a href={`mailto:${miembro.email}`} className="text-xs text-brand-sage hover:text-white transition-colors block">
+                                {miembro.email}
+                              </a>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
                 <div>
                   <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Horario</h4>
                   <div className="flex items-start gap-3">
@@ -155,15 +158,25 @@ export default function ContactoPage() {
                 <div className="pt-4">
                   <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Síguenos</h4>
                   <div className="flex gap-4">
-                    <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-                    </a>
-                    <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-                    </a>
-                    <a href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-                    </a>
+                    {config?.instagram_url && (
+                      <a href={config.instagram_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+                      </a>
+                    )}
+                    {config?.facebook_url && (
+                      <a href={config.facebook_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                      </a>
+                    )}
+                    {config?.linkedin_url && (
+                      <a href={config.linkedin_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+                      </a>
+                    )}
+                    {/* Renderizamos iconos por defecto si no hay ninguna red (fallback) */}
+                    {!config?.instagram_url && !config?.facebook_url && !config?.linkedin_url && (
+                      <p className="text-sm text-gray-500 italic">No hay redes configuradas</p>
+                    )}
                   </div>
                 </div>
               </div>
