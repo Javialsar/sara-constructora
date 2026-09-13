@@ -9,7 +9,8 @@ import {
   MessageSquareQuote,
   FileText,
   Settings,
-  LogOut
+  LogOut,
+  Newspaper
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -38,6 +39,7 @@ export default function AdminLayout({
     { href: "/admin/clientes", label: "Clientes", icon: Users },
     { href: "/admin/proyectos", label: "Proyectos", icon: HardHat },
     { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
+    { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
     { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
     { href: "/admin/cotizaciones", label: "Cotizaciones", icon: FileText },
   ]

@@ -68,10 +68,10 @@ export default async function Footer() {
               <li><Link href="/nosotros" className="hover:text-brand-sage transition-colors">Nosotros</Link></li>
               <li><Link href="/servicios" className="hover:text-brand-sage transition-colors">Servicios</Link></li>
               <li><Link href="/proyectos" className="hover:text-brand-sage transition-colors">Proyectos</Link></li>
+              <li><Link href="/noticias" className="hover:text-brand-sage transition-colors">Noticias</Link></li>
               <li><Link href="/clientes" className="hover:text-brand-sage transition-colors">Clientes</Link></li>
               <li><Link href="/contacto" className="hover:text-brand-sage transition-colors">Contacto</Link></li>
               <li><Link href="/portal" className="hover:text-brand-sage transition-colors">Portal</Link></li>
-              <li><Link href="/privacidad" className="hover:text-brand-sage transition-colors">Privacidad</Link></li>
             </ul>
           </div>
 
