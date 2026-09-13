@@ -6,7 +6,7 @@ import { MapPin, ArrowLeft, Calendar, Activity, Info } from "lucide-react"
 export const revalidate = 0;
 
 export default async function ProyectoDetailPage({ params }: { params: { id: string } }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const { data: proyecto, error } = await supabase
     .from('proyectos')
