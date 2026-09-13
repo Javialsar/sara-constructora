@@ -22,7 +22,8 @@ export default function AdminProyectos() {
     latitud: "",
     longitud: "",
     cliente_id: "",
-    imagen_url: ""
+    imagen_url: "",
+    destacado: false
   })
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function AdminProyectos() {
   const openNewModal = () => {
     setEditId(null)
     setFile(null)
-    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "" })
+    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false })
     setIsModalOpen(true)
   }
 
@@ -67,7 +68,8 @@ export default function AdminProyectos() {
       latitud: p.latitud ? p.latitud.toString() : "",
       longitud: p.longitud ? p.longitud.toString() : "",
       cliente_id: p.cliente_id || "",
-      imagen_url: p.imagen_url || ""
+      imagen_url: p.imagen_url || "",
+      destacado: p.destacado || false
     })
     setIsModalOpen(true)
   }
@@ -117,7 +119,8 @@ export default function AdminProyectos() {
       latitud: formData.latitud ? parseFloat(formData.latitud) : null,
       longitud: formData.longitud ? parseFloat(formData.longitud) : null,
       cliente_id: formData.cliente_id || null,
-      imagen_url: finalUrl
+      imagen_url: finalUrl,
+      destacado: formData.destacado
     }
 
     let error;
@@ -200,7 +203,14 @@ export default function AdminProyectos() {
                   proyectos.map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-gray-900">{p.nombre}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-gray-900">{p.nombre}</p>
+                          {p.destacado && (
+                            <span className="text-yellow-500 text-xs flex items-center bg-yellow-50 px-2 py-0.5 rounded border border-yellow-200" title="Destacado en Landing Page">
+                              ★ Destacado
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 font-medium text-gray-600">
                         {p.clientes ? `${p.clientes.nombre} ${p.clientes.apellido}` : <span className="text-gray-400 italic">Sin asignar</span>}
@@ -344,6 +354,18 @@ export default function AdminProyectos() {
                     <option value="en_construccion">En Construcción</option>
                     <option value="finalizado">Finalizado</option>
                   </select>
+                </div>
+
+                <div className="space-y-1 flex flex-col justify-center mt-6">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 text-brand-sage rounded border-gray-300 focus:ring-brand-sage"
+                      checked={formData.destacado}
+                      onChange={(e) => setFormData({...formData, destacado: e.target.checked})}
+                    />
+                    <span className="text-sm font-bold text-gray-700">Mostrar en Landing Page (Destacado)</span>
+                  </label>
                 </div>
 
                 <div className="space-y-1 md:col-span-2 mt-4 pt-4 border-t border-gray-100">

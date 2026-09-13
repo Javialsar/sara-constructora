@@ -15,16 +15,29 @@ export default function Hero() {
   useEffect(() => {
     const fetchProjects = async () => {
       const supabase = createClient()
-      const { data } = await supabase
+      
+      // Intentar traer primero solo los proyectos destacados
+      const { data, error } = await supabase
         .from('proyectos')
         .select('imagen_url')
+        .eq('destacado', true)
         .not('imagen_url', 'is', null)
       
-      if (data && data.length > 0) {
-        const urls = data.map((p: any) => p.imagen_url).filter(Boolean)
-        if (urls.length > 0) {
-          setImages(urls)
-        }
+      let urls = data?.map((p: any) => p.imagen_url).filter(Boolean) || []
+
+      // Si no hay destacados (o si da error porque aún no existe la columna), traer cualquiera
+      if (urls.length === 0) {
+        const { data: fallbackData } = await supabase
+          .from('proyectos')
+          .select('imagen_url')
+          .not('imagen_url', 'is', null)
+          .limit(5)
+        
+        urls = fallbackData?.map((p: any) => p.imagen_url).filter(Boolean) || []
+      }
+
+      if (urls.length > 0) {
+        setImages(urls)
       }
     }
     fetchProjects()
