@@ -18,6 +18,7 @@ export default function PortalDashboardPage() {
   const [view, setView] = useState<'list' | 'detail'>('list')
   const [proyectoActivo, setProyectoActivo] = useState<any>(null)
   const [avances, setAvances] = useState<any[]>([])
+  const [documentosPrivados, setDocumentosPrivados] = useState<any[]>([])
 
   useEffect(() => {
     const init = async () => {
@@ -65,6 +66,15 @@ export default function PortalDashboardPage() {
       .order("fecha", { ascending: false })
     
     if (avancesData) setAvances(avancesData)
+
+    const { data: docsData } = await supabase
+      .from("documentos_proyecto")
+      .select("*")
+      .eq("proyecto_id", proyecto.id)
+      .order("fecha_subida", { ascending: false })
+    
+    if (docsData) setDocumentosPrivados(docsData)
+
     setView('detail')
     setLoadingData(false)
   }
@@ -85,6 +95,11 @@ export default function PortalDashboardPage() {
   const fotos = avances.filter(a => a.tipo === 'foto')
   const videos = avances.filter(a => a.tipo === 'video')
   const documentos = avances.filter(a => a.tipo === 'documento')
+  
+  const todosLosDocumentos = [
+    ...documentosPrivados.map(d => ({ id: d.id, titulo: d.titulo, url: d.archivo_url })),
+    ...documentos.map(d => ({ id: d.id, titulo: d.titulo, url: d.url }))
+  ]
   
   return (
     <div className="min-h-screen pt-40 pb-24 bg-gray-50">
@@ -242,7 +257,7 @@ export default function PortalDashboardPage() {
               </motion.div>
               
               {/* Documentos */}
-              {documentos.length > 0 && (
+              {todosLosDocumentos.length > 0 && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -251,8 +266,8 @@ export default function PortalDashboardPage() {
                 >
                   <h3 className="font-bold text-brand-dark mb-4 uppercase tracking-widest text-xs border-b pb-4">Documentos del Proyecto</h3>
                   <ul className="space-y-3">
-                    {documentos.map((doc, i) => (
-                      <li key={i}>
+                    {todosLosDocumentos.map((doc, i) => (
+                      <li key={doc.id || i}>
                         <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-gray-600 hover:text-brand-sage transition-colors group py-1">
                           <FileText size={16} className="text-gray-400 group-hover:text-brand-sage shrink-0" />
                           <span className="flex-1 truncate" title={doc.titulo}>{doc.titulo}</span>
