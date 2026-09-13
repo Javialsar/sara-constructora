@@ -161,13 +161,22 @@ export default async function ServicioDetailPage({ params }: { params: Promise<{
 
           {/* Galería de Trabajos Realizados */}
           <div className="lg:col-span-4">
-            <div className="bg-brand-dark p-8 rounded-2xl shadow-xl text-white sticky top-24">
-              <h3 className="text-xl font-bold uppercase tracking-wider mb-6 border-b border-white/20 pb-4">Trabajos Realizados</h3>
+            <div className="bg-brand-sage p-8 rounded-2xl shadow-xl text-white sticky top-24 relative overflow-hidden">
+              {/* Le agregamos también la cuadrícula muy suave para que tenga textura */}
+              <div 
+                className="absolute inset-0 pointer-events-none opacity-20" 
+                style={{ 
+                  backgroundImage: 'linear-gradient(to right, rgba(255,255,255, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255, 0.1) 1px, transparent 1px)', 
+                  backgroundSize: '20px 20px' 
+                }}
+              ></div>
+              <div className="relative z-10">
+                <h3 className="text-xl font-bold uppercase tracking-wider mb-6 border-b border-white/30 pb-4">Trabajos Realizados</h3>
               
               {!proyectos || proyectos.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-400 text-sm mb-4">Aún no hemos publicado proyectos específicos en esta categoría.</p>
-                  <Link href="/proyectos" className="text-brand-sage hover:text-white transition-colors text-sm font-bold flex items-center justify-center gap-2">
+                  <p className="text-white/80 text-sm mb-4">Aún no hemos publicado proyectos específicos en esta categoría.</p>
+                  <Link href="/proyectos" className="text-white hover:text-brand-dark transition-colors text-sm font-bold flex items-center justify-center gap-2">
                     Ver Portafolio Completo <ArrowLeft size={16} className="rotate-180" />
                   </Link>
                 </div>
@@ -176,16 +185,16 @@ export default async function ServicioDetailPage({ params }: { params: Promise<{
                   {proyectos.slice(0, 4).map((p) => (
                     <Link href={`/proyectos/${p.id}`} key={p.id} className="group block">
                       <div className="flex gap-4 items-center">
-                        <div className="w-20 h-20 bg-gray-800 rounded-lg overflow-hidden shrink-0 relative">
+                        <div className="w-20 h-20 bg-brand-dark/40 rounded-lg overflow-hidden shrink-0 relative border border-white/10">
                           {p.imagen_url ? (
                             <Image src={p.imagen_url} alt={p.nombre} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
                           ) : (
-                            <div className="w-full h-full bg-gray-700 flex items-center justify-center text-xs text-gray-500">Sin img</div>
+                            <div className="w-full h-full bg-brand-dark/30 flex items-center justify-center text-xs text-white/50">Sin img</div>
                           )}
                         </div>
                         <div>
-                          <p className="font-bold text-sm group-hover:text-brand-sage transition-colors line-clamp-2">{p.nombre}</p>
-                          <p className="text-xs text-gray-400 mt-1">{p.ubicacion}</p>
+                          <p className="font-bold text-sm text-white group-hover:text-brand-dark transition-colors line-clamp-2 drop-shadow-sm">{p.nombre}</p>
+                          <p className="text-xs text-white/70 mt-1">{p.ubicacion}</p>
                         </div>
                       </div>
                     </Link>
@@ -193,13 +202,14 @@ export default async function ServicioDetailPage({ params }: { params: Promise<{
                   
                   {proyectos.length > 4 && (
                     <div className="pt-4 mt-4 border-t border-white/20 text-center">
-                      <Link href="/proyectos" className="text-brand-sage hover:text-white transition-colors text-sm font-bold uppercase tracking-wider">
+                      <Link href="/proyectos" className="text-white hover:text-brand-dark transition-colors text-sm font-bold uppercase tracking-wider drop-shadow-sm">
                         Ver todos los proyectos
                       </Link>
                     </div>
                   )}
                 </div>
               )}
+              </div>
             </div>
           </div>
 
