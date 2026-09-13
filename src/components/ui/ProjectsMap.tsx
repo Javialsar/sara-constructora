@@ -21,6 +21,8 @@ interface ProjectMarker {
   lng: number
   category: string
   status: string
+  cliente?: string
+  avance?: number
 }
 
 interface ProjectsMapProps {
@@ -74,12 +76,25 @@ export default function ProjectsMap({ projects, flyTo }: ProjectsMapProps) {
             icon={customIcon}
           >
             <Popup>
-              <div className="font-sans">
-                <h4 className="font-bold text-brand-dark mb-1">{project.title}</h4>
-                <p className="text-xs text-gray-500 mb-2">{project.category}</p>
-                <span className="inline-block px-2 py-1 bg-brand-sage/20 text-brand-dark text-[10px] font-bold uppercase rounded">
-                  {project.status}
-                </span>
+              <div className="font-sans min-w-[200px]">
+                <h4 className="font-bold text-brand-dark mb-1 text-base">{project.title}</h4>
+                <div className="text-xs text-gray-500 mb-3 space-y-1">
+                  <p><strong className="text-gray-700">Ubicación:</strong> {project.category}</p>
+                  <p><strong className="text-gray-700">Contratante:</strong> {project.cliente}</p>
+                  <p><strong className="text-gray-700">Avance:</strong> {project.avance}%</p>
+                </div>
+                
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <span className="inline-block px-2 py-1 bg-brand-sage/20 text-brand-dark text-[10px] font-bold uppercase rounded">
+                    {project.status}
+                  </span>
+                  <a 
+                    href={`/proyectos/${project.id}`} 
+                    className="text-xs font-bold text-white bg-brand-dark hover:bg-brand-sage hover:text-brand-dark px-3 py-1.5 rounded transition-colors"
+                  >
+                    Ver detalles
+                  </a>
+                </div>
               </div>
             </Popup>
           </Marker>

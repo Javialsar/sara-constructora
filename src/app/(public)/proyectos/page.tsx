@@ -25,7 +25,7 @@ export default function ProyectosPage() {
     async function load() {
       const { data } = await supabase
         .from("proyectos")
-        .select("*")
+        .select("*, clientes(nombre, apellido)")
         .order("created_at", { ascending: false })
 
       if (data) setProyectos(data)
@@ -36,10 +36,12 @@ export default function ProyectosPage() {
   const proyectosConMapa = proyectos.filter(p => p.latitud && p.longitud).map(p => ({
     id: p.id,
     title: p.nombre,
-    category: getStatusLabel(p.estado),
+    category: p.ubicacion,
     status: getStatusLabel(p.estado),
     lat: p.latitud,
-    lng: p.longitud
+    lng: p.longitud,
+    cliente: p.clientes ? `${p.clientes.nombre} ${p.clientes.apellido}` : "SARA Constructora",
+    avance: p.avance || 0
   }))
 
   const filteredProyectos = proyectos.filter(p => {
@@ -55,7 +57,7 @@ export default function ProyectosPage() {
   }
 
   return (
-    <div className="pt-24 pb-16 min-h-screen">
+    <div className="pt-36 pb-16 min-h-screen">
       <div className="container mx-auto px-4 md:px-8">
         <header className="mb-16">
           <h1 className="text-4xl md:text-6xl font-extrabold text-brand-dark tracking-tight mb-4 uppercase">
