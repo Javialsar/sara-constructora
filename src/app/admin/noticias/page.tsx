@@ -107,7 +107,7 @@ export default function AdminNoticias() {
     }
 
     const imgUrl = await uploadImage()
-    const payload = {
+    const payload: any = {
       ...formData,
       imagen_url: imgUrl,
       fecha_publicacion: formData.estado === 'publicado' ? new Date().toISOString() : null
