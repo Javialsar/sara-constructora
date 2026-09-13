@@ -4,9 +4,10 @@
   --background: #ffffff;
   --foreground: #000000;
   
-  /* Brand Colors */
-  --color-sara-dark: #0F172A; /* Azul Pizarra muy oscuro / Navy */
-  --color-sara-sage: #EA580C; /* Naranja Terracota / Óxido */
+  /* Paleta de Verdes (Teal & Lime & Mint) */
+  --color-sara-dark: #2C977D; /* Verde Esmeralda/Teal Oscuro */
+  --color-sara-sage: #6CC569; /* Verde Lima Brillante */
+  --color-sara-light: #9AE3B7; /* Verde Menta Claro */
   --color-sara-black: #0D0D0D; /* Negro */
   --color-sara-white: #FFFFFF; /* Blanco Neutro */
 }
