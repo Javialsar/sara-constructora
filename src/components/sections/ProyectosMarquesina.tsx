@@ -69,9 +69,10 @@ export default function ProyectosMarquesina() {
           }}
         >
           {proyectos.map((proyecto, idx) => (
-            <div 
+            <Link 
+              href={`/proyectos/${proyecto.id}`}
               key={`${proyecto.id}-${idx}`} 
-              className="relative w-[300px] md:w-[450px] aspect-[4/3] group overflow-hidden bg-brand-black flex-shrink-0 cursor-pointer"
+              className="relative w-[300px] md:w-[450px] aspect-[4/3] group overflow-hidden bg-brand-black flex-shrink-0 cursor-pointer block"
             >
               {proyecto.imagen_url ? (
                 <div 
@@ -103,7 +104,7 @@ export default function ProyectosMarquesina() {
                   </p>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </motion.div>
       </div>

@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
 
@@ -13,6 +14,7 @@ const getStatusLabel = (estado: string) => {
 }
 
 export default function ProyectosPage() {
+  const router = useRouter()
   const supabase = createClient()
   const [proyectos, setProyectos] = useState<any[]>([])
   const [filtro, setFiltro] = useState("TODOS")
@@ -49,15 +51,7 @@ export default function ProyectosPage() {
   })
 
   const handleCardClick = (project: any) => {
-    if (project.latitud && project.longitud) {
-      // Scroll suave al mapa
-      mapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      
-      // Pequeño delay para que el scroll termine antes del flyTo
-      setTimeout(() => {
-        setFlyTo({ lat: project.latitud, lng: project.longitud, id: project.id })
-      }, 600)
-    }
+    router.push(`/proyectos/${project.id}`)
   }
 
   return (
@@ -107,21 +101,14 @@ export default function ProyectosPage() {
                 <div 
                   key={project.id} 
                   onClick={() => handleCardClick(project)}
-                  className={`group border border-gray-200 overflow-hidden bg-white hover:shadow-lg transition-all ${
-                    project.latitud && project.longitud ? 'cursor-pointer' : ''
-                  } ${flyTo?.id === project.id ? 'ring-2 ring-brand-sage shadow-lg' : ''}`}
+                  className={`group border border-gray-200 overflow-hidden bg-white hover:shadow-lg transition-all cursor-pointer`}
                 >
                   <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
                      <div className="absolute inset-0 bg-brand-dark/5 group-hover:bg-transparent transition-colors z-10" />
                      {project.imagen_url ? (
-                       <img src={project.imagen_url} alt={project.nombre} className="w-full h-full object-cover" />
+                       <img src={project.imagen_url} alt={project.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                      ) : (
                        <div className="absolute inset-0 flex items-center justify-center text-gray-400 font-medium">Sin imagen</div>
-                     )}
-                     {project.latitud && project.longitud && (
-                       <div className="absolute bottom-3 right-3 z-20 bg-brand-dark/80 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                         📍 Ver en mapa
-                       </div>
                      )}
                   </div>
                   <div className="p-6">
