@@ -84,59 +84,59 @@ export default function ContactoPage() {
           
           {/* Contact Info */}
           <div className="lg:col-span-4 h-full">
-            <div className="bg-brand-dark text-white p-8 rounded-2xl shadow-xl h-full space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-sage/10 rounded-full blur-3xl"></div>
-              <h3 className="text-xl font-bold uppercase tracking-wider border-b border-white/20 pb-4 relative z-10">
+            <div className="bg-brand-sage text-white p-8 rounded-2xl shadow-xl h-full space-y-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+              <h3 className="text-xl font-bold uppercase tracking-wider border-b border-white/30 pb-4 relative z-10">
                 Información de Contacto
               </h3>
               
               <ul className="space-y-6 relative z-10">
                 <li className="flex items-start gap-4">
-                  <MapPin className="text-brand-sage shrink-0 mt-1" size={24} />
+                  <MapPin className="text-white shrink-0 mt-1 drop-shadow-md" size={24} />
                   <div>
-                    <h4 className="font-bold mb-1">Ubicación</h4>
-                    <p className="text-gray-300 text-sm">{config?.direccion || "Quito - Cuenca - Loja"}</p>
+                    <h4 className="font-bold mb-1 drop-shadow-sm">Ubicación</h4>
+                    <p className="text-white/90 text-sm">{config?.direccion || "Quito - Cuenca - Loja"}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-4">
-                  <Phone className="text-brand-sage shrink-0 mt-1" size={24} />
+                  <Phone className="text-white shrink-0 mt-1 drop-shadow-md" size={24} />
                   <div>
-                    <h4 className="font-bold mb-1">Teléfono / WhatsApp</h4>
-                    <a href={`https://wa.me/${(config?.telefono_principal || "098 180 4023").replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-gray-300 text-sm hover:text-white transition-colors">
+                    <h4 className="font-bold mb-1 drop-shadow-sm">Teléfono / WhatsApp</h4>
+                    <a href={`https://wa.me/${(config?.telefono_principal || "098 180 4023").replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-white/90 text-sm hover:text-white transition-colors drop-shadow-sm">
                       {config?.telefono_principal || "098 180 4023"}
                     </a>
                   </div>
                 </li>
                 <li className="flex items-start gap-4">
-                  <Mail className="text-brand-sage shrink-0 mt-1" size={24} />
+                  <Mail className="text-white shrink-0 mt-1 drop-shadow-md" size={24} />
                   <div>
-                    <h4 className="font-bold mb-1">Email</h4>
-                    <a href={`mailto:${config?.email_contacto || "sara.constructora593@gmail.com"}`} className="text-gray-300 text-sm hover:text-white transition-colors">
+                    <h4 className="font-bold mb-1 drop-shadow-sm">Email</h4>
+                    <a href={`mailto:${config?.email_contacto || "sara.constructora593@gmail.com"}`} className="text-white/90 text-sm hover:text-white transition-colors drop-shadow-sm">
                       {config?.email_contacto || "sara.constructora593@gmail.com"}
                     </a>
                   </div>
                 </li>
               </ul>
 
-              <hr className="border-white/10 my-6 relative z-10" />
+              <hr className="border-white/20 my-6 relative z-10" />
 
               {/* Atención Directa */}
               <div className="relative z-10 space-y-6">
                 {config?.equipo_directivo && config.equipo_directivo.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Atención Directa</h4>
+                    <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-dark drop-shadow-sm">Atención Directa</h4>
                     <ul className="space-y-4">
                       {config.equipo_directivo.map((miembro: any) => (
                         <li key={miembro.id || miembro.nombre} className="flex items-start gap-3">
-                          <User className="text-gray-400 shrink-0 mt-0.5" size={18} />
+                          <User className="text-white shrink-0 mt-0.5 drop-shadow-md" size={18} />
                           <div>
-                            <p className="text-sm font-bold text-white">{miembro.nombre}</p>
-                            <p className="text-xs text-gray-400">{miembro.cargo}</p>
+                            <p className="text-sm font-bold text-white drop-shadow-sm">{miembro.nombre}</p>
+                            <p className="text-xs text-white/80">{miembro.cargo}</p>
                             {miembro.telefono && (
-                              <p className="text-xs text-gray-300 mt-0.5">{miembro.telefono}</p>
+                              <p className="text-xs text-white/90 mt-0.5">{miembro.telefono}</p>
                             )}
                             {miembro.email && (
-                              <a href={`mailto:${miembro.email}`} className="text-xs text-brand-sage hover:text-white transition-colors block">
+                              <a href={`mailto:${miembro.email}`} className="text-xs text-brand-dark font-bold hover:text-white transition-colors block drop-shadow-sm">
                                 {miembro.email}
                               </a>
                             )}
@@ -148,15 +148,15 @@ export default function ContactoPage() {
                 )}
                 
                 <div>
-                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Horario</h4>
+                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-dark drop-shadow-sm">Horario</h4>
                   <div className="flex items-start gap-3">
-                    <Clock className="text-gray-400 shrink-0 mt-0.5" size={18} />
-                    <p className="text-sm text-gray-300">Lunes a Viernes<br/>8:00 AM - 6:00 PM</p>
+                    <Clock className="text-white shrink-0 mt-0.5 drop-shadow-md" size={18} />
+                    <p className="text-sm text-white/90">Lunes a Viernes<br/>8:00 AM - 6:00 PM</p>
                   </div>
                 </div>
 
                 <div className="pt-4">
-                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-sage">Síguenos</h4>
+                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 text-brand-dark drop-shadow-sm">Síguenos</h4>
                   <div className="flex gap-4">
                     {config?.instagram_url && (
                       <a href={config.instagram_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-brand-sage hover:border-brand-sage transition-all text-white">
