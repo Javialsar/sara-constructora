@@ -3,7 +3,7 @@ import { Phone, Mail, MapPin } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 
 export default async function Footer() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
   const logo = config?.logo_url || "/images/logo-sara-transparent.png"
 
