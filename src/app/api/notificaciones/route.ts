@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { Resend } from "resend"
+
+// Instanciamos Resend con la variable de entorno
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request: Request) {
   try {
@@ -29,53 +33,57 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 })
     }
 
-    const mensaje = `Hola ${cliente.nombre},\n\nTenemos una actualización en tu proyecto "${proyecto_nombre}".\n\n${tipo_notificacion}: ${titulo_avance}\n\nPuedes revisarlo ingresando a tu portal de clientes:\n${enlace_portal}\n\nSARA Constructora.`
-
     const resultados: any = {
       cliente: `${cliente.nombre} ${cliente.apellido}`,
       whatsapp: null,
       email: null
     }
 
-    // 2. Simulación / Integración de envío de WhatsApp
-    // Aquí puedes conectar servicios como Twilio, Meta Cloud API, o UltraMsg
-    if (cliente.telefono) {
-      console.log(`[WHATSAPP ENVIADO A ${cliente.telefono}]:\n${mensaje}`)
-      // Ejemplo de código real (comentado):
-      /*
-      await fetch('https://api.ultramsg.com/INSTANCE_ID/messages/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          token: process.env.WHATSAPP_TOKEN,
-          to: cliente.telefono,
-          body: mensaje
-        })
-      })
-      */
-      resultados.whatsapp = "Enviado correctamente (Simulado)"
-    } else {
-      resultados.whatsapp = "El cliente no tiene teléfono registrado"
-    }
-
-    // 3. Simulación / Integración de envío de Email
-    // Aquí puedes usar Resend (Next.js estándar), SendGrid o Nodemailer
+    // 2. Notificación Email Real (vía Resend)
     if (cliente.email) {
-      console.log(`[EMAIL ENVIADO A ${cliente.email}]:\nAsunto: Actualización de Proyecto - SARA Constructora\nCuerpo:\n${mensaje}`)
-      // Ejemplo de código real usando Resend:
-      /*
-      import { Resend } from 'resend';
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'notificaciones@sara-constructora.com',
-        to: cliente.email,
-        subject: `Actualización de Obra: ${proyecto_nombre}`,
-        text: mensaje
-      });
-      */
-      resultados.email = "Enviado correctamente (Simulado)"
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
+          <div style="background-color: #2F3630; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 22px;">SARA Constructora</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="font-size: 16px; color: #333;">Hola <strong>${cliente.nombre}</strong>,</p>
+            <p style="font-size: 16px; color: #333;">Tenemos una nueva actualización importante en tu proyecto: <strong>${proyecto_nombre}</strong>.</p>
+            
+            <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #8B9D8B; margin: 20px 0;">
+              <p style="margin: 0; font-size: 14px; color: #555;"><strong>${tipo_notificacion}:</strong> ${titulo_avance || 'Nuevo archivo disponible'}</p>
+            </div>
+            
+            <p style="font-size: 16px; color: #333;">Puedes revisar los detalles, fotografías y documentos ingresando a tu portal privado:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${enlace_portal || 'https://sara-constructora.vercel.app/portal'}" style="background-color: #8B9D8B; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Acceder al Portal</a>
+            </div>
+            
+            <p style="font-size: 14px; color: #777; border-top: 1px solid #eee; padding-top: 20px;">
+              Si tienes dudas, por favor responde a este correo.<br>
+              Atentamente, el equipo de SARA Constructora.
+            </p>
+          </div>
+        </div>
+      `;
+
+      try {
+        const data = await resend.emails.send({
+          from: 'SARA Constructora <onboarding@resend.dev>', // Usa onboarding@resend.dev para pruebas gratuitas
+          to: cliente.email,
+          subject: `Actualización de Obra: ${proyecto_nombre}`,
+          html: emailHtml
+        });
+        
+        console.log(`[EMAIL ENVIADO A ${cliente.email}]`, data);
+        resultados.email = "Email enviado exitosamente";
+      } catch (err: any) {
+        console.error("Error enviando email:", err);
+        resultados.email = `Error de envío: ${err.message}`;
+      }
     } else {
-      resultados.email = "El cliente no tiene email registrado"
+      resultados.email = "El cliente no tiene email registrado";
     }
 
     return NextResponse.json({ 
