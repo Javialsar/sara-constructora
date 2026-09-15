@@ -2,12 +2,15 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Users, Mail, Phone, ShieldCheck, ShieldAlert, MoreVertical } from "lucide-react"
+import { createClientAccount } from "./actions"
 
 export default function AdminClientes() {
   const supabase = createClient()
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [uploadingFile, setUploadingFile] = useState(false)
@@ -69,6 +72,15 @@ export default function AdminClientes() {
           <h2 className="text-2xl font-bold text-gray-800">Directorio de Clientes</h2>
           <p className="text-gray-500 text-sm mt-1">Administra los usuarios registrados en el portal privado.</p>
         </div>
+        <button 
+          onClick={() => {
+            setFormData({ nombre: "", apellido: "", email: "", telefono: "", usuario: "", password: "", imagen_url: "" })
+            setIsCreateModalOpen(true)
+          }}
+          className="bg-brand-dark text-white px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2"
+        >
+          <span>+ Nuevo Cliente</span>
+        </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -254,6 +266,77 @@ export default function AdminClientes() {
                   className="px-6 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {uploadingFile ? "Subiendo..." : "Guardar Logo"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nuevo Cliente */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-xl font-bold text-brand-dark">Crear Cuenta de Cliente</h3>
+              <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors">
+                <span className="text-xl">×</span>
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              setIsSubmitting(true)
+              
+              const res = await createClientAccount({
+                nombre: formData.nombre,
+                apellido: formData.apellido,
+                email: formData.email,
+                telefono: formData.telefono,
+                password: formData.password
+              })
+
+              setIsSubmitting(false)
+              if (res.success) {
+                setIsCreateModalOpen(false)
+                fetchData() // Refresh list
+                alert("Cliente creado correctamente y listo para iniciar sesión.")
+              } else {
+                alert("Error al crear cliente: " + res.error)
+              }
+            }} className="p-6">
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nombre *</label>
+                  <input required type="text" value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" placeholder="Ej. Carlos" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Apellido *</label>
+                  <input required type="text" value={formData.apellido} onChange={(e) => setFormData({...formData, apellido: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" placeholder="Ej. Mendoza" />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico *</label>
+                <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" placeholder="carlos@empresa.com" />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
+                <input type="text" value={formData.telefono} onChange={(e) => setFormData({...formData, telefono: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" placeholder="Ej. 098 765 4321" />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal *</label>
+                <input required type="text" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" placeholder="Ej. Sara2026" />
+                <p className="text-xs text-gray-400 mt-1">Comparte esta clave con el cliente. Podrá cambiarla desde su panel.</p>
+              </div>
+              
+              <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors" disabled={isSubmitting}>Cancelar</button>
+                <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {isSubmitting ? "Creando..." : "Crear Cliente"}
                 </button>
               </div>
             </form>

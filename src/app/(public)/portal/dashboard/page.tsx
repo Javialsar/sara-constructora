@@ -2,13 +2,17 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight, HardHat } from "lucide-react"
+import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight, HardHat, Key } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export default function PortalDashboardPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loadingData, setLoadingData] = useState(true)
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [changingPassword, setChangingPassword] = useState(false)
   const supabase = createClient()
   
   const [cliente, setCliente] = useState<any>(null)
@@ -84,6 +88,26 @@ export default function PortalDashboardPage() {
     router.push("/portal")
   }
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      alert("Las contraseñas no coinciden")
+      return
+    }
+    setChangingPassword(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    
+    if (error) {
+      alert("Error al actualizar la contraseña: " + error.message)
+    } else {
+      alert("Contraseña actualizada exitosamente")
+      setIsPasswordModalOpen(false)
+      setNewPassword("")
+      setConfirmPassword("")
+    }
+    setChangingPassword(false)
+  }
+
   if (!isAuthenticated || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -116,13 +140,22 @@ export default function PortalDashboardPage() {
             </h1>
             <p className="text-gray-500 text-sm mt-1">Bienvenido, <span className="font-semibold text-brand-dark">{cliente?.nombre} {cliente?.apellido}</span></p>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 font-medium transition-colors self-start"
-          >
-            <LogOut size={16} />
-            Cerrar Sesión
-          </button>
+          <div className="flex flex-col gap-3 items-end">
+            <button 
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-sage font-medium transition-colors"
+            >
+              <Key size={16} />
+              Cambiar Contraseña
+            </button>
+            <button 
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 font-medium transition-colors"
+            >
+              <LogOut size={16} />
+              Cerrar Sesión
+            </button>
+          </div>
         </div>
 
         {proyectos.length === 0 ? (
@@ -375,6 +408,43 @@ export default function PortalDashboardPage() {
           </div>
         )}
       </div>
+      
+      {/* Password Modal */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-sm p-6">
+            <h2 className="text-xl font-bold mb-4">Cambiar Contraseña</h2>
+            <form onSubmit={handleChangePassword}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Nueva Contraseña</label>
+                <input 
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-brand-sage"
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-1">Confirmar Contraseña</label>
+                <input 
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-brand-sage"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setIsPasswordModalOpen(false)} className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors">Cancelar</button>
+                <button type="submit" disabled={changingPassword} className="px-4 py-2 text-sm bg-brand-dark text-white rounded hover:bg-gray-800 transition-colors disabled:opacity-50">
+                  {changingPassword ? "Actualizando..." : "Guardar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
