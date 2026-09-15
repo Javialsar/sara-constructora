@@ -70,11 +70,30 @@ export default function CotizadorPage() {
   }
 
   const fetchHistorialCotizaciones = async () => {
-    const { data } = await supabase
+    const { data: historialData, error } = await supabase
       .from('historial_cotizaciones')
-      .select('*, clientes(nombre, apellido, email, telefono)')
+      .select('*')
       .order('created_at', { ascending: false })
-    if (data) setHistorialCotizaciones(data)
+      
+    if (error) {
+      console.error("Error cargando historial:", error)
+      return
+    }
+
+    if (historialData) {
+      // Traemos clientes manualmente para evitar errores de Foreign Keys
+      const { data: clientesData } = await supabase.from('clientes').select('id, nombre, apellido')
+      
+      const merged = historialData.map(h => {
+        const c = clientesData?.find(client => client.id === h.cliente_id)
+        return {
+          ...h,
+          clientes: c || { nombre: 'Cliente', apellido: 'No encontrado' }
+        }
+      })
+      
+      setHistorialCotizaciones(merged)
+    }
   }
 
   const fetchClientes = async () => {
