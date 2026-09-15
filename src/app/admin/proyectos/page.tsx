@@ -276,17 +276,26 @@ export default function AdminProyectos() {
     setFormData({ ...formData, imagen_url: url, galeria: newGaleria })
   }
   
-  const removeExistingUrl = (url: string) => {
-    if (url === formData.imagen_url) {
+  const removeExistingUrl = (index: number) => {
+    const allImages = [...(formData.imagen_url ? [formData.imagen_url] : []), ...formData.galeria];
+    const urlToRemove = allImages[index];
+
+    if (urlToRemove === formData.imagen_url && index === 0) {
+       // Eliminando la portada
        if (formData.galeria.length > 0) {
-          const newGaleria = [...formData.galeria]
-          const nextCover = newGaleria.shift()!
-          setFormData({ ...formData, imagen_url: nextCover, galeria: newGaleria })
+          const newGaleria = [...formData.galeria];
+          const nextCover = newGaleria.shift()!;
+          setFormData({ ...formData, imagen_url: nextCover, galeria: newGaleria });
        } else {
-          setFormData({ ...formData, imagen_url: "", galeria: [] })
+          setFormData({ ...formData, imagen_url: "", galeria: [] });
        }
     } else {
-       setFormData({ ...formData, galeria: formData.galeria.filter(u => u !== url) })
+       // Eliminando de la galería (ajustando el índice porque portada ocupa el índice 0 si existe)
+       const offset = formData.imagen_url ? 1 : 0;
+       const galeriaIndex = index - offset;
+       const newGaleria = [...formData.galeria];
+       newGaleria.splice(galeriaIndex, 1);
+       setFormData({ ...formData, galeria: newGaleria });
     }
   }
 
@@ -514,31 +523,31 @@ export default function AdminProyectos() {
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
                       {/* Mostrar imágenes ya subidas */}
-                      {[...(formData.imagen_url ? [formData.imagen_url] : []), ...formData.galeria].map((url) => (
-                        <div key={url} className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${url === formData.imagen_url ? 'border-brand-sage shadow-md' : 'border-gray-200'}`}>
+                      {[...(formData.imagen_url ? [formData.imagen_url] : []), ...formData.galeria].map((url, idx) => (
+                        <div key={`${url}-${idx}`} className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${url === formData.imagen_url && idx === 0 ? 'border-brand-sage shadow-md' : 'border-gray-200'}`}>
                           <img src={url} alt="Proyecto" className="w-full h-full object-cover" />
                           
                           {/* Botón de Estrella */}
                           <button 
                             type="button"
                             onClick={() => setAsCover(url)}
-                            title={url === formData.imagen_url ? "Portada actual" : "Elegir como portada"}
-                            className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors ${url === formData.imagen_url ? 'bg-brand-sage text-brand-dark' : 'bg-black/50 text-white hover:bg-black/70'}`}
+                            title={url === formData.imagen_url && idx === 0 ? "Portada actual" : "Elegir como portada"}
+                            className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors ${url === formData.imagen_url && idx === 0 ? 'bg-brand-sage text-brand-dark' : 'bg-black/50 text-white hover:bg-black/70'}`}
                           >
-                            <Star size={14} className={url === formData.imagen_url ? "fill-brand-dark" : ""} />
+                            <Star size={14} className={url === formData.imagen_url && idx === 0 ? "fill-brand-dark" : ""} />
                           </button>
 
                           {/* Botón de Eliminar */}
                           <button 
                             type="button"
-                            onClick={() => removeExistingUrl(url)}
+                            onClick={() => removeExistingUrl(idx)}
                             title="Eliminar foto"
                             className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
                           >
                             <Trash2 size={14} />
                           </button>
                           
-                          {url === formData.imagen_url && (
+                          {url === formData.imagen_url && idx === 0 && (
                             <div className="absolute bottom-0 inset-x-0 bg-brand-sage text-brand-dark text-[10px] font-bold text-center py-1 uppercase tracking-wider">
                               Portada
                             </div>

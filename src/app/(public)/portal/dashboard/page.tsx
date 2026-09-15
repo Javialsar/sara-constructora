@@ -291,6 +291,37 @@ export default function PortalDashboardPage() {
                 </div>
               </motion.div>
               
+              {/* Resumen Financiero */}
+              {proyectoActivo.datos_financieros && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-brand-dark p-6 border border-brand-dark shadow-sm rounded-xl text-white"
+                >
+                  <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-4">
+                    <h3 className="font-bold text-brand-sage uppercase tracking-widest text-xs flex items-center gap-2">
+                      <FileText size={14} />
+                      Resumen Financiero
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Honorarios de Consultoría</span>
+                      <span className="text-xl font-bold text-white">
+                        ${((typeof proyectoActivo.datos_financieros === 'string' ? JSON.parse(proyectoActivo.datos_financieros) : proyectoActivo.datos_financieros).totalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-gray-400 font-bold text-[10px] uppercase mb-1">Presupuesto de Obra (Referencial)</span>
+                      <span className="text-xl font-bold text-brand-sage">
+                        ${((typeof proyectoActivo.datos_financieros === 'string' ? JSON.parse(proyectoActivo.datos_financieros) : proyectoActivo.datos_financieros).totalObra || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              
               {/* Documentos */}
               {todosLosDocumentos.length > 0 && (
                 <motion.div 
