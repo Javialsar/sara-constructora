@@ -11,7 +11,7 @@ export default async function NosotrosPage() {
     <div className="min-h-screen bg-transparent">
       
       {/* Hero Section */}
-      <div className="relative pt-32 pb-20 md:pt-40 md:pb-28 bg-brand-dark overflow-hidden">
+      <div className="relative pt-28 pb-16 md:pt-32 md:pb-24 bg-brand-dark overflow-hidden">
         {/* Subtle Background pattern */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-5">
           <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
@@ -29,10 +29,10 @@ export default async function NosotrosPage() {
       </div>
 
       {/* Main Content & Image */}
-      <div className="container mx-auto px-4 md:px-8 py-12 relative z-20">
-        <div className="bg-white/80 backdrop-blur-md shadow-xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-lg">
+      <div className="container mx-auto px-4 md:px-8 py-8 relative z-20">
+        <div className="bg-white/80 backdrop-blur-md shadow-xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-[2rem]">
           
-          <div className="lg:w-1/2 relative min-h-[400px] bg-white flex items-center justify-center p-12 lg:p-20">
+          <div className="lg:w-1/2 relative min-h-[300px] bg-white flex items-center justify-center p-8 lg:p-12">
              <img 
                src={logoUrl} 
                alt="SARA Constructora Logo" 
@@ -40,7 +40,7 @@ export default async function NosotrosPage() {
              />
           </div>
 
-          <div className="lg:w-1/2 p-8 md:p-12 lg:p-16 space-y-6 text-gray-600 text-lg leading-relaxed font-light flex flex-col justify-center">
+          <div className="lg:w-1/2 p-8 md:p-10 lg:p-12 space-y-6 text-gray-600 text-base md:text-lg leading-relaxed font-light flex flex-col justify-center">
             <p>
               Desarrollamos soluciones integrales para proyectos en todo el Ecuador, atendiendo obras residenciales, comerciales, institucionales y de infraestructura, con una visión orientada a la seguridad, funcionalidad, eficiencia y calidad.
             </p>
@@ -54,51 +54,51 @@ export default async function NosotrosPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-8 py-24">
+      <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
         
         {/* Principios */}
-        <div className="mb-24 relative bg-brand-sage rounded-[2.5rem] py-20 px-4 md:px-12 overflow-hidden shadow-2xl">
+        <div className="mb-16 relative bg-brand-sage rounded-[2.5rem] py-10 px-4 md:px-12 overflow-hidden shadow-2xl">
           {/* Grid Background Pattern */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-10">
             <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
           </div>
           
-          <div className="relative z-10 text-center mb-16">
+          <div className="relative z-10 text-center mb-10">
             <h2 className="text-sm font-bold tracking-[0.2em] text-brand-dark bg-white/90 inline-block px-4 py-1.5 rounded-full uppercase mb-4 shadow-sm">Lo que nos guía</h2>
-            <h3 className="text-4xl md:text-5xl font-extrabold text-white">PRINCIPIOS</h3>
+            <h3 className="text-3xl md:text-4xl font-extrabold text-white">PRINCIPIOS</h3>
           </div>
-          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {/* Tarjeta 1 */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
-                <ShieldCheck size={40} />
+            <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-4 shadow-md">
+                <ShieldCheck size={32} />
               </div>
-              <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">SEGURIDAD TÉCNICA</h4>
-              <div className="w-10 h-0.5 bg-brand-dark/20 rounded-full mb-6"></div>
+              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">SEGURIDAD TÉCNICA</h4>
+              <div className="w-8 h-0.5 bg-brand-dark/20 rounded-full mb-4"></div>
               <p className="text-gray-500 font-light text-sm leading-relaxed">
                 Cada proyecto se desarrolla sobre criterios de ingeniería, planificación y cumplimiento técnico. Construimos pensando en la seguridad de las personas, la estabilidad de las estructuras y la durabilidad de cada obra.
               </p>
             </div>
             
             {/* Tarjeta 2 */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
-                <Award size={40} />
+            <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-4 shadow-md">
+                <Award size={32} />
               </div>
-              <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">CALIDAD EN CADA DETALLE</h4>
-              <div className="w-10 h-0.5 bg-brand-dark/20 rounded-full mb-6"></div>
+              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">CALIDAD EN CADA DETALLE</h4>
+              <div className="w-8 h-0.5 bg-brand-dark/20 rounded-full mb-4"></div>
               <p className="text-gray-500 font-light text-sm leading-relaxed">
                 Cuidamos cada etapa, desde la concepción y el diseño hasta los procesos constructivos y acabados. La calidad no es una opción: es nuestro estándar de trabajo.
               </p>
             </div>
 
             {/* Tarjeta 3 */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
-                <Users size={40} />
+            <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-16 h-16 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-4 shadow-md">
+                <Users size={32} />
               </div>
-              <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">COMPROMISO CON EL CLIENTE</h4>
-              <div className="w-10 h-0.5 bg-brand-dark/20 rounded-full mb-6"></div>
+              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">COMPROMISO CON EL CLIENTE</h4>
+              <div className="w-8 h-0.5 bg-brand-dark/20 rounded-full mb-4"></div>
               <p className="text-gray-500 font-light text-sm leading-relaxed">
                 Escuchamos, asesoramos y acompañamos al cliente durante todo el proyecto. Sus objetivos, su inversión y su confianza son también nuestra responsabilidad.
               </p>
@@ -107,14 +107,14 @@ export default async function NosotrosPage() {
         </div>
 
         {/* Valores */}
-        <div className="mb-24 bg-brand-dark text-white p-12 md:p-20 rounded-lg relative overflow-hidden">
+        <div className="mb-16 bg-brand-dark text-white p-10 md:p-16 rounded-[2.5rem] relative overflow-hidden">
            <div className="absolute inset-0 z-0 pointer-events-none opacity-10">
             <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
           </div>
           <div className="relative z-10">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Nuestra cultura</h2>
-              <h3 className="text-4xl md:text-5xl font-extrabold">VALORES</h3>
+              <h3 className="text-3xl md:text-4xl font-extrabold">VALORES</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
               <div className="pt-8 md:pt-0 px-4">
