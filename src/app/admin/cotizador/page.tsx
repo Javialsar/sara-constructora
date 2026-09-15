@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Settings, Calculator, Save, FileText, CheckCircle2, Download } from "lucide-react"
+import { Settings, Calculator, Save, FileText, CheckCircle2, Download, UserPlus, X } from "lucide-react"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
+import { createClientAccount } from "../clientes/actions"
 
 export default function CotizadorPage() {
   const supabase = createClient()
@@ -15,7 +16,19 @@ export default function CotizadorPage() {
   const [savingParams, setSavingParams] = useState(false)
   const [mensajeParametros, setMensajeParametros] = useState("")
 
-  // Estado para la cotización actual
+  // Estados de clientes
+  const [clientes, setClientes] = useState<any[]>([])
+  const [selectedClienteId, setSelectedClienteId] = useState<string>("")
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clientFormData, setClientFormData] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    telefono: "",
+    password: ""
+  })
+
   // Estado para la cotización actual
   const [cotizacion, setCotizacion] = useState({
     nombreCliente: '',
@@ -29,6 +42,8 @@ export default function CotizadorPage() {
     incTopografia: true,
   })
 
+  const [savingQuote, setSavingQuote] = useState(false)
+
   // Exportación a PDF (Nativo)
   const pdfRef = useRef<HTMLDivElement>(null)
   
@@ -41,6 +56,7 @@ export default function CotizadorPage() {
   // Cargar parámetros al iniciar
   useEffect(() => {
     fetchParametros()
+    fetchClientes()
   }, [])
 
   const fetchParametros = async () => {
@@ -48,6 +64,49 @@ export default function CotizadorPage() {
     const { data } = await supabase.from('cotizador_parametros').select('*').eq('id', 1).single()
     if (data) setParams(data)
     setLoadingParams(false)
+  }
+
+  const fetchClientes = async () => {
+    const { data } = await supabase.from('clientes').select('*').order('created_at', { ascending: false })
+    if (data) setClientes(data)
+  }
+
+  const handleCreateClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    const res = await createClientAccount(clientFormData)
+    if (res.success) {
+      setIsCreateModalOpen(false)
+      await fetchClientes()
+      // Seleccionar el nuevo (podemos buscarlo por nombre o simplemente resetear el dropdown)
+      setClientFormData({nombre: '', apellido: '', email: '', telefono: '', password: ''})
+      alert("Cliente creado y vinculado exitosamente.")
+    } else {
+      alert("Error: " + res.error)
+    }
+    setIsSubmitting(false)
+  }
+
+  const handleSaveQuote = async (resultados: any) => {
+    if (!selectedClienteId) return alert("Por favor, selecciona o crea un cliente antes de guardar en el historial.")
+    setSavingQuote(true)
+    
+    const payload = {
+      cliente_id: selectedClienteId,
+      nombre_proyecto: cotizacion.nombreProyecto,
+      area_construccion: Number(cotizacion.areaConstruccion) || 0,
+      total_consultoria: resultados.totalHonorarios,
+      total_obra: resultados.costoObra,
+      detalles_json: cotizacion
+    }
+    
+    const { error } = await supabase.from('historial_cotizaciones').insert(payload)
+    if (error) {
+      alert("Error al guardar: " + error.message)
+    } else {
+      alert("Cotización guardada exitosamente en el historial.")
+    }
+    setSavingQuote(false)
   }
 
   const handleSaveParams = async (e: React.FormEvent) => {
@@ -238,14 +297,34 @@ export default function CotizadorPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Cliente (Opcional)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ej: Sr. Juan Pérez"
-                    value={cotizacion.nombreCliente} 
-                    onChange={e => setCotizacion({...cotizacion, nombreCliente: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
-                  />
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Seleccionar Cliente</label>
+                  <div className="flex gap-2">
+                    <select 
+                      value={selectedClienteId} 
+                      onChange={e => {
+                        setSelectedClienteId(e.target.value)
+                        const selectedClient = clientes.find(c => c.id === e.target.value)
+                        if (selectedClient) {
+                          setCotizacion({...cotizacion, nombreCliente: `${selectedClient.nombre} ${selectedClient.apellido}`})
+                        } else {
+                          setCotizacion({...cotizacion, nombreCliente: ''})
+                        }
+                      }} 
+                      className="flex-1 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white"
+                    >
+                      <option value="">-- Seleccionar o crear nuevo --</option>
+                      {clientes.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
+                      ))}
+                    </select>
+                    <button 
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="bg-brand-sage text-brand-dark px-3 rounded-lg hover:brightness-105 font-bold flex items-center gap-2"
+                      title="Crear Nuevo Cliente"
+                    >
+                      <UserPlus size={18} /> <span className="hidden sm:inline">Nuevo</span>
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Proyecto (Opcional)</label>
@@ -326,7 +405,14 @@ export default function CotizadorPage() {
           <div className="space-y-4">
             
             {/* Controles de Exportación */}
-            <div className="flex justify-end print:hidden">
+            <div className="flex justify-end gap-3 print:hidden">
+              <button 
+                onClick={() => handleSaveQuote(resultados)}
+                disabled={savingQuote || !selectedClienteId}
+                className="flex items-center gap-2 bg-white border-2 border-brand-dark text-brand-dark px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
+              >
+                <Save size={16} /> {savingQuote ? 'Guardando...' : 'Guardar Cotización'}
+              </button>
               <button 
                 onClick={handleExportPDF}
                 className="flex items-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors text-sm cursor-pointer"
@@ -434,6 +520,54 @@ export default function CotizadorPage() {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* Modal de Crear Cliente */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-xl font-bold text-gray-800">Crear Cuenta de Cliente</h3>
+              <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateClient} className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nombre *</label>
+                  <input required type="text" placeholder="Ej. Carlos" value={clientFormData.nombre} onChange={e => setClientFormData({...clientFormData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Apellido *</label>
+                  <input required type="text" placeholder="Ej. Mendoza" value={clientFormData.apellido} onChange={e => setClientFormData({...clientFormData, apellido: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico *</label>
+                <input required type="email" placeholder="carlos@empresa.com" value={clientFormData.email} onChange={e => setClientFormData({...clientFormData, email: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
+                <input type="text" placeholder="Ej. 098 765 4321" value={clientFormData.telefono} onChange={e => setClientFormData({...clientFormData, telefono: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal *</label>
+                <input required type="text" placeholder="Ej. Sara2026" value={clientFormData.password} onChange={e => setClientFormData({...clientFormData, password: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
+                <p className="text-xs text-gray-500 mt-1">Comparte esta clave con el cliente. Podrá cambiarla desde su panel.</p>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={isSubmitting} className="bg-brand-dark text-white px-6 py-2 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50">
+                  {isSubmitting ? 'Creando...' : 'Crear Cliente'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
