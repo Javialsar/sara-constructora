@@ -1,8 +1,14 @@
 import { Phone, Mail, ShieldCheck, Target, Award, CheckCircle2, Lightbulb, Users } from "lucide-react"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
+
+// Habilitar caché estático para esta página (revalida cada hora)
+export const revalidate = 3600;
 
 export default async function NosotrosPage() {
-  const supabase = await createClient()
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
   const { data: config } = await supabase.from('configuracion_empresa').select('equipo_directivo, logo_url').limit(1).single()
   const equipo = config?.equipo_directivo || []
   const logoUrl = config?.logo_url || '/images/logo-sra-constructora.png'
