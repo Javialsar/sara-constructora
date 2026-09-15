@@ -13,7 +13,8 @@ import {
   Newspaper,
   HelpCircle,
   Menu,
-  X
+  X,
+  Calculator
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -46,7 +47,8 @@ export default function AdminLayout({
     { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
     { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
     { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
-    { href: "/admin/cotizaciones", label: "Cotizaciones", icon: FileText },
+    { href: "/admin/cotizaciones", label: "Cotizaciones Recibidas", icon: FileText },
+    { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },
   ]
 
   return (
