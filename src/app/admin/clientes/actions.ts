@@ -50,7 +50,6 @@ export async function createClientAccount(data: {
       apellido: data.apellido,
       email: data.email,
       telefono: data.telefono,
-      usuario: data.email.split('@')[0], // usuario autogenerado
       estado: 'activo'
     })
 
