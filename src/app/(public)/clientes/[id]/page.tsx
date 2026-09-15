@@ -5,10 +5,7 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ArrowLeft, Briefcase, MapPin, Building, ChevronRight } from "lucide-react"
 
-const ProjectsMap = dynamic(() => import("@/components/ui/ProjectsMap"), {
-  ssr: false,
-  loading: () => <div className="w-full h-full min-h-[500px] bg-gray-100 animate-pulse flex items-center justify-center text-gray-400 border border-gray-200 rounded-2xl">Cargando mapa interactivo...</div>
-})
+import MapWrapper from "./MapWrapper"
 
 export default async function ClienteDetallePage({ params }: { params: { id: string } }) {
   const resolvedParams = await params;
@@ -129,7 +126,7 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
             <div className="bg-white p-2 rounded-3xl shadow-lg border border-gray-100 h-[500px] md:h-[600px] overflow-hidden relative">
               {mapProjects.length > 0 ? (
                 <div className="w-full h-full rounded-2xl overflow-hidden relative z-0">
-                   <ProjectsMap projects={mapProjects} />
+                   <MapWrapper projects={mapProjects} />
                 </div>
               ) : (
                 <div className="w-full h-full bg-gray-50 rounded-2xl flex flex-col items-center justify-center text-gray-400 border border-gray-100">
