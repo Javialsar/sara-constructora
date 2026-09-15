@@ -17,7 +17,7 @@ export default function CotizadorPage() {
 
   // Estado para la cotización actual
   const [cotizacion, setCotizacion] = useState({
-    areaConstruccion: 100,
+    areaConstruccion: '100',
     pendiente: 'plana', // plana, media, fuerte
     acabados: 'estandar', // economico, estandar, premium
     incArquitectura: true,
@@ -26,39 +26,13 @@ export default function CotizadorPage() {
     incTopografia: true,
   })
 
-  // Exportación a PDF
+  // Exportación a PDF (Nativo)
   const pdfRef = useRef<HTMLDivElement>(null)
-  const [exportingPDF, setExportingPDF] = useState(false)
-
-  const handleExportPDF = async () => {
-    if (!pdfRef.current) return
-    setExportingPDF(true)
-    
-    setTimeout(async () => {
-      try {
-        const canvas = await html2canvas(pdfRef.current!, { 
-          scale: 2, 
-          useCORS: false,
-          logging: false,
-          backgroundColor: '#ffffff'
-        })
-        const imgData = canvas.toDataURL('image/png')
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        })
-        
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
-        pdf.save(`Cotizacion_SARA_${new Date().toISOString().split('T')[0]}.pdf`)
-      } catch (error) {
-        console.error("Error al exportar PDF:", error)
-      }
-      setExportingPDF(false)
-    }, 100)
+  
+  const handleExportPDF = () => {
+    // Usamos el diálogo de impresión nativo del navegador,
+    // que tiene soporte perfecto para CSS y permite "Guardar como PDF".
+    window.print();
   }
 
   // Cargar parámetros al iniciar
@@ -90,6 +64,8 @@ export default function CotizadorPage() {
   const calcularCostos = () => {
     if (!params) return null
 
+    const areaValue = Number(cotizacion.areaConstruccion) || 0;
+
     // Factor Pendiente
     let fPendiente = params.factor_pendiente_plana
     if (cotizacion.pendiente === 'media') fPendiente = params.factor_pendiente_media
@@ -101,12 +77,12 @@ export default function CotizadorPage() {
     if (cotizacion.acabados === 'premium') fAcabados = params.factor_acabados_premium
 
     // Módulo 2: Costo de Obra Paramétrico
-    const costoObra = cotizacion.areaConstruccion * params.costo_base_construccion_m2 * fPendiente * fAcabados
+    const costoObra = areaValue * params.costo_base_construccion_m2 * fPendiente * fAcabados
 
     // Módulo 1: Honorarios (Diseño y Consultoría)
-    let honorariosArq = cotizacion.incArquitectura ? cotizacion.areaConstruccion * params.tarifa_diseno_arq_m2 : 0
-    let honorariosEst = cotizacion.incEstructura ? cotizacion.areaConstruccion * params.tarifa_diseno_est_m2 : 0
-    let honorariosMep = cotizacion.incMep ? cotizacion.areaConstruccion * params.tarifa_diseno_mep_m2 : 0
+    let honorariosArq = cotizacion.incArquitectura ? areaValue * params.tarifa_diseno_arq_m2 : 0
+    let honorariosEst = cotizacion.incEstructura ? areaValue * params.tarifa_diseno_est_m2 : 0
+    let honorariosMep = cotizacion.incMep ? areaValue * params.tarifa_diseno_mep_m2 : 0
     let honorariosTop = cotizacion.incTopografia ? params.tarifa_topografia_base : 0
 
     const totalHonorarios = honorariosArq + honorariosEst + honorariosMep + honorariosTop
@@ -127,7 +103,7 @@ export default function CotizadorPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-brand-dark flex items-center gap-3">
             <Calculator className="text-brand-sage" /> Cotizador Automático
@@ -252,7 +228,7 @@ export default function CotizadorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Panel de Inputs */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:hidden">
             <h2 className="text-xl font-bold text-brand-dark mb-6 border-b pb-4">Inputs del Proyecto</h2>
             
             <div className="space-y-6">
@@ -260,8 +236,10 @@ export default function CotizadorPage() {
                 <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (m²)</label>
                 <input 
                   type="number" 
+                  step="0.01"
+                  min="0"
                   value={cotizacion.areaConstruccion} 
-                  onChange={e => setCotizacion({...cotizacion, areaConstruccion: Number(e.target.value)})} 
+                  onChange={e => setCotizacion({...cotizacion, areaConstruccion: e.target.value})} 
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage text-lg font-medium"
                 />
               </div>
@@ -321,13 +299,12 @@ export default function CotizadorPage() {
           <div className="space-y-4">
             
             {/* Controles de Exportación */}
-            <div className="flex justify-end">
+            <div className="flex justify-end print:hidden">
               <button 
                 onClick={handleExportPDF}
-                disabled={exportingPDF}
-                className="flex items-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors text-sm"
+                className="flex items-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors text-sm cursor-pointer"
               >
-                <Download size={16} /> {exportingPDF ? 'Generando PDF...' : 'Exportar a PDF'}
+                <Download size={16} /> Exportar a PDF
               </button>
             </div>
 

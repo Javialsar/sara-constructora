@@ -56,10 +56,10 @@ export default function AdminLayout({
       {pathname === '/admin/login' ? (
         children
       ) : (
-        <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className="flex h-screen bg-gray-50 overflow-hidden print:h-auto print:block print:bg-white">
       
       {/* Sidebar */}
-      <aside className="w-64 bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20">
+      <aside className="w-64 bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden">
         <div className="p-6 border-b border-white/10 flex items-center gap-3">
           <div className="w-8 h-8 bg-white rounded flex items-center justify-center p-1">
             <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
@@ -112,9 +112,9 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
+      <main className="flex-1 flex flex-col h-full overflow-hidden print:overflow-visible print:block">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shrink-0">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shrink-0 print:hidden">
           <h2 className="text-xl font-bold text-gray-800">Panel de Control</h2>
           <div className="flex items-center gap-4">
             <div className="text-sm text-gray-500 font-medium">Hola, Administrador</div>
@@ -125,7 +125,7 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8 print:overflow-visible print:p-0">
           {children}
         </div>
       </main>
