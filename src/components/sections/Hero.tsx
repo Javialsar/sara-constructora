@@ -61,32 +61,22 @@ export default function Hero() {
         return (
           <div
             key={img}
-            className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 flex items-center justify-center lg:justify-end ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
-            style={{ zIndex: index === currentIndex ? 1 : 0 }}
+            className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1500ms] ease-in-out z-0 
+              ${isLogo ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat mix-blend-lighten' : 'bg-cover bg-center'} 
+              ${index === currentIndex ? 'opacity-100' : 'opacity-0'}`}
+            style={{ 
+              backgroundImage: `url('${img}')`, 
+              opacity: index === currentIndex ? (isLogo ? 0.9 : 1) : 0 
+            }}
           >
-            {isLogo ? (
-              <div 
-                className="w-full h-full bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat mix-blend-lighten"
-                style={{ 
-                  backgroundImage: `url('${img}')`,
-                  opacity: isLogo ? 0.9 : 1
-                }}
-              />
-            ) : (
-              <>
-                <img 
-                  src={img} 
-                  alt="Proyecto destacado SARA" 
-                  className="max-w-full max-h-full object-contain"
-                  style={{
-                    WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 100%)',
-                    maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 100%)'
-                  }}
-                />
-                
-                {/* Oscurecimiento sutil en móviles para asegurar lectura */}
-                <div className="lg:hidden absolute inset-0 bg-brand-dark/70 z-10" />
-              </>
+            {/* Máscara de desvanecimiento para las fotografías (mezcla suave con el fondo verde) */}
+            {!isLogo && (
+              <div className="hidden lg:block absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-brand-dark to-transparent z-10" />
+            )}
+            
+            {/* Oscurecimiento sutil en móviles para asegurar lectura */}
+            {!isLogo && (
+              <div className="lg:hidden absolute inset-0 bg-brand-dark/70 z-10" />
             )}
           </div>
         )
