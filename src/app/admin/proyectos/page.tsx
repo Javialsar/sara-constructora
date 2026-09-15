@@ -13,6 +13,8 @@ export default function AdminProyectos() {
   const [editId, setEditId] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
   const [uploadingFile, setUploadingFile] = useState(false)
+  const [activeModalTab, setActiveModalTab] = useState<'generales'|'cotizacion'>('generales')
+  const [cotizadorParams, setCotizadorParams] = useState<any>(null)
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -25,7 +27,23 @@ export default function AdminProyectos() {
     imagen_url: "",
     destacado: false,
     galeria: [] as string[],
-    servicio_id: "diseno-arquitectonico"
+    servicio_id: "diseno-arquitectonico",
+    datos_financieros: {
+      areaConstruccion: 100,
+      areaTerreno: 150,
+      plantasSobreRasante: 1,
+      plantasBajoRasante: 0,
+      tipologia: 'unifamiliar',
+      pendiente: 'plana',
+      acabados: 'estandar',
+      incArquitectura: true,
+      incEstructura: true,
+      incMep: true,
+      incTopografia: true,
+      totalObra: 0,
+      totalHonorarios: 0,
+      desgloseHonorarios: {}
+    }
   })
 
   useEffect(() => {
@@ -34,7 +52,6 @@ export default function AdminProyectos() {
 
   const fetchData = async () => {
     setLoading(true)
-    // Cargar proyectos
     const { data: dataProyectos, error: errProyectos } = await supabase
       .from("proyectos")
       .select(`*, clientes (nombre, apellido)`)
@@ -42,26 +59,59 @@ export default function AdminProyectos() {
       
     if (dataProyectos) setProyectos(dataProyectos)
     
-    // Cargar clientes para el selector
     const { data: dataClientes } = await supabase
       .from("clientes")
       .select("id, nombre, apellido")
       
     if (dataClientes) setClientes(dataClientes)
+
+    // Cargar parámetros del cotizador
+    const { data: cParams } = await supabase.from("cotizador_parametros").select("*").eq("id", 1).single()
+    if (cParams) setCotizadorParams(cParams)
     
     setLoading(false)
+  }
+
+  const defaultDatosFinancieros = {
+    areaConstruccion: 100,
+    areaTerreno: 150,
+    plantasSobreRasante: 1,
+    plantasBajoRasante: 0,
+    tipologia: 'unifamiliar',
+    pendiente: 'plana',
+    acabados: 'estandar',
+    incArquitectura: true,
+    incEstructura: true,
+    incMep: true,
+    incTopografia: true,
+    totalObra: 0,
+    totalHonorarios: 0,
+    desgloseHonorarios: {}
   }
 
   const openNewModal = () => {
     setEditId(null)
     setFiles([])
-    setFormData({ nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false, galeria: [], servicio_id: "diseno-arquitectonico" })
+    setActiveModalTab('generales')
+    setFormData({ 
+      nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", 
+      latitud: "", longitud: "", cliente_id: "", imagen_url: "", destacado: false, 
+      galeria: [], servicio_id: "diseno-arquitectonico",
+      datos_financieros: defaultDatosFinancieros 
+    })
     setIsModalOpen(true)
   }
 
   const handleEdit = (p: any) => {
     setEditId(p.id)
     setFiles([])
+    setActiveModalTab('generales')
+    
+    // Parse jsonb or use default
+    const df = p.datos_financieros ? (typeof p.datos_financieros === 'string' ? JSON.parse(p.datos_financieros) : p.datos_financieros) : defaultDatosFinancieros;
+    // Si no tiene todas las props de defaultDatosFinancieros, las completamos
+    const safeDf = { ...defaultDatosFinancieros, ...df };
+
     setFormData({
       nombre: p.nombre,
       ubicacion: p.ubicacion,
@@ -73,7 +123,8 @@ export default function AdminProyectos() {
       imagen_url: p.imagen_url || "",
       destacado: p.destacado || false,
       galeria: p.galeria || [],
-      servicio_id: p.servicio_id || "diseno-arquitectonico"
+      servicio_id: p.servicio_id || "diseno-arquitectonico",
+      datos_financieros: safeDf
     })
     setIsModalOpen(true)
   }
@@ -121,6 +172,40 @@ export default function AdminProyectos() {
       setUploadingFile(false)
     }
 
+    // Recalcular finanzas antes de guardar para asegurar datos correctos (snapshot de parámetros actuales si es nuevo o si cambió)
+    let dfSnapshot = { ...formData.datos_financieros };
+    if (cotizadorParams) {
+      let fPendiente = cotizadorParams.factor_pendiente_plana
+      if (dfSnapshot.pendiente === 'media') fPendiente = cotizadorParams.factor_pendiente_media
+      if (dfSnapshot.pendiente === 'fuerte') fPendiente = cotizadorParams.factor_pendiente_fuerte
+
+      let fAcabados = cotizadorParams.factor_acabados_estandar
+      if (dfSnapshot.acabados === 'economico') fAcabados = cotizadorParams.factor_acabados_economico
+      if (dfSnapshot.acabados === 'premium') fAcabados = cotizadorParams.factor_acabados_premium
+
+      let fTipologia = cotizadorParams.factor_tipologia_unifamiliar || 1
+      if (dfSnapshot.tipologia === 'multifamiliar') fTipologia = cotizadorParams.factor_tipologia_multifamiliar || 1.15
+      if (dfSnapshot.tipologia === 'comercial') fTipologia = cotizadorParams.factor_tipologia_comercial || 1.25
+      if (dfSnapshot.tipologia === 'industrial') fTipologia = cotizadorParams.factor_tipologia_industrial || 0.85
+
+      let fAltura = 1 + (Math.max(0, dfSnapshot.plantasSobreRasante - 2) * (cotizadorParams.porcentaje_adicional_por_piso || 0.03))
+      let fSotano = dfSnapshot.plantasBajoRasante > 0 ? (cotizadorParams.factor_sotano || 1.4) : 1
+
+      const costoObra = dfSnapshot.areaConstruccion * cotizadorParams.costo_base_construccion_m2 * fPendiente * fAcabados * fTipologia * fAltura * fSotano
+
+      let honorariosArq = dfSnapshot.incArquitectura ? dfSnapshot.areaConstruccion * cotizadorParams.tarifa_diseno_arq_m2 * fTipologia * fAltura : 0
+      let honorariosEst = dfSnapshot.incEstructura ? dfSnapshot.areaConstruccion * cotizadorParams.tarifa_diseno_est_m2 * fTipologia * fAltura : 0
+      let honorariosMep = dfSnapshot.incMep ? dfSnapshot.areaConstruccion * cotizadorParams.tarifa_diseno_mep_m2 * fTipologia : 0
+      let honorariosTop = dfSnapshot.incTopografia ? cotizadorParams.tarifa_topografia_base : 0 // Idealmente sobre areaTerreno pero mantenemos base
+
+      dfSnapshot.totalObra = costoObra;
+      dfSnapshot.honorariosArq = honorariosArq;
+      dfSnapshot.honorariosEst = honorariosEst;
+      dfSnapshot.honorariosMep = honorariosMep;
+      dfSnapshot.honorariosTop = honorariosTop;
+      dfSnapshot.totalHonorarios = honorariosArq + honorariosEst + honorariosMep + honorariosTop;
+    }
+
     const payload = {
       nombre: formData.nombre,
       ubicacion: formData.ubicacion,
@@ -132,7 +217,8 @@ export default function AdminProyectos() {
       imagen_url: finalUrl,
       destacado: formData.destacado,
       galeria: finalGaleria,
-      servicio_id: formData.servicio_id
+      servicio_id: formData.servicio_id,
+      datos_financieros: dfSnapshot
     }
 
     let error;
@@ -300,9 +386,26 @@ export default function AdminProyectos() {
               </button>
             </div>
             
+            <div className="flex border-b border-gray-100 bg-white shrink-0">
+              <button 
+                type="button"
+                onClick={() => setActiveModalTab('generales')}
+                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeModalTab === 'generales' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+              >
+                1. Datos Generales
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveModalTab('cotizacion')}
+                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeModalTab === 'cotizacion' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+              >
+                2. Presupuesto y Honorarios
+              </button>
+            </div>
+            
             <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
               <div className="p-6 overflow-y-auto flex-1">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`${activeModalTab === 'generales' ? 'grid' : 'hidden'} grid-cols-1 md:grid-cols-2 gap-6`}>
                   
                   <div className="space-y-1">
                     <label className="text-sm font-bold text-gray-700">Nombre del Proyecto *</label>
@@ -497,11 +600,136 @@ export default function AdminProyectos() {
                       </div>
                     </div>
                   </div>
+                </div>
+                
+                {/* Pestaña 2: Cotización / Datos Financieros */}
+                <div className={`${activeModalTab === 'cotizacion' ? 'block' : 'hidden'} space-y-8`}>
+                  <div className="bg-brand-sage/10 p-4 rounded-lg border border-brand-sage/20 mb-6">
+                    <p className="text-sm text-brand-dark">Al guardar el proyecto, se calculará automáticamente el presupuesto y se guardará como un historial financiero inalterable usando las tarifas actuales configuradas en el Cotizador.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (m²)</label>
+                      <input 
+                        type="number" 
+                        value={formData.datos_financieros.areaConstruccion} 
+                        onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, areaConstruccion: Number(e.target.value)}})} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage text-lg font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Área del Terreno (m²) - Para topografía</label>
+                      <input 
+                        type="number" 
+                        value={formData.datos_financieros.areaTerreno} 
+                        onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, areaTerreno: Number(e.target.value)}})} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage text-lg font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Plantas Sobre Rasante</label>
+                      <input 
+                        type="number" 
+                        min="1"
+                        value={formData.datos_financieros.plantasSobreRasante} 
+                        onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, plantasSobreRasante: Number(e.target.value)}})} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Sótanos (Bajo rasante)</label>
+                      <input 
+                        type="number" 
+                        min="0"
+                        value={formData.datos_financieros.plantasBajoRasante} 
+                        onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, plantasBajoRasante: Number(e.target.value)}})} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Tipología</label>
+                        <select 
+                          value={formData.datos_financieros.tipologia} 
+                          onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, tipologia: e.target.value}})} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                        >
+                          <option value="unifamiliar">Unifamiliar</option>
+                          <option value="multifamiliar">Multifamiliar</option>
+                          <option value="comercial">Comercial / Clínicas</option>
+                          <option value="industrial">Industrial / Bodegas</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Topografía</label>
+                        <select 
+                          value={formData.datos_financieros.pendiente} 
+                          onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, pendiente: e.target.value}})} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                        >
+                          <option value="plana">Plana (&lt; 5%)</option>
+                          <option value="media">Media (5% - 20%)</option>
+                          <option value="fuerte">Fuerte (&gt; 20%)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">Acabados</label>
+                        <select 
+                          value={formData.datos_financieros.acabados} 
+                          onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, acabados: e.target.value}})} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                        >
+                          <option value="economico">Económico / Social</option>
+                          <option value="estandar">Estándar / Comercial</option>
+                          <option value="premium">Premium / Lujo</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <label className="block text-sm font-bold text-gray-700 mb-4">Alcance Cotizado para este Proyecto</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                        <input type="checkbox" checked={formData.datos_financieros.incArquitectura} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incArquitectura: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
+                        <span>Diseño Arquitectónico</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                        <input type="checkbox" checked={formData.datos_financieros.incEstructura} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incEstructura: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
+                        <span>Diseño Estructural</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                        <input type="checkbox" checked={formData.datos_financieros.incMep} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incMep: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
+                        <span>Ingenierías MEP</span>
+                      </label>
+                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                        <input type="checkbox" checked={formData.datos_financieros.incTopografia} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incTopografia: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
+                        <span>Topografía Base</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {editId && formData.datos_financieros.totalObra > 0 && (
+                    <div className="bg-gray-50 p-6 rounded-xl border mt-8">
+                      <h4 className="font-bold mb-4 uppercase tracking-wider text-xs text-gray-500">Cotización Histórica Guardada</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Honorarios Consultoría:</p>
+                          <p className="text-2xl font-bold text-brand-dark">${(formData.datos_financieros.totalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Proyección Obra:</p>
+                          <p className="text-2xl font-bold text-brand-dark">${(formData.datos_financieros.totalObra || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               </div>
-              
-              <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3 shrink-0">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
