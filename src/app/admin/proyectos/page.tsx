@@ -730,6 +730,8 @@ export default function AdminProyectos() {
 
                 </div>
               </div>
+              
+              <div className="p-6 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3 shrink-0">
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)}
