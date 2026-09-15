@@ -36,11 +36,21 @@ export async function createClientAccount(data: {
     })
 
     if (authError) {
-      throw new Error(`Error Auth: ${authError.message}`)
+      // Traducir mensajes comunes de Supabase Auth
+      let errorMessage = authError.message;
+      if (errorMessage.includes("already been registered")) {
+        errorMessage = "Este correo electrónico ya está registrado en el sistema.";
+      } else if (errorMessage.includes("least 6 characters")) {
+        errorMessage = "La contraseña debe tener al menos 6 caracteres.";
+      } else if (errorMessage.includes("Invalid email")) {
+        errorMessage = "El formato del correo electrónico es inválido.";
+      }
+      
+      throw new Error(errorMessage)
     }
 
     if (!authData.user) {
-      throw new Error("No se pudo crear el usuario en Auth.")
+      throw new Error("No se pudo crear el usuario.")
     }
 
     // 2. Crear el registro en la tabla 'clientes' pública
