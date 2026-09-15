@@ -30,7 +30,19 @@ export default function ClientesPage() {
     }
 
     loadData()
-  }, [])
+
+    // Suscripción en tiempo real a la tabla clientes
+    const subscription = supabase
+      .channel('clientes-public')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => {
+        loadData()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(subscription)
+    }
+  }, [supabase])
 
   return (
     <div className="pt-36 pb-16 min-h-screen">
@@ -54,15 +66,33 @@ export default function ClientesPage() {
               No hay clientes públicos para mostrar por el momento.
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
               {clientes.map((c) => (
-                <div key={c.id} className="aspect-video bg-white border border-gray-100 flex flex-col items-center justify-center grayscale hover:grayscale-0 transition-all opacity-80 hover:opacity-100 p-4 text-center overflow-hidden relative shadow-sm">
-                  {c.imagen_url ? (
-                    <img src={c.imagen_url} alt={`${c.nombre} ${c.apellido}`} className="w-full h-full object-contain p-2" />
-                  ) : (
-                    <span className="font-bold text-gray-400 text-sm md:text-base uppercase tracking-wider">
-                      {c.nombre} {c.apellido}
-                    </span>
+                <div key={c.id} className="group bg-white border border-gray-100 flex flex-col items-center justify-center transition-all p-6 text-center shadow-sm hover:shadow-xl hover:border-brand-sage/30 rounded-2xl relative overflow-hidden">
+                  {/* Cuadrícula suave de fondo */}
+                  <div className="absolute inset-0 pointer-events-none opacity-5" style={{ backgroundImage: 'linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                  
+                  <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 mb-4 flex-shrink-0">
+                    {c.imagen_url ? (
+                      <div className="w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500 transform group-hover:scale-105">
+                        <img src={c.imagen_url} alt={`${c.nombre} ${c.apellido}`} className="w-full h-full object-contain" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full bg-gray-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm group-hover:bg-brand-sage/10 transition-colors">
+                        <span className="text-2xl md:text-3xl font-bold text-gray-300 group-hover:text-brand-sage/50 uppercase tracking-widest">
+                          {c.nombre?.charAt(0)}{c.apellido?.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <h3 className="relative z-10 font-bold text-brand-dark uppercase tracking-wide text-sm md:text-base group-hover:text-brand-sage transition-colors">
+                    {c.nombre} {c.apellido}
+                  </h3>
+                  {c.usuario && (
+                    <p className="relative z-10 text-[10px] md:text-xs text-gray-400 uppercase tracking-widest mt-1 opacity-60">
+                      Cliente Registrado
+                    </p>
                   )}
                 </div>
               ))}
