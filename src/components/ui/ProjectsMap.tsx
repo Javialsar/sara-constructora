@@ -34,11 +34,24 @@ function FlyToHandler({ flyTo }: { flyTo: { lat: number; lng: number; id: string
 
   useEffect(() => {
     if (flyTo) {
-      map.flyTo([flyTo.lat, flyTo.lng], 15, {
-        duration: 2,
+      map.flyTo([flyTo.lat, flyTo.lng], 16, {
+        duration: 1.5,
       })
     }
   }, [flyTo, map])
+
+  return null
+}
+
+function BoundsHandler({ projects }: { projects: ProjectMarker[] }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (projects.length > 0) {
+      const bounds = L.latLngBounds(projects.map(p => [p.lat, p.lng]))
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 })
+    }
+  }, [projects, map])
 
   return null
 }
@@ -66,6 +79,7 @@ export default function ProjectsMap({ projects, flyTo }: ProjectsMapProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <BoundsHandler projects={projects} />
         <FlyToHandler flyTo={flyTo || null} />
         {projects.map((project) => (
           <Marker 

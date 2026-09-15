@@ -5,6 +5,8 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ArrowLeft, Briefcase, MapPin, Building, ChevronRight } from "lucide-react"
 
+import InteractivePortfolio from "./InteractivePortfolio"
+
 import MapWrapper from "./MapWrapper"
 
 export default async function ClienteDetallePage({ params }: { params: { id: string } }) {
@@ -81,65 +83,8 @@ export default async function ClienteDetallePage({ params }: { params: { id: str
           </div>
         </div>
 
-        {/* Proyectos y Mapa */}
-        <div className="flex flex-col lg:flex-row gap-12">
-          
-          {/* Lista de Proyectos */}
-          <div className="w-full lg:w-1/3 space-y-6">
-            <h2 className="text-2xl font-bold text-brand-dark uppercase tracking-widest mb-6 flex items-center gap-3 border-b-2 border-brand-sage/30 pb-4">
-              <Briefcase className="text-brand-sage" /> Portafolio
-            </h2>
-            
-            {!proyectos || proyectos.length === 0 ? (
-              <div className="p-8 border-2 border-dashed border-gray-200 rounded-2xl text-center text-gray-500">
-                Aún no hay proyectos registrados para este cliente.
-              </div>
-            ) : (
-              proyectos.map((p) => (
-                <Link href={`/proyectos/${p.id}`} key={p.id} className="group block bg-white border border-gray-100 p-6 rounded-2xl shadow-sm hover:shadow-xl hover:border-brand-sage/30 transition-all">
-                  <h3 className="font-bold text-brand-dark uppercase tracking-wide group-hover:text-brand-sage transition-colors mb-2">
-                    {p.nombre}
-                  </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
-                    <MapPin size={14} className="text-gray-400" />
-                    <span className="truncate">{p.ubicacion || "Ubicación no especificada"}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold px-3 py-1 bg-gray-100 text-gray-600 rounded-full uppercase tracking-wider">
-                      {p.estado === "completado" ? "Finalizado" : "En Progreso"}
-                    </span>
-                    <span className="text-brand-sage flex items-center gap-1 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0">
-                      Ver Proyecto <ChevronRight size={16} />
-                    </span>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-
-          {/* Mapa */}
-          <div className="w-full lg:w-2/3">
-            <h2 className="text-2xl font-bold text-brand-dark uppercase tracking-widest mb-6 flex items-center gap-3 border-b-2 border-brand-sage/30 pb-4">
-              <Building className="text-brand-sage" /> Mapa de Obras
-            </h2>
-            
-            <div className="bg-white p-2 rounded-3xl shadow-lg border border-gray-100 h-[500px] md:h-[600px] overflow-hidden relative">
-              {mapProjects.length > 0 ? (
-                <div className="w-full h-full rounded-2xl overflow-hidden relative z-0">
-                   <MapWrapper projects={mapProjects} />
-                </div>
-              ) : (
-                <div className="w-full h-full bg-gray-50 rounded-2xl flex flex-col items-center justify-center text-gray-400 border border-gray-100">
-                  <MapPin size={48} className="mb-4 opacity-20" />
-                  <p className="font-medium text-center px-6">
-                    Los proyectos de este cliente aún no tienen coordenadas geográficas configuradas.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-        </div>
+        {/* Proyectos y Mapa interactivo */}
+        <InteractivePortfolio proyectos={proyectos || []} mapProjects={mapProjects} />
       </div>
     </div>
   )
