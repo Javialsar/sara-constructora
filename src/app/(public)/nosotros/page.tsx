@@ -57,15 +57,20 @@ export default async function NosotrosPage() {
       <div className="container mx-auto px-4 md:px-8 py-24">
         
         {/* Principios */}
-        <div className="mb-24">
-          <div className="text-center mb-16">
-            <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Lo que nos guía</h2>
-            <h3 className="text-4xl md:text-5xl font-extrabold text-brand-dark">PRINCIPIOS</h3>
+        <div className="mb-24 relative bg-brand-sage rounded-[2.5rem] py-20 px-4 md:px-12 overflow-hidden shadow-2xl">
+          {/* Grid Background Pattern */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-10">
+            <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
+          
+          <div className="relative z-10 text-center mb-16">
+            <h2 className="text-sm font-bold tracking-[0.2em] text-brand-dark bg-white/90 inline-block px-4 py-1.5 rounded-full uppercase mb-4 shadow-sm">Lo que nos guía</h2>
+            <h3 className="text-4xl md:text-5xl font-extrabold text-white">PRINCIPIOS</h3>
+          </div>
+          <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Tarjeta 1 */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-lg border border-gray-50 hover:shadow-2xl transition-all duration-300 text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-transform">
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
                 <ShieldCheck size={40} />
               </div>
               <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">SEGURIDAD TÉCNICA</h4>
@@ -76,8 +81,8 @@ export default async function NosotrosPage() {
             </div>
             
             {/* Tarjeta 2 */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-lg border border-gray-50 hover:shadow-2xl transition-all duration-300 text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-transform">
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
                 <Award size={40} />
               </div>
               <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">CALIDAD EN CADA DETALLE</h4>
@@ -88,8 +93,8 @@ export default async function NosotrosPage() {
             </div>
 
             {/* Tarjeta 3 */}
-            <div className="bg-white p-10 rounded-[2.5rem] shadow-lg border border-gray-50 hover:shadow-2xl transition-all duration-300 text-center flex flex-col items-center">
-              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-transform">
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md">
                 <Users size={40} />
               </div>
               <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">COMPROMISO CON EL CLIENTE</h4>
