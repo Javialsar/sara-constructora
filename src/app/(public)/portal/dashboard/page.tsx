@@ -19,6 +19,8 @@ export default function PortalDashboardPage() {
   
   const [cliente, setCliente] = useState<any>(null)
   const [proyectos, setProyectos] = useState<any[]>([])
+  const [cotizaciones, setCotizaciones] = useState<any[]>([])
+  const [dashboardTab, setDashboardTab] = useState<'proyectos' | 'cotizaciones'>('proyectos')
   
   // view can be 'list' or 'detail'
   const [view, setView] = useState<'list' | 'detail'>('list')
@@ -57,6 +59,21 @@ export default function PortalDashboardPage() {
 
       if (proyectosData) {
         setProyectos(proyectosData)
+      }
+
+      // Cargar cotizaciones vinculadas
+      const { data: cotizacionesData } = await supabase
+        .from("historial_cotizaciones")
+        .select("*")
+        .eq("cliente_id", userId)
+        .order("created_at", { ascending: false })
+
+      if (cotizacionesData) {
+        setCotizaciones(cotizacionesData)
+        // Si no tiene proyectos pero sí cotizaciones, mostrar pestaña de cotizaciones por defecto
+        if ((!proyectosData || proyectosData.length === 0) && cotizacionesData.length > 0) {
+          setDashboardTab('cotizaciones')
+        }
       }
     }
     setLoadingData(false)
@@ -160,15 +177,35 @@ export default function PortalDashboardPage() {
           </div>
         </div>
 
-        {proyectos.length === 0 ? (
-           <div className="bg-white p-12 text-center border border-gray-200 shadow-sm rounded-xl">
-             <MapPin size={48} className="mx-auto mb-4 text-gray-300" />
-             <h3 className="text-xl font-bold text-gray-800 mb-2">Aún no tienes proyectos asignados</h3>
-             <p className="text-gray-500">Cuando la constructora asigne un proyecto a tu cuenta, aparecerá aquí.</p>
-           </div>
-        ) : view === 'list' ? (
-          /* VISTA DE LISTA DE PROYECTOS */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {view === 'list' && (
+          <div className="mb-8 flex gap-4 border-b border-gray-200">
+            <button 
+              onClick={() => setDashboardTab('proyectos')}
+              className={`pb-4 font-bold text-sm tracking-wide transition-colors relative ${dashboardTab === 'proyectos' ? 'text-brand-dark' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Mis Proyectos
+              {dashboardTab === 'proyectos' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-sage rounded-t-full" />}
+            </button>
+            <button 
+              onClick={() => setDashboardTab('cotizaciones')}
+              className={`pb-4 font-bold text-sm tracking-wide transition-colors relative ${dashboardTab === 'cotizaciones' ? 'text-brand-dark' : 'text-gray-400 hover:text-gray-600'}`}
+            >
+              Mis Cotizaciones
+              {dashboardTab === 'cotizaciones' && <div className="absolute bottom-0 left-0 w-full h-1 bg-brand-sage rounded-t-full" />}
+            </button>
+          </div>
+        )}
+
+        {view === 'list' && dashboardTab === 'proyectos' ? (
+          proyectos.length === 0 ? (
+            <div className="bg-white p-12 text-center border border-gray-200 shadow-sm rounded-xl">
+              <MapPin size={48} className="mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Aún no tienes proyectos asignados</h3>
+              <p className="text-gray-500">Cuando la constructora asigne un proyecto a tu cuenta, aparecerá aquí.</p>
+            </div>
+          ) : (
+            /* VISTA DE LISTA DE PROYECTOS */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {proyectos.map((p) => {
               const isActive = p.estado === 'en_diseno' || p.estado === 'en_construccion';
               return (
@@ -229,6 +266,55 @@ export default function PortalDashboardPage() {
               )
             })}
           </div>
+          )
+        ) : view === 'list' && dashboardTab === 'cotizaciones' ? (
+          cotizaciones.length === 0 ? (
+            <div className="bg-white p-12 text-center border border-gray-200 shadow-sm rounded-xl">
+              <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-bold text-gray-800 mb-2">No tienes cotizaciones guardadas</h3>
+              <p className="text-gray-500">Contacta a la constructora para generar una nueva propuesta comercial.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {cotizaciones.map((c) => (
+                <div key={c.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-brand-dark p-6 text-white">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-bold text-xl leading-tight">{c.nombre_proyecto || 'Propuesta de Servicios'}</h3>
+                      <span className="text-xs bg-brand-sage text-brand-dark font-bold px-2 py-1 rounded uppercase tracking-wider">Estimado</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-300 mb-4">
+                      <Calendar size={14} />
+                      <span>{new Date(c.created_at).toLocaleDateString('es-ES')}</span>
+                    </div>
+                    <div className="text-3xl font-extrabold mb-1 text-brand-sage">
+                      ${Number(c.total_consultoria + c.total_obra).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                    </div>
+                    <p className="text-sm text-gray-400">Total Referencial Estimado</p>
+                  </div>
+                  <div className="p-6 bg-white">
+                    <div className="space-y-3 text-sm text-gray-600 mb-6">
+                      <div className="flex justify-between border-b border-gray-100 pb-2">
+                        <span>Área de Construcción</span>
+                        <span className="font-bold text-gray-800">{c.area_construccion} m²</span>
+                      </div>
+                      <div className="flex justify-between border-b border-gray-100 pb-2">
+                        <span>Módulo 1: Diseño y Consultoría</span>
+                        <span className="font-bold text-gray-800">${Number(c.total_consultoria).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                      </div>
+                      <div className="flex justify-between border-b border-gray-100 pb-2">
+                        <span>Módulo 2: Obra (Aprox)</span>
+                        <span className="font-bold text-gray-800">${Number(c.total_obra).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg text-xs text-gray-500 mb-4">
+                      <p><strong>Nota:</strong> Este es un documento referencial inicial generado a través del motor paramétrico de SARA Constructora. No constituye una oferta final.</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           /* VISTA DE DETALLE DEL PROYECTO */
           <div className="space-y-6">
