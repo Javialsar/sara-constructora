@@ -464,8 +464,6 @@ export default function CotizadorPage() {
                 </div>
               </div>
 
-              </div>
-
               <div className="pt-4 border-t">
                 <label className="block text-sm font-bold text-gray-700 mb-4">Alcance de la ConsultorÃ­a (MÃ³dulo 1)</label>
                 <div className="space-y-3">
@@ -488,10 +486,9 @@ export default function CotizadorPage() {
                 </div>
               </div>
             </div>
-          </div>
 
-              {/* Botones de Acci?n (Movidos aqu? para mejor UX) */}
-              <div className="pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 print:hidden">
+              {/* Botones de Acci?n */}
+              <div className="pt-8 mt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 print:hidden">
                 <button 
                   onClick={() => handleSaveQuote(resultados)}
                   disabled={savingQuote || !selectedClienteId}
@@ -506,6 +503,7 @@ export default function CotizadorPage() {
                   <Download size={18} /> Exportar a PDF
                 </button>
               </div>
+          </div>
 
           {/* Dashboards de Salida */}
           <div className="space-y-4">
