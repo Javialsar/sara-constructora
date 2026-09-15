@@ -38,7 +38,8 @@ export default function CotizadorPage() {
       try {
         const canvas = await html2canvas(pdfRef.current!, { 
           scale: 2, 
-          useCORS: true,
+          useCORS: false,
+          logging: false,
           backgroundColor: '#ffffff'
         })
         const imgData = canvas.toDataURL('image/png')
@@ -347,7 +348,6 @@ export default function CotizadorPage() {
 
               {/* Dashboard Consultoría */}
               <div className="bg-brand-dark text-white rounded-xl shadow-lg p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-sage/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3" />
                 <h3 className="text-sm tracking-widest text-brand-sage uppercase font-bold mb-4">Módulo 1: Diseño y Consultoría</h3>
                 <div className="text-4xl font-extrabold mb-6">
                   ${resultados?.totalHonorarios.toLocaleString('en-US', {minimumFractionDigits: 2})}
