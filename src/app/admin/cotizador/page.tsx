@@ -295,37 +295,40 @@ export default function CotizadorPage() {
             
             <div className="space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Seleccionar Cliente</label>
-                  <div className="flex gap-2">
-                    <select 
-                      value={selectedClienteId} 
-                      onChange={e => {
-                        setSelectedClienteId(e.target.value)
-                        const selectedClient = clientes.find(c => c.id === e.target.value)
-                        if (selectedClient) {
-                          setCotizacion({...cotizacion, nombreCliente: `${selectedClient.nombre} ${selectedClient.apellido}`})
-                        } else {
-                          setCotizacion({...cotizacion, nombreCliente: ''})
-                        }
-                      }} 
-                      className="flex-1 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white"
-                    >
-                      <option value="">-- Seleccionar o crear nuevo --</option>
-                      {clientes.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
-                      ))}
-                    </select>
-                    <button 
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="bg-brand-sage text-brand-dark px-3 rounded-lg hover:brightness-105 font-bold flex items-center gap-2"
-                      title="Crear Nuevo Cliente"
-                    >
-                      <UserPlus size={18} /> <span className="hidden sm:inline">Nuevo</span>
-                    </button>
-                  </div>
+              {/* Fila 1: Cliente */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Seleccionar Cliente</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <select 
+                    value={selectedClienteId} 
+                    onChange={e => {
+                      setSelectedClienteId(e.target.value)
+                      const selectedClient = clientes.find(c => c.id === e.target.value)
+                      if (selectedClient) {
+                        setCotizacion({...cotizacion, nombreCliente: `${selectedClient.nombre} ${selectedClient.apellido}`})
+                      } else {
+                        setCotizacion({...cotizacion, nombreCliente: ''})
+                      }
+                    }} 
+                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white min-w-0"
+                  >
+                    <option value="">-- Seleccionar o crear nuevo --</option>
+                    {clientes.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
+                    ))}
+                  </select>
+                  <button 
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="shrink-0 bg-brand-sage text-brand-dark px-4 py-2 rounded-lg hover:brightness-105 font-bold flex items-center justify-center gap-2"
+                    title="Crear Nuevo Cliente"
+                  >
+                    <UserPlus size={18} /> Nuevo Cliente
+                  </button>
                 </div>
+              </div>
+
+              {/* Fila 2: Proyecto y Área */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Proyecto (Opcional)</label>
                   <input 
@@ -336,21 +339,21 @@ export default function CotizadorPage() {
                     className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (m²)</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    min="0"
+                    value={cotizacion.areaConstruccion} 
+                    onChange={e => setCotizacion({...cotizacion, areaConstruccion: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage text-lg font-medium"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (m²)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  min="0"
-                  value={cotizacion.areaConstruccion} 
-                  onChange={e => setCotizacion({...cotizacion, areaConstruccion: e.target.value})} 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage text-lg font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              {/* Fila 3: Topografía y Acabados */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Topografía</label>
                   <select 
