@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Settings, Calculator, Save, FileText, CheckCircle2, Download, UserPlus, X } from "lucide-react"
@@ -10,7 +10,7 @@ export default function CotizadorPage() {
   const supabase = createClient()
   const [activeTab, setActiveTab] = useState<'generar' | 'parametros' | 'historial'>('generar')
   
-  // Estado para parámetros
+  // Estado para parÃ¡metros
   const [params, setParams] = useState<any>(null)
   const [loadingParams, setLoadingParams] = useState(true)
   const [savingParams, setSavingParams] = useState(false)
@@ -29,7 +29,7 @@ export default function CotizadorPage() {
     password: ""
   })
 
-  // Estado para la cotización actual
+  // Estado para la cotizaciÃ³n actual
   const [cotizacion, setCotizacion] = useState({
     nombreCliente: '',
     nombreProyecto: '',
@@ -48,18 +48,18 @@ export default function CotizadorPage() {
 
   const [savingQuote, setSavingQuote] = useState(false)
 
-  // Exportación a PDF (Nativo)
+  // ExportaciÃ³n a PDF (Nativo)
   const pdfRef = useRef<HTMLDivElement>(null)
   
   const handleExportPDF = () => {
-    // Usamos el diálogo de impresión nativo del navegador,
+    // Usamos el diÃ¡logo de impresiÃ³n nativo del navegador,
     // que tiene soporte perfecto para CSS y permite "Guardar como PDF".
     window.print();
   }
 
   const [historialCotizaciones, setHistorialCotizaciones] = useState<any[]>([])
   
-  // Cargar parámetros al iniciar
+  // Cargar parÃ¡metros al iniciar
   useEffect(() => {
     fetchParametros()
     fetchClientes()
@@ -138,7 +138,7 @@ export default function CotizadorPage() {
     if (error) {
       alert("Error al guardar: " + error.message)
     } else {
-      alert("Cotización guardada exitosamente en el historial.")
+      alert("CotizaciÃ³n guardada exitosamente en el historial.")
       fetchHistorialCotizaciones()
     }
     setSavingQuote(false)
@@ -152,12 +152,12 @@ export default function CotizadorPage() {
     if (error) {
       setMensajeParametros("Error al guardar: " + error.message)
     } else {
-      setMensajeParametros("Parámetros guardados correctamente.")
+      setMensajeParametros("ParÃ¡metros guardados correctamente.")
       setTimeout(() => setMensajeParametros(""), 3000)
     }
   }
 
-  // Cálculos en tiempo real
+  // CÃ¡lculos en tiempo real
   const calcularCostos = () => {
     if (!params) return null
 
@@ -194,7 +194,7 @@ export default function CotizadorPage() {
     // M?dulo 2: Costo de Obra Param?trico
     const costoObra = areaValue * (params.costo_base_construccion_m2 || 450) * fPendiente * fAcabados * fSuelo * fAcceso * fPisos * fEstructura
 
-    // Módulo 1: Honorarios (Diseño y Consultoría)
+    // MÃ³dulo 1: Honorarios (DiseÃ±o y ConsultorÃ­a)
     let honorariosArq = cotizacion.incArquitectura ? areaValue * params.tarifa_diseno_arq_m2 : 0
     let honorariosEst = cotizacion.incEstructura ? areaValue * params.tarifa_diseno_est_m2 : 0
     let honorariosMep = cotizacion.incMep ? areaValue * params.tarifa_diseno_mep_m2 : 0
@@ -214,31 +214,31 @@ export default function CotizadorPage() {
 
   const resultados = calcularCostos()
 
-  if (loadingParams) return <div className="p-8">Cargando motor de cálculo...</div>
+  if (loadingParams) return <div className="p-8">Cargando motor de cÃ¡lculo...</div>
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-brand-dark flex items-center gap-3">
-            <Calculator className="text-brand-sage" /> Cotizador Automático
+            <Calculator className="text-brand-sage" /> Cotizador AutomÃ¡tico
           </h1>
-          <p className="text-gray-500 mt-2">Motor de consultoría y proyección paramétrica de obra.</p>
+          <p className="text-gray-500 mt-2">Motor de consultorÃ­a y proyecciÃ³n paramÃ©trica de obra.</p>
         </div>
         
-        {/* Pestañas */}
+        {/* PestaÃ±as */}
         <div className="flex bg-gray-200 p-1 rounded-lg">
           <button 
             onClick={() => setActiveTab('generar')}
             className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'generar' ? 'bg-white shadow-sm text-brand-dark' : 'text-gray-500 hover:text-brand-dark'}`}
           >
-            <FileText size={16} /> Generar Cotización
+            <FileText size={16} /> Generar CotizaciÃ³n
           </button>
           <button 
             onClick={() => setActiveTab('parametros')}
             className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'parametros' ? 'bg-white shadow-sm text-brand-dark' : 'text-gray-500 hover:text-brand-dark'}`}
           >
-            <Settings size={16} /> Parámetros Base
+            <Settings size={16} /> ParÃ¡metros Base
           </button>
           <button 
             onClick={() => setActiveTab('historial')}
@@ -251,7 +251,7 @@ export default function CotizadorPage() {
 
       {activeTab === 'parametros' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-brand-dark mb-6">Configuración Global de Tarifas</h2>
+          <h2 className="text-xl font-bold text-brand-dark mb-6">ConfiguraciÃ³n Global de Tarifas</h2>
           {mensajeParametros && (
             <div className={`p-4 rounded-lg mb-6 flex items-center gap-2 ${mensajeParametros.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-brand-sage/20 text-brand-dark'}`}>
               <CheckCircle2 size={20} /> {mensajeParametros}
@@ -261,41 +261,41 @@ export default function CotizadorPage() {
           <form onSubmit={handleSaveParams}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               
-              {/* Tarifas Diseño */}
+              {/* Tarifas DiseÃ±o */}
               <div className="space-y-4">
-                <h3 className="font-bold border-b pb-2">Tarifas de Diseño ($ / m²)</h3>
+                <h3 className="font-bold border-b pb-2">Tarifas de DiseÃ±o ($ / mÂ²)</h3>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Arquitectura Ejecutivo</label>
                   <input type="number" step="0.01" value={params?.tarifa_diseno_arq_m2 || 0} onChange={e => setParams({...params, tarifa_diseno_arq_m2: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Ingeniería Estructural</label>
+                  <label className="block text-sm text-gray-600 mb-1">IngenierÃ­a Estructural</label>
                   <input type="number" step="0.01" value={params?.tarifa_diseno_est_m2 || 0} onChange={e => setParams({...params, tarifa_diseno_est_m2: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Ingenierías MEP</label>
+                  <label className="block text-sm text-gray-600 mb-1">IngenierÃ­as MEP</label>
                   <input type="number" step="0.01" value={params?.tarifa_diseno_mep_m2 || 0} onChange={e => setParams({...params, tarifa_diseno_mep_m2: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Topografía (Costo Fijo Base)</label>
+                  <label className="block text-sm text-gray-600 mb-1">TopografÃ­a (Costo Fijo Base)</label>
                   <input type="number" step="0.01" value={params?.tarifa_topografia_base || 0} onChange={e => setParams({...params, tarifa_topografia_base: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
                 </div>
               </div>
 
               {/* Estimador Obra */}
               <div className="space-y-4">
-                <h3 className="font-bold border-b pb-2">Estimador de Obra ($ / m²)</h3>
+                <h3 className="font-bold border-b pb-2">Estimador de Obra ($ / mÂ²)</h3>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Costo Base Construcción</label>
+                  <label className="block text-sm text-gray-600 mb-1">Costo Base ConstrucciÃ³n</label>
                   <input type="number" step="0.01" value={params?.costo_base_construccion_m2 || 0} onChange={e => setParams({...params, costo_base_construccion_m2: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
-                  <p className="text-xs text-gray-400 mt-1">Este valor base se multiplicará por los factores.</p>
+                  <p className="text-xs text-gray-400 mt-1">Este valor base se multiplicarÃ¡ por los factores.</p>
                 </div>
 
                 <h3 className="font-bold border-b pb-2 mt-8">Impuestos y Regulaciones</h3>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Porcentaje IVA (%)</label>
                   <input type="number" step="0.1" value={params?.porcentaje_iva_base || 15} onChange={e => setParams({...params, porcentaje_iva_base: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
-                  <p className="text-xs text-gray-400 mt-1">Este IVA se aplicará por defecto si se requiere factura.</p>
+                  <p className="text-xs text-gray-400 mt-1">Este IVA se aplicarÃ¡ por defecto si se requiere factura.</p>
                 </div>
               </div>
 
@@ -320,11 +320,11 @@ export default function CotizadorPage() {
 
                 <div className="grid grid-cols-2 gap-2 mt-4">
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Acab. Económico</label>
+                    <label className="block text-xs text-gray-600 mb-1">Acab. EconÃ³mico</label>
                     <input type="number" step="0.01" value={params?.factor_acabados_economico || 0.85} onChange={e => setParams({...params, factor_acabados_economico: parseFloat(e.target.value)})} className="w-full border rounded px-2 py-1 text-sm outline-none focus:border-brand-sage" />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Acab. Estándar</label>
+                    <label className="block text-xs text-gray-600 mb-1">Acab. EstÃ¡ndar</label>
                     <input type="number" step="0.01" value={params?.factor_acabados_estandar || 1.00} onChange={e => setParams({...params, factor_acabados_estandar: parseFloat(e.target.value)})} className="w-full border rounded px-2 py-1 text-sm outline-none focus:border-brand-sage" />
                   </div>
                   <div>
@@ -338,7 +338,7 @@ export default function CotizadorPage() {
             
             <div className="mt-8 pt-6 border-t flex justify-end">
               <button type="submit" disabled={savingParams} className="bg-brand-dark text-white px-6 py-2.5 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors flex items-center gap-2">
-                <Save size={18} /> {savingParams ? "Guardando..." : "Guardar Parámetros"}
+                <Save size={18} /> {savingParams ? "Guardando..." : "Guardar ParÃ¡metros"}
               </button>
             </div>
           </form>
@@ -386,7 +386,7 @@ export default function CotizadorPage() {
                 </div>
               </div>
 
-              {/* Fila 2: Proyecto y Área */}
+              {/* Fila 2: Proyecto y Ãrea */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Proyecto (Opcional)</label>
@@ -399,7 +399,7 @@ export default function CotizadorPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (m²)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Ãrea de ConstrucciÃ³n (mÂ²)</label>
                   <input 
                     type="number" 
                     step="0.01"
@@ -411,117 +411,111 @@ export default function CotizadorPage() {
                 </div>
               </div>
 
-              {/* Fila 3: Topografía y Acabados */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Topografía</label>
-                  <select 
-                    value={cotizacion.pendiente} 
-                    onChange={e => setCotizacion({...cotizacion, pendiente: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
-                  >
-                    <option value="plana">Plana (&lt; 5%)</option>
-                    <option value="media">Media (5% - 20%)</option>
-                    <option value="fuerte">Fuerte (&gt; 20%)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Calidad Acabados</label>
-                  <select 
-                    value={cotizacion.acabados} 
-                    onChange={e => setCotizacion({...cotizacion, acabados: e.target.value})} 
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
-                  >
-                    <option value="economico">Económico / Social</option>
-                    <option value="estandar">Estándar / Comercial</option>
-                    <option value="premium">Premium / Lujo</option>
-                  </select>
-                </div>
-
-                {/* Nuevos Par?metros */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                            {/* Par?metros de Terreno y Obra */}
+              <div className="pt-4 border-t border-gray-100">
+                <label className="block text-sm font-bold text-gray-700 mb-4">Condiciones del Terreno y Obra</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Suelo</label>
-                    <select value={cotizacion.suelo} onChange={e => setCotizacion({...cotizacion, suelo: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Topograf?a</label>
+                    <select value={cotizacion.pendiente} onChange={e => setCotizacion({...cotizacion, pendiente: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
+                      <option value="plana">Plana (< 5%)</option>
+                      <option value="media">Media (5% - 20%)</option>
+                      <option value="fuerte">Fuerte (> 20%)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Calidad Acabados</label>
+                    <select value={cotizacion.acabados} onChange={e => setCotizacion({...cotizacion, acabados: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
+                      <option value="economico">Económico / Social</option>
+                      <option value="estandar">Estándar / Comercial</option>
+                      <option value="premium">Premium / Lujo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Tipo de Suelo</label>
+                    <select value={cotizacion.suelo} onChange={e => setCotizacion({...cotizacion, suelo: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
                       <option value="normal">Normal (Est?ndar)</option>
                       <option value="blando">Arcilloso/Blando (+15%)</option>
                       <option value="rocoso">Rocoso/Duro (+5%)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Accesibilidad Obra</label>
-                    <select value={cotizacion.accesibilidad} onChange={e => setCotizacion({...cotizacion, accesibilidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Accesibilidad</label>
+                    <select value={cotizacion.accesibilidad} onChange={e => setCotizacion({...cotizacion, accesibilidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
                       <option value="urbana">Urbana (Normal)</option>
                       <option value="rural">Rural/Remoto (+8%)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Niveles / Pisos</label>
-                    <select value={cotizacion.pisos} onChange={e => setCotizacion({...cotizacion, pisos: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Niveles / Pisos</label>
+                    <select value={cotizacion.pisos} onChange={e => setCotizacion({...cotizacion, pisos: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
                       <option value="1">1 Planta (+5%)</option>
                       <option value="2">2 Plantas (?ptimo)</option>
                       <option value="3_mas">3 o m?s Plantas (+2%)</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Sis. Estructural</label>
-                    <select value={cotizacion.estructura} onChange={e => setCotizacion({...cotizacion, estructura: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
-                      <option value="hormigon">Hormig?n Armado</option>
-                      <option value="metalica">Estruct. Met?lica (+15%)</option>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Sis. Estructural</label>
+                    <select value={cotizacion.estructura} onChange={e => setCotizacion({...cotizacion, estructura: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
+                      <option value="hormigon">Hormigón Armado</option>
+                      <option value="metalica">Estruct. Metálica (+15%)</option>
                     </select>
                   </div>
                 </div>
+              </div>
 
               </div>
 
               <div className="pt-4 border-t">
-                <label className="block text-sm font-bold text-gray-700 mb-4">Alcance de la Consultoría (Módulo 1)</label>
+                <label className="block text-sm font-bold text-gray-700 mb-4">Alcance de la ConsultorÃ­a (MÃ³dulo 1)</label>
                 <div className="space-y-3">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={cotizacion.incArquitectura} onChange={e => setCotizacion({...cotizacion, incArquitectura: e.target.checked})} className="w-5 h-5 accent-brand-sage" />
-                    <span>Diseño Arquitectónico Ejecutivo</span>
+                    <span>DiseÃ±o ArquitectÃ³nico Ejecutivo</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={cotizacion.incEstructura} onChange={e => setCotizacion({...cotizacion, incEstructura: e.target.checked})} className="w-5 h-5 accent-brand-sage" />
-                    <span>Diseño Estructural / Geotecnia</span>
+                    <span>DiseÃ±o Estructural / Geotecnia</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={cotizacion.incMep} onChange={e => setCotizacion({...cotizacion, incMep: e.target.checked})} className="w-5 h-5 accent-brand-sage" />
-                    <span>Ingenierías MEP (Hidro / Eléctrica)</span>
+                    <span>IngenierÃ­as MEP (Hidro / ElÃ©ctrica)</span>
                   </label>
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" checked={cotizacion.incTopografia} onChange={e => setCotizacion({...cotizacion, incTopografia: e.target.checked})} className="w-5 h-5 accent-brand-sage" />
-                    <span>Levantamiento Topográfico Base</span>
+                    <span>Levantamiento TopogrÃ¡fico Base</span>
                   </label>
                 </div>
               </div>
             </div>
           </div>
 
+              {/* Botones de Acci?n (Movidos aqu? para mejor UX) */}
+              <div className="pt-8 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3 print:hidden">
+                <button 
+                  onClick={() => handleSaveQuote(resultados)}
+                  disabled={savingQuote || !selectedClienteId}
+                  className="flex items-center justify-center gap-2 bg-white border-2 border-brand-dark text-brand-dark px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
+                >
+                  <Save size={18} /> {savingQuote ? 'Guardando...' : 'Guardar Cotizaci?n'}
+                </button>
+                <button 
+                  onClick={handleExportPDF}
+                  className="flex items-center justify-center gap-2 bg-brand-dark text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors text-sm cursor-pointer shadow-lg hover:shadow-xl"
+                >
+                  <Download size={18} /> Exportar a PDF
+                </button>
+              </div>
+
           {/* Dashboards de Salida */}
           <div className="space-y-4">
             
-            {/* Controles de Exportación */}
-            <div className="flex justify-end gap-3 print:hidden">
-              <button 
-                onClick={() => handleSaveQuote(resultados)}
-                disabled={savingQuote || !selectedClienteId}
-                className="flex items-center gap-2 bg-white border-2 border-brand-dark text-brand-dark px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
-              >
-                <Save size={16} /> {savingQuote ? 'Guardando...' : 'Guardar Cotización'}
-              </button>
-              <button 
-                onClick={handleExportPDF}
-                className="flex items-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors text-sm cursor-pointer"
-              >
-                <Download size={16} /> Exportar a PDF
-              </button>
-            </div>
+            
 
-            {/* Contenedor que será convertido a PDF */}
+            {/* Contenedor que serÃ¡ convertido a PDF */}
             <div ref={pdfRef} className="space-y-6 bg-white p-4 sm:p-8 rounded-xl border border-transparent">
               
-              {/* Encabezado PDF (Oculto en pantalla normal si quisiéramos, pero se ve bien integrado) */}
+              {/* Encabezado PDF (Oculto en pantalla normal si quisiÃ©ramos, pero se ve bien integrado) */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 pb-6 mb-6">
                 <div>
                   <h2 className="text-2xl font-black text-brand-dark tracking-tight">SARA Constructora</h2>
@@ -540,13 +534,13 @@ export default function CotizadorPage() {
                 </div>
                 <div className="text-left sm:text-right mt-4 sm:mt-0">
                   <p className="text-sm font-bold text-gray-800">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
-                  <p className="text-sm text-gray-500">Área de Proyecto: {cotizacion.areaConstruccion} m²</p>
+                  <p className="text-sm text-gray-500">Ãrea de Proyecto: {cotizacion.areaConstruccion} mÂ²</p>
                 </div>
               </div>
 
-              {/* Dashboard Consultoría */}
+              {/* Dashboard ConsultorÃ­a */}
               <div className="bg-brand-dark text-white rounded-xl shadow-lg p-6 relative overflow-hidden">
-                <h3 className="text-sm tracking-widest text-brand-sage uppercase font-bold mb-4">Módulo 1: Diseño y Consultoría</h3>
+                <h3 className="text-sm tracking-widest text-brand-sage uppercase font-bold mb-4">MÃ³dulo 1: DiseÃ±o y ConsultorÃ­a</h3>
                 <div className="text-4xl font-extrabold mb-6">
                   ${resultados?.totalHonorarios.toLocaleString('en-US', {minimumFractionDigits: 2})}
                 </div>
@@ -554,25 +548,25 @@ export default function CotizadorPage() {
                 <div className="space-y-2 text-sm text-gray-300">
                   {cotizacion.incTopografia && (
                     <div className="flex justify-between border-b border-white/10 pb-1">
-                      <span>Levantamiento Topográfico Base</span>
+                      <span>Levantamiento TopogrÃ¡fico Base</span>
                       <span>${resultados?.honorariosTop.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                     </div>
                   )}
                   {cotizacion.incArquitectura && (
                     <div className="flex justify-between border-b border-white/10 pb-1">
-                      <span>Diseño Arquitectónico Ejecutivo</span>
+                      <span>DiseÃ±o ArquitectÃ³nico Ejecutivo</span>
                       <span>${resultados?.honorariosArq.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                     </div>
                   )}
                   {cotizacion.incEstructura && (
                     <div className="flex justify-between border-b border-white/10 pb-1">
-                      <span>Diseño Estructural y Geotecnia</span>
+                      <span>DiseÃ±o Estructural y Geotecnia</span>
                       <span>${resultados?.honorariosEst.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                     </div>
                   )}
                   {cotizacion.incMep && (
                     <div className="flex justify-between border-b border-white/10 pb-1">
-                      <span>Ingenierías MEP (Hidrosanitaria / Eléctrica)</span>
+                      <span>IngenierÃ­as MEP (Hidrosanitaria / ElÃ©ctrica)</span>
                       <span>${resultados?.honorariosMep.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
                     </div>
                   )}
@@ -585,8 +579,8 @@ export default function CotizadorPage() {
 
               {/* Dashboard Obra */}
               <div className="bg-white border-2 border-brand-sage/30 rounded-xl shadow-md p-6">
-                <h3 className="text-sm tracking-widest text-gray-500 uppercase font-bold mb-2">Módulo 2: Proyección Paramétrica de Obra</h3>
-                <p className="text-xs text-gray-400 mb-4">Estimador referencial (Orden de magnitud) previo al Análisis de Precios Unitarios (APUs).</p>
+                <h3 className="text-sm tracking-widest text-gray-500 uppercase font-bold mb-2">MÃ³dulo 2: ProyecciÃ³n ParamÃ©trica de Obra</h3>
+                <p className="text-xs text-gray-400 mb-4">Estimador referencial (Orden de magnitud) previo al AnÃ¡lisis de Precios Unitarios (APUs).</p>
                 
                 <div className="text-3xl font-extrabold text-brand-dark mb-4">
                   ${resultados?.costoObra.toLocaleString('en-US', {minimumFractionDigits: 2})}
@@ -595,10 +589,10 @@ export default function CotizadorPage() {
                 <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
                   <div className="flex justify-between border-b border-gray-200 pb-1">
                     <span className="text-gray-500">Costo Base Referencial:</span>
-                    <span className="font-medium">${params?.costo_base_construccion_m2} / m²</span>
+                    <span className="font-medium">${params?.costo_base_construccion_m2} / mÂ²</span>
                   </div>
                   <div className="flex justify-between border-b border-gray-200 pb-1">
-                    <span className="text-gray-500">Ajuste por Topografía ({cotizacion.pendiente}):</span>
+                    <span className="text-gray-500">Ajuste por TopografÃ­a ({cotizacion.pendiente}):</span>
                     <span className="font-medium">x {cotizacion.pendiente === 'plana' ? params?.factor_pendiente_plana : cotizacion.pendiente === 'media' ? params?.factor_pendiente_media : params?.factor_pendiente_fuerte}</span>
                   </div>
                   <div className="flex justify-between">
@@ -610,11 +604,11 @@ export default function CotizadorPage() {
                       <span className="font-medium">x {cotizacion.suelo === 'normal' ? (params?.factor_suelo_normal || 1) : cotizacion.suelo === 'blando' ? (params?.factor_suelo_blando || 1.15) : (params?.factor_suelo_rocoso || 1.05)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Log?stica de Acceso ({cotizacion.accesibilidad}):</span>
+                      <span className="text-gray-500">Logística de Acceso ({cotizacion.accesibilidad}):</span>
                       <span className="font-medium">x {cotizacion.accesibilidad === 'urbana' ? (params?.factor_acceso_urbano || 1) : (params?.factor_acceso_rural || 1.08)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Arquitectura de Niveles ({cotizacion.pisos} pisos):</span>
+                      <span className="text-gray-500">Niveles/Pisos ({cotizacion.pisos} pisos):</span>
                       <span className="font-medium">x {cotizacion.pisos === '1' ? (params?.factor_pisos_1 || 1.05) : cotizacion.pisos === '2' ? (params?.factor_pisos_2 || 1) : (params?.factor_pisos_3 || 1.02)}</span>
                     </div>
                     <div className="flex justify-between">
@@ -627,8 +621,8 @@ export default function CotizadorPage() {
               
               {/* Footer PDF */}
               <div className="pt-8 text-center text-xs text-gray-400">
-                <p>Este documento es una proyección estimativa generada automáticamente y no constituye un contrato legal ni una oferta vinculante final.</p>
-                <p>Los valores de obra están sujetos a variaciones del mercado y estudios definitivos.</p>
+                <p>Este documento es una proyecciÃ³n estimativa generada automÃ¡ticamente y no constituye un contrato legal ni una oferta vinculante final.</p>
+                <p>Los valores de obra estÃ¡n sujetos a variaciones del mercado y estudios definitivos.</p>
               </div>
 
             </div>
@@ -637,7 +631,7 @@ export default function CotizadorPage() {
         </div>
       )}
 
-      {/* PESTAÑA HISTORIAL */}
+      {/* PESTAÃ‘A HISTORIAL */}
       {activeTab === 'historial' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-xl font-bold text-brand-dark mb-6">Historial de Cotizaciones Emitidas</h2>
@@ -652,8 +646,8 @@ export default function CotizadorPage() {
                     <th className="px-4 py-3 rounded-tl-lg">Fecha</th>
                     <th className="px-4 py-3">Cliente</th>
                     <th className="px-4 py-3">Proyecto</th>
-                    <th className="px-4 py-3 text-right">Área</th>
-                    <th className="px-4 py-3 text-right">Consultoría</th>
+                    <th className="px-4 py-3 text-right">Ãrea</th>
+                    <th className="px-4 py-3 text-right">ConsultorÃ­a</th>
                     <th className="px-4 py-3 text-right rounded-tr-lg">Obra (Aprox)</th>
                   </tr>
                 </thead>
@@ -663,7 +657,7 @@ export default function CotizadorPage() {
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500">{new Date(c.created_at).toLocaleDateString('es-ES')}</td>
                       <td className="px-4 py-3 font-medium text-brand-dark">{c.clientes?.nombre} {c.clientes?.apellido}</td>
                       <td className="px-4 py-3 text-gray-600">{c.nombre_proyecto || '-'}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{c.area_construccion} m²</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{c.area_construccion} mÂ²</td>
                       <td className="px-4 py-3 text-right font-bold text-brand-sage">${Number(c.total_consultoria).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                       <td className="px-4 py-3 text-right font-bold text-gray-600">${Number(c.total_obra).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                     </tr>
@@ -697,17 +691,17 @@ export default function CotizadorPage() {
                 </div>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico *</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Correo ElectrÃ³nico *</label>
                 <input required type="email" placeholder="carlos@empresa.com" value={clientFormData.email} onChange={e => setClientFormData({...clientFormData, email: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">TelÃ©fono / WhatsApp</label>
                 <input type="text" placeholder="Ej. 098 765 4321" value={clientFormData.telefono} onChange={e => setClientFormData({...clientFormData, telefono: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
               </div>
               <div className="mb-6">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal *</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">ContraseÃ±a Temporal *</label>
                 <input required type="text" placeholder="Ej. Sara2026" value={clientFormData.password} onChange={e => setClientFormData({...clientFormData, password: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
-                <p className="text-xs text-gray-500 mt-1">Comparte esta clave con el cliente. Podrá cambiarla desde su panel.</p>
+                <p className="text-xs text-gray-500 mt-1">Comparte esta clave con el cliente. PodrÃ¡ cambiarla desde su panel.</p>
               </div>
               
               <div className="flex justify-end gap-3 pt-4 border-t">
@@ -725,4 +719,5 @@ export default function CotizadorPage() {
     </div>
   )
 }
+
 
