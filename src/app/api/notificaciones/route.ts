@@ -2,8 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { Resend } from "resend"
 
-// Instanciamos Resend con la variable de entorno
-const resend = new Resend(process.env.RESEND_API_KEY)
+// La instancia de Resend se crea dentro de la función para evitar errores en el build de Vercel
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +40,9 @@ export async function POST(request: Request) {
 
     // 2. Notificación Email Real (vía Resend)
     if (cliente.email) {
+      // Instanciamos aquí para que lea la variable de entorno correctamente
+      const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy')
+      
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
           <div style="background-color: #2F3630; padding: 20px; text-align: center;">
