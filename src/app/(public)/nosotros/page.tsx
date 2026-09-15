@@ -62,31 +62,39 @@ export default async function NosotrosPage() {
             <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Lo que nos guía</h2>
             <h3 className="text-4xl md:text-5xl font-extrabold text-brand-dark">PRINCIPIOS</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 border border-gray-100 hover:shadow-xl transition-shadow text-center">
-              <div className="w-16 h-16 mx-auto bg-brand-dark text-brand-sage rounded-full flex items-center justify-center mb-6">
-                <ShieldCheck size={32} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0">
+            {/* Tarjeta 1 */}
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-lg border border-gray-50 hover:shadow-2xl transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-transform">
+                <ShieldCheck size={40} />
               </div>
-              <h4 className="font-bold text-xl text-brand-dark mb-4">SEGURIDAD TÉCNICA</h4>
-              <p className="text-gray-500 font-light">
+              <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">SEGURIDAD TÉCNICA</h4>
+              <div className="w-10 h-0.5 bg-brand-dark/20 rounded-full mb-6"></div>
+              <p className="text-gray-500 font-light text-sm leading-relaxed">
                 Cada proyecto se desarrolla sobre criterios de ingeniería, planificación y cumplimiento técnico. Construimos pensando en la seguridad de las personas, la estabilidad de las estructuras y la durabilidad de cada obra.
               </p>
             </div>
-            <div className="bg-white p-8 border border-gray-100 hover:shadow-xl transition-shadow text-center">
-              <div className="w-16 h-16 mx-auto bg-brand-dark text-brand-sage rounded-full flex items-center justify-center mb-6">
-                <Award size={32} />
+            
+            {/* Tarjeta 2 */}
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-lg border border-gray-50 hover:shadow-2xl transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-transform">
+                <Award size={40} />
               </div>
-              <h4 className="font-bold text-xl text-brand-dark mb-4">CALIDAD EN CADA DETALLE</h4>
-              <p className="text-gray-500 font-light">
+              <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">CALIDAD EN CADA DETALLE</h4>
+              <div className="w-10 h-0.5 bg-brand-dark/20 rounded-full mb-6"></div>
+              <p className="text-gray-500 font-light text-sm leading-relaxed">
                 Cuidamos cada etapa, desde la concepción y el diseño hasta los procesos constructivos y acabados. La calidad no es una opción: es nuestro estándar de trabajo.
               </p>
             </div>
-            <div className="bg-white p-8 border border-gray-100 hover:shadow-xl transition-shadow text-center">
-              <div className="w-16 h-16 mx-auto bg-brand-dark text-brand-sage rounded-full flex items-center justify-center mb-6">
-                <Users size={32} />
+
+            {/* Tarjeta 3 */}
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-lg border border-gray-50 hover:shadow-2xl transition-all duration-300 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-6 shadow-md hover:scale-105 transition-transform">
+                <Users size={40} />
               </div>
-              <h4 className="font-bold text-xl text-brand-dark mb-4">COMPROMISO CON EL CLIENTE</h4>
-              <p className="text-gray-500 font-light">
+              <h4 className="font-bold text-xl text-brand-sage mb-2 px-2 leading-tight">COMPROMISO CON EL CLIENTE</h4>
+              <div className="w-10 h-0.5 bg-brand-dark/20 rounded-full mb-6"></div>
+              <p className="text-gray-500 font-light text-sm leading-relaxed">
                 Escuchamos, asesoramos y acompañamos al cliente durante todo el proyecto. Sus objetivos, su inversión y su confianza son también nuestra responsabilidad.
               </p>
             </div>
