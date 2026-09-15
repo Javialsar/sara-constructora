@@ -42,7 +42,11 @@ export default function AdminProyectos() {
       incTopografia: true,
       totalObra: 0,
       totalHonorarios: 0,
-      desgloseHonorarios: {}
+      honorariosArq: 0,
+      honorariosEst: 0,
+      honorariosMep: 0,
+      honorariosTop: 0,
+      desgloseHonorarios: {} as Record<string, number>
     }
   })
 
@@ -86,7 +90,11 @@ export default function AdminProyectos() {
     incTopografia: true,
     totalObra: 0,
     totalHonorarios: 0,
-    desgloseHonorarios: {}
+    honorariosArq: 0,
+    honorariosEst: 0,
+    honorariosMep: 0,
+    honorariosTop: 0,
+    desgloseHonorarios: {} as Record<string, number>
   }
 
   const openNewModal = () => {
