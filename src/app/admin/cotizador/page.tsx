@@ -418,9 +418,9 @@ export default function CotizadorPage() {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Topograf?a</label>
                     <select value={cotizacion.pendiente} onChange={e => setCotizacion({...cotizacion, pendiente: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-gray-50">
-                      <option value="plana">Plana (< 5%)</option>
+                      <option value="plana">Plana (&lt; 5%)</option>
                       <option value="media">Media (5% - 20%)</option>
-                      <option value="fuerte">Fuerte (> 20%)</option>
+                      <option value="fuerte">Fuerte (&gt; 20%)</option>
                     </select>
                   </div>
                   <div>
@@ -719,5 +719,6 @@ export default function CotizadorPage() {
     </div>
   )
 }
+
 
 
