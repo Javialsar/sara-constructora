@@ -16,7 +16,10 @@ export default function CotizadorPage() {
   const [mensajeParametros, setMensajeParametros] = useState("")
 
   // Estado para la cotización actual
+  // Estado para la cotización actual
   const [cotizacion, setCotizacion] = useState({
+    nombreCliente: '',
+    nombreProyecto: '',
     areaConstruccion: '100',
     pendiente: 'plana', // plana, media, fuerte
     acabados: 'estandar', // economico, estandar, premium
@@ -232,6 +235,30 @@ export default function CotizadorPage() {
             <h2 className="text-xl font-bold text-brand-dark mb-6 border-b pb-4">Inputs del Proyecto</h2>
             
             <div className="space-y-6">
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Cliente (Opcional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: Sr. Juan Pérez"
+                    value={cotizacion.nombreCliente} 
+                    onChange={e => setCotizacion({...cotizacion, nombreCliente: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Nombre del Proyecto (Opcional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: Residencia Familiar"
+                    value={cotizacion.nombreProyecto} 
+                    onChange={e => setCotizacion({...cotizacion, nombreProyecto: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (m²)</label>
                 <input 
@@ -316,6 +343,17 @@ export default function CotizadorPage() {
                 <div>
                   <h2 className="text-2xl font-black text-brand-dark tracking-tight">SARA Constructora</h2>
                   <p className="text-sm text-brand-sage font-bold uppercase tracking-widest mt-1">Propuesta de Servicios</p>
+                  
+                  {(cotizacion.nombreCliente || cotizacion.nombreProyecto) && (
+                    <div className="mt-4 space-y-1">
+                      {cotizacion.nombreCliente && (
+                        <p className="text-sm font-bold text-gray-800">Cliente: <span className="font-normal text-gray-600">{cotizacion.nombreCliente}</span></p>
+                      )}
+                      {cotizacion.nombreProyecto && (
+                        <p className="text-sm font-bold text-gray-800">Proyecto: <span className="font-normal text-gray-600">{cotizacion.nombreProyecto}</span></p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="text-left sm:text-right mt-4 sm:mt-0">
                   <p className="text-sm font-bold text-gray-800">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
