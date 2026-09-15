@@ -1,7 +1,9 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Settings, Calculator, Save, FileText, CheckCircle2 } from "lucide-react"
+import { Settings, Calculator, Save, FileText, CheckCircle2, Download } from "lucide-react"
+import html2canvas from "html2canvas"
+import jsPDF from "jspdf"
 
 export default function CotizadorPage() {
   const supabase = createClient()
@@ -23,6 +25,40 @@ export default function CotizadorPage() {
     incMep: true,
     incTopografia: true,
   })
+
+  // Exportación a PDF
+  const pdfRef = useRef<HTMLDivElement>(null)
+  const [exportingPDF, setExportingPDF] = useState(false)
+
+  const handleExportPDF = async () => {
+    if (!pdfRef.current) return
+    setExportingPDF(true)
+    
+    setTimeout(async () => {
+      try {
+        const canvas = await html2canvas(pdfRef.current!, { 
+          scale: 2, 
+          useCORS: true,
+          backgroundColor: '#ffffff'
+        })
+        const imgData = canvas.toDataURL('image/png')
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        })
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth()
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+        pdf.save(`Cotizacion_SARA_${new Date().toISOString().split('T')[0]}.pdf`)
+      } catch (error) {
+        console.error("Error al exportar PDF:", error)
+      }
+      setExportingPDF(false)
+    }, 100)
+  }
 
   // Cargar parámetros al iniciar
   useEffect(() => {
@@ -281,69 +317,106 @@ export default function CotizadorPage() {
           </div>
 
           {/* Dashboards de Salida */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             
-            {/* Dashboard Consultoría */}
-            <div className="bg-brand-dark text-white rounded-xl shadow-lg p-6 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-sage/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3" />
-              <h3 className="text-sm tracking-widest text-brand-sage uppercase font-bold mb-4">Propuesta de Consultoría</h3>
-              <div className="text-4xl font-extrabold mb-6">
-                ${resultados?.totalHonorarios.toLocaleString('en-US', {minimumFractionDigits: 2})}
-              </div>
-              
-              <div className="space-y-2 text-sm text-gray-300">
-                {cotizacion.incTopografia && (
-                  <div className="flex justify-between border-b border-white/10 pb-1">
-                    <span>Topografía Base</span>
-                    <span>${resultados?.honorariosTop.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                {cotizacion.incArquitectura && (
-                  <div className="flex justify-between border-b border-white/10 pb-1">
-                    <span>Arquitectura</span>
-                    <span>${resultados?.honorariosArq.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                {cotizacion.incEstructura && (
-                  <div className="flex justify-between border-b border-white/10 pb-1">
-                    <span>Estructura</span>
-                    <span>${resultados?.honorariosEst.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-                  </div>
-                )}
-                {cotizacion.incMep && (
-                  <div className="flex justify-between border-b border-white/10 pb-1">
-                    <span>MEP</span>
-                    <span>${resultados?.honorariosMep.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-                  </div>
-                )}
-              </div>
+            {/* Controles de Exportación */}
+            <div className="flex justify-end">
+              <button 
+                onClick={handleExportPDF}
+                disabled={exportingPDF}
+                className="flex items-center gap-2 bg-brand-dark text-white px-4 py-2 rounded-lg font-bold hover:bg-brand-sage hover:text-brand-dark transition-colors text-sm"
+              >
+                <Download size={16} /> {exportingPDF ? 'Generando PDF...' : 'Exportar a PDF'}
+              </button>
             </div>
 
-            {/* Dashboard Obra */}
-            <div className="bg-white border-2 border-brand-sage/30 rounded-xl shadow-md p-6">
-              <h3 className="text-sm tracking-widest text-gray-500 uppercase font-bold mb-2">Proyección Paramétrica de Obra</h3>
-              <p className="text-xs text-gray-400 mb-4">Estimador referencial para el cliente antes de Análisis de Precios Unitarios (APUs).</p>
+            {/* Contenedor que será convertido a PDF */}
+            <div ref={pdfRef} className="space-y-6 bg-white p-4 sm:p-8 rounded-xl border border-transparent">
               
-              <div className="text-3xl font-extrabold text-brand-dark mb-4">
-                ${resultados?.costoObra.toLocaleString('en-US', {minimumFractionDigits: 2})}
-              </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Costo Base:</span>
-                  <span className="font-medium">${params?.costo_base_construccion_m2} / m²</span>
+              {/* Encabezado PDF (Oculto en pantalla normal si quisiéramos, pero se ve bien integrado) */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 pb-6 mb-6">
+                <div>
+                  <h2 className="text-2xl font-black text-brand-dark tracking-tight">SARA Constructora</h2>
+                  <p className="text-sm text-brand-sage font-bold uppercase tracking-widest mt-1">Propuesta de Servicios</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Ajuste Topografía ({cotizacion.pendiente}):</span>
-                  <span className="font-medium">x {cotizacion.pendiente === 'plana' ? params?.factor_pendiente_plana : cotizacion.pendiente === 'media' ? params?.factor_pendiente_media : params?.factor_pendiente_fuerte}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Ajuste Acabados ({cotizacion.acabados}):</span>
-                  <span className="font-medium">x {cotizacion.acabados === 'economico' ? params?.factor_acabados_economico : cotizacion.acabados === 'estandar' ? params?.factor_acabados_estandar : params?.factor_acabados_premium}</span>
+                <div className="text-left sm:text-right mt-4 sm:mt-0">
+                  <p className="text-sm font-bold text-gray-800">Fecha: {new Date().toLocaleDateString('es-ES')}</p>
+                  <p className="text-sm text-gray-500">Área de Proyecto: {cotizacion.areaConstruccion} m²</p>
                 </div>
               </div>
-            </div>
 
+              {/* Dashboard Consultoría */}
+              <div className="bg-brand-dark text-white rounded-xl shadow-lg p-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-sage/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3" />
+                <h3 className="text-sm tracking-widest text-brand-sage uppercase font-bold mb-4">Módulo 1: Diseño y Consultoría</h3>
+                <div className="text-4xl font-extrabold mb-6">
+                  ${resultados?.totalHonorarios.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                </div>
+                
+                <div className="space-y-2 text-sm text-gray-300">
+                  {cotizacion.incTopografia && (
+                    <div className="flex justify-between border-b border-white/10 pb-1">
+                      <span>Levantamiento Topográfico Base</span>
+                      <span>${resultados?.honorariosTop.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                    </div>
+                  )}
+                  {cotizacion.incArquitectura && (
+                    <div className="flex justify-between border-b border-white/10 pb-1">
+                      <span>Diseño Arquitectónico Ejecutivo</span>
+                      <span>${resultados?.honorariosArq.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                    </div>
+                  )}
+                  {cotizacion.incEstructura && (
+                    <div className="flex justify-between border-b border-white/10 pb-1">
+                      <span>Diseño Estructural y Geotecnia</span>
+                      <span>${resultados?.honorariosEst.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                    </div>
+                  )}
+                  {cotizacion.incMep && (
+                    <div className="flex justify-between border-b border-white/10 pb-1">
+                      <span>Ingenierías MEP (Hidrosanitaria / Eléctrica)</span>
+                      <span>${resultados?.honorariosMep.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 text-brand-sage font-bold">
+                    <span>IVA Estimado ({(params?.porcentaje_iva_base || 15)}%):</span>
+                    <span>${((resultados?.totalHonorarios || 0) * ((params?.porcentaje_iva_base || 15) / 100)).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard Obra */}
+              <div className="bg-white border-2 border-brand-sage/30 rounded-xl shadow-md p-6">
+                <h3 className="text-sm tracking-widest text-gray-500 uppercase font-bold mb-2">Módulo 2: Proyección Paramétrica de Obra</h3>
+                <p className="text-xs text-gray-400 mb-4">Estimador referencial (Orden de magnitud) previo al Análisis de Precios Unitarios (APUs).</p>
+                
+                <div className="text-3xl font-extrabold text-brand-dark mb-4">
+                  ${resultados?.costoObra.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2">
+                  <div className="flex justify-between border-b border-gray-200 pb-1">
+                    <span className="text-gray-500">Costo Base Referencial:</span>
+                    <span className="font-medium">${params?.costo_base_construccion_m2} / m²</span>
+                  </div>
+                  <div className="flex justify-between border-b border-gray-200 pb-1">
+                    <span className="text-gray-500">Ajuste por Topografía ({cotizacion.pendiente}):</span>
+                    <span className="font-medium">x {cotizacion.pendiente === 'plana' ? params?.factor_pendiente_plana : cotizacion.pendiente === 'media' ? params?.factor_pendiente_media : params?.factor_pendiente_fuerte}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Ajuste por Calidad de Acabados ({cotizacion.acabados}):</span>
+                    <span className="font-medium">x {cotizacion.acabados === 'economico' ? params?.factor_acabados_economico : cotizacion.acabados === 'estandar' ? params?.factor_acabados_estandar : params?.factor_acabados_premium}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Footer PDF */}
+              <div className="pt-8 text-center text-xs text-gray-400">
+                <p>Este documento es una proyección estimativa generada automáticamente y no constituye un contrato legal ni una oferta vinculante final.</p>
+                <p>Los valores de obra están sujetos a variaciones del mercado y estudios definitivos.</p>
+              </div>
+
+            </div>
           </div>
 
         </div>
