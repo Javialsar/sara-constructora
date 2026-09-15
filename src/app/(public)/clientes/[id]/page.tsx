@@ -9,7 +9,7 @@ import MapWrapper from "./MapWrapper"
 
 export default async function ClienteDetallePage({ params }: { params: { id: string } }) {
   const resolvedParams = await params;
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
