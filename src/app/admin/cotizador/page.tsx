@@ -34,12 +34,28 @@ export default function CotizadorPage() {
     nombreCliente: '',
     nombreProyecto: '',
     areaConstruccion: '100',
-    pendiente: 'plana', // plana, media, fuerte
-    acabados: 'estandar', // economico, estandar, premium
+    // FASE 1: Terreno y Estructura
+    pendiente: 'plana', 
     suelo: 'normal',
     accesibilidad: 'urbana',
     pisos: '2',
     estructura: 'hormigon',
+    // FASE 2: Arquitectura y Distribucion
+    acabados: 'estandar', 
+    cuartosMaster: 1,
+    cuartosNormales: 2,
+    banosCompletos: 2,
+    mediosBanos: 1,
+    lavanderia: true,
+    cocina: 'abierta', // cerrada, abierta
+    // FASE 3: Exteriores y Extras
+    cerramientoMl: 0,
+    piscina: false,
+    cisterna: true,
+    garaje: 'descubierto', // ninguno, descubierto, cubierto
+    climatizacion: 'splits', // ninguna, splits, central
+    
+    // Módulo 1 (Consultoría)
     incArquitectura: true,
     incEstructura: true,
     incMep: true,
@@ -191,8 +207,30 @@ export default function CotizadorPage() {
     let fEstructura = params.factor_estructura_hormigon || 1
     if (cotizacion.estructura === 'metalica') fEstructura = params.factor_estructura_metalica || 1.15
 
-    // M?dulo 2: Costo de Obra Param?trico
-    const costoObra = areaValue * (params.costo_base_construccion_m2 || 450) * fPendiente * fAcabados * fSuelo * fAcceso * fPisos * fEstructura
+    // Costo Base Paramétrico (m2 * factores)
+    const costoObraBase = areaValue * (params.costo_base_construccion_m2 || 450) * fPendiente * fAcabados * fSuelo * fAcceso * fPisos * fEstructura
+
+    // Costos Aditivos (Ensambles)
+    let costoExtras = 0;
+    
+    // FASE 2: Arquitectura
+    costoExtras += (Number(cotizacion.cuartosMaster) || 0) * (params.costo_extra_master || 800);
+    costoExtras += (Number(cotizacion.banosCompletos) || 0) * (params.costo_extra_bano_completo || 1500);
+    costoExtras += (Number(cotizacion.mediosBanos) || 0) * (params.costo_extra_medio_bano || 800);
+    if (cotizacion.lavanderia) costoExtras += (params.costo_extra_lavanderia || 600);
+    if (cotizacion.cocina === 'abierta') costoExtras += (params.costo_extra_cocina_isla || 1500);
+
+    // FASE 3: Exteriores
+    costoExtras += (Number(cotizacion.cerramientoMl) || 0) * (params.costo_ml_cerramiento || 120);
+    if (cotizacion.piscina) costoExtras += (params.costo_extra_piscina || 12000);
+    if (cotizacion.cisterna) costoExtras += (params.costo_extra_cisterna || 2500);
+    if (cotizacion.garaje === 'cubierto') costoExtras += (params.costo_extra_garaje_cubierto || 3500);
+    if (cotizacion.garaje === 'descubierto') costoExtras += (params.costo_extra_garaje_descubierto || 800);
+    if (cotizacion.climatizacion === 'splits') costoExtras += (params.costo_extra_splits || 1200);
+    if (cotizacion.climatizacion === 'central') costoExtras += (params.costo_extra_aire_central || 4500);
+
+    const costoObra = costoObraBase + costoExtras;
+    const desgloseObra = { base: costoObraBase, extras: costoExtras };
 
     // MÃ³dulo 1: Honorarios (DiseÃ±o y ConsultorÃ­a)
     let honorariosArq = cotizacion.incArquitectura ? areaValue * params.tarifa_diseno_arq_m2 : 0
@@ -204,6 +242,7 @@ export default function CotizadorPage() {
 
     return {
       costoObra,
+      desgloseObra,
       honorariosArq,
       honorariosEst,
       honorariosMep,
@@ -616,6 +655,73 @@ export default function CotizadorPage() {
 
                 </div>
               </div>
+<div className="bg-gray-50 p-4 rounded-lg text-sm space-y-2 mt-4">
+                    <div className="font-bold text-gray-700 border-b pb-2 mb-2">Desglose de Ensambles y Extras</div>
+                    {cotizacion.cuartosMaster > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{cotizacion.cuartosMaster} Dormitorios Master</span>
+                        <span className="font-medium text-brand-sage">+ ${(cotizacion.cuartosMaster * (params?.costo_extra_master || 800)).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.banosCompletos > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{cotizacion.banosCompletos} Baños Completos</span>
+                        <span className="font-medium text-brand-sage">+ ${(cotizacion.banosCompletos * (params?.costo_extra_bano_completo || 1500)).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.mediosBanos > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{cotizacion.mediosBanos} Medios Baños</span>
+                        <span className="font-medium text-brand-sage">+ ${(cotizacion.mediosBanos * (params?.costo_extra_medio_bano || 800)).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.lavanderia && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Área de Lavandería</span>
+                        <span className="font-medium text-brand-sage">+ ${(params?.costo_extra_lavanderia || 600).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.cocina === 'abierta' && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Cocina Abierta con Isla</span>
+                        <span className="font-medium text-brand-sage">+ ${(params?.costo_extra_cocina_isla || 1500).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.cerramientoMl > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">{cotizacion.cerramientoMl}ml Cerramiento Perimetral</span>
+                        <span className="font-medium text-brand-sage">+ ${(cotizacion.cerramientoMl * (params?.costo_ml_cerramiento || 120)).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.cisterna && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Cisterna Subterránea</span>
+                        <span className="font-medium text-brand-sage">+ ${(params?.costo_extra_cisterna || 2500).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.piscina && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Construcción de Piscina</span>
+                        <span className="font-medium text-brand-sage">+ ${(params?.costo_extra_piscina || 12000).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.garaje !== 'ninguno' && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Garaje ({cotizacion.garaje})</span>
+                        <span className="font-medium text-brand-sage">+ ${(cotizacion.garaje === 'cubierto' ? (params?.costo_extra_garaje_cubierto || 3500) : (params?.costo_extra_garaje_descubierto || 800)).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    {cotizacion.climatizacion !== 'ninguna' && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Climatización ({cotizacion.climatizacion})</span>
+                        <span className="font-medium text-brand-sage">+ ${(cotizacion.climatizacion === 'central' ? (params?.costo_extra_aire_central || 4500) : (params?.costo_extra_splits || 1200)).toLocaleString('en-US')}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-gray-200 pt-2 mt-2 font-bold">
+                      <span className="text-gray-800">Total Extras:</span>
+                      <span className="text-brand-dark">${(resultados?.desgloseObra?.extras || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                    </div>
+                  </div>
               
               {/* Footer PDF */}
               <div className="pt-8 text-center text-xs text-gray-400">
