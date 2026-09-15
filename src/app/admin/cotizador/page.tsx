@@ -156,6 +156,13 @@ export default function CotizadorPage() {
                   <input type="number" step="0.01" value={params?.costo_base_construccion_m2 || 0} onChange={e => setParams({...params, costo_base_construccion_m2: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
                   <p className="text-xs text-gray-400 mt-1">Este valor base se multiplicará por los factores.</p>
                 </div>
+
+                <h3 className="font-bold border-b pb-2 mt-8">Impuestos y Regulaciones</h3>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Porcentaje IVA (%)</label>
+                  <input type="number" step="0.1" value={params?.porcentaje_iva_base || 15} onChange={e => setParams({...params, porcentaje_iva_base: parseFloat(e.target.value)})} className="w-full border rounded px-3 py-2 outline-none focus:border-brand-sage" />
+                  <p className="text-xs text-gray-400 mt-1">Este IVA se aplicará por defecto si se requiere factura.</p>
+                </div>
               </div>
 
               {/* Factores Multiplicadores */}

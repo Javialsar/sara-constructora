@@ -50,7 +50,7 @@ export default function AdminProyectos() {
       subtotalHonorarios: 0,
       valorIva: 0,
       aplicaIva: false,
-      porcentajeIva: 15,
+      porcentajeIva: cotizadorParams?.porcentaje_iva_base ?? 15,
       desgloseHonorarios: {} as Record<string, number>
     }
   })
@@ -187,7 +187,9 @@ export default function AdminProyectos() {
     let honorariosTop = result.incTopografia ? params.tarifa_topografia_base : 0
 
     const subtotalHonorarios = honorariosArq + honorariosEst + honorariosMep + honorariosTop;
-    const valorIva = result.aplicaIva ? (subtotalHonorarios * (result.porcentajeIva / 100)) : 0;
+    const porcentajeIvaBase = params.porcentaje_iva_base ?? 15;
+    const porcentajeIvaFinal = result.porcentajeIva ?? porcentajeIvaBase;
+    const valorIva = result.aplicaIva ? (subtotalHonorarios * (porcentajeIvaFinal / 100)) : 0;
 
     result.totalObra = costoObra;
     result.honorariosArq = honorariosArq;
@@ -195,6 +197,7 @@ export default function AdminProyectos() {
     result.honorariosMep = honorariosMep;
     result.honorariosTop = honorariosTop;
     result.subtotalHonorarios = subtotalHonorarios;
+    result.porcentajeIva = porcentajeIvaFinal;
     result.valorIva = valorIva;
     result.totalHonorarios = subtotalHonorarios + valorIva;
 
