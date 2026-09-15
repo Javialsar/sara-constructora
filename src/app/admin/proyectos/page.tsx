@@ -15,6 +15,7 @@ export default function AdminProyectos() {
   const [uploadingFile, setUploadingFile] = useState(false)
   const [activeModalTab, setActiveModalTab] = useState<'generales'|'cotizacion'>('generales')
   const [cotizadorParams, setCotizadorParams] = useState<any>(null)
+  const [pendingCoverIndex, setPendingCoverIndex] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -108,6 +109,7 @@ export default function AdminProyectos() {
   const openNewModal = () => {
     setEditId(null)
     setFiles([])
+    setPendingCoverIndex(null)
     setActiveModalTab('generales')
     setFormData({ 
       nombre: "", ubicacion: "", descripcion: "", estado: "en_diseno", 
@@ -121,6 +123,7 @@ export default function AdminProyectos() {
   const handleEdit = (p: any) => {
     setEditId(p.id)
     setFiles([])
+    setPendingCoverIndex(null)
     setActiveModalTab('generales')
     
     // Parse jsonb or use default
@@ -210,6 +213,8 @@ export default function AdminProyectos() {
     if (files.length > 0) {
       setUploadingFile(true)
       
+      const uploadedUrls: string[] = [];
+
       for (const f of files) {
         const fileExt = f.name.split('.').pop()
         const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`
@@ -221,15 +226,31 @@ export default function AdminProyectos() {
 
         if (!uploadError) {
           const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath)
-          const uploadedUrl = publicUrlData.publicUrl
-          
-          if (!finalUrl) {
-            finalUrl = uploadedUrl
-          } else {
-            finalGaleria.push(uploadedUrl)
-          }
+          uploadedUrls.push(publicUrlData.publicUrl)
         }
       }
+
+      if (pendingCoverIndex !== null && pendingCoverIndex < uploadedUrls.length) {
+        if (finalUrl) {
+          finalGaleria.push(finalUrl); // la anterior portada pasa a la galería
+        }
+        finalUrl = uploadedUrls[pendingCoverIndex];
+        
+        uploadedUrls.forEach((url, i) => {
+          if (i !== pendingCoverIndex) {
+            finalGaleria.push(url);
+          }
+        });
+      } else {
+        uploadedUrls.forEach(url => {
+          if (!finalUrl) {
+            finalUrl = url;
+          } else {
+            finalGaleria.push(url);
+          }
+        });
+      }
+      
       setUploadingFile(false)
     }
 
@@ -269,6 +290,7 @@ export default function AdminProyectos() {
   }
 
   const setAsCover = (url: string) => {
+    setPendingCoverIndex(null);
     const newGaleria = formData.galeria.filter(u => u !== url)
     if (formData.imagen_url) {
       newGaleria.push(formData.imagen_url)
@@ -300,7 +322,12 @@ export default function AdminProyectos() {
   }
 
   const removePendingFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index))
+    setFiles(files.filter((_, i) => i !== index));
+    if (pendingCoverIndex === index) {
+      setPendingCoverIndex(null);
+    } else if (pendingCoverIndex !== null && pendingCoverIndex > index) {
+      setPendingCoverIndex(pendingCoverIndex - 1);
+    }
   }
 
   const getStatusColor = (estado: string) => {
@@ -523,55 +550,80 @@ export default function AdminProyectos() {
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
                       {/* Mostrar imágenes ya subidas */}
-                      {[...(formData.imagen_url ? [formData.imagen_url] : []), ...formData.galeria].map((url, idx) => (
-                        <div key={`${url}-${idx}`} className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${url === formData.imagen_url && idx === 0 ? 'border-brand-sage shadow-md' : 'border-gray-200'}`}>
-                          <img src={url} alt="Proyecto" className="w-full h-full object-cover" />
-                          
-                          {/* Botón de Estrella */}
-                          <button 
-                            type="button"
-                            onClick={() => setAsCover(url)}
-                            title={url === formData.imagen_url && idx === 0 ? "Portada actual" : "Elegir como portada"}
-                            className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors ${url === formData.imagen_url && idx === 0 ? 'bg-brand-sage text-brand-dark' : 'bg-black/50 text-white hover:bg-black/70'}`}
-                          >
-                            <Star size={14} className={url === formData.imagen_url && idx === 0 ? "fill-brand-dark" : ""} />
-                          </button>
+                      {[...(formData.imagen_url ? [formData.imagen_url] : []), ...formData.galeria].map((url, idx) => {
+                        const isCover = url === formData.imagen_url && idx === 0 && pendingCoverIndex === null;
+                        return (
+                          <div key={`${url}-${idx}`} className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${isCover ? 'border-brand-sage shadow-md' : 'border-gray-200'}`}>
+                            <img src={url} alt="Proyecto" className="w-full h-full object-cover" />
+                            
+                            {/* Botón de Estrella */}
+                            <button 
+                              type="button"
+                              onClick={() => setAsCover(url)}
+                              title={isCover ? "Portada actual" : "Elegir como portada"}
+                              className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors ${isCover ? 'bg-brand-sage text-brand-dark' : 'bg-black/50 text-white hover:bg-black/70'}`}
+                            >
+                              <Star size={14} className={isCover ? "fill-brand-dark" : ""} />
+                            </button>
 
-                          {/* Botón de Eliminar */}
-                          <button 
-                            type="button"
-                            onClick={() => removeExistingUrl(idx)}
-                            title="Eliminar foto"
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                          
-                          {url === formData.imagen_url && idx === 0 && (
-                            <div className="absolute bottom-0 inset-x-0 bg-brand-sage text-brand-dark text-[10px] font-bold text-center py-1 uppercase tracking-wider">
-                              Portada
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                            {/* Botón de Eliminar */}
+                            <button 
+                              type="button"
+                              onClick={() => removeExistingUrl(idx)}
+                              title="Eliminar foto"
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            
+                            {isCover && (
+                              <div className="absolute bottom-0 inset-x-0 bg-brand-sage text-brand-dark text-[10px] font-bold text-center py-1 uppercase tracking-wider">
+                                Portada
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
 
                       {/* Mostrar previsualización de archivos nuevos (pendientes de subir) */}
-                      {files.map((f, idx) => (
-                        <div key={idx} className="relative aspect-[4/3] rounded-lg overflow-hidden border-2 border-dashed border-gray-300 opacity-70 hover:opacity-100 transition-opacity">
-                          <img src={URL.createObjectURL(f)} alt="Nuevo" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/20" />
-                          <span className="absolute bottom-2 left-2 right-2 text-[10px] font-bold text-white bg-black/50 px-2 py-1 rounded truncate text-center">
-                            Nuevo (Se subirá)
-                          </span>
-                          <button 
-                            type="button"
-                            onClick={() => removePendingFile(idx)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors z-10"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
+                      {files.map((f, idx) => {
+                        const isCover = pendingCoverIndex === idx;
+                        return (
+                          <div key={idx} className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${isCover ? 'border-brand-sage border-solid shadow-md opacity-100' : 'border-dashed border-gray-300 opacity-70'} hover:opacity-100 transition-opacity`}>
+                            <img src={URL.createObjectURL(f)} alt="Nuevo" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/20" />
+                            
+                            {/* Botón de Estrella */}
+                            <button 
+                              type="button"
+                              onClick={() => setPendingCoverIndex(idx)}
+                              title={isCover ? "Portada actual (pendiente)" : "Elegir como portada"}
+                              className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors z-10 ${isCover ? 'bg-brand-sage text-brand-dark' : 'bg-black/50 text-white hover:bg-black/70'}`}
+                            >
+                              <Star size={14} className={isCover ? "fill-brand-dark" : ""} />
+                            </button>
+
+                            <span className="absolute bottom-2 left-2 right-2 text-[10px] font-bold text-white bg-black/50 px-2 py-1 rounded truncate text-center">
+                              Nuevo (Se subirá)
+                            </span>
+
+                            {/* Botón de Eliminar */}
+                            <button 
+                              type="button"
+                              onClick={() => removePendingFile(idx)}
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors z-10"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+
+                            {isCover && (
+                              <div className="absolute bottom-0 inset-x-0 bg-brand-sage text-brand-dark text-[10px] font-bold text-center py-1 uppercase tracking-wider z-10">
+                                Portada
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
 
                     <input 
