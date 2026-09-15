@@ -8,7 +8,7 @@ import { createClientAccount } from "../clientes/actions"
 
 export default function CotizadorPage() {
   const supabase = createClient()
-  const [activeTab, setActiveTab] = useState<'generar' | 'parametros'>('generar')
+  const [activeTab, setActiveTab] = useState<'generar' | 'parametros' | 'historial'>('generar')
   
   // Estado para parámetros
   const [params, setParams] = useState<any>(null)
@@ -53,10 +53,13 @@ export default function CotizadorPage() {
     window.print();
   }
 
+  const [historialCotizaciones, setHistorialCotizaciones] = useState<any[]>([])
+  
   // Cargar parámetros al iniciar
   useEffect(() => {
     fetchParametros()
     fetchClientes()
+    fetchHistorialCotizaciones()
   }, [])
 
   const fetchParametros = async () => {
@@ -64,6 +67,14 @@ export default function CotizadorPage() {
     const { data } = await supabase.from('cotizador_parametros').select('*').eq('id', 1).single()
     if (data) setParams(data)
     setLoadingParams(false)
+  }
+
+  const fetchHistorialCotizaciones = async () => {
+    const { data } = await supabase
+      .from('historial_cotizaciones')
+      .select('*, clientes(nombre, apellido, email, telefono)')
+      .order('created_at', { ascending: false })
+    if (data) setHistorialCotizaciones(data)
   }
 
   const fetchClientes = async () => {
@@ -105,6 +116,7 @@ export default function CotizadorPage() {
       alert("Error al guardar: " + error.message)
     } else {
       alert("Cotización guardada exitosamente en el historial.")
+      fetchHistorialCotizaciones()
     }
     setSavingQuote(false)
   }
@@ -186,6 +198,12 @@ export default function CotizadorPage() {
             className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'parametros' ? 'bg-white shadow-sm text-brand-dark' : 'text-gray-500 hover:text-brand-dark'}`}
           >
             <Settings size={16} /> Parámetros Base
+          </button>
+          <button 
+            onClick={() => setActiveTab('historial')}
+            className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'historial' ? 'bg-white shadow-sm text-brand-dark' : 'text-gray-500 hover:text-brand-dark'}`}
+          >
+            <CheckCircle2 size={16} /> Historial
           </button>
         </div>
       </div>
@@ -523,6 +541,44 @@ export default function CotizadorPage() {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* PESTAÑA HISTORIAL */}
+      {activeTab === 'historial' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-xl font-bold text-brand-dark mb-6">Historial de Cotizaciones Emitidas</h2>
+          
+          {historialCotizaciones.length === 0 ? (
+            <div className="text-center text-gray-500 py-12">No hay cotizaciones guardadas en el historial.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
+                  <tr>
+                    <th className="px-4 py-3 rounded-tl-lg">Fecha</th>
+                    <th className="px-4 py-3">Cliente</th>
+                    <th className="px-4 py-3">Proyecto</th>
+                    <th className="px-4 py-3 text-right">Área</th>
+                    <th className="px-4 py-3 text-right">Consultoría</th>
+                    <th className="px-4 py-3 text-right rounded-tr-lg">Obra (Aprox)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {historialCotizaciones.map((c: any) => (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-500">{new Date(c.created_at).toLocaleDateString('es-ES')}</td>
+                      <td className="px-4 py-3 font-medium text-brand-dark">{c.clientes?.nombre} {c.clientes?.apellido}</td>
+                      <td className="px-4 py-3 text-gray-600">{c.nombre_proyecto || '-'}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{c.area_construccion} m²</td>
+                      <td className="px-4 py-3 text-right font-bold text-brand-sage">${Number(c.total_consultoria).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-600">${Number(c.total_obra).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
