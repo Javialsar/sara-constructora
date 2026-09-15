@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import Link from "next/link"
 
 export default function ClientesPage() {
   const supabase = createClient()
@@ -68,7 +69,7 @@ export default function ClientesPage() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
               {clientes.map((c) => (
-                <div key={c.id} className="group bg-white border border-gray-100 flex flex-col items-center justify-center transition-all p-6 text-center shadow-sm hover:shadow-xl hover:border-brand-sage/30 rounded-2xl relative overflow-hidden">
+                <Link href={`/clientes/${c.id}`} key={c.id} className="group bg-white border border-gray-100 flex flex-col items-center justify-center transition-all p-6 text-center shadow-sm hover:shadow-xl hover:border-brand-sage/30 rounded-2xl relative overflow-hidden block">
                   {/* Cuadrícula suave de fondo */}
                   <div className="absolute inset-0 pointer-events-none opacity-5" style={{ backgroundImage: 'linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
                   
@@ -94,7 +95,7 @@ export default function ClientesPage() {
                       Cliente Registrado
                     </p>
                   )}
-                </div>
+                </Link>
               ))}
             </div>
           )}
