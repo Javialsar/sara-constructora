@@ -46,6 +46,10 @@ export default function AdminProyectos() {
       honorariosEst: 0,
       honorariosMep: 0,
       honorariosTop: 0,
+      subtotalHonorarios: 0,
+      valorIva: 0,
+      aplicaIva: false,
+      porcentajeIva: 15,
       desgloseHonorarios: {} as Record<string, number>
     }
   })
@@ -94,6 +98,10 @@ export default function AdminProyectos() {
     honorariosEst: 0,
     honorariosMep: 0,
     honorariosTop: 0,
+    subtotalHonorarios: 0,
+    valorIva: 0,
+    aplicaIva: false,
+    porcentajeIva: 15,
     desgloseHonorarios: {} as Record<string, number>
   }
 
@@ -148,6 +156,51 @@ export default function AdminProyectos() {
     }
   }
 
+  const calcularFinanzas = (dfSnapshot: any, params: any) => {
+    let result = { ...dfSnapshot }
+    if (!params) return result;
+
+    let fPendiente = params.factor_pendiente_plana
+    if (result.pendiente === 'media') fPendiente = params.factor_pendiente_media
+    if (result.pendiente === 'fuerte') fPendiente = params.factor_pendiente_fuerte
+
+    let fAcabados = params.factor_acabados_estandar
+    if (result.acabados === 'economico') fAcabados = params.factor_acabados_economico
+    if (result.acabados === 'premium') fAcabados = params.factor_acabados_premium
+
+    let fTipologia = params.factor_tipologia_unifamiliar || 1
+    if (result.tipologia === 'multifamiliar') fTipologia = params.factor_tipologia_multifamiliar || 1.15
+    if (result.tipologia === 'comercial') fTipologia = params.factor_tipologia_comercial || 1.25
+    if (result.tipologia === 'industrial') fTipologia = params.factor_tipologia_industrial || 0.85
+
+    let fAltura = 1 + (Math.max(0, result.plantasSobreRasante - 2) * (params.porcentaje_adicional_por_piso || 0.03))
+    let fSotano = result.plantasBajoRasante > 0 ? (params.factor_sotano || 1.4) : 1
+
+    const costoObra = result.areaConstruccion * params.costo_base_construccion_m2 * fPendiente * fAcabados * fTipologia * fAltura * fSotano
+
+    let honorariosArq = result.incArquitectura ? result.areaConstruccion * params.tarifa_diseno_arq_m2 * fTipologia * fAltura : 0
+    let honorariosEst = result.incEstructura ? result.areaConstruccion * params.tarifa_diseno_est_m2 * fTipologia * fAltura : 0
+    let honorariosMep = result.incMep ? result.areaConstruccion * params.tarifa_diseno_mep_m2 * fTipologia : 0
+    let honorariosTop = result.incTopografia ? params.tarifa_topografia_base : 0
+
+    const subtotalHonorarios = honorariosArq + honorariosEst + honorariosMep + honorariosTop;
+    const valorIva = result.aplicaIva ? (subtotalHonorarios * (result.porcentajeIva / 100)) : 0;
+
+    result.totalObra = costoObra;
+    result.honorariosArq = honorariosArq;
+    result.honorariosEst = honorariosEst;
+    result.honorariosMep = honorariosMep;
+    result.honorariosTop = honorariosTop;
+    result.subtotalHonorarios = subtotalHonorarios;
+    result.valorIva = valorIva;
+    result.totalHonorarios = subtotalHonorarios + valorIva;
+
+    return result;
+  }
+
+  // Valores calculados en tiempo real para mostrar en UI
+  const liveFinanzas = calcularFinanzas(formData.datos_financieros, cotizadorParams);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -180,39 +233,8 @@ export default function AdminProyectos() {
       setUploadingFile(false)
     }
 
-    // Recalcular finanzas antes de guardar para asegurar datos correctos (snapshot de parámetros actuales si es nuevo o si cambió)
-    let dfSnapshot = { ...formData.datos_financieros };
-    if (cotizadorParams) {
-      let fPendiente = cotizadorParams.factor_pendiente_plana
-      if (dfSnapshot.pendiente === 'media') fPendiente = cotizadorParams.factor_pendiente_media
-      if (dfSnapshot.pendiente === 'fuerte') fPendiente = cotizadorParams.factor_pendiente_fuerte
-
-      let fAcabados = cotizadorParams.factor_acabados_estandar
-      if (dfSnapshot.acabados === 'economico') fAcabados = cotizadorParams.factor_acabados_economico
-      if (dfSnapshot.acabados === 'premium') fAcabados = cotizadorParams.factor_acabados_premium
-
-      let fTipologia = cotizadorParams.factor_tipologia_unifamiliar || 1
-      if (dfSnapshot.tipologia === 'multifamiliar') fTipologia = cotizadorParams.factor_tipologia_multifamiliar || 1.15
-      if (dfSnapshot.tipologia === 'comercial') fTipologia = cotizadorParams.factor_tipologia_comercial || 1.25
-      if (dfSnapshot.tipologia === 'industrial') fTipologia = cotizadorParams.factor_tipologia_industrial || 0.85
-
-      let fAltura = 1 + (Math.max(0, dfSnapshot.plantasSobreRasante - 2) * (cotizadorParams.porcentaje_adicional_por_piso || 0.03))
-      let fSotano = dfSnapshot.plantasBajoRasante > 0 ? (cotizadorParams.factor_sotano || 1.4) : 1
-
-      const costoObra = dfSnapshot.areaConstruccion * cotizadorParams.costo_base_construccion_m2 * fPendiente * fAcabados * fTipologia * fAltura * fSotano
-
-      let honorariosArq = dfSnapshot.incArquitectura ? dfSnapshot.areaConstruccion * cotizadorParams.tarifa_diseno_arq_m2 * fTipologia * fAltura : 0
-      let honorariosEst = dfSnapshot.incEstructura ? dfSnapshot.areaConstruccion * cotizadorParams.tarifa_diseno_est_m2 * fTipologia * fAltura : 0
-      let honorariosMep = dfSnapshot.incMep ? dfSnapshot.areaConstruccion * cotizadorParams.tarifa_diseno_mep_m2 * fTipologia : 0
-      let honorariosTop = dfSnapshot.incTopografia ? cotizadorParams.tarifa_topografia_base : 0 // Idealmente sobre areaTerreno pero mantenemos base
-
-      dfSnapshot.totalObra = costoObra;
-      dfSnapshot.honorariosArq = honorariosArq;
-      dfSnapshot.honorariosEst = honorariosEst;
-      dfSnapshot.honorariosMep = honorariosMep;
-      dfSnapshot.honorariosTop = honorariosTop;
-      dfSnapshot.totalHonorarios = honorariosArq + honorariosEst + honorariosMep + honorariosTop;
-    }
+    // Recalcular finanzas antes de guardar para asegurar datos correctos
+    const dfSnapshot = calcularFinanzas(formData.datos_financieros, cotizadorParams);
 
     const payload = {
       nombre: formData.nombre,
@@ -701,36 +723,82 @@ export default function AdminProyectos() {
                   <div className="pt-4 border-t">
                     <label className="block text-sm font-bold text-gray-700 mb-4">Alcance Cotizado para este Proyecto</label>
                     <div className="grid grid-cols-2 gap-4">
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                      <label className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${formData.datos_financieros.incArquitectura ? 'bg-brand-sage/10 border-brand-sage' : 'hover:bg-gray-50'}`}>
                         <input type="checkbox" checked={formData.datos_financieros.incArquitectura} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incArquitectura: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
-                        <span>Diseño Arquitectónico</span>
+                        <span className={formData.datos_financieros.incArquitectura ? 'text-brand-dark font-bold' : ''}>Diseño Arquitectónico</span>
                       </label>
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                      <label className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${formData.datos_financieros.incEstructura ? 'bg-brand-sage/10 border-brand-sage' : 'hover:bg-gray-50'}`}>
                         <input type="checkbox" checked={formData.datos_financieros.incEstructura} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incEstructura: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
-                        <span>Diseño Estructural</span>
+                        <span className={formData.datos_financieros.incEstructura ? 'text-brand-dark font-bold' : ''}>Diseño Estructural</span>
                       </label>
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                      <label className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${formData.datos_financieros.incMep ? 'bg-brand-sage/10 border-brand-sage' : 'hover:bg-gray-50'}`}>
                         <input type="checkbox" checked={formData.datos_financieros.incMep} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incMep: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
-                        <span>Ingenierías MEP</span>
+                        <span className={formData.datos_financieros.incMep ? 'text-brand-dark font-bold' : ''}>Ingenierías MEP</span>
                       </label>
-                      <label className="flex items-center gap-3 cursor-pointer p-3 border rounded-lg hover:bg-gray-50">
+                      <label className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${formData.datos_financieros.incTopografia ? 'bg-brand-sage/10 border-brand-sage' : 'hover:bg-gray-50'}`}>
                         <input type="checkbox" checked={formData.datos_financieros.incTopografia} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, incTopografia: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
-                        <span>Topografía Base</span>
+                        <span className={formData.datos_financieros.incTopografia ? 'text-brand-dark font-bold' : ''}>Topografía Base</span>
                       </label>
                     </div>
                   </div>
 
+                  <div className="pt-4 border-t flex items-center gap-6">
+                    <label className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors flex-1 ${formData.datos_financieros.aplicaIva ? 'bg-brand-sage/10 border-brand-sage' : 'hover:bg-gray-50'}`}>
+                      <input type="checkbox" checked={formData.datos_financieros.aplicaIva} onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, aplicaIva: e.target.checked}})} className="w-5 h-5 accent-brand-sage" />
+                      <span className={formData.datos_financieros.aplicaIva ? 'text-brand-dark font-bold' : ''}>Emitir Factura (Aplica IVA)</span>
+                    </label>
+                    {formData.datos_financieros.aplicaIva && (
+                      <div className="flex-1 flex items-center gap-3">
+                        <label className="text-sm font-bold text-gray-700">% IVA:</label>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={formData.datos_financieros.porcentajeIva} 
+                          onChange={e => setFormData({...formData, datos_financieros: {...formData.datos_financieros, porcentajeIva: Number(e.target.value)}})} 
+                          className="w-24 border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-center"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-brand-dark text-white p-6 rounded-xl mt-8">
+                    <h4 className="font-bold mb-4 uppercase tracking-wider text-xs text-brand-sage">Previsualización en Tiempo Real</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-400">Subtotal Honorarios:</p>
+                        <p className="text-lg font-bold">${(liveFinanzas.subtotalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                        {formData.datos_financieros.aplicaIva && (
+                          <>
+                            <p className="text-sm text-gray-400 mt-2">IVA ({formData.datos_financieros.porcentajeIva}%):</p>
+                            <p className="text-md font-bold">${(liveFinanzas.valorIva || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                            <p className="text-sm text-brand-sage mt-2">Total a Facturar:</p>
+                            <p className="text-2xl font-bold text-brand-sage">${(liveFinanzas.totalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                          </>
+                        )}
+                        {!formData.datos_financieros.aplicaIva && (
+                          <p className="text-2xl font-bold text-brand-sage mt-1">${(liveFinanzas.totalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Proyección Obra Civil:</p>
+                        <p className="text-2xl font-bold text-brand-sage">${(liveFinanzas.totalObra || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                        <p className="text-xs text-gray-400 mt-1">*Costo de ejecución estimado independiente del diseño.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {editId && formData.datos_financieros.totalObra > 0 && (
-                    <div className="bg-gray-50 p-6 rounded-xl border mt-8">
-                      <h4 className="font-bold mb-4 uppercase tracking-wider text-xs text-gray-500">Cotización Histórica Guardada</h4>
+                    <div className="bg-gray-100 p-6 rounded-xl border border-gray-200 mt-4">
+                      <h4 className="font-bold mb-2 uppercase tracking-wider text-xs text-gray-500">Última Cotización Guardada (Histórico)</h4>
+                      <p className="text-xs text-gray-500 mb-4">Si presionas "Guardar Cambios", se sobreescribirá con la previsualización actual.</p>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm text-gray-500">Honorarios Consultoría:</p>
-                          <p className="text-2xl font-bold text-brand-dark">${(formData.datos_financieros.totalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                          <p className="text-sm text-gray-500">Honorarios Totales:</p>
+                          <p className="text-lg font-bold text-gray-700">${(formData.datos_financieros.totalHonorarios || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500">Proyección Obra:</p>
-                          <p className="text-2xl font-bold text-brand-dark">${(formData.datos_financieros.totalObra || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
+                          <p className="text-lg font-bold text-gray-700">${(formData.datos_financieros.totalObra || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</p>
                         </div>
                       </div>
                     </div>
