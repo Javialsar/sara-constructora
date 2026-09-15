@@ -36,6 +36,10 @@ export default function CotizadorPage() {
     areaConstruccion: '100',
     pendiente: 'plana', // plana, media, fuerte
     acabados: 'estandar', // economico, estandar, premium
+    suelo: 'normal',
+    accesibilidad: 'urbana',
+    pisos: '2',
+    estructura: 'hormigon',
     incArquitectura: true,
     incEstructura: true,
     incMep: true,
@@ -164,13 +168,31 @@ export default function CotizadorPage() {
     if (cotizacion.pendiente === 'media') fPendiente = params.factor_pendiente_media
     if (cotizacion.pendiente === 'fuerte') fPendiente = params.factor_pendiente_fuerte
 
-    // Factor Acabados
-    let fAcabados = params.factor_acabados_estandar
-    if (cotizacion.acabados === 'economico') fAcabados = params.factor_acabados_economico
-    if (cotizacion.acabados === 'premium') fAcabados = params.factor_acabados_premium
+        // Factor Acabados
+    let fAcabados = params.factor_acabados_estandar || 1
+    if (cotizacion.acabados === 'economico') fAcabados = params.factor_acabados_economico || 0.85
+    if (cotizacion.acabados === 'premium') fAcabados = params.factor_acabados_premium || 1.35
 
-    // Módulo 2: Costo de Obra Paramétrico
-    const costoObra = areaValue * params.costo_base_construccion_m2 * fPendiente * fAcabados
+    // Factor Suelo
+    let fSuelo = params.factor_suelo_normal || 1
+    if (cotizacion.suelo === 'blando') fSuelo = params.factor_suelo_blando || 1.15
+    if (cotizacion.suelo === 'rocoso') fSuelo = params.factor_suelo_rocoso || 1.05
+
+    // Factor Accesibilidad
+    let fAcceso = params.factor_acceso_urbano || 1
+    if (cotizacion.accesibilidad === 'rural') fAcceso = params.factor_acceso_rural || 1.08
+
+    // Factor Pisos
+    let fPisos = params.factor_pisos_2 || 1
+    if (cotizacion.pisos === '1') fPisos = params.factor_pisos_1 || 1.05
+    if (cotizacion.pisos === '3_mas') fPisos = params.factor_pisos_3 || 1.02
+
+    // Factor Estructura
+    let fEstructura = params.factor_estructura_hormigon || 1
+    if (cotizacion.estructura === 'metalica') fEstructura = params.factor_estructura_metalica || 1.15
+
+    // M?dulo 2: Costo de Obra Param?trico
+    const costoObra = areaValue * (params.costo_base_construccion_m2 || 450) * fPendiente * fAcabados * fSuelo * fAcceso * fPisos * fEstructura
 
     // Módulo 1: Honorarios (Diseño y Consultoría)
     let honorariosArq = cotizacion.incArquitectura ? areaValue * params.tarifa_diseno_arq_m2 : 0
@@ -415,6 +437,41 @@ export default function CotizadorPage() {
                     <option value="premium">Premium / Lujo</option>
                   </select>
                 </div>
+
+                {/* Nuevos Par?metros */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Tipo de Suelo</label>
+                    <select value={cotizacion.suelo} onChange={e => setCotizacion({...cotizacion, suelo: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                      <option value="normal">Normal (Est?ndar)</option>
+                      <option value="blando">Arcilloso/Blando (+15%)</option>
+                      <option value="rocoso">Rocoso/Duro (+5%)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Accesibilidad Obra</label>
+                    <select value={cotizacion.accesibilidad} onChange={e => setCotizacion({...cotizacion, accesibilidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                      <option value="urbana">Urbana (Normal)</option>
+                      <option value="rural">Rural/Remoto (+8%)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Niveles / Pisos</label>
+                    <select value={cotizacion.pisos} onChange={e => setCotizacion({...cotizacion, pisos: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                      <option value="1">1 Planta (+5%)</option>
+                      <option value="2">2 Plantas (?ptimo)</option>
+                      <option value="3_mas">3 o m?s Plantas (+2%)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Sis. Estructural</label>
+                    <select value={cotizacion.estructura} onChange={e => setCotizacion({...cotizacion, estructura: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white">
+                      <option value="hormigon">Hormig?n Armado</option>
+                      <option value="metalica">Estruct. Met?lica (+15%)</option>
+                    </select>
+                  </div>
+                </div>
+
               </div>
 
               <div className="pt-4 border-t">
@@ -548,6 +605,23 @@ export default function CotizadorPage() {
                     <span className="text-gray-500">Ajuste por Calidad de Acabados ({cotizacion.acabados}):</span>
                     <span className="font-medium">x {cotizacion.acabados === 'economico' ? params?.factor_acabados_economico : cotizacion.acabados === 'estandar' ? params?.factor_acabados_estandar : params?.factor_acabados_premium}</span>
                   </div>
+                    <div className="flex justify-between border-t border-gray-200 mt-2 pt-2">
+                      <span className="text-gray-500">Tipo de Suelo ({cotizacion.suelo}):</span>
+                      <span className="font-medium">x {cotizacion.suelo === 'normal' ? (params?.factor_suelo_normal || 1) : cotizacion.suelo === 'blando' ? (params?.factor_suelo_blando || 1.15) : (params?.factor_suelo_rocoso || 1.05)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Log?stica de Acceso ({cotizacion.accesibilidad}):</span>
+                      <span className="font-medium">x {cotizacion.accesibilidad === 'urbana' ? (params?.factor_acceso_urbano || 1) : (params?.factor_acceso_rural || 1.08)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Arquitectura de Niveles ({cotizacion.pisos} pisos):</span>
+                      <span className="font-medium">x {cotizacion.pisos === '1' ? (params?.factor_pisos_1 || 1.05) : cotizacion.pisos === '2' ? (params?.factor_pisos_2 || 1) : (params?.factor_pisos_3 || 1.02)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Sistema Estructural ({cotizacion.estructura}):</span>
+                      <span className="font-medium">x {cotizacion.estructura === 'hormigon' ? (params?.factor_estructura_hormigon || 1) : (params?.factor_estructura_metalica || 1.15)}</span>
+                    </div>
+
                 </div>
               </div>
               
@@ -651,3 +725,4 @@ export default function CotizadorPage() {
     </div>
   )
 }
+
