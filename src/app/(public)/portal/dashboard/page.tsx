@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight, HardHat, Key } from "lucide-react"
+import { Lock, FileText, Camera, Video, MapPin, LogOut, Calendar, ChevronRight, HardHat, Key, Eye, EyeOff } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export default function PortalDashboardPage() {
@@ -13,6 +13,8 @@ export default function PortalDashboardPage() {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const supabase = createClient()
   
   const [cliente, setCliente] = useState<any>(null)
@@ -417,23 +419,41 @@ export default function PortalDashboardPage() {
             <form onSubmit={handleChangePassword}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Nueva Contraseña</label>
-                <input 
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-brand-sage"
-                />
+                <div className="relative">
+                  <input 
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 pr-10 outline-none focus:border-brand-sage"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div className="mb-6">
                 <label className="block text-sm font-medium mb-1">Confirmar Contraseña</label>
-                <input 
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 outline-none focus:border-brand-sage"
-                />
+                <div className="relative">
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full border border-gray-300 rounded px-3 py-2 pr-10 outline-none focus:border-brand-sage"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setIsPasswordModalOpen(false)} className="px-4 py-2 text-sm bg-gray-200 rounded hover:bg-gray-300 transition-colors">Cancelar</button>
