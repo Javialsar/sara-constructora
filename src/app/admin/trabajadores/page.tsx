@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { Wrench, Plus, Search, X, Loader2, Edit, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import salariosData from "@/lib/salariosData.json"
 
 type Trabajador = {
   id: string
@@ -269,13 +270,25 @@ export default function TrabajadoresPage() {
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Categoría Ocupacional <span className="text-red-500">*</span></label>
                   <input 
-                    required
-                    type="text" 
-                    placeholder="Ej. Albañil, Ayudante, Maestro de Obra..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.categoria_ocupacional}
-                    onChange={e => setFormData({...formData, categoria_ocupacional: e.target.value})}
-                  />
+                      required
+                      type="text" 
+                      list="categorias-list"
+                      placeholder="Ej. Albañil, Ayudante, Maestro de Obra..."
+                      className="w-full border-2 border-brand-sage rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none bg-brand-sage/5"
+                      value={formData.categoria_ocupacional}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const found = salariosData.find(s => s.actividad === val);
+                        if (found) {
+                          setFormData({...formData, categoria_ocupacional: val, jornal_real: found.jornal, costo_horario: found.hora});
+                        } else {
+                          setFormData({...formData, categoria_ocupacional: val});
+                        }
+                      }}
+                    />
+                    <datalist id="categorias-list">
+                      {salariosData.map(s => <option key={s.actividad} value={s.actividad} />)}
+                    </datalist>
                   <p className="text-xs text-gray-500 mt-1">Utilice las categorías oficiales de CAMICON si aplica.</p>
                 </div>
 

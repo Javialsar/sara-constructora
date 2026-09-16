@@ -1,0 +1,402 @@
+[
+  {
+    "actividad": "Residente de Obra",
+    "jornal": 39.12,
+    "hora": 4.89
+  },
+  {
+    "actividad": "Ingeniero civil (Estructural, Hidráulico y Vial)",
+    "jornal": 39.12,
+    "hora": 4.89
+  },
+  {
+    "actividad": "Ingeniero eléctrico",
+    "jornal": 39.12,
+    "hora": 4.89
+  },
+  {
+    "actividad": "Inspector de obra",
+    "jornal": 39.02,
+    "hora": 4.88
+  },
+  {
+    "actividad": "Maestro mayor en ejecución de obras civiles",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Maestro de Obra",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Técnico obras civiles",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Técnico albañilería",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Perfilero (En Construcción)",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de perforador (En Construcción)",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Parqueteros y colocadores de pisos",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Técnico electromecánico de construcción",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Técnico en montaje de subestaciones",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Técnico liniero eléctrico",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Hojalatero",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Enlucidor",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Mampostero",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Cadenero",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Ayudante de perforador",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Electricista o instalador de revestimiento en general",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Plomero",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Encofrador o carpintero de ribera",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Carpintero",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Fierrero",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Pintor empapelador",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Pintor de exteriores",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Pintor",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Operador de equipo liviano",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Albañil",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Ayudante de maquinaria",
+    "jornal": 35.67,
+    "hora": 4.46
+  },
+  {
+    "actividad": "Ayudante de Plomero",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "Ayudante de Fierrero",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "Ayudante de Electricista",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "Ayudante de Carpintero",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "PRIMERA Y Ayudante de Albañil",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "Peón",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "Técnico en mantenimiento de viviendas y edificios",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Técnico en carpintería",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador termoformado",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Camión de carga frontal (En Construcción)",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador compresor",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de punzón neumático",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de barredora autopropulsada",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de caldero planta asfáltica",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de acabadora de pavimento asfáltico",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de acabadora de pavimento de hormigón",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de distribuidor de agregados",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de distribuidor de asfalto",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de rodillo autopropulsado",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador de track drill",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador responsable de la planta asfáltica",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador responsable de la planta trituradora",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Operador responsable de la planta hormigonera",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "Máquina zanjadora",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Máquina extendedora de adoquín",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Máquina tuneladora (topo)",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Perforadora de brazos múltiples (jumbo)",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "traslado debe conectar los equipos para embarque y",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Camión mezclador para micropavimentos",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Camión articulado con volteo (En Construcción)",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Squider",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Máquina para sellos asfálticos",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Planta de emulsión asfáltica",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Retroexcavadora",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Cargadora frontal (Payloader sobre ruedas u orugas)",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Mototrailla",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "T ractor tiende tubos (side bone)",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Grúa estacionaria",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Pala de castillo",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Grúa puente de elevación",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Excavadora",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "Motoniveladora",
+    "jornal": 38.96,
+    "hora": 4.87
+  },
+  {
+    "actividad": "T inero de pasta de amianto",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "Resanador en general (En Construcción)",
+    "jornal": 34.73,
+    "hora": 4.34
+  },
+  {
+    "actividad": "T ubero (En Construcción)",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Preparador de mezcla de materias primas",
+    "jornal": 35.15,
+    "hora": 4.39
+  },
+  {
+    "actividad": "Operador de bomba lanzadora de concreto",
+    "jornal": 37.08,
+    "hora": 4.64
+  },
+  {
+    "actividad": "sustancias peligrosas y otros vehículos especiales (Estr .",
+    "jornal": 51,
+    "hora": 6.38
+  },
+  {
+    "actividad": "Soldador en construcción",
+    "jornal": 35.67,
+    "hora": 4.46
+  },
+  {
+    "actividad": "Operador máquina estacionaria clasificadora de material",
+    "jornal": 35.67,
+    "hora": 4.46
+  }
+]
