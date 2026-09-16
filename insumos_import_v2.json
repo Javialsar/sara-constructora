@@ -1,0 +1,7338 @@
+[
+  {
+    "codigo": "MAT-0001",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Cemento hidráulico tipo GU - Uso general conforme especificación del fabricante",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0002",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Cemento hidráulico HE - Alta resistencia inicial",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0003",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Cemento hidráulico HS - Alta resistencia a sulfatos",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0004",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Cemento hidráulico MH - Moderado calor de hidratación",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0005",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Cemento blanco - Acabados arquitectónicos",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0006",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Cal hidratada - Para morteros y enlucidos",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0007",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Yeso de construcción - Acabados interiores",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0008",
+    "tipo": "material",
+    "categoria": "Conglomerantes",
+    "nombre": "Grout no retráctil - Relleno estructural",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0009",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=140 kg/cm² - Resistencia especificada 140 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0010",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=180 kg/cm² - Resistencia especificada 180 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0011",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=210 kg/cm² - Resistencia especificada 210 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0012",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=240 kg/cm² - Resistencia especificada 240 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0013",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=280 kg/cm² - Resistencia especificada 280 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0014",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=300 kg/cm² - Resistencia especificada 300 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0015",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=350 kg/cm² - Resistencia especificada 350 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0016",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Hormigón premezclado f'c=400 kg/cm² - Resistencia especificada 400 kg/cm²",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0017",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Agregado grueso TM 10 mm - Tamaño máximo nominal 10 mm",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0018",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Agregado grueso TM 19 mm - Tamaño máximo nominal 19 mm",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0019",
+    "tipo": "material",
+    "categoria": "Hormigones",
+    "nombre": "Agregado grueso TM 25 mm - Tamaño máximo nominal 25 mm",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0020",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Arena fina",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0021",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Arena media",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0022",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Arena gruesa",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0023",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Arena lavada",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0024",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Arena de río",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0025",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Arena triturada",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0026",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Ripio 3/8 pulg",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0027",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Ripio 1/2 pulg",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0028",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Ripio 3/4 pulg",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0029",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Grava",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0030",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Gravilla",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0031",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Piedra bola",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0032",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Piedra triturada",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0033",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Polvo de piedra",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0034",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Material de mejoramiento",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0035",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Subbase clase 1",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0036",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Subbase clase 2",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0037",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Subbase clase 3",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0038",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Base granular clase 1",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0039",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Base granular clase 2",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0040",
+    "tipo": "material",
+    "categoria": "Áridos y pétreos",
+    "nombre": "Relleno seleccionado",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0041",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø6 mm - Acero de refuerzo; diámetro nominal 6 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0042",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø8 mm - Acero de refuerzo; diámetro nominal 8 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0043",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø10 mm - Acero de refuerzo; diámetro nominal 10 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0044",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø12 mm - Acero de refuerzo; diámetro nominal 12 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0045",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø14 mm - Acero de refuerzo; diámetro nominal 14 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0046",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø16 mm - Acero de refuerzo; diámetro nominal 16 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0047",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø18 mm - Acero de refuerzo; diámetro nominal 18 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0048",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø20 mm - Acero de refuerzo; diámetro nominal 20 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0049",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø22 mm - Acero de refuerzo; diámetro nominal 22 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0050",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø25 mm - Acero de refuerzo; diámetro nominal 25 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0051",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø28 mm - Acero de refuerzo; diámetro nominal 28 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0052",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø32 mm - Acero de refuerzo; diámetro nominal 32 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0053",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Varilla corrugada Ø36 mm - Acero de refuerzo; diámetro nominal 36 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0054",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø4 mm @ 10 cm - Diámetro 4 mm; separación 10 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0055",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø4 mm @ 15 cm - Diámetro 4 mm; separación 15 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0056",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø4 mm @ 20 cm - Diámetro 4 mm; separación 20 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0057",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø5 mm @ 10 cm - Diámetro 5 mm; separación 10 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0058",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø5 mm @ 15 cm - Diámetro 5 mm; separación 15 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0059",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø5 mm @ 20 cm - Diámetro 5 mm; separación 20 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0060",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø5.5 mm @ 10 cm - Diámetro 5.5 mm; separación 10 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0061",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø5.5 mm @ 15 cm - Diámetro 5.5 mm; separación 15 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0062",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø5.5 mm @ 20 cm - Diámetro 5.5 mm; separación 20 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0063",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø6 mm @ 10 cm - Diámetro 6 mm; separación 10 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0064",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø6 mm @ 15 cm - Diámetro 6 mm; separación 15 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0065",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø6 mm @ 20 cm - Diámetro 6 mm; separación 20 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0066",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø7 mm @ 10 cm - Diámetro 7 mm; separación 10 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0067",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø7 mm @ 15 cm - Diámetro 7 mm; separación 15 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0068",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø7 mm @ 20 cm - Diámetro 7 mm; separación 20 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0069",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø8 mm @ 10 cm - Diámetro 8 mm; separación 10 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0070",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø8 mm @ 15 cm - Diámetro 8 mm; separación 15 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0071",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Malla electrosoldada Ø8 mm @ 20 cm - Diámetro 8 mm; separación 20 cm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0072",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Alambre recocido #18",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0073",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Alambre galvanizado #12",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0074",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Alambre galvanizado #14",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0075",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Alambre galvanizado #16",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0076",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Clavo 1 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0077",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Clavo 1 1/2 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0078",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Clavo 2 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0079",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Clavo 2 1/2 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0080",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Clavo 3 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0081",
+    "tipo": "material",
+    "categoria": "Acero",
+    "nombre": "Clavo 4 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0082",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 80 - Perfil estructural IPE nominal 80",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0083",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 100 - Perfil estructural IPE nominal 100",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0084",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 120 - Perfil estructural IPE nominal 120",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0085",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 140 - Perfil estructural IPE nominal 140",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0086",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 160 - Perfil estructural IPE nominal 160",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0087",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 180 - Perfil estructural IPE nominal 180",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0088",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 200 - Perfil estructural IPE nominal 200",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0089",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 240 - Perfil estructural IPE nominal 240",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0090",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPE 300 - Perfil estructural IPE nominal 300",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0091",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 80 - Perfil estructural IPN nominal 80",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0092",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 100 - Perfil estructural IPN nominal 100",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0093",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 120 - Perfil estructural IPN nominal 120",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0094",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 140 - Perfil estructural IPN nominal 140",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0095",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 160 - Perfil estructural IPN nominal 160",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0096",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 180 - Perfil estructural IPN nominal 180",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0097",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 200 - Perfil estructural IPN nominal 200",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0098",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 240 - Perfil estructural IPN nominal 240",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0099",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil IPN 300 - Perfil estructural IPN nominal 300",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0100",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 80 - Perfil estructural HEA nominal 80",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0101",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 100 - Perfil estructural HEA nominal 100",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0102",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 120 - Perfil estructural HEA nominal 120",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0103",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 140 - Perfil estructural HEA nominal 140",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0104",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 160 - Perfil estructural HEA nominal 160",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0105",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 180 - Perfil estructural HEA nominal 180",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0106",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 200 - Perfil estructural HEA nominal 200",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0107",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 240 - Perfil estructural HEA nominal 240",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0108",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEA 300 - Perfil estructural HEA nominal 300",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0109",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 80 - Perfil estructural HEB nominal 80",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0110",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 100 - Perfil estructural HEB nominal 100",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0111",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 120 - Perfil estructural HEB nominal 120",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0112",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 140 - Perfil estructural HEB nominal 140",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0113",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 160 - Perfil estructural HEB nominal 160",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0114",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 180 - Perfil estructural HEB nominal 180",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0115",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 200 - Perfil estructural HEB nominal 200",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0116",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 240 - Perfil estructural HEB nominal 240",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0117",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil HEB 300 - Perfil estructural HEB nominal 300",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0118",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 80 - Perfil estructural UPN nominal 80",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0119",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 100 - Perfil estructural UPN nominal 100",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0120",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 120 - Perfil estructural UPN nominal 120",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0121",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 140 - Perfil estructural UPN nominal 140",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0122",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 160 - Perfil estructural UPN nominal 160",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0123",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 180 - Perfil estructural UPN nominal 180",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0124",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 200 - Perfil estructural UPN nominal 200",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0125",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 240 - Perfil estructural UPN nominal 240",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0126",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perfil UPN 300 - Perfil estructural UPN nominal 300",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0127",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 20x20x1.5 mm - Sección 20x20x1.5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0128",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 25x25x1.5 mm - Sección 25x25x1.5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0129",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 30x30x1.5 mm - Sección 30x30x1.5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0130",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 40x40x2 mm - Sección 40x40x2 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0131",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 50x50x2 mm - Sección 50x50x2 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0132",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 60x60x2 mm - Sección 60x60x2 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0133",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 80x80x3 mm - Sección 80x80x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0134",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 100x100x3 mm - Sección 100x100x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0135",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 40x20x1.5 mm - Sección 40x20x1.5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0136",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 50x25x1.5 mm - Sección 50x25x1.5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0137",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 60x30x2 mm - Sección 60x30x2 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0138",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 80x40x2 mm - Sección 80x40x2 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0139",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 100x50x3 mm - Sección 100x50x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0140",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Tubo estructural 120x60x3 mm - Sección 120x60x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0141",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 20x20x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0142",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 25x25x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0143",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 30x30x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0144",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 40x40x3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0145",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 50x50x4 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0146",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 60x60x5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0147",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 75x75x6 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0148",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Ángulo L 100x100x8 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0149",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=2 mm - Espesor 2 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0150",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=3 mm - Espesor 3 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0151",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=4 mm - Espesor 4 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0152",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=5 mm - Espesor 5 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0153",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=6 mm - Espesor 6 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0154",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=8 mm - Espesor 8 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0155",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=10 mm - Espesor 10 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0156",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=12 mm - Espesor 12 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0157",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=16 mm - Espesor 16 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0158",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Plancha de acero e=20 mm - Espesor 20 mm",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0159",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Electrodo E6011 1/8 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0160",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Electrodo E6013 1/8 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0161",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Electrodo E7018 1/8 pulg",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0162",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Alambre MIG ER70S-6",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0163",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perno estructural A325",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0164",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perno de anclaje 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0165",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perno de anclaje 5/8 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0166",
+    "tipo": "material",
+    "categoria": "Acero estructural",
+    "nombre": "Perno de anclaje 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0167",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque de hormigón e=7 cm - Espesor nominal 7 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0168",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque de hormigón e=10 cm - Espesor nominal 10 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0169",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque de hormigón e=12 cm - Espesor nominal 12 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0170",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque de hormigón e=15 cm - Espesor nominal 15 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0171",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque de hormigón e=20 cm - Espesor nominal 20 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0172",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque estructural e=7 cm - Espesor nominal 7 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0173",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque estructural e=10 cm - Espesor nominal 10 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0174",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque estructural e=12 cm - Espesor nominal 12 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0175",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque estructural e=15 cm - Espesor nominal 15 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0176",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque estructural e=20 cm - Espesor nominal 20 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0177",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque alivianado e=7 cm - Espesor nominal 7 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0178",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque alivianado e=10 cm - Espesor nominal 10 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0179",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque alivianado e=12 cm - Espesor nominal 12 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0180",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque alivianado e=15 cm - Espesor nominal 15 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0181",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque alivianado e=20 cm - Espesor nominal 20 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0182",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Ladrillo panelón",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0183",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Ladrillo mambrón",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0184",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Ladrillo macizo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0185",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Ladrillo visto",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0186",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Ladrillo refractario",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0187",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque celular AAC 10 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0188",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque celular AAC 15 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0189",
+    "tipo": "material",
+    "categoria": "Mampostería",
+    "nombre": "Bloque celular AAC 20 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0190",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Tablero fenólico e=9 mm - Espesor 9 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0191",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Tablero fenólico e=12 mm - Espesor 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0192",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Tablero fenólico e=15 mm - Espesor 15 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0193",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Tablero fenólico e=18 mm - Espesor 18 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0194",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Plywood 9 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0195",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Plywood 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0196",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Plywood 15 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0197",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Plywood 18 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0198",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "OSB 9 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0199",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "OSB 11 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0200",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "OSB 15 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0201",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Tabla de encofrado",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0202",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Tablón de madera",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0203",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Cuartón de madera",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0204",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Puntal de madera",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0205",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Puntal metálico telescópico",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0206",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Viga H20",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0207",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Desmoldante para encofrado",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0208",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Separador plástico para losa",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0209",
+    "tipo": "material",
+    "categoria": "Encofrados",
+    "nombre": "Separador plástico para columna",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0210",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Teja cerámica",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0211",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Teja de hormigón",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0212",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Teja metálica",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0213",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Lámina galvanizada",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0214",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Lámina galvalume",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0215",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Panel sándwich EPS",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0216",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Panel sándwich PIR",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0217",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Placa de fibrocemento",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0218",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Policarbonato alveolar 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0219",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Policarbonato alveolar 10 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0220",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Policarbonato compacto 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0221",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Cumbrera metálica",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0222",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Canalón galvanizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0223",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Canalón PVC",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0224",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Aislante térmico reflectivo",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0225",
+    "tipo": "material",
+    "categoria": "Cubiertas",
+    "nombre": "Manta de lana de vidrio",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0226",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Membrana asfáltica 3 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0227",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Membrana asfáltica 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0228",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Emulsión asfáltica",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0229",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Impermeabilizante cementicio",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0230",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Impermeabilizante acrílico",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0231",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Membrana líquida de poliuretano",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0232",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Sellador de poliuretano",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0233",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Silicona neutra",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0234",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Cinta butílica",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0235",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Geotextil 150 g/m²",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0236",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Geotextil 200 g/m²",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0237",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Geotextil 300 g/m²",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0238",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Geomembrana HDPE 1.0 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0239",
+    "tipo": "material",
+    "categoria": "Impermeabilización",
+    "nombre": "Geomembrana HDPE 1.5 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0240",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cerámica 30x30 cm - Formato 30x30 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0241",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cerámica 40x40 cm - Formato 40x40 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0242",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cerámica 45x45 cm - Formato 45x45 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0243",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cerámica 60x60 cm - Formato 60x60 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0244",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cerámica 60x120 cm - Formato 60x120 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0245",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cerámica 80x80 cm - Formato 80x80 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0246",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Porcelanato 30x30 cm - Formato 30x30 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0247",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Porcelanato 40x40 cm - Formato 40x40 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0248",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Porcelanato 45x45 cm - Formato 45x45 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0249",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Porcelanato 60x60 cm - Formato 60x60 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0250",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Porcelanato 60x120 cm - Formato 60x120 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0251",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Porcelanato 80x80 cm - Formato 80x80 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0252",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Gres 30x30 cm - Formato 30x30 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0253",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Gres 40x40 cm - Formato 40x40 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0254",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Gres 45x45 cm - Formato 45x45 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0255",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Gres 60x60 cm - Formato 60x60 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0256",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Gres 60x120 cm - Formato 60x120 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0257",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Gres 80x80 cm - Formato 80x80 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0258",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Granito natural",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0259",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Mármol",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0260",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Piedra laja",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0261",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Piedra decorativa",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0262",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Piso SPC",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0263",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Piso vinílico",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0264",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Piso laminado",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0265",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Parquet",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0266",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Adoquín de hormigón 6 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0267",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Adoquín de hormigón 8 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0268",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Baldosa de cemento",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0269",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Mosaico",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0270",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Adhesivo cerámico interior",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0271",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Adhesivo porcelanato",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0272",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Adhesivo flexible exterior",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0273",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Boquilla/fragua blanca",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0274",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Boquilla/fragua color",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0275",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cruceta 2 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0276",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Cruceta 3 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0277",
+    "tipo": "material",
+    "categoria": "Pisos y revestimientos",
+    "nombre": "Nivelador de porcelanato",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0278",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Sellador acrílico",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0279",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Empaste interior",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0280",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Empaste exterior",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0281",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura látex interior",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0282",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura látex exterior",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0283",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura acrílica",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0284",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura elastomérica",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0285",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Esmalte sintético",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0286",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Primer anticorrosivo",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0287",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura epóxica",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0288",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura poliuretano",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0289",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Pintura tráfico",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0290",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Barniz",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0291",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Laca",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0292",
+    "tipo": "material",
+    "categoria": "Pinturas",
+    "nombre": "Thinner",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0293",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Gypsum estándar 12.5 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0294",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Gypsum RH 12.5 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0295",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Gypsum RF 12.5 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0296",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Fibrocemento 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0297",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Fibrocemento 8 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0298",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Fibrocemento 10 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0299",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Stud 64 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0300",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Stud 89 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0301",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Track 64 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0302",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Track 89 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0303",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Perfil omega",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0304",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Ángulo perimetral",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0305",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Perfil T principal",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0306",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Perfil T secundario",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0307",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Tornillo gypsum 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0308",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Tornillo gypsum 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0309",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Cinta de juntas",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0310",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Masilla para juntas",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0311",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Esquinero metálico",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0312",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Lana mineral 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0313",
+    "tipo": "material",
+    "categoria": "Construcción liviana",
+    "nombre": "Lana de vidrio 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0314",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "MDF 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0315",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "MDF 9 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0316",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "MDF 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0317",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "MDF 15 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0318",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "MDF 18 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0319",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Melamina 15 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0320",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Melamina 18 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0321",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Plywood 12 mm carpintería",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0322",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Plywood 18 mm carpintería",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0323",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Puerta MDF",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0324",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Puerta madera sólida",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0325",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Marco de madera",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0326",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Tapamarco",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0327",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Bisagra 3 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0328",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Cerradura pomo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0329",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Cerradura palanca",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0330",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Corredera telescópica",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0331",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Riel puerta corrediza",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0332",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Canto PVC 0.45 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0333",
+    "tipo": "material",
+    "categoria": "Carpintería",
+    "nombre": "Canto PVC 2 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0334",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Marco ventana aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0335",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Hoja ventana aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0336",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Marco puerta aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0337",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Hoja puerta aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0338",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Junquillo aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0339",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Perfil U aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0340",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Perfil H aluminio Natural",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0341",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Marco ventana aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0342",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Hoja ventana aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0343",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Marco puerta aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0344",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Hoja puerta aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0345",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Junquillo aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0346",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Perfil U aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0347",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Perfil H aluminio Anodizado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0348",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Marco ventana aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0349",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Hoja ventana aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0350",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Marco puerta aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0351",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Hoja puerta aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0352",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Junquillo aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0353",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Perfil U aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0354",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Perfil H aluminio Pintado",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0355",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio claro 4 mm - Espesor 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0356",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio claro 6 mm - Espesor 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0357",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio claro 8 mm - Espesor 8 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0358",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio claro 10 mm - Espesor 10 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0359",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio claro 12 mm - Espesor 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0360",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio templado 4 mm - Espesor 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0361",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio templado 6 mm - Espesor 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0362",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio templado 8 mm - Espesor 8 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0363",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio templado 10 mm - Espesor 10 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0364",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio templado 12 mm - Espesor 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0365",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio laminado 4 mm - Espesor 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0366",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio laminado 6 mm - Espesor 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0367",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio laminado 8 mm - Espesor 8 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0368",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio laminado 10 mm - Espesor 10 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0369",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio laminado 12 mm - Espesor 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0370",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio reflectivo 4 mm - Espesor 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0371",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio reflectivo 6 mm - Espesor 6 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0372",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio reflectivo 8 mm - Espesor 8 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0373",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio reflectivo 10 mm - Espesor 10 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0374",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Vidrio reflectivo 12 mm - Espesor 12 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0375",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Espejo 4 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0376",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Silicona estructural",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0377",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Empaque EPDM",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0378",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Felpa para ventana",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0379",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Rodamiento para ventana",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0380",
+    "tipo": "material",
+    "categoria": "Aluminio y vidrio",
+    "nombre": "Cerradura para mampara",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0381",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC presión 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0382",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC presión 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0383",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC presión 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0384",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC presión 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0385",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC presión 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0386",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC presión 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0387",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC presión 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0388",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC presión 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0389",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC presión 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0390",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC presión 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0391",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC presión 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0392",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC presión 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0393",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC presión 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0394",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC presión 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0395",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC presión 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0396",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC presión 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0397",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC presión 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0398",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC presión 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0399",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC presión 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0400",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC presión 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0401",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC presión 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0402",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC presión 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0403",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC presión 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0404",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC presión 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0405",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC presión 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0406",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC presión 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0407",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC presión 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0408",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC presión 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0409",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC presión 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0410",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC presión 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0411",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC presión 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0412",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC presión 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0413",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC presión 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0414",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC presión 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0415",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC presión 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0416",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC presión 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0417",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC sanitaria 50 mm - Diámetro nominal 50 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0418",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC sanitaria 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0419",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC sanitaria 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0420",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC sanitaria 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0421",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC sanitaria 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0422",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC sanitaria 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0423",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC sanitaria 75 mm - Diámetro nominal 75 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0424",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC sanitaria 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0425",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC sanitaria 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0426",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC sanitaria 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0427",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC sanitaria 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0428",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC sanitaria 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0429",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC sanitaria 110 mm - Diámetro nominal 110 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0430",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC sanitaria 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0431",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC sanitaria 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0432",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC sanitaria 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0433",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC sanitaria 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0434",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC sanitaria 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0435",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC sanitaria 160 mm - Diámetro nominal 160 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0436",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC sanitaria 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0437",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC sanitaria 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0438",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC sanitaria 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0439",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC sanitaria 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0440",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC sanitaria 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0441",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC sanitaria 200 mm - Diámetro nominal 200 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0442",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC sanitaria 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0443",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC sanitaria 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0444",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC sanitaria 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0445",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC sanitaria 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0446",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC sanitaria 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0447",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC desagüe 50 mm - Diámetro nominal 50 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0448",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC desagüe 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0449",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC desagüe 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0450",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC desagüe 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0451",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC desagüe 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0452",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC desagüe 50 mm - Diámetro nominal 50 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0453",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC desagüe 75 mm - Diámetro nominal 75 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0454",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC desagüe 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0455",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC desagüe 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0456",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC desagüe 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0457",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC desagüe 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0458",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC desagüe 75 mm - Diámetro nominal 75 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0459",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC desagüe 110 mm - Diámetro nominal 110 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0460",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC desagüe 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0461",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC desagüe 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0462",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC desagüe 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0463",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC desagüe 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0464",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC desagüe 110 mm - Diámetro nominal 110 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0465",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC desagüe 160 mm - Diámetro nominal 160 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0466",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC desagüe 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0467",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC desagüe 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0468",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC desagüe 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0469",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC desagüe 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0470",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC desagüe 160 mm - Diámetro nominal 160 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0471",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PVC desagüe 200 mm - Diámetro nominal 200 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0472",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PVC desagüe 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0473",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PVC desagüe 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0474",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PVC desagüe 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0475",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PVC desagüe 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0476",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PVC desagüe 200 mm - Diámetro nominal 200 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0477",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería CPVC 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0478",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° CPVC 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0479",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° CPVC 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0480",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee CPVC 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0481",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión CPVC 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0482",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador CPVC 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0483",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería CPVC 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0484",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° CPVC 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0485",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° CPVC 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0486",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee CPVC 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0487",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión CPVC 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0488",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador CPVC 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0489",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería CPVC 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0490",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° CPVC 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0491",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° CPVC 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0492",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee CPVC 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0493",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión CPVC 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0494",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador CPVC 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0495",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería CPVC 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0496",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° CPVC 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0497",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° CPVC 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0498",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee CPVC 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0499",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión CPVC 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0500",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador CPVC 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0501",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería CPVC 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0502",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° CPVC 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0503",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° CPVC 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0504",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee CPVC 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0505",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión CPVC 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0506",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador CPVC 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0507",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería CPVC 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0508",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° CPVC 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0509",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° CPVC 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0510",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee CPVC 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0511",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión CPVC 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0512",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador CPVC 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0513",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PPR 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0514",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PPR 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0515",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PPR 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0516",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PPR 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0517",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PPR 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0518",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PPR 1/2 pulg - Diámetro nominal 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0519",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PPR 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0520",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PPR 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0521",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PPR 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0522",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PPR 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0523",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PPR 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0524",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PPR 3/4 pulg - Diámetro nominal 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0525",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PPR 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0526",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PPR 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0527",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PPR 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0528",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PPR 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0529",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PPR 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0530",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PPR 1 pulg - Diámetro nominal 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0531",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PPR 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0532",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PPR 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0533",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PPR 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0534",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PPR 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0535",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PPR 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0536",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PPR 1 1/4 pulg - Diámetro nominal 1 1/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0537",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PPR 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0538",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PPR 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0539",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PPR 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0540",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PPR 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0541",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PPR 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0542",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PPR 1 1/2 pulg - Diámetro nominal 1 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0543",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tubería PPR 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0544",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 90° PPR 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0545",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Codo 45° PPR 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0546",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Tee PPR 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0547",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Unión PPR 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0548",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Adaptador PPR 2 pulg - Diámetro nominal 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0549",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Válvula bola 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0550",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Válvula bola 3/4 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0551",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Válvula bola 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0552",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Válvula compuerta 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0553",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Válvula check 1 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0554",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Llave angular",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0555",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Sifón lavamanos",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0556",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Sifón fregadero",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0557",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Sumidero 2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0558",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Sumidero 3 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0559",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Rejilla piso",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0560",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Caja de revisión prefabricada",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0561",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Pegamento PVC",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0562",
+    "tipo": "material",
+    "categoria": "Hidrosanitario",
+    "nombre": "Cinta PTFE",
+    "unidad": "rollo",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0563",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Inodoro tanque bajo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0564",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Inodoro suspendido",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0565",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Lavamanos pedestal",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0566",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Lavamanos sobreponer",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0567",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Lavamanos empotrable",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0568",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Urinario",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0569",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Fregadero acero inoxidable 1 pozo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0570",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Fregadero acero inoxidable 2 pozos",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0571",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Ducha",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0572",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Grifería lavamanos",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0573",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Grifería fregadero",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0574",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Mezcladora ducha",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0575",
+    "tipo": "material",
+    "categoria": "Aparatos sanitarios",
+    "nombre": "Accesorios de baño 5 piezas",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0576",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Tanque de polietileno 500 L - Capacidad 500 L",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0577",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Tanque de polietileno 750 L - Capacidad 750 L",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0578",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Tanque de polietileno 1000 L - Capacidad 1000 L",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0579",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Tanque de polietileno 1500 L - Capacidad 1500 L",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0580",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Tanque de polietileno 2000 L - Capacidad 2000 L",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0581",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Tanque de polietileno 2500 L - Capacidad 2500 L",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0582",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 0.5 HP - Potencia 0.5 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0583",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 0.75 HP - Potencia 0.75 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0584",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 1 HP - Potencia 1 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0585",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 1.5 HP - Potencia 1.5 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0586",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 2 HP - Potencia 2 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0587",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 3 HP - Potencia 3 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0588",
+    "tipo": "material",
+    "categoria": "Agua potable",
+    "nombre": "Bomba centrífuga 5 HP - Potencia 5 HP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0589",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #14 negro - Calibre AWG 14",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0590",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #14 rojo - Calibre AWG 14",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0591",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #14 blanco - Calibre AWG 14",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0592",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #14 verde - Calibre AWG 14",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0593",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #12 negro - Calibre AWG 12",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0594",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #12 rojo - Calibre AWG 12",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0595",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #12 blanco - Calibre AWG 12",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0596",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #12 verde - Calibre AWG 12",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0597",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #10 negro - Calibre AWG 10",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0598",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #10 rojo - Calibre AWG 10",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0599",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #10 blanco - Calibre AWG 10",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0600",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #10 verde - Calibre AWG 10",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0601",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #8 negro - Calibre AWG 8",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0602",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #8 rojo - Calibre AWG 8",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0603",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #8 blanco - Calibre AWG 8",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0604",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #8 verde - Calibre AWG 8",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0605",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #6 negro - Calibre AWG 6",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0606",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #6 rojo - Calibre AWG 6",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0607",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #6 blanco - Calibre AWG 6",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0608",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #6 verde - Calibre AWG 6",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0609",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #4 negro - Calibre AWG 4",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0610",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #4 rojo - Calibre AWG 4",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0611",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #4 blanco - Calibre AWG 4",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0612",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #4 verde - Calibre AWG 4",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0613",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #2 negro - Calibre AWG 2",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0614",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #2 rojo - Calibre AWG 2",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0615",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #2 blanco - Calibre AWG 2",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0616",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Cable cobre THHN/THWN #2 verde - Calibre AWG 2",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0617",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería PVC eléctrica 1/2 pulg - Diámetro 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0618",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería EMT 1/2 pulg - Diámetro 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0619",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería PVC eléctrica 3/4 pulg - Diámetro 3/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0620",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería EMT 3/4 pulg - Diámetro 3/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0621",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería PVC eléctrica 1 pulg - Diámetro 1 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0622",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería EMT 1 pulg - Diámetro 1 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0623",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería PVC eléctrica 1 1/4 pulg - Diámetro 1 1/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0624",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería EMT 1 1/4 pulg - Diámetro 1 1/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0625",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería PVC eléctrica 1 1/2 pulg - Diámetro 1 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0626",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería EMT 1 1/2 pulg - Diámetro 1 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0627",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería PVC eléctrica 2 pulg - Diámetro 2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0628",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tubería EMT 2 pulg - Diámetro 2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0629",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 10 A - 1 polo, 10 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0630",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 15 A - 1 polo, 15 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0631",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 20 A - 1 polo, 20 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0632",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 20 A - 2 polos, 20 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0633",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 25 A - 1 polo, 25 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0634",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 25 A - 2 polos, 25 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0635",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 30 A - 1 polo, 30 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0636",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 30 A - 2 polos, 30 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0637",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 40 A - 1 polo, 40 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0638",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 40 A - 2 polos, 40 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0639",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 50 A - 1 polo, 50 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0640",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 50 A - 2 polos, 50 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0641",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 60 A - 1 polo, 60 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0642",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 60 A - 2 polos, 60 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0643",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 80 A - 1 polo, 80 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0644",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 80 A - 2 polos, 80 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0645",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 100 A - 1 polo, 100 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0646",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 100 A - 2 polos, 100 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0647",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 1P 125 A - 1 polo, 125 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0648",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Breaker termomagnético 2P 125 A - 2 polos, 125 A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0649",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tablero 4 espacios",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0650",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tablero 8 espacios",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0651",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tablero 12 espacios",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0652",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tablero 20 espacios",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0653",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Interruptor simple",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0654",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Interruptor doble",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0655",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Interruptor triple",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0656",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Conmutador",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0657",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tomacorriente 120 V",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0658",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tomacorriente 220 V",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0659",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Tomacorriente GFCI",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0660",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Caja rectangular",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0661",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Caja octogonal",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0662",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Caja de paso 10x10 cm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0663",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Varilla copperweld 5/8 x 1.8 m",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0664",
+    "tipo": "material",
+    "categoria": "Eléctrico",
+    "nombre": "Conector puesta a tierra",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0665",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 6 W - Potencia 6 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0666",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 9 W - Potencia 9 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0667",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 12 W - Potencia 12 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0668",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 15 W - Potencia 15 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0669",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 18 W - Potencia 18 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0670",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 24 W - Potencia 24 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0671",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 36 W - Potencia 36 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0672",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Panel LED 48 W - Potencia 48 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0673",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Downlight LED 7 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0674",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Downlight LED 12 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0675",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Reflector LED 50 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0676",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Reflector LED 100 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0677",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Luminaria lineal LED 40 W",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0678",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Luminaria de emergencia",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0679",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Sensor de movimiento",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0680",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Fotocélula",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0681",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Cinta LED 12 V",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0682",
+    "tipo": "material",
+    "categoria": "Iluminación",
+    "nombre": "Perfil aluminio para cinta LED",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0683",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Cable UTP Cat 5e - Categoría Cat 5e",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0684",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Jack RJ45 Cat 5e - Categoría Cat 5e",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0685",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Cable UTP Cat 6 - Categoría Cat 6",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0686",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Jack RJ45 Cat 6 - Categoría Cat 6",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0687",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Cable UTP Cat 6A - Categoría Cat 6A",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0688",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Jack RJ45 Cat 6A - Categoría Cat 6A",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0689",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Patch panel 24 puertos",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0690",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Rack 6U",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0691",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Rack 9U",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0692",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Rack 12U",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0693",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Faceplate 1 puerto",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0694",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Faceplate 2 puertos",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0695",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Fibra óptica monomodo",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0696",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Fibra óptica multimodo",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0697",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Cámara IP 4 MP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0698",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Cámara IP 8 MP",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0699",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "NVR 8 canales",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0700",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "NVR 16 canales",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0701",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Detector de humo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0702",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Sirena alarma",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0703",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Videoportero",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0704",
+    "tipo": "material",
+    "categoria": "Telecomunicaciones",
+    "nombre": "Control de acceso",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0705",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Aire acondicionado split 9000 BTU/h - Capacidad 9000 BTU/h",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0706",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Aire acondicionado split 12000 BTU/h - Capacidad 12000 BTU/h",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0707",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Aire acondicionado split 18000 BTU/h - Capacidad 18000 BTU/h",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0708",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Aire acondicionado split 24000 BTU/h - Capacidad 24000 BTU/h",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0709",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Aire acondicionado split 36000 BTU/h - Capacidad 36000 BTU/h",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0710",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Tubería cobre ACR 1/4 pulg - Diámetro 1/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0711",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Tubería cobre ACR 3/8 pulg - Diámetro 3/8 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0712",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Tubería cobre ACR 1/2 pulg - Diámetro 1/2 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0713",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Tubería cobre ACR 5/8 pulg - Diámetro 5/8 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0714",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Tubería cobre ACR 3/4 pulg - Diámetro 3/4 pulg",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0715",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Aislamiento elastomérico 1/2 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0716",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Ducto galvanizado",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0717",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Rejilla retorno",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0718",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Difusor 4 vías",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0719",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Extractor baño 6 pulg",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0720",
+    "tipo": "material",
+    "categoria": "Climatización",
+    "nombre": "Extractor industrial",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0721",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Adoquín vehicular 8 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0722",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Adoquín peatonal 6 cm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0723",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Bordillo prefabricado",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0724",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Cuneta prefabricada",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0725",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Rejilla de hierro dúctil",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0726",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Tapa de pozo de hierro dúctil",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0727",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Geotextil vial 200 g/m²",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0728",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Geomalla biaxial",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0729",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Señal vertical reglamentaria",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0730",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Pintura vial",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0731",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Poste galvanizado",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0732",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Césped natural",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0733",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Tierra vegetal",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0734",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Tubería riego PEAD 20 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0735",
+    "tipo": "material",
+    "categoria": "Urbanización",
+    "nombre": "Tubería riego PEAD 25 mm",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0736",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Mezcla asfáltica en caliente",
+    "unidad": "t",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0737",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Emulsión asfáltica",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0738",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Asfalto RC",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0739",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Base granular",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0740",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Subbase granular",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0741",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Material de mejoramiento",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0742",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Alcantarilla metálica corrugada 600 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0743",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Alcantarilla metálica corrugada 900 mm",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0744",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Gavión caja 2x1x1 m",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0745",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Malla para gavión",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0746",
+    "tipo": "material",
+    "categoria": "Vialidad",
+    "nombre": "Geocelda",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0747",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Malla ciclónica 50x50 mm",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0748",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Malla electrosoldada cerramiento",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0749",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Poste galvanizado cerramiento",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0750",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Alambre de púas",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0751",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Concertina de seguridad",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0752",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Portón metálico",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0753",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Puerta metálica peatonal",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0754",
+    "tipo": "material",
+    "categoria": "Cerramientos",
+    "nombre": "Panel prefabricado de hormigón",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0755",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Plastificante para hormigón",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0756",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Superplastificante",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0757",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Acelerante de fraguado",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0758",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Retardante de fraguado",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0759",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Incorporador de aire",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0760",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Curador de hormigón",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0761",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Puente adherente epóxico",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0762",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Resina epóxica",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0763",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Endurecedor superficial",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0764",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Fibra de polipropileno",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MAT-0765",
+    "tipo": "material",
+    "categoria": "Aditivos",
+    "nombre": "Fibra estructural sintética",
+    "unidad": "kg",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0001",
+    "tipo": "mano_obra",
+    "categoria": "Obra civil",
+    "nombre": "Peón - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0002",
+    "tipo": "mano_obra",
+    "categoria": "Obra civil",
+    "nombre": "Ayudante de albañil - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0003",
+    "tipo": "mano_obra",
+    "categoria": "Obra civil",
+    "nombre": "Albañil - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0004",
+    "tipo": "mano_obra",
+    "categoria": "Obra civil",
+    "nombre": "Maestro de obra - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0005",
+    "tipo": "mano_obra",
+    "categoria": "Estructuras",
+    "nombre": "Fierrero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0006",
+    "tipo": "mano_obra",
+    "categoria": "Estructuras",
+    "nombre": "Ayudante fierrero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0007",
+    "tipo": "mano_obra",
+    "categoria": "Estructuras",
+    "nombre": "Encofrador - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0008",
+    "tipo": "mano_obra",
+    "categoria": "Estructuras",
+    "nombre": "Ayudante encofrador - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0009",
+    "tipo": "mano_obra",
+    "categoria": "Carpintería",
+    "nombre": "Carpintero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0010",
+    "tipo": "mano_obra",
+    "categoria": "Carpintería",
+    "nombre": "Ayudante carpintero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0011",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Electricista - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0012",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Ayudante electricista - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0013",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Plomero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0014",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Ayudante plomero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0015",
+    "tipo": "mano_obra",
+    "categoria": "Metalmecánica",
+    "nombre": "Soldador - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0016",
+    "tipo": "mano_obra",
+    "categoria": "Metalmecánica",
+    "nombre": "Ayudante soldador - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0017",
+    "tipo": "mano_obra",
+    "categoria": "Acabados",
+    "nombre": "Pintor - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0018",
+    "tipo": "mano_obra",
+    "categoria": "Acabados",
+    "nombre": "Ayudante pintor - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0019",
+    "tipo": "mano_obra",
+    "categoria": "Acabados",
+    "nombre": "Ceramista - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0020",
+    "tipo": "mano_obra",
+    "categoria": "Acabados",
+    "nombre": "Ayudante ceramista - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0021",
+    "tipo": "mano_obra",
+    "categoria": "Acabados",
+    "nombre": "Instalador de gypsum - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0022",
+    "tipo": "mano_obra",
+    "categoria": "Acabados",
+    "nombre": "Instalador de aluminio y vidrio - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0023",
+    "tipo": "mano_obra",
+    "categoria": "Maquinaria",
+    "nombre": "Operador de excavadora - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0024",
+    "tipo": "mano_obra",
+    "categoria": "Maquinaria",
+    "nombre": "Operador de retroexcavadora - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0025",
+    "tipo": "mano_obra",
+    "categoria": "Maquinaria",
+    "nombre": "Operador de cargadora - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0026",
+    "tipo": "mano_obra",
+    "categoria": "Maquinaria",
+    "nombre": "Operador de motoniveladora - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0027",
+    "tipo": "mano_obra",
+    "categoria": "Maquinaria",
+    "nombre": "Operador de rodillo - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0028",
+    "tipo": "mano_obra",
+    "categoria": "Transporte",
+    "nombre": "Chofer de volqueta - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0029",
+    "tipo": "mano_obra",
+    "categoria": "Topografía",
+    "nombre": "Topógrafo - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0030",
+    "tipo": "mano_obra",
+    "categoria": "Topografía",
+    "nombre": "Cadenero / ayudante topografía - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0031",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Técnico HVAC - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0032",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Técnico de telecomunicaciones - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0033",
+    "tipo": "mano_obra",
+    "categoria": "Instalaciones",
+    "nombre": "Técnico CCTV - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0034",
+    "tipo": "mano_obra",
+    "categoria": "Exteriores",
+    "nombre": "Jardinero - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0035",
+    "tipo": "mano_obra",
+    "categoria": "Estructuras",
+    "nombre": "Montador de estructura metálica - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0036",
+    "tipo": "mano_obra",
+    "categoria": "Cubiertas",
+    "nombre": "Instalador de cubierta - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0037",
+    "tipo": "mano_obra",
+    "categoria": "Impermeabilización",
+    "nombre": "Impermeabilizador - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0038",
+    "tipo": "mano_obra",
+    "categoria": "Supervisión",
+    "nombre": "Residente de obra - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0039",
+    "tipo": "mano_obra",
+    "categoria": "Supervisión",
+    "nombre": "Ingeniero civil - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "MO-0040",
+    "tipo": "mano_obra",
+    "categoria": "Supervisión",
+    "nombre": "Arquitecto - Costo horario de mano de obra",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0001",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Excavadora sobre orugas 20 t - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0002",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Miniexcavadora - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0003",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Retroexcavadora - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0004",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Cargadora frontal - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0005",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Minicargadora - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0006",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Bulldozer - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0007",
+    "tipo": "equipo",
+    "categoria": "Movimiento de tierras",
+    "nombre": "Motoniveladora - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0008",
+    "tipo": "equipo",
+    "categoria": "Compactación",
+    "nombre": "Rodillo vibratorio liso - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0009",
+    "tipo": "equipo",
+    "categoria": "Compactación",
+    "nombre": "Rodillo pata de cabra - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0010",
+    "tipo": "equipo",
+    "categoria": "Compactación",
+    "nombre": "Placa vibratoria - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0011",
+    "tipo": "equipo",
+    "categoria": "Compactación",
+    "nombre": "Vibroapisonador - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0012",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Volqueta 6 m³ - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0013",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Volqueta 8 m³ - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0014",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Volqueta 12 m³ - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0015",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Volqueta 15 m³ - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0016",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Camión plataforma - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0017",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Camión grúa - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0018",
+    "tipo": "equipo",
+    "categoria": "Transporte",
+    "nombre": "Tanquero de agua - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0019",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Concretera 1 saco - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0020",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Mezcladora 160 L - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0021",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Camión mixer - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0022",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Bomba estacionaria de hormigón - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0023",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Bomba telescópica de hormigón - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0024",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Vibrador de hormigón - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0025",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Regla vibratoria - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0026",
+    "tipo": "equipo",
+    "categoria": "Hormigón",
+    "nombre": "Allanadora mecánica - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0027",
+    "tipo": "equipo",
+    "categoria": "Izaje",
+    "nombre": "Grúa móvil - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0028",
+    "tipo": "equipo",
+    "categoria": "Izaje",
+    "nombre": "Grúa torre - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0029",
+    "tipo": "equipo",
+    "categoria": "Izaje",
+    "nombre": "Montacargas - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0030",
+    "tipo": "equipo",
+    "categoria": "Izaje",
+    "nombre": "Telehandler - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0031",
+    "tipo": "equipo",
+    "categoria": "Izaje",
+    "nombre": "Winche eléctrico - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0032",
+    "tipo": "equipo",
+    "categoria": "Izaje",
+    "nombre": "Plataforma elevadora - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0033",
+    "tipo": "equipo",
+    "categoria": "Acero",
+    "nombre": "Cortadora de varilla - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0034",
+    "tipo": "equipo",
+    "categoria": "Acero",
+    "nombre": "Dobladora de varilla - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0035",
+    "tipo": "equipo",
+    "categoria": "Acero",
+    "nombre": "Soldadora eléctrica - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0036",
+    "tipo": "equipo",
+    "categoria": "Acero",
+    "nombre": "Soldadora MIG/MAG - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0037",
+    "tipo": "equipo",
+    "categoria": "Acero",
+    "nombre": "Equipo oxicorte - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0038",
+    "tipo": "equipo",
+    "categoria": "Acero",
+    "nombre": "Esmeril angular - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0039",
+    "tipo": "equipo",
+    "categoria": "Topografía",
+    "nombre": "Estación total - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0040",
+    "tipo": "equipo",
+    "categoria": "Topografía",
+    "nombre": "Nivel automático - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0041",
+    "tipo": "equipo",
+    "categoria": "Topografía",
+    "nombre": "Nivel láser - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0042",
+    "tipo": "equipo",
+    "categoria": "Topografía",
+    "nombre": "GPS/GNSS RTK - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0043",
+    "tipo": "equipo",
+    "categoria": "Topografía",
+    "nombre": "Dron topográfico - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0044",
+    "tipo": "equipo",
+    "categoria": "Energía",
+    "nombre": "Generador 3 kW - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0045",
+    "tipo": "equipo",
+    "categoria": "Energía",
+    "nombre": "Generador 5 kW - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0046",
+    "tipo": "equipo",
+    "categoria": "Energía",
+    "nombre": "Generador 10 kW - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0047",
+    "tipo": "equipo",
+    "categoria": "Energía",
+    "nombre": "Generador 20 kW - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0048",
+    "tipo": "equipo",
+    "categoria": "Bombeo",
+    "nombre": "Motobomba - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0049",
+    "tipo": "equipo",
+    "categoria": "Bombeo",
+    "nombre": "Bomba sumergible - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0050",
+    "tipo": "equipo",
+    "categoria": "Demolición",
+    "nombre": "Martillo demoledor - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0051",
+    "tipo": "equipo",
+    "categoria": "Perforación",
+    "nombre": "Rotomartillo - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0052",
+    "tipo": "equipo",
+    "categoria": "Corte",
+    "nombre": "Cortadora de hormigón - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0053",
+    "tipo": "equipo",
+    "categoria": "Aire",
+    "nombre": "Compresor de aire - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "EQ-0054",
+    "tipo": "equipo",
+    "categoria": "Limpieza",
+    "nombre": "Hidrolavadora - Costo horario de equipo/maquinaria",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0001",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Pala cuadrada",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0002",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Pala punta",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0003",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Pico",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0004",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Barreta",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0005",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Carretilla",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0006",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Baldes",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0007",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Martillo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0008",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Combo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0009",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Cincel",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0010",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Serrucho",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0011",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Alicate universal",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0012",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Tenaza de fierrero",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0013",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Destornillador plano",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0014",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Destornillador estrella",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0015",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Llave ajustable",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0016",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Juego de llaves",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0017",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Flexómetro 5 m",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0018",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Flexómetro 8 m",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0019",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Nivel de burbuja",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0020",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Plomada",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0021",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Escuadra",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0022",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Regla de aluminio",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0023",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Llana metálica",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0024",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Llana dentada",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0025",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Bailejo",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0026",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Espátula",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0027",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Rodillo pintura",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0028",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Brocha",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0029",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Cortador cerámica manual",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0030",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Escalera",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0031",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Caballetes",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0032",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Taladro",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0033",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Sierra circular",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0034",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Ingletadora",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "HM-0035",
+    "tipo": "herramienta_menor",
+    "categoria": "Herramienta menor",
+    "nombre": "Extensión eléctrica",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0001",
+    "tipo": "otros",
+    "categoria": "Logística",
+    "nombre": "Flete de materiales - Costo directo complementario",
+    "unidad": "viaje",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0002",
+    "tipo": "otros",
+    "categoria": "Logística",
+    "nombre": "Carga manual - Costo directo complementario",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0003",
+    "tipo": "otros",
+    "categoria": "Logística",
+    "nombre": "Descarga manual - Costo directo complementario",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0004",
+    "tipo": "otros",
+    "categoria": "Logística",
+    "nombre": "Acarreo interno de materiales - Costo directo complementario",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0005",
+    "tipo": "otros",
+    "categoria": "Logística",
+    "nombre": "Servicio de izaje - Costo directo complementario",
+    "unidad": "h",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0006",
+    "tipo": "otros",
+    "categoria": "Operación",
+    "nombre": "Combustible para maquinaria - Costo directo complementario",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0007",
+    "tipo": "otros",
+    "categoria": "Operación",
+    "nombre": "Lubricantes para maquinaria - Costo directo complementario",
+    "unidad": "L",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0008",
+    "tipo": "otros",
+    "categoria": "Provisionales",
+    "nombre": "Energía eléctrica provisional - Costo directo complementario",
+    "unidad": "mes",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0009",
+    "tipo": "otros",
+    "categoria": "Provisionales",
+    "nombre": "Agua provisional de obra - Costo directo complementario",
+    "unidad": "mes",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0010",
+    "tipo": "otros",
+    "categoria": "Provisionales",
+    "nombre": "Cerramiento provisional - Costo directo complementario",
+    "unidad": "m",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0011",
+    "tipo": "otros",
+    "categoria": "Provisionales",
+    "nombre": "Bodega provisional - Costo directo complementario",
+    "unidad": "mes",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0012",
+    "tipo": "otros",
+    "categoria": "Provisionales",
+    "nombre": "Señalización provisional - Costo directo complementario",
+    "unidad": "global",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0013",
+    "tipo": "otros",
+    "categoria": "Residuos",
+    "nombre": "Limpieza de obra - Costo directo complementario",
+    "unidad": "m²",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0014",
+    "tipo": "otros",
+    "categoria": "Residuos",
+    "nombre": "Retiro de escombros - Costo directo complementario",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0015",
+    "tipo": "otros",
+    "categoria": "Residuos",
+    "nombre": "Disposición final de escombros - Costo directo complementario",
+    "unidad": "m³",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0016",
+    "tipo": "otros",
+    "categoria": "Control de calidad",
+    "nombre": "Ensayo de compresión de cilindros - Costo directo complementario",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0017",
+    "tipo": "otros",
+    "categoria": "Control de calidad",
+    "nombre": "Ensayo Proctor - Costo directo complementario",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0018",
+    "tipo": "otros",
+    "categoria": "Control de calidad",
+    "nombre": "Ensayo densidad de campo - Costo directo complementario",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0019",
+    "tipo": "otros",
+    "categoria": "Control de calidad",
+    "nombre": "Ensayo CBR - Costo directo complementario",
+    "unidad": "u",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0020",
+    "tipo": "otros",
+    "categoria": "Control de calidad",
+    "nombre": "Prueba hidrostática - Costo directo complementario",
+    "unidad": "global",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0021",
+    "tipo": "otros",
+    "categoria": "Control de calidad",
+    "nombre": "Prueba de aislamiento eléctrico - Costo directo complementario",
+    "unidad": "global",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0022",
+    "tipo": "otros",
+    "categoria": "Movilización",
+    "nombre": "Movilización de maquinaria - Costo directo complementario",
+    "unidad": "viaje",
+    "costo": 0
+  },
+  {
+    "codigo": "OT-0023",
+    "tipo": "otros",
+    "categoria": "Movilización",
+    "nombre": "Desmovilización de maquinaria - Costo directo complementario",
+    "unidad": "viaje",
+    "costo": 0
+  }
+]

@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download } from "lucide-react"
+import { Plus, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag } from "lucide-react"
 
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
@@ -224,7 +224,8 @@ export default function PresupuestosRealesPage() {
   if (view === 'explosion') {
     let totMateriales = explosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0)
     let totMO = explosionData.filter(i => i.tipo === 'mano_obra').reduce((acc, curr) => acc + curr.costo_total, 0)
-    let totEq = explosionData.filter(i => i.tipo === 'equipo').reduce((acc, curr) => acc + curr.costo_total, 0)
+    let totEq = explosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor').reduce((acc, curr) => acc + curr.costo_total, 0)
+    let totOtros = explosionData.filter(i => i.tipo === 'otros').reduce((acc, curr) => acc + curr.costo_total, 0)
 
     return (
       <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
@@ -240,7 +241,7 @@ export default function PresupuestosRealesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center">
             <p className="text-gray-500 text-xs font-bold uppercase mb-1">Total Materiales</p>
             <p className="text-xl font-black text-blue-600">${totMateriales.toFixed(2)}</p>
@@ -253,9 +254,13 @@ export default function PresupuestosRealesPage() {
             <p className="text-gray-500 text-xs font-bold uppercase mb-1">Total Equipos</p>
             <p className="text-xl font-black text-purple-600">${totEq.toFixed(2)}</p>
           </div>
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm text-center">
+            <p className="text-gray-500 text-xs font-bold uppercase mb-1">Otros Costos</p>
+            <p className="text-xl font-black text-gray-600">${totOtros.toFixed(2)}</p>
+          </div>
           <div className="bg-brand-dark p-4 rounded-xl border border-gray-100 shadow-sm text-center">
             <p className="text-brand-sage text-xs font-bold uppercase mb-1">Costo Directo</p>
-            <p className="text-xl font-black text-white">${(totMateriales + totMO + totEq).toFixed(2)}</p>
+            <p className="text-xl font-black text-white">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p>
           </div>
         </div>
 
@@ -282,8 +287,8 @@ export default function PresupuestosRealesPage() {
                       <td className="px-4 py-2 font-mono text-xs text-gray-500">{ins.codigo}</td>
                       <td className="px-4 py-2 font-medium text-gray-800">{ins.nombre}</td>
                       <td className="px-4 py-2 text-center text-xs">
-                        <span className={`px-2 py-1 rounded ${ins.tipo === 'material' ? 'bg-blue-50 text-blue-600' : ins.tipo === 'mano_obra' ? 'bg-orange-50 text-orange-600' : 'bg-purple-50 text-purple-600'}`}>
-                          {ins.tipo.replace('_', ' ')}
+                        <span className={`px-2 py-1 rounded ${ins.tipo === 'material' ? 'bg-blue-50 text-blue-600' : ins.tipo === 'mano_obra' ? 'bg-orange-50 text-orange-600' : ins.tipo === 'equipo' ? 'bg-purple-50 text-purple-600' : ins.tipo === 'herramienta_menor' ? 'bg-teal-50 text-teal-600' : 'bg-gray-50 text-gray-600'}`}>
+                          {ins.tipo.replace('_', ' ').toUpperCase()}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-center text-xs font-bold text-gray-500">{ins.unidad}</td>

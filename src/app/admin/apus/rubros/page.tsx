@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Edit2, Trash2, X, ArrowLeft, Box, Users, Wrench, Save, Calculator } from "lucide-react"
+import { Plus, Search, Edit2, Trash2, X, ArrowLeft, Box, Users, Wrench, Hammer, Tag, Save, Calculator } from "lucide-react"
 
 export default function RubrosPage() {
   const supabase = createClient()
@@ -215,7 +215,9 @@ export default function RubrosPage() {
                           <td className="px-4 py-2">
                             {item.insumo.tipo === 'material' ? <Box size={14} className="text-blue-500" /> : 
                              item.insumo.tipo === 'mano_obra' ? <Users size={14} className="text-orange-500" /> : 
-                             <Wrench size={14} className="text-purple-500" />}
+                             item.insumo.tipo === 'equipo' ? <Wrench size={14} className="text-purple-500" /> : 
+                             item.insumo.tipo === 'herramienta_menor' ? <Hammer size={14} className="text-teal-500" /> : 
+                             <Tag size={14} className="text-gray-500" />}
                           </td>
                           <td className="px-4 py-2 font-medium text-gray-800 text-xs">{item.insumo.nombre}</td>
                           <td className="px-4 py-2 text-center text-xs text-gray-500">{item.insumo.unidad}</td>
@@ -306,8 +308,8 @@ export default function RubrosPage() {
                     {filteredInsumosSearch.map(ins => (
                       <div key={ins.id} className="flex justify-between items-center p-3 hover:bg-gray-50 border border-transparent hover:border-gray-100 rounded-lg transition-colors cursor-pointer" onClick={() => handleAddInsumoToReceta(ins)}>
                         <div className="flex gap-3 items-center">
-                          <div className={`p-2 rounded-lg ${ins.tipo === 'material' ? 'bg-blue-50 text-blue-500' : ins.tipo === 'mano_obra' ? 'bg-orange-50 text-orange-500' : 'bg-purple-50 text-purple-500'}`}>
-                            {ins.tipo === 'material' ? <Box size={16} /> : ins.tipo === 'mano_obra' ? <Users size={16} /> : <Wrench size={16} />}
+                          <div className={`p-2 rounded-lg ${ins.tipo === 'material' ? 'bg-blue-50 text-blue-500' : ins.tipo === 'mano_obra' ? 'bg-orange-50 text-orange-500' : ins.tipo === 'equipo' ? 'bg-purple-50 text-purple-500' : ins.tipo === 'herramienta_menor' ? 'bg-teal-50 text-teal-500' : 'bg-gray-50 text-gray-500'}`}>
+                            {ins.tipo === 'material' ? <Box size={16} /> : ins.tipo === 'mano_obra' ? <Users size={16} /> : ins.tipo === 'equipo' ? <Wrench size={16} /> : ins.tipo === 'herramienta_menor' ? <Hammer size={16} /> : <Tag size={16} />}
                           </div>
                           <div>
                             <div className="font-bold text-sm text-gray-800">{ins.nombre}</div>

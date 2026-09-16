@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Edit2, Trash2, X, Box, Users, Wrench } from "lucide-react"
+import { Plus, Search, Edit2, Trash2, X, Box, Users, Wrench, Hammer, Tag } from "lucide-react"
 
 export default function InsumosPage() {
   const supabase = createClient()
@@ -123,6 +123,8 @@ export default function InsumosPage() {
     if (tipo === 'material') return <Box size={16} className="text-blue-500" />
     if (tipo === 'mano_obra') return <Users size={16} className="text-orange-500" />
     if (tipo === 'equipo') return <Wrench size={16} className="text-purple-500" />
+    if (tipo === 'herramienta_menor') return <Hammer size={16} className="text-teal-500" />
+    if (tipo === 'otros') return <Tag size={16} className="text-gray-500" />
     return null
   }
 
@@ -130,6 +132,8 @@ export default function InsumosPage() {
     if (tipo === 'material') return "Material"
     if (tipo === 'mano_obra') return "Mano de Obra"
     if (tipo === 'equipo') return "Equipo"
+    if (tipo === 'herramienta_menor') return "Herr. Menor"
+    if (tipo === 'otros') return "Otros"
     return tipo
   }
 
@@ -175,6 +179,18 @@ export default function InsumosPage() {
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'equipo' ? 'bg-purple-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               <Wrench size={14} /> Equipos
+            </button>
+            <button 
+              onClick={() => setFilterTipo('herramienta_menor')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'herramienta_menor' ? 'bg-teal-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Hammer size={14} /> Herr. Menor
+            </button>
+            <button 
+              onClick={() => setFilterTipo('otros')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'otros' ? 'bg-gray-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Tag size={14} /> Otros
             </button>
           </div>
 
@@ -285,7 +301,9 @@ export default function InsumosPage() {
                   >
                     <option value="material">Materiales</option>
                     <option value="mano_obra">Mano de Obra</option>
-                    <option value="equipo">Equipos y Maquinaria</option>
+                    <option value="equipo">Equipo</option>
+                    <option value="herramienta_menor">Herramienta Menor</option>
+                    <option value="otros">Otros</option>
                   </select>
                 </div>
                 
