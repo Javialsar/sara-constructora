@@ -30,6 +30,7 @@ export default function ProveedoresPage() {
   })
 
   const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -49,23 +50,71 @@ export default function ProveedoresPage() {
     setLoading(false)
   }
 
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setEditingId(null)
+    setFormData({ razon_social: "", ruc: "", contacto_vendedor: "", telefono: "", email: "", dias_credito: 0 })
+  }
+
+  const handleEdit = (prov: Proveedor) => {
+    setFormData({
+      razon_social: prov.razon_social,
+      ruc: prov.ruc || "",
+      contacto_vendedor: prov.contacto_vendedor || "",
+      telefono: prov.telefono || "",
+      email: prov.email || "",
+      dias_credito: prov.dias_credito || 0
+    })
+    setEditingId(prov.id)
+    setIsModalOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Estás seguro de que deseas eliminar este proveedor?")) return
+    
+    const { error } = await supabase
+      .from('proveedores')
+      .delete()
+      .eq('id', id)
+      
+    if (!error) {
+      fetchProveedores()
+    } else {
+      alert("Error al eliminar el proveedor")
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     
-    const { error } = await supabase
-      .from('proveedores')
-      .insert([formData])
-
-    setSaving(false)
-    
-    if (!error) {
-      setIsModalOpen(false)
-      setFormData({ razon_social: "", ruc: "", contacto_vendedor: "", telefono: "", email: "", dias_credito: 0 })
-      fetchProveedores() // Recargar la tabla
+    if (editingId) {
+      const { error } = await supabase
+        .from('proveedores')
+        .update(formData)
+        .eq('id', editingId)
+        
+      setSaving(false)
+      if (!error) {
+        closeModal()
+        fetchProveedores()
+      } else {
+        alert("Error al actualizar el proveedor.")
+        console.error(error)
+      }
     } else {
-      alert("Error al guardar el proveedor. Asegúrate de tener conexión a la base de datos.")
-      console.error(error)
+      const { error } = await supabase
+        .from('proveedores')
+        .insert([formData])
+
+      setSaving(false)
+      if (!error) {
+        closeModal()
+        fetchProveedores()
+      } else {
+        alert("Error al guardar el proveedor. Asegúrate de tener conexión a la base de datos.")
+        console.error(error)
+      }
     }
   }
 
@@ -151,10 +200,10 @@ export default function ProveedoresPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
+                      <button onClick={() => handleEdit(prov)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
                         <Edit size={16} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
+                      <button onClick={() => handleDelete(prov.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -166,16 +215,16 @@ export default function ProveedoresPage() {
         )}
       </div>
 
-      {/* Modal Nuevo Proveedor */}
+      {/* Modal Nuevo/Editar Proveedor */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <Briefcase className="text-brand-sage" size={20} />
-                Registrar Nuevo Proveedor
+                {editingId ? "Editar Proveedor" : "Registrar Nuevo Proveedor"}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={24} />
               </button>
             </div>
@@ -253,7 +302,7 @@ export default function ProveedoresPage() {
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button 
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeModal}
                   className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
