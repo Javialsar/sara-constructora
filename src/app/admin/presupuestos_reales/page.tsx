@@ -642,7 +642,7 @@ export default function PresupuestosRealesPage() {
                 <div className="lg:w-1/3 bg-gray-50 p-4 overflow-y-auto border-l">
                   <h4 className="font-bold mb-4 text-brand-dark">Agregar Insumo a la Receta</h4>
                   <input type="text" placeholder="Buscar catálogo maestro..." value={insumoSearch} onChange={e => setInsumoSearch(e.target.value)} className="w-full border p-2 rounded mb-4 shadow-sm" />
-                  <div className="space-y-2 relative">
+                  <div className="space-y-2 relative h-[600px] overflow-y-auto">
                       {searchingInsumos && <div className="absolute inset-0 bg-gray-50/80 flex justify-center pt-4 z-10"><Loader2 className="animate-spin text-brand-sage" /></div>}
                       {allInsumos.map(ins => (
                         <div key={ins.id} className="bg-white p-3 rounded-lg border border-gray-200 text-sm flex justify-between items-center shadow-sm hover:border-brand-sage transition-colors">
@@ -657,22 +657,17 @@ export default function PresupuestosRealesPage() {
                       {allInsumos.length === 0 && insumoSearch.length >= 2 && !searchingInsumos && (
                         <div className="text-center py-4 text-gray-400 text-sm">No se encontraron insumos.</div>
                       )}
-                    </div><div className="text-xs text-gray-500">${ins.precio_sin_iva} / {ins.unidad}</div></div>
-                        <button onClick={() => handleAddInsumoToRecipe(ins)} className="bg-blue-50 text-blue-600 hover:bg-blue-100 p-2 rounded"><Plus size={16}/></button>
-                      </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )
+    }
 
-      </div>
-    )
-  }
-
-  return (
+    return (
     <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div><h1 className="text-3xl font-black text-brand-dark">Presupuestos APU Reales</h1><p className="text-gray-500">Crea presupuestos detallados por rubros, cantidades de obra y costos indirectos (AIU).</p></div>
