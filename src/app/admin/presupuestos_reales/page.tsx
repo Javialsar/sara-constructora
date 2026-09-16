@@ -327,7 +327,7 @@ export default function PresupuestosRealesPage() {
     doc.save(`Presupuesto_${currentPresupuesto.nombre_proyecto.replace(/\s+/g, '_')}.pdf`)
   }
 
-  const isBorrador = currentPresupuesto?.estado === 'Borrador' || !currentPresupuesto?.estado;
+  const isBorrador = !currentPresupuesto?.estado || currentPresupuesto.estado.toLowerCase() === 'borrador';
 
   if (view === 'explosion') {
     let totMateriales = explosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0)
@@ -447,10 +447,20 @@ export default function PresupuestosRealesPage() {
                         <td></td>
                         <td colSpan={7} className="p-0">
                           <div className="p-4 border-l-4 border-brand-sage mx-4 my-2 bg-white shadow-sm rounded-r-lg">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Desglose de Insumos</h4>
+                            <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-xs font-bold text-gray-500 uppercase">Desglose de Insumos</h4>
+                              {isBorrador && (
+                                <button onClick={() => openRecipeEditor(item)} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                                  <Edit3 size={12}/> Modificar Insumos
+                                </button>
+                              )}
+                            </div>
                             <table className="w-full text-xs">
                               <thead className="text-gray-400 border-b"><tr><th className="text-left py-1">Insumo</th><th className="text-center">Tipo</th><th className="text-right">Rendimiento</th><th className="text-right">Costo U.</th><th className="text-right">Subtotal</th></tr></thead>
                               <tbody>
+                                {(!rubrosRecipes[item.id] || rubrosRecipes[item.id].length === 0) && (
+                                  <tr><td colSpan={5} className="py-4 text-center text-gray-400 italic">No hay insumos en este rubro. Haz clic en Modificar Insumos.</td></tr>
+                                )}
                                 {(rubrosRecipes[item.id] || []).map(r => {
                                   const ins = Array.isArray(r.insumo) ? r.insumo[0] : r.insumo;
                                   return (
