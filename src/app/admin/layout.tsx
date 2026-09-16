@@ -16,7 +16,9 @@ import {
   X,
   Calculator,
   Briefcase,
-  Wrench
+  Wrench,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -30,6 +32,17 @@ export default function AdminLayout({
   const [logo, setLogo] = useState("/images/logo-sara.png")
   const [userName, setUserName] = useState("Administrador")
   const [userInitials, setUserInitials] = useState("A")
+  
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    "PANEL PRINCIPAL": true,
+    "DIRECTORIO Y RECURSOS": true,
+    "MÓDULO APU-SARA": true,
+    "PORTAL WEB": false
+  })
+
+  const toggleGroup = (title: string) => {
+    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }))
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,33 +122,43 @@ export default function AdminLayout({
         </div>
 
         <nav className="flex-1 py-4 px-3 overflow-y-auto">
-          {navGroups.map((group, groupIdx) => (
-            <div key={groupIdx} className="mb-6">
-              <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                {group.title}
-              </h3>
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href
-                  return (
-                    <Link 
-                      key={item.href}
-                      href={item.href} 
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
-                        isActive 
-                          ? "bg-brand-sage text-brand-dark" 
-                          : "text-gray-300 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <Icon size={18} />
-                      <span>{item.label}</span>
-                    </Link>
-                  )
-                })}
+          {navGroups.map((group, groupIdx) => {
+            const isOpen = openGroups[group.title] !== false; // Default to true if not set
+            return (
+              <div key={groupIdx} className="mb-4">
+                <button 
+                  onClick={() => toggleGroup(group.title)}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
+                >
+                  <span>{group.title}</span>
+                  {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+                
+                {isOpen && (
+                  <div className="space-y-1 mt-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon
+                      const isActive = pathname === item.href
+                      return (
+                        <Link 
+                          key={item.href}
+                          href={item.href} 
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
+                            isActive 
+                              ? "bg-brand-sage text-brand-dark" 
+                              : "text-gray-300 hover:bg-white/5 hover:text-white"
+                          }`}
+                        >
+                          <Icon size={18} />
+                          <span>{item.label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         <div className="p-4 border-t border-white/10">
