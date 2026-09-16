@@ -33,15 +33,13 @@ export default function AdminLayout({
   const [userName, setUserName] = useState("Administrador")
   const [userInitials, setUserInitials] = useState("A")
   
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    "PANEL PRINCIPAL": true,
-    "DIRECTORIO Y RECURSOS": true,
-    "MÓDULO APU-SARA": true,
-    "PORTAL WEB": false
-  })
+  // Guardamos solo el nombre de la categoría abierta para que las demás se cierren solas
+  const [openGroup, setOpenGroup] = useState<string>("PANEL PRINCIPAL")
 
   const toggleGroup = (title: string) => {
-    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }))
+    // Si la categoría ya está abierta y le damos clic, la cerramos (queda todo colapsado). 
+    // Si estaba cerrada, la abrimos (y automáticamente se cierra cualquier otra).
+    setOpenGroup(prev => prev === title ? "" : title)
   }
 
   useEffect(() => {
@@ -123,12 +121,14 @@ export default function AdminLayout({
 
         <nav className="flex-1 py-4 px-3 overflow-y-auto">
           {navGroups.map((group, groupIdx) => {
-            const isOpen = openGroups[group.title] !== false; // Default to true if not set
+            const isOpen = openGroup === group.title;
             return (
-              <div key={groupIdx} className="mb-4">
+              <div key={groupIdx} className="mb-2">
                 <button 
                   onClick={() => toggleGroup(group.title)}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider hover:text-white transition-colors"
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
+                    isOpen ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"
+                  }`}
                 >
                   <span>{group.title}</span>
                   {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
