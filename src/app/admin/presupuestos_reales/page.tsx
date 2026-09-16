@@ -9,7 +9,7 @@ export default function PresupuestosRealesPage() {
   const supabase = createClient()
   
   const [view, setView] = useState('lista')
-  const [presupuestos, setPresupuestos] = useState([])
+  const [presupuestos, setPresupuestos] = useState<any[]>([])
   const [searchPresupuesto, setSearchPresupuesto] = useState("")
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
@@ -21,24 +21,24 @@ export default function PresupuestosRealesPage() {
     estado: 'Borrador'
   })
 
-  const [currentPresupuesto, setCurrentPresupuesto] = useState(null)
-  const [presupuestoRubros, setPresupuestoRubros] = useState([])
-  const [rubrosRecipes, setRubrosRecipes] = useState({}) // { pres_rubro_id: [] }
-  const [expandedRubros, setExpandedRubros] = useState({}) // { pres_rubro_id: boolean }
+  const [currentPresupuesto, setCurrentPresupuesto] = useState<any>(null)
+  const [presupuestoRubros, setPresupuestoRubros] = useState<any[]>([])
+  const [rubrosRecipes, setRubrosRecipes] = useState<any>({}) // { pres_rubro_id: [] }
+  const [expandedRubros, setExpandedRubros] = useState<any>({}) // { pres_rubro_id: boolean }
 
-  const [allRubros, setAllRubros] = useState([])
+  const [allRubros, setAllRubros] = useState<any[]>([])
   const [searchRubroTerm, setSearchRubroTerm] = useState("")
   const [isAddRubroModalOpen, setIsAddRubroModalOpen] = useState(false)
 
-  const [allInsumos, setAllInsumos] = useState([])
+  const [allInsumos, setAllInsumos] = useState<any[]>([])
   const [insumoSearch, setInsumoSearch] = useState("")
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false)
-  const [currentRecipeRubro, setCurrentRecipeRubro] = useState(null)
+  const [currentRecipeRubro, setCurrentRecipeRubro] = useState<any>(null)
 
-  const [explosionData, setExplosionData] = useState([])
+  const [explosionData, setExplosionData] = useState<any[]>([])
   const [loadingExplosion, setLoadingExplosion] = useState(false)
 
-  const [proyectosCRM, setProyectosCRM] = useState([])
+  const [proyectosCRM, setProyectosCRM] = useState<any[]>([])
 
   useEffect(() => {
     fetchPresupuestos()
