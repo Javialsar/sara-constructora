@@ -14,7 +14,9 @@ import {
   HelpCircle,
   Menu,
   X,
-  Calculator
+  Calculator,
+  Briefcase,
+  Wrench
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -49,20 +51,42 @@ export default function AdminLayout({
     fetchData()
   }, [])
 
-  const navItems = [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/clientes", label: "Clientes", icon: Users },
-    { href: "/admin/proyectos", label: "Proyectos", icon: HardHat },
-    { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
-    { href: "/admin/documentos", label: "Gestor Documental", icon: FileText },
-    { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
-    { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
-    { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
-    { href: "/admin/cotizaciones", label: "Cotizaciones Recibidas", icon: FileText },
-    { href: "/admin/apus/insumos", label: "Catálogo de Insumos", icon: FileText },
-    { href: "/admin/apus/rubros", label: "Recetas y Rubros", icon: Calculator },
-    { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
-    { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },
+  const navGroups = [
+    {
+      title: "PANEL PRINCIPAL",
+      items: [
+        { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/admin/proyectos", label: "Proyectos (Obras)", icon: HardHat },
+      ]
+    },
+    {
+      title: "DIRECTORIO Y RECURSOS",
+      items: [
+        { href: "/admin/clientes", label: "Clientes (CRM)", icon: Users },
+        { href: "/admin/proveedores", label: "Proveedores", icon: Briefcase },
+        { href: "/admin/trabajadores", label: "Personal de Obra", icon: Wrench },
+      ]
+    },
+    {
+      title: "MÓDULO APU-SARA",
+      items: [
+        { href: "/admin/apus/insumos", label: "Catálogo de Insumos", icon: FileText },
+        { href: "/admin/apus/rubros", label: "Recetas y Rubros", icon: Calculator },
+        { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },
+        { href: "/admin/cotizaciones", label: "Cotizaciones Recibidas", icon: FileText },
+        { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
+      ]
+    },
+    {
+      title: "PORTAL WEB",
+      items: [
+        { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
+        { href: "/admin/documentos", label: "Gestor Documental", icon: FileText },
+        { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
+        { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
+        { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
+      ]
+    }
   ]
 
   return (
@@ -84,25 +108,34 @@ export default function AdminLayout({
           </div>
         </div>
 
-        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
-            return (
-              <Link 
-                key={item.href}
-                href={item.href} 
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
-                  isActive 
-                    ? "bg-brand-sage text-brand-dark" 
-                    : "text-gray-300 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
+        <nav className="flex-1 py-4 px-3 overflow-y-auto">
+          {navGroups.map((group, groupIdx) => (
+            <div key={groupIdx} className="mb-6">
+              <h3 className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                {group.title}
+              </h3>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const Icon = item.icon
+                  const isActive = pathname === item.href
+                  return (
+                    <Link 
+                      key={item.href}
+                      href={item.href} 
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${
+                        isActive 
+                          ? "bg-brand-sage text-brand-dark" 
+                          : "text-gray-300 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-white/10">

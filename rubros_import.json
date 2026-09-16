@@ -1,0 +1,3018 @@
+[
+  {
+    "codigo": "RUB-0001",
+    "categoria": "01 Preliminares",
+    "nombre": "Limpieza manual del terreno",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0002",
+    "categoria": "01 Preliminares",
+    "nombre": "Desbroce mecánico del terreno",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0003",
+    "categoria": "01 Preliminares",
+    "nombre": "Replanteo y nivelación de obra",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0004",
+    "categoria": "01 Preliminares",
+    "nombre": "Cerramiento provisional de obra",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0005",
+    "categoria": "01 Preliminares",
+    "nombre": "Instalación de bodega provisional",
+    "unidad": "mes",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0006",
+    "categoria": "01 Preliminares",
+    "nombre": "Instalación de oficina provisional",
+    "unidad": "mes",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0007",
+    "categoria": "01 Preliminares",
+    "nombre": "Instalación sanitaria provisional",
+    "unidad": "mes",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0008",
+    "categoria": "01 Preliminares",
+    "nombre": "Acometida eléctrica provisional",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0009",
+    "categoria": "01 Preliminares",
+    "nombre": "Acometida de agua provisional",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0010",
+    "categoria": "01 Preliminares",
+    "nombre": "Señalización y seguridad provisional",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0011",
+    "categoria": "01 Preliminares",
+    "nombre": "Movilización de maquinaria",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0012",
+    "categoria": "01 Preliminares",
+    "nombre": "Desmovilización de maquinaria",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0013",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Excavación manual en suelo natural",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0014",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Excavación manual en zanja",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0015",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Excavación mecánica en suelo natural",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0016",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Excavación mecánica en zanja",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0017",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Excavación en material semiduro",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0018",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Excavación en roca",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0019",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Desalojo de material excavado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0020",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Carga mecánica de material",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0021",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Transporte de material de excavación",
+    "unidad": "m³-km",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0022",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Relleno con material del sitio",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0023",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Relleno con material importado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0024",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Relleno con material de mejoramiento",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0025",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Compactación manual de relleno",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0026",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Compactación mecánica de relleno",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0027",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Conformación de subrasante",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0028",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Mejoramiento de subrasante",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0029",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Subbase granular",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0030",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Base granular",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0031",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Entibado de zanja",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0032",
+    "categoria": "02 Movimiento de tierras",
+    "nombre": "Bombeo y achique de excavación",
+    "unidad": "h",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0033",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Replantillo de hormigón simple f'c=140 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0034",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Hormigón ciclópeo",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0035",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Mampostería de piedra para cimentación",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0036",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Zapata aislada de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0037",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Zapata corrida de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0038",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Losa de cimentación de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0039",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Viga de cimentación de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0040",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Dado de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0041",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Pedestal de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0042",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Muro de cimentación de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0043",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Pilote de hormigón armado",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0044",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Micropilote",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0045",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Cabezal de pilotes",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0046",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Impermeabilización de cimentación",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0047",
+    "categoria": "03 Cimentaciones",
+    "nombre": "Drenaje perimetral de cimentación",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0048",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Columnas – hormigón f'c=210 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0049",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Vigas – hormigón f'c=210 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0050",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Losas macizas – hormigón f'c=210 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0051",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Muros – hormigón f'c=210 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0052",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Escaleras – hormigón f'c=210 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0053",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Columnas – hormigón f'c=240 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0054",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Vigas – hormigón f'c=240 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0055",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Losas macizas – hormigón f'c=240 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0056",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Muros – hormigón f'c=240 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0057",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Escaleras – hormigón f'c=240 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0058",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Columnas – hormigón f'c=280 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0059",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Vigas – hormigón f'c=280 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0060",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Losas macizas – hormigón f'c=280 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0061",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Muros – hormigón f'c=280 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0062",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Escaleras – hormigón f'c=280 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0063",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Columnas – hormigón f'c=300 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0064",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Vigas – hormigón f'c=300 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0065",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Losas macizas – hormigón f'c=300 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0066",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Muros – hormigón f'c=300 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0067",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Escaleras – hormigón f'c=300 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0068",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Columnas – hormigón f'c=350 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0069",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Vigas – hormigón f'c=350 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0070",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Losas macizas – hormigón f'c=350 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0071",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Muros – hormigón f'c=350 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0072",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Escaleras – hormigón f'c=350 kg/cm²",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0073",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Acero de refuerzo en cimentaciones",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0074",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Acero de refuerzo en columnas",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0075",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Acero de refuerzo en vigas",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0076",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Acero de refuerzo en losas",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0077",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Acero de refuerzo en muros",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0078",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Malla electrosoldada en losa",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0079",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Encofrado de zapatas",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0080",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Encofrado de columnas",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0081",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Encofrado de vigas",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0082",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Encofrado de losas",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0083",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Encofrado de muros",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0084",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Curado de hormigón",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0085",
+    "categoria": "04 Estructura de hormigón",
+    "nombre": "Junta de construcción con waterstop",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0086",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Fabricación y montaje de estructura metálica liviana",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0087",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Fabricación y montaje de estructura metálica pesada",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0088",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Columna metálica estructural",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0089",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Viga metálica estructural",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0090",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Cercha metálica",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0091",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Correa metálica",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0092",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Escalera metálica",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0093",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Placa base de acero",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0094",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Pernos de anclaje estructural",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0095",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Soldadura estructural",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0096",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Pintura anticorrosiva en estructura metálica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0097",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Pintura de acabado en estructura metálica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0098",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Galvanizado de estructura metálica",
+    "unidad": "kg",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0099",
+    "categoria": "05 Estructuras metálicas",
+    "nombre": "Deck metálico colaborante",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0100",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque de hormigón e=7 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0101",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque de hormigón e=10 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0102",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque de hormigón e=12 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0103",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque de hormigón e=15 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0104",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque de hormigón e=20 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0105",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de ladrillo panelón",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0106",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de ladrillo visto",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0107",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque celular AAC 10 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0108",
+    "categoria": "06 Mampostería",
+    "nombre": "Mampostería de bloque celular AAC 15 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0109",
+    "categoria": "06 Mampostería",
+    "nombre": "Dintel de hormigón armado sobre vano",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0110",
+    "categoria": "06 Mampostería",
+    "nombre": "Refuerzo horizontal de mampostería",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0111",
+    "categoria": "06 Mampostería",
+    "nombre": "Refuerzo vertical de mampostería",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0112",
+    "categoria": "06 Mampostería",
+    "nombre": "Sellado de juntas de mampostería",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0113",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Enlucido interior de paredes",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0114",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Enlucido exterior de paredes",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0115",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Enlucido de tumbado",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0116",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Masillado de paredes interiores",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0117",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Masillado de paredes exteriores",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0118",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Empaste interior",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0119",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Empaste exterior",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0120",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Revestimiento cementicio impermeable",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0121",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Mortero de reparación de hormigón",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0122",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Afinado de piso con mortero",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0123",
+    "categoria": "07 Enlucidos y revestimientos",
+    "nombre": "Contrapiso de mortero",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0124",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso cerámico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0125",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso porcelanato",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0126",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso gres",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0127",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso granito",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0128",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso mármol",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0129",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso piedra natural",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0130",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso vinílico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0131",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso SPC",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0132",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso laminado",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0133",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Parquet",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0134",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso epóxico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0135",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso de caucho",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0136",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso de hormigón pulido",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0137",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Piso de hormigón endurecido",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0138",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Rodapié cerámico",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0139",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Rodapié porcelanato",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0140",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Rodapié MDF",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0141",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Gradas revestidas con porcelanato",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0142",
+    "categoria": "08 Pisos y revestimientos",
+    "nombre": "Gradas revestidas con piedra",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0143",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cielo raso de gypsum estándar",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0144",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cielo raso de gypsum RH",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0145",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cielo raso de fibrocemento",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0146",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cielo raso PVC",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0147",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cielo raso modular mineral",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0148",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cielo raso metálico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0149",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Tabique gypsum estándar",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0150",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Tabique gypsum RH",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0151",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Tabique gypsum RF",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0152",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Fachada liviana con placa cementicia",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0153",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Aislamiento acústico en tabique",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0154",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Aislamiento térmico en cielo raso",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0155",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Faldón de gypsum",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0156",
+    "categoria": "09 Construcción liviana",
+    "nombre": "Cajón decorativo de gypsum",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0157",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de losa con membrana asfáltica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0158",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de cubierta con membrana líquida",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0159",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización cementicia de baño",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0160",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de cisterna",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0161",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de muro enterrado",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0162",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de jardinera",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0163",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Sellado de junta de dilatación",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0164",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Waterstop en junta de hormigón",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0165",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de terraza transitable",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0166",
+    "categoria": "10 Impermeabilización",
+    "nombre": "Impermeabilización de canalón",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0167",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta de teja cerámica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0168",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta de teja metálica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0169",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta de galvalume",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0170",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta panel sándwich",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0171",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta de policarbonato",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0172",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta de fibrocemento",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0173",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cubierta de teja asfáltica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0174",
+    "categoria": "11 Cubiertas",
+    "nombre": "Cumbrera metálica",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0175",
+    "categoria": "11 Cubiertas",
+    "nombre": "Canalón metálico",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0176",
+    "categoria": "11 Cubiertas",
+    "nombre": "Canalón PVC",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0177",
+    "categoria": "11 Cubiertas",
+    "nombre": "Bajante de aguas lluvias PVC",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0178",
+    "categoria": "11 Cubiertas",
+    "nombre": "Bajante metálica de aguas lluvias",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0179",
+    "categoria": "11 Cubiertas",
+    "nombre": "Aislamiento térmico bajo cubierta",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0180",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Puerta de madera",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0181",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Puerta MDF",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0182",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Puerta metálica",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0183",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Puerta cortafuego",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0184",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Puerta de aluminio y vidrio",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0185",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Puerta de vidrio templado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0186",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Ventana aluminio corrediza",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0187",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Ventana aluminio proyectable",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0188",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Ventana PVC",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0189",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Mampara de vidrio templado",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0190",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Baranda de vidrio templado",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0191",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Pasamanos de acero inoxidable",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0192",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Mueble bajo de cocina",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0193",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Mueble alto de cocina",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0194",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Clóset de melamina",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0195",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Mesón de granito",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0196",
+    "categoria": "12 Carpintería, aluminio y vidrio",
+    "nombre": "Mesón de cuarzo",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0197",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura látex interior",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0198",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura látex exterior",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0199",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura elastomérica exterior",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0200",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura esmalte sobre metal",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0201",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura anticorrosiva sobre metal",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0202",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura epóxica sobre piso",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0203",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura poliuretano",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0204",
+    "categoria": "13 Pinturas",
+    "nombre": "Barnizado de madera",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0205",
+    "categoria": "13 Pinturas",
+    "nombre": "Lacado de madera",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0206",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura de tráfico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0207",
+    "categoria": "13 Pinturas",
+    "nombre": "Pintura para piscina",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0208",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC presión 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0209",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC presión 3/4 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0210",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC presión 1 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0211",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC presión 1 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0212",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC presión 2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0213",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PPR 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0214",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PPR 3/4 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0215",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PPR 1 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0216",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PPR 1 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0217",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PPR 2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0218",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería CPVC 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0219",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería CPVC 3/4 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0220",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería CPVC 1 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0221",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería CPVC 1 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0222",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería CPVC 2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0223",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PEAD 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0224",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PEAD 3/4 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0225",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PEAD 1 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0226",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PEAD 1 1/2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0227",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PEAD 2 pulg instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0228",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC sanitaria Ø50 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0229",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC sanitaria Ø75 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0230",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC sanitaria Ø110 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0231",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC sanitaria Ø160 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0232",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC sanitaria Ø200 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0233",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC aguas lluvias Ø75 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0234",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC aguas lluvias Ø110 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0235",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Tubería PVC aguas lluvias Ø160 mm instalada",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0236",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Punto de agua fría",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0237",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Punto de agua caliente",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0238",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Punto de desagüe sanitario",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0239",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Caja de revisión sanitaria",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0240",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Sumidero de piso",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0241",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Canal de drenaje lineal",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0242",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de inodoro",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0243",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de lavamanos",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0244",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de fregadero",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0245",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de ducha",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0246",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de urinario",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0247",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de bomba de agua",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0248",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Instalación de tanque de reserva",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0249",
+    "categoria": "14 Instalaciones hidrosanitarias",
+    "nombre": "Prueba hidrostática de red",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0250",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto de iluminación",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0251",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto de interruptor simple",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0252",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto de interruptor doble",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0253",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto de tomacorriente 120 V",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0254",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto de tomacorriente 220 V",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0255",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto de tomacorriente GFCI",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0256",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto para aire acondicionado",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0257",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto para cocina eléctrica",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0258",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Punto para ducha eléctrica",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0259",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Canalización PVC eléctrica 1/2 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0260",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Canalización PVC eléctrica 3/4 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0261",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Canalización EMT 1/2 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0262",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Canalización EMT 3/4 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0263",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Bandeja portacables 100 mm",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0264",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Bandeja portacables 200 mm",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0265",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Alimentador eléctrico monofásico",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0266",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Alimentador eléctrico trifásico",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0267",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Tablero de distribución residencial",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0268",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Tablero de distribución comercial",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0269",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Sistema de puesta a tierra",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0270",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Instalación de luminaria LED",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0271",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Instalación de reflector LED",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0272",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Instalación de luminaria de emergencia",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0273",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Prueba de aislamiento eléctrico",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0274",
+    "categoria": "15 Instalaciones eléctricas",
+    "nombre": "Medición de puesta a tierra",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0275",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de datos Cat 6",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0276",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de voz Cat 6",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0277",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de televisión coaxial",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0278",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de fibra óptica",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0279",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Rack de telecomunicaciones instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0280",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Patch panel instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0281",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Switch PoE instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0282",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Access point instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0283",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de cámara CCTV IP",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0284",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Cámara CCTV IP instalada",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0285",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "NVR instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0286",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de control de acceso",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0287",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Lector biométrico instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0288",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Videoportero instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0289",
+    "categoria": "16 Telecomunicaciones y seguridad",
+    "nombre": "Punto de alarma contra intrusión",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0290",
+    "categoria": "17 Contra incendios",
+    "nombre": "Tubería contra incendios 1 1/2 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0291",
+    "categoria": "17 Contra incendios",
+    "nombre": "Tubería contra incendios 2 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0292",
+    "categoria": "17 Contra incendios",
+    "nombre": "Tubería contra incendios 2 1/2 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0293",
+    "categoria": "17 Contra incendios",
+    "nombre": "Tubería contra incendios 3 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0294",
+    "categoria": "17 Contra incendios",
+    "nombre": "Tubería contra incendios 4 pulg",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0295",
+    "categoria": "17 Contra incendios",
+    "nombre": "Rociador automático instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0296",
+    "categoria": "17 Contra incendios",
+    "nombre": "Gabinete contra incendios instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0297",
+    "categoria": "17 Contra incendios",
+    "nombre": "Extintor PQS instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0298",
+    "categoria": "17 Contra incendios",
+    "nombre": "Extintor CO2 instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0299",
+    "categoria": "17 Contra incendios",
+    "nombre": "Detector de humo instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0300",
+    "categoria": "17 Contra incendios",
+    "nombre": "Pulsador manual instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0301",
+    "categoria": "17 Contra incendios",
+    "nombre": "Sirena de alarma instalada",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0302",
+    "categoria": "17 Contra incendios",
+    "nombre": "Central de incendio instalada",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0303",
+    "categoria": "17 Contra incendios",
+    "nombre": "Bomba contra incendios instalada",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0304",
+    "categoria": "17 Contra incendios",
+    "nombre": "Hidrante instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0305",
+    "categoria": "17 Contra incendios",
+    "nombre": "Prueba hidrostática contra incendios",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0306",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Aire acondicionado split 9000 BTU/h instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0307",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Aire acondicionado split 12000 BTU/h instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0308",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Aire acondicionado split 18000 BTU/h instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0309",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Aire acondicionado split 24000 BTU/h instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0310",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Aire acondicionado cassette instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0311",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Sistema VRF – unidad interior instalada",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0312",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Ducto galvanizado HVAC",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0313",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Ducto flexible aislado",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0314",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Rejilla de impulsión",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0315",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Rejilla de retorno",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0316",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Difusor de aire",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0317",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Extractor de baño instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0318",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Extractor industrial instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0319",
+    "categoria": "18 Climatización y ventilación",
+    "nombre": "Prueba y puesta en marcha HVAC",
+    "unidad": "global",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0320",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Adoquinado peatonal 6 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0321",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Adoquinado vehicular 8 cm",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0322",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Bordillo prefabricado",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0323",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Cuneta de hormigón",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0324",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Acera de hormigón",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0325",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Pavimento rígido de hormigón",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0326",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Pavimento asfáltico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0327",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Imprimación asfáltica",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0328",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Riego de liga",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0329",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Señalización horizontal",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0330",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Señalización vertical",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0331",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Tubería corrugada PEAD 300 mm",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0332",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Tubería corrugada PEAD 600 mm",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0333",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Pozo de revisión pluvial",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0334",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Sumidero vial",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0335",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Alcantarilla metálica",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0336",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Gavión de protección",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0337",
+    "categoria": "19 Urbanización y vialidad",
+    "nombre": "Muro de contención de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0338",
+    "categoria": "20 Paisajismo",
+    "nombre": "Preparación de tierra vegetal",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0339",
+    "categoria": "20 Paisajismo",
+    "nombre": "Siembra de césped",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0340",
+    "categoria": "20 Paisajismo",
+    "nombre": "Colocación de césped en rollo",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0341",
+    "categoria": "20 Paisajismo",
+    "nombre": "Plantación de arbusto",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0342",
+    "categoria": "20 Paisajismo",
+    "nombre": "Plantación de árbol",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0343",
+    "categoria": "20 Paisajismo",
+    "nombre": "Riego por goteo",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0344",
+    "categoria": "20 Paisajismo",
+    "nombre": "Riego por aspersión",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0345",
+    "categoria": "20 Paisajismo",
+    "nombre": "Grava decorativa",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0346",
+    "categoria": "20 Paisajismo",
+    "nombre": "Sendero paisajístico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0347",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Panel fotovoltaico instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0348",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Inversor fotovoltaico instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0349",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Estructura para panel fotovoltaico",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0350",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Cableado DC fotovoltaico",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0351",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Protección DC fotovoltaica",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0352",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Sistema fotovoltaico residencial completo",
+    "unidad": "kWp",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0353",
+    "categoria": "21 Energía y sostenibilidad",
+    "nombre": "Calentador solar de agua instalado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0354",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Derrocamiento manual de mampostería",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0355",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Derrocamiento de losa de hormigón armado",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0356",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Derrocamiento de elemento de hormigón simple",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0357",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Retiro de piso cerámico",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0358",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Retiro de cielo raso",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0359",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Retiro de cubierta",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0360",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Retiro de puerta",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0361",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Retiro de ventana",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0362",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Picado de enlucido",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0363",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Desmontaje de instalación eléctrica",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0364",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Desmontaje de instalación sanitaria",
+    "unidad": "pto",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0365",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Desalojo de escombros",
+    "unidad": "m³",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0366",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Reparación de fisuras en hormigón",
+    "unidad": "m",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0367",
+    "categoria": "22 Demoliciones y rehabilitación",
+    "nombre": "Reforzamiento con fibra de carbono",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0368",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Ensayo de compresión de hormigón",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0369",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Ensayo de tracción de acero",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0370",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Ensayo Proctor modificado",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0371",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Ensayo de densidad de campo",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0372",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Ensayo CBR",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0373",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Prueba de presión de tubería",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0374",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Prueba de estanqueidad",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0375",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Inspección de soldadura",
+    "unidad": "u",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0376",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Levantamiento topográfico de control",
+    "unidad": "jornada",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  },
+  {
+    "codigo": "RUB-0377",
+    "categoria": "23 Control de calidad y entrega",
+    "nombre": "Limpieza final de obra",
+    "unidad": "m²",
+    "porcentaje_herramienta": 5,
+    "total_costo_directo": 0
+  }
+]

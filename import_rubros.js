@@ -1,0 +1,27 @@
+﻿const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+
+const supabase = createClient(
+    'https://llnagvtqkljattjbjduu.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsbmFndnRxa2xqYXR0amJqZHV1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODkyMzM5MSwiZXhwIjoyMTA0NDk5MzkxfQ.Hgt5KeEVnSimdgFj0PWrw48tG6OiouYtTtLgBrpQ1k4'
+);
+
+const data = JSON.parse(fs.readFileSync('rubros_import.json', 'utf8'));
+
+async function importData() {
+    console.log('Starting import of', data.length, 'rubros...');
+    const chunkSize = 100;
+    for (let i = 0; i < data.length; i += chunkSize) {
+        const chunk = data.slice(i, i + chunkSize);
+        const { error } = await supabase.from('rubros').upsert(chunk, { onConflict: 'codigo' });
+        
+        if (error) {
+            console.error('Error importing chunk', i, error);
+            process.exit(1);
+        }
+        console.log('Imported', i + chunk.length, '/', data.length);
+    }
+    console.log('Import complete!');
+}
+
+importData();
