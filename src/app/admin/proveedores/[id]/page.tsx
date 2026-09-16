@@ -44,25 +44,38 @@ export default function ProveedorCatalogoPage({ params }: { params: Promise<{ id
     setLoadingInitial(false)
   }
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!searchTerm || searchTerm.length < 2) return
-    setSearching(true)
+    // Auto-search effect
+  useEffect(() => {
+    if (!searchTerm || searchTerm.length < 2) {
+      setSearchResults([]);
+      return;
+    }
     
-    // We search the 3000 global insumos
+    const timeoutId = setTimeout(() => {
+      executeSearch(searchTerm);
+    }, 350); // 350ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, catalogo]);
+
+  const executeSearch = async (term: string) => {
+    setSearching(true);
     const { data } = await supabase
       .from('insumos')
       .select('*')
-      .ilike('nombre', `%${searchTerm}%`)
-      .limit(50)
+      .ilike('nombre', `%${term}%`)
+      .limit(50);
       
     if (data) {
-      // Filter out those already in the catalog
-      const existingIds = catalogo.map(c => c.insumo_id)
-      setSearchResults(data.filter(ins => !existingIds.includes(ins.id)))
+      const existingIds = catalogo.map(c => c.insumo_id);
+      setSearchResults(data.filter(ins => !existingIds.includes(ins.id)));
     }
-    setSearching(false)
-  }
+    setSearching(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
 
   const handleAddInsumo = async (insumo: any) => {
     const { data, error } = await supabase
