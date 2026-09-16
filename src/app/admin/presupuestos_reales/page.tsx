@@ -37,9 +37,33 @@ export default function PresupuestosRealesPage() {
   const [explosionData, setExplosionData] = useState<any[]>([])
   const [loadingExplosion, setLoadingExplosion] = useState(false)
 
+  // Proyectos desde el CRM
+  const [proyectosCRM, setProyectosCRM] = useState<any[]>([])
+
   useEffect(() => {
     fetchPresupuestos()
+    fetchProyectosCRM()
   }, [])
+
+  const fetchProyectosCRM = async () => {
+    const { data, error } = await supabase
+      .from('proyectos')
+      .select(`
+        id,
+        nombre,
+        cliente_id,
+        clientes (
+          id,
+          nombre,
+          apellido
+        )
+      `)
+      .order('created_at', { ascending: false })
+      
+    if (!error && data) {
+      setProyectosCRM(data)
+    }
+  }
 
   // --- LOGICA DE LISTA ---
   const fetchPresupuestos = async () => {
@@ -576,9 +600,27 @@ export default function PresupuestosRealesPage() {
             
             <form onSubmit={handleCreatePresupuesto} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Proyecto</label>
-                <input type="text" value={newPresupuestoData.nombre_proyecto} onChange={e => setNewPresupuestoData({...newPresupuestoData, nombre_proyecto: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage" required />
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Seleccione el Proyecto</label>
+                <select 
+                  value={newPresupuestoData.nombre_proyecto} 
+                  onChange={e => setNewPresupuestoData({...newPresupuestoData, nombre_proyecto: e.target.value})} 
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage bg-white" 
+                  required
+                >
+                  <option value="" disabled>-- Seleccione un Proyecto --</option>
+                  {proyectosCRM.map(p => (
+                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                  ))}
+                </select>
               </div>
+
+              {/* Mostrar el Cliente asociado al proyecto seleccionado */}
+              {proyectosCRM.find(p => p.nombre === newPresupuestoData.nombre_proyecto)?.clientes && (
+                <div className="bg-brand-sage/10 text-brand-dark text-sm px-4 py-3 rounded-lg font-medium flex gap-2 items-center border border-brand-sage/20">
+                  <Users size={16} className="text-brand-sage" /> 
+                  Cliente: {proyectosCRM.find(p => p.nombre === newPresupuestoData.nombre_proyecto)?.clientes.nombre} {proyectosCRM.find(p => p.nombre === newPresupuestoData.nombre_proyecto)?.clientes.apellido}
+                </div>
+              )}
               
               <div className="grid grid-cols-3 gap-4">
                 <div>
