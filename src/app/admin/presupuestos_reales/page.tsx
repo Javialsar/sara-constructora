@@ -518,22 +518,9 @@ export default function PresupuestosRealesPage() {
                               )}
                             </div>
                             <table className="w-full text-xs">
-                              <thead className="text-gray-400 border-b"><tr><th className="text-left py-1">Insumo</th><th className="text-center">Tipo</th><th className="text-right">Rendimiento</th><th className="text-right">Costo U.</th><th className="text-right">Subtotal</th></tr></thead>
+                              <thead className="text-gray-400 border-b"><tr><th className="text-left py-1">Insumo</th><th className="text-right">Rendimiento</th><th className="text-right">Costo U.</th><th className="text-right">Subtotal</th></tr></thead>
                               <tbody>
-                                {(!rubrosRecipes[item.id] || rubrosRecipes[item.id].length === 0) && (
-                                  <tr><td colSpan={5} className="py-4 text-center text-gray-400 italic">No hay insumos en este rubro. Haz clic en Modificar Insumos.</td></tr>
-                                )}
-                                {(rubrosRecipes[item.id] || []).map(r => {
-                                  const ins = Array.isArray(r.insumo) ? r.insumo[0] : r.insumo;
-                                  return (
-                                  <tr key={r.id} className="border-b border-gray-50">
-                                    <td className="py-2 text-gray-700 font-medium">{ins?.nombre}</td>
-                                    <td className="py-2 text-center text-gray-500">{ins?.tipo?.replace(/_/g, ' ')}</td>
-                                    <td className="py-2 text-right font-mono">{r.cantidad} {ins?.unidad}</td>
-                                    <td className="py-2 text-right">${Number(r.precio_sin_iva_snapshot).toFixed(4)}</td>
-                                    <td className="py-2 text-right font-bold">${(Number(r.cantidad) * Number(r.precio_sin_iva_snapshot)).toFixed(4)}</td>
-                                  </tr>
-                                )})}
+                                {renderGroupedInsumos(rubrosRecipes[item.id], false)}
                               </tbody>
                             </table>
                           </div>
@@ -601,19 +588,9 @@ export default function PresupuestosRealesPage() {
               <div className="flex flex-col lg:flex-row grow overflow-hidden">
                 <div className="lg:w-2/3 p-4 overflow-y-auto border-r">
                   <h4 className="font-bold mb-4 text-brand-dark">Insumos Actuales en la Receta</h4>
-                  <table className="w-full text-sm text-left"><thead className="bg-gray-50 text-gray-500 uppercase text-[10px]"><tr><th className="p-2">Insumo</th><th className="p-2">Cant/Rendimiento</th><th className="p-2">Costo U.</th><th className="p-2">Total</th><th className="p-2"></th></tr></thead><tbody>
-                    {(rubrosRecipes[currentRecipeRubro.id] || []).map(item => {
-                      const st = Number(item.cantidad) * Number(item.precio_sin_iva_snapshot);
-                      const insObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
-                      return (
-                      <tr key={item.id} className="border-b">
-                        <td className="p-2"><div className="font-bold text-gray-800">{insObj?.nombre}</div><div className="text-xs text-gray-400">{insObj?.tipo?.replace(/_/g, ' ').toUpperCase()}</div></td>
-                        <td className="p-2"><input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateRecipeCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-24 border rounded p-1 font-bold" /> {insObj?.unidad}</td>
-                        <td className="p-2 text-gray-500">${Number(item.precio_sin_iva_snapshot).toFixed(4)}</td>
-                        <td className="p-2 font-bold">${st.toFixed(2)}</td>
-                        <td className="p-2"><button onClick={() => handleRemoveRecipeInsumo(item.id)} className="text-red-500 hover:bg-red-50 p-1 rounded"><X size={16}/></button></td>
-                      </tr>
-                    )})}
+                  <table className="w-full text-sm text-left"><thead className="bg-gray-50 text-gray-500 uppercase text-[10px]"><tr><th className="p-2">Insumo</th><th className="p-2 text-right">Cant/Rendimiento</th><th className="p-2 text-right">Costo U.</th><th className="p-2 text-right">Total</th><th className="p-2"></th></tr></thead>
+                  <tbody>
+                    {renderGroupedInsumos(rubrosRecipes[currentRecipeRubro.id], true)}
                   </tbody></table>
                 </div>
 
