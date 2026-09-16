@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Plus, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2 } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+import { membreteBase64 } from "@/lib/membreteBase64"
 
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
@@ -368,18 +369,22 @@ export default function PresupuestosRealesPage() {
       if (!currentPresupuesto) return
       const { costoDirectoTotal, a, i, u, granTotal } = calcTotales()
       const doc = new jsPDF()
-      doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.text("PRESUPUESTO DE OBRA", 14, 20)
+      
+      // Agregar membrete centrado
+      doc.addImage(membreteBase64, 'PNG', 50, 10, 110, 40)
+      
+      doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.text("PRESUPUESTO DE OBRA", 14, 65)
       doc.setFontSize(12); doc.setFont("helvetica", "normal")
-      doc.text(`Proyecto: ${currentPresupuesto.nombre_proyecto}`, 14, 30)
-      doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 38)
+      doc.text(`Proyecto: ${currentPresupuesto.nombre_proyecto}`, 14, 75)
+      doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 83)
       
       const tableColumn = ["CÓDIGO", "RUBRO", "UNIDAD", "CANT.", "P. UNIT ($)", "SUBTOTAL ($)"]
       const tableRows = presupuestoRubros.map(item => [
         item.codigo_rubro, item.nombre_rubro, item.unidad,
         Number(item.cantidad_obra).toFixed(2), Number(item.precio_unitario_snapshot).toFixed(2), Number(item.subtotal).toFixed(2)
       ])
-      autoTable(doc, { startY: 45, head: [tableColumn], body: tableRows, theme: 'grid', styles: { fontSize: 8 }, headStyles: { fillColor: [44, 62, 80] } })
-      const finalY = doc.lastAutoTable?.finalY || 45
+      autoTable(doc, { startY: 90, head: [tableColumn], body: tableRows, theme: 'grid', styles: { fontSize: 8 }, headStyles: { fillColor: [44, 62, 80] } })
+      const finalY = doc.lastAutoTable?.finalY || 90
       doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.text("RESUMEN ECONÓMICO", 120, finalY + 15)
       doc.setFont("helvetica", "normal")
       doc.text(`Costo Directo:`, 120, finalY + 25); doc.text(`${costoDirectoTotal.toFixed(2)}`, 180, finalY + 25, { align: 'right' })
