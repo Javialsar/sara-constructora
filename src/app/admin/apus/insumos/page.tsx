@@ -1,387 +1,418 @@
 "use client"
 import { useState, useEffect } from "react"
+import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Edit2, Trash2, X, Box, Users, Wrench, Hammer, Tag } from "lucide-react"
+
+type Proveedor = {
+  id: string
+  razon_social: string
+}
+
+type Insumo = {
+  id: string
+  codigo: string
+  nombre: string
+  descripcion: string
+  unidad: string
+  tipo: string
+  precio_sin_iva: number
+  proveedor_id: string | null
+  estado: boolean
+}
 
 export default function InsumosPage() {
-  const supabase = createClient()
-  const [insumos, setInsumos] = useState<any[]>([])
+  const [insumos, setInsumos] = useState<Insumo[]>([])
+  const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterTipo, setFilterTipo] = useState<string>('todos')
-  const [searchTerm, setSearchTerm] = useState("")
-
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingInsumo, setEditingInsumo] = useState<any>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterTipo, setFilterTipo] = useState<string>("todos")
   
   const [formData, setFormData] = useState({
-    tipo: 'material',
-    categoria: '',
-    codigo: '',
-    nombre: '',
-    unidad: 'u',
-    costo: 0
+    codigo: "",
+    nombre: "",
+    descripcion: "",
+    unidad: "",
+    tipo: "material",
+    precio_sin_iva: 0,
+    proveedor_id: ""
   })
 
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const supabase = createClient()
+
   useEffect(() => {
-    fetchInsumos()
+    fetchData()
   }, [])
 
-  const fetchInsumos = async () => {
+  const fetchData = async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    
+    // Fetch Insumos
+    const { data: dataInsumos, error: errorInsumos } = await supabase
       .from('insumos')
       .select('*')
-      .order('nombre', { ascending: true })
-    
-    if (error) {
-      console.error("Error fetching insumos:", error)
-    } else {
-      setInsumos(data || [])
+      .order('created_at', { ascending: false })
+      
+    if (!errorInsumos && dataInsumos) {
+      setInsumos(dataInsumos)
     }
+
+    // Fetch Proveedores para el select
+    const { data: dataProv, error: errorProv } = await supabase
+      .from('proveedores')
+      .select('id, razon_social')
+      .order('razon_social', { ascending: true })
+
+    if (!errorProv && dataProv) {
+      setProveedores(dataProv)
+    }
+
     setLoading(false)
   }
 
-  const handleOpenModal = (insumo: any = null) => {
-    if (insumo) {
-      setEditingInsumo(insumo)
-      setFormData({
-        tipo: insumo.tipo,
-        categoria: insumo.categoria,
-        codigo: insumo.codigo,
-        nombre: insumo.nombre,
-        unidad: insumo.unidad,
-        costo: insumo.costo
-      })
-    } else {
-      setEditingInsumo(null)
-      setFormData({
-        tipo: 'material',
-        categoria: '',
-        codigo: '',
-        nombre: '',
-        unidad: 'u',
-        costo: 0
-      })
-    }
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setEditingId(null)
+    setFormData({ 
+      codigo: "", 
+      nombre: "", 
+      descripcion: "", 
+      unidad: "", 
+      tipo: "material", 
+      precio_sin_iva: 0,
+      proveedor_id: "" 
+    })
+  }
+
+  const handleEdit = (insumo: Insumo) => {
+    setFormData({
+      codigo: insumo.codigo || "",
+      nombre: insumo.nombre,
+      descripcion: insumo.descripcion || "",
+      unidad: insumo.unidad,
+      tipo: insumo.tipo || "material",
+      precio_sin_iva: insumo.precio_sin_iva || 0,
+      proveedor_id: insumo.proveedor_id || ""
+    })
+    setEditingId(insumo.id)
     setIsModalOpen(true)
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    try {
-      if (editingInsumo) {
-        const { error } = await supabase
-          .from('insumos')
-          .update({
-            ...formData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editingInsumo.id)
-          
-        if (error) throw error
-      } else {
-        const { error } = await supabase
-          .from('insumos')
-          .insert([formData])
-          
-        if (error) throw error
-      }
-      
-      setIsModalOpen(false)
-      fetchInsumos()
-    } catch (error) {
-      console.error("Error saving insumo:", error)
-      alert("Hubo un error al guardar el insumo. Revisa que el código no esté duplicado.")
-    }
-  }
-
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de eliminar este insumo? Si ya está usado en un Rubro, podría causar errores o bloquearse.")) return
+    if (!confirm("¿Estás seguro de que deseas eliminar este insumo?")) return
     
     const { error } = await supabase
       .from('insumos')
       .delete()
       .eq('id', id)
       
-    if (error) {
-      alert("Error al eliminar. Es posible que el insumo ya esté en uso dentro de una receta/rubro.")
+    if (!error) {
+      fetchData()
     } else {
-      fetchInsumos()
+      alert("Error al eliminar el insumo")
     }
   }
 
-  const filteredInsumos = insumos.filter(ins => {
-    const matchTipo = filterTipo === 'todos' || ins.tipo === filterTipo
-    const matchSearch = ins.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                        ins.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        ins.categoria.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchTipo && matchSearch
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    
+    // Limpiar el proveedor si está vacío para que se guarde como NULL en BD
+    const payload = {
+      ...formData,
+      proveedor_id: formData.proveedor_id === "" ? null : formData.proveedor_id
+    }
+    
+    if (editingId) {
+      const { error } = await supabase
+        .from('insumos')
+        .update(payload)
+        .eq('id', editingId)
+        
+      setSaving(false)
+      if (!error) {
+        closeModal()
+        fetchData()
+      } else {
+        alert("Error al actualizar el insumo.")
+        console.error(error)
+      }
+    } else {
+      const { error } = await supabase
+        .from('insumos')
+        .insert([payload])
+
+      setSaving(false)
+      if (!error) {
+        closeModal()
+        fetchData()
+      } else {
+        alert("Error al guardar el insumo. Verifica que el código no esté duplicado.")
+        console.error(error)
+      }
+    }
+  }
+
+  // Filtrado múltiple (Buscador de texto + Select de Tipo)
+  const filteredInsumos = insumos.filter(i => {
+    const matchesSearch = i.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (i.codigo && i.codigo.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    const matchesTipo = filterTipo === "todos" ? true : i.tipo === filterTipo;
+    
+    return matchesSearch && matchesTipo;
   })
 
   const getTipoIcon = (tipo: string) => {
-    if (tipo === 'material') return <Box size={16} className="text-blue-500" />
-    if (tipo === 'mano_obra') return <Users size={16} className="text-orange-500" />
-    if (tipo === 'equipo') return <Wrench size={16} className="text-purple-500" />
-    if (tipo === 'herramienta_menor') return <Hammer size={16} className="text-teal-500" />
-    if (tipo === 'otros') return <Tag size={16} className="text-gray-500" />
-    return null
+    switch (tipo) {
+      case 'material': return <Box size={16} className="text-blue-500 mr-2" />
+      case 'equipo': return <Truck size={16} className="text-orange-500 mr-2" />
+      case 'mano_de_obra': return <Wrench size={16} className="text-brand-sage mr-2" />
+      default: return <FileText size={16} className="text-gray-500 mr-2" />
+    }
   }
 
   const getTipoLabel = (tipo: string) => {
-    if (tipo === 'material') return "Material"
-    if (tipo === 'mano_obra') return "Mano de Obra"
-    if (tipo === 'equipo') return "Equipo"
-    if (tipo === 'herramienta_menor') return "Herr. Menor"
-    if (tipo === 'otros') return "Otros"
-    return tipo
+    switch (tipo) {
+      case 'material': return "Material"
+      case 'equipo': return "Equipo"
+      case 'mano_de_obra': return "Mano de Obra"
+      default: return tipo
+    }
   }
 
   return (
-    <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-black text-brand-dark tracking-tight">Catálogo de Insumos</h1>
-          <p className="text-gray-500 mt-2">Base de datos de materiales, mano de obra y equipos para APUs.</p>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <FileText className="text-brand-sage" />
+            Catálogo de Insumos
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Gestión centralizada de Materiales, Equipos y Recursos.
+          </p>
         </div>
         <button 
-          onClick={() => handleOpenModal()}
-          className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm"
+          onClick={() => setIsModalOpen(true)}
+          className="bg-brand-sage text-brand-dark px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition-all"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Nuevo Insumo
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-        <div className="p-4 border-b border-gray-100 flex flex-col md:flex-row gap-4 justify-between bg-gray-50/50">
-          <div className="flex bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm p-1 gap-1">
-            <button 
-              onClick={() => setFilterTipo('todos')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${filterTipo === 'todos' ? 'bg-gray-800 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              Todos
-            </button>
-            <button 
-              onClick={() => setFilterTipo('material')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'material' ? 'bg-blue-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <Box size={14} /> Materiales
-            </button>
-            <button 
-              onClick={() => setFilterTipo('mano_obra')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'mano_obra' ? 'bg-orange-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <Users size={14} /> Mano de Obra
-            </button>
-            <button 
-              onClick={() => setFilterTipo('equipo')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'equipo' ? 'bg-purple-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <Wrench size={14} /> Equipos
-            </button>
-            <button 
-              onClick={() => setFilterTipo('herramienta_menor')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'herramienta_menor' ? 'bg-teal-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <Hammer size={14} /> Herr. Menor
-            </button>
-            <button 
-              onClick={() => setFilterTipo('otros')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${filterTipo === 'otros' ? 'bg-gray-500 text-white shadow' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <Tag size={14} /> Otros
-            </button>
-          </div>
-
-          <div className="relative w-full md:w-72">
+      {/* Main Card */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="Buscar por nombre, código..." 
+              placeholder="Buscar por código o nombre..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage focus:border-brand-sage shadow-sm bg-white"
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-sage w-full"
             />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
           </div>
+          
+          <select
+            value={filterTipo}
+            onChange={(e) => setFilterTipo(e.target.value)}
+            className="border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sage w-full md:w-auto"
+          >
+            <option value="todos">Todos los tipos</option>
+            <option value="material">Materiales</option>
+            <option value="equipo">Equipos y Maquinaria</option>
+            <option value="mano_de_obra">Mano de Obra</option>
+          </select>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b border-gray-100">
-              <tr>
-                <th className="px-6 py-4">Código</th>
-                <th className="px-6 py-4">Nombre del Insumo</th>
-                <th className="px-6 py-4">Tipo</th>
-                <th className="px-6 py-4">Categoría</th>
-                <th className="px-6 py-4">Unidad</th>
-                <th className="px-6 py-4 text-right">Costo Unit.</th>
-                <th className="px-6 py-4 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
-                    Cargando insumos...
-                  </td>
+        
+        {/* Table */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="animate-spin text-brand-sage" size={32} />
+          </div>
+        ) : insumos.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <Box size={48} className="mx-auto mb-3 opacity-20" />
+            <p>El catálogo de insumos está vacío.</p>
+            <p className="text-sm mt-1">Haz clic en "Nuevo Insumo" para comenzar.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200 text-sm text-gray-500">
+                  <th className="py-3 px-4 font-semibold">Código</th>
+                  <th className="py-3 px-4 font-semibold">Nombre del Insumo</th>
+                  <th className="py-3 px-4 font-semibold">Tipo</th>
+                  <th className="py-3 px-4 font-semibold text-center">Unidad</th>
+                  <th className="py-3 px-4 font-semibold text-right">Precio Ref. (sin IVA)</th>
+                  <th className="py-3 px-4 font-semibold text-right">Acciones</th>
                 </tr>
-              ) : filteredInsumos.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-500">
-                    No se encontraron insumos. Intenta cambiar los filtros o crea uno nuevo.
-                  </td>
-                </tr>
-              ) : (
-                filteredInsumos.map((ins) => (
-                  <tr key={ins.id} className="hover:bg-gray-50 transition-colors group">
-                    <td className="px-6 py-3 font-mono text-xs text-gray-500">{ins.codigo}</td>
-                    <td className="px-6 py-3 font-medium text-brand-dark">{ins.nombre}</td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-2">
-                        {getTipoIcon(ins.tipo)}
-                        <span className="text-gray-600">{getTipoLabel(ins.tipo)}</span>
+              </thead>
+              <tbody>
+                {filteredInsumos.map(insumo => (
+                  <tr key={insumo.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="py-3 px-4 text-gray-600 font-mono text-sm">{insumo.codigo || "-"}</td>
+                    <td className="py-3 px-4 font-medium text-gray-800">
+                      <div>{insumo.nombre}</div>
+                      {insumo.proveedor_id && (
+                        <div className="text-xs text-brand-sage mt-1">
+                          Prov: {proveedores.find(p => p.id === insumo.proveedor_id)?.razon_social || "Desconocido"}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-gray-600">
+                      <div className="flex items-center">
+                        {getTipoIcon(insumo.tipo)}
+                        <span className="text-xs font-medium">{getTipoLabel(insumo.tipo)}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-3 text-gray-500">
-                      <span className="bg-gray-100 px-2 py-1 rounded text-xs">{ins.categoria}</span>
+                    <td className="py-3 px-4 text-center">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium">
+                        {insumo.unidad}
+                      </span>
                     </td>
-                    <td className="px-6 py-3 text-gray-500">{ins.unidad}</td>
-                    <td className="px-6 py-3 text-right font-bold text-gray-800">
-                      ${Number(ins.costo).toLocaleString('en-US', {minimumFractionDigits: 2})}
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleOpenModal(ins)}
-                          className="p-1.5 text-gray-400 hover:text-brand-sage hover:bg-brand-sage/10 rounded transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(ins.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                    <td className="py-3 px-4 text-gray-800 font-medium text-right">${Number(insumo.precio_sin_iva).toFixed(4)}</td>
+                    <td className="py-3 px-4 text-right">
+                      <button onClick={() => handleEdit(insumo)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
+                        <Edit size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(insumo.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Modal */}
+      {/* Modal Nuevo/Editar Insumo */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-xl font-bold text-gray-800">
-                {editingInsumo ? "Editar Insumo" : "Nuevo Insumo"}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-200 transition-colors">
-                <X size={20} />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <FileText className="text-brand-sage" size={20} />
+                {editingId ? "Editar Insumo" : "Registrar Nuevo Insumo"}
+              </h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={24} />
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Tipo de Insumo</label>
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Código (Opcional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej. MAT-001"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.codigo}
+                    onChange={e => setFormData({...formData, codigo: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Insumo <span className="text-red-500">*</span></label>
                   <select 
+                    required
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
                     value={formData.tipo}
                     onChange={e => setFormData({...formData, tipo: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage bg-gray-50"
-                    required
                   >
                     <option value="material">Materiales</option>
-                    <option value="mano_obra">Mano de Obra</option>
-                    <option value="equipo">Equipo</option>
-                    <option value="herramienta_menor">Herramienta Menor</option>
-                    <option value="otros">Otros</option>
+                    <option value="equipo">Equipos y Maquinaria</option>
+                    <option value="mano_de_obra">Mano de Obra</option>
                   </select>
                 </div>
                 
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Código Único</label>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre / Descripción Corta <span className="text-red-500">*</span></label>
                   <input 
-                    type="text"
-                    value={formData.codigo}
-                    onChange={e => setFormData({...formData, codigo: e.target.value})}
-                    placeholder="Ej. MAT-001"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage font-mono uppercase"
                     required
+                    type="text" 
+                    placeholder="Ej. Cemento Portland Tipo I (Saco 50kg)"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.nombre}
+                    onChange={e => setFormData({...formData, nombre: e.target.value})}
                   />
                 </div>
                 
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Nombre / Descripción</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida <span className="text-red-500">*</span></label>
                   <input 
-                    type="text"
-                    value={formData.nombre}
-                    onChange={e => setFormData({...formData, nombre: e.target.value})}
-                    placeholder="Ej. Cemento Portland Tipo I"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage"
                     required
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Categoría / Familia</label>
-                  <input 
-                    type="text"
-                    value={formData.categoria}
-                    onChange={e => setFormData({...formData, categoria: e.target.value})}
-                    placeholder="Ej. Obra Gris, Eléctrico, Acabados..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage"
-                    required
-                  />
-                </div>
-
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Unidad</label>
-                  <input 
-                    type="text"
+                    type="text" 
+                    placeholder="kg, m3, glb, unidad, m, h"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
                     value={formData.unidad}
                     onChange={e => setFormData({...formData, unidad: e.target.value})}
-                    placeholder="Ej. m3, kg, u, h, glb"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage"
-                    required
                   />
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Costo ($)</label>
-                  <input 
-                    type="number"
-                    step="0.0001"
-                    min="0"
-                    value={formData.costo}
-                    onChange={e => setFormData({...formData, costo: parseFloat(e.target.value)})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage text-right font-bold"
-                    required
-                  />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Precio Ref. (sin IVA)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      type="number" 
+                      step="0.0001"
+                      min="0"
+                      placeholder="8.50"
+                      className="w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                      value={formData.precio_sin_iva || ''}
+                      onChange={e => setFormData({...formData, precio_sin_iva: parseFloat(e.target.value) || 0})}
+                    />
+                  </div>
                 </div>
+
+                {formData.tipo === 'material' && (
+                  <div className="col-span-2 mt-2 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                      <Truck size={14} className="text-gray-500" />
+                      Proveedor Vinculado (Opcional)
+                    </label>
+                    <select 
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none bg-white"
+                      value={formData.proveedor_id}
+                      onChange={e => setFormData({...formData, proveedor_id: e.target.value})}
+                    >
+                      <option value="">-- Ningún proveedor / Proveedor Genérico --</option>
+                      {proveedores.map(p => (
+                        <option key={p.id} value={p.id}>{p.razon_social}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-2">Vincular un proveedor te permite saber a quién comprar este material cuando ganes la obra.</p>
+                  </div>
+                )}
               </div>
-
-              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+              
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="px-5 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors shadow-sm"
+                  disabled={saving}
+                  className="px-4 py-2 bg-brand-dark text-white font-medium rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:opacity-50"
                 >
-                  Guardar Insumo
+                  {saving && <Loader2 size={16} className="animate-spin" />}
+                  {saving ? "Guardando..." : "Guardar Insumo"}
                 </button>
               </div>
             </form>
