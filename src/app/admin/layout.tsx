@@ -48,6 +48,9 @@ export default function AdminLayout({
     { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
     { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
     { href: "/admin/cotizaciones", label: "Cotizaciones Recibidas", icon: FileText },
+    { href: "/admin/apus/insumos", label: "Catálogo de Insumos", icon: FileText },
+    { href: "/admin/apus/rubros", label: "Recetas y Rubros", icon: Calculator },
+    { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
     { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },
   ]
 
