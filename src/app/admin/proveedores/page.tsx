@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Briefcase, Plus, Search, X, Loader2, Edit, Trash2 } from "lucide-react"
+import { Briefcase, List, BookOpen, Plus, Search, X, Loader2, Edit, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 type Proveedor = {
@@ -202,6 +202,9 @@ export default function ProveedoresPage() {
                     <td className="py-3 px-4 text-right">
                       <button onClick={() => handleEdit(prov)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
                         <Edit size={16} />
+                      </button>
+                      <button onClick={() => window.location.href=`/admin/proveedores/${prov.id}`} className="p-2 text-gray-400 hover:text-brand-sage transition-colors" title="Ver Catálogo">
+                        <BookOpen size={16} />
                       </button>
                       <button onClick={() => handleDelete(prov.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
                         <Trash2 size={16} />
