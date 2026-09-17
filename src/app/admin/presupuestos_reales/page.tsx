@@ -63,6 +63,7 @@ export default function PresupuestosRealesPage() {
   const [loadingExplosion, setLoadingExplosion] = useState(false)
 
   const [proyectosCRM, setProyectosCRM] = useState([])
+  const [userRole, setUserRole] = useState('admin')
 
   useEffect(() => {
     fetchPresupuestos()
@@ -765,6 +766,7 @@ export default function PresupuestosRealesPage() {
                     </button>
 
                   {/* Búsqueda Card */}
+                  {userRole === 'admin' && (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 shrink-0 flex flex-col h-96">
                     <h4 className="font-bold mb-4 text-brand-dark">Agregar Insumo a la Receta</h4>
                     <input type="text" placeholder="Buscar catálogo maestro..." value={insumoSearch} onChange={e => setInsumoSearch(e.target.value)} className="w-full border p-2 rounded mb-4 shadow-sm" />
@@ -785,6 +787,7 @@ export default function PresupuestosRealesPage() {
                         )}
                       </div>
                   </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -798,7 +801,7 @@ export default function PresupuestosRealesPage() {
     <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div><h1 className="text-3xl font-black text-brand-dark">Presupuestos APU Reales</h1><p className="text-gray-500">Crea presupuestos detallados por rubros, cantidades de obra y costos indirectos (AIU).</p></div>
-        <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>
+        {userRole === 'admin' && <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border mb-6">
@@ -811,7 +814,7 @@ export default function PresupuestosRealesPage() {
               <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'Entregado' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.estado || 'Borrador'}</span></td>
               <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
               <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
-              <td className="px-6 py-3 text-center"><span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span><button onClick={(e) => handleDeletePresupuesto(p.id, e)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16}/></button></td>
+              <td className="px-6 py-3 text-center"><span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span>{userRole === 'admin' && <button onClick={(e) => handleDeletePresupuesto(p.id, e)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16}/></button>}</td>
             </tr>
           ))}
         </tbody></table>
