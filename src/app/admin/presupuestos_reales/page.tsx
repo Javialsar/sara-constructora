@@ -224,7 +224,7 @@ export default function PresupuestosRealesPage() {
                  <td className="p-2 text-right text-gray-500">${Number(item.precio_sin_iva_snapshot).toFixed(4)}</td>
                  <td className="p-2 text-right font-bold text-gray-800">${st.toFixed(2)}</td>
                  {isEditable && (
-                   <td className="p-2 text-center"><button onClick={() => handleRemoveRecipeInsumo(item.id)} className="text-red-400 hover:text-red-600 p-1"><X size={14}/></button></td>
+                   <td className="p-2 text-center"><button title="Bloquea el presupuesto e indica que ha sido entregado al cliente final." onClick={() => handleRemoveRecipeInsumo(item.id)} className="text-red-400 hover:text-red-600 p-1"><X size={14}/></button></td>
                  )}
                </tr>
              )

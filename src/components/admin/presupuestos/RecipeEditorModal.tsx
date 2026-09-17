@@ -29,7 +29,7 @@ export default function RecipeEditorModal({
             </h3>
             <p className="text-sm text-gray-500 mt-1">Estás modificando la receta (APU) <strong>solo para este proyecto</strong>.</p>
           </div>
-          <button onClick={() => { setIsRecipeModalOpen(false); fetchPresupuestoRubros(currentPresupuesto?.id); }} className="text-gray-400 hover:text-red-500 p-2">
+          <button title="Guarda esta receta modificada en el catálogo general para usarla en futuros presupuestos." onClick={() => { setIsRecipeModalOpen(false); fetchPresupuestoRubros(currentPresupuesto?.id); }} className="text-gray-400 hover:text-red-500 p-2">
             <X size={24} />
           </button>
         </div>
