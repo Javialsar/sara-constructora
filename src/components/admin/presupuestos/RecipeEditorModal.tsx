@@ -1,5 +1,5 @@
 import React from "react"
-import { Edit3, X, Loader2, Plus } from "lucide-react"
+import { Edit3, X, Loader2, Plus, Save } from "lucide-react"
 import { Virtuoso } from "react-virtuoso"
 
 export default function RecipeEditorModal({
@@ -14,7 +14,8 @@ export default function RecipeEditorModal({
   setInsumoSearch,
   searchingInsumos,
   allInsumos,
-  handleAddInsumoToRecipe
+  handleAddInsumoToRecipe,
+  handleSyncRecipeToMaster
 }: any) {
   if (!isRecipeModalOpen || !currentRecipeRubro) return null;
 
@@ -76,12 +77,20 @@ export default function RecipeEditorModal({
                 </div>
               </div>
 
+
               <div className="border-t border-white/10 pt-4 flex justify-between items-end">
                 <span className="text-sm font-bold text-gray-300">Costo Directo<br />Total</span>
                 <span className="text-3xl font-black text-brand-sage">
                   ${rubrosRecipes[currentRecipeRubro.id]?.reduce((acc: any, curr: any) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
                 </span>
               </div>
+              <button 
+                onClick={handleSyncRecipeToMaster}
+                className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-lg"
+              >
+                <Save size={18} /> Sincronizar al Banco Maestro
+              </button>
+
             </div>
 
             {/* Búsqueda Card */}

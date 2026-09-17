@@ -338,6 +338,37 @@ export default function PresupuestosRealesPage() {
     setInsumoSearch("")
   }
 
+
+  const handleSyncRecipeToMaster = async () => {
+    if (!currentRecipeRubro) return;
+    const masterRubroId = currentRecipeRubro.rubro_id;
+    const recipeItems = rubrosRecipes[currentRecipeRubro.id] || [];
+    
+    if (confirm("¿Estás seguro de que quieres sobreescribir la receta en el Banco Maestro de Rubros? Esto afectará a futuros presupuestos.")) {
+      try {
+        const newTotal = recipeItems.reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0);
+        
+        await supabase.from('rubro_insumos').delete().eq('rubro_id', masterRubroId);
+        
+        const insertData = recipeItems.map(item => ({
+          rubro_id: masterRubroId,
+          insumo_id: item.insumo_id,
+          cantidad: item.cantidad
+        }));
+        if(insertData.length > 0) {
+          await supabase.from('rubro_insumos').insert(insertData);
+        }
+        
+        await supabase.from('rubros').update({ total_costo_directo: newTotal }).eq('id', masterRubroId);
+        
+        alert("¡Receta sincronizada exitosamente al Catálogo Maestro!");
+      } catch (e) {
+        console.error(e);
+        alert("Error al sincronizar");
+      }
+    }
+  }
+
   const calcTotales = () => {
     const costoDirectoTotal = presupuestoRubros.reduce((acc, curr) => acc + Number(curr.subtotal), 0)
     const a = costoDirectoTotal * ((currentPresupuesto?.porcentaje_admin || 0) / 100)
