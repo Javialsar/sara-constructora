@@ -6,7 +6,7 @@ export default function GanttModal({
   onClose,
   presupuestoRubros,
   updateTaskSchedule
-}) {
+}: any) {
   if (!isOpen) return null;
 
   return (
@@ -37,12 +37,12 @@ export default function GanttModal({
                 </tr>
               </thead>
               <tbody className="bg-white">
-                {presupuestoRubros.map((pr, idx) => {
-                  const minDateStr = presupuestoRubros.map(p => p.fecha_inicio).filter(Boolean).sort()[0];
+                {presupuestoRubros.map((pr: any, idx: any) => {
+                  const minDateStr = presupuestoRubros.map((p: any) => p.fecha_inicio).filter(Boolean).sort()[0];
                   const minDate = minDateStr ? new Date(minDateStr + 'T00:00:00') : new Date();
                   const prDate = pr.fecha_inicio ? new Date(pr.fecha_inicio + 'T00:00:00') : new Date();
 
-                  const offsetDays = Math.floor((prDate - minDate) / (1000 * 60 * 60 * 24));
+                  const offsetDays = Math.floor((prDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
                   const widthDays = pr.duracion_dias || 1;
 
                   return (
