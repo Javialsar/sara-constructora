@@ -76,8 +76,8 @@ export default function GanttModal({
 
                         <div className="relative h-6 mt-1 rounded-full bg-purple-500 shadow-sm flex items-center px-2 text-[10px] text-white font-bold transition-all z-0"
                           style={{
-                            marginLeft: \`\${Math.max(0, offsetDays * 32)}px\`,
-                            width: \`\${widthDays * 32}px\`,
+                            marginLeft: `${Math.max(0, offsetDays * 32)}px`,
+                            width: `${widthDays * 32}px`,
                             minWidth: '32px'
                           }}>
                           {widthDays} d
