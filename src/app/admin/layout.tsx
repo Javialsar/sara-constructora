@@ -42,16 +42,29 @@ export default function AdminLayout({
     setOpenGroup(prev => prev === title ? "" : title)
   }
 
+  const [userRole, setUserRole] = useState("Administrador")
+
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient()
       
       const { data: { user } } = await supabase.auth.getUser()
-      if (user && user.user_metadata?.full_name) {
-        const name = user.user_metadata.full_name
-        setUserName(name)
-        const parts = name.split(' ')
-        setUserInitials(parts.length > 1 ? parts[0][0] + parts[1][0] : name.substring(0, 2).toUpperCase())
+      
+      if (user) {
+        if (user.user_metadata?.full_name) {
+            const name = user.user_metadata.full_name
+            setUserName(name)
+            const parts = name.split(' ')
+            setUserInitials(parts.length > 1 ? parts[0][0] + parts[1][0] : name.substring(0, 2).toUpperCase())
+        }
+        
+        if (user.user_metadata?.role) {
+            if (user.user_metadata.role === 'tecnico') {
+                setUserRole('Técnico')
+            } else if (user.user_metadata.role === 'admin') {
+                setUserRole('Administrador')
+            }
+        }
       }
 
       const { data } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
@@ -114,7 +127,7 @@ export default function AdminLayout({
             <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h1 className="font-bold tracking-wider text-sm">ADMINISTRADOR</h1>
+            <h1 className="font-bold tracking-wider text-sm uppercase">{userRole}</h1>
             <p className="text-[10px] text-brand-sage uppercase">SARA Constructora</p>
           </div>
         </div>
@@ -187,7 +200,9 @@ export default function AdminLayout({
           <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shrink-0 print:hidden">
             <h2 className="text-xl font-bold text-gray-800">Panel de Control</h2>
             <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-500 font-medium">Hola, {userName}</div>
+              <div className="text-sm text-gray-500 font-medium">
+                Hola, {userName !== "Administrador" ? userName : ""} <span className="text-xs ml-1 px-2 py-1 bg-gray-100 rounded text-brand-dark font-bold border border-gray-200">{userRole}</span>
+              </div>
               <div className="w-9 h-9 rounded-full bg-brand-sage flex items-center justify-center font-bold text-brand-dark">
                 {userInitials}
               </div>
