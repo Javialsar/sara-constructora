@@ -19,6 +19,8 @@ export default function GanttModal({
       const endDate = new Date(startDate)
       endDate.setDate(startDate.getDate() + (parseInt(pr.duracion_dias) || 1))
       
+      const deps = pr.predecesores ? [pr.predecesores] : [];
+
       return {
         id: pr.id,
         type: "task",
@@ -27,6 +29,7 @@ export default function GanttModal({
         end: endDate,
         progress: 100, // Show full progress for now since they are just scheduled
         isDisabled: false,
+        dependencies: deps,
         styles: { progressColor: '#8b5cf6', progressSelectedColor: '#7c3aed' }
       }
     })
@@ -41,11 +44,45 @@ export default function GanttModal({
     const startIso = startDate.toISOString().split('T')[0]
     const duracion = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
     
-    // Batch update
+    // Auto-desplazamiento de tareas dependientes (Cascada)
+    // Buscamos si la tarea se movi respecto a su valor original
+    const originalTask = presupuestoRubros.find((p: any) => p.id === task.id);
+    let shiftDays = 0;
+    
+    if (originalTask && originalTask.fecha_inicio) {
+      const originalStart = new Date(originalTask.fecha_inicio + 'T00:00:00');
+      shiftDays = Math.round((startDate.getTime() - originalStart.getTime()) / (1000 * 60 * 60 * 24));
+    }
+
+    // Actualizamos la tarea actual
     updateTaskSchedule(task.id, {
       fecha_inicio: startIso,
       duracion_dias: duracion
     }, null)
+
+    // Si se desplaz en el tiempo, buscar a los hijos y desplazarlos
+    if (shiftDays !== 0) {
+      // Funcin recursiva para mover hijos
+      const shiftChildren = (parentId: string, currentShift: number) => {
+        const children = presupuestoRubros.filter((p: any) => p.predecesores === parentId);
+        
+        children.forEach((child: any) => {
+          if (child.fecha_inicio) {
+            const childStart = new Date(child.fecha_inicio + 'T00:00:00');
+            childStart.setDate(childStart.getDate() + currentShift);
+            
+            updateTaskSchedule(child.id, {
+              fecha_inicio: childStart.toISOString().split('T')[0]
+            }, null);
+
+            // Llamada recursiva para los hijos de los hijos
+            shiftChildren(child.id, currentShift);
+          }
+        });
+      };
+      
+      shiftChildren(task.id, shiftDays);
+    }
   }
 
   return (
@@ -70,7 +107,7 @@ export default function GanttModal({
         <div className="flex-1 overflow-auto p-4 flex flex-col">
           <p className="text-sm text-gray-500 mb-4 flex items-center gap-2">
             <AlertCircle size={16}/> 
-            Arrastra las barras para cambiar la fecha de inicio. Arrastra los bordes de la barra para aumentar o reducir la duración en días.
+            Arrastra las barras para cambiar la fecha de inicio. Si una tarea tiene dependencias, al moverla se empujarán automáticamente las siguientes.
           </p>
 
           <div className="border border-gray-200 rounded-lg bg-white flex-1 overflow-auto p-2">

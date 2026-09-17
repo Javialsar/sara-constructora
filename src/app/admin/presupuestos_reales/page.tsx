@@ -538,6 +538,7 @@ export default function PresupuestosRealesPage() {
                     <th className="px-4 py-3 text-right">Cant. Obra</th>
                     <th className="px-4 py-3 text-right">P. Unitario</th>
                     <th className="px-4 py-3 text-right">Subtotal</th>
+                    <th className="px-4 py-3 text-center">Predecesor</th>
                     <th className="px-4 py-3 text-center">Acciones</th>
                   </tr>
                 </thead>
