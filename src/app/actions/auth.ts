@@ -99,27 +99,8 @@ export async function registerAction(formData: FormData) {
     return { error: 'Error al crear la cuenta: ' + authError.message }
   }
 
-  // 2. Insert into clientes table using admin client (bypass RLS)
-  const { error: dbError } = await adminClient
-    .from('clientes')
-    .insert([
-      {
-        nombre,
-        apellido,
-        telefono,
-        email,
-        usuario,
-        password_hash: 'managed_by_supabase_auth',
-        auth_id: authData.user?.id,
-      },
-    ])
-
-  if (dbError) {
-    if (dbError.code === '23505') {
-      return { error: 'El usuario ya está registrado.' }
-    }
-    return { error: 'Error al registrar en la base de datos.' }
-  }
+  // 2. Insert is now handled automatically by the Supabase Postgres Trigger on_auth_user_created
+  // No need to manually insert into clientes here.
 
   return { success: true }
 }
