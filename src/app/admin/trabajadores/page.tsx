@@ -172,13 +172,22 @@ export default function TrabajadoresPage() {
             Catálogo de trabajadores, maestros y operarios para el cálculo de APUs.
           </p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-brand-sage text-brand-dark px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition-all"
-        >
-          <Plus size={18} />
-          Registrar Personal
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsCredModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-blue-700 transition-all shadow-sm"
+          >
+            <Key size={18} />
+            Crear Credenciales
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-brand-sage text-brand-dark px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition-all"
+          >
+            <Plus size={18} />
+            Registrar Personal
+          </button>
+        </div>
       </div>
 
       {/* Main Card */}
