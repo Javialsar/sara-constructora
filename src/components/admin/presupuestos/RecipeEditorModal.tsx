@@ -1,5 +1,6 @@
 import React from "react"
 import { Edit3, X, Loader2, Plus } from "lucide-react"
+import { Virtuoso } from "react-virtuoso"
 
 export default function RecipeEditorModal({
   isRecipeModalOpen,
@@ -87,18 +88,26 @@ export default function RecipeEditorModal({
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 shrink-0 flex flex-col h-96">
               <h4 className="font-bold mb-4 text-brand-dark">Agregar Insumo a la Receta</h4>
               <input type="text" placeholder="Buscar catálogo maestro..." value={insumoSearch} onChange={e => setInsumoSearch(e.target.value)} className="w-full border p-2 rounded mb-4 shadow-sm" />
-              <div className="space-y-2 relative grow overflow-y-auto">
+              <div className="relative grow overflow-y-auto">
                 {searchingInsumos && <div className="absolute inset-0 bg-white/80 flex justify-center pt-4 z-10"><Loader2 className="animate-spin text-brand-sage" /></div>}
-                {allInsumos.map((ins: any) => (
-                  <div key={ins.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm flex justify-between items-center shadow-sm hover:border-brand-sage transition-colors">
-                    <div>
-                      <div className="font-bold text-gray-800 leading-tight">{ins.nombre}</div>
-                      <div className="text-[10px] text-gray-400 font-mono mt-0.5">{ins.codigo}</div>
-                      <div className="text-xs text-brand-dark font-medium mt-1">${Number(ins.precio_sin_iva).toFixed(4)} / {ins.unidad}</div>
-                    </div>
-                    <button onClick={() => handleAddInsumoToRecipe(ins)} className="bg-brand-sage text-white p-2 rounded transition-colors hover:bg-brand-dark shadow-sm"><Plus size={16} /></button>
-                  </div>
-                ))}
+                {allInsumos.length > 0 ? (
+                  <Virtuoso
+                    style={{ height: '100%', width: '100%' }}
+                    data={allInsumos}
+                    itemContent={(index, ins: any) => (
+                      <div className="pb-2">
+                        <div key={ins.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm flex justify-between items-center shadow-sm hover:border-brand-sage transition-colors">
+                          <div>
+                            <div className="font-bold text-gray-800 leading-tight">{ins.nombre}</div>
+                            <div className="text-[10px] text-gray-400 font-mono mt-0.5">{ins.codigo}</div>
+                            <div className="text-xs text-brand-dark font-medium mt-1">${Number(ins.precio_sin_iva).toFixed(4)} / {ins.unidad}</div>
+                          </div>
+                          <button onClick={() => handleAddInsumoToRecipe(ins)} className="bg-brand-sage text-white p-2 rounded transition-colors hover:bg-brand-dark shadow-sm"><Plus size={16} /></button>
+                        </div>
+                      </div>
+                    )}
+                  />
+                ) : null}
                 {allInsumos.length === 0 && insumoSearch.length >= 2 && !searchingInsumos && (
                   <div className="text-center py-4 text-gray-400 text-sm">No se encontraron insumos.</div>
                 )}
