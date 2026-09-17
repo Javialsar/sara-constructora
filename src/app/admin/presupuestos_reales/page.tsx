@@ -438,10 +438,14 @@ export default function PresupuestosRealesPage() {
     }
   };
 
-  const updateTaskSchedule = async (id, field, value) => {
-    await supabase.from('presupuesto_rubros').update({ [field]: value }).eq('id', id);
-    setPresupuestoRubros(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-  };
+  const updateTaskSchedule = async (id, fieldOrUpdates, value) => {
+    if (typeof fieldOrUpdates === 'object') {
+      await supabase.from('presupuesto_rubros').update(fieldOrUpdates).eq('id', id);
+    } else {
+      await supabase.from('presupuesto_rubros').update({ [fieldOrUpdates]: value }).eq('id', id);
+    }
+    fetchPresupuestoRubros(currentPresupuesto.id);
+  }
 
   const handleGeneratePDF = () => {
     generatePDF({
