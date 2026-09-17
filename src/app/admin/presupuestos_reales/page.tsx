@@ -637,7 +637,7 @@ export default function PresupuestosRealesPage() {
           <div className="bg-brand-dark p-4 rounded-xl shadow-sm text-center"><p className="text-brand-sage text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-white">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
         </div>
         <div className="bg-white rounded-xl shadow-sm overflow-hidden min-h-[400px]">
-          <table className="w-full text-sm text-left"><thead className="bg-gray-100 text-gray-600 font-bold uppercase text-[10px]"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-50">
+          <table className="w-full text-sm text-left border-collapse border border-gray-800"><thead className="bg-gray-100 text-gray-600 font-bold uppercase text-[10px]"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-800">
             {explosionData.map((ins, idx) => (
               <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-500">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
             ))}
@@ -686,7 +686,7 @@ export default function PresupuestosRealesPage() {
             
             <div className="overflow-x-auto min-h-[300px]">
               <table className="w-full text-sm text-left">
-                <thead className="bg-white text-gray-500 font-bold uppercase text-[10px] border-b">
+                <thead className="bg-gray-100 text-gray-900 font-bold uppercase text-[10px] border-b border-gray-800">
                   <tr>
                     <th className="w-10"></th>
                     <th className="px-4 py-3">Cód</th>
