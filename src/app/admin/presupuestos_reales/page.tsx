@@ -397,39 +397,44 @@ export default function PresupuestosRealesPage() {
 
   
   const generateSchedule = async () => {
-    let needsInit = presupuestoRubros.some(pr => !pr.fecha_inicio);
-    if (!needsInit) return;
+    try {
+      let needsInit = presupuestoRubros.some(pr => !pr.fecha_inicio);
+      if (!needsInit) return;
 
-    let currentDate = new Date();
-    currentDate.setHours(0,0,0,0);
-    
-    const newRubros = [];
-    
-    for (let i = 0; i < presupuestoRubros.length; i++) {
-      const pr = presupuestoRubros[i];
-      let totalManHours = 0;
-      const insumos = rubrosRecipes[pr.id] || [];
-      const mo = insumos.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra');
-      mo.forEach(m => {
-        totalManHours += Number(m.cantidad) * pr.cantidad_obra;
-      });
+      let currentDate = new Date();
+      currentDate.setHours(0,0,0,0);
       
-      let dias = Math.max(1, Math.ceil((totalManHours / 24) * 1.2)); 
+      const newRubros = [];
       
-      const updatePayload = {
-        fecha_inicio: currentDate.toISOString().split('T')[0],
-        duracion_dias: dias
-      };
-      
-      await supabase.from('presupuesto_rubros').update(updatePayload).eq('id', pr.id);
-      
-      pr.fecha_inicio = updatePayload.fecha_inicio;
-      pr.duracion_dias = updatePayload.duracion_dias;
-      newRubros.push({...pr});
-      
-      currentDate.setDate(currentDate.getDate() + dias);
+      for (let i = 0; i < presupuestoRubros.length; i++) {
+        const pr = presupuestoRubros[i];
+        let totalManHours = 0;
+        const insumos = rubrosRecipes[pr.id] || [];
+        const mo = insumos.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra');
+        mo.forEach(m => {
+          totalManHours += Number(m.cantidad || 0) * Number(pr.cantidad_obra || 0);
+        });
+        
+        let dias = Math.max(1, Math.ceil((totalManHours / 24) * 1.2) || 1); 
+        
+        const updatePayload = {
+          fecha_inicio: currentDate.toISOString().split('T')[0],
+          duracion_dias: dias
+        };
+        
+        await supabase.from('presupuesto_rubros').update(updatePayload).eq('id', pr.id);
+        
+        pr.fecha_inicio = updatePayload.fecha_inicio;
+        pr.duracion_dias = updatePayload.duracion_dias;
+        newRubros.push({...pr});
+        
+        currentDate.setDate(currentDate.getDate() + dias);
+      }
+      setPresupuestoRubros(newRubros);
+    } catch (err) {
+      console.error(err);
+      alert("Error generando cronograma: " + err.message);
     }
-    setPresupuestoRubros(newRubros);
   };
 
   const updateTaskSchedule = async (id, field, value) => {
@@ -775,7 +780,7 @@ export default function PresupuestosRealesPage() {
             <div className="flex flex-col gap-3">
               {isBorrador && <button onClick={savePresupuesto} className="w-full bg-brand-sage text-brand-dark font-black py-3 rounded-lg flex justify-center gap-2"><Save size={18} /> GUARDAR</button>}
               <button onClick={generateExplosion} className="w-full border border-brand-sage text-brand-sage font-bold py-3 rounded-lg flex justify-center gap-2"><Calculator size={18} /> EXPLOSIÓN</button>
-                            <button onClick={async () => { await generateSchedule(); setIsGanttModalOpen(true); }} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Calendar size={18} /> VER CRONOGRAMA</button>
+                            <button onClick={async () => { try { await generateSchedule(); setIsGanttModalOpen(true); } catch(e) { alert(e.message); } }} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Calendar size={18} /> VER CRONOGRAMA</button>
               <button onClick={generatePDF} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Printer size={18} /> EXPORTAR PDF</button>
             </div>
           </div>
