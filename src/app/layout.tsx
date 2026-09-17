@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
+import Providers from "@/lib/providers";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={montserrat.variable}>
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
