@@ -1,6 +1,7 @@
+
 "use client"
 import { useState, useEffect } from "react"
-import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench } from "lucide-react"
+import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 type Proveedor = {
@@ -18,6 +19,8 @@ type Insumo = {
   precio_sin_iva: number
   proveedor_id: string | null
   estado: boolean
+  categoria?: string
+  fecha_actualizacion?: string
 }
 
 export default function InsumosPage() {
@@ -27,6 +30,7 @@ export default function InsumosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [filterTipo, setFilterTipo] = useState<string>("todos")
+  const [filterCategoria, setFilterCategoria] = useState<string>("todas")
   
   const [formData, setFormData] = useState({
     codigo: "",
@@ -34,6 +38,7 @@ export default function InsumosPage() {
     descripcion: "",
     unidad: "",
     tipo: "material",
+    categoria: "Sin categoría",
     precio_sin_iva: 0,
     proveedor_id: ""
   })
@@ -81,6 +86,7 @@ export default function InsumosPage() {
       descripcion: "", 
       unidad: "", 
       tipo: "material", 
+      categoria: "Sin categoría",
       precio_sin_iva: 0,
       proveedor_id: "" 
     })
@@ -93,6 +99,7 @@ export default function InsumosPage() {
       descripcion: insumo.descripcion || "",
       unidad: insumo.unidad,
       tipo: insumo.tipo || "material",
+      categoria: insumo.categoria || "Sin categoría",
       precio_sin_iva: insumo.precio_sin_iva || 0,
       proveedor_id: insumo.proveedor_id || ""
     })
@@ -122,7 +129,8 @@ export default function InsumosPage() {
     // Limpiar el proveedor si está vacío para que se guarde como NULL en BD
     const payload = {
       ...formData,
-      proveedor_id: formData.proveedor_id === "" ? null : formData.proveedor_id
+      proveedor_id: formData.proveedor_id === "" ? null : formData.proveedor_id,
+      fecha_actualizacion: new Date().toISOString()
     }
     
     if (editingId) {
@@ -155,15 +163,20 @@ export default function InsumosPage() {
     }
   }
 
-  // Filtrado múltiple (Buscador de texto + Select de Tipo)
+  // Filtrado múltiple (Buscador de texto + Select de Tipo + Categoria)
   const filteredInsumos = insumos.filter(i => {
     const matchesSearch = i.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (i.codigo && i.codigo.toLowerCase().includes(searchTerm.toLowerCase()))
     
     const matchesTipo = filterTipo === "todos" ? true : i.tipo === filterTipo;
+    const catFormated = i.categoria || "Sin categoría";
+    const matchesCategoria = filterCategoria === "todas" ? true : catFormated === filterCategoria;
     
-    return matchesSearch && matchesTipo;
+    return matchesSearch && matchesTipo && matchesCategoria;
   })
+
+  // Obtener categorías únicas dinámicamente
+  const categoriasUnicas = Array.from(new Set(insumos.map(i => i.categoria || 'Sin categoría'))).sort();
 
   const getTipoIcon = (tipo: string) => {
     switch (tipo) {
@@ -182,6 +195,14 @@ export default function InsumosPage() {
       default: return tipo
     }
   }
+
+  const isPriceOutdated = (fechaIso?: string) => {
+    if (!fechaIso) return true; // Si nunca se actualizó, está desactualizado
+    const d = new Date(fechaIso);
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    return d < threeMonthsAgo;
+  };
 
   return (
     <div className="space-y-6">
@@ -208,7 +229,7 @@ export default function InsumosPage() {
       {/* Main Card */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <div className="relative w-full md:w-96">
+          <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
@@ -219,16 +240,29 @@ export default function InsumosPage() {
             />
           </div>
           
-          <select
-            value={filterTipo}
-            onChange={(e) => setFilterTipo(e.target.value)}
-            className="border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sage w-full md:w-auto"
-          >
-            <option value="todos">Todos los tipos</option>
-            <option value="material">Materiales</option>
-            <option value="equipo">Equipos y Maquinaria</option>
-            <option value="mano_de_obra">Mano de Obra</option>
-          </select>
+          <div className="flex w-full md:w-auto gap-2 flex-col md:flex-row">
+            <select
+              value={filterTipo}
+              onChange={(e) => setFilterTipo(e.target.value)}
+              className="border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sage w-full md:w-auto"
+            >
+              <option value="todos">Todos los tipos</option>
+              <option value="material">Materiales</option>
+              <option value="equipo">Equipos y Maquinaria</option>
+              <option value="mano_de_obra">Mano de Obra</option>
+            </select>
+
+            <select
+              value={filterCategoria}
+              onChange={(e) => setFilterCategoria(e.target.value)}
+              className="border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-sage w-full md:w-auto max-w-[200px]"
+            >
+              <option value="todas">Todas las familias</option>
+              {categoriasUnicas.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
         
         {/* Table */}
@@ -248,7 +282,7 @@ export default function InsumosPage() {
               <thead>
                 <tr className="border-b border-gray-200 text-sm text-gray-500">
                   <th className="py-3 px-4 font-semibold">Código</th>
-                  <th className="py-3 px-4 font-semibold">Nombre del Insumo</th>
+                  <th className="py-3 px-4 font-semibold">Nombre del Insumo / Categoría</th>
                   <th className="py-3 px-4 font-semibold">Tipo</th>
                   <th className="py-3 px-4 font-semibold text-center">Unidad</th>
                   <th className="py-3 px-4 font-semibold text-right">Precio Ref. (sin IVA)</th>
@@ -256,16 +290,21 @@ export default function InsumosPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredInsumos.map(insumo => (
+                {filteredInsumos.map(insumo => {
+                  const outDated = isPriceOutdated(insumo.fecha_actualizacion);
+                  return (
                   <tr key={insumo.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="py-3 px-4 text-gray-600 font-mono text-sm">{insumo.codigo || "-"}</td>
-                    <td className="py-3 px-4 font-medium text-gray-800">
-                      <div>{insumo.nombre}</div>
-                      {insumo.proveedor_id && (
-                        <div className="text-xs text-brand-sage mt-1">
-                          Prov: {proveedores.find(p => p.id === insumo.proveedor_id)?.razon_social || "Desconocido"}
-                        </div>
-                      )}
+                    <td className="py-3 px-4">
+                      <div className="font-medium text-gray-800">{insumo.nombre}</div>
+                      <div className="flex flex-col text-xs mt-1 gap-1">
+                        <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded w-fit">{insumo.categoria || "Sin categoría"}</span>
+                        {insumo.proveedor_id && (
+                          <span className="text-brand-sage">
+                            Prov: {proveedores.find(p => p.id === insumo.proveedor_id)?.razon_social || "Desconocido"}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-gray-600">
                       <div className="flex items-center">
@@ -278,7 +317,22 @@ export default function InsumosPage() {
                         {insumo.unidad}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-gray-800 font-medium text-right">${Number(insumo.precio_sin_iva).toFixed(4)}</td>
+                    <td className="py-3 px-4 text-right relative group">
+                      <div className="flex items-center justify-end gap-2">
+                        {outDated && (
+                          <div title="Precio desactualizado (> 3 meses)" className="text-amber-500 cursor-help">
+                            <AlertTriangle size={16} />
+                          </div>
+                        )}
+                        <span className={`font-medium ${outDated ? 'text-amber-600' : 'text-gray-800'}`}>
+                          ${Number(insumo.precio_sin_iva).toFixed(4)}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-gray-400 mt-1 flex items-center justify-end gap-1" title="Última actualización">
+                         <Calendar size={10} />
+                         {insumo.fecha_actualizacion ? new Date(insumo.fecha_actualizacion).toLocaleDateString() : 'Nunca'}
+                      </div>
+                    </td>
                     <td className="py-3 px-4 text-right">
                       <button onClick={() => handleEdit(insumo)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
                         <Edit size={16} />
@@ -288,7 +342,7 @@ export default function InsumosPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -349,6 +403,23 @@ export default function InsumosPage() {
                   />
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoría / Familia</label>
+                  <input 
+                    type="text" 
+                    list="lista-categorias"
+                    placeholder="Ej. Aceros, Pétreos, Maderas..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.categoria}
+                    onChange={e => setFormData({...formData, categoria: e.target.value})}
+                  />
+                  <datalist id="lista-categorias">
+                    {categoriasUnicas.filter(c => c !== 'Sin categoría').map(cat => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Unidad de Medida <span className="text-red-500">*</span></label>
                   <input 
