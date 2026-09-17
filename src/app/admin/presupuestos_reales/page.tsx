@@ -757,6 +757,12 @@ export default function PresupuestosRealesPage() {
                       </span>
                     </div>
                   </div>
+                    <button 
+                      onClick={handleSyncRecipeToMaster}
+                      className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-lg"
+                    >
+                      <Save size={18} /> Sincronizar al Banco Maestro
+                    </button>
 
                   {/* Búsqueda Card */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 shrink-0 flex flex-col h-96">
