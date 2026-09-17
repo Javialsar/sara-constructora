@@ -2,7 +2,7 @@
 "use client"
 import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2 } from "lucide-react"
+import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2 } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
@@ -31,6 +31,8 @@ export default function PresupuestosRealesPage() {
   const [allRubros, setAllRubros] = useState([])
   const [searchRubroTerm, setSearchRubroTerm] = useState("")
   const [isAddRubroModalOpen, setIsAddRubroModalOpen] = useState(false)
+  const [isGanttModalOpen, setIsGanttModalOpen] = useState(false)
+
 
   const [allInsumos, setAllInsumos] = useState([]);
   const [insumoSearch, setInsumoSearch] = useState("");
@@ -393,6 +395,48 @@ export default function PresupuestosRealesPage() {
     setLoadingExplosion(false)
   }
 
+  
+  const generateSchedule = async () => {
+    let needsInit = presupuestoRubros.some(pr => !pr.fecha_inicio);
+    if (!needsInit) return;
+
+    let currentDate = new Date();
+    currentDate.setHours(0,0,0,0);
+    
+    const newRubros = [];
+    
+    for (let i = 0; i < presupuestoRubros.length; i++) {
+      const pr = presupuestoRubros[i];
+      let totalManHours = 0;
+      const insumos = rubrosRecipes[pr.id] || [];
+      const mo = insumos.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra');
+      mo.forEach(m => {
+        totalManHours += Number(m.cantidad) * pr.cantidad_obra;
+      });
+      
+      let dias = Math.max(1, Math.ceil((totalManHours / 24) * 1.2)); 
+      
+      const updatePayload = {
+        fecha_inicio: currentDate.toISOString().split('T')[0],
+        duracion_dias: dias
+      };
+      
+      await supabase.from('presupuesto_rubros').update(updatePayload).eq('id', pr.id);
+      
+      pr.fecha_inicio = updatePayload.fecha_inicio;
+      pr.duracion_dias = updatePayload.duracion_dias;
+      newRubros.push({...pr});
+      
+      currentDate.setDate(currentDate.getDate() + dias);
+    }
+    setPresupuestoRubros(newRubros);
+  };
+
+  const updateTaskSchedule = async (id, field, value) => {
+    await supabase.from('presupuesto_rubros').update({ [field]: value }).eq('id', id);
+    setPresupuestoRubros(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
   const generatePDF = () => {
     try {
       if (!currentPresupuesto) return
@@ -731,6 +775,7 @@ export default function PresupuestosRealesPage() {
             <div className="flex flex-col gap-3">
               {isBorrador && <button onClick={savePresupuesto} className="w-full bg-brand-sage text-brand-dark font-black py-3 rounded-lg flex justify-center gap-2"><Save size={18} /> GUARDAR</button>}
               <button onClick={generateExplosion} className="w-full border border-brand-sage text-brand-sage font-bold py-3 rounded-lg flex justify-center gap-2"><Calculator size={18} /> EXPLOSIÓN</button>
+                            <button onClick={async () => { await generateSchedule(); setIsGanttModalOpen(true); }} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Calendar size={18} /> VER CRONOGRAMA</button>
               <button onClick={generatePDF} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Printer size={18} /> EXPORTAR PDF</button>
             </div>
           </div>
