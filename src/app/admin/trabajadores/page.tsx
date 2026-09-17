@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Wrench, Plus, Search, X, Loader2, Edit, Trash2 } from "lucide-react"
+import { Wrench, Plus, Search, X, Loader2, Edit, Trash2, Key } from "lucide-react"
+import { createInternalUserAction } from "@/app/actions/auth"
 import { createClient } from "@/lib/supabase/client"
 import salariosData from "@/lib/salariosData.json"
 
@@ -32,6 +33,11 @@ export default function TrabajadoresPage() {
 
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  
+  const [isCredModalOpen, setIsCredModalOpen] = useState(false)
+  const [credSaving, setCredSaving] = useState(false)
+  const [credData, setCredData] = useState({ nombre: '', email: '', password: '', role: 'tecnico' })
+  const [credMessage, setCredMessage] = useState('')
   const supabase = createClient()
 
   useEffect(() => {
@@ -82,6 +88,34 @@ export default function TrabajadoresPage() {
       fetchTrabajadores()
     } else {
       alert("Error al eliminar el trabajador")
+    }
+  }
+
+  const handleCredSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCredSaving(true)
+    setCredMessage('')
+    try {
+      const fd = new FormData()
+      fd.append('nombre', credData.nombre)
+      fd.append('email', credData.email)
+      fd.append('password', credData.password)
+      fd.append('role', credData.role)
+      const res = await createInternalUserAction(fd)
+      if (res.error) {
+        setCredMessage(res.error)
+      } else {
+        setCredMessage('¡Credenciales creadas correctamente!')
+        setTimeout(() => {
+          setIsCredModalOpen(false)
+          setCredData({ nombre: '', email: '', password: '', role: 'tecnico' })
+          setCredMessage('')
+        }, 2000)
+      }
+    } catch (err: any) {
+      setCredMessage('Error al crear credenciales.')
+    } finally {
+      setCredSaving(false)
     }
   }
 
@@ -218,6 +252,59 @@ export default function TrabajadoresPage() {
       </div>
 
       {/* Modal Nuevo/Editar Trabajador */}
+            {isCredModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Key className="text-blue-600" size={20} />
+                Crear Credenciales
+              </h2>
+              <button onClick={() => setIsCredModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCredSubmit} className="p-6">
+              {credMessage && (
+                <div className={`p-3 rounded mb-4 text-sm ${credMessage.includes('correctamente') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {credMessage}
+                </div>
+              )}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre (Alias) <span className="text-red-500">*</span></label>
+                  <input required type="text" className="w-full border rounded-lg px-3 py-2 outline-none" value={credData.nombre} onChange={e => setCredData({...credData, nombre: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
+                  <input required type="email" className="w-full border rounded-lg px-3 py-2 outline-none" value={credData.email} onChange={e => setCredData({...credData, email: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña Temporal <span className="text-red-500">*</span></label>
+                  <input required type="text" minLength={6} className="w-full border rounded-lg px-3 py-2 outline-none" value={credData.password} onChange={e => setCredData({...credData, password: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rol de Acceso <span className="text-red-500">*</span></label>
+                  <select required className="w-full border rounded-lg px-3 py-2 outline-none" value={credData.role} onChange={e => setCredData({...credData, role: e.target.value})}>
+                    <option value="tecnico">Técnico (Solo Lectura, Restringido)</option>
+                    <option value="admin">Administrador (Acceso Total)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button type="button" onClick={() => setIsCredModalOpen(false)} className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                <button type="submit" disabled={credSaving} className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                  {credSaving && <Loader2 size={16} className="animate-spin" />}
+                  Generar Acceso
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">

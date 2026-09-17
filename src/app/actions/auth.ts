@@ -45,10 +45,11 @@ export async function adminLoginAction(formData: FormData) {
   }
 
   // Check admin role via user metadata
-  const isAdmin = data.user?.user_metadata?.role === 'admin'
-  if (!isAdmin) {
+  const role = data.user?.user_metadata?.role
+  const hasAccess = role === 'admin' || role === 'tecnico'
+  if (!hasAccess) {
     await supabase.auth.signOut()
-    return { error: 'No tiene permisos de administrador.' }
+    return { error: 'No tiene permisos de acceso al panel.' }
   }
 
   redirect('/admin')
@@ -133,4 +134,49 @@ export async function adminLogoutAction() {
   const supabase = await createSupabaseServerClient()
   await supabase.auth.signOut()
   redirect('/admin/login')
+}
+
+export async function createInternalUserAction(formData: FormData) {
+  const adminSupabase = await createSupabaseServerClient()
+  
+  // Verify caller is admin
+  const { data: { user } } = await adminSupabase.auth.getUser()
+  if (user?.user_metadata?.role !== 'admin') {
+    return { error: 'No autorizado. Solo los administradores pueden crear cuentas.' }
+  }
+
+  const nombre = formData.get('nombre') as string
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+  const role = formData.get('role') as string // 'admin' | 'tecnico'
+
+  if (!nombre || !email || !password || !role) {
+    return { error: 'Todos los campos son obligatorios.' }
+  }
+
+  if (password.length < 6) {
+    return { error: 'La contrasea debe tener al menos 6 caracteres.' }
+  }
+
+  const adminClient = await createSupabaseAdminClient()
+
+  // create user directly with admin api, avoids logging out current user
+  const { data, error } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: nombre,
+      role: role
+    }
+  })
+
+  if (error) {
+    if (error.message.includes('already registered')) {
+      return { error: 'El correo electrnico ya estǭ registrado.' }
+    }
+    return { error: 'Error al crear la cuenta: ' + error.message }
+  }
+
+  return { success: true }
 }
