@@ -565,7 +565,7 @@ export default function PresupuestosRealesPage() {
     });
   }
 
-  const handleGenerateExplosionPDF = () => {
+  const handleGenerateExplosionPDF = (filterType?: string) => {
     const consolidado = {};
     presupuestoRubros.forEach(pr => {
       const q = Number(pr.cantidad_obra || 0);
@@ -663,7 +663,10 @@ export default function PresupuestosRealesPage() {
           <button onClick={() => setActiveTab('indirectos')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'indirectos' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             <Calculator size={16} className="inline mr-2"/> Costos Indirectos
           </button>
-          <button onClick={() => setActiveTab('reportes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'reportes' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                    <button onClick={() => setActiveTab('explosion')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'explosion' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <Calculator size={16} className="inline mr-2"/> Explosión de Insumos
+          </button>
+<button onClick={() => setActiveTab('reportes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'reportes' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             <FileText size={16} className="inline mr-2"/> Reportes
           </button>
           <button onClick={() => setIsGanttModalOpen(true)} className={`px-6 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700`}>
@@ -1159,16 +1162,22 @@ export default function PresupuestosRealesPage() {
               <thead className="bg-[#4b8fb4] text-white font-bold">
                 <tr>
                   <th className="px-6 py-3">Nombre</th>
-                  <th className="px-6 py-3 text-center">Acciones</th>
+                  <th className="px-6 py-3 text-center w-32">PDF</th>
+                  <th className="px-6 py-3 text-center w-32">⚙</th>
                   <th className="px-6 py-3">Descripción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-bold text-gray-800">Presupuesto General</td>
+                  <td className="px-6 py-4 font-bold text-gray-800">Presupuesto</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
+                    <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
                       <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
                     </button>
                   </td>
                   <td className="px-6 py-4 text-gray-600">Totales del presupuesto.</td>
@@ -1176,20 +1185,72 @@ export default function PresupuestosRealesPage() {
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-bold text-gray-800">Análisis de Precios Unitarios (APUs)</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={handleGenerateAPUsPDF} className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
+                    <button onClick={handleGenerateAPUsPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios detallado.</td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios.</td>
                 </tr>
                 <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-bold text-gray-800">Explosión de Insumos (Materiales)</td>
+                  <td className="px-6 py-4 font-bold text-gray-800">Precios unitarios elementales (PUEs)</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={() => {/* Aquí se puede poner un generador a futuro */}} onClick={handleGenerateExplosionPDF} className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
+                    <button onClick={() => alert("Próximamente")} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">Totales de materiales agrupados en unidades.</td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Precios unitarios elementales.</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-bold text-gray-800">Equipo</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => handleGenerateExplosionPDF('equipo')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales de maquinaria y equipos del presupuesto. En unidades comerciales.</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-bold text-gray-800">Mano de obra</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => handleGenerateExplosionPDF('mano_de_obra')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales de mano de obra del presupuesto. En unidades comerciales.</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4 font-bold text-gray-800">Materiales</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => handleGenerateExplosionPDF('material')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales de materiales agrupados por categorías. En unidades comerciales.</td>
                 </tr>
               </tbody>
             </table>
