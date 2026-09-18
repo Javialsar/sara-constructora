@@ -583,13 +583,26 @@ export default function PresupuestosRealesPage() {
         consolidado[insId].costo_total += costoTotal;
       });
     });
-    const explosionData = Object.values(consolidado).sort((a, b) => {
+    let explosionData = Object.values(consolidado).sort((a, b) => {
       if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
     });
+    
+    let title = "EXPLOSIÓN DE INSUMOS";
+    if (filterType === 'equipo') {
+       explosionData = explosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor');
+       title = "REPORTE DE EQUIPOS";
+    } else if (filterType === 'mano_de_obra') {
+       explosionData = explosionData.filter(i => i.tipo === 'mano_de_obra');
+       title = "REPORTE DE MANO DE OBRA";
+    } else if (filterType === 'material') {
+       explosionData = explosionData.filter(i => i.tipo === 'material');
+       title = "REPORTE DE MATERIALES";
+    }
 
     generateExplosionPDF({
       currentPresupuesto,
-      explosionData
+      explosionData,
+      title
     });
   }
 

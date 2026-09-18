@@ -209,7 +209,7 @@ export const generateExplosionPDF = (options: any) => {
     doc.addImage(membreteBase64, 'PNG', 50, 5, 110, 40)
     
     doc.setFontSize(18); doc.setFont("helvetica", "bold"); 
-    doc.text("EXPLOSIÓN DE INSUMOS", 14, 55)
+    doc.text(options.title || "EXPLOSIÓN DE INSUMOS", 14, 55)
     doc.setFontSize(10); doc.setFont("helvetica", "bold")
     doc.text(`Proyecto:`, 14, 63); doc.setFont("helvetica", "normal"); doc.text(`${currentPresupuesto.nombre_proyecto}`, 35, 63)
     doc.setFont("helvetica", "bold"); doc.text(`Fecha:`, 120, 63); doc.setFont("helvetica", "normal"); doc.text(`${new Date().toLocaleDateString()}`, 135, 63)

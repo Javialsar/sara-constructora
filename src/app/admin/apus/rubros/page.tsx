@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, ArrowLeft, Save, FileText, Box, PenTool } from "lucide-react"
+import { Plus, Search, Trash2, X, ArrowLeft, Save, FileText, Box, PenTool, Edit3 } from "lucide-react"
 
 export default function RubrosPage() {
   const supabase = createClient()
@@ -430,8 +430,8 @@ export default function RubrosPage() {
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="text-brand-sage hover:text-brand-dark font-bold text-xs bg-brand-sage/10 px-3 py-1.5 rounded transition-colors">
-                          Modificar APU
+                        <button title="Modificar Rubro" className="text-brand-sage hover:text-brand-dark font-bold bg-brand-sage/10 p-2 rounded transition-colors">
+                          <Edit3 size={16} />
                         </button>
                         <button onClick={(e) => handleDeleteRubro(r.id, e)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Eliminar">
                           <Trash2 size={16} />
