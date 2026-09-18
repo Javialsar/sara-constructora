@@ -408,27 +408,27 @@ export default function PresupuestosRealesPage() {
 
     const ind = currentPresupuesto?.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 };
 
-    const dmaq1 = smob * (ind.pmaq1 / 100);
+    const dmaq1 = smob * ((Number(ind.pmaq1) || 0) / 100);
     const cmaq = smaq + dmaq1;
 
-    const dmob1 = smob * (ind.pmob1 / 100);
+    const dmob1 = smob * ((Number(ind.pmob1) || 0) / 100);
     const cmob = smob + dmob1;
 
-    const dmat1 = smat * (ind.pmat1 / 100);
+    const dmat1 = smat * ((Number(ind.pmat1) || 0) / 100);
     const cmat = smat + dmat1;
 
     const costoDirectoTotal = cmat + cmob + cmaq;
 
-    const sggen = costoDirectoTotal * (ind.ggen / 100);
-    const sgas1 = costoDirectoTotal * (ind.pgas1 / 100);
-    const sgas2 = costoDirectoTotal * (ind.pgas2 / 100);
-    const sgas3 = costoDirectoTotal * (ind.pgas3 / 100);
+    const sggen = costoDirectoTotal * ((Number(ind.ggen) || 0) / 100);
+    const sgas1 = costoDirectoTotal * ((Number(ind.pgas1) || 0) / 100);
+    const sgas2 = costoDirectoTotal * ((Number(ind.pgas2) || 0) / 100);
+    const sgas3 = costoDirectoTotal * ((Number(ind.pgas3) || 0) / 100);
     const totalGastosGenerales = sggen + sgas1 + sgas2 + sgas3;
 
     const cnet = costoDirectoTotal + totalGastosGenerales;
 
-    const simp = costoDirectoTotal * (ind.pimp / 100);
-    const sutil = costoDirectoTotal * (ind.util / 100);
+    const simp = costoDirectoTotal * ((Number(ind.pimp) || 0) / 100);
+    const sutil = costoDirectoTotal * ((Number(ind.util) || 0) / 100);
 
     const granTotal = cnet + sutil + simp;
 
@@ -621,13 +621,14 @@ export default function PresupuestosRealesPage() {
 
         {activeTab === 'detalle' && (
 
-<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+<div className="w-full">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-800">Rubros del Proyecto</h2>
               <div className="flex gap-2">
                 {isBorrador && (
                   <>
+                    <button onClick={savePresupuesto} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-1.5 px-4 rounded flex items-center gap-2 shadow-sm"><Save size={16} /> Guardar</button>
                     <button onClick={updatePricesFromCatalog} className="bg-white border text-gray-600 text-sm font-bold py-1.5 px-4 rounded hover:bg-gray-50 flex items-center gap-2">Actualizar Precios</button>
                     <button onClick={() => setIsAddRubroModalOpen(true)} className="bg-brand-sage text-white text-sm font-bold py-1.5 px-4 rounded hover:bg-brand-dark flex items-center gap-2"><Plus size={16} /> Agregar Rubro</button>
                   </>
@@ -708,36 +709,26 @@ export default function PresupuestosRealesPage() {
                     </div>
                   ))}
                 </tbody>
+                <tfoot className="bg-gray-50 border-t-4 border-gray-200">
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-500 uppercase text-xs font-bold">Costo Directo (Suma Subtotales)</td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-gray-800">${costoDirectoTotal.toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-500 uppercase text-xs font-bold">Indirectos (AIU)</td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-gray-800">${(totalGastosGenerales + simp + sutil).toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                  <tr className="bg-brand-sage/10">
+                    <td colSpan={6} className="px-4 py-3 text-right text-brand-dark uppercase text-xs font-black">Gran Total (Precio Venta)</td>
+                    <td className="px-4 py-3 text-right text-xl font-black text-brand-sage">${granTotal.toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>
-
-          <div className="bg-brand-dark rounded-xl p-6 text-white h-fit sticky top-6 flex flex-col gap-6">
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-brand-sage border-b border-white/10 pb-2">Resumen Económico</h2>
-              <div className="flex justify-between items-end mb-4"><span className="text-gray-400">Costo Directo</span><span className="text-xl font-medium">${costoDirectoTotal.toFixed(2)}</span></div>
-              <div className="space-y-3 bg-white/5 p-3 rounded-lg"><h3 className="text-xs font-bold text-gray-400 uppercase">Cálculo de Indirectos</h3>
-                <div className="flex justify-between gap-4"><span className="text-sm">Gastos Gen (A)</span>
-                  <span className="font-bold text-right text-brand-sage">{indForm?.ggen || 0}%</span>
-                  <span className="text-sm text-gray-300 w-16 text-right">${a.toFixed(2)}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-sm">Imprevistos (I)</span>
-                  <span className="font-bold text-right text-brand-sage">{indForm?.pimp || 0}%</span>
-                  <span className="text-sm text-gray-300 w-16 text-right">${i.toFixed(2)}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-sm">Utilidad (U)</span>
-                  <span className="font-bold text-right text-brand-sage">{indForm?.util || 0}%</span>
-                  <span className="text-sm text-gray-300 w-16 text-right">${u.toFixed(2)}</span></div>
-                <div className="text-center pt-2 mt-2 border-t border-white/10 text-xs text-gray-400">Edita los porcentajes en la pestaña "Costos Indirectos"</div>
-              </div>
-            </div>
-            <div className="border-t border-white/20 pt-4"><div className="flex justify-between items-end"><span className="text-gray-300">Gran Total</span><span className="text-3xl font-black text-brand-sage">${granTotal.toFixed(2)}</span></div></div>
-            <div className="flex flex-col gap-3">
-              {isBorrador && <button onClick={savePresupuesto} className="w-full bg-brand-sage text-brand-dark font-black py-3 rounded-lg flex justify-center gap-2"><Save size={18} /> GUARDAR</button>}
-              
-                            
-              
-            </div>
-          </div>
-        </div>
 
         
         )}

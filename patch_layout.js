@@ -1,105 +1,80 @@
 const fs = require('fs');
-const path = 'src/app/admin/layout.tsx';
-
+const path = 'src/app/admin/presupuestos_reales/page.tsx';
 let code = fs.readFileSync(path, 'utf8');
+const lines = code.split('\n');
 
-// Add state for sidebar
-if (!code.includes("isSidebarCollapsed")) {
-  code = code.replace(
-    /const \[userRole, setUserRole\] = useState\("Administrador"\)/,
-    'const [userRole, setUserRole] = useState("Administrador")\n  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)'
-  );
+// 1. Change grid-cols-1 lg:grid-cols-4 to w-full
+let idx1 = lines.findIndex(l => l.includes('<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">'));
+if (idx1 > -1) {
+  lines[idx1] = lines[idx1].replace('grid grid-cols-1 lg:grid-cols-4 gap-6', 'w-full');
 }
 
-// Modify the aside tag
-code = code.replace(
-  /<aside className="w-64 bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden">/,
-  '<aside className={`bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>'
-);
+// 2. Change lg:col-span-3 to nothing
+let idx2 = lines.findIndex(l => l.includes('<div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">'));
+if (idx2 > -1) {
+  lines[idx2] = lines[idx2].replace('lg:col-span-3 ', '');
+}
 
-// Modify logo section
-code = code.replace(
-  /<div className="p-6 border-b border-white\/10 flex items-center gap-3">([\s\S]*?)<\/div>\s*<\/div>/,
-  `<div className="p-6 border-b border-white/10 flex items-center gap-3 justify-center">
-          <div className="w-8 h-8 shrink-0 bg-white rounded flex items-center justify-center p-1">
-            <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
-          </div>
-          {!isSidebarCollapsed && (
-            <div className="overflow-hidden whitespace-nowrap">
-              <h1 className="font-bold tracking-wider text-sm uppercase">{userRole}</h1>
-              <p className="text-[10px] text-brand-sage uppercase">SARA Constructora</p>
-            </div>
-          )}
-        </div>`
-);
+// 3. Add GUARDAR button next to Actualizar Precios
+let idx3 = lines.findIndex(l => l.includes('<button onClick={updatePricesFromCatalog} className="bg-white border text-gray-600 text-sm font-bold py-1.5 px-4 rounded hover:bg-gray-50 flex items-center gap-2">Actualizar Precios</button>'));
+if (idx3 > -1) {
+  lines.splice(idx3, 0, `                    <button onClick={savePresupuesto} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-1.5 px-4 rounded flex items-center gap-2 shadow-sm"><Save size={16} /> Guardar</button>`);
+}
 
-// Modify group button
-code = code.replace(
-  /<button \s*onClick=\{\(\) => toggleGroup\(group\.title\)\}\s*className=\{`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors \$\{([\s\S]*?)\}`\}\s*>\s*<span>\{group\.title\}<\/span>\s*\{isOpen \? <ChevronDown size=\{14\} \/> : <ChevronRight size=\{14\} \/>\}\s*<\/button>/g,
-  `<button 
-                  onClick={() => { if(isSidebarCollapsed) setIsSidebarCollapsed(false); toggleGroup(group.title); }}
-                  className={\`w-full flex items-center \${isSidebarCollapsed ? "justify-center" : "justify-between"} px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors \${
-                    isOpen ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"
-                  }\`}
-                >
-                  {!isSidebarCollapsed && <span>{group.title}</span>}
-                  {isSidebarCollapsed ? <span className="font-bold text-lg">...</span> : (isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
-                </button>`
-);
+// 4. Find the sidebar starting point and end point
+let sideStart = lines.findIndex(l => l.includes('<div className="bg-brand-dark rounded-xl p-6 text-white h-fit sticky top-6 flex flex-col gap-6">'));
+let sideEnd = lines.findIndex((l, i) => i > sideStart && l.includes('{activeTab === \\\'indirectos\\\' && ('));
 
-// Modify links
-code = code.replace(
-  /<Link \s*key=\{item\.href\}\s*href=\{item\.href\} \s*className=\{`flex items-center gap-3 px-3 py-2\.5 rounded-lg font-medium transition-colors \$\{([\s\S]*?)\}`\}\s*>\s*<Icon size=\{18\} \/>\s*<span>\{item\.label\}<\/span>\s*<\/Link>/g,
-  `<Link 
-                          key={item.href}
-                          href={item.href} 
-                          title={isSidebarCollapsed ? item.label : undefined}
-                          className={\`flex items-center \${isSidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2.5 rounded-lg font-medium transition-colors \${
-                            isActive 
-                              ? "bg-brand-sage text-brand-dark" 
-                              : "text-gray-300 hover:bg-white/5 hover:text-white"
-                          }\`}
-                        >
-                          <Icon size={18} className="shrink-0" />
-                          {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
-                        </Link>`
-);
+if (sideStart > -1 && sideEnd > -1) {
+  // It should end before the closing </div> of the main grid, or maybe the sidebar has its own closing </div>s.
+  // Actually, wait! In page.tsx:
+  //       </div> // closes the lg:col-span-3 div
+  //     </div> // closes the grid
+  //   )} // closes activeTab === 'detalle'
+  
+  // Let's just remove the block from sideStart until it finds `{activeTab === 'indirectos' && (`
+  // But wait! We need to leave the `</div>` that closes the grid!
+  // It looks like:
+  //           <div className="bg-brand-dark rounded-xl p-6 text-white h-fit sticky top-6 flex flex-col gap-6">
+  //             ...
+  //           </div>
+  //         </div>
+  //         )}
+  
+  // Let's just find sideStart.
+  // The sidebar ends with </div>, then there's another </div>, then )}
+  let actualEnd = sideEnd - 1; 
+  while (!lines[actualEnd].includes(')}')) {
+    actualEnd--;
+  }
+  // so actualEnd is the line with )}
+  // we want to remove from sideStart to actualEnd - 2 (leaving the </div> that closes the w-full div).
+  
+  lines.splice(sideStart, actualEnd - sideStart - 1);
+}
 
-// Modify bottom links
-code = code.replace(
-  /<div className="p-4 border-t border-white\/10">([\s\S]*?)<Settings size=\{16\} \/>\s*<span>Configuración<\/span>\s*<\/Link>([\s\S]*?)<LogOut size=\{16\} \/>\s*<span>Cerrar Sesión<\/span>\s*<\/button>\s*<\/div>/,
-  `<div className="p-4 border-t border-white/10">
-          <Link href="/admin/configuracion" title={isSidebarCollapsed ? "Configuración" : undefined} className={\`flex items-center \${isSidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2 rounded-lg text-gray-400 hover:text-white transition-colors text-sm mb-1\`}>
-            <Settings size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Configuración</span>}
-          </Link>
-          <button 
-            title={isSidebarCollapsed ? "Cerrar Sesión" : undefined}
-            onClick={async () => {
-              const { createClient } = await import('@/lib/supabase/client')
-              const supabase = createClient()
-              await supabase.auth.signOut()
-              window.location.href = '/'
-            }} 
-            className={\`w-full flex items-center \${isSidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm\`}
-          >
-            <LogOut size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Cerrar Sesión</span>}
-          </button>
-        </div>`
-);
+// 5. Add tfoot before </table> in 'detalle'
+let tableEnd = lines.findIndex((l, i) => i > idx1 && i < sideStart && l.includes('</table>'));
+if (tableEnd > -1) {
+  const tfoot = `                <tfoot className="bg-gray-50 border-t-4 border-gray-200">
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-500 uppercase text-xs font-bold">Costo Directo (Suma Subtotales)</td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-gray-800">\${costoDirectoTotal.toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-500 uppercase text-xs font-bold">Indirectos (AIU)</td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-gray-800">\${(a + i + u).toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                  <tr className="bg-brand-sage/10">
+                    <td colSpan={6} className="px-4 py-3 text-right text-brand-dark uppercase text-xs font-black">Gran Total (Precio Venta)</td>
+                    <td className="px-4 py-3 text-right text-xl font-black text-brand-sage">\${granTotal.toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>`;
+  lines.splice(tableEnd, 0, tfoot);
+}
 
-// Add Hamburger menu to Header
-code = code.replace(
-  /<header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shrink-0 print:hidden">\s*<h2 className="font-bold text-gray-800 text-lg">Panel de Control<\/h2>/,
-  `<header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shrink-0 print:hidden">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="p-2 bg-gray-50 hover:bg-gray-100 border rounded-lg transition-colors">
-              <Menu size={20} className="text-gray-600"/>
-            </button>
-            <h2 className="font-bold text-gray-800 text-lg hidden sm:block">Panel de Control</h2>
-          </div>`
-);
-
-fs.writeFileSync(path, code);
-console.log("Layout patched!");
+fs.writeFileSync(path, lines.join('\n'));
+console.log("Patched layout");
