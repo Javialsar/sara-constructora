@@ -102,6 +102,7 @@ export default function AdminLayout({
     {
       title: "MÓDULO APU-SARA",
       items: [
+                { href: "/admin/parametros", label: "Parámetros Globales", icon: Settings },
         { href: "/admin/apus/insumos", label: "Catálogo de Insumos", icon: FileText },
         { href: "/admin/apus/rubros", label: "Recetas y Rubros", icon: Calculator },
         { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },

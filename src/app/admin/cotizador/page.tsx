@@ -10,7 +10,7 @@ export default function CotizadorPage() {
   const supabase = createClient()
   const [activeTab, setActiveTab] = useState<'generar' | 'parametros' | 'historial'>('generar')
   
-  // Estado para parÃ¡metros
+  // Estado para parámetros
   const [params, setParams] = useState<any>(null)
   const [loadingParams, setLoadingParams] = useState(true)
   const [savingParams, setSavingParams] = useState(false)
@@ -29,7 +29,7 @@ export default function CotizadorPage() {
     password: ""
   })
 
-  // Estado para la cotizaciÃ³n actual
+  // Estado para la cotización actual
   const [cotizacion, setCotizacion] = useState({
     nombreCliente: '',
     nombreProyecto: '',
@@ -66,18 +66,18 @@ export default function CotizadorPage() {
 
   const [savingQuote, setSavingQuote] = useState(false)
 
-  // ExportaciÃ³n a PDF (Nativo)
+  // Exportación a PDF (Nativo)
   const pdfRef = useRef<HTMLDivElement>(null)
   
   const handleExportPDF = () => {
-    // Usamos el diÃ¡logo de impresiÃ³n nativo del navegador,
+    // Usamos el diálogo de impresión nativo del navegador,
     // que tiene soporte perfecto para CSS y permite "Guardar como PDF".
     window.print();
   }
 
   const [historialCotizaciones, setHistorialCotizaciones] = useState<any[]>([])
   
-  // Cargar parÃ¡metros al iniciar
+  // Cargar parámetros al iniciar
   useEffect(() => {
     fetchParametros()
     fetchClientes()
@@ -86,8 +86,59 @@ export default function CotizadorPage() {
 
   const fetchParametros = async () => {
     setLoadingParams(true)
-    const { data } = await supabase.from('cotizador_parametros').select('*').eq('id', 1).single()
-    if (data) setParams(data)
+    const { data } = await supabase.from('parametros_globales').select('*').eq('id', 1).single()
+    if (data) {
+      const flatParams = {
+        tarifa_diseno_arq_m2: data.cotizador_tarifas.arquitectura_ejecutivo,
+        tarifa_diseno_est_m2: data.cotizador_tarifas.diseno_estructural,
+        tarifa_geotecnia: data.cotizador_tarifas.estudio_geotecnia,
+        tarifa_diseno_elec_m2: data.cotizador_tarifas.diseno_electrico,
+        tarifa_diseno_hidro_m2: data.cotizador_tarifas.diseno_hidrico,
+        tarifa_topografia_base: data.cotizador_tarifas.topografia,
+
+        costo_base_construccion_m2: data.cotizador_obra_base.costo_construccion_base,
+        porcentaje_iva_base: data.cotizador_obra_base.porcentaje_iva,
+
+        factor_acabados_economico: data.cotizador_factores.acabado_economico,
+        factor_acabados_estandar: data.cotizador_factores.acabado_estandar,
+        factor_acabados_premium: data.cotizador_factores.acabado_premium,
+        factor_suelo_normal: data.cotizador_factores.suelo_normal,
+        factor_suelo_blando: data.cotizador_factores.suelo_blando,
+        factor_suelo_rocoso: 1.05, // fallback
+        factor_estructura_hormigon: data.cotizador_factores.estructura_hormigon,
+        factor_estructura_metalica: data.cotizador_factores.estructura_metalica,
+        factor_pendiente_plana: data.cotizador_factores.pendiente_plana,
+        factor_pendiente_media: data.cotizador_factores.pendiente_media,
+        factor_pendiente_fuerte: data.cotizador_factores.pendiente_fuerte,
+
+        costo_extra_master: data.cotizador_ensambles.dormitorio_master,
+        costo_extra_bano_completo: data.cotizador_ensambles.bano_completo,
+        costo_extra_medio_bano: data.cotizador_ensambles.medio_bano,
+        costo_extra_lavanderia: data.cotizador_ensambles.lavanderia,
+        costo_extra_cisterna: data.cotizador_ensambles.cisterna_subt,
+        costo_extra_piscina: data.cotizador_ensambles.piscina_base,
+        costo_extra_garaje_descubierto: data.cotizador_ensambles.garaje_descubierto,
+        costo_extra_splits: data.cotizador_ensambles.clima_splits,
+        
+        // Extra fallbacks so it doesn't break
+        factor_tipologia_unifamiliar: 1,
+        factor_tipologia_multifamiliar: 1.15,
+        factor_tipologia_comercial: 1.25,
+        factor_tipologia_industrial: 0.85,
+        porcentaje_adicional_por_piso: 0.03,
+        factor_sotano: 1.4,
+        factor_acceso_urbano: 1,
+        factor_acceso_rural: 1.08,
+        factor_pisos_1: 1.05,
+        factor_pisos_2: 1,
+        factor_pisos_3: 1.02,
+        costo_extra_cocina_isla: 1500,
+        costo_ml_cerramiento: 120,
+        costo_extra_garaje_cubierto: 3500,
+        costo_extra_aire_central: 4500,
+      };
+      setParams(flatParams);
+    }
     setLoadingParams(false)
   }
 
@@ -165,7 +216,7 @@ export default function CotizadorPage() {
   const handleSaveParams = async (e: React.FormEvent) => {
     e.preventDefault()
     setSavingParams(true)
-    const { error } = await supabase.from('cotizador_parametros').update(params).eq('id', 1)
+    const { error } = await supabase.from('parametros_globales').update(params).eq('id', 1)
     setSavingParams(false)
     if (error) {
       setMensajeParametros("Error al guardar: " + error.message)
@@ -175,7 +226,7 @@ export default function CotizadorPage() {
     }
   }
 
-  // CÃ¡lculos en tiempo real
+  // Cálculos en tiempo real
   const calcularCostos = () => {
     if (!params) return null
 
@@ -259,19 +310,19 @@ export default function CotizadorPage() {
 
   const resultados = calcularCostos()
 
-  if (loadingParams) return <div className="p-8">Cargando motor de cÃ¡lculo...</div>
+  if (loadingParams) return <div className="p-8">Cargando motor de cálculo...</div>
 
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-3xl font-bold text-brand-dark flex items-center gap-3">
-            <Calculator className="text-brand-sage" /> Cotizador AutomÃ¡tico
+            <Calculator className="text-brand-sage" /> Cotizador Automático
           </h1>
-          <p className="text-gray-500 mt-2">Motor de consultorÃ­a y proyecciÃ³n paramÃ©trica de obra.</p>
+          <p className="text-gray-500 mt-2">Motor de consultoría y proyección paramétrica de obra.</p>
         </div>
         
-        {/* PestaÃ±as */}
+        {/* Pestañas */}
         <div className="flex bg-gray-200 p-1 rounded-lg">
           <button 
             onClick={() => setActiveTab('generar')}
@@ -279,12 +330,7 @@ export default function CotizadorPage() {
           >
             <FileText size={16} /> Generar Cotización
           </button>
-          <button 
-            onClick={() => setActiveTab('parametros')}
-            className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'parametros' ? 'bg-white shadow-sm text-brand-dark' : 'text-gray-500 hover:text-brand-dark'}`}
-          >
-            <Settings size={16} /> Parámetros Base
-          </button>
+          
           <button 
             onClick={() => setActiveTab('historial')}
             className={`px-4 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'historial' ? 'bg-white shadow-sm text-brand-dark' : 'text-gray-500 hover:text-brand-dark'}`}
@@ -294,9 +340,9 @@ export default function CotizadorPage() {
         </div>
       </div>
 
-      {activeTab === 'parametros' && (
+      {(false) && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-xl font-bold text-brand-dark mb-6">ConfiguraciÃ³n Global de Tarifas</h2>
+          <h2 className="text-xl font-bold text-brand-dark mb-6">Configuración Global de Tarifas</h2>
           {mensajeParametros && (
             <div className={`p-4 rounded-lg mb-6 flex items-center gap-2 ${mensajeParametros.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-brand-sage/20 text-brand-dark'}`}>
               <CheckCircle2 size={20} /> {mensajeParametros}
@@ -508,7 +554,7 @@ export default function CotizadorPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Área de ConstrucciÃ³n (mÂ²)</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Área de Construcción (mÂ²)</label>
                   <input 
                     type="number" 
                     step="0.01"
@@ -731,10 +777,10 @@ export default function CotizadorPage() {
             
             
 
-            {/* Contenedor que serÃ¡ convertido a PDF */}
+            {/* Contenedor que será convertido a PDF */}
             <div ref={pdfRef} className="space-y-6 bg-white p-4 sm:p-8 rounded-xl border border-transparent">
               
-              {/* Encabezado PDF (Oculto en pantalla normal si quisiÃ©ramos, pero se ve bien integrado) */}
+              {/* Encabezado PDF (Oculto en pantalla normal si quisiéramos, pero se ve bien integrado) */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-200 pb-6 mb-6">
                 <div>
                   <h2 className="text-2xl font-black text-brand-dark tracking-tight">SARA Constructora</h2>
@@ -931,8 +977,8 @@ export default function CotizadorPage() {
               
               {/* Footer PDF */}
               <div className="pt-8 text-center text-xs text-gray-400">
-                <p>Este documento es una proyecciÃ³n estimativa generada automÃ¡ticamente y no constituye un contrato legal ni una oferta vinculante final.</p>
-                <p>Los valores de obra estÃ¡n sujetos a variaciones del mercado y estudios definitivos.</p>
+                <p>Este documento es una proyección estimativa generada automáticamente y no constituye un contrato legal ni una oferta vinculante final.</p>
+                <p>Los valores de obra están sujetos a variaciones del mercado y estudios definitivos.</p>
               </div>
 
             </div>
@@ -1001,17 +1047,17 @@ export default function CotizadorPage() {
                 </div>
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-700 mb-1">Correo ElectrÃ³nico *</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico *</label>
                 <input required type="email" placeholder="carlos@empresa.com" value={clientFormData.email} onChange={e => setClientFormData({...clientFormData, email: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
               </div>
               <div className="mb-4">
-                <label className="block text-sm font-bold text-gray-700 mb-1">TelÃ©fono / WhatsApp</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
                 <input type="text" placeholder="Ej. 098 765 4321" value={clientFormData.telefono} onChange={e => setClientFormData({...clientFormData, telefono: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
               </div>
               <div className="mb-6">
-                <label className="block text-sm font-bold text-gray-700 mb-1">ContraseÃ±a Temporal *</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal *</label>
                 <input required type="text" placeholder="Ej. Sara2026" value={clientFormData.password} onChange={e => setClientFormData({...clientFormData, password: e.target.value})} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage" />
-                <p className="text-xs text-gray-500 mt-1">Comparte esta clave con el cliente. PodrÃ¡ cambiarla desde su panel.</p>
+                <p className="text-xs text-gray-500 mt-1">Comparte esta clave con el cliente. Podrá cambiarla desde su panel.</p>
               </div>
               
               <div className="flex justify-end gap-3 pt-4 border-t">
