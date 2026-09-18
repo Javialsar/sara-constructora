@@ -102,12 +102,17 @@ export default function AdminLayout({
     {
       title: "MÓDULO APU-SARA",
       items: [
-                { href: "/admin/parametros", label: "Parámetros Globales", icon: Settings },
+        { href: "/admin/parametros", label: "Parámetros Globales", icon: Settings },
         { href: "/admin/apus/insumos", label: "Catálogo de Insumos", icon: FileText },
         { href: "/admin/apus/rubros", label: "Rubros", icon: Calculator },
+        { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
+      ]
+    },
+    {
+      title: "COTIZACIONES RÁPIDAS",
+      items: [
         { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },
         { href: "/admin/cotizaciones", label: "Cotizaciones Recibidas", icon: FileText },
-        { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
       ]
     },
     {
