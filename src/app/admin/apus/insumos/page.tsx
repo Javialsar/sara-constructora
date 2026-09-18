@@ -41,7 +41,7 @@ export default function InsumosPage() {
     tipo: "material",
     categoria: "Sin categoría",
     precio_sin_iva: 0,
-    proveedor_id: "", proveedores_ids: []})
+    proveedor_id: "", proveedores_ids: [] as string[]})
 
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
