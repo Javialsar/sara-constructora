@@ -142,7 +142,7 @@ export default function PresupuestosRealesPage() {
       // Fetch all recipes for these rubros to have them ready for the accordion
       if (data.length > 0) {
         const { data: recipes } = await supabase.from('presupuesto_rubro_insumos')
-          .select('id, presupuesto_rubro_id, cantidad, precio_sin_iva_snapshot, insumo:insumos(nombre, tipo, unidad)')
+          .select('id, presupuesto_rubro_id, cantidad, precio_sin_iva_snapshot, insumo:insumos(id, codigo, nombre, tipo, unidad)')
           .in('presupuesto_rubro_id', data.map(d => d.id))
         
         if (recipes) {
