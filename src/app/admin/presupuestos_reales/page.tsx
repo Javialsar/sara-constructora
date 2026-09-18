@@ -394,7 +394,7 @@ export default function PresupuestosRealesPage() {
     let smat = 0;
 
     presupuestoRubros.forEach(pr => {
-      const q = Number(pr.cantidad || 0);
+      const q = Number(pr.cantidad_obra || 0);
       const items = rubrosRecipes[pr.id] || [];
       items.forEach(item => {
         const ism = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
@@ -566,7 +566,7 @@ export default function PresupuestosRealesPage() {
   const handleGenerateExplosionPDF = () => {
     const consolidado = {};
     presupuestoRubros.forEach(pr => {
-      const q = Number(pr.cantidad || 0);
+      const q = Number(pr.cantidad_obra || 0);
       const items = rubrosRecipes[pr.id] || [];
       items.forEach(item => {
         const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
@@ -1025,7 +1025,7 @@ export default function PresupuestosRealesPage() {
         {activeTab === 'explosion' && (() => {
             const consolidado = {};
             presupuestoRubros.forEach(pr => {
-              const q = Number(pr.cantidad || 0);
+              const q = Number(pr.cantidad_obra || 0);
               const items = rubrosRecipes[pr.id] || [];
               items.forEach(item => {
                 const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
