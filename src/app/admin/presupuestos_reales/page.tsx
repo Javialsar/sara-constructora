@@ -615,7 +615,7 @@ export default function PresupuestosRealesPage() {
           <div className="bg-brand-dark p-4 rounded-xl shadow-sm text-center"><p className="text-brand-sage text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-white">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
         </div>
         <div className="bg-white rounded-xl shadow-sm overflow-hidden min-h-[400px]">
-          <table className="w-full text-sm text-left border-collapse border border-gray-800"><thead className="bg-gray-100 text-gray-600 font-bold uppercase text-[10px]"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-800">
+          <table className="w-full text-sm text-left border-collapse border border-gray-800 divide-y divide-gray-200"><thead className="bg-slate-100 text-slate-700 border-b border-gray-200"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-800">
             {explosionData.map((ins, idx) => (
               <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-500">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
             ))}
@@ -677,7 +677,7 @@ export default function PresupuestosRealesPage() {
         {activeTab === 'detalle' && (
 
 <div className="w-full">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-800">Rubros del Proyecto</h2>
               <div className="flex gap-2">
@@ -692,8 +692,8 @@ export default function PresupuestosRealesPage() {
             </div>
             
             <div className="overflow-x-auto min-h-[300px]">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-100 text-gray-900 font-bold uppercase text-[10px] border-b border-gray-800">
+              <table className="w-full text-sm text-left divide-y divide-gray-200">
+                <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
                   <tr>
                     <th className="w-10"></th>
                     <th className="px-4 py-3">Cód</th>
@@ -709,7 +709,7 @@ export default function PresupuestosRealesPage() {
                 <tbody className="divide-y divide-gray-50">
                   {presupuestoRubros.map((item) => (
                     <div key={item.id} className="contents">
-                    <tr className="hover:bg-gray-50">
+                    <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                       <td className="px-2 text-center">
                         <button onClick={() => toggleRubro(item.id)} className="p-1 rounded hover:bg-gray-200 text-gray-500">
                           {expandedRubros[item.id] ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
@@ -751,7 +751,7 @@ export default function PresupuestosRealesPage() {
                                 </button>
                               )}
                             </div>
-                            <table className="w-full text-xs">
+                            <table className="w-full text-xs divide-y divide-gray-200">
                               <thead className="text-gray-400 border-b"><tr><th className="text-left py-1">Insumo</th><th className="text-right">Rendimiento</th><th className="text-right">Costo U.</th><th className="text-right">Subtotal</th></tr></thead>
                               <tbody>
                                 {renderGroupedInsumos(rubrosRecipes[item.id], false)}
@@ -790,7 +790,7 @@ export default function PresupuestosRealesPage() {
         )}
 
         {activeTab === 'indirectos' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <button className="px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm">% Porcentajes por defecto</button>
@@ -1181,7 +1181,7 @@ export default function PresupuestosRealesPage() {
                   <div className="p-4 text-center"><p className="text-gray-800 text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-brand-sage">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
                 </div>
                 <div className="overflow-x-auto min-h-[400px]">
-                  <table className="w-full text-sm text-left"><thead className="bg-white text-gray-400 font-bold uppercase text-[10px] border-b"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-100">
+                  <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-100 text-slate-700 border-b border-gray-200"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-100">
                     {memExplosionData.map((ins, idx) => (
                       <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs text-gray-500">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-400">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
                     ))}
@@ -1194,8 +1194,8 @@ export default function PresupuestosRealesPage() {
 
 {activeTab === 'reportes' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
-             <table className="w-full text-sm text-left">
-              <thead className="bg-[#4b8fb4] text-white font-bold">
+             <table className="w-full text-sm text-left divide-y divide-gray-200">
+              <thead className="bg-brand-sage text-white font-bold border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3">Nombre</th>
                   <th className="px-6 py-3 text-center w-32">PDF</th>
@@ -1204,7 +1204,7 @@ export default function PresupuestosRealesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Presupuesto</td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
@@ -1218,7 +1218,7 @@ export default function PresupuestosRealesPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-600">Totales del presupuesto.</td>
                 </tr>
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Análisis de Precios Unitarios (APUs)</td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={handleGenerateAPUsPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
@@ -1232,7 +1232,7 @@ export default function PresupuestosRealesPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios.</td>
                 </tr>
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Precios unitarios elementales (PUEs)</td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={() => alert("Próximamente")} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
@@ -1246,7 +1246,7 @@ export default function PresupuestosRealesPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-600">Precios unitarios elementales.</td>
                 </tr>
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Equipo</td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={() => handleGenerateExplosionPDF('equipo')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
@@ -1260,7 +1260,7 @@ export default function PresupuestosRealesPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-600">Totales de maquinaria y equipos del presupuesto. En unidades comerciales.</td>
                 </tr>
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Mano de obra</td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={() => handleGenerateExplosionPDF('mano_de_obra')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
@@ -1274,7 +1274,7 @@ export default function PresupuestosRealesPage() {
                   </td>
                   <td className="px-6 py-4 text-gray-600">Totales de mano de obra del presupuesto. En unidades comerciales.</td>
                 </tr>
-                <tr className="hover:bg-gray-50">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Materiales</td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={() => handleGenerateExplosionPDF('material')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
@@ -1341,13 +1341,13 @@ export default function PresupuestosRealesPage() {
               </div>
               
               <div className="flex flex-col lg:flex-row grow overflow-hidden p-6 gap-6">
-                <div className="lg:w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+                <div className="lg:w-2/3 bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden flex flex-col">
                   <div className="p-4 border-b border-gray-100 bg-gray-50/50">
                     <h4 className="font-bold text-gray-800">Receta / Insumos del Rubro</h4>
                   </div>
                   <div className="overflow-y-auto grow p-0">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-white text-gray-500 uppercase text-[10px] border-b">
+                    <table className="w-full text-sm text-left divide-y divide-gray-200">
+                      <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
                         <tr><th className="p-3">Insumo</th><th className="p-3 text-right">Cant/Rendimiento</th><th className="p-3 text-right">Costo U.</th><th className="p-3 text-right">Total</th><th className="p-3"></th></tr>
                       </thead>
                       <tbody>
@@ -1399,7 +1399,7 @@ export default function PresupuestosRealesPage() {
 
                   {/* Búsqueda Card */}
                   {userRole === 'admin' && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 shrink-0 flex flex-col h-96">
+                  <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-4 shrink-0 flex flex-col h-96">
                     <h4 className="font-bold mb-4 text-brand-dark">Agregar Insumo a la Receta</h4>
                     <input type="text" placeholder="Buscar catálogo maestro..." value={insumoSearch} onChange={e => setInsumoSearch(e.target.value)} className="w-full border p-2 rounded mb-4 shadow-sm" />
                     <div className="space-y-2 relative grow overflow-y-auto">
@@ -1436,9 +1436,9 @@ export default function PresupuestosRealesPage() {
         {userRole === 'admin' && <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border mb-6">
+      <div className="bg-white rounded-xl shadow-md border-gray-200 border-t-4 border-t-brand-sage mb-6">
         <div className="p-4 border-b bg-gray-50/50"><input type="text" placeholder="Buscar proyecto..." value={searchPresupuesto} onChange={(e) => setSearchPresupuesto(e.target.value)} className="w-full max-w-md px-4 py-2 border rounded-lg" /></div>
-        <table className="w-full text-sm text-left"><thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b"><tr><th className="px-6 py-4">Proyecto</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-center">Estado</th><th className="px-6 py-4 text-right">Costo Directo</th><th className="px-6 py-4 text-right">Gran Total</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-gray-50">
+        <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-50 text-slate-700 font-bold uppercase text-xs border-b"><tr><th className="px-6 py-4">Proyecto</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-center">Estado</th><th className="px-6 py-4 text-right">Costo Directo</th><th className="px-6 py-4 text-right">Gran Total</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-gray-50">
           {presupuestos.filter(p => p.nombre_proyecto.toLowerCase().includes(searchPresupuesto.toLowerCase())).map((p) => (
             <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
               <td className="px-6 py-3 font-bold text-brand-dark">{p.nombre_proyecto}</td>

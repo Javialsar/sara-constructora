@@ -148,7 +148,7 @@ export default function ProveedoresPage() {
       </div>
 
       {/* Main Card */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-white p-6 rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage">
         <div className="flex justify-between items-center mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -175,8 +175,8 @@ export default function ProveedoresPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
+            <table className="w-full text-left border-collapse divide-y divide-gray-200">
+              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200 uppercase text-xs">
                 <tr className="border-b border-gray-200 text-sm text-gray-500">
                   <th className="py-3 px-4 font-semibold">Razón Social</th>
                   <th className="py-3 px-4 font-semibold">RUC</th>

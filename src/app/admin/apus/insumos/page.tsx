@@ -239,7 +239,7 @@ export default function InsumosPage() {
       </div>
 
       {/* Main Card */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-200 border-t-4 border-t-brand-sage">
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -290,8 +290,8 @@ export default function InsumosPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
+            <table className="w-full text-left border-collapse divide-y divide-gray-200">
+              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200 uppercase text-xs">
                 <tr className="border-b border-gray-200 text-sm text-gray-500">
                   <th className="py-3 px-4 font-semibold">Código</th>
                   <th className="py-3 px-4 font-semibold">Nombre del Insumo / Categoría</th>

@@ -127,7 +127,7 @@ export default function AdminLayout({
       {pathname === '/admin/login' ? (
         children
       ) : (
-        <div className="flex h-screen bg-gray-50 overflow-hidden print:h-auto print:block print:bg-white">
+        <div className="flex h-screen bg-slate-100 overflow-hidden print:h-auto print:block print:bg-white">
       
       {/* Sidebar */}
       <aside className={`bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>

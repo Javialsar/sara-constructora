@@ -165,7 +165,7 @@ export default function AdminNoticias() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500">Cargando artículos...</div>
         ) : articulos.length === 0 ? (
@@ -175,8 +175,8 @@ export default function AdminNoticias() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
+            <table className="w-full text-left border-collapse divide-y divide-gray-200">
+              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200 uppercase text-xs">
                 <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
                   <th className="p-4 font-medium">Artículo</th>
                   <th className="p-4 font-medium">Categoría</th>

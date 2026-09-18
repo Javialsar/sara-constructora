@@ -186,7 +186,7 @@ export default function RubrosPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Izquierda: Componentes del Rubro */}
-          <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="lg:col-span-3 bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-800">Receta / Insumos del Rubro</h2>
               <button onClick={() => setIsAddInsumoModalOpen(true)} className="bg-brand-sage text-white text-sm font-bold py-1.5 px-4 rounded hover:bg-brand-dark transition-colors flex items-center gap-2">
@@ -195,8 +195,8 @@ export default function RubrosPage() {
             </div>
             
             <div className="overflow-x-auto min-h-[400px]">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-white text-gray-500 font-bold uppercase text-[10px] border-b border-gray-100">
+              <table className="w-full text-sm text-left divide-y divide-gray-200">
+                <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3">Código</th>
                     <th className="px-4 py-3">Insumo</th>
@@ -385,7 +385,7 @@ export default function RubrosPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden mb-6">
         <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex gap-4">
           <div className="relative w-full max-w-md">
             <input 
@@ -400,8 +400,8 @@ export default function RubrosPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-white text-gray-500 font-bold uppercase text-xs border-b border-gray-100">
+          <table className="w-full text-sm text-left divide-y divide-gray-200">
+            <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4">Código</th>
                 <th className="px-6 py-4">Nombre del Rubro</th>

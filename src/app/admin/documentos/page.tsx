@@ -155,15 +155,15 @@ export default function AdminDocumentos() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
         {loading ? (
           <div className="p-12 flex justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-dark"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-500">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-100">
+            <table className="w-full text-left text-sm text-gray-500 divide-y divide-gray-200">
+              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4 font-bold">Documento</th>
                   <th className="px-6 py-4 font-bold">Proyecto Asociado</th>

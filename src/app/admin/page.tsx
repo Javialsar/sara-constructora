@@ -163,7 +163,7 @@ export default function AdminDashboardPage() {
       
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 flex flex-col">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-gray-500 text-sm font-medium mb-1">Proyectos Activos</p>
@@ -179,7 +179,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 flex flex-col">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-gray-500 text-sm font-medium mb-1">Clientes Registrados</p>
@@ -195,7 +195,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 flex flex-col">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-gray-500 text-sm font-medium mb-1">Cotizaciones Pendientes</p>
@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 flex flex-col">
           <div className="flex justify-between items-start mb-4">
             <div>
               <p className="text-gray-500 text-sm font-medium mb-1">Testimonios Nuevos</p>
@@ -230,7 +230,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Pie Chart - Estado de Proyectos */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:col-span-1">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 lg:col-span-1">
           <h3 className="text-lg font-bold text-gray-800 mb-6">Estado de Proyectos</h3>
           <div className="h-72 flex flex-col items-center">
             {projectStatusData.every(d => d.value === 0) ? (
@@ -276,13 +276,13 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Recent Activity Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden lg:col-span-2">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden lg:col-span-2">
           <div className="p-6 border-b border-gray-100 flex justify-between items-center">
             <h3 className="text-lg font-bold text-gray-800">Actividad Reciente</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-gray-500">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-700">
+            <table className="w-full text-left text-sm text-gray-500 divide-y divide-gray-200">
+              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4 font-medium">Usuario / Cliente</th>
                   <th className="px-6 py-4 font-medium">Acción</th>

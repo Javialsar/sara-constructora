@@ -194,7 +194,7 @@ export default function ConfiguracionPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
         <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
           <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
             <Camera size={20} />
@@ -239,7 +239,7 @@ export default function ConfiguracionPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
         {/* Información de Contacto */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
               <Mail size={20} />
@@ -274,7 +274,7 @@ export default function ConfiguracionPage() {
         </div>
 
         {/* Redes Sociales */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
               <LinkIcon size={20} />
@@ -303,7 +303,7 @@ export default function ConfiguracionPage() {
         </div>
 
         {/* Equipo Directivo */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:col-span-2">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 md:col-span-2">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
@@ -404,7 +404,7 @@ export default function ConfiguracionPage() {
         </div>
       </div>
       {/* Selector de Temas */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden mt-6">
         <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
             <Settings size={18} />

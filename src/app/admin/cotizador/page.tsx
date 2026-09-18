@@ -341,7 +341,7 @@ export default function CotizadorPage() {
       </div>
 
       {(false) && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6">
           <h2 className="text-xl font-bold text-brand-dark mb-6">Configuración Global de Tarifas</h2>
           {mensajeParametros && (
             <div className={`p-4 rounded-lg mb-6 flex items-center gap-2 ${mensajeParametros.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-brand-sage/20 text-brand-dark'}`}>
@@ -504,7 +504,7 @@ export default function CotizadorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Panel de Inputs */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:hidden">
+          <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 print:hidden">
             <h2 className="text-xl font-bold text-brand-dark mb-6 border-b pb-4">Inputs del Proyecto</h2>
             
             <div className="space-y-6">
@@ -989,15 +989,15 @@ export default function CotizadorPage() {
 
       {/* PESTAÃ‘A HISTORIAL */}
       {activeTab === 'historial' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6">
           <h2 className="text-xl font-bold text-brand-dark mb-6">Historial de Cotizaciones Emitidas</h2>
           
           {historialCotizaciones.length === 0 ? (
             <div className="text-center text-gray-500 py-12">No hay cotizaciones guardadas en el historial.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-600 font-bold uppercase text-xs">
+              <table className="w-full text-sm text-left divide-y divide-gray-200">
+                <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 rounded-tl-lg">Fecha</th>
                     <th className="px-4 py-3">Cliente</th>
