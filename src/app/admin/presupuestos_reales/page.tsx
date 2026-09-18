@@ -592,8 +592,6 @@ export default function PresupuestosRealesPage() {
     });
   }
 
-  }
-
   const isBorrador = !currentPresupuesto?.estado || currentPresupuesto.estado.toLowerCase() === 'borrador';
 
   if (false) { // Dead code removed for safety
