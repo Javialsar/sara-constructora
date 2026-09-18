@@ -12,6 +12,8 @@ export default function PresupuestosRealesPage() {
   const supabase = createClient()
   
   const [view, setView] = useState('lista')
+  const [indForm, setIndForm] = useState({ admin: 10, imprevistos: 5, utilidad: 10 })
+  const [activeTab, setActiveTab] = useState('detalle')
   const [presupuestos, setPresupuestos] = useState([])
   const [searchPresupuesto, setSearchPresupuesto] = useState("")
 
@@ -97,6 +99,19 @@ export default function PresupuestosRealesPage() {
     fetchPresupuestos()
   }
 
+  const handleSaveIndirectos = async () => {
+    const { error } = await supabase.from('presupuestos_reales').update({
+      porcentaje_admin: indForm.admin,
+      porcentaje_imprevistos: indForm.imprevistos,
+      porcentaje_utilidad: indForm.utilidad
+    }).eq('id', currentPresupuesto.id)
+    if(!error) {
+      setCurrentPresupuesto({...currentPresupuesto, porcentaje_admin: indForm.admin, porcentaje_imprevistos: indForm.imprevistos, porcentaje_utilidad: indForm.utilidad})
+      fetchPresupuestos()
+      alert("Costos Indirectos guardados correctamente")
+    }
+  }
+
   const handleMarcarEntregado = async () => {
     if (!confirm("¿Marcar como ENTREGADO? Ya no podrás editarlo.")) return
     await supabase.from('presupuestos_reales').update({ estado: 'Entregado' }).eq('id', currentPresupuesto.id)
@@ -106,6 +121,10 @@ export default function PresupuestosRealesPage() {
 
   const openEditor = async (presupuesto) => {
     setCurrentPresupuesto(presupuesto)
+    setIndForm({ admin: presupuesto.porcentaje_admin || 0, imprevistos: presupuesto.porcentaje_imprevistos || 0, utilidad: presupuesto.porcentaje_utilidad || 0 })
+    setActiveTab('detalle')
+    setIndForm({ admin: presupuesto.porcentaje_admin || 0, imprevistos: presupuesto.porcentaje_imprevistos || 0, utilidad: presupuesto.porcentaje_utilidad || 0 })
+    setActiveTab('detalle')
     setView('editor')
     fetchPresupuestoRubros(presupuesto.id)
     
@@ -545,7 +564,25 @@ export default function PresupuestosRealesPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* TABS HEADER */}
+        <div className="flex space-x-1 mb-6 border-b border-gray-200">
+          <button onClick={() => setActiveTab('detalle')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'detalle' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <List size={16} className="inline mr-2"/> Detalle de Presupuesto
+          </button>
+          <button onClick={() => setActiveTab('indirectos')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'indirectos' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <Calculator size={16} className="inline mr-2"/> Costos Indirectos
+          </button>
+          <button onClick={() => setActiveTab('reportes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'reportes' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <FileText size={16} className="inline mr-2"/> Reportes
+          </button>
+          <button onClick={() => setIsGanttModalOpen(true)} className={`px-6 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700`}>
+            <Calendar size={16} className="inline mr-2"/> Programación
+          </button>
+        </div>
+
+        {activeTab === 'detalle' && (
+
+<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-800">Rubros del Proyecto</h2>
