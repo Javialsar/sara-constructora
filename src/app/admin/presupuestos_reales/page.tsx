@@ -1005,16 +1005,16 @@ export default function PresupuestosRealesPage() {
                     <div className="flex p-2 items-center bg-gray-50 font-bold">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Precio de venta</div>
                       <div className="w-24 pl-8"></div>
-                      <div className="w-24 text-right pr-4 font-mono">{pven.toFixed(2)}</div>
-                      <div className="w-24 text-center font-mono text-gray-400">= $pven =</div>
+                      <div className="w-24 text-right pr-4 font-mono">{granTotal.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $granTotal =</div>
                       <div className="flex-1 font-mono text-gray-500">$cnet + $sutil + $simp</div>
                     </div>
                     <div className="flex p-2 items-center bg-white font-black py-4">
                       <div className="w-1/3 text-right pr-4 text-gray-900">Total Precio Unitario</div>
                       <div className="w-24 pl-8"></div>
-                      <div className="w-24 text-right pr-4 font-mono text-lg">{pven.toFixed(2)}</div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{granTotal.toFixed(2)}</div>
                       <div className="w-24 text-center font-mono text-gray-400">= $Stotal =</div>
-                      <div className="flex-1 font-mono text-gray-500">$pven</div>
+                      <div className="flex-1 font-mono text-gray-500">$granTotal</div>
                     </div>
                   </div>
                 </div>
