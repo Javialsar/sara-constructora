@@ -13,6 +13,7 @@ export default function PresupuestosRealesPage() {
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ admin: 10, imprevistos: 5, utilidad: 10 })
+  const [openGroup, setOpenGroup] = useState({ 1: false, 2: false, 3: true, 4: true, 5: true, 6: true })
   const [activeTab, setActiveTab] = useState('detalle')
   const [presupuestos, setPresupuestos] = useState([])
   const [searchPresupuesto, setSearchPresupuesto] = useState("")
@@ -716,30 +717,39 @@ export default function PresupuestosRealesPage() {
             
             <div className="divide-y divide-gray-200">
               {/* EQUIPOS */}
-              <div className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer">
-                <span>1.- Equipos</span><ChevronDown size={18}/>
+              <div onClick={() => setOpenGroup({...openGroup, 1: !openGroup[1]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer select-none">
+                <span>1.- Equipos</span>{openGroup[1] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
+  {openGroup[1] && (
+    <div className="p-4 bg-white text-sm text-gray-500 text-center italic">En construcción... (Aquí se detallarán las herramientas menores).</div>
+  )}
               
               {/* MANO DE OBRA */}
-              <div className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1">
-                <span>2.- Mano de Obra</span><ChevronDown size={18}/>
+              <div onClick={() => setOpenGroup({...openGroup, 2: !openGroup[2]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
+                <span>2.- Mano de Obra</span>{openGroup[2] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
+  {openGroup[2] && (
+    <div className="p-4 bg-white text-sm text-gray-500 text-center italic">En construcción... (Aquí se detallará el subtotal de mano de obra).</div>
+  )}
 
               {/* MATERIALES */}
-              <div className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1">
-                <span>3.- Materiales</span><ChevronDown size={18}/>
+              <div onClick={() => setOpenGroup({...openGroup, 3: !openGroup[3]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
+                <span>3.- Materiales</span>{openGroup[3] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
-              <div className="p-4 bg-white grid grid-cols-12 text-sm">
+  {openGroup[3] && (
+    <div className="p-4 bg-white grid grid-cols-12 text-sm">
                 <div className="col-span-8 text-right pr-4 py-2 font-medium text-gray-600">Costo Directo (1+2+3)</div>
                 <div className="col-span-1 text-right py-2 font-black text-gray-800 border-b border-gray-200">${costoDirectoTotal.toFixed(2)}</div>
                 <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono">= $cdir = Costo Directo Total</div>
-              </div>
+    </div>
+  )}
 
               {/* GASTOS GENERALES */}
-              <div className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1">
-                <span>4.- Gastos generales y administrativos</span><ChevronDown size={18}/>
+              <div onClick={() => setOpenGroup({...openGroup, 4: !openGroup[4]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
+                <span>4.- Gastos generales y administrativos</span>{openGroup[4] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
-              <div className="p-4 bg-white grid grid-cols-12 text-sm items-center gap-y-2">
+  {openGroup[4] && (
+    <div className="p-4 bg-white grid grid-cols-12 text-sm items-center gap-y-2">
                 <div className="col-span-5 font-medium text-gray-700">Gastos generales = (% de 1+2+3)</div>
                 <div className="col-span-1 text-center font-bold text-brand-dark">$ggen</div>
                 <div className="col-span-2">
@@ -751,13 +761,15 @@ export default function PresupuestosRealesPage() {
                 <div className="col-span-8 text-right pr-4 py-2 font-medium text-gray-600 mt-2">Costo neto</div>
                 <div className="col-span-1 text-right py-2 font-black text-gray-800 border-b border-gray-200 mt-2">${(costoDirectoTotal + a).toFixed(2)}</div>
                 <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono mt-2">= $cnet = $cdir + $sggen</div>
-              </div>
+    </div>
+  )}
 
               {/* IMPREVISTOS */}
-              <div className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1">
-                <span>5.- Imprevistos</span><ChevronDown size={18}/>
+              <div onClick={() => setOpenGroup({...openGroup, 5: !openGroup[5]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
+                <span>5.- Imprevistos</span>{openGroup[5] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
-              <div className="p-4 bg-white grid grid-cols-12 text-sm items-center">
+  {openGroup[5] && (
+    <div className="p-4 bg-white grid grid-cols-12 text-sm items-center">
                 <div className="col-span-5 font-medium text-gray-700">Imprevistos = (% de 1+2+3)</div>
                 <div className="col-span-1 text-center font-bold text-brand-dark">$imprv</div>
                 <div className="col-span-2">
@@ -765,13 +777,15 @@ export default function PresupuestosRealesPage() {
                 </div>
                 <div className="col-span-1 text-right font-bold text-gray-800 border-b border-gray-200">${i.toFixed(2)}</div>
                 <div className="col-span-3 text-gray-400 text-xs font-mono pl-4">= $simprv = $cdir * $imprv / 100</div>
-              </div>
+    </div>
+  )}
 
               {/* UTILIDAD */}
-              <div className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1">
-                <span>6.- Utilidad</span><ChevronDown size={18}/>
+              <div onClick={() => setOpenGroup({...openGroup, 6: !openGroup[6]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
+                <span>6.- Utilidad</span>{openGroup[6] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
-              <div className="p-4 bg-white grid grid-cols-12 text-sm items-center gap-y-2">
+  {openGroup[6] && (
+    <div className="p-4 bg-white grid grid-cols-12 text-sm items-center gap-y-2">
                 <div className="col-span-5 font-medium text-gray-700">Utilidad = (% de 1+2+3+4)</div>
                 <div className="col-span-1 text-center font-bold text-brand-dark">$util</div>
                 <div className="col-span-2">
@@ -787,7 +801,8 @@ export default function PresupuestosRealesPage() {
                 <div className="col-span-8 text-right pr-4 py-2 font-bold text-gray-800 bg-gray-50">Total Precio Unitario</div>
                 <div className="col-span-1 text-right py-2 font-black text-brand-sage border-b-2 border-brand-sage bg-gray-50">${granTotal.toFixed(2)}</div>
                 <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono bg-gray-50">= $Stotal = $pven</div>
-              </div>
+    </div>
+  )}
             </div>
           </div>
         )}
