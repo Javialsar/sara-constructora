@@ -823,7 +823,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Herramientas Menores % M.O.</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pmaq1</span>
-                        <input type="number" step="0.1" value={indForm.pmaq1} onChange={e => setIndForm({...indForm, pmaq1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pmaq1: String(Math.max(0, (Number(indForm.pmaq1)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pmaq1 !== undefined && indForm.pmaq1 !== null ? indForm.pmaq1 : ''} onChange={e => setIndForm({...indForm, pmaq1: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pmaq1: String(((Number(indForm.pmaq1)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmaq1.toFixed(2)}</div>
                       {showFormulas && (
@@ -866,7 +870,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium"></div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pmob1</span>
-                        <input type="number" step="0.1" value={indForm.pmob1} onChange={e => setIndForm({...indForm, pmob1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pmob1: String(Math.max(0, (Number(indForm.pmob1)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pmob1 !== undefined && indForm.pmob1 !== null ? indForm.pmob1 : ''} onChange={e => setIndForm({...indForm, pmob1: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pmob1: String(((Number(indForm.pmob1)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmob1.toFixed(2)}</div>
                       {showFormulas && (
@@ -909,7 +917,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium"></div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pmat1</span>
-                        <input type="number" step="0.1" value={indForm.pmat1} onChange={e => setIndForm({...indForm, pmat1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pmat1: String(Math.max(0, (Number(indForm.pmat1)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pmat1 !== undefined && indForm.pmat1 !== null ? indForm.pmat1 : ''} onChange={e => setIndForm({...indForm, pmat1: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pmat1: String(((Number(indForm.pmat1)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmat1.toFixed(2)}</div>
                       {showFormulas && (
@@ -953,7 +965,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos generales = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$ggen</span>
-                        <input type="number" step="0.1" value={indForm.ggen} onChange={e => setIndForm({...indForm, ggen: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, ggen: String(Math.max(0, (Number(indForm.ggen)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.ggen !== undefined && indForm.ggen !== null ? indForm.ggen : ''} onChange={e => setIndForm({...indForm, ggen: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, ggen: String(((Number(indForm.ggen)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sggen.toFixed(2)}</div>
                       {showFormulas && (
@@ -967,7 +983,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos de obra</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pgas1</span>
-                        <input type="number" step="0.1" value={indForm.pgas1} onChange={e => setIndForm({...indForm, pgas1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pgas1: String(Math.max(0, (Number(indForm.pgas1)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pgas1 !== undefined && indForm.pgas1 !== null ? indForm.pgas1 : ''} onChange={e => setIndForm({...indForm, pgas1: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pgas1: String(((Number(indForm.pgas1)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas1.toFixed(2)}</div>
                       {showFormulas && (
@@ -981,7 +1001,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Financiamiento</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pgas2</span>
-                        <input type="number" step="0.1" value={indForm.pgas2} onChange={e => setIndForm({...indForm, pgas2: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pgas2: String(Math.max(0, (Number(indForm.pgas2)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pgas2 !== undefined && indForm.pgas2 !== null ? indForm.pgas2 : ''} onChange={e => setIndForm({...indForm, pgas2: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pgas2: String(((Number(indForm.pgas2)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas2.toFixed(2)}</div>
                       {showFormulas && (
@@ -995,7 +1019,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Polizas y Seguros</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pgas3</span>
-                        <input type="number" step="0.1" value={indForm.pgas3} onChange={e => setIndForm({...indForm, pgas3: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pgas3: String(Math.max(0, (Number(indForm.pgas3)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pgas3 !== undefined && indForm.pgas3 !== null ? indForm.pgas3 : ''} onChange={e => setIndForm({...indForm, pgas3: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pgas3: String(((Number(indForm.pgas3)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas3.toFixed(2)}</div>
                       {showFormulas && (
@@ -1039,7 +1067,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Imprevistos = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pimp</span>
-                        <input type="number" step="0.1" value={indForm.pimp} onChange={e => setIndForm({...indForm, pimp: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, pimp: String(Math.max(0, (Number(indForm.pimp)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.pimp !== undefined && indForm.pimp !== null ? indForm.pimp : ''} onChange={e => setIndForm({...indForm, pimp: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, pimp: String(((Number(indForm.pimp)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{simp.toFixed(2)}</div>
                       {showFormulas && (
@@ -1072,7 +1104,11 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Utilidad = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$util</span>
-                        <input type="number" step="0.1" value={indForm.util} onChange={e => setIndForm({...indForm, util: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <div className="flex items-center border-2 border-brand-sage/40 rounded-lg overflow-hidden w-28 h-9 shadow-inner bg-blue-50 focus-within:border-brand-sage focus-within:bg-white transition-all">
+                          <button type="button" onClick={() => setIndForm({...indForm, util: String(Math.max(0, (Number(indForm.util)||0) - 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">-</button>
+                          <input type="number" step="0.1" value={indForm.util !== undefined && indForm.util !== null ? indForm.util : ''} onChange={e => setIndForm({...indForm, util: e.target.value})} className="w-full h-full text-center bg-transparent outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-sm" />
+                          <button type="button" onClick={() => setIndForm({...indForm, util: String(((Number(indForm.util)||0) + 0.1).toFixed(1))})} className="w-8 h-full bg-gray-200 hover:bg-gray-300 font-bold text-gray-600 flex items-center justify-center select-none">+</button>
+                        </div>
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sutil.toFixed(2)}</div>
                       {showFormulas && (
