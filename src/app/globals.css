@@ -89,3 +89,15 @@ html {
   --color-sara-sage: #ffcc00;
   --color-sara-black: #000000;
 }
+
+/* Force spin buttons */
+input[type="number"].admin-spin::-webkit-inner-spin-button,
+input[type="number"].admin-spin::-webkit-outer-spin-button {
+  -webkit-appearance: inner-spin-button !important;
+  opacity: 1 !important;
+  display: block !important;
+  height: auto;
+}
+input[type="number"].admin-spin {
+  -moz-appearance: number-input;
+}
