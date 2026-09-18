@@ -25,6 +25,7 @@ type Insumo = {
 
 export default function InsumosPage() {
   const [insumos, setInsumos] = useState<Insumo[]>([])
+  const [insumoProvMap, setInsumoProvMap] = useState<Record<string, string[]>>({})
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -74,6 +75,18 @@ export default function InsumosPage() {
       setProveedores(dataProv)
     }
 
+    
+    // Fetch Insumo_Proveedores
+    const { data: dataIP } = await supabase.from('insumo_proveedores').select('*')
+    if (dataIP) {
+      const map: Record<string, string[]> = {}
+      dataIP.forEach((ip: any) => {
+        if (!map[ip.insumo_id]) map[ip.insumo_id] = []
+        map[ip.insumo_id].push(ip.proveedor_id)
+      })
+      setInsumoProvMap(map)
+    }
+
     setLoading(false)
   }
 
@@ -101,7 +114,8 @@ export default function InsumosPage() {
       tipo: insumo.tipo || "material",
       categoria: insumo.categoria || "Sin categoría",
       precio_sin_iva: insumo.precio_sin_iva || 0,
-      proveedor_id: insumo.proveedor_id || ""
+      proveedor_id: insumo.proveedor_id || "",
+      proveedores_ids: insumoProvMap[insumo.id] || (insumo.proveedor_id ? [insumo.proveedor_id] : [])
     })
     setEditingId(insumo.id)
     setIsModalOpen(true)

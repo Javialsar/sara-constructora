@@ -823,7 +823,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Herramientas Menores % M.O.</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pmaq1</span>
-                        <input type="number" step="0.1" value={indForm.pmaq1} onChange={e => setIndForm({...indForm, pmaq1: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pmaq1} onChange={e => setIndForm({...indForm, pmaq1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmaq1.toFixed(2)}</div>
                       {showFormulas && (
@@ -866,7 +866,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium"></div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pmob1</span>
-                        <input type="number" step="0.1" value={indForm.pmob1} onChange={e => setIndForm({...indForm, pmob1: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pmob1} onChange={e => setIndForm({...indForm, pmob1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmob1.toFixed(2)}</div>
                       {showFormulas && (
@@ -909,7 +909,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium"></div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pmat1</span>
-                        <input type="number" step="0.1" value={indForm.pmat1} onChange={e => setIndForm({...indForm, pmat1: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pmat1} onChange={e => setIndForm({...indForm, pmat1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmat1.toFixed(2)}</div>
                       {showFormulas && (
@@ -953,7 +953,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos generales = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$ggen</span>
-                        <input type="number" step="0.1" value={indForm.ggen} onChange={e => setIndForm({...indForm, ggen: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.ggen} onChange={e => setIndForm({...indForm, ggen: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sggen.toFixed(2)}</div>
                       {showFormulas && (
@@ -967,7 +967,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos de obra</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pgas1</span>
-                        <input type="number" step="0.1" value={indForm.pgas1} onChange={e => setIndForm({...indForm, pgas1: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pgas1} onChange={e => setIndForm({...indForm, pgas1: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas1.toFixed(2)}</div>
                       {showFormulas && (
@@ -981,7 +981,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Financiamiento</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pgas2</span>
-                        <input type="number" step="0.1" value={indForm.pgas2} onChange={e => setIndForm({...indForm, pgas2: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pgas2} onChange={e => setIndForm({...indForm, pgas2: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas2.toFixed(2)}</div>
                       {showFormulas && (
@@ -995,7 +995,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Polizas y Seguros</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pgas3</span>
-                        <input type="number" step="0.1" value={indForm.pgas3} onChange={e => setIndForm({...indForm, pgas3: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pgas3} onChange={e => setIndForm({...indForm, pgas3: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas3.toFixed(2)}</div>
                       {showFormulas && (
@@ -1039,7 +1039,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Imprevistos = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$pimp</span>
-                        <input type="number" step="0.1" value={indForm.pimp} onChange={e => setIndForm({...indForm, pimp: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.pimp} onChange={e => setIndForm({...indForm, pimp: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{simp.toFixed(2)}</div>
                       {showFormulas && (
@@ -1072,7 +1072,7 @@ export default function PresupuestosRealesPage() {
                       <div className="w-1/3 text-left pl-4 font-medium">Utilidad = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
                         <span className="font-bold mr-2 text-gray-700">$util</span>
-                        <input type="number" step="0.1" value={indForm.util} onChange={e => setIndForm({...indForm, util: parseFloat(e.target.value) || 0})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
+                        <input type="number" step="0.1" value={indForm.util} onChange={e => setIndForm({...indForm, util: e.target.value})} className="w-20 h-9 text-base border-2 border-brand-sage/40 rounded-lg p-1 text-center bg-blue-50 focus:border-brand-sage focus:bg-white font-bold transition-all shadow-inner" />
                       </div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sutil.toFixed(2)}</div>
                       {showFormulas && (
