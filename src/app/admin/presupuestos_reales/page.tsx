@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List } from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
-import { generatePDF } from "@/lib/pdfGenerator"
+import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } from "@/lib/pdfGenerator"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
 
@@ -537,8 +537,8 @@ export default function PresupuestosRealesPage() {
     fetchPresupuestoRubros(currentPresupuesto.id);
   }
 
-  const handleGeneratePDF = () => {
-    generatePDF({
+  const handleGeneratePresupuestoGeneralPDF = () => {
+    generatePresupuestoGeneralPDF({
       currentPresupuesto,
       proyectosCRM,
       totales: calcTotales(),
@@ -546,11 +546,49 @@ export default function PresupuestosRealesPage() {
       rubrosRecipes,
       allRubros
     });
+
+  const handleGenerateAPUsPDF = () => {
+    generateAPUsPDF({
+      currentPresupuesto,
+      presupuestoRubros,
+      rubrosRecipes,
+      allRubros
+    });
+  }
+
+  const handleGenerateExplosionPDF = () => {
+    const consolidado = {};
+    presupuestoRubros.forEach(pr => {
+      const q = Number(pr.cantidad || 0);
+      const items = rubrosRecipes[pr.id] || [];
+      items.forEach(item => {
+        const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
+        if (!iObj) return;
+        const cantRequerida = q * Number(item.cantidad);
+        const costoTotal = cantRequerida * Number(item.precio_sin_iva_snapshot || 0);
+        const insId = iObj.id;
+        if (!consolidado[insId]) {
+          consolidado[insId] = { ...iObj, costo: item.precio_sin_iva_snapshot || 0, cantidad_total: 0, costo_total: 0 };
+        }
+        consolidado[insId].cantidad_total += cantRequerida;
+        consolidado[insId].costo_total += costoTotal;
+      });
+    });
+    const explosionData = Object.values(consolidado).sort((a, b) => {
+      if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
+    });
+
+    generateExplosionPDF({
+      currentPresupuesto,
+      explosionData
+    });
+  }
+
   }
 
   const isBorrador = !currentPresupuesto?.estado || currentPresupuesto.estado.toLowerCase() === 'borrador';
 
-  if (view === 'explosion') {
+  if (false) { // Dead code removed for safety
     let totMateriales = explosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0)
     let totMO = explosionData.filter(i => i.tipo === 'mano_de_obra').reduce((acc, curr) => acc + curr.costo_total, 0)
     let totEq = explosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor').reduce((acc, curr) => acc + curr.costo_total, 0)
@@ -1031,7 +1069,7 @@ export default function PresupuestosRealesPage() {
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-bold text-gray-800">Presupuesto General</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={handleGeneratePDF} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
+                    <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
                       <FileText size={14}/> Generar
                     </button>
                   </td>
@@ -1040,8 +1078,8 @@ export default function PresupuestosRealesPage() {
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-bold text-gray-800">Análisis de Precios Unitarios (APUs)</td>
                   <td className="px-6 py-4 text-center">
-                    <button className="bg-gray-200 text-gray-500 cursor-not-allowed px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
-                      <FileText size={14}/> Próximamente
+                    <button onClick={handleGenerateAPUsPDF} className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
+                      <FileText size={14}/> Generar
                     </button>
                   </td>
                   <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios detallado.</td>
@@ -1049,8 +1087,8 @@ export default function PresupuestosRealesPage() {
                 <tr className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-bold text-gray-800">Explosión de Insumos (Materiales)</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={() => {/* Aquí se puede poner un generador a futuro */}} className="bg-gray-200 text-gray-500 cursor-not-allowed px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
-                      <FileText size={14}/> Próximamente
+                    <button onClick={() => {/* Aquí se puede poner un generador a futuro */}} onClick={handleGenerateExplosionPDF} className="bg-blue-600 hover:bg-blue-700 text-white cursor-pointer px-4 py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 mx-auto">
+                      <FileText size={14}/> Generar
                     </button>
                   </td>
                   <td className="px-6 py-4 text-gray-600">Totales de materiales agrupados en unidades.</td>
