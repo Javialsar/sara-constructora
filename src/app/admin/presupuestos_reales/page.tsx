@@ -577,7 +577,7 @@ export default function PresupuestosRealesPage() {
             <FileText size={16} className="inline mr-2"/> Reportes
           </button>
           <button onClick={() => setIsGanttModalOpen(true)} className={`px-6 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700`}>
-            <Calendar size={16} className="inline mr-2"/> Programación
+            <Calendar size={16} className="inline mr-2"/> Cronograma de Trabajo
           </button>
         </div>
 

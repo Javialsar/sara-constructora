@@ -14,6 +14,17 @@ export default function GanttModal({
   const tasks: Task[] = useMemo(() => {
     if (!presupuestoRubros || presupuestoRubros.length === 0) return []
     
+    const colors = [
+      { p: '#3b82f6', s: '#2563eb' }, // Blue
+      { p: '#10b981', s: '#059669' }, // Emerald
+      { p: '#f59e0b', s: '#d97706' }, // Amber
+      { p: '#ef4444', s: '#dc2626' }, // Red
+      { p: '#8b5cf6', s: '#7c3aed' }, // Purple
+      { p: '#ec4899', s: '#db2777' }, // Pink
+      { p: '#14b8a6', s: '#0d9488' }, // Teal
+      { p: '#f97316', s: '#ea580c' }, // Orange
+    ];
+    
     return presupuestoRubros.map((pr: any, idx: number) => {
       const startDate = pr.fecha_inicio ? new Date(pr.fecha_inicio + 'T00:00:00') : new Date()
       const endDate = new Date(startDate)
@@ -30,7 +41,7 @@ export default function GanttModal({
         progress: 100, // Show full progress for now since they are just scheduled
         isDisabled: false,
         dependencies: deps,
-        styles: { progressColor: '#8b5cf6', progressSelectedColor: '#7c3aed' }
+        styles: { progressColor: colors[idx % colors.length].p, progressSelectedColor: colors[idx % colors.length].s }
       }
     })
   }, [presupuestoRubros])
