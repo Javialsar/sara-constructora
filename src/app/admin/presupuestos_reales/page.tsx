@@ -553,6 +553,7 @@ export default function PresupuestosRealesPage() {
       rubrosRecipes,
       allRubros
     });
+  }
 
   const handleGenerateAPUsPDF = () => {
     generateAPUsPDF({
@@ -794,7 +795,7 @@ export default function PresupuestosRealesPage() {
                     <button className="px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300">Sumatoria Formulas por defecto</button>
                     <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" defaultChecked className="rounded text-brand-sage focus:ring-brand-sage"/> Visualizar frmulas</label>
                   </div>
-                  <button onClick={handleSavePresupuesto} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
+                  <button onClick={handleSaveIndirectos} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
                     <Save size={16} /> Grabar
                   </button>
                 </div>
