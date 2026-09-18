@@ -436,7 +436,14 @@ export default function PresupuestosRealesPage() {
     const a = totalGastosGenerales;
     const i = simp;
     const u = sutil;
-    return { costoDirectoTotal, a, i, u, granTotal }
+    return { 
+      costoDirectoTotal, a, i, u, granTotal, 
+      smaq, smob, smat, 
+      dmaq1, dmob1, dmat1, 
+      cmaq, cmob, cmat, 
+      sggen, sgas1, sgas2, sgas3, 
+      totalGastosGenerales, cnet, simp, sutil
+    }
   }
 
   const savePresupuesto = async () => {
@@ -619,7 +626,14 @@ export default function PresupuestosRealesPage() {
   }
 
   if (view === 'editor' && currentPresupuesto) {
-    const { costoDirectoTotal, a, i, u, granTotal } = calcTotales()
+        const { 
+          costoDirectoTotal, a, i, u, granTotal, 
+          smaq, smob, smat, 
+          dmaq1, dmob1, dmat1, 
+          cmaq, cmob, cmat, 
+          sggen, sgas1, sgas2, sgas3, 
+          totalGastosGenerales, cnet, simp, sutil 
+        } = calcTotales()
     return (
       <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
         <div className="flex items-center justify-between mb-6">
