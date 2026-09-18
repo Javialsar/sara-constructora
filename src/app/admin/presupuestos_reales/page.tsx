@@ -732,9 +732,9 @@ export default function PresupuestosRealesPage() {
             <div className="border-t border-white/20 pt-4"><div className="flex justify-between items-end"><span className="text-gray-300">Gran Total</span><span className="text-3xl font-black text-brand-sage">${granTotal.toFixed(2)}</span></div></div>
             <div className="flex flex-col gap-3">
               {isBorrador && <button onClick={savePresupuesto} className="w-full bg-brand-sage text-brand-dark font-black py-3 rounded-lg flex justify-center gap-2"><Save size={18} /> GUARDAR</button>}
-              <button onClick={generateExplosion} className="w-full border border-brand-sage text-brand-sage font-bold py-3 rounded-lg flex justify-center gap-2"><Calculator size={18} /> EXPLOSIÓN</button>
-                            <button onClick={async () => { try { await generateSchedule(); setIsGanttModalOpen(true); } catch(e) { alert(e.message); } }} className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Calendar size={18} /> VER CRONOGRAMA</button>
-              <button onClick={handleGeneratePDF} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg flex justify-center gap-2"><Printer size={18} /> EXPORTAR PDF</button>
+              
+                            
+              
             </div>
           </div>
         </div>
@@ -977,6 +977,54 @@ export default function PresupuestosRealesPage() {
                 </div>
               </div>
             )}
+
+        {activeTab === 'explosion' && (() => {
+            const consolidado = {};
+            presupuestoRubros.forEach(pr => {
+              const q = Number(pr.cantidad || 0);
+              const items = rubrosRecipes[pr.id] || [];
+              items.forEach(item => {
+                const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
+                if (!iObj) return;
+                const cantRequerida = q * Number(item.cantidad);
+                const costoTotal = cantRequerida * Number(item.precio_sin_iva_snapshot || 0);
+                const insId = iObj.id;
+                if (!consolidado[insId]) {
+                  consolidado[insId] = { ...iObj, costo: item.precio_sin_iva_snapshot || 0, cantidad_total: 0, costo_total: 0 };
+                }
+                consolidado[insId].cantidad_total += cantRequerida;
+                consolidado[insId].costo_total += costoTotal;
+              });
+            });
+            const memExplosionData = Object.values(consolidado).sort((a, b) => {
+              if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
+            });
+            const totMateriales = memExplosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totMO = memExplosionData.filter(i => i.tipo === 'mano_de_obra').reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totEq = memExplosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor').reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totOtros = memExplosionData.filter(i => i.tipo === 'otros').reduce((acc, curr) => acc + curr.costo_total, 0);
+
+            return (
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-10 border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-0 border-b bg-gray-50">
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Materiales</p><p className="text-xl font-black text-blue-600">${totMateriales.toFixed(2)}</p></div>
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Mano Obra</p><p className="text-xl font-black text-orange-600">${totMO.toFixed(2)}</p></div>
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Equipos</p><p className="text-xl font-black text-purple-600">${totEq.toFixed(2)}</p></div>
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Otros</p><p className="text-xl font-black text-gray-600">${totOtros.toFixed(2)}</p></div>
+                  <div className="p-4 text-center"><p className="text-gray-800 text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-brand-sage">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
+                </div>
+                <div className="overflow-x-auto min-h-[400px]">
+                  <table className="w-full text-sm text-left"><thead className="bg-white text-gray-400 font-bold uppercase text-[10px] border-b"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-100">
+                    {memExplosionData.map((ins, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs text-gray-500">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-400">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
+                    ))}
+                    {memExplosionData.length === 0 && <tr><td colSpan="7" className="text-center py-10 text-gray-400">No hay insumos. Verifica que los rubros tengan recetas.</td></tr>}
+                  </tbody></table>
+                </div>
+              </div>
+            );
+        })()}
+
 {activeTab === 'reportes' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
              <table className="w-full text-sm text-left">
