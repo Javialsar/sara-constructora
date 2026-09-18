@@ -2,7 +2,7 @@
 "use client"
 import React, { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2 } from "lucide-react"
+import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List } from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
 import { generatePDF } from "@/lib/pdfGenerator"
 import autoTable from "jspdf-autotable"
