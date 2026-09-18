@@ -704,7 +704,7 @@ export default function PresupuestosRealesPage() {
         )}
 
         {activeTab === 'indirectos' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-4xl mb-10">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
             <div className="p-4 bg-gray-50/50 flex justify-between items-center border-b border-gray-200">
               <div className="flex items-center gap-4">
                 <button className="px-4 py-2 text-sm font-bold bg-white border border-gray-200 rounded-md text-gray-700">% Porcentajes por defecto</button>
@@ -808,7 +808,7 @@ export default function PresupuestosRealesPage() {
         )}
 
         {activeTab === 'reportes' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-4xl mb-10">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
              <table className="w-full text-sm text-left">
               <thead className="bg-[#4b8fb4] text-white font-bold">
                 <tr>

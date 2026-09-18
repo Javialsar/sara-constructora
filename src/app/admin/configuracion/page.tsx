@@ -76,6 +76,14 @@ export default function ConfiguracionPage() {
     setEquipo(newEquipo)
   }
 
+  const changeTheme = (themeClass: string) => {
+    document.documentElement.classList.remove('theme-ocean', 'theme-gold', 'theme-apucons')
+    if (themeClass) {
+      document.documentElement.classList.add(themeClass)
+    }
+    localStorage.setItem('sara_theme', themeClass)
+  }
+
   const addMiembro = () => {
     setEquipo([...equipo, { id: Date.now().toString(), nombre: "", cargo: "", imagen_url: "", telefono: "", email: "" }])
   }
@@ -223,8 +231,47 @@ export default function ConfiguracionPage() {
               }}
               className="w-full max-w-sm border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20 cursor-pointer"
             />
+          </div></div>
+
+      {/* Selector de Temas */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+            <Settings size={18} />
           </div>
+          <h2 className="text-lg font-bold text-gray-800">Apariencia y Tema (Administrador)</h2>
         </div>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
+          
+          <button onClick={() => changeTheme('')} className="flex flex-col gap-2 items-center text-center p-4 rounded-xl border-2 hover:border-brand-sage transition-all border-gray-200">
+            <div className="flex gap-2 mb-2">
+              <div className="w-6 h-6 rounded-full bg-[#07130d]"></div>
+              <div className="w-6 h-6 rounded-full bg-[#3c7a52]"></div>
+            </div>
+            <span className="font-bold text-gray-800">Sara Sage</span>
+            <span className="text-xs text-gray-500">Tema Corporativo (Por defecto)</span>
+          </button>
+
+          <button onClick={() => changeTheme('theme-ocean')} className="flex flex-col gap-2 items-center text-center p-4 rounded-xl border-2 hover:border-blue-500 transition-all border-gray-200">
+            <div className="flex gap-2 mb-2">
+              <div className="w-6 h-6 rounded-full bg-[#1e293b]"></div>
+              <div className="w-6 h-6 rounded-full bg-[#3b82f6]"></div>
+            </div>
+            <span className="font-bold text-gray-800">Constructor Ocean</span>
+            <span className="text-xs text-gray-500">Tonos azules y grises técnicos</span>
+          </button>
+
+          <button onClick={() => changeTheme('theme-gold')} className="flex flex-col gap-2 items-center text-center p-4 rounded-xl border-2 hover:border-yellow-500 transition-all border-gray-200">
+            <div className="flex gap-2 mb-2">
+              <div className="w-6 h-6 rounded-full bg-[#171717]"></div>
+              <div className="w-6 h-6 rounded-full bg-[#d4af37]"></div>
+            </div>
+            <span className="font-bold text-gray-800">Elegante Dark</span>
+            <span className="text-xs text-gray-500">Oscuro alto contraste con dorado</span>
+          </button>
+        </div>
+      </div>
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
