@@ -729,7 +729,6 @@ export default function PresupuestosRealesPage() {
                 <div className="text-center pt-2 mt-2 border-t border-white/10 text-xs text-gray-400">Edita los porcentajes en la pestaña "Costos Indirectos"</div>
               </div>
             </div>
-            </div>
             <div className="border-t border-white/20 pt-4"><div className="flex justify-between items-end"><span className="text-gray-300">Gran Total</span><span className="text-3xl font-black text-brand-sage">${granTotal.toFixed(2)}</span></div></div>
             <div className="flex flex-col gap-3">
               {isBorrador && <button onClick={savePresupuesto} className="w-full bg-brand-sage text-brand-dark font-black py-3 rounded-lg flex justify-center gap-2"><Save size={18} /> GUARDAR</button>}
