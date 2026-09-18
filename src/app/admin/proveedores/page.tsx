@@ -28,6 +28,7 @@ export default function ProveedoresPage() {
     contacto_vendedor: "",
     telefono: "",
     email: "",
+    sitio_web: "",
     dias_credito: 0
   })
 
@@ -55,7 +56,7 @@ export default function ProveedoresPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingId(null)
-    setFormData({ razon_social: "", ruc: "", contacto_vendedor: "", telefono: "", email: "", dias_credito: 0 })
+    setFormData({ razon_social: "", ruc: "", contacto_vendedor: "", telefono: "", email: "", sitio_web: "", dias_credito: 0 })
   }
 
   const handleEdit = (prov: Proveedor) => {
@@ -65,6 +66,7 @@ export default function ProveedoresPage() {
       contacto_vendedor: prov.contacto_vendedor || "",
       telefono: prov.telefono || "",
       email: prov.email || "",
+      sitio_web: prov.sitio_web || "",
       dias_credito: prov.dias_credito || 0
     })
     setEditingId(prov.id)
@@ -301,7 +303,7 @@ export default function ProveedoresPage() {
                   />
                 </div>
 
-                <div className="col-span-2">
+                                <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
                   <input 
                     type="email" 
@@ -309,6 +311,17 @@ export default function ProveedoresPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
                     value={formData.email}
                     onChange={e => setFormData({...formData, email: e.target.value})}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección Web (Opcional)</label>
+                  <input 
+                    type="url" 
+                    placeholder="https://www.empresa.com"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.sitio_web}
+                    onChange={e => setFormData({...formData, sitio_web: e.target.value})}
                   />
                 </div>
               </div>
