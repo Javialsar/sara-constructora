@@ -12,7 +12,7 @@ export default function PresupuestosRealesPage() {
   const supabase = createClient()
   
   const [view, setView] = useState('lista')
-  const [indForm, setIndForm] = useState({ admin: 10, imprevistos: 5, utilidad: 10 })
+  const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
   const [openGroup, setOpenGroup] = useState({ 1: false, 2: false, 3: true, 4: true, 5: true, 6: true })
   const [activeTab, setActiveTab] = useState('detalle')
   const [presupuestos, setPresupuestos] = useState([])
@@ -102,9 +102,7 @@ export default function PresupuestosRealesPage() {
 
   const handleSaveIndirectos = async () => {
     const { error } = await supabase.from('presupuestos_reales').update({
-      porcentaje_admin: indForm.admin,
-      porcentaje_imprevistos: indForm.imprevistos,
-      porcentaje_utilidad: indForm.utilidad
+      indirectos_config: indForm
     }).eq('id', currentPresupuesto.id)
     if(!error) {
       setCurrentPresupuesto({...currentPresupuesto, porcentaje_admin: indForm.admin, porcentaje_imprevistos: indForm.imprevistos, porcentaje_utilidad: indForm.utilidad})
@@ -122,9 +120,9 @@ export default function PresupuestosRealesPage() {
 
   const openEditor = async (presupuesto) => {
     setCurrentPresupuesto(presupuesto)
-    setIndForm({ admin: presupuesto.porcentaje_admin || 0, imprevistos: presupuesto.porcentaje_imprevistos || 0, utilidad: presupuesto.porcentaje_utilidad || 0 })
+    setIndForm(presupuesto.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
     setActiveTab('detalle')
-    setIndForm({ admin: presupuesto.porcentaje_admin || 0, imprevistos: presupuesto.porcentaje_imprevistos || 0, utilidad: presupuesto.porcentaje_utilidad || 0 })
+    setIndForm(presupuesto.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
     setActiveTab('detalle')
     setView('editor')
     fetchPresupuestoRubros(presupuesto.id)
@@ -391,11 +389,53 @@ export default function PresupuestosRealesPage() {
   }
 
   const calcTotales = () => {
-    const costoDirectoTotal = presupuestoRubros.reduce((acc, curr) => acc + Number(curr.subtotal), 0)
-    const a = costoDirectoTotal * ((currentPresupuesto?.porcentaje_admin || 0) / 100)
-    const i = costoDirectoTotal * ((currentPresupuesto?.porcentaje_imprevistos || 0) / 100)
-    const u = costoDirectoTotal * ((currentPresupuesto?.porcentaje_utilidad || 0) / 100)
-    const granTotal = costoDirectoTotal + a + i + u
+    let smaq = 0;
+    let smob = 0;
+    let smat = 0;
+
+    presupuestoRubros.forEach(pr => {
+      const q = Number(pr.cantidad || 0);
+      const items = rubrosRecipes[pr.id] || [];
+      items.forEach(item => {
+        const ism = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
+        if (!ism) return;
+        const cost = Number(item.cantidad) * Number(item.precio_sin_iva_snapshot) * q;
+        if (ism.tipo === 'material') smat += cost;
+        else if (ism.tipo === 'mano_de_obra') smob += cost;
+        else if (ism.tipo === 'equipo' || ism.tipo === 'herramienta_menor') smaq += cost;
+      });
+    });
+
+    const ind = currentPresupuesto?.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 };
+
+    const dmaq1 = smob * (ind.pmaq1 / 100);
+    const cmaq = smaq + dmaq1;
+
+    const dmob1 = smob * (ind.pmob1 / 100);
+    const cmob = smob + dmob1;
+
+    const dmat1 = smat * (ind.pmat1 / 100);
+    const cmat = smat + dmat1;
+
+    const costoDirectoTotal = cmat + cmob + cmaq;
+
+    const sggen = costoDirectoTotal * (ind.ggen / 100);
+    const sgas1 = costoDirectoTotal * (ind.pgas1 / 100);
+    const sgas2 = costoDirectoTotal * (ind.pgas2 / 100);
+    const sgas3 = costoDirectoTotal * (ind.pgas3 / 100);
+    const totalGastosGenerales = sggen + sgas1 + sgas2 + sgas3;
+
+    const cnet = costoDirectoTotal + totalGastosGenerales;
+
+    const simp = costoDirectoTotal * (ind.pimp / 100);
+    const sutil = costoDirectoTotal * (ind.util / 100);
+
+    const granTotal = cnet + sutil + simp;
+
+    // Resumen variables para UI
+    const a = totalGastosGenerales;
+    const i = simp;
+    const u = sutil;
     return { costoDirectoTotal, a, i, u, granTotal }
   }
 
@@ -404,9 +444,7 @@ export default function PresupuestosRealesPage() {
     await supabase.from('presupuestos_reales').update({ 
       costo_directo_total: costoDirectoTotal,
       gran_total: granTotal,
-      porcentaje_admin: currentPresupuesto.porcentaje_admin,
-      porcentaje_imprevistos: currentPresupuesto.porcentaje_imprevistos,
-      porcentaje_utilidad: currentPresupuesto.porcentaje_utilidad
+      indirectos_config: currentPresupuesto.indirectos_config || indForm
     }).eq('id', currentPresupuesto.id)
     alert("Presupuesto guardado correctamente")
     fetchPresupuestos()
@@ -678,17 +716,19 @@ export default function PresupuestosRealesPage() {
             <div>
               <h2 className="text-xl font-bold mb-4 text-brand-sage border-b border-white/10 pb-2">Resumen Económico</h2>
               <div className="flex justify-between items-end mb-4"><span className="text-gray-400">Costo Directo</span><span className="text-xl font-medium">${costoDirectoTotal.toFixed(2)}</span></div>
-              <div className="space-y-3 bg-white/5 p-3 rounded-lg"><h3 className="text-xs font-bold text-gray-400 uppercase">Cálculo A.I.U.</h3>
-                <div className="flex justify-between gap-4"><span className="text-sm">Admin (A)</span>
-                  {isBorrador ? <input type="number" value={currentPresupuesto.porcentaje_admin} onChange={(e) => setCurrentPresupuesto({...currentPresupuesto, porcentaje_admin: parseFloat(e.target.value)||0})} className="w-16 bg-white/10 px-2 py-1 rounded outline-none text-right" /> : <span className="font-bold text-right">{currentPresupuesto.porcentaje_admin}%</span>}
+              <div className="space-y-3 bg-white/5 p-3 rounded-lg"><h3 className="text-xs font-bold text-gray-400 uppercase">Cálculo de Indirectos</h3>
+                <div className="flex justify-between gap-4"><span className="text-sm">Gastos Gen (A)</span>
+                  <span className="font-bold text-right text-brand-sage">{indForm?.ggen || 0}%</span>
                   <span className="text-sm text-gray-300 w-16 text-right">${a.toFixed(2)}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-sm">Imprevistos (I)</span>
-                  {isBorrador ? <input type="number" value={currentPresupuesto.porcentaje_imprevistos} onChange={(e) => setCurrentPresupuesto({...currentPresupuesto, porcentaje_imprevistos: parseFloat(e.target.value)||0})} className="w-16 bg-white/10 px-2 py-1 rounded outline-none text-right" /> : <span className="font-bold text-right">{currentPresupuesto.porcentaje_imprevistos}%</span>}
+                  <span className="font-bold text-right text-brand-sage">{indForm?.pimp || 0}%</span>
                   <span className="text-sm text-gray-300 w-16 text-right">${i.toFixed(2)}</span></div>
                 <div className="flex justify-between gap-4"><span className="text-sm">Utilidad (U)</span>
-                  {isBorrador ? <input type="number" value={currentPresupuesto.porcentaje_utilidad} onChange={(e) => setCurrentPresupuesto({...currentPresupuesto, porcentaje_utilidad: parseFloat(e.target.value)||0})} className="w-16 bg-white/10 px-2 py-1 rounded outline-none text-right" /> : <span className="font-bold text-right">{currentPresupuesto.porcentaje_utilidad}%</span>}
+                  <span className="font-bold text-right text-brand-sage">{indForm?.util || 0}%</span>
                   <span className="text-sm text-gray-300 w-16 text-right">${u.toFixed(2)}</span></div>
+                <div className="text-center pt-2 mt-2 border-t border-white/10 text-xs text-gray-400">Edita los porcentajes en la pestaña "Costos Indirectos"</div>
               </div>
+            </div>
             </div>
             <div className="border-t border-white/20 pt-4"><div className="flex justify-between items-end"><span className="text-gray-300">Gran Total</span><span className="text-3xl font-black text-brand-sage">${granTotal.toFixed(2)}</span></div></div>
             <div className="flex flex-col gap-3">
@@ -704,110 +744,241 @@ export default function PresupuestosRealesPage() {
         )}
 
         {activeTab === 'indirectos' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
-            <div className="p-4 bg-gray-50/50 flex justify-between items-center border-b border-gray-200">
-              <div className="flex items-center gap-4">
-                <button className="px-4 py-2 text-sm font-bold bg-white border border-gray-200 rounded-md text-gray-700">% Porcentajes por defecto</button>
-                <button className="px-4 py-2 text-sm font-bold text-gray-500 flex items-center gap-2"><Calculator size={16}/> Fórmulas por defecto</button>
-              </div>
-              <button onClick={handleSaveIndirectos} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm">
-                <Save size={18}/> Grabar
-              </button>
-            </div>
-            
-            <div className="divide-y divide-gray-200">
-              {/* EQUIPOS */}
-              <div onClick={() => setOpenGroup({...openGroup, 1: !openGroup[1]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer select-none">
-                <span>1.- Equipos</span>{openGroup[1] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
-              </div>
-  {openGroup[1] && (
-    <div className="p-4 bg-white text-sm text-gray-500 text-center italic">En construcción... (Aquí se detallarán las herramientas menores).</div>
-  )}
-              
-              {/* MANO DE OBRA */}
-              <div onClick={() => setOpenGroup({...openGroup, 2: !openGroup[2]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
-                <span>2.- Mano de Obra</span>{openGroup[2] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
-              </div>
-  {openGroup[2] && (
-    <div className="p-4 bg-white text-sm text-gray-500 text-center italic">En construcción... (Aquí se detallará el subtotal de mano de obra).</div>
-  )}
-
-              {/* MATERIALES */}
-              <div onClick={() => setOpenGroup({...openGroup, 3: !openGroup[3]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
-                <span>3.- Materiales</span>{openGroup[3] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
-              </div>
-  {openGroup[3] && (
-    <div className="p-4 bg-white grid grid-cols-12 text-sm">
-                <div className="col-span-8 text-right pr-4 py-2 font-medium text-gray-600">Costo Directo (1+2+3)</div>
-                <div className="col-span-1 text-right py-2 font-black text-gray-800 border-b border-gray-200">${costoDirectoTotal.toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono">= $cdir = Costo Directo Total</div>
-    </div>
-  )}
-
-              {/* GASTOS GENERALES */}
-              <div onClick={() => setOpenGroup({...openGroup, 4: !openGroup[4]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
-                <span>4.- Gastos generales y administrativos</span>{openGroup[4] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
-              </div>
-  {openGroup[4] && (
-    <div className="p-4 bg-white grid grid-cols-12 text-sm items-center gap-y-2">
-                <div className="col-span-5 font-medium text-gray-700">Gastos generales = (% de 1+2+3)</div>
-                <div className="col-span-1 text-center font-bold text-brand-dark">$ggen</div>
-                <div className="col-span-2">
-                  <input type="number" step="0.1" value={indForm.admin} onChange={e => setIndForm({...indForm, admin: parseFloat(e.target.value) || 0})} className="w-full border border-[#9ecded] rounded p-1.5 text-right bg-blue-50 focus:outline-none" />
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <button className="px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm">% Porcentajes por defecto</button>
+                    <button className="px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300">Sumatoria Formulas por defecto</button>
+                    <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" defaultChecked className="rounded text-brand-sage focus:ring-brand-sage"/> Visualizar frmulas</label>
+                  </div>
+                  <button onClick={handleSavePresupuesto} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
+                    <Save size={16} /> Grabar
+                  </button>
                 </div>
-                <div className="col-span-1 text-right font-bold text-gray-800 border-b border-gray-200">${a.toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 text-xs font-mono pl-4">= $sggen = $cdir * $ggen / 100</div>
 
-                <div className="col-span-8 text-right pr-4 py-2 font-medium text-gray-600 mt-2">Costo neto</div>
-                <div className="col-span-1 text-right py-2 font-black text-gray-800 border-b border-gray-200 mt-2">${(costoDirectoTotal + a).toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono mt-2">= $cnet = $cdir + $sggen</div>
-    </div>
-  )}
+                <div className="w-full text-sm">
+                  {/* EQUIPOS */}
+                  <div className="bg-[#5a9bd4] text-white p-2 font-bold flex justify-between">
+                    <span>1.- Equipos</span>
+                    <span>^</span>
+                  </div>
+                  <div className="bg-white divide-y border-b">
+                    <div className="flex p-2 items-center">
+                      <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales y Equipos</div>
+                      <div className="w-24 text-right pr-4 font-mono">{smaq.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $smaq =</div>
+                      <div className="flex-1 text-gray-500">Suma de Materiales y Equipos</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Herramientas Menores % M.O.</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pmaq1</span>
+                        <input type="number" step="0.1" value={indForm.pmaq1} onChange={e => setIndForm({...indForm, pmaq1: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{dmaq1.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $dmaq1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cmob * $pmaq1 / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-gray-50 font-bold">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total Equipos</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono">{cmaq.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $cmaq =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smaq + $dmaq1</div>
+                    </div>
+                  </div>
 
-              {/* IMPREVISTOS */}
-              <div onClick={() => setOpenGroup({...openGroup, 5: !openGroup[5]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
-                <span>5.- Imprevistos</span>{openGroup[5] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
-              </div>
-  {openGroup[5] && (
-    <div className="p-4 bg-white grid grid-cols-12 text-sm items-center">
-                <div className="col-span-5 font-medium text-gray-700">Imprevistos = (% de 1+2+3)</div>
-                <div className="col-span-1 text-center font-bold text-brand-dark">$imprv</div>
-                <div className="col-span-2">
-                  <input type="number" step="0.1" value={indForm.imprevistos} onChange={e => setIndForm({...indForm, imprevistos: parseFloat(e.target.value) || 0})} className="w-full border border-[#9ecded] rounded p-1.5 text-right bg-blue-50 focus:outline-none" />
+                  {/* MANO DE OBRA */}
+                  <div className="bg-[#5a9bd4] text-white p-2 font-bold flex justify-between mt-4">
+                    <span>2.- Mano de Obra</span>
+                    <span>^</span>
+                  </div>
+                  <div className="bg-white divide-y border-b">
+                    <div className="flex p-2 items-center">
+                      <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Mano de Obra</div>
+                      <div className="w-24 text-right pr-4 font-mono">{smob.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $smob =</div>
+                      <div className="flex-1 text-gray-500">Suma de Mano de Obra</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium"></div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pmob1</span>
+                        <input type="number" step="0.1" value={indForm.pmob1} onChange={e => setIndForm({...indForm, pmob1: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{dmob1.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $dmob1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smob * $pmob1 / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-gray-50 font-bold">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total Mano de Obra</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono">{cmob.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $cmob =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smob + $dmob1</div>
+                    </div>
+                  </div>
+
+                  {/* MATERIALES */}
+                  <div className="bg-[#5a9bd4] text-white p-2 font-bold flex justify-between mt-4">
+                    <span>3.- Materiales</span>
+                    <span>^</span>
+                  </div>
+                  <div className="bg-white divide-y border-b">
+                    <div className="flex p-2 items-center">
+                      <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales</div>
+                      <div className="w-24 text-right pr-4 font-mono">{smat.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $smat =</div>
+                      <div className="flex-1 text-gray-500">Suma de Materiales</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium"></div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pmat1</span>
+                        <input type="number" step="0.1" value={indForm.pmat1} onChange={e => setIndForm({...indForm, pmat1: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{dmat1.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $dmat1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smat * $pmat1 / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-gray-50 font-bold">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total Materiales</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono">{cmat.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $cmat =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smat + $dmat1</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-white font-black py-4">
+                      <div className="w-1/3 text-right pr-4 text-gray-900">Costo directo</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{costoDirectoTotal.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $cdir =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cmat + $cmob + $cmaq</div>
+                    </div>
+                  </div>
+
+                  {/* GASTOS GENERALES Y ADMINISTRATIVOS */}
+                  <div className="bg-[#5a9bd4] text-white p-2 font-bold flex justify-between mt-4">
+                    <span>4.- Gastos generales y administrativos</span>
+                    <span>^</span>
+                  </div>
+                  <div className="bg-white divide-y border-b">
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Gastos generales = (% de 1+2+3)</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$ggen</span>
+                        <input type="number" step="0.1" value={indForm.ggen} onChange={e => setIndForm({...indForm, ggen: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{sggen.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $sggen =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $ggen / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Gastos de obra</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pgas1</span>
+                        <input type="number" step="0.1" value={indForm.pgas1} onChange={e => setIndForm({...indForm, pgas1: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{sgas1.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $sgas1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas1 / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Financiamiento</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pgas2</span>
+                        <input type="number" step="0.1" value={indForm.pgas2} onChange={e => setIndForm({...indForm, pgas2: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{sgas2.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $sgas2 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas2 / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Polizas y Seguros</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pgas3</span>
+                        <input type="number" step="0.1" value={indForm.pgas3} onChange={e => setIndForm({...indForm, pgas3: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{sgas3.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $sgas3 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas3 / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-gray-50 font-bold">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total gastos generales y administrativos</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono">{totalGastosGenerales.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">=</div>
+                      <div className="flex-1 font-mono text-gray-500">$sggen + $sgas1 + $sgas2 + $sgas3</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-white font-black py-4">
+                      <div className="w-1/3 text-right pr-4 text-gray-900">Costo neto</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{cnet.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $cnet =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir + $sggen + $sgas1 + $sgas2 + $sgas3</div>
+                    </div>
+                  </div>
+
+                  {/* IMPREVISTOS */}
+                  <div className="bg-[#5a9bd4] text-white p-2 font-bold flex justify-between mt-4">
+                    <span>5.- Imprevistos</span>
+                    <span>^</span>
+                  </div>
+                  <div className="bg-white divide-y border-b">
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Imprevistos = (% de 1+2+3)</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$pimp</span>
+                        <input type="number" step="0.1" value={indForm.pimp} onChange={e => setIndForm({...indForm, pimp: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{simp.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $simp =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pimp / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-gray-50 font-bold">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total de Imprevistos</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono">{simp.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $cimp =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir + $simp</div>
+                    </div>
+                  </div>
+
+                  {/* UTILIDAD */}
+                  <div className="bg-[#5a9bd4] text-white p-2 font-bold flex justify-between mt-4">
+                    <span>6.- Utilidad</span>
+                    <span>^</span>
+                  </div>
+                  <div className="bg-white divide-y border-b">
+                    <div className="flex p-2 items-center bg-blue-50/30">
+                      <div className="w-1/3 text-left pl-4 font-medium">Utilidad = (% de 1+2+3)</div>
+                      <div className="flex items-center w-24">
+                        <span className="font-bold mr-2 text-gray-700">$util</span>
+                        <input type="number" step="0.1" value={indForm.util} onChange={e => setIndForm({...indForm, util: parseFloat(e.target.value) || 0})} className="w-full border rounded p-1 text-right bg-blue-100" />
+                      </div>
+                      <div className="w-24 text-right pr-4 font-mono">{sutil.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $sutil =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $util / 100</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-gray-50 font-bold">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Precio de venta</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono">{pven.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $pven =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cnet + $sutil + $simp</div>
+                    </div>
+                    <div className="flex p-2 items-center bg-white font-black py-4">
+                      <div className="w-1/3 text-right pr-4 text-gray-900">Total Precio Unitario</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{pven.toFixed(2)}</div>
+                      <div className="w-24 text-center font-mono text-gray-400">= $Stotal =</div>
+                      <div className="flex-1 font-mono text-gray-500">$pven</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="col-span-1 text-right font-bold text-gray-800 border-b border-gray-200">${i.toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 text-xs font-mono pl-4">= $simprv = $cdir * $imprv / 100</div>
-    </div>
-  )}
-
-              {/* UTILIDAD */}
-              <div onClick={() => setOpenGroup({...openGroup, 6: !openGroup[6]})} className="bg-[#4b8fb4] text-white font-bold p-3 flex justify-between cursor-pointer mt-1 select-none">
-                <span>6.- Utilidad</span>{openGroup[6] ? <ChevronDown size={18} className="rotate-180 transition-transform"/> : <ChevronDown size={18} className="transition-transform"/>}
               </div>
-  {openGroup[6] && (
-    <div className="p-4 bg-white grid grid-cols-12 text-sm items-center gap-y-2">
-                <div className="col-span-5 font-medium text-gray-700">Utilidad = (% de 1+2+3+4)</div>
-                <div className="col-span-1 text-center font-bold text-brand-dark">$util</div>
-                <div className="col-span-2">
-                  <input type="number" step="0.1" value={indForm.utilidad} onChange={e => setIndForm({...indForm, utilidad: parseFloat(e.target.value) || 0})} className="w-full border border-[#9ecded] rounded p-1.5 text-right bg-blue-50 focus:outline-none" />
-                </div>
-                <div className="col-span-1 text-right font-bold text-gray-800 border-b border-gray-200">${u.toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 text-xs font-mono pl-4">= $sutil = $cnet * $util / 100</div>
-
-                <div className="col-span-8 text-right pr-4 py-2 font-medium text-gray-600 mt-2">Precio de venta</div>
-                <div className="col-span-1 text-right py-2 font-black text-gray-800 border-b border-gray-200 mt-2">${granTotal.toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono mt-2">= $pven = $cnet + $sutil + $simprv</div>
-
-                <div className="col-span-8 text-right pr-4 py-2 font-bold text-gray-800 bg-gray-50">Total Precio Unitario</div>
-                <div className="col-span-1 text-right py-2 font-black text-brand-sage border-b-2 border-brand-sage bg-gray-50">${granTotal.toFixed(2)}</div>
-                <div className="col-span-3 text-gray-400 py-2 pl-4 text-xs font-mono bg-gray-50">= $Stotal = $pven</div>
-    </div>
-  )}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'reportes' && (
+            )}
+{activeTab === 'reportes' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
              <table className="w-full text-sm text-left">
               <thead className="bg-[#4b8fb4] text-white font-bold">
