@@ -12,6 +12,8 @@ type Proveedor = {
   email: string
   dias_credito: number
   estado: boolean
+  direccion?: string
+  sitio_web?: string
 }
 
 export default function ProveedoresPage() {
@@ -178,6 +180,7 @@ export default function ProveedoresPage() {
                 <tr className="border-b border-gray-200 text-sm text-gray-500">
                   <th className="py-3 px-4 font-semibold">Razón Social</th>
                   <th className="py-3 px-4 font-semibold">RUC</th>
+                  <th className="py-3 px-4 font-semibold">Ubicación / Sitio</th>
                   <th className="py-3 px-4 font-semibold">Contacto</th>
                   <th className="py-3 px-4 font-semibold">Teléfono / Email</th>
                   <th className="py-3 px-4 font-semibold">Crédito</th>
@@ -189,6 +192,14 @@ export default function ProveedoresPage() {
                   <tr key={prov.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     <td className="py-3 px-4 font-medium text-gray-800">{prov.razon_social}</td>
                     <td className="py-3 px-4 text-gray-600">{prov.ruc || "-"}</td>
+                    <td className="py-3 px-4 text-gray-600 text-sm">
+                      <div className="line-clamp-1" title={prov.direccion}>{prov.direccion || "-"}</div>
+                      {prov.sitio_web && (
+                        <a href={prov.sitio_web} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs flex items-center gap-1 mt-1">
+                          <BookOpen size={10} /> Web
+                        </a>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-gray-600">{prov.contacto_vendedor || "-"}</td>
                     <td className="py-3 px-4 text-gray-600">
                       <div>{prov.telefono}</div>
