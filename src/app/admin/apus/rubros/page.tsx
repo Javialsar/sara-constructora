@@ -203,7 +203,7 @@ export default function RubrosPage() {
   const { totMateriales, totManoObra, totEquipos, totalCostoDirecto, herramientaMenor } = currentRubro ? calcTotalesReceta() : { totMateriales:0, totManoObra:0, totEquipos:0, totalCostoDirecto:0, herramientaMenor:0 }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] p-4 md:p-6 bg-gray-50/50 overflow-hidden">
+    <div className="flex flex-col min-h-screen p-4 md:p-6 bg-gray-50/50">
       
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 shrink-0">
@@ -223,10 +223,10 @@ export default function RubrosPage() {
       </div>
 
       {/* MAIN GRID */}
-      <div className="flex flex-col flex-1 gap-4 overflow-hidden min-h-0">
+      <div className="flex flex-col flex-1 gap-6">
         
         {/* UPPER HALF: GROUPS & RUBROS */}
-        <div className="flex flex-col md:flex-row gap-4 flex-1 overflow-hidden min-h-[400px]">
+        <div className="flex flex-col md:flex-row gap-4 h-[550px] shrink-0">
           
           {/* LEFT PANEL: GROUPS */}
           <div className="w-full md:w-1/4 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden">
@@ -280,8 +280,8 @@ export default function RubrosPage() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-sm text-left divide-y divide-gray-200">
+            <div className="flex-1 overflow-hidden flex flex-col justify-between">
+              <table className="w-full text-sm text-left divide-y divide-gray-200 h-full">
                 <thead className="bg-slate-50 text-slate-700 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
                     <th className="px-4 py-3 whitespace-nowrap">Código</th>
@@ -362,14 +362,14 @@ export default function RubrosPage() {
         </div>
 
         {/* LOWER HALF: APU RECIPE DETAILS */}
-        <div className="h-[40%] md:h-[35%] bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage flex flex-col overflow-hidden shrink-0">
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage flex flex-col shrink-0">
           {!currentRubro ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
               <Box size={48} className="mb-4 opacity-20" />
               <p>Selecciona un rubro de la tabla superior para ver su Análisis de Precio Unitario (APU)</p>
             </div>
           ) : (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full">
               {/* APU Header */}
               <div className="p-3 border-b border-gray-100 bg-brand-dark text-white flex justify-between items-center shrink-0">
                 <div className="truncate pr-4">
@@ -395,8 +395,8 @@ export default function RubrosPage() {
               </div>
 
               {/* APU Table */}
-              <div className="flex-1 overflow-auto">
-                <table className="w-full text-sm text-left divide-y divide-gray-200">
+              <div className="flex-1 overflow-hidden flex flex-col justify-between">
+                <table className="w-full text-sm text-left divide-y divide-gray-200 h-full">
                   <thead className="bg-slate-50 text-slate-700 border-b border-gray-200 sticky top-0 z-10">
                     <tr>
                       <th className="px-4 py-2 text-xs font-semibold">Código</th>
