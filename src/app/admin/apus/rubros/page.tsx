@@ -1,18 +1,20 @@
 "use client"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, ArrowLeft, Save, FileText, Box, PenTool, Edit3 } from "lucide-react"
+import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight } from "lucide-react"
 
 export default function RubrosPage() {
   const supabase = createClient()
-  
-  // Vistas
-  const [view, setView] = useState<'lista' | 'editor'>('lista')
   
   // Lista de Rubros
   const [rubros, setRubros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  
+  // Categorias y Paginas
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 20
 
   // Estado Modal Nuevo Rubro
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
@@ -35,14 +37,25 @@ export default function RubrosPage() {
 
   useEffect(() => {
     fetchRubros()
+    fetchAllInsumos()
   }, [])
 
-  // --- LOGICA LISTA DE RUBROS ---
+  // Resetear página al cambiar filtro
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, selectedCategory])
+
+  // --- LOGICA DE DATOS ---
   const fetchRubros = async () => {
     setLoading(true)
     const { data, error } = await supabase.from('rubros').select('*').order('created_at', { ascending: false })
     if (!error) setRubros(data || [])
     setLoading(false)
+  }
+
+  const fetchAllInsumos = async () => {
+    const { data } = await supabase.from('insumos').select('*').order('nombre', { ascending: true })
+    if (data) setAllInsumos(data)
   }
 
   const handleCreateRubro = async (e: React.FormEvent) => {
@@ -61,20 +74,17 @@ export default function RubrosPage() {
     e.stopPropagation()
     if (!confirm("¿Eliminar este rubro? Esto también borrará su receta.")) return
     await supabase.from('rubros').delete().eq('id', id)
+    if (currentRubro && currentRubro.id === id) {
+      setCurrentRubro(null)
+      setRubroInsumos([])
+    }
     fetchRubros()
   }
 
   // --- LOGICA DEL EDITOR DE RECETA ---
   const openEditor = async (rubro: any) => {
     setCurrentRubro(rubro)
-    setView('editor')
     fetchRubroInsumos(rubro.id)
-    
-    // Cargar catálogo de insumos si no se ha cargado
-    if (allInsumos.length === 0) {
-      const { data } = await supabase.from('insumos').select('*').order('nombre', { ascending: true })
-      if (data) setAllInsumos(data)
-    }
   }
 
   const fetchRubroInsumos = async (rubro_id: string) => {
@@ -93,13 +103,11 @@ export default function RubrosPage() {
 
   const handleAddInsumoToRubro = async (insumo: any) => {
     const defaultCantidad = 1.000;
-    
     const { error } = await supabase.from('rubro_insumos').insert([{
       rubro_id: currentRubro.id,
       insumo_id: insumo.id,
       cantidad: defaultCantidad
     }])
-    
     if (!error) {
       setIsAddInsumoModalOpen(false)
       setSearchInsumoTerm("")
@@ -147,344 +155,404 @@ export default function RubrosPage() {
     
     if (!error) {
       alert("Rubro guardado y costeado correctamente.")
-      fetchRubros()
+      // Update the rubros list with the new cost
+      setRubros(rubros.map(r => r.id === currentRubro.id ? {...r, total_costo_directo: totalCostoDirecto, herramienta_menor_pct: currentRubro.herramienta_menor_pct} : r))
     }
   }
 
-  // Renderers
-  const filteredRubros = rubros.filter(r => 
+  // --- DERIVADOS Y PAGINACION ---
+  // Extraer categorías únicas
+  const categories = Array.from(new Set(rubros.map(r => r.categoria || 'Sin Categoría'))).sort()
+
+  let filteredRubros = rubros.filter(r => 
     r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (r.codigo && r.codigo.toLowerCase().includes(searchTerm.toLowerCase()))
   )
-  
+
+  if (selectedCategory) {
+    filteredRubros = filteredRubros.filter(r => (r.categoria || 'Sin Categoría') === selectedCategory)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredRubros.length / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedRubros = filteredRubros.slice(startIndex, startIndex + itemsPerPage)
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+    let end = Math.min(totalPages, start + maxPagesToShow - 1);
+    if (end - start + 1 < maxPagesToShow) {
+      start = Math.max(1, end - maxPagesToShow + 1);
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  }
+
   const filteredInsumosSearch = allInsumos.filter(i => 
     i.nombre.toLowerCase().includes(searchInsumoTerm.toLowerCase()) || 
     (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))
   ).slice(0, 20)
 
-  if (view === 'editor' && currentRubro) {
-    const { totMateriales, totManoObra, totEquipos, totalCostoDirecto, herramientaMenor } = calcTotalesReceta()
-    
-    // Agrupación visual para la tabla
-    const mats = rubroInsumos.filter(i => i.insumos.tipo === 'material')
-    const mos = rubroInsumos.filter(i => i.insumos.tipo === 'mano_de_obra')
-    const eqs = rubroInsumos.filter(i => i.insumos.tipo === 'equipo')
+  // Desglose de insumos actuales
+  const mats = rubroInsumos.filter(i => i.insumos.tipo === 'material')
+  const mos = rubroInsumos.filter(i => i.insumos.tipo === 'mano_de_obra')
+  const eqs = rubroInsumos.filter(i => i.insumos.tipo === 'equipo')
+  
+  const { totMateriales, totManoObra, totEquipos, totalCostoDirecto, herramientaMenor } = currentRubro ? calcTotalesReceta() : { totMateriales:0, totManoObra:0, totEquipos:0, totalCostoDirecto:0, herramientaMenor:0 }
 
-    return (
-      <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => setView('lista')} className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-black text-brand-dark tracking-tight flex items-center gap-2">
-              <PenTool className="text-brand-sage" /> {currentRubro.codigo} - {currentRubro.nombre}
-            </h1>
-            <p className="text-gray-500 text-sm">Análisis de Precio Unitario (APU) • Unidad: <strong>{currentRubro.unidad}</strong></p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Izquierda: Componentes del Rubro */}
-          <div className="lg:col-span-3 bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h2 className="font-bold text-gray-800">Receta / Insumos del Rubro</h2>
-              <button onClick={() => setIsAddInsumoModalOpen(true)} className="bg-brand-sage text-white text-sm font-bold py-1.5 px-4 rounded hover:bg-brand-dark transition-colors flex items-center gap-2">
-                <Plus size={16} /> Agregar Insumo
-              </button>
-            </div>
-            
-            <div className="overflow-x-auto min-h-[400px]">
-              <table className="w-full text-sm text-left divide-y divide-gray-200">
-                <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3">Código</th>
-                    <th className="px-4 py-3">Insumo</th>
-                    <th className="px-4 py-3 text-center">Unidad</th>
-                    <th className="px-4 py-3 text-right">Rend. / Cant.</th>
-                    <th className="px-4 py-3 text-right">Precio Ref.</th>
-                    <th className="px-4 py-3 text-right">Subtotal</th>
-                    <th className="px-4 py-3 text-center"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  
-                  {/* MATERIALES */}
-                  <tr className="bg-blue-50/50"><td colSpan={7} className="px-4 py-2 font-bold text-blue-700 text-xs">MATERIALES</td></tr>
-                  {mats.length === 0 ? <tr><td colSpan={7} className="px-4 py-2 text-center text-gray-400 italic text-xs">No hay materiales</td></tr> : null}
-                  {mats.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-mono text-xs text-gray-500">{item.insumos.codigo}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800 text-xs">{item.insumos.nombre}</td>
-                      <td className="px-4 py-2 text-center text-xs text-gray-500 font-bold">{item.insumos.unidad}</td>
-                      <td className="px-4 py-2 text-right">
-                        <input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-24 text-right border rounded px-2 py-1 focus:border-blue-500 focus:ring-1 outline-none text-xs" />
-                      </td>
-                      <td className="px-4 py-2 text-right text-xs text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
-                      <td className="px-4 py-2 text-right font-bold text-gray-800">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
-                      <td className="px-4 py-2 text-center"><button onClick={() => handleRemoveInsumo(item.id)} className="text-gray-300 hover:text-red-500"><X size={14} /></button></td>
-                    </tr>
-                  ))}
-
-                  {/* MANO DE OBRA */}
-                  <tr className="bg-orange-50/50"><td colSpan={7} className="px-4 py-2 font-bold text-orange-700 text-xs">MANO DE OBRA</td></tr>
-                  {mos.length === 0 ? <tr><td colSpan={7} className="px-4 py-2 text-center text-gray-400 italic text-xs">No hay mano de obra</td></tr> : null}
-                  {mos.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-mono text-xs text-gray-500">{item.insumos.codigo}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800 text-xs">{item.insumos.nombre}</td>
-                      <td className="px-4 py-2 text-center text-xs text-gray-500 font-bold">{item.insumos.unidad}</td>
-                      <td className="px-4 py-2 text-right">
-                        <input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-24 text-right border rounded px-2 py-1 focus:border-orange-500 focus:ring-1 outline-none text-xs" />
-                      </td>
-                      <td className="px-4 py-2 text-right text-xs text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
-                      <td className="px-4 py-2 text-right font-bold text-gray-800">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
-                      <td className="px-4 py-2 text-center"><button onClick={() => handleRemoveInsumo(item.id)} className="text-gray-300 hover:text-red-500"><X size={14} /></button></td>
-                    </tr>
-                  ))}
-
-                  {/* EQUIPOS */}
-                  <tr className="bg-purple-50/50"><td colSpan={7} className="px-4 py-2 font-bold text-purple-700 text-xs">EQUIPOS Y MAQUINARIA</td></tr>
-                  {eqs.length === 0 ? <tr><td colSpan={7} className="px-4 py-2 text-center text-gray-400 italic text-xs">No hay equipos</td></tr> : null}
-                  {eqs.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-mono text-xs text-gray-500">{item.insumos.codigo}</td>
-                      <td className="px-4 py-2 font-medium text-gray-800 text-xs">{item.insumos.nombre}</td>
-                      <td className="px-4 py-2 text-center text-xs text-gray-500 font-bold">{item.insumos.unidad}</td>
-                      <td className="px-4 py-2 text-right">
-                        <input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-24 text-right border rounded px-2 py-1 focus:border-purple-500 focus:ring-1 outline-none text-xs" />
-                      </td>
-                      <td className="px-4 py-2 text-right text-xs text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
-                      <td className="px-4 py-2 text-right font-bold text-gray-800">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
-                      <td className="px-4 py-2 text-center"><button onClick={() => handleRemoveInsumo(item.id)} className="text-gray-300 hover:text-red-500"><X size={14} /></button></td>
-                    </tr>
-                  ))}
-                  <tr className="bg-purple-50/20">
-                    <td colSpan={2} className="px-4 py-2 font-medium text-gray-500 text-xs text-right">Herramienta Menor:</td>
-                    <td className="px-4 py-2 text-center">
-                      <div className="flex items-center justify-center gap-1 text-xs">
-                        <input type="number" value={currentRubro.herramienta_menor_pct} onChange={(e) => setCurrentRubro({...currentRubro, herramienta_menor_pct: parseFloat(e.target.value)||0})} className="w-12 text-center border rounded py-0.5" />%
-                      </div>
-                    </td>
-                    <td colSpan={2} className="px-4 py-2 text-right text-xs text-gray-400">Sobre M.O.</td>
-                    <td className="px-4 py-2 text-right font-bold text-gray-800">${herramientaMenor.toFixed(4)}</td>
-                    <td></td>
-                  </tr>
-
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Derecha: Resumen de Costos */}
-          <div className="bg-brand-dark rounded-xl shadow-lg p-6 text-white h-fit sticky top-6 flex flex-col gap-6">
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-brand-sage border-b border-white/10 pb-2">Precio Unitario</h2>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Total Materiales</span>
-                  <span className="font-mono">${totMateriales.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Total Mano Obra</span>
-                  <span className="font-mono">${totManoObra.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Total Equipos (+ Herr.)</span>
-                  <span className="font-mono">${totEquipos.toFixed(2)}</span>
-                </div>
-              </div>
-
-              <div className="border-t border-white/20 pt-4">
-                <div className="flex justify-between items-end">
-                  <span className="text-gray-300 font-medium text-sm">Costo Directo por {currentRubro.unidad}</span>
-                  <span className="text-3xl font-black text-brand-sage">${totalCostoDirecto.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-
-            <button onClick={saveRubro} className="w-full bg-brand-sage text-brand-dark font-black py-3 rounded-lg hover:bg-white transition-colors flex justify-center items-center gap-2 mt-4">
-              <Save size={18} /> GUARDAR RUBRO
-            </button>
-          </div>
-        </div>
-
-        {/* Modal Buscar Insumo */}
-        {isAddInsumoModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
-              <div className="p-4 border-b border-gray-100 flex gap-4 items-center bg-gray-50/50 shrink-0">
-                <Search className="text-gray-400" size={20} />
-                <input 
-                  type="text" 
-                  autoFocus
-                  placeholder="Buscar insumo por nombre..." 
-                  value={searchInsumoTerm}
-                  onChange={(e) => setSearchInsumoTerm(e.target.value)}
-                  className="w-full bg-transparent border-none outline-none text-lg text-gray-800 placeholder:text-gray-400"
-                />
-                <button onClick={() => setIsAddInsumoModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-              </div>
-              
-              <div className="overflow-y-auto p-2 grow">
-                {searchInsumoTerm.length < 2 ? (
-                  <div className="text-center py-12 text-gray-400">Escribe al menos 2 letras para buscar.</div>
-                ) : filteredInsumosSearch.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">No hay insumos que coincidan.</div>
-                ) : (
-                  <div className="space-y-1">
-                    {filteredInsumosSearch.map(insumo => (
-                      <div key={insumo.id} className="flex justify-between items-center p-3 hover:bg-gray-50 border border-transparent hover:border-gray-100 rounded-lg transition-colors cursor-pointer" onClick={() => handleAddInsumoToRubro(insumo)}>
-                        <div className="flex gap-3 items-center">
-                          <div className={`p-2 rounded-lg text-white ${insumo.tipo === 'material' ? 'bg-blue-500' : insumo.tipo === 'mano_de_obra' ? 'bg-orange-500' : 'bg-purple-500'}`}>
-                            <Box size={16} />
-                          </div>
-                          <div>
-                            <div className="font-bold text-sm text-gray-800">{insumo.nombre}</div>
-                            <div className="text-xs text-gray-500 font-mono">{insumo.codigo} • {insumo.tipo}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="font-bold text-sm text-brand-dark">${Number(insumo.precio_sin_iva).toFixed(2)}</div>
-                            <div className="text-xs text-gray-400">/ {insumo.unidad}</div>
-                          </div>
-                          <div className="bg-brand-sage text-white p-1.5 rounded hover:bg-brand-dark transition-colors">
-                            <Plus size={16} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // Render Lista de Rubros
   return (
-    <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="flex flex-col h-[calc(100vh-64px)] p-4 md:p-6 bg-gray-50/50 overflow-hidden">
+      
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-black text-brand-dark tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-black text-brand-dark tracking-tight flex items-center gap-2">
             <PenTool className="text-brand-sage" /> Catálogo de Rubros
           </h1>
-          <p className="text-gray-500 mt-2">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
+          <p className="text-gray-500 text-sm mt-1">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
         <button 
           onClick={() => setIsNewModalOpen(true)}
-          className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm"
+          className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap"
         >
-          <Plus size={20} />
+          <Plus size={18} />
           Nuevo Rubro
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden mb-6">
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex gap-4">
-          <div className="relative w-full max-w-md">
-            <input 
-              type="text" 
-              placeholder="Buscar rubro por código o nombre..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage focus:border-brand-sage shadow-sm bg-white"
-            />
-            <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+      {/* MAIN GRID */}
+      <div className="flex flex-col flex-1 gap-4 overflow-hidden min-h-0">
+        
+        {/* UPPER HALF: GROUPS & RUBROS */}
+        <div className="flex flex-col md:flex-row gap-4 flex-1 overflow-hidden min-h-[250px]">
+          
+          {/* LEFT PANEL: GROUPS */}
+          <div className="w-full md:w-1/4 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden">
+            <div className="p-3 border-b border-gray-100 bg-gray-50 font-bold text-gray-700 text-sm uppercase tracking-wider shrink-0 flex justify-between items-center">
+              <span>Categorías / Grupos</span>
+              <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs">{categories.length}</span>
+            </div>
+            <div className="overflow-y-auto flex-1 p-2 space-y-1">
+              <button 
+                onClick={() => setSelectedCategory(null)} 
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!selectedCategory ? 'bg-brand-sage text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Todas las categorías
+              </button>
+              {categories.map(c => (
+                <button 
+                  key={c}
+                  onClick={() => setSelectedCategory(c)} 
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedCategory === c ? 'bg-brand-sage text-white shadow-sm font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* RIGHT PANEL: RUBROS TABLE */}
+          <div className="w-full md:w-3/4 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden">
+            <div className="p-3 border-b border-gray-100 bg-gray-50 flex gap-4 shrink-0">
+              <div className="relative w-full max-w-md">
+                <input 
+                  type="text" 
+                  placeholder="Buscar rubro por código o nombre..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage focus:border-brand-sage"
+                />
+                <Search className="absolute left-3 top-2 text-gray-400" size={16} />
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-sm text-left divide-y divide-gray-200">
+                <thead className="bg-slate-50 text-slate-700 border-b border-gray-200 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 whitespace-nowrap">Código</th>
+                    <th className="px-4 py-3">Nombre del Rubro</th>
+                    <th className="px-4 py-3 text-center whitespace-nowrap">Unidad</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">Costo Directo</th>
+                    <th className="px-4 py-3 text-center whitespace-nowrap">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {loading ? (
+                    <tr><td colSpan={5} className="text-center py-8 text-gray-400">Cargando...</td></tr>
+                  ) : paginatedRubros.length === 0 ? (
+                    <tr><td colSpan={5} className="text-center py-8 text-gray-500">No hay rubros en esta categoría.</td></tr>
+                  ) : (
+                    paginatedRubros.map((r) => (
+                      <tr 
+                        key={r.id} 
+                        className={`transition-colors cursor-pointer ${currentRubro?.id === r.id ? 'bg-brand-sage/10 border-l-4 border-brand-sage' : 'hover:bg-gray-50 border-l-4 border-transparent'}`} 
+                        onClick={() => openEditor(r)}
+                      >
+                        <td className="px-4 py-2 font-mono text-xs text-brand-sage font-bold whitespace-nowrap">{r.codigo}</td>
+                        <td className="px-4 py-2 font-medium text-gray-800 leading-tight">{r.nombre}</td>
+                        <td className="px-4 py-2 text-center">
+                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">{r.unidad}</span>
+                        </td>
+                        <td className="px-4 py-2 text-right font-black text-brand-dark whitespace-nowrap">
+                          ${Number(r.total_costo_directo || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={(e) => handleDeleteRubro(r.id, e)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Eliminar">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* PAGINATION */}
+            <div className="p-2 border-t border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-2 shrink-0">
+              <span className="text-xs text-gray-500">
+                Mostrando {filteredRubros.length === 0 ? 0 : startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredRubros.length)} de {filteredRubros.length} registros
+              </span>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))} 
+                  disabled={currentPage === 1}
+                  className="p-1 rounded text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                
+                {getPageNumbers().map(num => (
+                  <button 
+                    key={num}
+                    onClick={() => setCurrentPage(num)}
+                    className={`min-w-[28px] h-7 flex items-center justify-center rounded text-xs font-medium transition-colors ${currentPage === num ? 'bg-brand-sage text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} 
+                  disabled={currentPage === totalPages}
+                  className="p-1 rounded text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left divide-y divide-gray-200">
-            <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4">Código</th>
-                <th className="px-6 py-4">Nombre del Rubro</th>
-                <th className="px-6 py-4">Categoría</th>
-                <th className="px-6 py-4 text-center">Unidad</th>
-                <th className="px-6 py-4 text-right">Costo Directo</th>
-                <th className="px-6 py-4 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-400">Cargando...</td></tr>
-              ) : filteredRubros.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-gray-500">No hay rubros creados.</td></tr>
-              ) : (
-                filteredRubros.map((r) => (
-                  <tr key={r.id} className="hover:bg-brand-sage/5 transition-colors group cursor-pointer" onClick={() => openEditor(r)}>
-                    <td className="px-6 py-3 font-mono text-brand-sage font-bold">{r.codigo}</td>
-                    <td className="px-6 py-3 font-bold text-gray-800">{r.nombre}</td>
-                    <td className="px-6 py-3 text-gray-500">{r.categoria || '-'}</td>
-                    <td className="px-6 py-3 text-center">
-                      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-bold">{r.unidad}</span>
-                    </td>
-                    <td className="px-6 py-3 text-right font-black text-brand-dark">
-                      ${Number(r.total_costo_directo || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
-                    </td>
-                    <td className="px-6 py-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button title="Modificar Rubro" className="text-brand-sage hover:text-brand-dark font-bold bg-brand-sage/10 p-2 rounded transition-colors">
-                          <Edit3 size={16} />
-                        </button>
-                        <button onClick={(e) => handleDeleteRubro(r.id, e)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Eliminar">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        {/* LOWER HALF: APU RECIPE DETAILS */}
+        <div className="h-[45%] md:h-[40%] bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage flex flex-col overflow-hidden shrink-0">
+          {!currentRubro ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
+              <Box size={48} className="mb-4 opacity-20" />
+              <p>Selecciona un rubro de la tabla superior para ver su Análisis de Precio Unitario (APU)</p>
+            </div>
+          ) : (
+            <div className="flex flex-col h-full overflow-hidden">
+              {/* APU Header */}
+              <div className="p-3 border-b border-gray-100 bg-brand-dark text-white flex justify-between items-center shrink-0">
+                <div className="truncate pr-4">
+                  <h2 className="font-bold text-sm truncate flex items-center gap-2">
+                    <span className="text-brand-sage font-mono">{currentRubro.codigo}</span> {currentRubro.nombre}
+                  </h2>
+                </div>
+                <div className="flex items-center gap-4 shrink-0 text-sm">
+                  <span className="bg-white/10 px-2 py-1 rounded text-xs font-mono">{currentRubro.unidad}</span>
+                  <div className="text-brand-sage font-black text-lg">${totalCostoDirecto.toFixed(2)}</div>
+                  <button onClick={saveRubro} className="bg-brand-sage text-brand-dark font-bold py-1.5 px-4 rounded hover:bg-white transition-colors flex items-center gap-2 text-xs">
+                    <Save size={14} /> Guardar Costo
+                  </button>
+                </div>
+              </div>
+
+              {/* APU Actions */}
+              <div className="p-2 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+                <span className="text-xs font-bold text-gray-500 uppercase">Detalle de Insumos</span>
+                <button onClick={() => setIsAddInsumoModalOpen(true)} className="bg-brand-dark text-white text-xs font-bold py-1.5 px-3 rounded hover:bg-brand-sage hover:text-brand-dark transition-colors flex items-center gap-1.5">
+                  <Plus size={14} /> Agregar Insumo
+                </button>
+              </div>
+
+              {/* APU Table */}
+              <div className="flex-1 overflow-auto">
+                <table className="w-full text-sm text-left divide-y divide-gray-200">
+                  <thead className="bg-slate-50 text-slate-700 border-b border-gray-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-2 text-xs font-semibold">Código</th>
+                      <th className="px-4 py-2 text-xs font-semibold">Insumo</th>
+                      <th className="px-4 py-2 text-center text-xs font-semibold">Unid.</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold">Rend./Cant.</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold">Costo U.</th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold">Subtotal</th>
+                      <th className="px-4 py-2 text-center w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {/* EQUIPOS */}
+                    <tr className="bg-purple-50/50"><td colSpan={7} className="px-4 py-1.5 font-bold text-purple-700 text-xs">EQUIPOS Y MAQUINARIA (Total: ${totEquipos.toFixed(4)})</td></tr>
+                    {eqs.length === 0 && <tr><td colSpan={7} className="px-4 py-2 text-center text-gray-400 italic text-xs">No hay equipos</td></tr>}
+                    {eqs.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-1.5 font-mono text-xs text-gray-500">{item.insumos.codigo}</td>
+                        <td className="px-4 py-1.5 font-medium text-gray-800 text-xs truncate max-w-xs">{item.insumos.nombre}</td>
+                        <td className="px-4 py-1.5 text-center text-xs text-gray-500 font-bold">{item.insumos.unidad}</td>
+                        <td className="px-4 py-1.5 text-right">
+                          <input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-20 text-right border rounded px-1.5 py-0.5 focus:border-purple-500 focus:ring-1 outline-none text-xs" />
+                        </td>
+                        <td className="px-4 py-1.5 text-right text-xs text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
+                        <td className="px-4 py-1.5 text-right font-bold text-gray-800 text-xs">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
+                        <td className="px-4 py-1.5 text-center"><button onClick={() => handleRemoveInsumo(item.id)} className="text-gray-300 hover:text-red-500"><X size={14} /></button></td>
+                      </tr>
+                    ))}
+                    <tr className="bg-purple-50/20">
+                      <td colSpan={2} className="px-4 py-1.5 font-medium text-gray-500 text-xs text-right">Herramienta Menor:</td>
+                      <td className="px-4 py-1.5 text-center">
+                        <div className="flex items-center justify-center gap-1 text-xs">
+                          <input type="number" value={currentRubro.herramienta_menor_pct} onChange={(e) => setCurrentRubro({...currentRubro, herramienta_menor_pct: parseFloat(e.target.value)||0})} className="w-10 text-center border rounded py-0.5" />%
+                        </div>
+                      </td>
+                      <td colSpan={2} className="px-4 py-1.5 text-right text-xs text-gray-400">S. M.O.</td>
+                      <td className="px-4 py-1.5 text-right font-bold text-gray-800 text-xs">${herramientaMenor.toFixed(4)}</td>
+                      <td></td>
+                    </tr>
+
+                    {/* MANO DE OBRA */}
+                    <tr className="bg-orange-50/50"><td colSpan={7} className="px-4 py-1.5 font-bold text-orange-700 text-xs">MANO DE OBRA (Total: ${totManoObra.toFixed(4)})</td></tr>
+                    {mos.length === 0 && <tr><td colSpan={7} className="px-4 py-2 text-center text-gray-400 italic text-xs">No hay mano de obra</td></tr>}
+                    {mos.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-1.5 font-mono text-xs text-gray-500">{item.insumos.codigo}</td>
+                        <td className="px-4 py-1.5 font-medium text-gray-800 text-xs truncate max-w-xs">{item.insumos.nombre}</td>
+                        <td className="px-4 py-1.5 text-center text-xs text-gray-500 font-bold">{item.insumos.unidad}</td>
+                        <td className="px-4 py-1.5 text-right">
+                          <input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-20 text-right border rounded px-1.5 py-0.5 focus:border-orange-500 focus:ring-1 outline-none text-xs" />
+                        </td>
+                        <td className="px-4 py-1.5 text-right text-xs text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
+                        <td className="px-4 py-1.5 text-right font-bold text-gray-800 text-xs">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
+                        <td className="px-4 py-1.5 text-center"><button onClick={() => handleRemoveInsumo(item.id)} className="text-gray-300 hover:text-red-500"><X size={14} /></button></td>
+                      </tr>
+                    ))}
+
+                    {/* MATERIALES */}
+                    <tr className="bg-blue-50/50"><td colSpan={7} className="px-4 py-1.5 font-bold text-blue-700 text-xs">MATERIALES (Total: ${totMateriales.toFixed(4)})</td></tr>
+                    {mats.length === 0 && <tr><td colSpan={7} className="px-4 py-2 text-center text-gray-400 italic text-xs">No hay materiales</td></tr>}
+                    {mats.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-1.5 font-mono text-xs text-gray-500">{item.insumos.codigo}</td>
+                        <td className="px-4 py-1.5 font-medium text-gray-800 text-xs truncate max-w-xs">{item.insumos.nombre}</td>
+                        <td className="px-4 py-1.5 text-center text-xs text-gray-500 font-bold">{item.insumos.unidad}</td>
+                        <td className="px-4 py-1.5 text-right">
+                          <input type="number" step="0.0001" min="0" value={item.cantidad} onChange={(e) => handleUpdateCantidad(item.id, parseFloat(e.target.value) || 0)} className="w-20 text-right border rounded px-1.5 py-0.5 focus:border-blue-500 focus:ring-1 outline-none text-xs" />
+                        </td>
+                        <td className="px-4 py-1.5 text-right text-xs text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
+                        <td className="px-4 py-1.5 text-right font-bold text-gray-800 text-xs">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
+                        <td className="px-4 py-1.5 text-center"><button onClick={() => handleRemoveInsumo(item.id)} className="text-gray-300 hover:text-red-500"><X size={14} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Modal Nuevo Rubro */}
+      {/* MODALS (Nuevo Rubro y Buscar Insumo) */}
       {isNewModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-xl font-bold text-gray-800">Crear Nuevo Rubro</h3>
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-800">Crear Nuevo Rubro</h3>
               <button onClick={() => setIsNewModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            
-            <form onSubmit={handleCreateRubro} className="p-6 space-y-4">
+            <form onSubmit={handleCreateRubro} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código</label>
-                  <input type="text" value={newRubroData.codigo} onChange={e => setNewRubroData({...newRubroData, codigo: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage" placeholder="Ej. HOR-001" required />
+                  <input type="text" value={newRubroData.codigo} onChange={e => setNewRubroData({...newRubroData, codigo: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. HOR-001" required />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad</label>
-                  <input type="text" value={newRubroData.unidad} onChange={e => setNewRubroData({...newRubroData, unidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage" placeholder="m3, m2, ml, glb" required />
+                  <input type="text" value={newRubroData.unidad} onChange={e => setNewRubroData({...newRubroData, unidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="m3, m2, ml, glb" required />
                 </div>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Rubro</label>
-                <input type="text" value={newRubroData.nombre} onChange={e => setNewRubroData({...newRubroData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage" placeholder="Ej. Hormigón simple f'c=210 kg/cm2" required />
+                <input type="text" value={newRubroData.nombre} onChange={e => setNewRubroData({...newRubroData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. Hormigón simple f'c=210" required />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Categoría / Capítulo (Opcional)</label>
-                <input type="text" value={newRubroData.categoria} onChange={e => setNewRubroData({...newRubroData, categoria: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage" placeholder="Ej. ESTRUCTURAS" />
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Categoría</label>
+                <input type="text" value={newRubroData.categoria} onChange={e => setNewRubroData({...newRubroData, categoria: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. ESTRUCTURAS" />
               </div>
-
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-5 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
-                <button type="submit" className="px-5 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors">Crear y Editar APU</button>
+                <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
+                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage transition-colors">Crear Rubro</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {isAddInsumoModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="p-4 border-b border-gray-100 flex gap-4 items-center bg-gray-50/50 shrink-0">
+              <Search className="text-gray-400" size={20} />
+              <input 
+                type="text" 
+                autoFocus
+                placeholder="Buscar insumo por nombre o código..." 
+                value={searchInsumoTerm}
+                onChange={(e) => setSearchInsumoTerm(e.target.value)}
+                className="w-full bg-transparent border-none outline-none text-lg text-gray-800 placeholder:text-gray-400"
+              />
+              <button onClick={() => setIsAddInsumoModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+            </div>
+            
+            <div className="overflow-y-auto p-2 grow">
+              {searchInsumoTerm.length < 2 ? (
+                <div className="text-center py-12 text-gray-400">Escribe al menos 2 letras para buscar.</div>
+              ) : filteredInsumosSearch.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">No hay insumos que coincidan.</div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredInsumosSearch.map(insumo => (
+                    <div key={insumo.id} className="flex justify-between items-center p-3 hover:bg-gray-50 border border-transparent hover:border-gray-100 rounded-lg transition-colors cursor-pointer" onClick={() => handleAddInsumoToRubro(insumo)}>
+                      <div className="flex gap-3 items-center">
+                        <div className={`p-2 rounded-lg text-white ${insumo.tipo === 'material' ? 'bg-blue-500' : insumo.tipo === 'mano_de_obra' ? 'bg-orange-500' : 'bg-purple-500'}`}>
+                          <Box size={16} />
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-gray-800">{insumo.nombre}</div>
+                          <div className="text-xs text-gray-500 font-mono">{insumo.codigo} • {insumo.tipo}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="font-bold text-sm text-brand-dark">${Number(insumo.precio_sin_iva).toFixed(2)}</div>
+                          <div className="text-xs text-gray-400">/ {insumo.unidad}</div>
+                        </div>
+                        <div className="bg-brand-sage text-white p-1.5 rounded hover:bg-brand-dark transition-colors">
+                          <Plus size={16} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
