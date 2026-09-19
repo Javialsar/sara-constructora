@@ -248,7 +248,7 @@ export default function RubrosPage() {
             </div>
             <div className="overflow-y-auto flex-1 p-2 space-y-1">
               <button 
-                onClick={() => setSelectedCategory(null)} 
+                onClick={() => { setSelectedCategory(null); setSearchCategoryTerm(""); }} 
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${!selectedCategory ? 'bg-brand-sage text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}
               >
                 Todas las categorías
