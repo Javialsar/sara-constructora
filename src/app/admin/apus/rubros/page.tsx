@@ -10,11 +10,12 @@ export default function RubrosPage() {
   const [rubros, setRubros] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchCategoryTerm, setSearchCategoryTerm] = useState("")
   
   // Categorias y Paginas
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 20
+  const itemsPerPage = 10
 
   // Estado Modal Nuevo Rubro
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
@@ -162,7 +163,7 @@ export default function RubrosPage() {
 
   // --- DERIVADOS Y PAGINACION ---
   // Extraer categorías únicas
-  const categories = Array.from(new Set(rubros.map(r => r.categoria || 'Sin Categoría'))).sort()
+  const categories = Array.from(new Set(rubros.map(r => r.categoria || 'Sin Categoría'))).sort().filter(c => c.toLowerCase().includes(searchCategoryTerm.toLowerCase()))
 
   let filteredRubros = rubros.filter(r => 
     r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -225,13 +226,25 @@ export default function RubrosPage() {
       <div className="flex flex-col flex-1 gap-4 overflow-hidden min-h-0">
         
         {/* UPPER HALF: GROUPS & RUBROS */}
-        <div className="flex flex-col md:flex-row gap-4 flex-1 overflow-hidden min-h-[250px]">
+        <div className="flex flex-col md:flex-row gap-4 flex-1 overflow-hidden min-h-[400px]">
           
           {/* LEFT PANEL: GROUPS */}
           <div className="w-full md:w-1/4 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden">
-            <div className="p-3 border-b border-gray-100 bg-gray-50 font-bold text-gray-700 text-sm uppercase tracking-wider shrink-0 flex justify-between items-center">
-              <span>Categorías / Grupos</span>
-              <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs">{categories.length}</span>
+            <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0 flex flex-col gap-2">
+              <div className="flex justify-between items-center font-bold text-gray-700 text-sm uppercase tracking-wider">
+                <span>Categorías</span>
+                <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full text-xs">{categories.length}</span>
+              </div>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Buscar grupo..." 
+                  value={searchCategoryTerm}
+                  onChange={(e) => setSearchCategoryTerm(e.target.value)}
+                  className="w-full pl-8 pr-2 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-brand-sage focus:border-brand-sage"
+                />
+                <Search className="absolute left-2.5 top-2 text-gray-400" size={14} />
+              </div>
             </div>
             <div className="overflow-y-auto flex-1 p-2 space-y-1">
               <button 
@@ -287,7 +300,7 @@ export default function RubrosPage() {
                     paginatedRubros.map((r) => (
                       <tr 
                         key={r.id} 
-                        className={`transition-colors cursor-pointer ${currentRubro?.id === r.id ? 'bg-brand-sage/10 border-l-4 border-brand-sage' : 'hover:bg-gray-50 border-l-4 border-transparent'}`} 
+                        className={`transition-colors cursor-pointer ${currentRubro?.id === r.id ? 'bg-blue-100 border-l-4 border-blue-600 shadow-inner' : 'hover:bg-gray-50 border-l-4 border-transparent'}`} 
                         onClick={() => openEditor(r)}
                       >
                         <td className="px-4 py-2 font-mono text-xs text-brand-sage font-bold whitespace-nowrap">{r.codigo}</td>
@@ -349,7 +362,7 @@ export default function RubrosPage() {
         </div>
 
         {/* LOWER HALF: APU RECIPE DETAILS */}
-        <div className="h-[45%] md:h-[40%] bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage flex flex-col overflow-hidden shrink-0">
+        <div className="h-[40%] md:h-[35%] bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage flex flex-col overflow-hidden shrink-0">
           {!currentRubro ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
               <Box size={48} className="mb-4 opacity-20" />
