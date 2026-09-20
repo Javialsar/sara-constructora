@@ -139,8 +139,10 @@ export default function InsumosPage() {
     setSaving(true)
     
     // Limpiar el proveedor si está vacío para que se guarde como NULL en BD
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { proveedores_ids, ...restFormData } = formData
     const payload = {
-      ...formData,
+      ...restFormData,
       proveedor_id: formData.proveedor_id === "" ? null : formData.proveedor_id,
       fecha_actualizacion: new Date().toISOString()
     }
@@ -151,24 +153,41 @@ export default function InsumosPage() {
         .update(payload)
         .eq('id', editingId)
         
-      setSaving(false)
       if (!error) {
+        // Sincronizar proveedores vinculados
+        await supabase.from('insumo_proveedores').delete().eq('insumo_id', editingId)
+        if (proveedores_ids.length > 0) {
+          await supabase.from('insumo_proveedores').insert(
+            proveedores_ids.map(pid => ({ insumo_id: editingId, proveedor_id: pid }))
+          )
+        }
+        setSaving(false)
         closeModal()
         fetchData()
       } else {
+        setSaving(false)
         alert("Error al actualizar el insumo.")
         console.error(error)
       }
     } else {
-      const { error } = await supabase
+      const { data: newInsumo, error } = await supabase
         .from('insumos')
         .insert([payload])
+        .select()
+        .single()
 
-      setSaving(false)
-      if (!error) {
+      if (!error && newInsumo) {
+        // Sincronizar proveedores vinculados
+        if (proveedores_ids.length > 0) {
+          await supabase.from('insumo_proveedores').insert(
+            proveedores_ids.map(pid => ({ insumo_id: newInsumo.id, proveedor_id: pid }))
+          )
+        }
+        setSaving(false)
         closeModal()
         fetchData()
       } else {
+        setSaving(false)
         alert("Error al guardar el insumo. Verifica que el código no esté duplicado.")
         console.error(error)
       }
