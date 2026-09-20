@@ -280,8 +280,8 @@ export default function RubrosPage() {
               </div>
             </div>
             
-            <div className="flex-1 overflow-hidden flex flex-col justify-between">
-              <table className="w-full text-sm text-left divide-y divide-gray-200 h-full">
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-sm text-left divide-y divide-gray-200">
                 <thead className="bg-slate-50 text-slate-700 border-b border-gray-200 sticky top-0 z-10">
                   <tr>
                     <th className="px-4 py-3 whitespace-nowrap">Código</th>
@@ -395,7 +395,7 @@ export default function RubrosPage() {
               </div>
 
               {/* APU Table */}
-              <div className="flex-1 overflow-hidden flex flex-col justify-between">
+              <div className="flex-1 overflow-hidden">
                 <table className="w-full text-sm text-left divide-y divide-gray-200 h-full">
                   <thead className="bg-slate-50 text-slate-700 border-b border-gray-200 sticky top-0 z-10">
                     <tr>
