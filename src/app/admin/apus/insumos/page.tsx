@@ -345,7 +345,7 @@ export default function InsumosPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {outdated && <AlertTriangle size={14} className="text-amber-400" title="Precio desactualizado" />}
+                            {outdated && <span title="Precio desactualizado"><AlertTriangle size={14} className="text-amber-400" /></span>}
                             <div>
                               <div className={`font-bold text-sm ${outdated ? 'text-amber-600' : 'text-gray-900'}`}>${Number(insumo.precio_sin_iva).toFixed(4)}</div>
                               <div className="text-xs text-gray-400 flex items-center gap-1 justify-end">
