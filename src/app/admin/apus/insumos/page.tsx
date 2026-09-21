@@ -301,7 +301,11 @@ export default function InsumosPage() {
       supabase.from('insumo_proveedores').select('*')
     ])
     if (dInsumos) setInsumos(dInsumos)
-    if (dFamilias) setFamilias(dFamilias)
+    if (dFamilias) {
+      setFamilias(dFamilias)
+      // Auto-expandir todos los grupos para mostrar subgrupos desde el inicio
+      setExpandedFamilias(new Set(dFamilias.map((f: Familia) => f.id)))
+    }
     if (dSubfamilias) setSubfamilias(dSubfamilias)
     if (dProv) setProveedores(dProv)
     if (dIP) {
@@ -331,7 +335,7 @@ export default function InsumosPage() {
     if (selectedSubfamilia) return matchSearch && i.subfamilia_id === selectedSubfamilia
     if (selectedFamilia) {
       const sfIds = subfamilias.filter(sf => sf.familia_id === selectedFamilia).map(sf => sf.id)
-      return matchSearch && (sfIds.includes(i.subfamilia_id || '') || i.tipo === familias.find(f => f.id === selectedFamilia)?.grupo_sugerido)
+      return matchSearch && sfIds.includes(i.subfamilia_id || '')
     }
     return matchSearch
   })
@@ -424,8 +428,7 @@ export default function InsumosPage() {
   const subfsPorFamilia = (fid: string) => subfamilias.filter(sf => sf.familia_id === fid)
   const countByFamilia = (fid: string) => {
     const sfIds = subfsPorFamilia(fid).map(sf => sf.id)
-    const fam = familias.find(f => f.id === fid)
-    return insumos.filter(i => sfIds.includes(i.subfamilia_id || '') || i.tipo === fam?.grupo_sugerido).length
+    return insumos.filter(i => sfIds.includes(i.subfamilia_id || '')).length
   }
   const countBySubfamilia = (sfid: string) => insumos.filter(i => i.subfamilia_id === sfid).length
 
