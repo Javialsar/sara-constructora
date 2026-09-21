@@ -290,6 +290,12 @@ export default function InsumosPage() {
 
   useEffect(() => { fetchData() }, [])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, selectedFamilia, selectedSubfamilia])
+  // Auto-expandir SIEMPRE que cambian las familias (carga inicial + regreso del gestor)
+  useEffect(() => {
+    if (familias.length > 0) {
+      setExpandedFamilias(new Set(familias.map(f => f.id)))
+    }
+  }, [familias])
 
   const fetchData = async () => {
     setLoading(true)
@@ -438,7 +444,7 @@ export default function InsumosPage() {
       <GruposManager
         familias={familias}
         subfamilias={subfamilias}
-        onBack={() => setVista('catalogo')}
+        onBack={() => { setVista('catalogo'); fetchData() }}
         onRefresh={fetchData}
       />
     )
