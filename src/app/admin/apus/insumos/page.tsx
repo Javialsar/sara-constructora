@@ -17,9 +17,11 @@ type Insumo = {
 // VISTA: GESTOR DE GRUPOS Y SUBGRUPOS (Pantalla completa 2 paneles)
 // =============================================
 function GruposManager({
-  familias, subfamilias, onBack, onRefresh
+  familias, subfamilias, setFamilias, setSubfamilias, onBack, onRefresh
 }: {
-  familias: Familia[], subfamilias: Subfamilia[], onBack: () => void, onRefresh: () => void
+  familias: Familia[], subfamilias: Subfamilia[], 
+  setFamilias: (f: Familia[]) => void, setSubfamilias: (sf: Subfamilia[]) => void,
+  onBack: () => void, onRefresh: () => void
 }) {
   const supabase = createClient()
   const [selectedFamilia, setSelectedFamilia] = useState<Familia | null>(null)
@@ -48,8 +50,7 @@ function GruposManager({
       
       if (!error && data && data.length > 0) { 
         setNewGrupoNombre(""); setShowGrupoForm(false);
-        // Inyección optimista para evadir el límite de 1000 filas de Supabase
-        familias.push(data[0]); 
+        setFamilias([...familias, data[0]]); 
         onRefresh() 
       } else {
         alert(`Error al crear el grupo: ${error?.message || 'Fallo silencioso'}`)
@@ -65,6 +66,7 @@ function GruposManager({
     if (!confirm(`¿Eliminar el grupo "${nombre}"? También eliminará todos sus subgrupos.`)) return
     await supabase.from('familias').delete().eq('id', id)
     if (selectedFamilia?.id === id) setSelectedFamilia(null)
+    setFamilias(familias.filter(f => f.id !== id))
     onRefresh()
   }
 
@@ -79,8 +81,7 @@ function GruposManager({
       
       if (!error && data && data.length > 0) { 
         setNewSubNombre(""); setShowSubForm(false); 
-        // Inyección optimista para evadir el límite de 1000 filas
-        subfamilias.push(data[0]);
+        setSubfamilias([...subfamilias, data[0]]);
         onRefresh() 
       } else {
         const msg = error?.message || 'Rechazado por la base de datos (Posible RLS o FK)'
@@ -482,6 +483,8 @@ export default function InsumosPage() {
       <GruposManager
         familias={familias}
         subfamilias={subfamilias}
+        setFamilias={setFamilias}
+        setSubfamilias={setSubfamilias}
         onBack={() => { setVista('catalogo'); fetchData() }}
         onRefresh={fetchData}
       />
