@@ -67,7 +67,11 @@ function GruposManager({
 
   const handleDeleteSubgrupo = async (id: string, nombre: string) => {
     if (!confirm(`¿Eliminar el subgrupo "${nombre}"?`)) return
-    await supabase.from('subfamilias').delete().eq('id', id)
+    const { error } = await supabase.from('subfamilias').delete().eq('id', id)
+    if (error) {
+      console.error(error)
+      alert("No se puede eliminar este subgrupo porque tiene insumos asignados. Primero reasigna o elimina esos insumos.")
+    }
     onRefresh()
   }
 
@@ -239,7 +243,7 @@ function GruposManager({
                       <p className="text-xs text-gray-400 font-mono">{sf.id}</p>
                     </div>
                     <button onClick={() => handleDeleteSubgrupo(sf.id, sf.nombre)}
-                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>
