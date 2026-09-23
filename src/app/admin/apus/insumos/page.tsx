@@ -47,7 +47,10 @@ function GruposManager({
       const { data, error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: newGrupoTipo }]).select()
       
       if (!error && data && data.length > 0) { 
-        setNewGrupoNombre(""); setShowGrupoForm(false); onRefresh() 
+        setNewGrupoNombre(""); setShowGrupoForm(false);
+        // Inyección optimista para evadir el límite de 1000 filas de Supabase
+        familias.push(data[0]); 
+        onRefresh() 
       } else {
         alert(`Error al crear el grupo: ${error?.message || 'Fallo silencioso'}`)
       }
@@ -75,7 +78,10 @@ function GruposManager({
       const { data, error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }]).select()
       
       if (!error && data && data.length > 0) { 
-        setNewSubNombre(""); setShowSubForm(false); onRefresh() 
+        setNewSubNombre(""); setShowSubForm(false); 
+        // Inyección optimista para evadir el límite de 1000 filas
+        subfamilias.push(data[0]);
+        onRefresh() 
       } else {
         const msg = error?.message || 'Rechazado por la base de datos (Posible RLS o FK)'
         setSubError(msg)
@@ -332,11 +338,11 @@ export default function InsumosPage() {
   const fetchData = async () => {
     setLoading(true)
     const [{ data: dInsumos }, { data: dFamilias }, { data: dSubfamilias }, { data: dProv }, { data: dIP }] = await Promise.all([
-      supabase.from('insumos').select('*').order('nombre', { ascending: true }),
-      supabase.from('familias').select('*').order('nombre', { ascending: true }),
-      supabase.from('subfamilias').select('*').order('nombre', { ascending: true }),
-      supabase.from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }),
-      supabase.from('insumo_proveedores').select('*')
+      supabase.from('insumos').select('*').order('nombre', { ascending: true }).limit(10000),
+      supabase.from('familias').select('*').order('nombre', { ascending: true }).limit(10000),
+      supabase.from('subfamilias').select('*').order('nombre', { ascending: true }).limit(10000),
+      supabase.from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }).limit(10000),
+      supabase.from('insumo_proveedores').select('*').limit(10000)
     ])
     if (dInsumos) setInsumos(dInsumos)
     if (dFamilias) {
