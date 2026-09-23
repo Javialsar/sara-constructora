@@ -36,21 +36,22 @@ function GruposManager({
 
   const subfsPorFamilia = (fid: string) => subfamilias.filter(sf => sf.familia_id === fid)
 
+  const [subError, setSubError] = useState<string | null>(null)
+
   const handleAddGrupo = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newGrupoNombre.trim()) return
     setSaving(true)
     try {
-      const id = 'FAM-' + Date.now().toString().slice(-7)
-      const { error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: newGrupoTipo }])
+      const id = 'FAM-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      const { data, error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: newGrupoTipo }]).select()
       
-      if (!error) { setNewGrupoNombre(""); setShowGrupoForm(false); onRefresh() }
-      else {
-        console.error(error)
-        alert(`Error al crear el grupo: ${error.message || 'Error desconocido'}`)
+      if (!error && data && data.length > 0) { 
+        setNewGrupoNombre(""); setShowGrupoForm(false); onRefresh() 
+      } else {
+        alert(`Error al crear el grupo: ${error?.message || 'Fallo silencioso'}`)
       }
     } catch (err: any) {
-      console.error(err)
       alert(`Excepción: ${err.message}`)
     } finally {
       setSaving(false)
@@ -68,18 +69,20 @@ function GruposManager({
     e.preventDefault()
     if (!selectedFamilia || !newSubNombre.trim()) return
     setSaving(true)
+    setSubError(null)
     try {
-      const id = 'SF-' + Date.now().toString().slice(-7)
-      const { error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }])
+      const id = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      const { data, error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }]).select()
       
-      if (!error) { setNewSubNombre(""); setShowSubForm(false); onRefresh() }
-      else {
-        console.error(error)
-        alert(`Error al crear el subgrupo: ${error.message || 'Error desconocido'}`)
+      if (!error && data && data.length > 0) { 
+        setNewSubNombre(""); setShowSubForm(false); onRefresh() 
+      } else {
+        const msg = error?.message || 'Rechazado por la base de datos (Posible RLS o FK)'
+        setSubError(msg)
+        alert("Fallo al guardar: " + msg)
       }
     } catch (err: any) {
-      console.error(err)
-      alert(`Excepción: ${err.message}`)
+      setSubError(err.message)
     } finally {
       setSaving(false)
     }
@@ -235,6 +238,11 @@ function GruposManager({
                 </button>
                 <button type="button" onClick={() => setShowSubForm(false)} className="px-3 py-2 text-xs text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">Cancelar</button>
               </div>
+              {subError && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 text-red-600 rounded text-xs font-medium">
+                  {subError}
+                </div>
+              )}
             </form>
           )}
 
