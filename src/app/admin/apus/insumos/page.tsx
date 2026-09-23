@@ -40,11 +40,21 @@ function GruposManager({
     e.preventDefault()
     if (!newGrupoNombre.trim()) return
     setSaving(true)
-    const id = 'FAM-' + Date.now().toString().slice(-7)
-    const { error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: newGrupoTipo }])
-    setSaving(false)
-    if (!error) { setNewGrupoNombre(""); setShowGrupoForm(false); onRefresh() }
-    else alert("Error al crear el grupo")
+    try {
+      const id = 'FAM-' + Date.now().toString().slice(-7)
+      const { error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: newGrupoTipo }])
+      
+      if (!error) { setNewGrupoNombre(""); setShowGrupoForm(false); onRefresh() }
+      else {
+        console.error(error)
+        alert(`Error al crear el grupo: ${error.message || 'Error desconocido'}`)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(`Excepción: ${err.message}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDeleteGrupo = async (id: string, nombre: string) => {
@@ -58,11 +68,21 @@ function GruposManager({
     e.preventDefault()
     if (!selectedFamilia || !newSubNombre.trim()) return
     setSaving(true)
-    const id = 'SF-' + Date.now().toString().slice(-7)
-    const { error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }])
-    setSaving(false)
-    if (!error) { setNewSubNombre(""); setShowSubForm(false); onRefresh() }
-    else alert("Error al crear el subgrupo")
+    try {
+      const id = 'SF-' + Date.now().toString().slice(-7)
+      const { error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }])
+      
+      if (!error) { setNewSubNombre(""); setShowSubForm(false); onRefresh() }
+      else {
+        console.error(error)
+        alert(`Error al crear el subgrupo: ${error.message || 'Error desconocido'}`)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert(`Excepción: ${err.message}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDeleteSubgrupo = async (id: string, nombre: string) => {
