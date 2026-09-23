@@ -51,7 +51,6 @@ function GruposManager({
       if (!error && data && data.length > 0) { 
         setNewGrupoNombre(""); setShowGrupoForm(false);
         setFamilias([...familias, data[0]]); 
-        onRefresh() 
       } else {
         alert(`Error al crear el grupo: ${error?.message || 'Fallo silencioso'}`)
       }
@@ -64,10 +63,13 @@ function GruposManager({
 
   const handleDeleteGrupo = async (id: string, nombre: string) => {
     if (!confirm(`¿Eliminar el grupo "${nombre}"? También eliminará todos sus subgrupos.`)) return
-    await supabase.from('familias').delete().eq('id', id)
-    if (selectedFamilia?.id === id) setSelectedFamilia(null)
-    setFamilias(familias.filter(f => f.id !== id))
-    onRefresh()
+    const { error } = await supabase.from('familias').delete().eq('id', id)
+    if (!error) {
+      if (selectedFamilia?.id === id) setSelectedFamilia(null)
+      setFamilias(familias.filter(f => f.id !== id))
+    } else {
+      alert("No se puede eliminar el grupo porque tiene elementos asignados.")
+    }
   }
 
   const handleAddSubgrupo = async (e: React.FormEvent) => {
@@ -82,7 +84,6 @@ function GruposManager({
       if (!error && data && data.length > 0) { 
         setNewSubNombre(""); setShowSubForm(false); 
         setSubfamilias([...subfamilias, data[0]]);
-        onRefresh() 
       } else {
         const msg = error?.message || 'Rechazado por la base de datos (Posible RLS o FK)'
         setSubError(msg)
