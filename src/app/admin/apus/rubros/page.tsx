@@ -339,13 +339,9 @@ export default function RubrosPage() {
           <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
         <button onClick={() => {
-  const maxNum = rubros.reduce((max, r) => {
-    const match = r.codigo?.match(/\d+$/);
-    return match && parseInt(match[0], 10) > max ? parseInt(match[0], 10) : max;
-  }, 0);
-  setNewRubroData({ ...newRubroData, codigo: `RUB-${(maxNum + 1).toString().padStart(4, '0')}`, nombre: '', unidad: 'm3', subfamilia_id: '' });
-  setIsNewModalOpen(true);
-}} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
+          setNewRubroData({ codigo: '', nombre: '', categoria: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '' });
+          setIsNewModalOpen(true);
+        }} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
           <Plus size={18} /> Nuevo Rubro
         </button>
       </div>
@@ -628,7 +624,32 @@ export default function RubrosPage() {
               </div>
               <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Rubro</label><input type="text" value={newRubroData.nombre} onChange={e => setNewRubroData({...newRubroData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. Hormigón simple f'c=210" required /></div>
               <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Subgrupo</label>
-  <select required value={(newRubroData as any).subfamilia_id || ''} onChange={e => setNewRubroData({...newRubroData, subfamilia_id: e.target.value} as any)} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm bg-white">
+  <select required value={(newRubroData as any).subfamilia_id || ''} onChange={e => {
+  const subId = e.target.value;
+  let newCode = newRubroData.codigo;
+  if (subId) {
+    const sf = subfamilias.find(s => s.id === subId);
+    if (sf) {
+      const f = familias.find(fam => fam.id === sf.familia_id);
+      if (f) {
+        const preF = (f.nombre.match(/[a-zA-Z]+/g) || []).join('').substring(0,3).toUpperCase();
+        const preSF = (sf.nombre.match(/[a-zA-Z]+/g) || []).join('').substring(0,3).toUpperCase();
+        const rubrosEnSub = rubros.filter(r => r.subfamilia_id === subId);
+        let maxSeq = 0;
+        rubrosEnSub.forEach(r => {
+          const m = r.codigo?.match(/\d+$/);
+          if (m) {
+            const num = parseInt(m[0], 10);
+            if (num > maxSeq) maxSeq = num;
+          }
+        });
+        const seq = (maxSeq + 1).toString().padStart(3, '0');
+        newCode = `${preF}-${preSF}-${seq}`;
+      }
+    }
+  }
+  setNewRubroData({...newRubroData, subfamilia_id: subId, codigo: newCode} as any);
+}} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm bg-white">
     <option value="">Seleccione...</option>
     {familias.map(f => (
       <optgroup key={f.id} label={f.nombre}>
