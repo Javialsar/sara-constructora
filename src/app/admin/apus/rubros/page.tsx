@@ -124,6 +124,53 @@ function GruposManager({ familias, subfamilias, setFamilias, setSubfamilias, onB
   )
 }
 
+const QuantityInput = ({ item, handleUpdateCantidad }: { item: any, handleUpdateCantidad: any }) => {
+  const [val, setVal] = useState(item.cantidad.toString());
+
+  useEffect(() => {
+    if (parseFloat(val) !== parseFloat(item.cantidad)) {
+      setVal(item.cantidad.toString());
+    }
+  }, [item.cantidad]);
+
+  const commit = (newVal) => {
+    const num = parseFloat(newVal);
+    if (!isNaN(num)) handleUpdateCantidad(item.id, num);
+  };
+
+  const onStep = (dir) => {
+    const newValStr = Math.max(0, parseFloat((parseFloat(val||'0') + dir * 0.01).toFixed(6))).toString();
+    setVal(newValStr);
+    commit(newValStr);
+  };
+
+  return (
+    <div className="flex items-center justify-end gap-0">
+      <button onClick={() => onStep(-1)} className="w-7 h-9 flex items-center justify-center rounded-l-md border border-gray-300 bg-gray-50 hover:bg-gray-200 text-gray-500 transition-colors">
+        <Minus size={12} />
+      </button>
+      <input 
+        type="text"
+        inputMode="decimal"
+        value={val}
+        onChange={(e) => {
+          let v = e.target.value;
+          if (v.startsWith('.')) v = '0' + v;
+          if (v === '' || /^\d*\.?\d*$/.test(v)) {
+            setVal(v);
+            commit(v);
+          }
+        }}
+        className="w-28 h-9 text-center border-y border-gray-300 outline-none text-sm font-semibold text-gray-800 focus:border-blue-400 focus:bg-blue-50" 
+      />
+      <button onClick={() => onStep(1)} className="w-7 h-9 flex items-center justify-center rounded-r-md border border-gray-300 bg-gray-50 hover:bg-gray-200 text-gray-500 transition-colors">
+        <Plus size={12} />
+      </button>
+    </div>
+  );
+};
+
+  
 export default function RubrosPage() {
   const [vista, setVista] = useState("catalogo");
   const [familias, setFamilias] = useState<Familia[]>([]);
@@ -231,7 +278,7 @@ export default function RubrosPage() {
   const fetchRubroInsumos = async (rubro_id: string) => {
     const { data, error } = await supabase.from('rubro_insumos')
       .select('id, cantidad, insumo_id, insumos ( id, codigo, nombre, unidad, tipo, precio_sin_iva, subfamilia_id )')
-      .eq('rubro_id', rubro_id)
+      .eq('rubro_id', rubro_id).order('id', { ascending: true })
     if (!error) setRubroInsumos(data || [])
   }
 
@@ -315,7 +362,8 @@ export default function RubrosPage() {
 
   const { totalCostoDirecto, herramientaMenor } = currentRubro ? calcTotalesReceta() : { totalCostoDirecto:0, herramientaMenor:0 }
 
-  const renderInsumoRow = (item: any) => (
+  
+const renderInsumoRow = (item: any) => (
     <tr key={item.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
       <td className="px-4 py-2.5 font-mono text-xs text-gray-500 font-semibold">{item.insumos.codigo}</td>
       <td className="px-4 py-2.5 font-medium text-gray-800 text-sm">{item.insumos.nombre}</td>
@@ -323,27 +371,8 @@ export default function RubrosPage() {
         <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">{item.insumos.unidad}</span>
       </td>
       <td className="px-4 py-2.5">
-        <div className="flex items-center justify-end gap-0">
-          <button onClick={() => stepCantidad(item.id, item.cantidad, -1)} className="w-7 h-9 flex items-center justify-center rounded-l-md border border-gray-300 bg-gray-50 hover:bg-gray-200 text-gray-500 transition-colors">
-            <Minus size={12} />
-          </button>
-          <input 
-            type="text"
-            inputMode="decimal"
-            value={item.cantidad} 
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === '' || val === '.' || /^\d*\.?\d*$/.test(val)) {
-                handleUpdateCantidad(item.id, parseFloat(val) || 0)
-              }
-            }}
-            className="w-28 h-9 text-center border-y border-gray-300 outline-none text-sm font-semibold text-gray-800 focus:border-blue-400 focus:bg-blue-50" 
-          />
-          <button onClick={() => stepCantidad(item.id, item.cantidad, 1)} className="w-7 h-9 flex items-center justify-center rounded-r-md border border-gray-300 bg-gray-50 hover:bg-gray-200 text-gray-500 transition-colors">
-            <Plus size={12} />
-          </button>
-        </div>
-      </td>
+          <QuantityInput item={item} handleUpdateCantidad={handleUpdateCantidad} />
+        </td>
       <td className="px-4 py-2.5 text-right text-sm text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
       <td className="px-4 py-2.5 text-right font-bold text-gray-900 text-sm">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
       <td className="px-2 py-2.5 text-center">
