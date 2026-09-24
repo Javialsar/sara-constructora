@@ -310,6 +310,7 @@ export default function InsumosPage() {
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchCategoryTerm, setSearchCategoryTerm] = useState("")
   const [selectedFamilia, setSelectedFamilia] = useState<string | null>(null)
   const [selectedSubfamilia, setSelectedSubfamilia] = useState<string | null>(null)
   const [expandedFamilias, setExpandedFamilias] = useState<Set<string>>(new Set())
@@ -361,7 +362,7 @@ export default function InsumosPage() {
     try {
       const [dInsumos, dFamilias, dSubfamilias, dProv, dIP] = await Promise.all([
         fetchAll('insumos', 'nombre'),
-        fetchAll('familias', 'nombre'),
+        fetchAll('familias', 'nombre').then(data => data.filter(f => f.grupo_sugerido !== 'rubro')),
         fetchAll('subfamilias', 'nombre'),
         supabase.from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }).limit(10000).then(res => res.data || []),
         fetchAll('insumo_proveedores')
