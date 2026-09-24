@@ -818,7 +818,7 @@ export default function InsumosPage() {
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                       <input type="number" step="0.0001" min="0" placeholder="0.0000" value={formData.precio_sin_iva || ''}
-                        onChange={e => setFormData({...formData, precio_sin_iva: e.target.value})}
+                        onChange={e => setFormData({...formData, precio_sin_iva: e.target.value as any})}
                         className="w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage" />
                     </div>
                   </div>
