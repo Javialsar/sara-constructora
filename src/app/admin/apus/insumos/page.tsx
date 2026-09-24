@@ -784,9 +784,8 @@ export default function InsumosPage() {
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código</label>
                     <input type="text" placeholder="Ej. MAT-001" value={formData.codigo}
-                      readOnly={!editingId}
-                      onChange={e => setFormData({...formData, codigo: e.target.value})}
-                      className={`w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 ${!editingId ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed font-mono' : 'border-gray-300 focus:border-brand-sage focus:ring-brand-sage'}`} />
+                      readOnly={true}
+                      className="w-full border bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed font-mono rounded-lg px-3 py-2 text-sm outline-none" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad de Medida *</label>
