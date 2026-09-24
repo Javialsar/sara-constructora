@@ -8,6 +8,18 @@ import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } 
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
 
+
+const defaultFormulas = {
+  dmob1: "$smob * $pmob1 / 100",
+  dmaq1: "$cmob * $pmaq1 / 100",
+  dmat1: "$smat * $pmat1 / 100",
+  sggen: "$cdir * $ggen / 100",
+  sgas1: "$cdir * $pgas1 / 100",
+  sgas2: "$cdir * $pgas2 / 100",
+  sgas3: "$cdir * $pgas3 / 100",
+  simp: "$cdir * $pimp / 100",
+  sutil: "$cdir * $util / 100"
+};
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   
@@ -408,30 +420,52 @@ export default function PresupuestosRealesPage() {
     });
 
     const ind = indForm || currentPresupuesto?.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 };
+    const f = ind.formulas || defaultFormulas;
 
-    const dmob1 = smob * ((Number(ind.pmob1) || 0) / 100);
-    const cmob = smob + dmob1;
+    const evalFormula = (formulaStr, varsObj) => {
+      try {
+        let s = String(formulaStr || '');
+        for (const [k, v] of Object.entries(varsObj)) {
+          s = s.replace(new RegExp(`\\\\$${k}\\\\b`, 'g'), v);
+        }
+        s = s.replace(/[^0-9+\-*/().]/g, '');
+        if (!s) return 0;
+        return new Function('return ' + s)() || 0;
+      } catch (e) {
+        return 0;
+      }
+    };
 
-    const dmaq1 = cmob * ((Number(ind.pmaq1) || 0) / 100);
-    const cmaq = smaq + dmaq1;
+    let vars = {
+       smob, smaq, smat,
+       pmob1: Number(ind.pmob1)||0, pmaq1: Number(ind.pmaq1)||0, pmat1: Number(ind.pmat1)||0,
+       ggen: Number(ind.ggen)||0, pgas1: Number(ind.pgas1)||0, pgas2: Number(ind.pgas2)||0, pgas3: Number(ind.pgas3)||0,
+       pimp: Number(ind.pimp)||0, util: Number(ind.util)||0
+    };
 
-    const dmat1 = smat * ((Number(ind.pmat1) || 0) / 100);
-    const cmat = smat + dmat1;
+    const dmob1 = evalFormula(f.dmob1, vars); vars.dmob1 = dmob1;
+    const cmob = smob + dmob1; vars.cmob = cmob;
 
-    const costoDirectoTotal = cmat + cmob + cmaq;
+    const dmaq1 = evalFormula(f.dmaq1, vars); vars.dmaq1 = dmaq1;
+    const cmaq = smaq + dmaq1; vars.cmaq = cmaq;
 
-    const sggen = costoDirectoTotal * ((Number(ind.ggen) || 0) / 100);
-    const sgas1 = costoDirectoTotal * ((Number(ind.pgas1) || 0) / 100);
-    const sgas2 = costoDirectoTotal * ((Number(ind.pgas2) || 0) / 100);
-    const sgas3 = costoDirectoTotal * ((Number(ind.pgas3) || 0) / 100);
+    const dmat1 = evalFormula(f.dmat1, vars); vars.dmat1 = dmat1;
+    const cmat = smat + dmat1; vars.cmat = cmat;
+
+    const costoDirectoTotal = cmat + cmob + cmaq; vars.cdir = costoDirectoTotal;
+
+    const sggen = evalFormula(f.sggen, vars); vars.sggen = sggen;
+    const sgas1 = evalFormula(f.sgas1, vars); vars.sgas1 = sgas1;
+    const sgas2 = evalFormula(f.sgas2, vars); vars.sgas2 = sgas2;
+    const sgas3 = evalFormula(f.sgas3, vars); vars.sgas3 = sgas3;
+
     const totalGastosGenerales = sggen + sgas1 + sgas2 + sgas3;
+    const cnet = costoDirectoTotal + totalGastosGenerales; vars.cnet = cnet;
 
-    const cnet = costoDirectoTotal + totalGastosGenerales;
+    const simp = evalFormula(f.simp, vars); vars.simp = simp;
+    const sutil = evalFormula(f.sutil, vars); vars.sutil = sutil;
 
-    const simp = costoDirectoTotal * ((Number(ind.pimp) || 0) / 100);
-    const sutil = costoDirectoTotal * ((Number(ind.util) || 0) / 100);
-
-    const granTotal = cnet + sutil + simp;
+    const granTotal = cnet + sutil + simp; vars.granTotal = granTotal;
 
     // Resumen variables para UI
     const a = totalGastosGenerales;
@@ -807,7 +841,7 @@ export default function PresupuestosRealesPage() {
                 <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <button className="px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm">% Porcentajes por defecto</button>
-                    <button className="px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300">Sumatoria Formulas por defecto</button>
+                    <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300'>Restaurar Fórmulas por defecto</button>
                     <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Visualizar fórmulas</label>
                   </div>
                   <button onClick={handleSaveIndirectos} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
