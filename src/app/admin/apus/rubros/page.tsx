@@ -140,7 +140,7 @@ export default function RubrosPage() {
   const itemsPerPage = 10
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
-  const [newRubroData, setNewRubroData] = useState({
+  const [newRubroData, setNewRubroData] = useState<any>({
     codigo: '', nombre: '', categoria: '', unidad: 'm3', herramienta_menor_pct: 5.0
   })
 
