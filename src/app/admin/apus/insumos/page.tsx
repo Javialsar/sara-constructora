@@ -429,11 +429,15 @@ export default function InsumosPage() {
   }
 
   const selectFamilia = (id: string) => {
+    setSearchTerm("");
+    setCurrentPage(1);
     if (selectedFamilia === id && !selectedSubfamilia) { setSelectedFamilia(null) }
     else { setSelectedFamilia(id); setSelectedSubfamilia(null); if (!expandedFamilias.has(id)) toggleFamilia(id) }
   }
 
   const selectSubfamilia = (id: string, familiaId: string) => {
+    setSearchTerm("");
+    setCurrentPage(1);
     setSelectedFamilia(familiaId); setSelectedSubfamilia(selectedSubfamilia === id ? null : id)
   }
 
@@ -598,7 +602,7 @@ export default function InsumosPage() {
             <span className="font-bold text-gray-700 text-xs uppercase tracking-wider">Grupos / Subgrupos</span>
           </div>
           <div className="overflow-y-auto flex-1 p-2 space-y-0.5">
-            <button onClick={() => { setSelectedFamilia(null); setSelectedSubfamilia(null) }}
+            <button onClick={() => { setSelectedFamilia(null); setSelectedSubfamilia(null); setSearchTerm(""); setCurrentPage(1); }}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex justify-between items-center
                 ${!selectedFamilia ? 'bg-brand-sage text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               <span className="flex items-center gap-2"><Box size={15} /> Todos</span>
