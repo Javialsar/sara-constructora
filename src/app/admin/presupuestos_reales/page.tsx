@@ -705,7 +705,7 @@ export default function PresupuestosRealesPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => setView('lista')} className="p-2 bg-white rounded-lg text-gray-500 shadow-sm border"><ArrowLeft size={20} /></button>
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-black text-brand-dark flex items-center gap-2"><FileText className="text-brand-sage" /> {currentPresupuesto.nombre_proyecto}</h1>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${isBorrador ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800 flex items-center gap-1'}`}>
                   {!isBorrador && <Lock size={12}/>} {currentPresupuesto.estado || 'Borrador'}
@@ -857,23 +857,23 @@ export default function PresupuestosRealesPage() {
         {activeTab === 'indirectos' && (
               <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className='px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm hover:bg-gray-50'>% Porcentajes por defecto</button>
-                    <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300'>Restaurar Fórmulas por defecto</button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className='px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg text-slate-600 shadow-sm hover:bg-slate-50 transition-colors'>% Porcentajes por defecto</button>
+                    <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-medium bg-slate-100 border border-transparent rounded-lg text-slate-600 hover:bg-slate-200 transition-colors'>Restaurar Fórmulas por defecto</button>
                     <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Habilitar Edición de Fórmulas</label>
                   </div>
-                  <button onClick={handleSaveIndirectos} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
+                  <button onClick={handleSaveIndirectos} className="bg-brand-sage hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm text-sm">
                     <Save size={16} /> Grabar Fórmulas
                   </button>
                 </div>
 
                 <div className="w-full text-sm">
                   {/* EQUIPOS */}
-                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                  <div className="bg-slate-50 text-slate-700 px-5 py-3.5 font-bold text-xs uppercase tracking-widest flex justify-between items-center rounded-t-xl border border-gray-200 border-b-0 mt-8">
                     <span>1.- Equipos</span>
                     
                   </div>
-                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                  <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
                     <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
                       <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales y Equipos</div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smaq.toFixed(2)}</div>
@@ -912,11 +912,11 @@ export default function PresupuestosRealesPage() {
                   </div>
 
                   {/* MANO DE OBRA */}
-                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                  <div className="bg-slate-50 text-slate-700 px-5 py-3.5 font-bold text-xs uppercase tracking-widest flex justify-between items-center rounded-t-xl border border-gray-200 border-b-0 mt-8">
                     <span>2.- Mano de Obra</span>
                     
                   </div>
-                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                  <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
                     <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
                       <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Mano de Obra</div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smob.toFixed(2)}</div>
@@ -955,11 +955,11 @@ export default function PresupuestosRealesPage() {
                   </div>
 
                   {/* MATERIALES */}
-                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                  <div className="bg-slate-50 text-slate-700 px-5 py-3.5 font-bold text-xs uppercase tracking-widest flex justify-between items-center rounded-t-xl border border-gray-200 border-b-0 mt-8">
                     <span>3.- Materiales</span>
                     
                   </div>
-                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                  <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
                     <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
                       <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales</div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smat.toFixed(2)}</div>
@@ -1009,11 +1009,11 @@ export default function PresupuestosRealesPage() {
                   </div>
 
                   {/* GASTOS GENERALES Y ADMINISTRATIVOS */}
-                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                  <div className="bg-slate-50 text-slate-700 px-5 py-3.5 font-bold text-xs uppercase tracking-widest flex justify-between items-center rounded-t-xl border border-gray-200 border-b-0 mt-8">
                     <span>4.- Gastos generales y administrativos</span>
                     
                   </div>
-                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                  <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
                     <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos generales = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
@@ -1095,11 +1095,11 @@ export default function PresupuestosRealesPage() {
                   </div>
 
                   {/* IMPREVISTOS */}
-                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                  <div className="bg-slate-50 text-slate-700 px-5 py-3.5 font-bold text-xs uppercase tracking-widest flex justify-between items-center rounded-t-xl border border-gray-200 border-b-0 mt-8">
                     <span>5.- Imprevistos</span>
                     
                   </div>
-                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                  <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
                     <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Imprevistos = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
@@ -1128,11 +1128,11 @@ export default function PresupuestosRealesPage() {
                   </div>
 
                   {/* UTILIDAD */}
-                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                  <div className="bg-slate-50 text-slate-700 px-5 py-3.5 font-bold text-xs uppercase tracking-widest flex justify-between items-center rounded-t-xl border border-gray-200 border-b-0 mt-8">
                     <span>6.- Utilidad</span>
                     
                   </div>
-                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                  <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
                     <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Utilidad = (% de 1+2+3)</div>
                       <div className="flex items-center w-24">
@@ -1462,17 +1462,17 @@ export default function PresupuestosRealesPage() {
     <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div><h1 className="text-3xl font-black text-brand-dark">Presupuestos APU Reales</h1><p className="text-gray-500">Crea presupuestos detallados por rubros, cantidades de obra y costos indirectos (AIU).</p></div>
-        {userRole === 'admin' && <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>}
+        {userRole === 'admin' && <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:opacity-90 transition-all flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>}
       </div>
 
-      <div className="bg-white rounded-xl shadow-md border-gray-200 border-t-4 border-t-brand-sage mb-6">
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-900/5 mb-6 overflow-hidden">
         <div className="p-4 border-b bg-gray-50/50"><input type="text" placeholder="Buscar proyecto..." value={searchPresupuesto} onChange={(e) => setSearchPresupuesto(e.target.value)} className="w-full max-w-md px-4 py-2 border rounded-lg" /></div>
-        <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-50 text-slate-700 font-bold uppercase text-xs border-b"><tr><th className="px-6 py-4">Proyecto</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-center">Estado</th><th className="px-6 py-4 text-right">Costo Directo</th><th className="px-6 py-4 text-right">Gran Total</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-gray-50">
+        <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200"><tr><th className="px-6 py-4">Proyecto</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-center">Estado</th><th className="px-6 py-4 text-right">Costo Directo</th><th className="px-6 py-4 text-right">Gran Total</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-gray-50">
           {presupuestos.filter(p => p.nombre_proyecto.toLowerCase().includes(searchPresupuesto.toLowerCase())).map((p) => (
             <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
               <td className="px-6 py-3 font-bold text-brand-dark">{p.nombre_proyecto}</td>
               <td className="px-6 py-3 text-gray-500">{new Date(p.created_at).toLocaleDateString()}</td>
-              <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'Entregado' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.estado || 'Borrador'}</span></td>
+              <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>{p.estado || 'Borrador'}</span></td>
               <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
               <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
               <td className="px-6 py-3 text-center"><span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span>{userRole === 'admin' && <button onClick={(e) => handleDeletePresupuesto(p.id, e)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16}/></button>}</td>
