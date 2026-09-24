@@ -133,12 +133,12 @@ const QuantityInput = ({ item, handleUpdateCantidad }: { item: any, handleUpdate
     }
   }, [item.cantidad]);
 
-  const commit = (newVal) => {
+  const commit = (newVal: string) => {
     const num = parseFloat(newVal);
     if (!isNaN(num)) handleUpdateCantidad(item.id, num);
   };
 
-  const onStep = (dir) => {
+  const onStep = (dir: number) => {
     const newValStr = Math.max(0, parseFloat((parseFloat(val||'0') + dir * 0.01).toFixed(6))).toString();
     setVal(newValStr);
     commit(newValStr);
