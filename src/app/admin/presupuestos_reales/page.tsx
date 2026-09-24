@@ -11,14 +11,22 @@ import { membreteBase64 } from "@/lib/membreteBase64"
 
 const defaultFormulas = {
   dmob1: "$smob * $pmob1 / 100",
+  cmob: "$smob + $dmob1",
   dmaq1: "$cmob * $pmaq1 / 100",
+  cmaq: "$smaq + $dmaq1",
   dmat1: "$smat * $pmat1 / 100",
+  cmat: "$smat + $dmat1",
+  cdir: "$cmat + $cmob + $cmaq",
   sggen: "$cdir * $ggen / 100",
   sgas1: "$cdir * $pgas1 / 100",
   sgas2: "$cdir * $pgas2 / 100",
   sgas3: "$cdir * $pgas3 / 100",
+  cgas: "$sggen + $sgas1 + $sgas2 + $sgas3",
+  cnet: "$cdir + $sggen + $sgas1 + $sgas2 + $sgas3",
   simp: "$cdir * $pimp / 100",
-  sutil: "$cdir * $util / 100"
+  cimp: "$cdir + $simp",
+  sutil: "$cdir * $util / 100",
+  granTotal: "$cnet + $sutil + $simp"
 };
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
@@ -425,8 +433,10 @@ export default function PresupuestosRealesPage() {
     const evalFormula = (formulaStr, varsObj) => {
       try {
         let s = String(formulaStr || '');
-        for (const [k, v] of Object.entries(varsObj)) {
-          s = s.split('$' + k).join(v);
+        // Sort keys by length descending to prevent partial replacements (e.g. replacing $cmat before $cmat1 if they existed)
+        const sortedKeys = Object.keys(varsObj).sort((a, b) => b.length - a.length);
+        for (const k of sortedKeys) {
+          s = s.split('$' + k).join(varsObj[k]);
         }
         s = s.replace(/[^0-9+\-*/().]/g, '');
         if (!s) return 0;
@@ -444,28 +454,29 @@ export default function PresupuestosRealesPage() {
     };
 
     const dmob1 = evalFormula(f.dmob1, vars); vars.dmob1 = dmob1;
-    const cmob = smob + dmob1; vars.cmob = cmob;
+    const cmob = evalFormula(f.cmob, vars); vars.cmob = cmob;
 
     const dmaq1 = evalFormula(f.dmaq1, vars); vars.dmaq1 = dmaq1;
-    const cmaq = smaq + dmaq1; vars.cmaq = cmaq;
+    const cmaq = evalFormula(f.cmaq, vars); vars.cmaq = cmaq;
 
     const dmat1 = evalFormula(f.dmat1, vars); vars.dmat1 = dmat1;
-    const cmat = smat + dmat1; vars.cmat = cmat;
+    const cmat = evalFormula(f.cmat, vars); vars.cmat = cmat;
 
-    const costoDirectoTotal = cmat + cmob + cmaq; vars.cdir = costoDirectoTotal;
+    const costoDirectoTotal = evalFormula(f.cdir, vars); vars.cdir = costoDirectoTotal;
 
     const sggen = evalFormula(f.sggen, vars); vars.sggen = sggen;
     const sgas1 = evalFormula(f.sgas1, vars); vars.sgas1 = sgas1;
     const sgas2 = evalFormula(f.sgas2, vars); vars.sgas2 = sgas2;
     const sgas3 = evalFormula(f.sgas3, vars); vars.sgas3 = sgas3;
 
-    const totalGastosGenerales = sggen + sgas1 + sgas2 + sgas3;
-    const cnet = costoDirectoTotal + totalGastosGenerales; vars.cnet = cnet;
+    const totalGastosGenerales = evalFormula(f.cgas, vars); vars.cgas = totalGastosGenerales;
+    const cnet = evalFormula(f.cnet, vars); vars.cnet = cnet;
 
     const simp = evalFormula(f.simp, vars); vars.simp = simp;
+    const cimp = evalFormula(f.cimp, vars); vars.cimp = cimp;
     const sutil = evalFormula(f.sutil, vars); vars.sutil = sutil;
 
-    const granTotal = cnet + sutil + simp; vars.granTotal = granTotal;
+    const granTotal = evalFormula(f.granTotal, vars); vars.granTotal = granTotal;
 
     // Resumen variables para UI
     const a = totalGastosGenerales;
@@ -842,10 +853,10 @@ export default function PresupuestosRealesPage() {
                   <div className="flex items-center gap-3">
                     <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className='px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm hover:bg-gray-50'>% Porcentajes por defecto</button>
                     <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300'>Restaurar Fórmulas por defecto</button>
-                    <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Visualizar fórmulas</label>
+                    <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Habilitar Edición de Fórmulas</label>
                   </div>
                   <button onClick={handleSaveIndirectos} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
-                    <Save size={16} /> Grabar
+                    <Save size={16} /> Grabar Fórmulas
                   </button>
                 </div>
 
@@ -876,7 +887,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $dmaq1 =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cmob * $pmaq1 / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).dmaq1} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), dmaq1: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).dmaq1}</div> )}
                         </>
                       )}
                     </div>
@@ -887,7 +898,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $cmaq =</div>
-                      <div className="flex-1 font-mono text-gray-500">$smaq + $dmaq1</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cmaq} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cmaq: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cmaq}</div> )}
                         </>
                       )}
                     </div>
@@ -919,7 +930,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $dmob1 =</div>
-                      <div className="flex-1 font-mono text-gray-500">$smob * $pmob1 / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).dmob1} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), dmob1: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).dmob1}</div> )}
                         </>
                       )}
                     </div>
@@ -930,7 +941,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $cmob =</div>
-                      <div className="flex-1 font-mono text-gray-500">$smob + $dmob1</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cmob} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cmob: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cmob}</div> )}
                         </>
                       )}
                     </div>
@@ -962,7 +973,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $dmat1 =</div>
-                      <div className="flex-1 font-mono text-gray-500">$smat * $pmat1 / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).dmat1} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), dmat1: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).dmat1}</div> )}
                         </>
                       )}
                     </div>
@@ -973,7 +984,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $cmat =</div>
-                      <div className="flex-1 font-mono text-gray-500">$smat + $dmat1</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cmat} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cmat: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cmat}</div> )}
                         </>
                       )}
                     </div>
@@ -984,7 +995,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $cdir =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cmat + $cmob + $cmaq</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cdir} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cdir: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cdir}</div> )}
                         </>
                       )}
                     </div>
@@ -1006,7 +1017,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $sggen =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir * $ggen / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).sggen} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), sggen: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).sggen}</div> )}
                         </>
                       )}
                     </div>
@@ -1020,7 +1031,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $sgas1 =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas1 / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).sgas1} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), sgas1: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).sgas1}</div> )}
                         </>
                       )}
                     </div>
@@ -1034,7 +1045,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $sgas2 =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas2 / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).sgas2} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), sgas2: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).sgas2}</div> )}
                         </>
                       )}
                     </div>
@@ -1048,7 +1059,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $sgas3 =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas3 / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).sgas3} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), sgas3: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).sgas3}</div> )}
                         </>
                       )}
                     </div>
@@ -1059,7 +1070,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">=</div>
-                      <div className="flex-1 font-mono text-gray-500">$sggen + $sgas1 + $sgas2 + $sgas3</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cgas} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cgas: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cgas}</div> )}
                         </>
                       )}
                     </div>
@@ -1070,7 +1081,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $cnet =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir + $sggen + $sgas1 + $sgas2 + $sgas3</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cnet} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cnet: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cnet}</div> )}
                         </>
                       )}
                     </div>
@@ -1092,7 +1103,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $simp =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir * $pimp / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).simp} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), simp: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).simp}</div> )}
                         </>
                       )}
                     </div>
@@ -1103,7 +1114,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $cimp =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir + $simp</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).cimp} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), cimp: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).cimp}</div> )}
                         </>
                       )}
                     </div>
@@ -1125,7 +1136,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $sutil =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cdir * $util / 100</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).sutil} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), sutil: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).sutil}</div> )}
                         </>
                       )}
                     </div>
@@ -1136,7 +1147,7 @@ export default function PresupuestosRealesPage() {
                       {showFormulas && (
                         <>
                           <div className="w-24 text-center font-mono text-gray-400">= $granTotal =</div>
-                      <div className="flex-1 font-mono text-gray-500">$cnet + $sutil + $simp</div>
+                      {showFormulas ? ( <input type='text' value={(indForm.formulas || defaultFormulas).granTotal} onChange={e => setIndForm({...indForm, formulas: {...(indForm.formulas || defaultFormulas), granTotal: e.target.value}})} className='flex-1 font-mono text-xs text-brand-dark bg-white border border-gray-300 rounded px-2 py-1 outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage shadow-sm' /> ) : ( <div className='flex-1 font-mono text-gray-500'>{(indForm.formulas || defaultFormulas).granTotal}</div> )}
                         </>
                       )}
                     </div>
