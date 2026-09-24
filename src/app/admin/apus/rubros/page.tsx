@@ -155,10 +155,29 @@ export default function RubrosPage() {
   useEffect(() => { fetchRubros(); fetchAllInsumos(); }, [])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, selectedFamilia, selectedSubfamilia])
 
+    const fetchAll = async (table: string, filter?: {col: string, val: string}) => {
+    let allData: any[] = []; let from = 0; const step = 1000;
+    while (true) {
+      let q = supabase.from(table).select('*')
+      if (filter) q = q.eq(filter.col, filter.val)
+      const { data } = await q.range(from, from + step - 1)
+      if (data && data.length > 0) { allData = allData.concat(data); if (data.length < step) break; from += step; } else break;
+    }
+    return allData;
+  }
+
   const fetchRubros = async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('rubros').select('*').order('created_at', { ascending: false })
-    if (!error) setRubros(data || [])
+    const [dRubros, dFam, dSub] = await Promise.all([
+      fetchAll('rubros'), fetchAll('familias', {col:'grupo_sugerido', val:'rubro'}), fetchAll('subfamilias')
+    ])
+    if (dRubros) setRubros(dRubros.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+    if (dFam) { 
+      dFam.sort((a,b)=>a.nombre.localeCompare(b.nombre)); 
+      setFamilias(dFam); 
+      setExpandedFamilias(new Set(dFam.map(f=>f.id))) 
+    }
+    if (dSub) setSubfamilias(dSub.sort((a,b)=>a.nombre.localeCompare(b.nombre)))
     setLoading(false)
   }
 
@@ -302,6 +321,10 @@ export default function RubrosPage() {
         </button>
       </td>
     </tr>
+  )
+
+  if (vista === 'grupos') return (
+    <GruposManager familias={familias} subfamilias={subfamilias} setFamilias={setFamilias} setSubfamilias={setSubfamilias} onBack={() => setVista('catalogo')} />
   )
 
   return (
