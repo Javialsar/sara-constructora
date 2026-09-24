@@ -133,9 +133,9 @@ export default function PresupuestosRealesPage() {
 
   const openEditor = async (presupuesto) => {
     setCurrentPresupuesto(presupuesto)
-    setIndForm(presupuesto.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
+    setIndForm({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(presupuesto.indirectos_config || {}) })
     setActiveTab('detalle')
-    setIndForm(presupuesto.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
+    setIndForm({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(presupuesto.indirectos_config || {}) })
     setActiveTab('detalle')
     setView('editor')
     fetchPresupuestoRubros(presupuesto.id)
@@ -419,14 +419,14 @@ export default function PresupuestosRealesPage() {
       });
     });
 
-    const ind = indForm || currentPresupuesto?.indirectos_config || { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 };
+    const ind = { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(currentPresupuesto?.indirectos_config || {}), ...(indForm || {}) };
     const f = ind.formulas || defaultFormulas;
 
     const evalFormula = (formulaStr, varsObj) => {
       try {
         let s = String(formulaStr || '');
         for (const [k, v] of Object.entries(varsObj)) {
-          s = s.replace(new RegExp(`\\\\$${k}\\\\b`, 'g'), v);
+          s = s.replace(new RegExp('\\
         }
         s = s.replace(/[^0-9+\-*/().]/g, '');
         if (!s) return 0;
@@ -840,7 +840,1069 @@ export default function PresupuestosRealesPage() {
               <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <button className="px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm">% Porcentajes por defecto</button>
+                    <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className="px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm hover:bg-gray-50">% Porcentajes por defecto</button>
+                    <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300'>Restaurar Fórmulas por defecto</button>
+                    <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Visualizar fórmulas</label>
+                  </div>
+                  <button onClick={handleSaveIndirectos} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded font-bold flex items-center gap-2 transition-colors">
+                    <Save size={16} /> Grabar
+                  </button>
+                </div>
+
+                <div className="w-full text-sm">
+                  {/* EQUIPOS */}
+                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                    <span>1.- Equipos</span>
+                    
+                  </div>
+                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                    <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
+                      <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales y Equipos</div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smaq.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $smaq =</div>
+                      <div className="flex-1 text-gray-500">Suma de Materiales y Equipos</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Herramientas Menores % M.O.</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pmaq1</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pmaq1} onChange={(e) => setIndForm({...indForm, pmaq1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmaq1.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $dmaq1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cmob * $pmaq1 / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total Equipos</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{cmaq.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $cmaq =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smaq + $dmaq1</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MANO DE OBRA */}
+                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                    <span>2.- Mano de Obra</span>
+                    
+                  </div>
+                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                    <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
+                      <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Mano de Obra</div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smob.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $smob =</div>
+                      <div className="flex-1 text-gray-500">Suma de Mano de Obra</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium"></div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pmob1</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pmob1} onChange={(e) => setIndForm({...indForm, pmob1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmob1.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $dmob1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smob * $pmob1 / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total Mano de Obra</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{cmob.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $cmob =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smob + $dmob1</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* MATERIALES */}
+                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                    <span>3.- Materiales</span>
+                    
+                  </div>
+                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                    <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
+                      <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales</div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smat.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $smat =</div>
+                      <div className="flex-1 text-gray-500">Suma de Materiales</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium"></div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pmat1</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pmat1} onChange={(e) => setIndForm({...indForm, pmat1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{dmat1.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $dmat1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smat * $pmat1 / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total Materiales</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{cmat.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $cmat =</div>
+                      <div className="flex-1 font-mono text-gray-500">$smat + $dmat1</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-4 items-center bg-brand-dark text-white rounded-b-xl shadow-inner mt-px">
+                      <div className="w-1/3 text-right pr-4 text-brand-sage font-black uppercase tracking-wider">Costo directo</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{costoDirectoTotal.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $cdir =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cmat + $cmob + $cmaq</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* GASTOS GENERALES Y ADMINISTRATIVOS */}
+                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                    <span>4.- Gastos generales y administrativos</span>
+                    
+                  </div>
+                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Gastos generales = (% de 1+2+3)</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$ggen</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.ggen} onChange={(e) => setIndForm({...indForm, ggen: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sggen.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $sggen =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $ggen / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Gastos de obra</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pgas1</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pgas1} onChange={(e) => setIndForm({...indForm, pgas1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas1.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $sgas1 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas1 / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Financiamiento</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pgas2</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pgas2} onChange={(e) => setIndForm({...indForm, pgas2: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas2.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $sgas2 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas2 / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Polizas y Seguros</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pgas3</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pgas3} onChange={(e) => setIndForm({...indForm, pgas3: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sgas3.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $sgas3 =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pgas3 / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total gastos generales y administrativos</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{totalGastosGenerales.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">=</div>
+                      <div className="flex-1 font-mono text-gray-500">$sggen + $sgas1 + $sgas2 + $sgas3</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-4 items-center bg-brand-dark text-white rounded-b-xl shadow-inner mt-px">
+                      <div className="w-1/3 text-right pr-4 text-brand-sage font-black uppercase tracking-wider">Costo neto</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{cnet.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $cnet =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir + $sggen + $sgas1 + $sgas2 + $sgas3</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* IMPREVISTOS */}
+                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                    <span>5.- Imprevistos</span>
+                    
+                  </div>
+                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Imprevistos = (% de 1+2+3)</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pimp</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pimp} onChange={(e) => setIndForm({...indForm, pimp: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{simp.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $simp =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $pimp / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Total de Imprevistos</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{simp.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $cimp =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir + $simp</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* UTILIDAD */}
+                  <div className="bg-brand-sage/10 text-brand-dark px-4 py-3 font-black text-sm uppercase tracking-wider flex justify-between items-center rounded-t-xl border border-brand-sage/20 border-b-0 mt-6 shadow-sm">
+                    <span>6.- Utilidad</span>
+                    
+                  </div>
+                  <div className="bg-white divide-y border border-gray-200 rounded-b-xl shadow-sm mb-4">
+                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                      <div className="w-1/3 text-left pl-4 font-medium">Utilidad = (% de 1+2+3)</div>
+                      <div className="flex items-center w-24">
+                        <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$util</span>
+                        <div className="relative"><input type="number" step="0.1" min="0" value={indForm.util} onChange={(e) => setIndForm({...indForm, util: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
+                      </div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{sutil.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $sutil =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cdir * $util / 100</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                      <div className="w-1/3 text-right pr-4 text-gray-700">Precio de venta</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{granTotal.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $granTotal =</div>
+                      <div className="flex-1 font-mono text-gray-500">$cnet + $sutil + $simp</div>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex p-4 items-center bg-brand-dark text-white rounded-b-xl shadow-inner mt-px">
+                      <div className="w-1/3 text-right pr-4 text-brand-sage font-black uppercase tracking-wider">Total Precio Unitario</div>
+                      <div className="w-24 pl-8"></div>
+                      <div className="w-24 text-right pr-4 font-mono text-lg">{granTotal.toFixed(2)}</div>
+                      {showFormulas && (
+                        <>
+                          <div className="w-24 text-center font-mono text-gray-400">= $Stotal =</div>
+                      <div className="flex-1 font-mono text-gray-500">$granTotal</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+        {activeTab === 'explosion' && (() => {
+            const consolidado = {};
+            presupuestoRubros.forEach(pr => {
+              const q = Number(pr.cantidad_obra || 0);
+              const items = rubrosRecipes[pr.id] || [];
+              items.forEach(item => {
+                const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
+                if (!iObj) return;
+                const cantRequerida = q * Number(item.cantidad);
+                const costoTotal = cantRequerida * Number(item.precio_sin_iva_snapshot || 0);
+                const insId = iObj.id;
+                if (!consolidado[insId]) {
+                  consolidado[insId] = { ...iObj, costo: item.precio_sin_iva_snapshot || 0, cantidad_total: 0, costo_total: 0 };
+                }
+                consolidado[insId].cantidad_total += cantRequerida;
+                consolidado[insId].costo_total += costoTotal;
+              });
+            });
+            const memExplosionData = Object.values(consolidado).sort((a, b) => {
+              if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
+            });
+            const totMateriales = memExplosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totMO = memExplosionData.filter(i => i.tipo === 'mano_de_obra').reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totEq = memExplosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor').reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totOtros = memExplosionData.filter(i => i.tipo === 'otros').reduce((acc, curr) => acc + curr.costo_total, 0);
+
+            return (
+              <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-10 border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-0 border-b bg-gray-50">
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Materiales</p><p className="text-xl font-black text-blue-600">${totMateriales.toFixed(2)}</p></div>
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Mano Obra</p><p className="text-xl font-black text-orange-600">${totMO.toFixed(2)}</p></div>
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Equipos</p><p className="text-xl font-black text-purple-600">${totEq.toFixed(2)}</p></div>
+                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Otros</p><p className="text-xl font-black text-gray-600">${totOtros.toFixed(2)}</p></div>
+                  <div className="p-4 text-center"><p className="text-gray-800 text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-brand-sage">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
+                </div>
+                <div className="overflow-x-auto min-h-[400px]">
+                  <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-100 text-slate-700 border-b border-gray-200"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-100">
+                    {memExplosionData.map((ins, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs text-gray-500">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-400">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
+                    ))}
+                    {memExplosionData.length === 0 && <tr><td colSpan="7" className="text-center py-10 text-gray-400">No hay insumos. Verifica que los rubros tengan recetas.</td></tr>}
+                  </tbody></table>
+                </div>
+              </div>
+            );
+        })()}
+
+{activeTab === 'reportes' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
+             <table className="w-full text-sm text-left divide-y divide-gray-200">
+              <thead className="bg-brand-sage text-white font-bold border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3">Nombre</th>
+                  <th className="px-6 py-3 text-center w-32">PDF</th>
+                  <th className="px-6 py-3 text-center w-32">⚙</th>
+                  <th className="px-6 py-3">Descripción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">Presupuesto</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales del presupuesto.</td>
+                </tr>
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">Análisis de Precios Unitarios (APUs)</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={handleGenerateAPUsPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios.</td>
+                </tr>
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">Precios unitarios elementales (PUEs)</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => alert("Próximamente")} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Precios unitarios elementales.</td>
+                </tr>
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">Equipo</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => handleGenerateExplosionPDF('equipo')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales de maquinaria y equipos del presupuesto. En unidades comerciales.</td>
+                </tr>
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">Mano de obra</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => handleGenerateExplosionPDF('mano_de_obra')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales de mano de obra del presupuesto. En unidades comerciales.</td>
+                </tr>
+                <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-800">Materiales</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => handleGenerateExplosionPDF('material')} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <FileText size={14}/> Generar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                      <Settings size={14}/> Configurar
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-gray-600">Totales de materiales agrupados por categorías. En unidades comerciales.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+
+        {/* Modal Buscar Rubro */}
+        {isAddRubroModalOpen && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+              <div className="p-4 border-b flex gap-4 items-center bg-gray-50"><Search/><input type="text" autoFocus placeholder="Buscar rubro maestro..." value={searchRubroTerm} onChange={(e) => setSearchRubroTerm(e.target.value)} className="w-full bg-transparent outline-none text-lg" /><button onClick={() => setIsAddRubroModalOpen(false)}><X/></button></div>
+              <div className="overflow-y-auto p-2 grow">
+                {allRubros.filter(r => r.nombre.toLowerCase().includes(searchRubroTerm.toLowerCase()) || r.codigo.toLowerCase().includes(searchRubroTerm.toLowerCase())).slice(0, 15).map(r => (
+                  <div key={r.id} className="flex justify-between items-center p-3 hover:bg-gray-50 border border-transparent rounded cursor-pointer" onClick={() => handleAddRubroToPresupuesto(r)}>
+                    <div><div className="font-bold">{r.nombre}</div><div className="text-xs text-brand-sage font-mono">{r.codigo}</div></div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="text-[10px] uppercase text-gray-400 font-bold">Costo Ref.</div>
+                          <div className="font-black text-brand-dark">${Number(r.total_costo_directo || 0).toFixed(2)}</div>
+                        </div>
+                        <button className="bg-brand-sage text-white p-2 rounded hover:bg-brand-dark"><Plus size={16}/></button>
+                      </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        
+        {/* Modal Cronograma Gantt */}
+        <GanttModal 
+          isOpen={isGanttModalOpen} 
+          onClose={() => setIsGanttModalOpen(false)} 
+          presupuestoRubros={presupuestoRubros} 
+          updateTaskSchedule={updateTaskSchedule} 
+        />
+        
+        {/* Modal Editar Receta del Proyecto */}
+                {isRecipeModalOpen && currentRecipeRubro && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-gray-50 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
+              <div className="p-6 border-b bg-white flex justify-between items-start">
+                <div>
+                  <h3 className="text-2xl font-black text-brand-dark flex items-center gap-2">
+                    <Edit3 className="text-brand-sage" size={24}/> {currentRecipeRubro.codigo_rubro} - {currentRecipeRubro.nombre_rubro}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">Estás modificando la receta (APU) <strong>solo para este proyecto</strong>.</p>
+                </div>
+                <button onClick={() => { setIsRecipeModalOpen(false); fetchPresupuestoRubros(currentPresupuesto.id); }} className="text-gray-400 hover:text-red-500 p-2"><X size={24}/></button>
+              </div>
+              
+              <div className="flex flex-col lg:flex-row grow overflow-hidden p-6 gap-6">
+                <div className="lg:w-2/3 bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden flex flex-col">
+                  <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+                    <h4 className="font-bold text-gray-800">Receta / Insumos del Rubro</h4>
+                  </div>
+                  <div className="overflow-y-auto grow p-0">
+                    <table className="w-full text-sm text-left divide-y divide-gray-200">
+                      <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
+                        <tr><th className="p-3">Insumo</th><th className="p-3 text-right">Cant/Rendimiento</th><th className="p-3 text-right">Costo U.</th><th className="p-3 text-right">Total</th><th className="p-3"></th></tr>
+                      </thead>
+                      <tbody>
+                        {renderGroupedInsumos(rubrosRecipes[currentRecipeRubro.id], true)}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="lg:w-1/3 flex flex-col gap-6 overflow-y-auto">
+                  {/* Resumen Card */}
+                  <div className="bg-brand-dark rounded-xl shadow-lg p-6 text-white shrink-0">
+                    <h2 className="text-xl font-bold mb-4 text-brand-sage border-b border-white/10 pb-2">Precio Unitario</h2>
+                    
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">Total Materiales</span>
+                        <span className="font-mono">
+                          ${rubrosRecipes[currentRecipeRubro.id]?.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'material').reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">Total Mano Obra</span>
+                        <span className="font-mono">
+                          ${rubrosRecipes[currentRecipeRubro.id]?.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra').reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">Total Equipos (+ Herr.)</span>
+                        <span className="font-mono">
+                          ${rubrosRecipes[currentRecipeRubro.id]?.filter(r => ['equipo', 'herramienta_menor'].includes((Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo)).reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-white/10 pt-4 flex justify-between items-end">
+                      <span className="text-sm font-bold text-gray-300">Costo Directo<br/>Total</span>
+                      <span className="text-3xl font-black text-brand-sage">
+                        ${rubrosRecipes[currentRecipeRubro.id]?.reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                  </div>
+                    <button 
+                      onClick={handleSyncRecipeToMaster}
+                      className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-lg"
+                    >
+                      <Save size={18} /> Sincronizar al Banco Maestro
+                    </button>
+
+                  {/* Búsqueda Card */}
+                  {userRole === 'admin' && (
+                  <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-4 shrink-0 flex flex-col h-96">
+                    <h4 className="font-bold mb-4 text-brand-dark">Agregar Insumo a la Receta</h4>
+                    <input type="text" placeholder="Buscar catálogo maestro..." value={insumoSearch} onChange={e => setInsumoSearch(e.target.value)} className="w-full border p-2 rounded mb-4 shadow-sm" />
+                    <div className="space-y-2 relative grow overflow-y-auto">
+                        {searchingInsumos && <div className="absolute inset-0 bg-white/80 flex justify-center pt-4 z-10"><Loader2 className="animate-spin text-brand-sage" /></div>}
+                        {allInsumos.map(ins => (
+                          <div key={ins.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm flex justify-between items-center shadow-sm hover:border-brand-sage transition-colors">
+                            <div>
+                              <div className="font-bold text-gray-800 leading-tight">{ins.nombre}</div>
+                              <div className="text-[10px] text-gray-400 font-mono mt-0.5">{ins.codigo}</div>
+                              <div className="text-xs text-brand-dark font-medium mt-1">${Number(ins.precio_sin_iva).toFixed(4)} / {ins.unidad}</div>
+                            </div>
+                            <button onClick={() => handleAddInsumoToRecipe(ins)} className="bg-brand-sage text-white p-2 rounded transition-colors hover:bg-brand-dark shadow-sm"><Plus size={16}/></button>
+                          </div>
+                        ))}
+                        {allInsumos.length === 0 && insumoSearch.length >= 2 && !searchingInsumos && (
+                          <div className="text-center py-4 text-gray-400 text-sm">No se encontraron insumos.</div>
+                        )}
+                      </div>
+                  </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+    return (
+    <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
+      <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
+        <div><h1 className="text-3xl font-black text-brand-dark">Presupuestos APU Reales</h1><p className="text-gray-500">Crea presupuestos detallados por rubros, cantidades de obra y costos indirectos (AIU).</p></div>
+        {userRole === 'admin' && <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-bold py-2.5 px-6 rounded-lg flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>}
+      </div>
+
+      <div className="bg-white rounded-xl shadow-md border-gray-200 border-t-4 border-t-brand-sage mb-6">
+        <div className="p-4 border-b bg-gray-50/50"><input type="text" placeholder="Buscar proyecto..." value={searchPresupuesto} onChange={(e) => setSearchPresupuesto(e.target.value)} className="w-full max-w-md px-4 py-2 border rounded-lg" /></div>
+        <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-50 text-slate-700 font-bold uppercase text-xs border-b"><tr><th className="px-6 py-4">Proyecto</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-center">Estado</th><th className="px-6 py-4 text-right">Costo Directo</th><th className="px-6 py-4 text-right">Gran Total</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-gray-50">
+          {presupuestos.filter(p => p.nombre_proyecto.toLowerCase().includes(searchPresupuesto.toLowerCase())).map((p) => (
+            <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
+              <td className="px-6 py-3 font-bold text-brand-dark">{p.nombre_proyecto}</td>
+              <td className="px-6 py-3 text-gray-500">{new Date(p.created_at).toLocaleDateString()}</td>
+              <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'Entregado' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.estado || 'Borrador'}</span></td>
+              <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
+              <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
+              <td className="px-6 py-3 text-center"><span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span>{userRole === 'admin' && <button onClick={(e) => handleDeletePresupuesto(p.id, e)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16}/></button>}</td>
+            </tr>
+          ))}
+        </tbody></table>
+      </div>
+
+      {isNewModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex justify-between p-6 border-b"><h3 className="text-xl font-bold">Nuevo Presupuesto</h3><button onClick={() => setIsNewModalOpen(false)}><X/></button></div>
+            <form onSubmit={handleCreatePresupuesto} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold mb-1">Proyecto</label>
+                <select value={newPresupuestoData.nombre_proyecto} onChange={e => setNewPresupuestoData({...newPresupuestoData, nombre_proyecto: e.target.value})} className="w-full border rounded p-2" required>
+                  <option value="" disabled>-- Seleccione --</option>
+                  {proyectosCRM.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div><label className="block text-xs font-bold">ADMIN (%)</label><input type="number" value={newPresupuestoData.porcentaje_admin} onChange={e => setNewPresupuestoData({...newPresupuestoData, porcentaje_admin: parseFloat(e.target.value)})} className="w-full border rounded p-2" /></div>
+                <div><label className="block text-xs font-bold">IMPREV (%)</label><input type="number" value={newPresupuestoData.porcentaje_imprevistos} onChange={e => setNewPresupuestoData({...newPresupuestoData, porcentaje_imprevistos: parseFloat(e.target.value)})} className="w-full border rounded p-2" /></div>
+                <div><label className="block text-xs font-bold">UTILIDAD (%)</label><input type="number" value={newPresupuestoData.porcentaje_utilidad} onChange={e => setNewPresupuestoData({...newPresupuestoData, porcentaje_utilidad: parseFloat(e.target.value)})} className="w-full border rounded p-2" /></div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t"><button type="button" onClick={() => setIsNewModalOpen(false)} className="px-5 py-2 font-bold">Cancelar</button><button type="submit" className="px-5 py-2 font-bold bg-brand-dark text-white rounded">Crear</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+ + k + '\\b', 'g'), v);
+        }
+        s = s.replace(/[^0-9+\-*/().]/g, '');
+        if (!s) return 0;
+        return new Function('return ' + s)() || 0;
+      } catch (e) {
+        return 0;
+      }
+    };
+
+    let vars = {
+       smob, smaq, smat,
+       pmob1: Number(ind.pmob1)||0, pmaq1: Number(ind.pmaq1)||0, pmat1: Number(ind.pmat1)||0,
+       ggen: Number(ind.ggen)||0, pgas1: Number(ind.pgas1)||0, pgas2: Number(ind.pgas2)||0, pgas3: Number(ind.pgas3)||0,
+       pimp: Number(ind.pimp)||0, util: Number(ind.util)||0
+    };
+
+    const dmob1 = evalFormula(f.dmob1, vars); vars.dmob1 = dmob1;
+    const cmob = smob + dmob1; vars.cmob = cmob;
+
+    const dmaq1 = evalFormula(f.dmaq1, vars); vars.dmaq1 = dmaq1;
+    const cmaq = smaq + dmaq1; vars.cmaq = cmaq;
+
+    const dmat1 = evalFormula(f.dmat1, vars); vars.dmat1 = dmat1;
+    const cmat = smat + dmat1; vars.cmat = cmat;
+
+    const costoDirectoTotal = cmat + cmob + cmaq; vars.cdir = costoDirectoTotal;
+
+    const sggen = evalFormula(f.sggen, vars); vars.sggen = sggen;
+    const sgas1 = evalFormula(f.sgas1, vars); vars.sgas1 = sgas1;
+    const sgas2 = evalFormula(f.sgas2, vars); vars.sgas2 = sgas2;
+    const sgas3 = evalFormula(f.sgas3, vars); vars.sgas3 = sgas3;
+
+    const totalGastosGenerales = sggen + sgas1 + sgas2 + sgas3;
+    const cnet = costoDirectoTotal + totalGastosGenerales; vars.cnet = cnet;
+
+    const simp = evalFormula(f.simp, vars); vars.simp = simp;
+    const sutil = evalFormula(f.sutil, vars); vars.sutil = sutil;
+
+    const granTotal = cnet + sutil + simp; vars.granTotal = granTotal;
+
+    // Resumen variables para UI
+    const a = totalGastosGenerales;
+    const i = simp;
+    const u = sutil;
+    return { 
+      costoDirectoTotal, a, i, u, granTotal, 
+      smaq, smob, smat, 
+      dmaq1, dmob1, dmat1, 
+      cmaq, cmob, cmat, 
+      sggen, sgas1, sgas2, sgas3, 
+      totalGastosGenerales, cnet, simp, sutil
+    }
+  }
+
+  const savePresupuesto = async () => {
+    const { costoDirectoTotal, granTotal } = calcTotales()
+    await supabase.from('presupuestos_reales').update({ 
+      costo_directo_total: costoDirectoTotal,
+      gran_total: granTotal,
+      indirectos_config: currentPresupuesto.indirectos_config || indForm
+    }).eq('id', currentPresupuesto.id)
+    alert("Presupuesto guardado correctamente")
+    fetchPresupuestos()
+  }
+
+  const generateExplosion = async () => {
+    setLoadingExplosion(true)
+    setView('explosion')
+    if (presupuestoRubros.length === 0) { setExplosionData([]); setLoadingExplosion(false); return; }
+
+    const { data: allRecipeItems, error } = await supabase
+      .from('presupuesto_rubro_insumos')
+      .select('presupuesto_rubro_id, cantidad, precio_sin_iva_snapshot, insumo:insumos(id, codigo, nombre, unidad, tipo)')
+      .in('presupuesto_rubro_id', presupuestoRubros.map(pr => pr.id))
+
+    if (error) { alert(error.message); setLoadingExplosion(false); return; }
+
+    const consolidado = {}
+    if (allRecipeItems) {
+      allRecipeItems.forEach(item => {
+        const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
+        if (!iObj) return;
+        const pr = presupuestoRubros.find(p => p.id === item.presupuesto_rubro_id)
+        if (!pr) return
+        const cantRequerida = Number(pr.cantidad_obra) * Number(item.cantidad)
+        const costoTotal = cantRequerida * Number(item.precio_sin_iva_snapshot || 0)
+        const insId = iObj.id
+        if (!consolidado[insId]) {
+          consolidado[insId] = { ...iObj, costo: item.precio_sin_iva_snapshot || 0, cantidad_total: 0, costo_total: 0 }
+        }
+        consolidado[insId].cantidad_total += cantRequerida
+        consolidado[insId].costo_total += costoTotal
+      })
+    }
+    const explosionArray = Object.values(consolidado).sort((a, b) => {
+      if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
+    })
+    setExplosionData(explosionArray)
+    setLoadingExplosion(false)
+  }
+
+  
+  const generateSchedule = async () => {
+    try {
+      let needsInit = presupuestoRubros.some(pr => !pr.fecha_inicio);
+      if (!needsInit) return;
+
+      let currentDate = new Date();
+      currentDate.setHours(0,0,0,0);
+      
+      const newRubros = [];
+      
+      for (let i = 0; i < presupuestoRubros.length; i++) {
+        const pr = presupuestoRubros[i];
+        let totalManHours = 0;
+        const insumos = rubrosRecipes[pr.id] || [];
+        const mo = insumos.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra');
+        mo.forEach(m => {
+          totalManHours += Number(m.cantidad || 0) * Number(pr.cantidad_obra || 0);
+        });
+        
+        let dias = Math.max(1, Math.ceil((totalManHours / 24) * 1.2) || 1); 
+        
+        const updatePayload = {
+          fecha_inicio: currentDate.toISOString().split('T')[0],
+          duracion_dias: dias
+        };
+        
+        await supabase.from('presupuesto_rubros').update(updatePayload).eq('id', pr.id);
+        
+        pr.fecha_inicio = updatePayload.fecha_inicio;
+        pr.duracion_dias = updatePayload.duracion_dias;
+        newRubros.push({...pr});
+        
+        currentDate.setDate(currentDate.getDate() + dias);
+      }
+      setPresupuestoRubros(newRubros);
+    } catch (err) {
+      console.error(err);
+      alert("Error generando cronograma: " + err.message);
+    }
+  };
+
+  const updateTaskSchedule = async (id, fieldOrUpdates, value) => {
+    if (typeof fieldOrUpdates === 'object') {
+      await supabase.from('presupuesto_rubros').update(fieldOrUpdates).eq('id', id);
+    } else {
+      await supabase.from('presupuesto_rubros').update({ [fieldOrUpdates]: value }).eq('id', id);
+    }
+    fetchPresupuestoRubros(currentPresupuesto.id);
+  }
+
+  const handleGeneratePresupuestoGeneralPDF = () => {
+    generatePresupuestoGeneralPDF({
+      currentPresupuesto,
+      proyectosCRM,
+      totales: calcTotales(),
+      presupuestoRubros,
+      rubrosRecipes,
+      allRubros
+    });
+  }
+
+  const handleGenerateAPUsPDF = () => {
+    generateAPUsPDF({
+      currentPresupuesto,
+      presupuestoRubros,
+      rubrosRecipes,
+      allRubros
+    });
+  }
+
+  const handleGenerateExplosionPDF = (filterType?: string) => {
+    const consolidado = {};
+    presupuestoRubros.forEach(pr => {
+      const q = Number(pr.cantidad_obra || 0);
+      const items = rubrosRecipes[pr.id] || [];
+      items.forEach(item => {
+        const iObj = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
+        if (!iObj) return;
+        const cantRequerida = q * Number(item.cantidad);
+        const costoTotal = cantRequerida * Number(item.precio_sin_iva_snapshot || 0);
+        const insId = iObj.id;
+        if (!consolidado[insId]) {
+          consolidado[insId] = { ...iObj, costo: item.precio_sin_iva_snapshot || 0, cantidad_total: 0, costo_total: 0 };
+        }
+        consolidado[insId].cantidad_total += cantRequerida;
+        consolidado[insId].costo_total += costoTotal;
+      });
+    });
+    let explosionData = Object.values(consolidado).sort((a, b) => {
+      if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
+    });
+    
+    let title = "EXPLOSIÓN DE INSUMOS";
+    if (filterType === 'equipo') {
+       explosionData = explosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor');
+       title = "REPORTE DE EQUIPOS";
+    } else if (filterType === 'mano_de_obra') {
+       explosionData = explosionData.filter(i => i.tipo === 'mano_de_obra');
+       title = "REPORTE DE MANO DE OBRA";
+    } else if (filterType === 'material') {
+       explosionData = explosionData.filter(i => i.tipo === 'material');
+       title = "REPORTE DE MATERIALES";
+    }
+
+    generateExplosionPDF({
+      currentPresupuesto,
+      explosionData,
+      title
+    });
+  }
+
+  const isBorrador = !currentPresupuesto?.estado || currentPresupuesto.estado.toLowerCase() === 'borrador';
+
+  if (false) { // Dead code removed for safety
+    let totMateriales = explosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0)
+    let totMO = explosionData.filter(i => i.tipo === 'mano_de_obra').reduce((acc, curr) => acc + curr.costo_total, 0)
+    let totEq = explosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor').reduce((acc, curr) => acc + curr.costo_total, 0)
+    let totOtros = explosionData.filter(i => i.tipo === 'otros').reduce((acc, curr) => acc + curr.costo_total, 0)
+
+    return (
+      <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
+        <div className="flex items-center gap-4 mb-6">
+          <button onClick={() => setView('editor')} className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"><ArrowLeft size={20} /></button>
+          <div><h1 className="text-2xl font-black text-brand-dark tracking-tight flex items-center gap-2"><Download className="text-brand-sage" /> Explosión de Insumos</h1><p className="text-gray-500 text-sm">Proyecto: <strong>{currentPresupuesto.nombre_proyecto}</strong></p></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white p-4 rounded-xl shadow-sm text-center"><p className="text-gray-500 text-xs font-bold mb-1">Materiales</p><p className="text-xl font-black text-blue-600">${totMateriales.toFixed(2)}</p></div>
+          <div className="bg-white p-4 rounded-xl shadow-sm text-center"><p className="text-gray-500 text-xs font-bold mb-1">Mano Obra</p><p className="text-xl font-black text-orange-600">${totMO.toFixed(2)}</p></div>
+          <div className="bg-white p-4 rounded-xl shadow-sm text-center"><p className="text-gray-500 text-xs font-bold mb-1">Equipos</p><p className="text-xl font-black text-purple-600">${totEq.toFixed(2)}</p></div>
+          <div className="bg-white p-4 rounded-xl shadow-sm text-center"><p className="text-gray-500 text-xs font-bold mb-1">Otros</p><p className="text-xl font-black text-gray-600">${totOtros.toFixed(2)}</p></div>
+          <div className="bg-brand-dark p-4 rounded-xl shadow-sm text-center"><p className="text-brand-sage text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-white">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden min-h-[400px]">
+          <table className="w-full text-sm text-left border-collapse border border-gray-800 divide-y divide-gray-200"><thead className="bg-slate-100 text-slate-700 border-b border-gray-200"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-800">
+            {explosionData.map((ins, idx) => (
+              <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-500">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
+            ))}
+          </tbody></table>
+        </div>
+      </div>
+    )
+  }
+
+  if (view === 'editor' && currentPresupuesto) {
+        const { 
+          costoDirectoTotal, a, i, u, granTotal, 
+          smaq, smob, smat, 
+          dmaq1, dmob1, dmat1, 
+          cmaq, cmob, cmat, 
+          sggen, sgas1, sgas2, sgas3, 
+          totalGastosGenerales, cnet, simp, sutil 
+        } = calcTotales()
+    return (
+      <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('lista')} className="p-2 bg-white rounded-lg text-gray-500 shadow-sm border"><ArrowLeft size={20} /></button>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-black text-brand-dark flex items-center gap-2"><FileText className="text-brand-sage" /> {currentPresupuesto.nombre_proyecto}</h1>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${isBorrador ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800 flex items-center gap-1'}`}>
+                  {!isBorrador && <Lock size={12}/>} {currentPresupuesto.estado || 'Borrador'}
+                </span>
+              </div>
+            </div>
+          </div>
+          {isBorrador && (
+            <button onClick={handleMarcarEntregado} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow-sm">
+              <CheckCircle2 size={16} /> Marcar como Entregado
+            </button>
+          )}
+        </div>
+
+        {/* TABS HEADER */}
+        <div className="flex space-x-1 mb-6 border-b border-gray-200">
+          <button onClick={() => setActiveTab('detalle')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'detalle' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <List size={16} className="inline mr-2"/> Detalle de Presupuesto
+          </button>
+          <button onClick={() => setActiveTab('indirectos')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'indirectos' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <Calculator size={16} className="inline mr-2"/> Costos Indirectos
+          </button>
+                    <button onClick={() => setActiveTab('explosion')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'explosion' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <Calculator size={16} className="inline mr-2"/> Explosión de Insumos
+          </button>
+<button onClick={() => setActiveTab('reportes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'reportes' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <FileText size={16} className="inline mr-2"/> Reportes
+          </button>
+          <button onClick={() => setIsGanttModalOpen(true)} className={`px-6 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700`}>
+            <Calendar size={16} className="inline mr-2"/> Cronograma de Trabajo
+          </button>
+        </div>
+
+        {activeTab === 'detalle' && (
+
+<div className="w-full">
+          <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h2 className="font-bold text-gray-800">Rubros del Proyecto</h2>
+              <div className="flex gap-2">
+                {isBorrador && (
+                  <>
+                    <button onClick={savePresupuesto} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-1.5 px-4 rounded flex items-center gap-2 shadow-sm"><Save size={16} /> Guardar</button>
+                    <button onClick={updatePricesFromCatalog} className="bg-white border text-gray-600 text-sm font-bold py-1.5 px-4 rounded hover:bg-gray-50 flex items-center gap-2">Actualizar Precios</button>
+                    <button onClick={() => setIsAddRubroModalOpen(true)} className="bg-brand-sage text-white text-sm font-bold py-1.5 px-4 rounded hover:bg-brand-dark flex items-center gap-2"><Plus size={16} /> Agregar Rubro</button>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto min-h-[300px]">
+              <table className="w-full text-sm text-left divide-y divide-gray-200">
+                <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
+                  <tr>
+                    <th className="w-10"></th>
+                    <th className="px-4 py-3">Cód</th>
+                    <th className="px-4 py-3">Rubro</th>
+                    <th className="px-4 py-3 text-center">Unidad</th>
+                    <th className="px-4 py-3 text-right">Cant. Obra</th>
+                    <th className="px-4 py-3 text-right">P. Unitario</th>
+                    <th className="px-4 py-3 text-right">Subtotal</th>
+                    <th className="px-4 py-3 text-center">Predecesor</th>
+                    <th className="px-4 py-3 text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {presupuestoRubros.map((item) => (
+                    <div key={item.id} className="contents">
+                    <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
+                      <td className="px-2 text-center">
+                        <button onClick={() => toggleRubro(item.id)} className="p-1 rounded hover:bg-gray-200 text-gray-500">
+                          {expandedRubros[item.id] ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-brand-sage font-bold">{item.codigo_rubro}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800 text-xs cursor-pointer" onClick={() => toggleRubro(item.id)}>{item.nombre_rubro}</td>
+                      <td className="px-4 py-3 text-center text-xs font-bold">{item.unidad}</td>
+                      <td className="px-4 py-3 text-right">
+                        {isBorrador ? (
+                          <input type="number" step="0.01" min="0" value={item.cantidad_obra} onChange={(e) => handleUpdateCantidadObra(item.id, parseFloat(e.target.value) || 0, item.precio_unitario_snapshot)} className="w-24 text-right border rounded px-2 py-1 font-bold text-brand-dark" />
+                        ) : (
+                          <span className="font-bold">{item.cantidad_obra}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs text-gray-500">${Number(item.precio_unitario_snapshot).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-800">${Number(item.subtotal).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-center flex items-center justify-center gap-2">
+                        {isBorrador && (
+                          <>
+                            <button onClick={() => openRecipeEditor(item)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded border border-blue-100" title="Editar Receta de Proyecto"><Edit3 size={16} /></button>
+                            <button onClick={() => handleRemoveRubro(item.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded" title="Eliminar"><X size={16} /></button>
+                          </>
+                        )}
+                        {!isBorrador && <span className="text-gray-400 text-xs italic">Solo lectura</span>}
+                      </td>
+                    </tr>
+                    
+                    {expandedRubros[item.id] && (
+                      <tr className="bg-gray-50/50">
+                        <td></td>
+                        <td colSpan={7} className="p-0">
+                          <div className="p-4 border-l-4 border-brand-sage mx-4 my-2 bg-white shadow-sm rounded-r-lg">
+                            <div className="flex justify-between items-center mb-2">
+                              <h4 className="text-xs font-bold text-gray-500 uppercase">Desglose de Insumos</h4>
+                              {isBorrador && (
+                                <button onClick={() => openRecipeEditor(item)} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                                  <Edit3 size={12}/> Modificar Insumos
+                                </button>
+                              )}
+                            </div>
+                            <table className="w-full text-xs divide-y divide-gray-200">
+                              <thead className="text-gray-400 border-b"><tr><th className="text-left py-1">Insumo</th><th className="text-right">Rendimiento</th><th className="text-right">Costo U.</th><th className="text-right">Subtotal</th></tr></thead>
+                              <tbody>
+                                {renderGroupedInsumos(rubrosRecipes[item.id], false)}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </div>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50 border-t-4 border-gray-200">
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-500 uppercase text-xs font-bold">Costo Directo (Suma Subtotales)</td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-gray-800">${costoDirectoTotal.toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-500 uppercase text-xs font-bold">Indirectos (AIU)</td>
+                    <td className="px-4 py-3 text-right text-lg font-bold text-gray-800">${(totalGastosGenerales + simp + sutil).toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                  <tr className="bg-brand-sage/10">
+                    <td colSpan={6} className="px-4 py-3 text-right text-brand-dark uppercase text-xs font-black">Gran Total (Precio Venta)</td>
+                    <td className="px-4 py-3 text-right text-xl font-black text-brand-sage">${granTotal.toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+        </div>
+        
+        )}
+
+        {activeTab === 'indirectos' && (
+              <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
+                <div className="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className="px-4 py-2 text-sm font-bold bg-white border rounded text-gray-700 shadow-sm hover:bg-gray-50">% Porcentajes por defecto</button>
                     <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-bold bg-gray-200 border rounded text-gray-500 hover:bg-gray-300'>Restaurar Fórmulas por defecto</button>
                     <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Visualizar fórmulas</label>
                   </div>
