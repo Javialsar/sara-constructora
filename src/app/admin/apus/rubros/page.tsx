@@ -359,9 +359,20 @@ export default function RubrosPage() {
         <div className="w-full md:w-1/4 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden">
           <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0 flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="font-bold text-gray-700 text-xs uppercase tracking-wider">Grupos / Subgrupos</span>
-              <button onClick={() => setVista('grupos')} className="p-1.5 bg-gray-200 hover:bg-brand-sage hover:text-white rounded text-gray-600 transition-colors" title="Gestionar Grupos"><Wrench size={14} /></button>
-            </div>
+  <span className="font-bold text-gray-700 text-xs uppercase tracking-wider">Grupos</span>
+  <button onClick={async () => {
+    const nombre = window.prompt('Nombre del nuevo Grupo:');
+    if (!nombre || !nombre.trim()) return;
+    const id = 'FAM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const { data, error } = await supabase.from('familias').insert([{ id, nombre: nombre.trim(), grupo_sugerido: 'rubro' }]).select();
+    if (!error && data) {
+      setFamilias([...familias, data[0]]);
+      const sfId = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      const { data: sfData } = await supabase.from('subfamilias').insert([{ id: sfId, nombre: 'General', familia_id: id }]).select();
+      if (sfData) setSubfamilias((prev: any) => [...prev, sfData[0]]);
+    } else alert('Error al crear el grupo');
+  }} className="p-1.5 bg-brand-sage hover:bg-brand-dark text-white rounded transition-colors" title="Crear Grupo"><Plus size={14} /></button>
+</div>
             <div className="relative">
               <Search className="absolute left-2.5 top-2 text-gray-400" size={14} />
               <input type="text" placeholder="Buscar grupo..." value={searchCategoryTerm} onChange={e => setSearchCategoryTerm(e.target.value)} className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-300 rounded text-xs outline-none focus:border-brand-sage" />
@@ -378,7 +389,7 @@ export default function RubrosPage() {
               const isExpanded = expandedFamilias.has(fam.id)
               const isSelected = selectedFamilia === fam.id && !selectedSubfamilia
               return (
-                <div key={fam.id}>
+                <div key={fam.id} className="group relative">
                   <button onClick={() => { setSelectedFamilia(fam.id); setSelectedSubfamilia(null); setExpandedFamilias(prev => { const n = new Set(prev); if (n.has(fam.id)) n.delete(fam.id); else n.add(fam.id); return n }) }}
                     className={`w-full text-left px-2 py-2 rounded-lg text-sm transition-colors flex items-center gap-1 ${isSelected ? 'bg-brand-sage text-white font-medium' : 'text-gray-700 hover:bg-gray-100'}`}>
                     
