@@ -156,6 +156,7 @@ export default function RubrosPage() {
   const [allInsumos, setAllInsumos] = useState<any[]>([])
   const [searchInsumoTerm, setSearchInsumoTerm] = useState("")
   const [isAddInsumoModalOpen, setIsAddInsumoModalOpen] = useState(false)
+  const [addInsumoCategory, setAddInsumoCategory] = useState<string>('')
 
   useEffect(() => { fetchRubros(); fetchAllInsumos(); }, [])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, selectedFamilia, selectedSubfamilia])
@@ -193,7 +194,7 @@ export default function RubrosPage() {
 
   const handleCreateRubro = async (e: React.FormEvent) => {
     e.preventDefault()
-    const payload = { ...newRubroData, subfamilia_id: (newRubroData as any).subfamilia_id || null }; delete (payload as any).categoria; const { data, error } = await supabase.from('rubros').insert([payload]).select().single()
+    const payload = { ...newRubroData, subfamilia_id: (newRubroData as any).subfamilia_id || null }; delete (payload as any).categoria; delete (payload as any).familia_id_temp; const { data, error } = await supabase.from('rubros').insert([payload]).select().single()
     if (!error) { setIsNewModalOpen(false); fetchRubros(); openEditor(data); }
     else { alert("Error al crear el rubro. Revisa que el código no esté duplicado.") }
   }
@@ -282,7 +283,7 @@ export default function RubrosPage() {
     return pages;
   }
 
-  const filteredInsumosSearch = allInsumos.filter(i => i.nombre.toLowerCase().includes(searchInsumoTerm.toLowerCase()) || (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))).slice(0, 20)
+  const filteredInsumosSearch = allInsumos.filter(i => addInsumoCategory ? i.tipo === addInsumoCategory : true).filter(i => i.nombre.toLowerCase().includes(searchInsumoTerm.toLowerCase()) || (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))).slice(0, 20)
 
   const mats = rubroInsumos.filter(i => i.insumos.tipo === 'material')
   const mos = rubroInsumos.filter(i => i.insumos.tipo === 'mano_de_obra')
@@ -523,7 +524,7 @@ export default function RubrosPage() {
               {/* EQUIPOS */}
               <div className="rounded-lg border border-gray-200 overflow-hidden">
                 <div className="bg-purple-50 text-purple-800 px-4 py-2 flex justify-between items-center border-b border-purple-100">
-                  <div className="flex items-center gap-2"><Wrench size={15} className="text-purple-400" /><span className="font-bold text-xs uppercase tracking-wide">1. Equipos y Maquinaria</span></div>
+                  <div className="flex items-center gap-2"><Wrench size={15} className="text-purple-400" /><span className="font-bold text-xs uppercase tracking-wide">1. Equipos y Maquinaria</span><button onClick={() => { setAddInsumoCategory('equipo'); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-purple-200 hover:bg-purple-300 text-purple-800 px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1"><Plus size={12}/> Agregar</button></div>
                   <span className="font-black text-sm">${totEquipos.toFixed(4)}</span>
                 </div>
                 <table className="w-full text-sm">
@@ -556,7 +557,7 @@ export default function RubrosPage() {
               {/* MANO DE OBRA */}
               <div className="rounded-lg border border-gray-200 overflow-hidden">
                 <div className="bg-amber-50 text-amber-800 px-4 py-2 flex justify-between items-center border-b border-amber-100">
-                  <div className="flex items-center gap-2"><HardHat size={15} className="text-amber-400" /><span className="font-bold text-xs uppercase tracking-wide">2. Mano de Obra</span></div>
+                  <div className="flex items-center gap-2"><HardHat size={15} className="text-amber-400" /><span className="font-bold text-xs uppercase tracking-wide">2. Mano de Obra</span><button onClick={() => { setAddInsumoCategory('mano_de_obra'); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1"><Plus size={12}/> Agregar</button></div>
                   <span className="font-black text-sm">${totManoObra.toFixed(4)}</span>
                 </div>
                 <table className="w-full text-sm">
@@ -579,7 +580,7 @@ export default function RubrosPage() {
               {/* MATERIALES */}
               <div className="rounded-lg border border-gray-200 overflow-hidden">
                 <div className="bg-sky-50 text-sky-800 px-4 py-2 flex justify-between items-center border-b border-sky-100">
-                  <div className="flex items-center gap-2"><Package size={15} className="text-sky-400" /><span className="font-bold text-xs uppercase tracking-wide">3. Materiales</span></div>
+                  <div className="flex items-center gap-2"><Package size={15} className="text-sky-400" /><span className="font-bold text-xs uppercase tracking-wide">3. Materiales</span><button onClick={() => { setAddInsumoCategory('material'); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-sky-200 hover:bg-sky-300 text-sky-800 px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1"><Plus size={12}/> Agregar</button></div>
                   <span className="font-black text-sm">${totMateriales.toFixed(4)}</span>
                 </div>
                 <table className="w-full text-sm">
@@ -602,9 +603,7 @@ export default function RubrosPage() {
 
             {/* Footer */}
             <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
-              <button onClick={() => setIsAddInsumoModalOpen(true)} className="bg-brand-dark text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-sage hover:text-brand-dark transition-colors flex items-center gap-2 text-sm">
-                <Plus size={16} /> Agregar Insumo
-              </button>
+              
               <div className="flex items-center gap-3">
                 <button onClick={closeEditor} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-200 transition-colors">Cerrar</button>
                 <button onClick={saveRubro} className="bg-brand-sage text-white font-bold py-2 px-5 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 text-sm shadow-sm">
@@ -664,7 +663,7 @@ export default function RubrosPage() {
   </select></div>
               <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Rubro</label><input type="text" value={newRubroData.nombre} onChange={e => setNewRubroData({...newRubroData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. Hormigón simple f'c=210" required /></div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código (Auto)</label><input type="text" value={newRubroData.codigo} onChange={e => setNewRubroData({...newRubroData, codigo: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm bg-gray-50" placeholder="Se genera al elegir Grupo" required /></div>
+                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código (Auto)</label><input type="text" value={newRubroData.codigo} readOnly className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-gray-100 text-gray-500 cursor-not-allowed font-mono" placeholder="Se genera al elegir Grupo" /></div>
                 <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad</label><input type="text" value={newRubroData.unidad} onChange={e => setNewRubroData({...newRubroData, unidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="m3, m2, ml, glb" required /></div>
               </div>
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
