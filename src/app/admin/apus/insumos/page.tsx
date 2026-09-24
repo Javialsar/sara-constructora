@@ -339,22 +339,24 @@ export default function InsumosPage() {
   }, [familias])
 
   const fetchAll = async (table: string, orderCol?: string) => {
-    let allData: any[] = []
-    let from = 0
-    const step = 1000
-    while (true) {
-      let query = supabase.from(table).select('*')
-      if (orderCol) query = query.order(orderCol, { ascending: true })
-      const { data } = await query.range(from, from + step - 1)
-      if (data && data.length > 0) {
-        allData = allData.concat(data)
-        if (data.length < step) break
-        from += step
-      } else {
-        break
-      }
+    const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+    if (!count) return [];
+    
+    const step = 1000;
+    const reqs = [];
+    for (let i = 0; i < count; i += step) {
+      let query = supabase.from(table).select('*');
+      if (orderCol) query = query.order(orderCol, { ascending: true });
+      reqs.push(query.range(i, i + step - 1));
     }
-    return allData
+    
+    const results = await Promise.all(reqs);
+    let allData: any[] = [];
+    for (const { data, error } of results) {
+      if (error) console.error('Error fetching ' + table, error);
+      if (data) allData = allData.concat(data);
+    }
+    return allData;
   }
 
   const fetchData = async () => {
