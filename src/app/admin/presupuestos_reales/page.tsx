@@ -414,6 +414,7 @@ export default function PresupuestosRealesPage() {
     let smob = 0;
     let smat = 0;
 
+    let sumaSubtotales = 0; presupuestoRubros.forEach(pr => sumaSubtotales += Number(pr.subtotal || 0));
     presupuestoRubros.forEach(pr => {
       const q = Number(pr.cantidad_obra || 0);
       const items = rubrosRecipes[pr.id] || [];
@@ -426,6 +427,12 @@ export default function PresupuestosRealesPage() {
         else if (ism.tipo === 'equipo' || ism.tipo === 'herramienta_menor') smaq += cost;
       });
     });
+
+
+    if (smat === 0 && smob === 0 && smaq === 0 && sumaSubtotales > 0) {
+      // Fallback: si las recetas internas fallan o no existen en este presupuesto antiguo, se traslada todo el costo directo a materiales para no romper las matematicas
+      smat = sumaSubtotales;
+    }
 
     const ind = { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(currentPresupuesto?.indirectos_config || {}), ...(indForm || {}) };
     const f = ind.formulas || defaultFormulas;
