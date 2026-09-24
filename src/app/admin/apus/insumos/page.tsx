@@ -493,20 +493,30 @@ export default function InsumosPage() {
       subfamilia_id: formData.subfamilia_id === "" ? null : formData.subfamilia_id,
       fecha_actualizacion: new Date().toISOString()
     }
-    if (editingId) {
-      const { error } = await supabase.from('insumos').update(payload).eq('id', editingId)
-      if (!error) {
-        await supabase.from('insumo_proveedores').delete().eq('insumo_id', editingId)
-        if (proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map(pid => ({ insumo_id: editingId, proveedor_id: pid })))
-        setSaving(false); closeModal(); fetchData()
-      } else { setSaving(false); alert("Error al actualizar el insumo."); console.error(error) }
-    } else {
-      const { data: newInsumo, error } = await supabase.from('insumos').insert([payload]).select().single()
-      if (!error && newInsumo) {
-        if (proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map(pid => ({ insumo_id: newInsumo.id, proveedor_id: pid })))
-        setSaving(false); closeModal(); fetchData()
-      } else { setSaving(false); alert("Error al guardar. Verifica que el código no esté duplicado."); console.error(error) }
-    }
+          // Validación de duplicados por nombre exacto
+      const normalizedName = payload.nombre.trim().toLowerCase();
+      const existing = insumos.find(i => i.nombre.toLowerCase().trim() === normalizedName && i.id !== editingId);
+      
+      if (existing) {
+        alert("Ya existe un insumo con este nombre. Para evitar duplicados, utiliza otro nombre.");
+        setSaving(false);
+        return;
+      }
+
+      if (editingId) {
+        const { error } = await supabase.from('insumos').update(payload).eq('id', editingId)
+        if (!error) {
+          await supabase.from('insumo_proveedores').delete().eq('insumo_id', editingId)
+          if (proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map(pid => ({ insumo_id: editingId, proveedor_id: pid })))
+          setSaving(false); closeModal(); fetchData()
+        } else { setSaving(false); alert("Error al actualizar el insumo."); console.error(error) }
+      } else {
+        const { data: newInsumo, error } = await supabase.from('insumos').insert([payload]).select().single()
+        if (!error && newInsumo) {
+          if (proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map(pid => ({ insumo_id: newInsumo.id, proveedor_id: pid })))
+          setSaving(false); closeModal(); fetchData()
+        } else { setSaving(false); alert("Error al guardar. Verifica los datos."); console.error(error) }
+      }
   }
 
   const handleDelete = async (id: string) => {
@@ -808,7 +818,7 @@ export default function InsumosPage() {
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                       <input type="number" step="0.0001" min="0" placeholder="0.0000" value={formData.precio_sin_iva || ''}
-                        onChange={e => setFormData({...formData, precio_sin_iva: parseFloat(e.target.value) || 0})}
+                        onChange={e => setFormData({...formData, precio_sin_iva: e.target.value})}
                         className="w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage" />
                     </div>
                   </div>
