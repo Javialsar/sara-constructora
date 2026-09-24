@@ -337,31 +337,57 @@ export default function InsumosPage() {
     }
   }, [familias])
 
-  const fetchData = async () => {
-    setLoading(true)
-    const [{ data: dInsumos }, { data: dFamilias }, { data: dSubfamilias }, { data: dProv }, { data: dIP }] = await Promise.all([
-      supabase.from('insumos').select('*').order('nombre', { ascending: true }).limit(10000),
-      supabase.from('familias').select('*').order('nombre', { ascending: true }).limit(10000),
-      supabase.from('subfamilias').select('*').order('nombre', { ascending: true }).limit(10000),
-      supabase.from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }).limit(10000),
-      supabase.from('insumo_proveedores').select('*').limit(10000)
-    ])
-    if (dInsumos) setInsumos(dInsumos)
-    if (dFamilias) {
-      setFamilias(dFamilias)
-      // Auto-expandir todos los grupos para mostrar subgrupos desde el inicio
-      setExpandedFamilias(new Set(dFamilias.map((f: Familia) => f.id)))
+  const fetchAll = async (table: string, orderCol?: string) => {
+    let allData: any[] = []
+    let from = 0
+    const step = 1000
+    while (true) {
+      let query = supabase.from(table).select('*')
+      if (orderCol) query = query.order(orderCol, { ascending: true })
+      const { data } = await query.range(from, from + step - 1)
+      if (data && data.length > 0) {
+        allData = allData.concat(data)
+        if (data.length < step) break
+        from += step
+      } else {
+        break
+      }
     }
-    if (dSubfamilias) setSubfamilias(dSubfamilias)
-    if (dProv) setProveedores(dProv)
-    if (dIP) {
-      const map: Record<string, string[]> = {}
-      dIP.forEach((ip: any) => { if (!map[ip.insumo_id]) map[ip.insumo_id] = []; map[ip.insumo_id].push(ip.proveedor_id) })
-      setInsumoProvMap(map)
-    }
-    setLoading(false)
+    return allData
   }
 
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const [dInsumos, dFamilias, dSubfamilias, dProv, dIP] = await Promise.all([
+        fetchAll('insumos', 'nombre'),
+        fetchAll('familias', 'nombre'),
+        fetchAll('subfamilias', 'nombre'),
+        supabase.from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }).limit(10000).then(res => res.data || []),
+        fetchAll('insumo_proveedores')
+      ])
+      
+      if (dInsumos) setInsumos(dInsumos)
+      if (dFamilias) {
+        setFamilias(dFamilias)
+        setExpandedFamilias(new Set(dFamilias.map((f: Familia) => f.id)))
+      }
+      if (dSubfamilias) setSubfamilias(dSubfamilias)
+      if (dProv) setProveedores(dProv)
+      if (dIP) {
+        const map: Record<string, string[]> = {}
+        dIP.forEach((ip: any) => {
+          if (!map[ip.insumo_id]) map[ip.insumo_id] = []
+          map[ip.insumo_id].push(ip.proveedor_id)
+        })
+        setInsumoProvMap(map)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
   const toggleFamilia = (id: string) => {
     setExpandedFamilias(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   }
