@@ -216,7 +216,7 @@ export default function RubrosPage() {
 
   const fetchRubroInsumos = async (rubro_id: string) => {
     const { data, error } = await supabase.from('rubro_insumos')
-      .select('id, cantidad, insumo_id, insumos ( id, codigo, nombre, unidad, tipo, precio_sin_iva )')
+      .select('id, cantidad, insumo_id, insumos ( id, codigo, nombre, unidad, tipo, precio_sin_iva, subfamilia_id )')
       .eq('rubro_id', rubro_id)
     if (!error) setRubroInsumos(data || [])
   }
@@ -557,7 +557,7 @@ export default function RubrosPage() {
                       <div className="bg-gray-50 text-gray-800 px-4 py-2 flex justify-between items-center border-b border-gray-200">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs uppercase tracking-wide flex items-center gap-1.5"><Layers size={14} className="text-brand-sage"/> {idx + 1}. {famIns.nombre}</span>
-                          <button onClick={() => { setAddInsumoCategory(famIns.id); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-brand-sage/10 hover:bg-brand-sage/20 text-brand-dark px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 shadow-sm"><Plus size={12}/> Agregar</button>
+                          
                         </div>
                         <span className="font-black text-sm text-brand-dark">${(subtotal + hMenor).toFixed(4)}</span>
                       </div>
@@ -597,7 +597,8 @@ export default function RubrosPage() {
             <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
               
               <div className="flex items-center gap-3">
-                <button onClick={closeEditor} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-200 transition-colors">Cerrar</button>
+                <button onClick={() => { setAddInsumoCategory(''); setIsAddInsumoModalOpen(true); }} className="px-4 py-2 rounded-lg text-sm font-bold bg-brand-sage/10 text-brand-dark hover:bg-brand-sage/20 transition-colors flex items-center gap-2 border border-brand-sage/20"><Plus size={16} /> Agregar Insumos</button>
+                  <button onClick={closeEditor} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-200 transition-colors">Cerrar</button>
                 <button onClick={saveRubro} className="bg-brand-sage text-white font-bold py-2 px-5 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 text-sm shadow-sm">
                   <Save size={16} /> Guardar Cambios
                 </button>
