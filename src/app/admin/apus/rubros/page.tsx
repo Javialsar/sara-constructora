@@ -163,15 +163,26 @@ export default function RubrosPage() {
   useEffect(() => { setCurrentPage(1) }, [searchTerm, selectedFamilia, selectedSubfamilia])
 
     const fetchAll = async (table: string, filter?: {col: string, val: string}) => {
-    let allData: any[] = []; let from = 0; const step = 1000;
-    while (true) {
-      let q = supabase.from(table).select('*')
-      if (filter) q = q.eq(filter.col, filter.val)
-      const { data } = await q.range(from, from + step - 1)
-      if (data && data.length > 0) { allData = allData.concat(data); if (data.length < step) break; from += step; } else break;
+      let qCount = supabase.from(table).select('*', { count: 'exact', head: true });
+      if (filter) qCount = qCount.eq(filter.col, filter.val);
+      const { count } = await qCount;
+      if (!count) return [];
+
+      let allData: any[] = [];
+      const step = 1000;
+      const reqs = [];
+      for (let i = 0; i < count; i += step) {
+        let q = supabase.from(table).select('*');
+        if (filter) q = q.eq(filter.col, filter.val);
+        reqs.push(q.range(i, i + step - 1));
+      }
+      
+      const results = await Promise.all(reqs);
+      for (const { data } of results) {
+         if (data) allData = allData.concat(data);
+      }
+      return allData;
     }
-    return allData;
-  }
 
   const fetchRubros = async () => {
     setLoading(true)
@@ -189,9 +200,12 @@ export default function RubrosPage() {
     setLoading(false)
   }
 
-  const fetchAllInsumos = async () => {
-    const { data } = await supabase.from('insumos').select('*').order('nombre', { ascending: true })
-    if (data) setAllInsumos(data)
+    const fetchAllInsumos = async () => {
+    const data = await fetchAll('insumos');
+    if (data) {
+      data.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+      setAllInsumos(data);
+    }
   }
 
   const handleCreateRubro = async (e: React.FormEvent) => {
