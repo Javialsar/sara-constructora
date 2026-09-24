@@ -250,8 +250,8 @@ export default function RubrosPage() {
     const { totalCostoDirecto } = calcTotalesReceta()
     const { error } = await supabase.from('rubros').update({ herramienta_menor_pct: currentRubro.herramienta_menor_pct, total_costo_directo: totalCostoDirecto }).eq('id', currentRubro.id)
     if (!error) {
-      alert("Rubro guardado y costeado correctamente.")
       setRubros(rubros.map(r => r.id === currentRubro.id ? {...r, total_costo_directo: totalCostoDirecto, herramienta_menor_pct: currentRubro.herramienta_menor_pct} : r))
+      closeEditor()
     }
   }
 
@@ -459,45 +459,45 @@ export default function RubrosPage() {
           <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col">
             
             {/* Header */}
-            <div className="bg-brand-dark text-white px-5 py-4 flex justify-between items-center shrink-0">
+            <div className="bg-white border-b border-gray-200 px-5 py-4 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <PenTool size={20} className="text-brand-sage shrink-0" />
+                <div className="p-2 bg-brand-sage/10 rounded-lg text-brand-sage shrink-0"><PenTool size={20} /></div>
                 <div className="min-w-0">
-                  <h2 className="font-bold text-base flex items-center gap-2 truncate">
-                    <span className="text-brand-sage font-mono text-sm bg-white/10 px-2 py-0.5 rounded">{currentRubro.codigo}</span>
+                  <h2 className="font-bold text-lg text-gray-800 flex items-center gap-2 truncate">
+                    <span className="text-gray-500 font-mono text-xs bg-gray-100 px-2 py-1 rounded border border-gray-200">{currentRubro.codigo}</span>
                     <span className="truncate">{currentRubro.nombre}</span>
                   </h2>
-                  <p className="text-white/50 text-xs mt-0.5">Unidad: <span className="text-white/80 font-bold">{currentRubro.unidad}</span></p>
+                  <p className="text-gray-500 text-xs mt-0.5">Unidad de Medida: <span className="text-gray-700 font-bold">{currentRubro.unidad}</span></p>
                 </div>
               </div>
-              <button onClick={closeEditor} className="text-white/50 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors shrink-0"><X size={22} /></button>
+              <button onClick={closeEditor} className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0"><X size={20} /></button>
             </div>
 
             {/* Summary Cards */}
             <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 shrink-0">
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-white rounded-lg border border-purple-100 px-3 py-2.5">
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
                   <div className="flex items-center gap-2 mb-1">
-                    <Wrench size={14} className="text-purple-400" />
-                    <span className="text-xs font-semibold text-purple-600">Equipos</span>
+                    <Wrench size={14} className="text-gray-400" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Equipos</span>
                   </div>
-                  <div className="text-lg font-black text-purple-700">${totEquipos.toFixed(2)}</div>
+                  <div className="text-lg font-black text-gray-800">${totEquipos.toFixed(2)}</div>
                 </div>
-                <div className="bg-white rounded-lg border border-amber-100 px-3 py-2.5">
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
                   <div className="flex items-center gap-2 mb-1">
-                    <HardHat size={14} className="text-amber-400" />
-                    <span className="text-xs font-semibold text-amber-600">Mano de Obra</span>
+                    <HardHat size={14} className="text-gray-400" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mano de Obra</span>
                   </div>
-                  <div className="text-lg font-black text-amber-700">${totManoObra.toFixed(2)}</div>
+                  <div className="text-lg font-black text-gray-800">${totManoObra.toFixed(2)}</div>
                 </div>
-                <div className="bg-white rounded-lg border border-sky-100 px-3 py-2.5">
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
                   <div className="flex items-center gap-2 mb-1">
-                    <Package size={14} className="text-sky-400" />
-                    <span className="text-xs font-semibold text-sky-600">Materiales</span>
+                    <Package size={14} className="text-gray-400" />
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Materiales</span>
                   </div>
-                  <div className="text-lg font-black text-sky-700">${totMateriales.toFixed(2)}</div>
+                  <div className="text-lg font-black text-gray-800">${totMateriales.toFixed(2)}</div>
                 </div>
-                <div className="bg-brand-dark rounded-lg px-3 py-2.5">
+                <div className="bg-brand-sage rounded-lg border border-brand-sage px-3 py-2.5 text-white shadow-sm">
                   <div className="flex items-center gap-2 mb-1">
                     <Save size={14} className="text-brand-sage" />
                     <span className="text-xs font-semibold text-white/60">Costo Directo</span>
@@ -598,7 +598,7 @@ export default function RubrosPage() {
               <div className="flex items-center gap-3">
                 <button onClick={closeEditor} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 hover:bg-gray-200 transition-colors">Cerrar</button>
                 <button onClick={saveRubro} className="bg-brand-sage text-white font-bold py-2 px-5 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 text-sm shadow-sm">
-                  <Save size={16} /> Guardar y Costear
+                  <Save size={16} /> Guardar Cambios
                 </button>
               </div>
             </div>
