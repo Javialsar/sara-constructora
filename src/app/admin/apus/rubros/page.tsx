@@ -338,7 +338,14 @@ export default function RubrosPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
-        <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
+        <button onClick={() => {
+  const maxNum = rubros.reduce((max, r) => {
+    const match = r.codigo?.match(/\d+$/);
+    return match && parseInt(match[0], 10) > max ? parseInt(match[0], 10) : max;
+  }, 0);
+  setNewRubroData({ ...newRubroData, codigo: `RUB-${(maxNum + 1).toString().padStart(4, '0')}`, nombre: '', unidad: 'm3', subfamilia_id: '' });
+  setIsNewModalOpen(true);
+}} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
           <Plus size={18} /> Nuevo Rubro
         </button>
       </div>
