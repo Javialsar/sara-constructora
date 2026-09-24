@@ -22,7 +22,12 @@ function GruposManager({ familias, subfamilias, setFamilias, setSubfamilias, onB
     try {
       const id = 'FAM-' + Math.random().toString(36).substr(2, 9).toUpperCase()
       const { data, error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: 'rubro' }]).select()
-      if (!error && data) { setNewGrupoNombre(""); setShowGrupoForm(false); setFamilias([...familias, data[0]]); }
+      if (!error && data) { 
+        setNewGrupoNombre(""); setShowGrupoForm(false); setFamilias([...familias, data[0]]); 
+        const sfId = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+        const { data: sfData } = await supabase.from('subfamilias').insert([{ id: sfId, nombre: 'General', familia_id: id }]).select()
+        if (sfData) setSubfamilias((prev: any) => [...prev, sfData[0]]);
+      }
     } finally { setSaving(false) }
   }
 
@@ -376,21 +381,12 @@ export default function RubrosPage() {
                 <div key={fam.id}>
                   <button onClick={() => { setSelectedFamilia(fam.id); setSelectedSubfamilia(null); setExpandedFamilias(prev => { const n = new Set(prev); if (n.has(fam.id)) n.delete(fam.id); else n.add(fam.id); return n }) }}
                     className={`w-full text-left px-2 py-2 rounded-lg text-sm transition-colors flex items-center gap-1 ${isSelected ? 'bg-brand-sage text-white font-medium' : 'text-gray-700 hover:bg-gray-100'}`}>
-                    <span className="text-gray-400">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+                    
                     <span className="mr-1"><Layers size={14} /></span>
                     <span className="flex-1 truncate text-xs font-semibold">{fam.nombre}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{rubros.filter(r => subs.map(sf=>sf.id).includes(r.subfamilia_id || '')).length}</span>
                   </button>
-                  {isExpanded && subs.map(sf => {
-                    const isSubSelected = selectedSubfamilia === sf.id
-                    return (
-                      <button key={sf.id} onClick={() => { setSelectedFamilia(fam.id); setSelectedSubfamilia(sf.id); }}
-                        className={`w-full text-left pl-8 pr-2 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between mt-0.5 ${isSubSelected ? 'bg-blue-100 text-blue-800 font-semibold border-l-2 border-blue-500' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}>
-                        <span className="truncate">• {sf.nombre}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ml-1 ${isSubSelected ? 'bg-blue-200 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{rubros.filter(r => r.subfamilia_id === sf.id).length}</span>
-                      </button>
-                    )
-                  })}
+                  
                 </div>
               )
             })}
@@ -623,20 +619,26 @@ export default function RubrosPage() {
                 <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad</label><input type="text" value={newRubroData.unidad} onChange={e => setNewRubroData({...newRubroData, unidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="m3, m2, ml, glb" required /></div>
               </div>
               <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Rubro</label><input type="text" value={newRubroData.nombre} onChange={e => setNewRubroData({...newRubroData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. Hormigón simple f'c=210" required /></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Subgrupo</label>
-  <select required value={(newRubroData as any).subfamilia_id || ''} onChange={e => {
-  const subId = e.target.value;
-  let newCode = newRubroData.codigo;
-  if (subId) {
-    const sf = subfamilias.find(s => s.id === subId);
-    if (sf) {
-      const f = familias.find(fam => fam.id === sf.familia_id);
+              <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Grupo</label>
+  <select required value={(newRubroData as any).familia_id_temp || ''} onChange={e => {
+    const famId = e.target.value;
+    let newCode = newRubroData.codigo;
+    let targetSubId = '';
+    
+    if (famId) {
+      const f = familias.find(fam => fam.id === famId);
+      const sf = subfamilias.find(s => s.familia_id === famId); // The auto-created 'General' subfamilia
+      if (sf) targetSubId = sf.id;
+      
       if (f) {
         const preF = (f.nombre.match(/[a-zA-Z]+/g) || []).join('').substring(0,3).toUpperCase();
-        const preSF = (sf.nombre.match(/[a-zA-Z]+/g) || []).join('').substring(0,3).toUpperCase();
-        const rubrosEnSub = rubros.filter(r => r.subfamilia_id === subId);
+        
+        // Count all rubros in this familia
+        const sfsOfFam = subfamilias.filter(s => s.familia_id === famId).map(s => s.id);
+        const rubrosEnFam = rubros.filter(r => sfsOfFam.includes(r.subfamilia_id));
+        
         let maxSeq = 0;
-        rubrosEnSub.forEach(r => {
+        rubrosEnFam.forEach(r => {
           const m = r.codigo?.match(/\d+$/);
           if (m) {
             const num = parseInt(m[0], 10);
@@ -644,18 +646,15 @@ export default function RubrosPage() {
           }
         });
         const seq = (maxSeq + 1).toString().padStart(3, '0');
-        newCode = `${preF}-${preSF}-${seq}`;
+        newCode = `${preF}-${seq}`;
       }
     }
-  }
-  setNewRubroData({...newRubroData, subfamilia_id: subId, codigo: newCode} as any);
-}} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm bg-white">
-    <option value="">Seleccione...</option>
-    {familias.map(f => (
-      <optgroup key={f.id} label={f.nombre}>
-        {subfamilias.filter(sf=>sf.familia_id === f.id).map(sf => <option key={sf.id} value={sf.id}>{sf.nombre}</option>)}
-      </optgroup>
-    ))}
+    setNewRubroData({...newRubroData, familia_id_temp: famId, subfamilia_id: targetSubId, codigo: newCode} as any);
+  }} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm bg-white">
+      <option value="">Seleccione...</option>
+      {familias.map(f => (
+        <option key={f.id} value={f.id}>{f.nombre}</option>
+      ))}
   </select></div>
               <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
