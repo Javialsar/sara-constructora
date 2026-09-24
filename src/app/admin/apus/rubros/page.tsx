@@ -149,6 +149,7 @@ export default function RubrosPage() {
     codigo: '', nombre: '', categoria: '', unidad: 'm3', herramienta_menor_pct: 5.0
   })
 
+  const [familiasInsumo, setFamiliasInsumo] = useState<any[]>([])
   const [currentRubro, setCurrentRubro] = useState<any>(null)
   const [rubroInsumos, setRubroInsumos] = useState<any[]>([])
   const [isEditorOpen, setIsEditorOpen] = useState(false)
@@ -174,10 +175,11 @@ export default function RubrosPage() {
 
   const fetchRubros = async () => {
     setLoading(true)
-    const [dRubros, dFam, dSub] = await Promise.all([
-      fetchAll('rubros'), fetchAll('familias', {col:'grupo_sugerido', val:'rubro'}), fetchAll('subfamilias')
+    const [dRubros, dFam, dSub, dFamIns] = await Promise.all([
+      fetchAll('rubros'), fetchAll('familias', {col:'grupo_sugerido', val:'rubro'}), fetchAll('subfamilias'), fetchAll('familias')
     ])
     if (dRubros) setRubros(dRubros.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+      if (dFamIns) setFamiliasInsumo(dFamIns.filter((f:any) => f.grupo_sugerido !== 'rubro').sort((a:any,b:any) => a.nombre.localeCompare(b.nombre)))
     if (dFam) { 
       dFam.sort((a,b)=>a.nombre.localeCompare(b.nombre)); 
       setFamilias(dFam); 
@@ -240,16 +242,22 @@ export default function RubrosPage() {
   }
 
   const calcTotalesReceta = () => {
-    let totMateriales = 0, totManoObra = 0, totEquipos = 0;
+    let baseTotal = 0;
     rubroInsumos.forEach(item => {
-      const costoItem = item.cantidad * (item.insumos.precio_sin_iva || 0);
-      if (item.insumos.tipo === 'material') totMateriales += costoItem;
-      if (item.insumos.tipo === 'mano_de_obra') totManoObra += costoItem;
-      if (item.insumos.tipo === 'equipo') totEquipos += costoItem;
-    })
+      baseTotal += item.cantidad * (item.insumos.precio_sin_iva || 0);
+    });
+    let totManoObra = 0;
+    const moFam = familiasInsumo.find(f => f.nombre.toLowerCase().includes('mano de obra'));
+    if (moFam) {
+       const moSubfamIds = subfamilias.filter(sf => sf.familia_id === moFam.id).map(sf=>sf.id);
+       rubroInsumos.forEach(item => {
+         if (moSubfamIds.includes(item.insumos.subfamilia_id)) {
+            totManoObra += item.cantidad * (item.insumos.precio_sin_iva || 0);
+         }
+       });
+    }
     const herramientaMenor = totManoObra * ((currentRubro?.herramienta_menor_pct || 0) / 100);
-    totEquipos += herramientaMenor;
-    return { totMateriales, totManoObra, totEquipos, totalCostoDirecto: totMateriales + totManoObra + totEquipos, herramientaMenor }
+    return { totalCostoDirecto: baseTotal + herramientaMenor, herramientaMenor };
   }
 
   const saveRubro = async () => {
@@ -283,12 +291,15 @@ export default function RubrosPage() {
     return pages;
   }
 
-  const filteredInsumosSearch = allInsumos.filter(i => addInsumoCategory ? i.tipo === addInsumoCategory : true).filter(i => i.nombre.toLowerCase().includes(searchInsumoTerm.toLowerCase()) || (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))).slice(0, 20)
+  const filteredInsumosSearch = allInsumos.filter((i:any) => {
+      if (addInsumoCategory) {
+        const validSubfams = subfamilias.filter((sf:any) => sf.familia_id === addInsumoCategory).map((sf:any) => sf.id);
+        return validSubfams.includes(i.subfamilia_id);
+      }
+      return true;
+    }).filter(i => i.nombre.toLowerCase().includes(searchInsumoTerm.toLowerCase()) || (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))).slice(0, 20)
 
-  const mats = rubroInsumos.filter(i => i.insumos.tipo === 'material')
-  const mos = rubroInsumos.filter(i => i.insumos.tipo === 'mano_de_obra')
-  const eqs = rubroInsumos.filter(i => i.insumos.tipo === 'equipo')
-  const { totMateriales, totManoObra, totEquipos, totalCostoDirecto, herramientaMenor } = currentRubro ? calcTotalesReceta() : { totMateriales:0, totManoObra:0, totEquipos:0, totalCostoDirecto:0, herramientaMenor:0 }
+  const { totalCostoDirecto, herramientaMenor } = currentRubro ? calcTotalesReceta() : { totalCostoDirecto:0, herramientaMenor:0 }
 
   const renderInsumoRow = (item: any) => (
     <tr key={item.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
@@ -507,121 +518,82 @@ export default function RubrosPage() {
             {/* Summary Cards */}
             <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 shrink-0">
               <div className="grid grid-cols-4 gap-3">
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Wrench size={14} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Equipos</span>
+                {familiasInsumo.map(famIns => {
+                    const validSfIds = subfamilias.filter(sf => sf.familia_id === famIns.id).map(sf=>sf.id);
+                    const items = rubroInsumos.filter(ri => validSfIds.includes(ri.insumos.subfamilia_id));
+                    const subtotal = items.reduce((sum, item) => sum + (item.cantidad * item.insumos.precio_sin_iva), 0);
+                    const isEquipos = famIns.nombre.toLowerCase().includes('equipo');
+                    return (
+                      <div key={famIns.id} className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide truncate w-full" title={famIns.nombre}>{famIns.nombre}</span>
+                        </div>
+                        <div className="text-lg font-black text-gray-800">${(subtotal + (isEquipos ? herramientaMenor : 0)).toFixed(2)}</div>
+                      </div>
+                    )
+                  })}
+                  <div className="bg-brand-sage rounded-lg border border-brand-sage px-3 py-2.5 text-white shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Save size={14} className="text-brand-sage" />
+                      <span className="text-xs font-semibold text-white/60">Costo Directo</span>
+                    </div>
+                    <div className="text-lg font-black text-brand-sage">${totalCostoDirecto.toFixed(2)}</div>
                   </div>
-                  <div className="text-lg font-black text-gray-800">${totEquipos.toFixed(2)}</div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <HardHat size={14} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Mano de Obra</span>
-                  </div>
-                  <div className="text-lg font-black text-gray-800">${totManoObra.toFixed(2)}</div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Package size={14} className="text-gray-400" />
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Materiales</span>
-                  </div>
-                  <div className="text-lg font-black text-gray-800">${totMateriales.toFixed(2)}</div>
-                </div>
-                <div className="bg-brand-sage rounded-lg border border-brand-sage px-3 py-2.5 text-white shadow-sm">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Save size={14} className="text-brand-sage" />
-                    <span className="text-xs font-semibold text-white/60">Costo Directo</span>
-                  </div>
-                  <div className="text-lg font-black text-brand-sage">${totalCostoDirecto.toFixed(2)}</div>
-                </div>
               </div>
             </div>
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
               
-              {/* EQUIPOS */}
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="bg-purple-50 text-purple-800 px-4 py-2 flex justify-between items-center border-b border-purple-100">
-                  <div className="flex items-center gap-2"><Wrench size={15} className="text-purple-400" /><span className="font-bold text-xs uppercase tracking-wide">1. Equipos y Maquinaria</span><button onClick={() => { setAddInsumoCategory('equipo'); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-purple-200 hover:bg-purple-300 text-purple-800 px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1"><Plus size={12}/> Agregar</button></div>
-                  <span className="font-black text-sm">${totEquipos.toFixed(4)}</span>
-                </div>
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600"><tr>
-                    <th className="px-4 py-2 text-left text-xs font-semibold">Código</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold">Descripción</th>
-                    <th className="px-4 py-2 text-center text-xs font-semibold">Unid.</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Cantidad</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Costo U.</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Subtotal</th>
-                    <th className="px-2 py-2 w-8"></th>
-                  </tr></thead>
-                  <tbody>
-                    {eqs.length === 0 && <tr><td colSpan={7} className="px-4 py-3 text-center text-gray-400 italic text-sm">No hay equipos asignados</td></tr>}
-                    {eqs.map(item => renderInsumoRow(item))}
-                    <tr className="bg-purple-50/40 border-t border-purple-100">
-                      <td colSpan={3} className="px-4 py-2.5 text-right text-sm text-purple-700 font-medium">
-                        Herramienta Menor:
-                        <input type="number" value={currentRubro.herramienta_menor_pct} onChange={(e) => setCurrentRubro({...currentRubro, herramienta_menor_pct: parseFloat(e.target.value)||0})} 
-                          className="w-12 h-7 text-center border border-purple-200 rounded mx-2 font-bold text-purple-800 outline-none text-xs" />
-                        <span className="text-purple-400">% s/M.O.</span>
-                      </td>
-                      <td colSpan={3} className="px-4 py-2.5 text-right font-bold text-purple-800 text-sm">${herramientaMenor.toFixed(4)}</td>
-                      <td></td>
-                    </tr>
-                  </tbody>
-                </table>
+              {familiasInsumo.map((famIns, idx) => {
+                  const validSfIds = subfamilias.filter(sf => sf.familia_id === famIns.id).map(sf=>sf.id);
+                  const items = rubroInsumos.filter(ri => validSfIds.includes(ri.insumos.subfamilia_id));
+                  const subtotal = items.reduce((sum, item) => sum + (item.cantidad * item.insumos.precio_sin_iva), 0);
+                  const isEquipos = famIns.nombre.toLowerCase().includes('equipo');
+                  const hMenor = isEquipos ? herramientaMenor : 0;
+                  
+                  return (
+                    <div key={famIns.id} className="rounded-lg border border-gray-200 overflow-hidden mb-4 shadow-sm">
+                      <div className="bg-gray-50 text-gray-800 px-4 py-2 flex justify-between items-center border-b border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs uppercase tracking-wide flex items-center gap-1.5"><Layers size={14} className="text-brand-sage"/> {idx + 1}. {famIns.nombre}</span>
+                          <button onClick={() => { setAddInsumoCategory(famIns.id); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-brand-sage/10 hover:bg-brand-sage/20 text-brand-dark px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1 shadow-sm"><Plus size={12}/> Agregar</button>
+                        </div>
+                        <span className="font-black text-sm text-brand-dark">${(subtotal + hMenor).toFixed(4)}</span>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead className="bg-white text-gray-400 border-b border-gray-100">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-semibold text-xs w-[12%]">Código</th>
+                            <th className="px-4 py-2 text-left font-semibold text-xs w-[38%]">Descripción</th>
+                            <th className="px-4 py-2 text-center font-semibold text-xs w-[10%]">Unid.</th>
+                            <th className="px-4 py-2 text-right font-semibold text-xs w-[15%]">Cantidad</th>
+                            <th className="px-4 py-2 text-right font-semibold text-xs w-[15%]">Costo U.</th>
+                            <th className="px-4 py-2 text-right font-semibold text-xs w-[15%]">Subtotal</th>
+                            <th className="px-2 py-2 w-[5%]"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 bg-white">
+                          {items.length === 0 && <tr><td colSpan={7} className="px-4 py-4 text-center text-gray-400 italic text-sm">No hay insumos en esta categoría</td></tr>}
+                          {items.map(item => renderInsumoRow(item))}
+                          {isEquipos && (
+                            <tr className="bg-purple-50/30">
+                              <td colSpan={3} className="px-4 py-2.5 text-right text-xs text-purple-700 font-medium flex items-center justify-end gap-2">
+                                Herramienta Menor:
+                                <input type="number" inputMode="decimal" value={currentRubro.herramienta_menor_pct} onChange={(e) => setCurrentRubro({...currentRubro, herramienta_menor_pct: parseFloat(e.target.value)||0})} className="w-12 px-1 py-0.5 border border-purple-200 rounded text-center outline-none focus:border-purple-400 bg-white" />
+                                <span className="text-purple-400 font-bold">% s/M.O.</span>
+                              </td>
+                              <td colSpan={3} className="px-4 py-2.5 text-right font-black text-purple-800 text-sm">${hMenor.toFixed(4)}</td>
+                              <td></td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )
+                })}
               </div>
-
-              {/* MANO DE OBRA */}
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="bg-amber-50 text-amber-800 px-4 py-2 flex justify-between items-center border-b border-amber-100">
-                  <div className="flex items-center gap-2"><HardHat size={15} className="text-amber-400" /><span className="font-bold text-xs uppercase tracking-wide">2. Mano de Obra</span><button onClick={() => { setAddInsumoCategory('mano_de_obra'); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-amber-200 hover:bg-amber-300 text-amber-800 px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1"><Plus size={12}/> Agregar</button></div>
-                  <span className="font-black text-sm">${totManoObra.toFixed(4)}</span>
-                </div>
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600"><tr>
-                    <th className="px-4 py-2 text-left text-xs font-semibold">Código</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold">Descripción</th>
-                    <th className="px-4 py-2 text-center text-xs font-semibold">Unid.</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Cantidad</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Costo U.</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Subtotal</th>
-                    <th className="px-2 py-2 w-8"></th>
-                  </tr></thead>
-                  <tbody>
-                    {mos.length === 0 && <tr><td colSpan={7} className="px-4 py-3 text-center text-gray-400 italic text-sm">No hay mano de obra asignada</td></tr>}
-                    {mos.map(item => renderInsumoRow(item))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* MATERIALES */}
-              <div className="rounded-lg border border-gray-200 overflow-hidden">
-                <div className="bg-sky-50 text-sky-800 px-4 py-2 flex justify-between items-center border-b border-sky-100">
-                  <div className="flex items-center gap-2"><Package size={15} className="text-sky-400" /><span className="font-bold text-xs uppercase tracking-wide">3. Materiales</span><button onClick={() => { setAddInsumoCategory('material'); setIsAddInsumoModalOpen(true); }} className="ml-2 text-xs bg-sky-200 hover:bg-sky-300 text-sky-800 px-2 py-0.5 rounded font-semibold transition-colors flex items-center gap-1"><Plus size={12}/> Agregar</button></div>
-                  <span className="font-black text-sm">${totMateriales.toFixed(4)}</span>
-                </div>
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600"><tr>
-                    <th className="px-4 py-2 text-left text-xs font-semibold">Código</th>
-                    <th className="px-4 py-2 text-left text-xs font-semibold">Descripción</th>
-                    <th className="px-4 py-2 text-center text-xs font-semibold">Unid.</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Cantidad</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Costo U.</th>
-                    <th className="px-4 py-2 text-right text-xs font-semibold">Subtotal</th>
-                    <th className="px-2 py-2 w-8"></th>
-                  </tr></thead>
-                  <tbody>
-                    {mats.length === 0 && <tr><td colSpan={7} className="px-4 py-3 text-center text-gray-400 italic text-sm">No hay materiales asignados</td></tr>}
-                    {mats.map(item => renderInsumoRow(item))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Footer */}
+              {/* Footer */}
             <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
               
               <div className="flex items-center gap-3">
@@ -733,3 +705,4 @@ export default function RubrosPage() {
     </div>
   )
 }
+
