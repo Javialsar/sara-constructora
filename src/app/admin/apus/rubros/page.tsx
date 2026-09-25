@@ -529,43 +529,82 @@ const renderInsumoRow = (item: any) => (
         ["ANÁLISIS DE PRECIOS UNITARIOS DETALLADO (RECETAS POR RUBRO)"],
         [`Grupo: ${nombreGrupo.toUpperCase()}`],
         [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
-        [`Total de Rubros: ${filteredRubros.length}`],
+        [`Total de Rubros Analizados: ${filteredRubros.length}`],
         []
       ];
 
-      filteredRubros.forEach((r: any, idx: number) => {
-        const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
-        const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+      filteredRubros.forEach((r: any) => {
         const items = recipesMap[r.id] || [];
 
-        dataDetalle.push([`RUBRO Nº ${idx + 1}: [${r.codigo || 'S/C'}] ${r.nombre}`]);
-        dataDetalle.push([
-          `Grupo: ${fam ? fam.nombre : 'General'}`,
-          `Unidad: ${r.unidad}`,
-          `Herramienta Menor: ${r.herramienta_menor_pct || 0}%`,
-          `Costo Directo Total: $${Number(r.total_costo_directo || 0).toFixed(4)}`
-        ]);
-        dataDetalle.push(["TIPO", "CÓDIGO INSUMO", "DESCRIPCIÓN DEL INSUMO", "UNIDAD", "CANTIDAD", "PRECIO UNIT ($)", "SUBTOTAL ($)"]);
+        const materiales: any[] = [];
+        const manoDeObra: any[] = [];
+        const equipos: any[] = [];
+        let totManoObra = 0;
+        let totBase = 0;
+
+        items.forEach((it: any) => {
+          const ins = it.insumos || {};
+          const tipo = (ins.tipo || '').toLowerCase();
+          const pUnit = Number(ins.precio_sin_iva || 0);
+          const cant = Number(it.cantidad || 0);
+          const sub = cant * pUnit;
+          totBase += sub;
+
+          const rowData = {
+            nombre: ins.nombre || "—",
+            unidad: ins.unidad || "—",
+            cantidad: cant,
+            precioUnit: pUnit,
+            subtotal: sub
+          };
+
+          if (tipo === 'mano_de_obra' || tipo === 'manodeobra' || tipo.includes('mano') || tipo === 'm.o.') {
+            manoDeObra.push(rowData);
+            totManoObra += sub;
+          } else if (tipo === 'equipo' || tipo === 'equipos' || tipo === 'maquinaria' || tipo.includes('equipo')) {
+            equipos.push(rowData);
+          } else {
+            materiales.push(rowData);
+          }
+        });
+
+        const pctHM = Number(r.herramienta_menor_pct || 0);
+        const herramientaMenorVal = totManoObra * (pctHM / 100);
+        const costoDirectoCalc = totBase + herramientaMenorVal;
+        const costoDirectoFinal = Number(r.total_costo_directo || costoDirectoCalc);
+
+        dataDetalle.push([`Rubro: ${r.codigo || 'S/C'} - ${r.nombre}`]);
+        dataDetalle.push([`Unidad: ${r.unidad} | Costo Directo U: $${costoDirectoFinal.toFixed(2)}`]);
+        dataDetalle.push(["Insumo", "Unidad", "Cantidad", "Precio Unit.", "Subtotal"]);
 
         if (items.length === 0) {
-          dataDetalle.push(["-", "-", "(Este rubro aún no tiene insumos agregados en su receta)", "-", "-", "-", "$0.00"]);
+          dataDetalle.push(["(Sin insumos asignados en la receta)", "-", "-", "-", "$0.00"]);
         } else {
-          items.forEach((item: any) => {
-            const ins = item.insumos || {};
-            const pUnit = Number(ins.precio_sin_iva || 0);
-            const sub = Number(item.cantidad || 0) * pUnit;
-            dataDetalle.push([
-              (ins.tipo || 'material').toUpperCase(),
-              ins.codigo || "—",
-              ins.nombre || "—",
-              ins.unidad || "—",
-              Number(item.cantidad || 0),
-              pUnit,
-              sub
-            ]);
-          });
+          // Materiales
+          if (materiales.length > 0) {
+            dataDetalle.push(["MATERIALES"]);
+            materiales.forEach(m => {
+              dataDetalle.push([m.nombre, m.unidad, m.cantidad, m.precioUnit, m.subtotal]);
+            });
+          }
+          // Mano de Obra
+          if (manoDeObra.length > 0) {
+            dataDetalle.push(["MANO DE OBRA"]);
+            manoDeObra.forEach(mo => {
+              dataDetalle.push([mo.nombre, mo.unidad, mo.cantidad, mo.precioUnit, mo.subtotal]);
+            });
+          }
+          // Equipos y Maquinaria
+          if (equipos.length > 0 || pctHM > 0) {
+            dataDetalle.push(["EQUIPOS Y MAQUINARIA"]);
+            equipos.forEach(eq => {
+              dataDetalle.push([eq.nombre, eq.unidad, eq.cantidad, eq.precioUnit, eq.subtotal]);
+            });
+            if (pctHM > 0) {
+              dataDetalle.push([`Herramienta Menor (${pctHM}% de M.O.)`, "%", pctHM, totManoObra, herramientaMenorVal]);
+            }
+          }
         }
-        dataDetalle.push(["", "", "", "", "", "TOTAL COSTO DIRECTO:", Number(r.total_costo_directo || 0)]);
         dataDetalle.push([]); // Espacio entre rubros
       });
 
@@ -641,21 +680,45 @@ const renderInsumoRow = (item: any) => (
       doc.addPage();
       let currentY = 15;
 
-      // Encabezado de la sección de recetas
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text("DESGLOSE DETALLADO DE RECETAS (ANÁLISIS DE PRECIOS UNITARIOS)", 14, currentY);
-      currentY += 7;
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.text("Detalle de Materiales, Mano de Obra y Equipos que componen cada rubro:", 14, currentY);
-      currentY += 8;
-
-      filteredRubros.forEach((r: any, idx: number) => {
-        const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
-        const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+      filteredRubros.forEach((r: any) => {
         const items = recipesMap[r.id] || [];
+
+        const materiales: any[] = [];
+        const manoDeObra: any[] = [];
+        const equipos: any[] = [];
+        let totManoObra = 0;
+        let totBase = 0;
+
+        items.forEach((it: any) => {
+          const ins = it.insumos || {};
+          const tipo = (ins.tipo || '').toLowerCase();
+          const pUnit = Number(ins.precio_sin_iva || 0);
+          const cant = Number(it.cantidad || 0);
+          const sub = cant * pUnit;
+          totBase += sub;
+
+          const rowData = {
+            nombre: ins.nombre || "—",
+            unidad: ins.unidad || "—",
+            cantidad: cant,
+            precioUnit: pUnit,
+            subtotal: sub
+          };
+
+          if (tipo === 'mano_de_obra' || tipo === 'manodeobra' || tipo.includes('mano') || tipo === 'm.o.') {
+            manoDeObra.push(rowData);
+            totManoObra += sub;
+          } else if (tipo === 'equipo' || tipo === 'equipos' || tipo === 'maquinaria' || tipo.includes('equipo')) {
+            equipos.push(rowData);
+          } else {
+            materiales.push(rowData);
+          }
+        });
+
+        const pctHM = Number(r.herramienta_menor_pct || 0);
+        const herramientaMenorVal = totManoObra * (pctHM / 100);
+        const costoDirectoCalc = totBase + herramientaMenorVal;
+        const costoDirectoFinal = Number(r.total_costo_directo || costoDirectoCalc);
 
         // Si estamos cerca del final de la página (más de 160mm), creamos nueva página
         if (currentY > 165) {
@@ -663,62 +726,142 @@ const renderInsumoRow = (item: any) => (
           currentY = 15;
         }
 
-        // Título del Rubro
-        doc.setFillColor(241, 245, 249); // slate-100
-        doc.rect(14, currentY - 4, pageWidth - 28, 8, 'F');
-        doc.setFontSize(10);
+        // Título del Rubro idéntico a la referencia
+        doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.setTextColor(0, 71, 63); // brand-dark
-        doc.text(`${idx + 1}. [${r.codigo || 'S/C'}] ${r.nombre}`, 16, currentY + 1.5);
-        
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(70, 70, 70);
-        doc.text(`Unidad: ${r.unidad} | Grupo: ${fam ? fam.nombre : 'General'} | H. Menor: ${r.herramienta_menor_pct || 0}% | Costo Directo: $${Number(r.total_costo_directo || 0).toFixed(4)}`, pageWidth - 16, currentY + 1.5, { align: 'right' });
         doc.setTextColor(0, 0, 0);
+        doc.text(`Rubro: ${r.codigo || 'S/C'} - ${r.nombre}`, 14, currentY + 2);
 
-        currentY += 8;
+        doc.setFontSize(9.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 30, 30);
+        doc.text(`Unidad: ${r.unidad} | Costo Directo U: $${costoDirectoFinal.toFixed(2)}`, 14, currentY + 7);
+
+        currentY += 10;
 
         if (items.length === 0) {
           doc.setFontSize(8);
           doc.setFont("helvetica", "italic");
           doc.setTextColor(140, 140, 140);
-          doc.text("Sin insumos asignados en la receta de este rubro.", 20, currentY);
+          doc.text("Sin insumos asignados en la receta de este rubro.", 16, currentY + 2);
           doc.setTextColor(0, 0, 0);
-          currentY += 8;
+          currentY += 10;
         } else {
-          const recipeCols = ["Tipo", "Código", "Insumo", "Unidad", "Cant.", "P. Unit ($)", "Subtotal ($)"];
-          const recipeRows = items.map((it: any) => {
-            const ins = it.insumos || {};
-            const pUnit = Number(ins.precio_sin_iva || 0);
-            const sub = Number(it.cantidad || 0) * pUnit;
-            return [
-              (ins.tipo || 'material').toUpperCase(),
-              ins.codigo || "—",
-              ins.nombre || "—",
-              ins.unidad || "—",
-              Number(it.cantidad || 0).toFixed(4),
-              `$${pUnit.toFixed(4)}`,
-              `$${sub.toFixed(4)}`
-            ];
-          });
+          const recipeCols = ["Insumo", "Unidad", "Cantidad", "Precio Unit.", "Subtotal"];
+          const recipeRows: any[] = [];
 
-          // Agregar pie con el costo directo
-          recipeRows.push([
-            "", "", "", "", "", "TOTAL COSTO DIRECTO:", `$${Number(r.total_costo_directo || 0).toFixed(4)}`
-          ]);
+          // 1. MATERIALES (si existen)
+          if (materiales.length > 0) {
+            recipeRows.push([
+              {
+                content: 'MATERIALES',
+                colSpan: 5,
+                styles: {
+                  fillColor: [239, 246, 255], // blue-50
+                  textColor: [30, 64, 175],   // blue-800
+                  fontStyle: 'bold',
+                  fontSize: 8.5
+                }
+              }
+            ]);
+            materiales.forEach(m => {
+              recipeRows.push([
+                m.nombre,
+                m.unidad,
+                m.cantidad.toFixed(4),
+                m.precioUnit.toFixed(4),
+                m.subtotal.toFixed(2)
+              ]);
+            });
+          }
+
+          // 2. MANO DE OBRA (si existe)
+          if (manoDeObra.length > 0) {
+            recipeRows.push([
+              {
+                content: 'MANO DE OBRA',
+                colSpan: 5,
+                styles: {
+                  fillColor: [255, 247, 237], // orange-50
+                  textColor: [194, 65, 12],   // orange-700
+                  fontStyle: 'bold',
+                  fontSize: 8.5
+                }
+              }
+            ]);
+            manoDeObra.forEach(mo => {
+              recipeRows.push([
+                mo.nombre,
+                mo.unidad,
+                mo.cantidad.toFixed(4),
+                mo.precioUnit.toFixed(4),
+                mo.subtotal.toFixed(2)
+              ]);
+            });
+          }
+
+          // 3. EQUIPOS Y MAQUINARIA (si existen o si hay herramienta menor)
+          if (equipos.length > 0 || pctHM > 0) {
+            recipeRows.push([
+              {
+                content: 'EQUIPOS Y MAQUINARIA',
+                colSpan: 5,
+                styles: {
+                  fillColor: [250, 245, 255], // purple-50
+                  textColor: [126, 34, 206],  // purple-700
+                  fontStyle: 'bold',
+                  fontSize: 8.5
+                }
+              }
+            ]);
+            equipos.forEach(eq => {
+              recipeRows.push([
+                eq.nombre,
+                eq.unidad,
+                eq.cantidad.toFixed(4),
+                eq.precioUnit.toFixed(4),
+                eq.subtotal.toFixed(2)
+              ]);
+            });
+
+            if (pctHM > 0) {
+              recipeRows.push([
+                `Herramienta Menor (${pctHM}% de M.O.)`,
+                "%",
+                pctHM.toFixed(2),
+                totManoObra.toFixed(4),
+                herramientaMenorVal.toFixed(2)
+              ]);
+            }
+          }
 
           autoTable(doc, {
             head: [recipeCols],
             body: recipeRows,
             startY: currentY,
-            theme: 'striped',
-            styles: { fontSize: 7.5, cellPadding: 1.5 },
-            headStyles: { fillColor: [51, 65, 85] }, // slate-700
+            theme: 'grid',
+            styles: { 
+              fontSize: 8, 
+              cellPadding: 2,
+              lineColor: [229, 231, 235], // gray-200
+              lineWidth: 0.2
+            },
+            headStyles: { 
+              fillColor: [243, 244, 246], // gray-100
+              textColor: [17, 24, 39],    // gray-900
+              fontStyle: 'bold' 
+            },
+            columnStyles: {
+              0: { cellWidth: 'auto', halign: 'left' },
+              1: { cellWidth: 22, halign: 'center' },
+              2: { cellWidth: 28, halign: 'center' },
+              3: { cellWidth: 32, halign: 'right' },
+              4: { cellWidth: 32, halign: 'right' }
+            },
             margin: { left: 14, right: 14 }
           });
 
-          currentY = (doc as any).lastAutoTable?.finalY + 8;
+          currentY = (doc as any).lastAutoTable?.finalY + 10;
         }
       });
 
