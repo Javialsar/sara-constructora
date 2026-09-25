@@ -54,6 +54,17 @@ export default function AdminLayout({
   }, [])
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
+  // Auto-expandir el grupo correspondiente a la ruta activa
+  useEffect(() => {
+    if (!pathname) return
+    for (const group of allNavGroups) {
+      if (group.items.some(i => i.href === pathname)) {
+        setOpenGroup(group.title)
+        break
+      }
+    }
+  }, [pathname])
+
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient()
@@ -166,79 +177,129 @@ export default function AdminLayout({
         <div className="flex h-screen bg-slate-100 overflow-hidden print:h-auto print:block print:bg-white">
       
       {/* Sidebar */}
-      <aside className={`bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>
-        <div className="p-6 border-b border-white/10 flex items-center gap-3 justify-center">
-          <div className="w-8 h-8 shrink-0 bg-white rounded flex items-center justify-center p-1">
-            <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
+      <aside className={`bg-[#1a2332] text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>
+        {/* Header del sidebar */}
+        <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+              <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="overflow-hidden whitespace-nowrap">
+                <h1 className="font-bold tracking-wider text-sm uppercase text-white">{userRole}</h1>
+                <p className="text-[10px] text-brand-sage uppercase font-bold tracking-wider">SARA Constructora</p>
+              </div>
+            )}
           </div>
           {!isSidebarCollapsed && (
-            <div className="overflow-hidden whitespace-nowrap">
-              <h1 className="font-bold tracking-wider text-sm uppercase">{userRole}</h1>
-              <p className="text-[10px] text-brand-sage uppercase">SARA Constructora</p>
-            </div>
+            <button 
+              onClick={() => setIsSidebarCollapsed(true)} 
+              className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+              title="Colapsar menú (modo compacto)"
+            >
+              <ChevronRight className="rotate-180" size={16} />
+            </button>
           )}
         </div>
 
-        <nav className="flex-1 py-4 px-3 overflow-y-auto">
-          {navGroups.map((group, groupIdx) => {
-            const isOpen = openGroup === group.title;
-            return (
-              <div key={groupIdx} className="mb-2">
-                <button 
-                  onClick={() => { if(isSidebarCollapsed) setIsSidebarCollapsed(false); toggleGroup(group.title); }}
-                  className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
-                    isOpen ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  {!isSidebarCollapsed && <span>{group.title}</span>}
-                  {isSidebarCollapsed ? <span className="font-bold text-lg">...</span> : (isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />)}
-                </button>
-                
-                {isOpen && (
-                  <div className="space-y-1 mt-1">
-                    {group.items.map((item) => {
-                      const Icon = item.icon
-                      const isActive = pathname === item.href
-                      return (
-                        <Link 
-                          key={item.href}
-                          href={item.href} 
-                          title={isSidebarCollapsed ? item.label : undefined}
-                          className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2.5 rounded-lg font-medium transition-colors ${
-                            isActive 
-                              ? "bg-brand-sage text-brand-dark" 
-                              : "text-gray-300 hover:bg-white/5 hover:text-white"
-                          }`}
-                        >
-                          <Icon size={18} className="shrink-0" />
-                          {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">{item.label}</span>}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+        <nav className="flex-1 py-4 px-2 overflow-y-auto">
+          {/* MODO COLAPSADO (Solo Iconos en columna vertical, idéntico a la Imagen 2) */}
+          {isSidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-1">
+              {navGroups.map((group, gIdx) => (
+                <div key={gIdx} className="w-full">
+                  {gIdx > 0 && <div className="border-t border-white/10 my-2 mx-2" />}
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        title={item.label}
+                        className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition-all my-1 ${
+                          isActive 
+                            ? "bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-400/40" 
+                            : "text-gray-400 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        <Icon size={20} />
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* MODO EXPANDIDO (Con categorías y nombres de opción) */
+            navGroups.map((group, groupIdx) => {
+              const isOpen = openGroup === group.title;
+              const hasActiveItem = group.items.some(i => i.href === pathname);
+              return (
+                <div key={groupIdx} className="mb-2">
+                  <button 
+                    onClick={() => toggleGroup(group.title)}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
+                      hasActiveItem
+                        ? "text-emerald-400 font-bold bg-white/5"
+                        : isOpen 
+                          ? "bg-white/10 text-white" 
+                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{group.title}</span>
+                    {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </button>
+                  
+                  {isOpen && (
+                    <div className="space-y-1 mt-1 pl-1">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link 
+                            key={item.href}
+                            href={item.href} 
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all ${
+                              isActive 
+                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30" 
+                                : "text-gray-300 hover:bg-white/10 hover:text-white font-medium"
+                            }`}
+                          >
+                            <Icon size={18} className="shrink-0" />
+                            <span className="whitespace-nowrap overflow-hidden text-sm">{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <Link href="/admin/configuracion" title={isSidebarCollapsed ? "Configuración" : undefined} className={`flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2 rounded-lg text-gray-400 hover:text-white transition-colors text-sm mb-1`}>
+        <div className="p-3 border-t border-white/10">
+          <Link 
+            href="/admin/configuracion" 
+            title="Configuración" 
+            className={`flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-sm mb-1`}
+          >
             <Settings size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Configuración</span>}
+            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración</span>}
           </Link>
           <button 
-            title={isSidebarCollapsed ? "Cerrar Sesión" : undefined}
+            title="Cerrar Sesión"
             onClick={async () => {
               const { createClient } = await import('@/lib/supabase/client')
               const supabase = createClient()
               await supabase.auth.signOut()
               window.location.href = '/'
             }} 
-            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center" : "gap-3"} px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm`}
+            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm`}
           >
             <LogOut size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden">Cerrar Sesión</span>}
+            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Cerrar Sesión</span>}
           </button>
         </div>
       </aside>
@@ -246,20 +307,30 @@ export default function AdminLayout({
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full overflow-hidden print:overflow-visible print:block">
         {/* Top Header */}
-          <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 z-10 shrink-0 print:hidden">
-            <h2 className="text-xl font-bold text-gray-800">Panel de Control</h2>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-500 font-medium">
-                Hola, {userName !== "Administrador" ? userName : ""} <span className="text-xs ml-1 px-2 py-1 bg-gray-100 rounded text-brand-dark font-bold border border-gray-200">{userRole}</span>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-brand-sage flex items-center justify-center font-bold text-brand-dark">
-                {userInitials}
-              </div>
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 z-10 shrink-0 print:hidden">
+          <div className="flex items-center gap-3">
+            {/* Botón Menú Hamburguesa */}
+            <button 
+              onClick={() => setIsSidebarCollapsed(prev => !prev)}
+              className="p-2 rounded-lg text-gray-600 hover:text-brand-dark hover:bg-gray-100 transition-colors focus:outline-none"
+              title={isSidebarCollapsed ? "Expandir menú lateral" : "Colapsar menú lateral (más espacio)"}
+            >
+              <Menu size={22} />
+            </button>
+            <h2 className="text-lg md:text-xl font-bold text-gray-800">Panel de Control</h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-500 font-medium">
+              Hola, {userName !== "Administrador" ? userName : ""} <span className="text-xs ml-1 px-2 py-1 bg-gray-100 rounded text-brand-dark font-bold border border-gray-200">{userRole}</span>
             </div>
+            <div className="w-9 h-9 rounded-full bg-brand-sage flex items-center justify-center font-bold text-brand-dark">
+              {userInitials}
+            </div>
+          </div>
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto p-8 print:overflow-visible print:p-0">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">
           {children}
         </div>
       </main>
