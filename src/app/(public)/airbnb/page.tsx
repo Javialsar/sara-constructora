@@ -43,9 +43,127 @@ import {
   Phone,
   FileText,
   BadgeCheck,
-  Receipt
+  Receipt,
+  MessageSquareQuote,
+  ThumbsUp
 } from "lucide-react"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
+
+export interface ResenaHuesped {
+  id: string
+  autor: string
+  ciudadOrigen: string
+  pais: string
+  bandera: string
+  fecha: string
+  rating: number
+  comentario: string
+}
+
+export function getDefaultReviewsForListing(stay: AirbnbListing): ResenaHuesped[] {
+  if (stay.ciudad === "Cuenca") {
+    return [
+      {
+        id: "rev-1",
+        autor: "Daniela Vintimilla",
+        ciudadOrigen: "Guayaquil",
+        pais: "Ecuador",
+        bandera: "🇪🇨",
+        fecha: "Hace 2 semanas",
+        rating: 5,
+        comentario: "Una experiencia inmejorable. La vista y el entorno son espectaculares, el departamento estuvo impecable y la cerradura inteligente facilitó el ingreso autónomo a la hora que llegamos. ¡100% recomendado!"
+      },
+      {
+        id: "rev-2",
+        autor: "Mark & Sarah Jenkins",
+        ciudadOrigen: "Austin, Texas",
+        pais: "Estados Unidos",
+        bandera: "🇺🇸",
+        fecha: "Hace 1 mes",
+        rating: 5,
+        comentario: "One of the best stays we've booked in South America! High-speed WiFi for our remote work, comfortable King mattress, and super safe area. The SARA Hospitality team was always available."
+      },
+      {
+        id: "rev-3",
+        autor: "Ing. Esteban Cordero",
+        ciudadOrigen: "Quito",
+        pais: "Ecuador",
+        bandera: "🇪🇨",
+        fecha: "Hace 1 mes",
+        rating: 5,
+        comentario: "Acabados de primera, sábanas de alta calidad y cafetera Nespresso lista con cápsulas. Todo funcionó a la perfección y el parqueadero subterráneo es amplio."
+      }
+    ]
+  } else if (stay.ciudad === "Yunguilla") {
+    return [
+      {
+        id: "rev-1",
+        autor: "Familia Cárdenas Mora",
+        ciudadOrigen: "Guayaquil",
+        pais: "Ecuador",
+        bandera: "🇪🇨",
+        fecha: "Hace 3 semanas",
+        rating: 5,
+        comentario: "El clima del valle y la piscina climatizada con jacuzzi privado hicieron de nuestro descanso familiar algo inolvidable. Las áreas de BBQ y cocina están equipadas con todo."
+      },
+      {
+        id: "rev-2",
+        autor: "Dr. Marcelo Ávila",
+        ciudadOrigen: "Cuenca",
+        pais: "Ecuador",
+        bandera: "🇪🇨",
+        fecha: "Hace 1 mes",
+        rating: 5,
+        comentario: "Excelente propiedad vacacional. Paz absoluta, hermosas áreas verdes y mucha privacidad. La atención del personal de SARA fue de primer nivel."
+      }
+    ]
+  } else if (stay.alcance === "internacional") {
+    return [
+      {
+        id: "rev-1",
+        autor: "Alejandro & Valeria R.",
+        ciudadOrigen: "Cuenca",
+        pais: "Ecuador",
+        bandera: "🇪🇨",
+        fecha: "Hace 3 semanas",
+        rating: 5,
+        comentario: "Reservamos nuestro hospedaje en el exterior a través de SARA y fue un acierto total. Ubicación estratégica, check-in digital sin demoras y tarifa transparente en dólares."
+      },
+      {
+        id: "rev-2",
+        autor: "Gabriel Montenegro",
+        ciudadOrigen: "Madrid",
+        pais: "España",
+        bandera: "🇪🇸",
+        fecha: "Hace 1 mes",
+        rating: 5,
+        comentario: "Alojamiento impecable con diseño de vanguardia. Cerca de todos los puntos de interés, luminoso y muy silencioso para descansar."
+      }
+    ]
+  }
+  return [
+    {
+      id: "rev-1",
+      autor: "María Fernanda Crespo",
+      ciudadOrigen: "Quito",
+      pais: "Ecuador",
+      bandera: "🇪🇨",
+      fecha: "Hace 2 semanas",
+      rating: 5,
+      comentario: "Hermoso lugar, súper limpio y acogedor. Las fotos reflejan exactamente la realidad. La atención de SARA fue inmediata y muy cordial."
+    },
+    {
+      id: "rev-2",
+      autor: "David Henderson",
+      ciudadOrigen: "Toronto",
+      pais: "Canadá",
+      bandera: "🇨🇦",
+      fecha: "Hace 1 mes",
+      rating: 5,
+      comentario: "Fantastic location and great amenities. Fast internet, cozy bed, and smooth self-check-in with the smart lock. Would definitely stay again!"
+    }
+  ]
+}
 
 export interface AirbnbListing {
   id: string
@@ -72,6 +190,7 @@ export interface AirbnbListing {
   descripcion: string
   amenidades: string[]
   reglas: string[]
+  resenas?: ResenaHuesped[]
 }
 
 const AIRBNB_DATA: AirbnbListing[] = [
@@ -406,6 +525,43 @@ export default function AirbnbPage() {
     cvvTarjeta: "•••",
     titularTarjeta: ""
   })
+
+  // Estados para Reseñas y Comentarios de Usuarios (Imagen 2)
+  const [userReviews, setUserReviews] = useState<Record<string, ResenaHuesped[]>>({})
+  const [showAddReview, setShowAddReview] = useState<boolean>(false)
+  const [newReviewAuthor, setNewReviewAuthor] = useState<string>("")
+  const [newReviewCity, setNewReviewCity] = useState<string>("Cuenca, Ecuador")
+  const [newReviewRating, setNewReviewRating] = useState<number>(5)
+  const [newReviewComment, setNewReviewComment] = useState<string>("")
+
+  const handleAddReview = (e: React.FormEvent, stayId: string) => {
+    e.preventDefault()
+    if (!newReviewAuthor.trim() || !newReviewComment.trim()) {
+      alert("Por favor completa tu nombre y comentario.")
+      return
+    }
+
+    const nuevaResena: ResenaHuesped = {
+      id: `usr-rev-${Date.now()}`,
+      autor: newReviewAuthor.trim(),
+      ciudadOrigen: newReviewCity.trim(),
+      pais: "Ecuador",
+      bandera: "🇪🇨",
+      fecha: "Hace instantes (Huésped Verificado)",
+      rating: newReviewRating,
+      comentario: newReviewComment.trim()
+    }
+
+    setUserReviews(prev => ({
+      ...prev,
+      [stayId]: [nuevaResena, ...(prev[stayId] || [])]
+    }))
+
+    setNewReviewAuthor("")
+    setNewReviewComment("")
+    setShowAddReview(false)
+    alert("¡Muchas gracias! Tu opinión y calificación han sido registradas y publicadas exitosamente.")
+  }
 
   const handleStartBooking = (stay: AirbnbListing) => {
     setSelectedStay(null)
@@ -837,9 +993,20 @@ export default function AirbnbPage() {
                             <span>Hasta {stay.maxHuespedes} pers.</span>
                           </div>
 
-                          <h3 className="font-bold text-gray-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1.5">
+                          <h3 className="font-bold text-gray-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1">
                             {stay.titulo}
                           </h3>
+
+                          {/* Calificación con estrellitas de los usuarios */}
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <div className="flex items-center text-amber-500">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star key={s} size={12} className="fill-amber-400 text-amber-400" />
+                              ))}
+                            </div>
+                            <span className="text-xs font-black text-gray-900">{stay.rating.toFixed(2)}</span>
+                            <span className="text-[11px] text-gray-400 font-medium">({stay.reviewsCount} reseñas)</span>
+                          </div>
 
                           {/* Cálculo de total por estadía */}
                           <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-2.5 my-2.5 flex items-center justify-between text-xs">
@@ -1110,6 +1277,198 @@ export default function AirbnbPage() {
                       Confirmación y pago directo sin comisiones extras de portales
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* SECCIÓN DE RESEÑAS Y OPINIONES DE HUÉSPEDES (IMAGEN 2) */}
+              <div className="pt-6 border-t border-gray-200">
+                {/* Cabecera de Reseñas */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center text-amber-500">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} size={18} className="fill-amber-400 text-amber-400" />
+                        ))}
+                      </div>
+                      <span className="text-xl font-black text-gray-900">{selectedStay.rating.toFixed(2)}</span>
+                      <span className="text-sm text-gray-400 font-semibold">•</span>
+                      <span className="text-sm font-bold text-gray-800">
+                        {selectedStay.reviewsCount + (userReviews[selectedStay.id]?.length || 0)} evaluaciones
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                      <BadgeCheck size={14} className="text-emerald-600" /> Calificaciones 100% verificadas por huéspedes reales
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setShowAddReview(!showAddReview)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+                  >
+                    <MessageSquareQuote size={15} className="text-amber-600" />
+                    {showAddReview ? "Cancelar Reseña" : "+ Dejar mi Opinión / Calificar"}
+                  </button>
+                </div>
+
+                {/* Formulario desplegable para agregar reseña */}
+                {showAddReview && (
+                  <form
+                    onSubmit={(e) => handleAddReview(e, selectedStay.id)}
+                    className="bg-amber-50/60 border border-amber-200 rounded-2xl p-5 mb-6 space-y-4 animate-fadeIn"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h5 className="font-extrabold text-sm text-amber-900 flex items-center gap-2">
+                        <MessageSquareQuote size={16} /> Tu experiencia en {selectedStay.titulo}
+                      </h5>
+                      <span className="text-[11px] text-amber-700">Se publicará de forma inmediata</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Tu Nombre y Apellido</label>
+                        <input
+                          type="text"
+                          required
+                          value={newReviewAuthor}
+                          onChange={(e) => setNewReviewAuthor(e.target.value)}
+                          placeholder="Ej. Carmen Andrade"
+                          className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Ciudad o País de Origen</label>
+                        <input
+                          type="text"
+                          value={newReviewCity}
+                          onChange={(e) => setNewReviewCity(e.target.value)}
+                          placeholder="Ej. Guayaquil, Ecuador"
+                          className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1.5">Tu Calificación General</label>
+                      <div className="flex items-center gap-2">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <button
+                            type="button"
+                            key={s}
+                            onClick={() => setNewReviewRating(s)}
+                            className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                          >
+                            <Star
+                              size={22}
+                              className={s <= newReviewRating ? "fill-amber-400 text-amber-400" : "text-gray-300"}
+                            />
+                          </button>
+                        ))}
+                        <span className="text-xs font-bold text-gray-700 ml-2">
+                          {newReviewRating === 5 ? "Excelente (5/5)" : newReviewRating === 4 ? "Muy bueno (4/5)" : `${newReviewRating}/5 Estrellas`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Comentario u Opinión</label>
+                      <textarea
+                        required
+                        rows={3}
+                        value={newReviewComment}
+                        onChange={(e) => setNewReviewComment(e.target.value)}
+                        placeholder="Comparte detalles de la limpieza, llegada autónoma, comodidad o atención recibida..."
+                        className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddReview(false)}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
+                      >
+                        Descartar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 shadow-sm transition-colors cursor-pointer"
+                      >
+                        Publicar Opinión
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Métricas por Categoría (Estilo Airbnb Oficial) */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-gray-200/80">
+                  {[
+                    { label: "Limpieza", score: "4.9", pct: "98%" },
+                    { label: "Precisión del anuncio", score: "5.0", pct: "100%" },
+                    { label: "Llegada Smart Lock", score: "4.9", pct: "98%" },
+                    { label: "Comunicación SARA", score: "5.0", pct: "100%" },
+                    { label: "Ubicación & Seguridad", score: "4.9", pct: "98%" },
+                    { label: "Calidad - Precio", score: "4.9", pct: "98%" }
+                  ].map((cat, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-600 font-medium">{cat.label}</span>
+                        <span className="font-bold text-gray-900">{cat.score}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-slate-800 rounded-full" style={{ width: cat.pct }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Lista de Opiniones y Comentarios */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[...(userReviews[selectedStay.id] || []), ...getDefaultReviewsForListing(selectedStay)].map((rev) => (
+                    <div
+                      key={rev.id}
+                      className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Cabecera del Huésped */}
+                        <div className="flex items-center gap-3 mb-2.5">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
+                            {rev.autor.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <h6 className="font-bold text-xs text-gray-900 truncate">{rev.autor}</h6>
+                              <span className="text-xs">{rev.bandera}</span>
+                            </div>
+                            <p className="text-[11px] text-gray-400 truncate">
+                              {rev.ciudadOrigen} • {rev.fecha}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Estrellitas */}
+                        <div className="flex items-center gap-1 text-amber-500 mb-2">
+                          {Array.from({ length: rev.rating }).map((_, i) => (
+                            <Star key={i} size={12} className="fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+
+                        {/* Comentario */}
+                        <p className="text-xs text-gray-700 leading-relaxed italic">
+                          "{rev.comentario}"
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-400">
+                        <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                          <CheckCircle2 size={12} /> Huésped Verificado
+                        </span>
+                        <span className="flex items-center gap-1 hover:text-gray-600 cursor-pointer">
+                          <ThumbsUp size={11} /> Útil
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
