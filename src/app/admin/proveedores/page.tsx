@@ -1,227 +1,242 @@
-"use client"
-import { useState, useEffect } from "react"
-import { Briefcase, List, BookOpen, Plus, Search, X, Loader2, Edit, Trash2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+"use client";
 
-type Proveedor = {
-  id: string
-  razon_social: string
-  ruc: string
-  contacto_vendedor: string
-  telefono: string
-  email: string
-  dias_credito: number
-  estado: boolean
-  direccion?: string
-  sitio_web?: string
-}
+import { useState } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Plus, Search, Edit, Trash2, Building2, Loader2, X, Briefcase, BookOpen } from "lucide-react";
+
+const supabase = createClient();
+
+// 1. Zod Schema para validación estricta
+const proveedorSchema = z.object({
+  razon_social: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
+  ruc: z.string().optional(),
+  dias_credito: z.coerce.number().min(0, "No puede ser negativo"),
+  contacto_vendedor: z.string().optional(),
+  telefono: z.string().optional(),
+  email: z.union([z.literal(""), z.string().email("Correo inválido")]).optional(),
+  sitio_web: z.union([z.literal(""), z.string().url("URL inválida")]).optional(),
+});
+
+type ProveedorFormValues = z.infer<typeof proveedorSchema>;
 
 export default function ProveedoresPage() {
-  const [proveedores, setProveedores] = useState<Proveedor[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  
-  const [formData, setFormData] = useState({
-    razon_social: "",
-    ruc: "",
-    contacto_vendedor: "",
-    telefono: "",
-    email: "",
-    sitio_web: "",
-    dias_credito: 0
-  })
+  const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [saving, setSaving] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const supabase = createClient()
+  // 2. Hook Form Setup
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<ProveedorFormValues>({
+    resolver: zodResolver(proveedorSchema),
+    defaultValues: {
+      razon_social: "",
+      ruc: "",
+      dias_credito: 0,
+      contacto_vendedor: "",
+      telefono: "",
+      email: "",
+      sitio_web: "",
+    },
+  });
 
-  useEffect(() => {
-    fetchProveedores()
-  }, [])
+  // 3. React Query: Fetching
+  const { data: proveedores = [], isLoading } = useQuery({
+    queryKey: ["proveedores"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proveedores")
+        .select("*")
+        .order("razon_social", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
 
-  const fetchProveedores = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('proveedores')
-      .select('*')
-      .order('created_at', { ascending: false })
+  // 4. React Query: Mutations (Create/Update)
+  const saveMutation = useMutation({
+    mutationFn: async (values: ProveedorFormValues) => {
+      // Validar duplicados (Regla estricta del cliente)
+      const query = supabase.from("proveedores").select("id").ilike("razon_social", values.razon_social);
+      if (editingId) query.neq("id", editingId);
+      const { data: existing } = await query;
       
-    if (!error && data) {
-      setProveedores(data)
+      if (existing && existing.length > 0) {
+        throw new Error("Ya existe un proveedor con este nombre exacto.");
+      }
+
+      if (editingId) {
+        const { error } = await supabase.from("proveedores").update(values).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("proveedores").insert([values]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proveedores"] });
+      closeModal();
+    },
+    onError: (err: Error) => {
+      setError("razon_social", { type: "manual", message: err.message });
     }
-    setLoading(false)
-  }
+  });
 
-  const closeModal = () => {
-    setIsModalOpen(false)
-    setEditingId(null)
-    setFormData({ razon_social: "", ruc: "", contacto_vendedor: "", telefono: "", email: "", sitio_web: "", dias_credito: 0 })
-  }
+  // 5. React Query: Mutations (Delete)
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("proveedores").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proveedores"] });
+    }
+  });
 
-  const handleEdit = (prov: Proveedor) => {
-    setFormData({
+  const filteredProveedores = proveedores.filter((p) =>
+    p.razon_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.ruc && p.ruc.includes(searchTerm)) ||
+    (p.contacto_vendedor && p.contacto_vendedor.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const openNewModal = () => {
+    setEditingId(null);
+    reset({
+      razon_social: "", ruc: "", dias_credito: 0, contacto_vendedor: "", telefono: "", email: "", sitio_web: ""
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (prov: any) => {
+    setEditingId(prov.id);
+    reset({
       razon_social: prov.razon_social,
       ruc: prov.ruc || "",
+      dias_credito: prov.dias_credito || 0,
       contacto_vendedor: prov.contacto_vendedor || "",
       telefono: prov.telefono || "",
       email: prov.email || "",
       sitio_web: prov.sitio_web || "",
-      dias_credito: prov.dias_credito || 0
-    })
-    setEditingId(prov.id)
-    setIsModalOpen(true)
-  }
+    });
+    setIsModalOpen(true);
+  };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este proveedor?")) return
-    
-    const { error } = await supabase
-      .from('proveedores')
-      .delete()
-      .eq('id', id)
-      
-    if (!error) {
-      fetchProveedores()
-    } else {
-      alert("Error al eliminar el proveedor")
+  const handleDelete = (id: string) => {
+    if (window.confirm("¿Está seguro que desea eliminar este proveedor?")) {
+      deleteMutation.mutate(id);
     }
-  }
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    
-    if (editingId) {
-      const { error } = await supabase
-        .from('proveedores')
-        .update(formData)
-        .eq('id', editingId)
-        
-      setSaving(false)
-      if (!error) {
-        closeModal()
-        fetchProveedores()
-      } else {
-        alert("Error al actualizar el proveedor.")
-        console.error(error)
-      }
-    } else {
-      const { error } = await supabase
-        .from('proveedores')
-        .insert([formData])
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    reset();
+  };
 
-      setSaving(false)
-      if (!error) {
-        closeModal()
-        fetchProveedores()
-      } else {
-        alert("Error al guardar el proveedor. Asegúrate de tener conexión a la base de datos.")
-        console.error(error)
-      }
-    }
-  }
-
-  const filteredProveedores = proveedores.filter(p => 
-    p.razon_social.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (p.ruc && p.ruc.includes(searchTerm))
-  )
+  const onSubmit = (data: ProveedorFormValues) => {
+    saveMutation.mutate(data);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="p-6 md:p-10 max-w-7xl mx-auto min-h-screen bg-gray-50/50">
+      <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <Briefcase className="text-brand-sage" />
+          <h1 className="text-3xl font-black text-gray-800 flex items-center gap-3">
+            <Building2 className="text-brand-sage" size={32} />
             Directorio de Proveedores
           </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            Gestiona los proveedores de materiales y equipos para tus proyectos.
+          <p className="text-gray-500 mt-1 text-sm font-medium">
+            Gestione proveedores, días de crédito y contactos asociados a los insumos.
           </p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-brand-sage text-brand-dark px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition-all"
+        <button
+          onClick={openNewModal}
+          className="bg-brand-sage text-white font-semibold py-2.5 px-6 rounded-xl hover:shadow-md hover:bg-brand-dark transition-all flex items-center gap-2 h-fit"
         >
           <Plus size={18} />
           Nuevo Proveedor
         </button>
       </div>
 
-      {/* Main Card */}
-      <div className="bg-white p-6 rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage">
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Buscar por nombre o RUC..." 
+      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-900/5 overflow-hidden">
+        <div className="p-5 border-b border-gray-100 bg-gray-50/80">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Buscar por empresa, RUC o contacto..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-sage/20 focus:border-brand-sage outline-none transition-all shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-sage w-80"
             />
           </div>
         </div>
-        
-        {/* Table */}
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="animate-spin text-brand-sage" size={32} />
+
+        {isLoading ? (
+          <div className="p-12 flex justify-center text-gray-400">
+            <Loader2 className="animate-spin" size={32} />
           </div>
-        ) : proveedores.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Briefcase size={48} className="mx-auto mb-3 opacity-20" />
-            <p>La base de datos de proveedores está vacía.</p>
-            <p className="text-sm mt-1">Haz clic en "Nuevo Proveedor" para comenzar.</p>
+        ) : filteredProveedores.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <Building2 className="mx-auto text-gray-300 mb-3" size={48} />
+            <p className="text-lg font-medium">No se encontraron proveedores</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse divide-y divide-gray-200">
-              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200 uppercase text-xs">
-                <tr className="border-b border-gray-200 text-sm text-gray-500">
-                  <th className="py-3 px-4 font-semibold">Razón Social</th>
-                  <th className="py-3 px-4 font-semibold">RUC</th>
-                  <th className="py-3 px-4 font-semibold">Ubicación / Sitio</th>
-                  <th className="py-3 px-4 font-semibold">Contacto</th>
-                  <th className="py-3 px-4 font-semibold">Teléfono / Email</th>
-                  <th className="py-3 px-4 font-semibold">Crédito</th>
-                  <th className="py-3 px-4 font-semibold text-right">Acciones</th>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4">Razón Social</th>
+                  <th className="px-6 py-4">RUC / NIT</th>
+                  <th className="px-6 py-4">Contacto</th>
+                  <th className="px-6 py-4">Teléfono / Correo</th>
+                  <th className="px-6 py-4 text-center">Crédito</th>
+                  <th className="px-6 py-4 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredProveedores.map(prov => (
-                  <tr key={prov.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 font-medium text-gray-800">{prov.razon_social}</td>
-                    <td className="py-3 px-4 text-gray-600">{prov.ruc || "-"}</td>
-                    <td className="py-3 px-4 text-gray-600 text-sm">
-                      <div className="line-clamp-1" title={prov.direccion}>{prov.direccion || "-"}</div>
+              <tbody className="divide-y divide-gray-100">
+                {filteredProveedores.map((prov) => (
+                  <tr key={prov.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="font-bold text-slate-800">{prov.razon_social}</div>
                       {prov.sitio_web && (
-                        <a href={prov.sitio_web} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-xs flex items-center gap-1 mt-1">
-                          <BookOpen size={10} /> Web
+                        <a href={prov.sitio_web} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">
+                          {prov.sitio_web.replace('https://', '')}
                         </a>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-gray-600">{prov.contacto_vendedor || "-"}</td>
-                    <td className="py-3 px-4 text-gray-600">
-                      <div>{prov.telefono}</div>
-                      <div className="text-xs text-gray-400">{prov.email}</div>
+                    <td className="py-4 px-6 text-slate-600 font-mono text-xs">{prov.ruc || "-"}</td>
+                    <td className="py-4 px-6 text-slate-600 font-medium">{prov.contacto_vendedor || "-"}</td>
+                    <td className="py-4 px-6 text-slate-600">
+                      <div>{prov.telefono || "-"}</div>
+                      <div className="text-[11px] text-slate-400">{prov.email}</div>
                     </td>
-                    <td className="py-3 px-4 text-gray-600">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${prov.dias_credito > 0 ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                    <td className="py-4 px-6 text-center">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${prov.dias_credito > 0 ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20' : 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20'}`}>
                         {prov.dias_credito > 0 ? `${prov.dias_credito} días` : 'Contado'}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <button onClick={() => handleEdit(prov)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={() => window.location.href=`/admin/proveedores/${prov.id}`} className="p-2 text-gray-400 hover:text-brand-sage transition-colors" title="Ver Catálogo">
-                        <BookOpen size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(prov.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
-                        <Trash2 size={16} />
-                      </button>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => window.location.href=`/admin/proveedores/${prov.id}`} className="p-2 text-slate-400 hover:text-brand-sage hover:bg-brand-sage/10 rounded-lg transition-all" title="Ver Catálogo">
+                          <BookOpen size={16} />
+                        </button>
+                        <button onClick={() => handleEdit(prov)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Editar">
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(prov.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Eliminar">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -231,116 +246,104 @@ export default function ProveedoresPage() {
         )}
       </div>
 
-      {/* Modal Nuevo/Editar Proveedor */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
                 <Briefcase className="text-brand-sage" size={20} />
-                {editingId ? "Editar Proveedor" : "Registrar Nuevo Proveedor"}
+                {editingId ? "Editar Proveedor" : "Registrar Proveedor"}
               </h2>
-              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
-                <X size={24} />
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-xl transition-colors">
+                <X size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+              <div className="grid grid-cols-2 gap-5 mb-8">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social o Empresa <span className="text-red-500">*</span></label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Razón Social <span className="text-red-500">*</span></label>
                   <input 
-                    required
-                    type="text" 
-                    placeholder="Ej. Ferretería El Maestro S.A."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.razon_social}
-                    onChange={e => setFormData({...formData, razon_social: e.target.value})}
+                    {...register("razon_social")}
+                    placeholder="Ej. Materiales El Constructor"
+                    className={`w-full border ${errors.razon_social ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
                   />
+                  {errors.razon_social && <p className="text-red-500 text-xs mt-1 font-medium">{errors.razon_social.message}</p>}
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">RUC / Identificación</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">RUC / NIT</label>
                   <input 
-                    type="text" 
+                    {...register("ruc")}
                     placeholder="0999999999001"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.ruc}
-                    onChange={e => setFormData({...formData, ruc: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-sage outline-none transition-all shadow-sm"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Días de Crédito (0 = Contado)</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Días de Crédito (0 = Contado)</label>
                   <input 
-                    type="number" 
-                    min="0"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.dias_credito}
-                    onChange={e => setFormData({...formData, dias_credito: parseInt(e.target.value) || 0})}
+                    type="number"
+                    {...register("dias_credito")}
+                    className={`w-full border ${errors.dias_credito ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
                   />
+                  {errors.dias_credito && <p className="text-red-500 text-xs mt-1 font-medium">{errors.dias_credito.message}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contacto Comercial</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Contacto Comercial</label>
                   <input 
-                    type="text" 
+                    {...register("contacto_vendedor")}
                     placeholder="Nombre del vendedor"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.contacto_vendedor}
-                    onChange={e => setFormData({...formData, contacto_vendedor: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-sage outline-none transition-all shadow-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Teléfono</label>
                   <input 
-                    type="text" 
+                    {...register("telefono")}
                     placeholder="099 999 9999"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.telefono}
-                    onChange={e => setFormData({...formData, telefono: e.target.value})}
-                  />
-                </div>
-
-                                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
-                  <input 
-                    type="email" 
-                    placeholder="ventas@empresa.com"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-sage outline-none transition-all shadow-sm"
                   />
                 </div>
 
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dirección Web (Opcional)</label>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Correo Electrónico</label>
                   <input 
-                    type="url" 
-                    placeholder="https://www.empresa.com"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
-                    value={formData.sitio_web}
-                    onChange={e => setFormData({...formData, sitio_web: e.target.value})}
+                    {...register("email")}
+                    placeholder="ventas@empresa.com"
+                    className={`w-full border ${errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
                   />
+                  {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email.message}</p>}
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Dirección Web (Opcional)</label>
+                  <input 
+                    {...register("sitio_web")}
+                    placeholder="https://www.empresa.com"
+                    className={`w-full border ${errors.sitio_web ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
+                  />
+                  {errors.sitio_web && <p className="text-red-500 text-xs mt-1 font-medium">{errors.sitio_web.message}</p>}
                 </div>
               </div>
               
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end gap-3 pt-5 border-t border-gray-100">
                 <button 
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 bg-brand-dark text-white font-medium rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  disabled={isSubmitting || saveMutation.isPending}
+                  className="px-5 py-2.5 bg-brand-sage text-white font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
                 >
-                  {saving && <Loader2 size={16} className="animate-spin" />}
-                  {saving ? "Guardando..." : "Guardar Proveedor"}
+                  {(isSubmitting || saveMutation.isPending) && <Loader2 size={16} className="animate-spin" />}
+                  {(isSubmitting || saveMutation.isPending) ? "Guardando..." : "Guardar Proveedor"}
                 </button>
               </div>
             </form>
@@ -348,5 +351,5 @@ export default function ProveedoresPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
