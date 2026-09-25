@@ -197,8 +197,13 @@ export default function RubrosPage() {
 
   const supabase = createClient()
   
-  const [rubros, setRubros] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: rubros = [], isLoading: loading } = useQuery({
+    queryKey: ['rubros'],
+    queryFn: async () => {
+      const { data } = await supabase.from('rubros').select('*').order('created_at', { ascending: false });
+      return data || [];
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("")
   const [searchCategoryTerm, setSearchCategoryTerm] = useState("")
   
