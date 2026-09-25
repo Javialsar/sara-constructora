@@ -561,25 +561,56 @@ export default function AirbnbPage() {
       {/* ============================================================ */}
       {/* 1. HERO SECTION: HOSPITALITY GLOBAL (NACIONAL & MUNDIAL)    */}
       {/* ============================================================ */}
-      <section className="relative pt-32 pb-20 bg-gradient-to-b from-[#0a1b12] via-[#0d2218] to-slate-900 text-white overflow-hidden">
-        {/* Grilla sutil de fondo */}
-        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      <section className="relative pt-28 pb-16 overflow-hidden bg-brand-dark">
+        {/* Split Layout: Background Image on Right Side */}
+        <div
+          className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full bg-cover bg-center z-0"
+          style={{ backgroundImage: `url('/sara-airbnb.png')` }}
+        >
+          {/* Máscara de desvanecimiento para la fotografía (mezcla suave con el fondo verde) */}
+          <div className="hidden lg:block absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-brand-dark via-brand-dark/80 to-transparent z-10" />
+          {/* Oscurecimiento sutil en móviles para asegurar lectura */}
+          <div className="lg:hidden absolute inset-0 bg-brand-dark/80 z-10" />
+        </div>
 
-        <div className="container mx-auto px-4 md:px-8 relative z-10">
-          <div className="max-w-3xl mx-auto text-center mb-8">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-3 backdrop-blur-md">
-              <Globe size={14} /> Red Global SARA Hospitality · Nacional & Mundial
-            </span>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-3 leading-tight">
-              Alojamientos Exclusivos y Suites con Precios en Mapa
-            </h1>
-            <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-              Selecciona tu destino, fechas de viaje y número de huéspedes para explorar la disponibilidad y tarifas exactas georreferenciadas en tiempo real.
+        {/* Gradiente sutil para mantener el texto nítido */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/65 to-transparent w-full md:w-[120%]" />
+
+        {/* Resplandor verde de marca sutil */}
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-20 pointer-events-none" />
+
+        <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[60vh]">
+          <div className="max-w-3xl space-y-6 md:pl-8 mb-10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-px bg-brand-sage" />
+              <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
+                Hospitality · Suites · Alojamientos
+              </h2>
+            </div>
+
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
+                EXPERIENCIAS <span className="font-light italic text-brand-sage">ÚNICAS.</span><br />
+                HOSPEDAJE DE NIVEL.
+              </h1>
+            </div>
+
+            <p className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg">
+              Suites contemporáneas, lofts de diseño y villas vacacionales con georreferenciación y precios en tiempo real. Cobertura nacional (Ecuador) y mundial sin comisiones de intermediarios.
             </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/20 backdrop-blur-sm">
+                <Globe size={14} className="text-brand-sage" /> Ecuador & Destinos Mundiales
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-amber-300 border border-white/20 backdrop-blur-sm">
+                <Star size={13} className="fill-amber-400 text-amber-400" /> Categoría Superhost & Smart Lock
+              </span>
+            </div>
           </div>
 
           {/* Caja Flotante de Reserva Inteligente */}
-          <form onSubmit={handleSearchSubmit} className="max-w-5xl mx-auto bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
+          <form onSubmit={handleSearchSubmit} className="max-w-5xl mx-auto lg:mx-0 lg:ml-8 bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
             {/* Pestañas de Alcance Geográfico */}
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4 mb-5">
               {[
