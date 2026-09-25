@@ -47,8 +47,9 @@ export default function AdminLayout({
   const [userRole, setUserRole] = useState("Administrador")
   
   useEffect(() => {
-    const savedTheme = localStorage.getItem('sara_theme')
-    if(savedTheme) {
+    const savedTheme = localStorage.getItem('sara_theme') || ''
+    document.documentElement.classList.remove('theme-ocean', 'theme-gold', 'theme-apucons', 'theme-sunset', 'theme-nordic', 'theme-ruby')
+    if (savedTheme) {
       document.documentElement.classList.add(savedTheme)
     }
   }, [])
@@ -177,7 +178,7 @@ export default function AdminLayout({
         <div className="flex h-screen bg-slate-100 overflow-hidden print:h-auto print:block print:bg-white">
       
       {/* Sidebar */}
-      <aside className={`bg-[#1a2332] text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>
+      <aside className={`bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>
         {/* Header del sidebar */}
         <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
           <div className="flex items-center gap-3 overflow-hidden">
@@ -219,7 +220,7 @@ export default function AdminLayout({
                         title={item.label}
                         className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition-all my-1 ${
                           isActive 
-                            ? "bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-400/40" 
+                            ? "bg-brand-sage text-white shadow-lg ring-2 ring-brand-sage/40" 
                             : "text-gray-400 hover:text-white hover:bg-white/10"
                         }`}
                       >
@@ -241,7 +242,7 @@ export default function AdminLayout({
                     onClick={() => toggleGroup(group.title)}
                     className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
                       hasActiveItem
-                        ? "text-emerald-400 font-bold bg-white/5"
+                        ? "text-brand-sage font-bold bg-white/5"
                         : isOpen 
                           ? "bg-white/10 text-white" 
                           : "text-gray-400 hover:bg-white/5 hover:text-white"
@@ -262,7 +263,7 @@ export default function AdminLayout({
                             href={item.href} 
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all ${
                               isActive 
-                                ? "bg-emerald-600 text-white shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/30" 
+                                ? "bg-brand-sage text-white shadow-md shadow-black/30 ring-1 ring-white/20" 
                                 : "text-gray-300 hover:bg-white/10 hover:text-white font-medium"
                             }`}
                           >
@@ -323,7 +324,7 @@ export default function AdminLayout({
             <div className="text-sm text-gray-500 font-medium">
               Hola, {userName !== "Administrador" ? userName : ""} <span className="text-xs ml-1 px-2 py-1 bg-gray-100 rounded text-brand-dark font-bold border border-gray-200">{userRole}</span>
             </div>
-            <div className="w-9 h-9 rounded-full bg-brand-sage flex items-center justify-center font-bold text-brand-dark">
+            <div className="w-9 h-9 rounded-full bg-brand-sage flex items-center justify-center font-bold text-white shadow-sm">
               {userInitials}
             </div>
           </div>

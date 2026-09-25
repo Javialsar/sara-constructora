@@ -979,7 +979,7 @@ export default function PresupuestosRealesPage() {
             </div>
           </div>
           {isBorrador && (
-            <button onClick={handleMarcarEntregado} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow-sm">
+            <button onClick={handleMarcarEntregado} className="bg-brand-sage hover:opacity-90 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 text-sm shadow-sm transition-all">
               <CheckCircle2 size={16} /> Marcar como Entregado
             </button>
           )}
