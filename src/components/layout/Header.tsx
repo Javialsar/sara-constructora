@@ -11,6 +11,8 @@ const navLinks = [
   { name: "Nosotros", href: "/nosotros" },
   { name: "Servicios", href: "/servicios" },
   { name: "Proyectos", href: "/proyectos" },
+  { name: "Inmobiliaria", href: "/inmobiliaria", isFeatured: true },
+  { name: "Airbnb", href: "/airbnb", isFeatured: true },
   { name: "Noticias", href: "/noticias" },
   { name: "FAQ", href: "/#faq" },
   { name: "Clientes", href: "/clientes" },
@@ -66,7 +68,7 @@ export default function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-8">
+        <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
           {navLinks.map((link) => (
             <Link 
               key={link.name} 
@@ -81,7 +83,12 @@ export default function Header() {
                   }
                 }
               }}
-              className="text-xs font-bold uppercase tracking-widest text-brand-black hover:text-brand-sage transition-colors"
+              className={cn(
+                "text-[11px] xl:text-xs font-bold uppercase tracking-wider transition-colors",
+                link.isFeatured 
+                  ? "text-brand-sage hover:text-brand-dark px-2 py-1 rounded bg-brand-sage/10 border border-brand-sage/20" 
+                  : "text-brand-black hover:text-brand-sage"
+              )}
             >
               {link.name}
             </Link>
