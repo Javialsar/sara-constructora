@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings} from "lucide-react"
+import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Copy, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings} from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
 import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } from "@/lib/pdfGenerator"
 import autoTable from "jspdf-autotable"
@@ -166,6 +166,63 @@ export default function PresupuestosRealesPage() {
       setIsNewModalOpen(false)
       fetchPresupuestos()
       openEditor(data)
+    }
+  }
+
+  
+  const handleClonePresupuesto = async (presupuesto: any, e: any) => {
+    e.stopPropagation();
+    if (!confirm(`¿Estás seguro de duplicar el presupuesto "${presupuesto.nombre_proyecto}"? Se copiarán todos sus rubros e insumos.`)) return;
+
+    try {
+      const { id, created_at, costo_directo_total, gran_total, ...parentData } = presupuesto;
+      
+      // 1. Insert new budget
+      const { data: newPresupuesto, error: errParent } = await supabase.from('presupuestos_reales').insert([{
+        ...parentData,
+        nombre_proyecto: parentData.nombre_proyecto + " (Copia)",
+        estado: 'Borrador'
+      }]).select().single();
+      
+      if (errParent) throw errParent;
+
+      // 2. Fetch old rubros
+      const { data: oldRubros } = await supabase.from('presupuesto_rubros').select('*').eq('presupuesto_id', id);
+      
+      if (oldRubros && oldRubros.length > 0) {
+        // We will insert rubros one by one to reliably map their new IDs for their insumos
+        for (const oldRubro of oldRubros) {
+          const { id: oldRubroId, created_at: cat, ...rData } = oldRubro;
+          
+          const { data: newRubro, error: errRubro } = await supabase.from('presupuesto_rubros').insert([{
+            ...rData,
+            presupuesto_id: newPresupuesto.id
+          }]).select().single();
+          
+          if (errRubro) throw errRubro;
+
+          // Fetch old insumos for this specific rubro
+          const { data: oldInsumos } = await supabase.from('presupuesto_rubro_insumos').select('*').eq('presupuesto_rubro_id', oldRubroId);
+          
+          if (oldInsumos && oldInsumos.length > 0) {
+            const insumosPayload = oldInsumos.map((ins: any) => {
+              const { id: oldInsId, created_at: catIns, ...iData } = ins;
+              return {
+                ...iData,
+                presupuesto_rubro_id: newRubro.id
+              };
+            });
+            await supabase.from('presupuesto_rubro_insumos').insert(insumosPayload);
+          }
+        }
+      }
+      
+      alert("¡Presupuesto clonado con éxito!");
+      queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      
+    } catch (error: any) {
+      console.error("Error al clonar:", error);
+      alert("Ocurrió un error al clonar el presupuesto. Revisa la consola.");
     }
   }
 
@@ -1530,7 +1587,15 @@ export default function PresupuestosRealesPage() {
               <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>{p.estado || 'Borrador'}</span></td>
               <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
               <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
-              <td className="px-6 py-3 text-center"><span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span>{userRole === 'admin' && <button onClick={(e) => handleDeletePresupuesto(p.id, e)} className="text-gray-400 hover:text-red-500 p-1.5"><Trash2 size={16}/></button>}</td>
+              <td className="px-6 py-3 text-center">
+  <span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span>
+  {userRole === 'admin' && (
+    <>
+      <button onClick={(e) => handleClonePresupuesto(p, e)} title="Duplicar Presupuesto" className="text-gray-400 hover:text-blue-500 p-1.5 transition-colors"><Copy size={16}/></button>
+      <button onClick={(e) => handleDeletePresupuesto(p.id, e)} title="Eliminar Presupuesto" className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"><Trash2 size={16}/></button>
+    </>
+  )}
+</td>
             </tr>
           ))}
         </tbody></table>
