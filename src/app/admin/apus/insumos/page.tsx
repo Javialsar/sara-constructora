@@ -1,5 +1,9 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -296,14 +300,36 @@ function GruposManager({
 // =============================================
 // VISTA PRINCIPAL: CATÁLOGO DE INSUMOS
 // =============================================
+
+const insumoSchema = z.object({
+  codigo: z.string().optional(),
+  nombre: z.string().min(3, "Requerido"),
+  descripcion: z.string().optional(),
+  unidad: z.string().min(1, "Requerido"),
+  tipo: z.string().min(1, "Requerido"),
+  precio_sin_iva: z.number().min(0, "No negativo"),
+  proveedor_id: z.string().nullable().optional(),
+  proveedores_ids: z.array(z.string()).optional(),
+  subfamilia_id: z.string().nullable().optional(),
+  categoria: z.string().optional()
+});
+type InsumoFormValues = z.infer<typeof insumoSchema>;
+
 export default function InsumosPage() {
-  const supabase = createClient()
-  const [insumos, setInsumos] = useState<Insumo[]>([])
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+  const { data: insumos = [], isLoading: loading } = useQuery({
+    queryKey: ['insumos'],
+    queryFn: async () => {
+      const data = await fetchAll('insumos', 'nombre');
+      return data || [];
+    }
+  });
+
   const [familias, setFamilias] = useState<Familia[]>([])
   const [subfamilias, setSubfamilias] = useState<Subfamilia[]>([])
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [insumoProvMap, setInsumoProvMap] = useState<Record<string, string[]>>({})
-  const [loading, setLoading] = useState(true)
 
   // Vista activa
   const [vista, setVista] = useState<'catalogo' | 'grupos'>('catalogo')
@@ -322,12 +348,66 @@ export default function InsumosPage() {
   // Modal insumo
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [formData, setFormData] = useState({
-    codigo: "", nombre: "", descripcion: "", unidad: "",
-    tipo: "material", categoria: "", precio_sin_iva: 0,
-    proveedor_id: "", proveedores_ids: [] as string[], subfamilia_id: ""
-  })
+
+  const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, setValue: setNewValue, watch: watchNew, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<InsumoFormValues>({
+    resolver: zodResolver(insumoSchema),
+    defaultValues: { codigo: "", nombre: "", descripcion: "", unidad: "u", tipo: "material", precio_sin_iva: 0, proveedor_id: "", proveedores_ids: [], subfamilia_id: "", categoria: "" }
+  });
+
+  const formData = watchNew(); 
+  const setFormData = (updater: any) => {
+     if (typeof updater === 'function') {
+        const prev = watchNew();
+        const next = updater(prev);
+        Object.keys(next).forEach(k => setNewValue(k as any, next[k]));
+     } else {
+        Object.keys(updater).forEach(k => setNewValue(k as any, updater[k]));
+     }
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async (payload: InsumoFormValues) => {
+        const { proveedores_ids, ...restForm } = payload;
+        const normalizedName = restForm.nombre.trim().toLowerCase();
+        const existing = insumos.find(i => i.nombre.toLowerCase().trim() === normalizedName && i.id !== editingId);
+        
+        if (existing) {
+          throw new Error("Ya existe un insumo con este nombre.");
+        }
+
+        const dbPayload = {
+            ...restForm,
+            proveedor_id: restForm.proveedor_id === "" ? null : restForm.proveedor_id,
+            subfamilia_id: restForm.subfamilia_id === "" ? null : restForm.subfamilia_id,
+            fecha_actualizacion: new Date().toISOString()
+        };
+
+        if (editingId) {
+          const { error } = await supabase.from('insumos').update(dbPayload).eq('id', editingId)
+          if (error) throw error;
+          await supabase.from('insumo_proveedores').delete().eq('insumo_id', editingId)
+          if (proveedores_ids && proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map((pid: string) => ({ insumo_id: editingId, proveedor_id: pid })))
+        } else {
+          const { data: newInsumo, error } = await supabase.from('insumos').insert([dbPayload]).select().single()
+          if (error) throw error;
+          if (proveedores_ids && proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map((pid: string) => ({ insumo_id: newInsumo.id, proveedor_id: pid })))
+        }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['insumos'] });
+      setIsModalOpen(false);
+      setEditingId(null);
+      resetNewForm();
+    },
+    onError: (err: any) => {
+      alert(err.message || "Error al guardar el insumo.");
+    }
+  });
+
+  const submitNewInsumo = (data: InsumoFormValues) => {
+    createMutation.mutate(data);
+  };
+
 
   useEffect(() => { fetchData() }, [])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, selectedFamilia, selectedSubfamilia])
@@ -388,22 +468,19 @@ export default function InsumosPage() {
       });
       const seq = maxSeq + 1;
       const generatedCode = `${famCode}-${subCode}-${seq.toString().padStart(3, '0')}`;
-      setFormData(prev => prev.codigo !== generatedCode ? { ...prev, codigo: generatedCode } : prev);
+      setFormData((prev: any) => prev.codigo !== generatedCode ? { ...prev, codigo: generatedCode } : prev);
     }
   }, [formData.subfamilia_id, formData.tipo, isModalOpen, editingId, insumos, familias, subfamilias]);
 
   const fetchData = async () => {
-    setLoading(true)
     try {
-      const [dInsumos, dFamilias, dSubfamilias, dProv, dIP] = await Promise.all([
-        fetchAll('insumos', 'nombre'),
-        fetchAll('familias', 'nombre').then(data => data.filter(f => f.grupo_sugerido !== 'rubro')),
+      const [dFamilias, dSubfamilias, dProv, dIP] = await Promise.all([
+        fetchAll('familias', 'nombre').then(data => data.filter((f:any) => f.grupo_sugerido !== 'rubro')),
         fetchAll('subfamilias', 'nombre'),
         supabase.from('proveedores').select('id, razon_social').order('razon_social', { ascending: true }).limit(10000).then(res => res.data || []),
         fetchAll('insumo_proveedores')
       ])
       
-      if (dInsumos) setInsumos(dInsumos)
       if (dFamilias) {
         setFamilias(dFamilias)
         setExpandedFamilias(new Set(dFamilias.map((f: Familia) => f.id)))
@@ -420,8 +497,6 @@ export default function InsumosPage() {
       }
     } catch (e) {
       console.error(e)
-    } finally {
-      setLoading(false)
     }
   }
   const toggleFamilia = (id: string) => {
@@ -483,41 +558,7 @@ export default function InsumosPage() {
 
   const closeModal = () => { setIsModalOpen(false); setEditingId(null) }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setSaving(true)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { proveedores_ids, ...restForm } = formData
-    const payload = {
-      ...restForm,
-      proveedor_id: formData.proveedor_id === "" ? null : formData.proveedor_id,
-      subfamilia_id: formData.subfamilia_id === "" ? null : formData.subfamilia_id,
-      fecha_actualizacion: new Date().toISOString()
-    }
-          // Validación de duplicados por nombre exacto
-      const normalizedName = payload.nombre.trim().toLowerCase();
-      const existing = insumos.find(i => i.nombre.toLowerCase().trim() === normalizedName && i.id !== editingId);
-      
-      if (existing) {
-        alert("Ya existe un insumo con este nombre. Para evitar duplicados, utiliza otro nombre.");
-        setSaving(false);
-        return;
-      }
-
-      if (editingId) {
-        const { error } = await supabase.from('insumos').update(payload).eq('id', editingId)
-        if (!error) {
-          await supabase.from('insumo_proveedores').delete().eq('insumo_id', editingId)
-          if (proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map(pid => ({ insumo_id: editingId, proveedor_id: pid })))
-          setSaving(false); closeModal(); fetchData()
-        } else { setSaving(false); alert("Error al actualizar el insumo."); console.error(error) }
-      } else {
-        const { data: newInsumo, error } = await supabase.from('insumos').insert([payload]).select().single()
-        if (!error && newInsumo) {
-          if (proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map(pid => ({ insumo_id: newInsumo.id, proveedor_id: pid })))
-          setSaving(false); closeModal(); fetchData()
-        } else { setSaving(false); alert("Error al guardar. Verifica los datos."); console.error(error) }
-      }
-  }
+  
 
   const handleDelete = async (id: string) => {
     if (!confirm("¿Eliminar este insumo de forma permanente?")) return
@@ -752,12 +793,11 @@ export default function InsumosPage() {
               </h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleNewSubmit(submitNewInsumo)} className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Fila 1: Subgrupo y Tipo */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Grupo / Subgrupo</label>
-                    <select value={formData.subfamilia_id} onChange={e => {
+                    <select {...registerNew("subfamilia_id")} onChange={e => {
                         const newSubId = e.target.value;
                         let newTipo = formData.tipo;
                         if (newSubId) {
@@ -767,78 +807,58 @@ export default function InsumosPage() {
                               newTipo = currentFam.grupo_sugerido;
                            }
                         }
-                        setFormData({...formData, subfamilia_id: newSubId, tipo: newTipo});
+                        setNewValue("subfamilia_id", newSubId);
+                        setNewValue("tipo", newTipo);
                       }}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage">
                       <option value="">— Sin subgrupo —</option>
                       {familias.map(fam => (
                         <optgroup key={fam.id} label={fam.nombre}>
-                          {subfsPorFamilia(fam.id).map(sf => (
-                            <option key={sf.id} value={sf.id}>{sf.nombre}</option>
+                          {subfamilias.filter(s => s.familia_id === fam.id).map(sub => (
+                            <option key={sub.id} value={sub.id}>{sub.nombre}</option>
                           ))}
                         </optgroup>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tipo (Categoría) *</label>
-                    <select required value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage">
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código Generado</label>
+                    <input type="text" {...registerNew("codigo")} disabled className="w-full border border-gray-200 bg-gray-50 rounded-lg px-3 py-2 text-sm font-mono text-gray-500 outline-none" />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Insumo</label>
+                  <input type="text" {...registerNew("nombre")} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${newErrors.nombre ? 'border-red-500' : 'border-gray-300'}`} placeholder="Ej: Cemento Portland 50kg..." />
+                  {newErrors.nombre && <span className="text-red-500 text-xs">{newErrors.nombre.message}</span>}
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad</label>
+                    <input type="text" {...registerNew("unidad")} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${newErrors.unidad ? 'border-red-500' : 'border-gray-300'}`} placeholder="m, m2, m3, kg, u" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Precio Sin IVA</label>
+                    <input type="number" step="0.01" min="0" {...registerNew("precio_sin_iva", { valueAsNumber: true })} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${newErrors.precio_sin_iva ? 'border-red-500' : 'border-gray-300'}`} placeholder="0.00" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Tipo</label>
+                    <select {...registerNew("tipo")} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage bg-gray-50" disabled>
                       <option value="material">Materiales</option>
-                      <option value="equipo">Equipos y Maquinaria</option>
-                      <option value="mano_de_obra">Mano de Obra</option>
-                    </select>
-                  </div>
-
-                  {/* Fila 2: Código y Unidad */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código</label>
-                    <input type="text" placeholder="Ej. MAT-001" value={formData.codigo}
-                      readOnly={true}
-                      className="w-full border bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed font-mono rounded-lg px-3 py-2 text-sm outline-none" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad de Medida *</label>
-                    <input required type="text" placeholder="kg, m3, glb, h, u" value={formData.unidad}
-                      onChange={e => setFormData({...formData, unidad: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage" />
-                  </div>
-
-                  {/* Fila 3: Nombre */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre / Descripción *</label>
-                    <input required type="text" placeholder="Ej. Cemento Portland Tipo I (Saco 50kg)" value={formData.nombre}
-                      onChange={e => setFormData({...formData, nombre: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage" />
-                  </div>
-
-                  {/* Fila 4: Precio y Proveedor */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Precio Ref. (sin IVA)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                      <input type="number" step="0.0001" min="0" placeholder="0.0000" value={formData.precio_sin_iva || ''}
-                        onChange={e => setFormData({...formData, precio_sin_iva: e.target.value as any})}
-                        className="w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Proveedor Principal</label>
-                    <select value={formData.proveedor_id} onChange={e => setFormData({...formData, proveedor_id: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage">
-                      <option value="">— Sin proveedor —</option>
-                      {proveedores.map(p => <option key={p.id} value={p.id}>{p.razon_social}</option>)}
+                      <option value="equipo">Equipos</option>
+                      <option value="mano de obra">Mano de Obra</option>
                     </select>
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button type="button" onClick={closeModal} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
-                <button type="submit" disabled={saving} className="px-5 py-2 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage transition-colors flex items-center gap-2 disabled:opacity-50">
-                  {saving && <Loader2 size={14} className="animate-spin" />}
-                  {saving ? "Guardando..." : "Guardar Insumo"}
-                </button>
-              </div>
-            </form>
+                
+                <div className="pt-4 border-t border-gray-100 flex justify-end gap-3 mt-4">
+                  <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
+                  <button type="submit" disabled={isNewSubmitting || createMutation.isPending} className="px-5 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage transition-colors disabled:opacity-50">
+                    {createMutation.isPending ? 'Guardando...' : (editingId ? 'Actualizar Insumo' : 'Registrar Insumo')}
+                  </button>
+                </div>
+              </form>
           </div>
         </div>
       )}
