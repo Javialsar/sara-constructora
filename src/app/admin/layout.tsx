@@ -83,7 +83,7 @@ export default function AdminLayout({
     fetchData()
   }, [])
 
-  const navGroups = [
+  const allNavGroups = [
     {
       title: "PANEL PRINCIPAL",
       items: [
@@ -125,7 +125,24 @@ export default function AdminLayout({
         { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
       ]
     }
-  ]
+      ]
+    
+    // RBAC FRONTEND: Filtrar menú según el rol
+    const navGroups = allNavGroups.map(cat => {
+        if (userRole === 'tecnico' || userRole === 'Técnico') {
+            // Técnicos no ven parámetros, maestros de APUs ni configuraciones web
+            return {
+                ...cat,
+                items: cat.items.filter(i => 
+                    i.href !== '/admin/parametros' &&
+                    i.href !== '/admin/apus/insumos' &&
+                    i.href !== '/admin/apus/rubros' &&
+                    i.href !== '/admin/cotizador'
+                )
+            }
+        }
+        return cat;
+    }).filter(cat => cat.items.length > 0);
 
   return (
     <>

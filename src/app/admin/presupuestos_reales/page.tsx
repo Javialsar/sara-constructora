@@ -144,10 +144,25 @@ export default function PresupuestosRealesPage() {
 
   
   const [userRole, setUserRole] = useState('admin')
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
     fetchPresupuestos()
     fetchProyectosCRM()
+    
+    // Fetch actual user role
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        if (user.user_metadata?.role) {
+          setUserRole(user.user_metadata.role)
+        }
+        if (user.user_metadata?.full_name) {
+          setUserName(user.user_metadata.full_name)
+        }
+      }
+    }
+    fetchUser()
   }, [])
 
   const fetchProyectosCRM = async () => {
@@ -236,7 +251,8 @@ export default function PresupuestosRealesPage() {
 
   const handleSaveIndirectos = async () => {
     const { error } = await supabase.from('presupuestos_reales').update({
-      indirectos_config: indForm
+      indirectos_config: indForm,
+      observaciones: currentPresupuesto.observaciones ? currentPresupuesto.observaciones + `\n(Modificado por ${userName} - ${new Date().toLocaleDateString()})` : `Modificado por ${userName} - ${new Date().toLocaleDateString()}`
     }).eq('id', currentPresupuesto.id)
     if(!error) {
       setCurrentPresupuesto({...currentPresupuesto, porcentaje_admin: indForm.admin, porcentaje_imprevistos: indForm.imprevistos, porcentaje_utilidad: indForm.utilidad})
