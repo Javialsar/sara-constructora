@@ -49,7 +49,7 @@ export default function PresupuestosRealesPage() {
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
-  const [showFormulas, setShowFormulas] = useState(true)
+  const [showFormulas, setShowFormulas] = useState(false)
   const [openGroup, setOpenGroup] = useState({ 1: false, 2: false, 3: true, 4: true, 5: true, 6: true })
   const [activeTab, setActiveTab] = useState('detalle')
   
@@ -176,7 +176,7 @@ export default function PresupuestosRealesPage() {
     if (!confirm(`¿Estás seguro de duplicar el presupuesto "${presupuesto.nombre_proyecto}"? Se copiarán todos sus rubros e insumos.`)) return;
 
     try {
-      const { id, created_at, costo_directo_total, gran_total, ...parentData } = presupuesto;
+      const { id, created_at, costo_directo_total, gran_total, clientes, proyectos, ...parentData } = presupuesto;
       
       // 1. Insert new budget
       const { data: newPresupuesto, error: errParent } = await supabase.from('presupuestos_reales').insert([{
@@ -1383,12 +1383,16 @@ export default function PresupuestosRealesPage() {
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Precios unitarios elementales (PUEs)</td>
-                  <td className="px-6 py-4 text-center">
-                    <button onClick={() => alert("Próximamente")} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <FileText size={14}/> Generar
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={() => handleGenerateExplosionPDF()} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                        <FileText size={14}/> Generar
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={handleGeneratePresupuestoGeneralExcel} className="bg-green-600 hover:bg-green-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                          <Download size={14}/> Excel
+                      </button>
+                    </td>
                   <td className="px-6 py-4 text-gray-600">Precios unitarios elementales.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
