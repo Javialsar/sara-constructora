@@ -9,6 +9,7 @@ import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight,
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
+import { membreteBase64 } from "@/lib/membreteBase64"
 
 
 type Familia = { id: string, nombre: string, grupo_sugerido: string }
@@ -457,37 +458,60 @@ const renderInsumoRow = (item: any) => (
     <GruposManager familias={familias} subfamilias={subfamilias} setFamilias={setFamilias} setSubfamilias={setSubfamilias} onBack={() => setVista('catalogo')} />
   )
 
-  // Exportar Excel
+  // Exportar Excel con Encabezado Institucional
   const exportToExcel = () => {
-    const dataToExport = filteredRubros.map((r: any) => {
+    const headerRows = [
+      ["SARA CONSTRUCTORA S.A."],
+      ["SISTEMA INTEGRADO DE CONTROL OPERATIVO - MÓDULO APU-SARA"],
+      ["REPORTE: CATÁLOGO DE RUBROS (ANÁLISIS DE PRECIOS UNITARIOS)"],
+      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+      [`Total de Registros: ${filteredRubros.length}`],
+      [],
+      ["Nº", "CÓDIGO", "NOMBRE DEL RUBRO", "GRUPO", "UNIDAD", "COSTO DIRECTO ($)"]
+    ];
+
+    const dataRows = filteredRubros.map((r: any, idx: number) => {
       const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
       const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
-      return {
-        "Código": r.codigo || "",
-        "Nombre del Rubro": r.nombre,
-        "Grupo": fam ? fam.nombre : "",
-        "Unidad": r.unidad,
-        "Costo Directo ($)": r.total_costo_directo || 0
-      }
+      return [
+        idx + 1,
+        r.codigo || "",
+        r.nombre,
+        fam ? fam.nombre : "",
+        r.unidad,
+        Number(r.total_costo_directo || 0)
+      ];
     });
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+    const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Rubros");
     XLSX.writeFile(wb, "Catalogo_Rubros.xlsx");
   }
 
-  // Exportar PDF
+  // Exportar PDF con Membrete Institucional
   const exportToPDF = () => {
     const doc = new jsPDF('landscape');
-    doc.text("Catálogo de Rubros (APU) - SARA Constructora", 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Total registros: ${filteredRubros.length} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-    const tableColumn = ["Código", "Nombre del Rubro", "Grupo", "Unidad", "Costo Directo ($)"];
-    const tableRows = filteredRubros.map((r: any) => {
+    // Membrete Oficial centrado
+    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("CATÁLOGO DE RUBROS Y RECETAS (APU)", 14, 45);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
+    doc.text(`Total de registros: ${filteredRubros.length}`, 14, 56);
+
+    const tableColumn = ["Nº", "Código", "Nombre del Rubro", "Grupo", "Unidad", "Costo Directo ($)"];
+    const tableRows = filteredRubros.map((r: any, idx: number) => {
       const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
       const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
       return [
+        idx + 1,
         r.codigo || "—",
         r.nombre,
         fam ? fam.nombre : "—",
@@ -499,10 +523,10 @@ const renderInsumoRow = (item: any) => (
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 28,
+      startY: 61,
       theme: 'grid',
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [0, 71, 63] }
+      headStyles: { fillColor: [0, 71, 63] } // Brand dark / sage
     });
 
     doc.save("Catalogo_Rubros.pdf");

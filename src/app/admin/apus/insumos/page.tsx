@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
+import { membreteBase64 } from "@/lib/membreteBase64"
 
 type Proveedor = { id: string; razon_social: string }
 type Familia = { id: string; nombre: string; grupo_sugerido: string }
@@ -626,36 +627,59 @@ export default function InsumosPage() {
     )
   }
 
-  // Exportar Excel
+  // Exportar Excel con Encabezado Institucional
   const exportToExcel = () => {
-    const dataToExport = filteredInsumos.map(i => {
+    const headerRows = [
+      ["SARA CONSTRUCTORA S.A."],
+      ["SISTEMA INTEGRADO DE CONTROL OPERATIVO - MÓDULO APU-SARA"],
+      ["REPORTE: CATÁLOGO DE INSUMOS (MATERIALES, MANO DE OBRA, EQUIPOS)"],
+      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+      [`Total de Registros: ${filteredInsumos.length}`],
+      [],
+      ["Nº", "CÓDIGO", "NOMBRE DEL INSUMO", "TIPO", "SUBGRUPO", "UNIDAD", "PRECIO REF. SIN IVA ($)"]
+    ];
+
+    const dataRows = filteredInsumos.map((i, idx) => {
       const sf = subfamilias.find(s => s.id === i.subfamilia_id);
-      return {
-        "Código": i.codigo || "",
-        "Nombre": i.nombre,
-        "Tipo": i.tipo,
-        "Subgrupo": sf ? sf.nombre : "",
-        "Unidad": i.unidad,
-        "Precio Sin IVA": i.precio_sin_iva
-      }
+      return [
+        idx + 1,
+        i.codigo || "",
+        i.nombre,
+        i.tipo.toUpperCase(),
+        sf ? sf.nombre : "",
+        i.unidad,
+        Number(i.precio_sin_iva)
+      ];
     });
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+
+    const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Insumos");
     XLSX.writeFile(wb, "Catalogo_Insumos.xlsx");
   }
 
-  // Exportar PDF
+  // Exportar PDF con Membrete Institucional
   const exportToPDF = () => {
     const doc = new jsPDF('landscape');
-    doc.text("Catálogo de Insumos - SARA Constructora", 14, 15);
-    doc.setFontSize(10);
-    doc.text(`Total registros: ${filteredInsumos.length} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
+    const pageWidth = doc.internal.pageSize.getWidth();
 
-    const tableColumn = ["Código", "Nombre", "Tipo", "Subgrupo", "Unidad", "Precio Ref. ($)"];
-    const tableRows = filteredInsumos.map(i => {
+    // Membrete Oficial centrado
+    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("CATÁLOGO MAESTRO DE INSUMOS", 14, 45);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
+    doc.text(`Total de registros: ${filteredInsumos.length}`, 14, 56);
+
+    const tableColumn = ["Nº", "Código", "Nombre del Insumo", "Tipo", "Subgrupo", "Unidad", "Precio Ref. ($)"];
+    const tableRows = filteredInsumos.map((i, idx) => {
       const sf = subfamilias.find(s => s.id === i.subfamilia_id);
       return [
+        idx + 1,
         i.codigo || "—",
         i.nombre,
         i.tipo.toUpperCase(),
@@ -668,10 +692,10 @@ export default function InsumosPage() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 28,
+      startY: 61,
       theme: 'grid',
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [0, 71, 63] }
+      headStyles: { fillColor: [0, 71, 63] } // Brand dark / sage
     });
 
     doc.save("Catalogo_Insumos.pdf");

@@ -9,6 +9,7 @@ import {
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
+import { membreteBase64 } from "@/lib/membreteBase64"
 
 // Tipado para los registros
 type AuditLog = {
@@ -111,22 +112,54 @@ export default function HistorialPage() {
     return hours
   }, [filteredLogs])
 
-  // Exportar Excel
+  // Exportar Excel con Encabezado Institucional
   const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredLogs)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Historial")
-    XLSX.writeFile(workbook, "Historial_Accesos.xlsx")
+    const headerRows = [
+      ["SARA CONSTRUCTORA S.A."],
+      ["SISTEMA INTEGRADO DE AUDITORÍA Y TRAZABILIDAD"],
+      ["REPORTE: HISTORIAL DE ACTIVIDADES Y ACCESOS"],
+      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+      [`Total de Registros: ${filteredLogs.length}`],
+      [],
+      ["Nº", "FECHA", "HORA", "USUARIO", "ACTIVIDAD", "DIRECCIÓN IP", "GEOLOCALIZACIÓN", "DISPOSITIVO", "TIEMPO ACTIVO"]
+    ];
+
+    const dataRows = filteredLogs.map((log, idx) => [
+      idx + 1,
+      log.fecha,
+      log.hora,
+      log.usuario,
+      log.actividad,
+      log.ip,
+      log.geolocalizacion,
+      log.dispositivo,
+      log.tiempo_activo
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Historial");
+    XLSX.writeFile(workbook, "Historial_Auditoria_Accesos.xlsx");
   }
 
-  // Exportar PDF
+  // Exportar PDF con Membrete Institucional
   const exportToPDF = () => {
-    const doc = new jsPDF('landscape')
-    doc.text("Historial de Auditoría y Accesos", 14, 15)
-    doc.setFontSize(10)
-    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 22)
+    const doc = new jsPDF('landscape');
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Membrete Oficial centrado
+    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("HISTORIAL DE AUDITORÍA Y ACCESOS", 14, 45);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
+    doc.text(`Total de registros: ${filteredLogs.length}`, 14, 56);
     
-    const tableColumn = ["Fecha", "Hora", "Usuario", "Actividad", "IP", "Ubicación", "Tiempo"]
+    const tableColumn = ["Fecha", "Hora", "Usuario", "Actividad", "IP", "Ubicación", "Dispositivo", "Tiempo"];
     const tableRows = filteredLogs.map(log => [
       log.fecha,
       log.hora,
@@ -134,19 +167,20 @@ export default function HistorialPage() {
       log.actividad,
       log.ip,
       log.geolocalizacion,
+      log.dispositivo,
       log.tiempo_activo
-    ])
+    ]);
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 28,
+      startY: 61,
       theme: 'grid',
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [30, 41, 59] } // Color brand-dark aprox
-    })
+      headStyles: { fillColor: [0, 71, 63] } // Brand dark / sage
+    });
     
-    doc.save("Historial_Auditoria.pdf")
+    doc.save("Historial_Auditoria.pdf");
   }
 
   return (

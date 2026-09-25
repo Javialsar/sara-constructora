@@ -6,6 +6,7 @@ import {
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
+import { membreteBase64 } from "@/lib/membreteBase64"
 
 type UserStatus = 'activo' | 'inactivo' | 'bloqueado'
 type UserRole = 'Administrador' | 'Técnico' | 'Cliente'
@@ -102,33 +103,55 @@ export default function AccesosPage() {
     })
   }, [users, searchTerm, roleFilter, statusFilter])
 
-  // Exportar Excel
+  // Exportar Excel con Encabezado Institucional
   const exportToExcel = () => {
-    const dataToExport = filteredUsers.map(u => ({
-      "Fecha Creación": u.fecha_creacion,
-      "Hora": u.hora_creacion,
-      "Cédula": u.cedula,
-      "Nombres": u.nombres,
-      "Apellidos": u.apellidos,
-      "Email": u.email,
-      "Teléfono": u.telefono,
-      "Rol": u.rol,
-      "Estado": u.estado
-    }))
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios")
-    XLSX.writeFile(workbook, "Nomina_Usuarios_Accesos.xlsx")
+    const headerRows = [
+      ["SARA CONSTRUCTORA S.A."],
+      ["SISTEMA INTEGRADO DE GESTIÓN Y AUDITORÍA"],
+      ["REPORTE: NÓMINA Y CONTROL DE ACCESOS"],
+      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+      [`Total de Registros: ${filteredUsers.length}`],
+      [],
+      ["Nº", "FECHA CREACIÓN", "HORA", "CÉDULA", "NOMBRES", "APELLIDOS", "EMAIL", "TELÉFONO", "ROL", "ESTADO"]
+    ];
+
+    const dataRows = filteredUsers.map((u, idx) => [
+      idx + 1,
+      u.fecha_creacion,
+      u.hora_creacion,
+      u.cedula,
+      u.nombres,
+      u.apellidos,
+      u.email,
+      u.telefono,
+      u.rol,
+      u.estado.toUpperCase()
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios");
+    XLSX.writeFile(workbook, "Nomina_Usuarios_Accesos.xlsx");
   }
 
-  // Exportar PDF
+  // Exportar PDF con Membrete Institucional
   const exportToPDF = () => {
-    const doc = new jsPDF('landscape')
-    doc.text("Nómina y Control de Accesos - Usuarios", 14, 15)
-    doc.setFontSize(10)
-    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 22)
+    const doc = new jsPDF('landscape');
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    const tableColumn = ["Fecha", "Hora", "Cédula", "Nombres y Apellidos", "Email", "Teléfono", "Rol", "Estado"]
+    // Membrete Oficial centrado
+    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("NÓMINA Y CONTROL DE ACCESOS - USUARIOS", 14, 45);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
+    doc.text(`Total de registros: ${filteredUsers.length}`, 14, 56);
+    
+    const tableColumn = ["Fecha", "Hora", "Cédula", "Nombres y Apellidos", "Email", "Teléfono", "Rol", "Estado"];
     const tableRows = filteredUsers.map(u => [
       u.fecha_creacion,
       u.hora_creacion,
@@ -138,18 +161,18 @@ export default function AccesosPage() {
       u.telefono,
       u.rol,
       u.estado.toUpperCase()
-    ])
+    ]);
 
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 28,
+      startY: 61,
       theme: 'grid',
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [30, 41, 59] }
-    })
+      headStyles: { fillColor: [0, 71, 63] } // Brand Dark / Sage institucional
+    });
     
-    doc.save("Nomina_Usuarios_Accesos.pdf")
+    doc.save("Nomina_Usuarios_Accesos.pdf");
   }
 
   return (
