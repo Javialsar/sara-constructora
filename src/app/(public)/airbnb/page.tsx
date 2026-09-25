@@ -33,7 +33,17 @@ import {
   Compass,
   Map as MapIcon,
   LayoutGrid,
-  Columns
+  Columns,
+  CreditCard,
+  Lock,
+  Printer,
+  Download,
+  User,
+  Mail,
+  Phone,
+  FileText,
+  BadgeCheck,
+  Receipt
 } from "lucide-react"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 
@@ -374,6 +384,69 @@ export default function AirbnbPage() {
       return 1
     }
   }, [checkInDate, checkOutDate])
+
+  // Estados para el Proceso Completo de Reserva (Booking Flow)
+  const [bookingStay, setBookingStay] = useState<AirbnbListing | null>(null)
+  const [bookingStep, setBookingStep] = useState<1 | 2 | 3 | 4>(1)
+  const [isProcessingBooking, setIsProcessingBooking] = useState<boolean>(false)
+  const [confirmedReservationCode, setConfirmedReservationCode] = useState<string>("")
+  const [guestData, setGuestData] = useState({
+    nombre: "",
+    apellido: "",
+    identificacion: "",
+    email: "",
+    telefono: "+593 9",
+    ciudadPais: "Cuenca, Ecuador",
+    horaLlegada: "15:00 - 17:00",
+    peticiones: "",
+    metodoPago: "transferencia", // 'transferencia' | 'tarjeta' | 'anticipo'
+    numeroTarjeta: "4532 •••• •••• 8891",
+    expTarjeta: "12/28",
+    cvvTarjeta: "•••",
+    titularTarjeta: ""
+  })
+
+  const handleStartBooking = (stay: AirbnbListing) => {
+    setSelectedStay(null)
+    setBookingStay(stay)
+    setBookingStep(1)
+  }
+
+  const handleConfirmReservation = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    setIsProcessingBooking(true)
+    setTimeout(() => {
+      const randomCode = `SARA-RSV-2026-${Math.floor(1000 + Math.random() * 9000)}`
+      setConfirmedReservationCode(randomCode)
+      setIsProcessingBooking(false)
+      setBookingStep(4)
+    }, 900)
+  }
+
+  const getWhatsAppVoucherMessage = (stay: AirbnbListing) => {
+    const subtotal = stay.precioNoche * totalNoches
+    const granTotal = subtotal + stay.tarifaLimpieza
+    const msg = encodeURIComponent(
+      `✅ *COMPROBANTE DE RESERVA - SARA HOSPITALITY*\n` +
+      `🔖 *Código de Reserva:* ${confirmedReservationCode}\n` +
+      `🏨 *Alojamiento:* ${stay.titulo} (${stay.ciudad}, ${stay.pais} ${stay.bandera})\n` +
+      `👤 *Huésped Titular:* ${guestData.nombre} ${guestData.apellido}\n` +
+      `🆔 *Cédula/Pasaporte:* ${guestData.identificacion || 'N/A'}\n` +
+      `📞 *Contacto:* ${guestData.telefono}\n` +
+      `✉️ *Email:* ${guestData.email}\n\n` +
+      `🗓 *Llegada (Check-in):* ${checkInDate} (a partir de las 15:00)\n` +
+      `🗓 *Salida (Check-out):* ${checkOutDate} (hasta las 11:00)\n` +
+      `🌙 *Estadía:* ${totalNoches} noche(s) para ${guestsCount} huésped(es)\n` +
+      `🔑 *Clave Cerradura Inteligente (Self Check-in):* *#4829#*\n\n` +
+      `💰 *Desglose de Pago:*\n` +
+      `• ${totalNoches} noches × $${stay.precioNoche} = $${subtotal} USD\n` +
+      `• Tarifa de Limpieza = $${stay.tarifaLimpieza} USD\n` +
+      `• *TOTAL:* $${granTotal} USD (${guestData.metodoPago === 'transferencia' ? 'Transferencia Bancaria' : guestData.metodoPago === 'tarjeta' ? 'Tarjeta Cifrada' : 'Anticipo 30% Garantizado'})\n\n` +
+      `📍 *Ubicación:* ${stay.sector}, ${stay.ciudad}.\n` +
+      `¡Bienvenido a SARA Constructora & Hospitality!`
+    )
+    window.open(`https://wa.me/593981804023?text=${msg}`, "_blank")
+  }
 
   // Filtrado de alojamientos
   const filteredStays = useMemo(() => {
@@ -792,11 +865,8 @@ export default function AirbnbPage() {
                           </button>
 
                           <button
-                            onClick={() => {
-                              setSelectedStay(stay)
-                              setActivePhotoIdx(0)
-                            }}
-                            className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                            onClick={() => handleStartBooking(stay)}
+                            className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Calendar size={13} /> Reservar
                           </button>
@@ -1026,10 +1096,16 @@ export default function AirbnbPage() {
 
                   <div className="space-y-2">
                     <button
-                      onClick={() => openWhatsAppReserva(selectedStay)}
-                      className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all"
+                      onClick={() => handleStartBooking(selectedStay)}
+                      className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
                     >
-                      <MessageCircle size={16} /> Reservar Ahora por WhatsApp
+                      <Calendar size={16} /> Continuar al Proceso de Reserva
+                    </button>
+                    <button
+                      onClick={() => openWhatsAppReserva(selectedStay)}
+                      className="w-full py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <MessageCircle size={15} className="text-emerald-600" /> Consultar por WhatsApp
                     </button>
                     <p className="text-[11px] text-gray-400 text-center">
                       Confirmación y pago directo sin comisiones extras de portales
@@ -1037,6 +1113,630 @@ export default function AirbnbPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* 5. MODAL INTERACTIVO DE PROCESO DE RESERVA (BOOKING FLOW)    */}
+      {/* ============================================================ */}
+      {bookingStay && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto animate-fadeIn">
+          <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl border border-gray-100 relative flex flex-col my-auto max-h-[94vh]">
+            
+            {/* Header del Proceso de Reserva */}
+            <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-base">Proceso de Reserva Segura</h3>
+                  <p className="text-xs text-gray-400">
+                    {bookingStay.titulo} • {bookingStay.ciudad}, {bookingStay.pais} {bookingStay.bandera}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setBookingStay(null)}
+                className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Stepper / Indicador de Pasos */}
+            <div className="bg-slate-100 px-6 py-3 border-b border-gray-200 shrink-0">
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                {[
+                  { num: 1, label: "Fechas & Estancia" },
+                  { num: 2, label: "Datos Huésped" },
+                  { num: 3, label: "Pago / Garantía" },
+                  { num: 4, label: "Voucher Emitido" }
+                ].map((s) => {
+                  const isActive = bookingStep === s.num
+                  const isDone = bookingStep > s.num
+                  return (
+                    <div
+                      key={s.num}
+                      className={`flex flex-col items-center gap-1 transition-all ${
+                        isActive
+                          ? "text-slate-950 font-bold"
+                          : isDone
+                          ? "text-emerald-700 font-semibold"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                          isActive
+                            ? "bg-amber-500 text-slate-950 shadow-md ring-2 ring-amber-400/50"
+                            : isDone
+                            ? "bg-emerald-600 text-white"
+                            : "bg-gray-200 text-gray-500"
+                        }`}
+                      >
+                        {isDone ? <Check size={14} /> : s.num}
+                      </div>
+                      <span className="text-[11px] hidden sm:inline truncate max-w-full">{s.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Contenido Dinámico por Paso */}
+            <div className="p-6 overflow-y-auto space-y-6">
+
+              {/* PASO 1: FECHAS Y ESTANCIA */}
+              {bookingStep === 1 && (
+                <div className="space-y-5 animate-fadeIn">
+                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80">
+                    <img
+                      src={bookingStay.imagenes[0]}
+                      alt={bookingStay.titulo}
+                      className="w-24 h-20 rounded-xl object-cover shadow-sm shrink-0"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 text-xs text-amber-900 font-bold mb-0.5">
+                        <span>{bookingStay.bandera}</span>
+                        <span>{bookingStay.ciudad}, {bookingStay.sector}</span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-amber-700 flex items-center gap-0.5 font-bold">
+                          <Star size={12} className="fill-amber-500 text-amber-500" /> {bookingStay.rating.toFixed(2)}
+                        </span>
+                      </div>
+                      <h4 className="font-extrabold text-gray-900 text-sm md:text-base leading-snug">
+                        {bookingStay.titulo}
+                      </h4>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Capacidad máxima: <strong>{bookingStay.maxHuespedes} personas</strong> • {bookingStay.habitaciones} hab • {bookingStay.camas} cama(s)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
+                        Fecha Check-In (Entrada)
+                      </label>
+                      <input
+                        type="date"
+                        value={checkInDate}
+                        onChange={(e) => setCheckInDate(e.target.value)}
+                        className="w-full text-xs font-bold text-gray-800 bg-white p-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <span className="text-[10px] text-gray-400 mt-1 block">Check-in: 15:00 a 22:00</span>
+                    </div>
+
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
+                        Fecha Check-Out (Salida)
+                      </label>
+                      <input
+                        type="date"
+                        value={checkOutDate}
+                        onChange={(e) => setCheckOutDate(e.target.value)}
+                        className="w-full text-xs font-bold text-gray-800 bg-white p-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <span className="text-[10px] text-gray-400 mt-1 block">Check-out: hasta las 11:00</span>
+                    </div>
+
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
+                        Número de Huéspedes
+                      </label>
+                      <select
+                        value={guestsCount}
+                        onChange={(e) => setGuestsCount(Number(e.target.value))}
+                        className="w-full text-xs font-bold text-gray-800 bg-white p-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        {Array.from({ length: bookingStay.maxHuespedes }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>
+                            {n} Huésped{n > 1 ? "es" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[10px] text-gray-400 mt-1 block">Adultos y niños</span>
+                    </div>
+                  </div>
+
+                  {/* Resumen de Tarifas Transparente */}
+                  <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200 space-y-2.5">
+                    <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider">
+                      Desglose de la Estadía ({totalNoches} Noche{totalNoches > 1 ? "s" : ""})
+                    </h5>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>${bookingStay.precioNoche} USD × {totalNoches} noches:</span>
+                      <strong className="text-gray-900">${(bookingStay.precioNoche * totalNoches).toLocaleString()} USD</strong>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Tarifa única de limpieza y preparación:</span>
+                      <strong className="text-gray-900">${bookingStay.tarifaLimpieza} USD</strong>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Comisión de servicio SARA al huésped:</span>
+                      <strong className="text-emerald-700 font-bold">GRATIS ($0 USD)</strong>
+                    </div>
+                    <div className="flex justify-between border-t border-gray-200 pt-2 text-sm">
+                      <span className="font-extrabold text-gray-900">Total a pagar:</span>
+                      <span className="font-black text-emerald-700 text-lg">
+                        ${((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza).toLocaleString()} USD
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setBookingStay(null)}
+                      className="px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBookingStep(2)}
+                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Continuar: Datos del Huésped</span>
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 2: DATOS DEL HUÉSPED TITULAR */}
+              {bookingStep === 2 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-gray-200">
+                    <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <User size={15} className="text-amber-500" />
+                      Información del Huésped Principal (Titular de la Reserva)
+                    </h5>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Nombres *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Juan Carlos"
+                          value={guestData.nombre}
+                          onChange={(e) => setGuestData({ ...guestData, nombre: e.target.value })}
+                          className="w-full text-xs font-medium text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Apellidos *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Pérez Andrade"
+                          value={guestData.apellido}
+                          onChange={(e) => setGuestData({ ...guestData, apellido: e.target.value })}
+                          className="w-full text-xs font-medium text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Cédula / Pasaporte *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="0104829104 / Pass..."
+                          value={guestData.identificacion}
+                          onChange={(e) => setGuestData({ ...guestData, identificacion: e.target.value })}
+                          className="w-full text-xs font-mono font-bold text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Celular / WhatsApp *</label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="+593 99 123 4567"
+                          value={guestData.telefono}
+                          onChange={(e) => setGuestData({ ...guestData, telefono: e.target.value })}
+                          className="w-full text-xs font-mono font-bold text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Correo Electrónico *</label>
+                        <input
+                          type="email"
+                          required
+                          placeholder="huesped@correo.com"
+                          value={guestData.email}
+                          onChange={(e) => setGuestData({ ...guestData, email: e.target.value })}
+                          className="w-full text-xs font-medium text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Ciudad / País de Origen</label>
+                        <input
+                          type="text"
+                          placeholder="Quito, Ecuador / Miami, USA"
+                          value={guestData.ciudadPais}
+                          onChange={(e) => setGuestData({ ...guestData, ciudadPais: e.target.value })}
+                          className="w-full text-xs font-medium text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-gray-700 block mb-1">Horario Estimado de Llegada</label>
+                        <select
+                          value={guestData.horaLlegada}
+                          onChange={(e) => setGuestData({ ...guestData, horaLlegada: e.target.value })}
+                          className="w-full text-xs font-medium text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                        >
+                          <option value="15:00 - 17:00">15:00 - 17:00 (Tarde estándar)</option>
+                          <option value="17:00 - 20:00">17:00 - 20:00 (Noche temprana)</option>
+                          <option value="20:00 - 23:00">20:00 - 23:00 (Llegada nocturna)</option>
+                          <option value="Llegada de madrugada (Smart Lock)">Madrugada autónoma con clave</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-700 block mb-1">Peticiones o requerimientos especiales (Opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Requerimos parqueadero extra o llegada temprana si es posible"
+                        value={guestData.peticiones}
+                        onChange={(e) => setGuestData({ ...guestData, peticiones: e.target.value })}
+                        className="w-full text-xs font-medium text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setBookingStep(1)}
+                      className="px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <ChevronLeft size={16} /> Volver
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!guestData.nombre || !guestData.apellido || !guestData.email) {
+                          alert("Por favor completa los nombres, apellidos y correo electrónico del titular.")
+                          return
+                        }
+                        setBookingStep(3)
+                      }}
+                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Continuar al Pago y Garantía</span>
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 3: PAGO Y GARANTÍA */}
+              {bookingStep === 3 && (
+                <div className="space-y-5 animate-fadeIn">
+                  <div>
+                    <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">
+                      Selecciona tu Método de Pago o Garantía
+                    </h5>
+                    <p className="text-xs text-gray-500 mb-4">
+                      SARA ofrece canales de pago directos y garantizados sin recargos sorpresa:
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        {
+                          id: "transferencia",
+                          title: "Transferencia Bancaria",
+                          desc: "0% comisión adicional. Cuentas directas en Banco Pichincha y Guayaquil.",
+                          icon: Building
+                        },
+                        {
+                          id: "tarjeta",
+                          title: "Tarjeta Crédito / Débito",
+                          desc: "Pago en línea cifrado SSL 256 bits (Visa, Mastercard, PayPhone).",
+                          icon: CreditCard
+                        },
+                        {
+                          id: "anticipo",
+                          title: "Anticipo Flexible (30%)",
+                          desc: "Bloquea tu fecha con solo el 30% ahora y liquida el resto al check-in.",
+                          icon: ShieldCheck
+                        }
+                      ].map((metodo) => {
+                        const isSelected = guestData.metodoPago === metodo.id
+                        const Icon = metodo.icon
+                        return (
+                          <button
+                            type="button"
+                            key={metodo.id}
+                            onClick={() => setGuestData({ ...guestData, metodoPago: metodo.id })}
+                            className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? "border-amber-500 bg-amber-50/50 ring-2 ring-amber-400/30 shadow-sm"
+                                : "border-gray-200 hover:border-gray-300 bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`p-2 rounded-xl ${isSelected ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-gray-100 text-gray-600'}`}>
+                                <Icon size={18} />
+                              </span>
+                              {isSelected && <Check size={16} className="text-amber-600 font-bold" />}
+                            </div>
+                            <h6 className="font-bold text-gray-900 text-xs mb-1">{metodo.title}</h6>
+                            <p className="text-[11px] text-gray-500 leading-snug">{metodo.desc}</p>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Detalle del Método Seleccionado */}
+                  {guestData.metodoPago === "transferencia" && (
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-2 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-gray-800">
+                        <Building size={16} className="text-brand-sage" />
+                        <span>Datos Oficiales para Transferencia / Depósito Directo:</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-xl border border-gray-200 space-y-1 font-mono text-[11px] text-gray-700">
+                        <p><strong>Beneficiario:</strong> SARA CONSTRUCTORA CIA. LTDA.</p>
+                        <p><strong>RUC:</strong> 0190458923001</p>
+                        <p><strong>Banco Pichincha:</strong> Cta. Corriente No. 2100239485</p>
+                        <p><strong>Banco de Guayaquil:</strong> Cta. Corriente No. 0014892301</p>
+                        <p><strong>Correo para comprobantes:</strong> pagos@saraconstructora.com</p>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        * Al confirmar, tus fechas quedarán inmediatamente reservadas y recibirás el código de acceso al verificar la transferencia.
+                      </p>
+                    </div>
+                  )}
+
+                  {guestData.metodoPago === "tarjeta" && (
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-3 text-xs">
+                      <div className="flex items-center justify-between font-bold text-gray-800">
+                        <span className="flex items-center gap-1.5">
+                          <Lock size={15} className="text-emerald-600" /> Pasarela Segura Cifrada SSL 256 bits
+                        </span>
+                        <span className="text-[10px] text-gray-400">Visa / Mastercard / Amex</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Número de Tarjeta</label>
+                          <input
+                            type="text"
+                            value={guestData.numeroTarjeta}
+                            onChange={(e) => setGuestData({ ...guestData, numeroTarjeta: e.target.value })}
+                            className="w-full text-xs font-mono font-bold text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Vencimiento (MM/AA)</label>
+                            <input
+                              type="text"
+                              value={guestData.expTarjeta}
+                              onChange={(e) => setGuestData({ ...guestData, expTarjeta: e.target.value })}
+                              className="w-full text-xs font-mono font-bold text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">CVV / CVC</label>
+                            <input
+                              type="text"
+                              value={guestData.cvvTarjeta}
+                              onChange={(e) => setGuestData({ ...guestData, cvvTarjeta: e.target.value })}
+                              className="w-full text-xs font-mono font-bold text-gray-800 bg-white p-2.5 rounded-lg border border-gray-300"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {guestData.metodoPago === "anticipo" && (
+                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-amber-900">
+                        <ShieldCheck size={16} className="text-amber-600" />
+                        <span>Garantía de Anticipo Flexible (30%):</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span>Anticipo a pagar hoy:</span>
+                        <strong className="text-base font-black text-amber-900">
+                          ${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * 0.3)} USD
+                        </strong>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-gray-500 border-t border-amber-200/60 pt-1">
+                        <span>Saldo restante al Check-in:</span>
+                        <strong>
+                          ${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * 0.7)} USD
+                        </strong>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resumen Total y Botón de Emisión */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div>
+                      <p className="text-[11px] text-gray-400">Total liquidado a reservar:</p>
+                      <p className="text-xl font-black text-emerald-700">
+                        ${((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza).toLocaleString()} USD
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBookingStep(2)}
+                        className="px-4 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <ChevronLeft size={16} /> Volver
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isProcessingBooking}
+                        onClick={handleConfirmReservation}
+                        className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {isProcessingBooking ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Procesando Reserva...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={16} />
+                            <span>Confirmar y Emitir Reserva</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* PASO 4: VOUCHER EMITIDO CON ÉXITO */}
+              {bookingStep === 4 && (
+                <div className="space-y-6 animate-fadeIn py-2">
+                  <div className="text-center space-y-1.5">
+                    <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                      <CheckCircle2 size={36} />
+                    </div>
+                    <h4 className="text-2xl font-black text-gray-900">¡Tu Reserva ha sido Confirmada!</h4>
+                    <p className="text-xs text-gray-500 max-w-md mx-auto">
+                      Hemos bloqueado las fechas en el calendario y emitido tu voucher oficial de estadía en SARA Hospitality.
+                    </p>
+                  </div>
+
+                  {/* Tarjeta Voucher Oficial */}
+                  <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-slate-800">
+                    <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/10 pb-4 mb-4 gap-2">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 block">Voucher Oficial de Estadía</span>
+                        <h5 className="font-extrabold text-white text-base md:text-lg">SARA Hospitality & Suites</h5>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <span className="text-[10px] text-gray-400 block">Código de Reserva</span>
+                        <span className="font-mono text-base font-black text-amber-400 bg-white/10 px-2.5 py-1 rounded-lg">
+                          {confirmedReservationCode}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Alojamiento</p>
+                        <p className="font-bold text-white text-sm">{bookingStay.titulo}</p>
+                        <p className="text-gray-300 text-xs mt-0.5">
+                          {bookingStay.sector}, {bookingStay.ciudad} ({bookingStay.pais} {bookingStay.bandera})
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Huésped Titular</p>
+                        <p className="font-bold text-white text-sm">{guestData.nombre} {guestData.apellido}</p>
+                        <p className="text-gray-300 text-xs mt-0.5">ID: {guestData.identificacion} • Tel: {guestData.telefono}</p>
+                      </div>
+
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Fechas de Estadía</p>
+                        <p className="font-bold text-amber-300 mt-1">
+                          Entrada: {checkInDate} (15:00)
+                        </p>
+                        <p className="font-bold text-amber-300">
+                          Salida: {checkOutDate} (11:00)
+                        </p>
+                        <p className="text-[11px] text-gray-300 mt-1">{totalNoches} noche(s) • {guestsCount} huésped(es)</p>
+                      </div>
+
+                      <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                        <p className="text-[10px] uppercase font-bold text-gray-400">Acceso Autónomo (Smart Lock)</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Key size={16} className="text-amber-400 shrink-0" />
+                          <span className="font-mono font-black text-base text-white tracking-widest bg-black/40 px-2 py-0.5 rounded">
+                            *#4829#
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-emerald-400 font-semibold mt-1">
+                          ✓ Cerradura digital habilitada para tus fechas
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="text-xs text-gray-400">
+                        Estado: <strong className="text-emerald-400 font-bold">RESERVA CONFIRMADA & GARANTIZADA</strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-gray-400 block">Total Liquidado</span>
+                        <span className="text-lg font-black text-white">
+                          ${((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza).toLocaleString()} USD
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Acciones del Voucher */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => getWhatsAppVoucherMessage(bookingStay)}
+                      className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <MessageCircle size={16} />
+                      <span>Enviar Voucher a mi WhatsApp</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="w-full sm:w-auto py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Printer size={16} />
+                      <span>Imprimir Voucher</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setBookingStay(null)}
+                      className="w-full sm:w-auto py-3 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all cursor-pointer"
+                    >
+                      Listo / Cerrar
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
