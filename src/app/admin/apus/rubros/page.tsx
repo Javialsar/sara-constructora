@@ -5,7 +5,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown } from "lucide-react"
+import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet } from "lucide-react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import * as XLSX from "xlsx"
 
 
 type Familia = { id: string, nombre: string, grupo_sugerido: string }
@@ -454,6 +457,57 @@ const renderInsumoRow = (item: any) => (
     <GruposManager familias={familias} subfamilias={subfamilias} setFamilias={setFamilias} setSubfamilias={setSubfamilias} onBack={() => setVista('catalogo')} />
   )
 
+  // Exportar Excel
+  const exportToExcel = () => {
+    const dataToExport = filteredRubros.map((r: any) => {
+      const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
+      const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+      return {
+        "Código": r.codigo || "",
+        "Nombre del Rubro": r.nombre,
+        "Grupo": fam ? fam.nombre : "",
+        "Unidad": r.unidad,
+        "Costo Directo ($)": r.total_costo_directo || 0
+      }
+    });
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Rubros");
+    XLSX.writeFile(wb, "Catalogo_Rubros.xlsx");
+  }
+
+  // Exportar PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF('landscape');
+    doc.text("Catálogo de Rubros (APU) - SARA Constructora", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Total registros: ${filteredRubros.length} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
+
+    const tableColumn = ["Código", "Nombre del Rubro", "Grupo", "Unidad", "Costo Directo ($)"];
+    const tableRows = filteredRubros.map((r: any) => {
+      const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
+      const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+      return [
+        r.codigo || "—",
+        r.nombre,
+        fam ? fam.nombre : "—",
+        r.unidad,
+        `$${Number(r.total_costo_directo || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`
+      ];
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [0, 71, 63] }
+    });
+
+    doc.save("Catalogo_Rubros.pdf");
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] p-4 md:p-6 bg-gray-50/50 overflow-hidden">
       
@@ -465,18 +519,26 @@ const renderInsumoRow = (item: any) => (
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
-        <button onClick={() => {
-          let initialValues = { codigo: '', nombre: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '', familia_id_temp: '' };
-          if (selectedFamilia) {
-             initialValues.familia_id_temp = selectedFamilia;
-             const subs = subfamilias.filter((sf:any) => sf.familia_id === selectedFamilia);
-             if (subs.length > 0) initialValues.subfamilia_id = subs[0].id;
-          }
-          resetNewForm(initialValues);
-          setIsNewModalOpen(true);
-        }} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
-          <Plus size={18} /> Nuevo Rubro
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportToExcel} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a Excel">
+            <FileSpreadsheet size={16} /> Excel
+          </button>
+          <button onClick={exportToPDF} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a PDF">
+            <Download size={16} /> PDF
+          </button>
+          <button onClick={() => {
+            let initialValues = { codigo: '', nombre: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '', familia_id_temp: '' };
+            if (selectedFamilia) {
+               initialValues.familia_id_temp = selectedFamilia;
+               const subs = subfamilias.filter((sf:any) => sf.familia_id === selectedFamilia);
+               if (subs.length > 0) initialValues.subfamilia_id = subs[0].id;
+            }
+            resetNewForm(initialValues);
+            setIsNewModalOpen(true);
+          }} className="bg-brand-sage text-white font-bold py-2 px-5 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap text-sm">
+            <Plus size={16} /> Nuevo Rubro
+          </button>
+        </div>
       </div>
 
       {/* MAIN: 2 PANELES QUE LLENAN LA PANTALLA */}

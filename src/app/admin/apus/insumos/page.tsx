@@ -4,8 +4,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft } from "lucide-react"
+import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft, Download, FileSpreadsheet } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import * as XLSX from "xlsx"
 
 type Proveedor = { id: string; razon_social: string }
 type Familia = { id: string; nombre: string; grupo_sugerido: string }
@@ -623,6 +626,57 @@ export default function InsumosPage() {
     )
   }
 
+  // Exportar Excel
+  const exportToExcel = () => {
+    const dataToExport = filteredInsumos.map(i => {
+      const sf = subfamilias.find(s => s.id === i.subfamilia_id);
+      return {
+        "Código": i.codigo || "",
+        "Nombre": i.nombre,
+        "Tipo": i.tipo,
+        "Subgrupo": sf ? sf.nombre : "",
+        "Unidad": i.unidad,
+        "Precio Sin IVA": i.precio_sin_iva
+      }
+    });
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Insumos");
+    XLSX.writeFile(wb, "Catalogo_Insumos.xlsx");
+  }
+
+  // Exportar PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF('landscape');
+    doc.text("Catálogo de Insumos - SARA Constructora", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Total registros: ${filteredInsumos.length} | Fecha: ${new Date().toLocaleDateString()}`, 14, 22);
+
+    const tableColumn = ["Código", "Nombre", "Tipo", "Subgrupo", "Unidad", "Precio Ref. ($)"];
+    const tableRows = filteredInsumos.map(i => {
+      const sf = subfamilias.find(s => s.id === i.subfamilia_id);
+      return [
+        i.codigo || "—",
+        i.nombre,
+        i.tipo.toUpperCase(),
+        sf ? sf.nombre : "—",
+        i.unidad,
+        `$${Number(i.precio_sin_iva).toFixed(4)}`
+      ];
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [0, 71, 63] }
+    });
+
+    doc.save("Catalogo_Insumos.pdf");
+  }
+
   // ---- RENDER VISTA CATÁLOGO ----
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] p-4 md:p-6 bg-gray-50/50 overflow-hidden">
@@ -634,7 +688,13 @@ export default function InsumosPage() {
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">Gestión centralizada de Materiales, Equipos y Recursos.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <button onClick={exportToExcel} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a Excel">
+            <FileSpreadsheet size={16} /> Excel
+          </button>
+          <button onClick={exportToPDF} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a PDF">
+            <Download size={16} /> PDF
+          </button>
           <button onClick={() => setVista('grupos')} className="border border-gray-300 text-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-white transition-colors text-sm flex items-center gap-2 shadow-sm">
             <Layers size={15} /> Grupos
           </button>

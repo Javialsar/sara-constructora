@@ -1,8 +1,11 @@
 "use client"
 import { useState, useMemo, useEffect } from "react"
 import { 
-  Search, Shield, ShieldAlert, ShieldCheck, Key, Trash2, Power, PowerOff, UserCheck, UserX, Mail, Phone, Hash, Calendar, Edit, ChevronDown, CheckCircle, Lock, Unlock, RefreshCw, Clock
+  Search, Shield, ShieldAlert, ShieldCheck, Key, Trash2, Power, PowerOff, UserCheck, UserX, Mail, Phone, Hash, Calendar, Edit, ChevronDown, CheckCircle, Lock, Unlock, RefreshCw, Clock, Download, FileSpreadsheet
 } from "lucide-react"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import * as XLSX from "xlsx"
 
 type UserStatus = 'activo' | 'inactivo' | 'bloqueado'
 type UserRole = 'Administrador' | 'Técnico' | 'Cliente'
@@ -99,6 +102,56 @@ export default function AccesosPage() {
     })
   }, [users, searchTerm, roleFilter, statusFilter])
 
+  // Exportar Excel
+  const exportToExcel = () => {
+    const dataToExport = filteredUsers.map(u => ({
+      "Fecha Creación": u.fecha_creacion,
+      "Hora": u.hora_creacion,
+      "Cédula": u.cedula,
+      "Nombres": u.nombres,
+      "Apellidos": u.apellidos,
+      "Email": u.email,
+      "Teléfono": u.telefono,
+      "Rol": u.rol,
+      "Estado": u.estado
+    }))
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuarios")
+    XLSX.writeFile(workbook, "Nomina_Usuarios_Accesos.xlsx")
+  }
+
+  // Exportar PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF('landscape')
+    doc.text("Nómina y Control de Accesos - Usuarios", 14, 15)
+    doc.setFontSize(10)
+    doc.text(`Generado el: ${new Date().toLocaleString()}`, 14, 22)
+    
+    const tableColumn = ["Fecha", "Hora", "Cédula", "Nombres y Apellidos", "Email", "Teléfono", "Rol", "Estado"]
+    const tableRows = filteredUsers.map(u => [
+      u.fecha_creacion,
+      u.hora_creacion,
+      u.cedula,
+      `${u.apellidos}, ${u.nombres}`,
+      u.email,
+      u.telefono,
+      u.rol,
+      u.estado.toUpperCase()
+    ])
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [30, 41, 59] }
+    })
+    
+    doc.save("Nomina_Usuarios_Accesos.pdf")
+  }
+
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50 p-4 md:p-6 overflow-hidden relative">
       
@@ -119,6 +172,12 @@ export default function AccesosPage() {
           <p className="text-gray-500 text-sm mt-1">Administra la nómina completa de usuarios, sus roles, credenciales y estados del sistema.</p>
         </div>
         <div className="flex items-center gap-3">
+          <button onClick={exportToExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors" title="Exportar a Excel">
+            <FileSpreadsheet size={16} /> Excel
+          </button>
+          <button onClick={exportToPDF} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors" title="Exportar a PDF">
+            <Download size={16} /> PDF
+          </button>
           <div className="relative">
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input type="text" placeholder="Buscar cédula, nombre, email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-64 pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:outline-none focus:border-brand-sage" />
@@ -197,10 +256,14 @@ export default function AccesosPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center align-top pt-4">
-                      <div className="flex flex-col items-center gap-2">
-                        <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-lg font-black tracking-widest leading-none" title="Contraseña ofuscada por seguridad">••••••••</span>
-                        <button onClick={() => openKeyModal(user)} className="text-[10px] uppercase font-bold text-brand-sage hover:text-brand-dark flex items-center gap-1 transition-colors">
-                          <Key size={10} /> Cambiar Clave
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-base font-black tracking-widest leading-none select-none" title="Contraseña protegida">••••••••</span>
+                        <button 
+                          onClick={() => openKeyModal(user)} 
+                          className="p-1.5 text-brand-sage hover:text-white hover:bg-brand-sage rounded-md border border-brand-sage/30 transition-all"
+                          title="Cambiar o regenerar clave"
+                        >
+                          <Key size={14} />
                         </button>
                       </div>
                     </td>
@@ -223,28 +286,43 @@ export default function AccesosPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top pt-4">
-                      <div className="flex flex-wrap items-center justify-center gap-1.5 max-w-[200px] mx-auto">
-                        
+                      <div className="flex items-center justify-center gap-1.5">
                         {user.estado !== 'activo' && (
-                          <button onClick={() => handleStatusChange(user.id, 'activo')} className="flex items-center gap-1 px-2 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded border border-emerald-200 transition-colors text-[10px] font-bold uppercase" title="Activar Acceso">
-                            <Power size={12} /> Activar
+                          <button 
+                            onClick={() => handleStatusChange(user.id, 'activo')} 
+                            className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg border border-emerald-200 transition-colors shadow-sm" 
+                            title="Activar acceso"
+                          >
+                            <Power size={14} />
                           </button>
                         )}
 
                         {user.estado === 'activo' && (
-                          <button onClick={() => handleStatusChange(user.id, 'inactivo')} className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 text-gray-600 hover:bg-gray-500 hover:text-white rounded border border-gray-200 transition-colors text-[10px] font-bold uppercase" title="Desactivar Temporalmente">
-                            <PowerOff size={12} /> Desactivar
+                          <button 
+                            onClick={() => handleStatusChange(user.id, 'inactivo')} 
+                            className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-200 transition-colors shadow-sm" 
+                            title="Desactivar temporalmente"
+                          >
+                            <PowerOff size={14} />
                           </button>
                         )}
 
                         {user.estado !== 'bloqueado' && (
-                          <button onClick={() => handleStatusChange(user.id, 'bloqueado')} className="flex items-center gap-1 px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white rounded border border-red-200 transition-colors text-[10px] font-bold uppercase" title="Bloquear Acceso (Por Seguridad)">
-                            <Lock size={12} /> Bloquear
+                          <button 
+                            onClick={() => handleStatusChange(user.id, 'bloqueado')} 
+                            className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white rounded-lg border border-orange-200 transition-colors shadow-sm" 
+                            title="Bloquear acceso (por seguridad)"
+                          >
+                            <Lock size={14} />
                           </button>
                         )}
 
-                        <button onClick={() => handleDelete(user.id, user.nombres)} className="flex items-center gap-1 px-2 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded border border-red-200 transition-colors text-[10px] font-bold uppercase" title="Eliminar Registro">
-                          <Trash2 size={12} />
+                        <button 
+                          onClick={() => handleDelete(user.id, user.nombres)} 
+                          className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg border border-rose-200 transition-colors shadow-sm" 
+                          title="Eliminar registro"
+                        >
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
