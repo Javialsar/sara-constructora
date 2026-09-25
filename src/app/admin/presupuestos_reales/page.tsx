@@ -1,6 +1,10 @@
 // @ts-nocheck
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
 import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings} from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
@@ -28,16 +32,67 @@ const defaultFormulas = {
   sutil: "$cdir * $util / 100",
   granTotal: "$cnet + $sutil + $simp"
 };
+
+const presupuestoSchema = z.object({
+  nombre_proyecto: z.string().min(2, "Seleccione un proyecto"),
+  porcentaje_admin: z.number().min(0, "Mínimo 0"),
+  porcentaje_imprevistos: z.number().min(0, "Mínimo 0"),
+  porcentaje_utilidad: z.number().min(0, "Mínimo 0"),
+  estado: z.string().default('Borrador')
+});
+type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
+
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
+  const queryClient = useQueryClient();
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
   const [showFormulas, setShowFormulas] = useState(false)
   const [openGroup, setOpenGroup] = useState({ 1: false, 2: false, 3: true, 4: true, 5: true, 6: true })
   const [activeTab, setActiveTab] = useState('detalle')
-  const [presupuestos, setPresupuestos] = useState([])
+  
   const [searchPresupuesto, setSearchPresupuesto] = useState("")
+
+  const { data: presupuestos = [] } = useQuery({
+    queryKey: ['presupuestos'],
+    queryFn: async () => {
+      const { data } = await supabase.from('presupuestos_reales').select('*').order('created_at', { ascending: false });
+      return data || [];
+    }
+  });
+
+  const { data: proyectosCRM = [] } = useQuery({
+    queryKey: ['proyectosCRM'],
+    queryFn: async () => {
+      const { data } = await supabase.from('proyectos').select('id, nombre, cliente:clientes(nombre, apellido)').order('created_at', { ascending: false });
+      return data || [];
+    }
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (values: PresupuestoFormValues) => {
+      const { data, error } = await supabase.from('presupuestos_reales').insert([values]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      setIsNewModalOpen(false);
+      openEditor(data);
+      resetNewForm();
+    }
+  });
+
+  const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<PresupuestoFormValues>({
+    resolver: zodResolver(presupuestoSchema),
+    defaultValues: { nombre_proyecto: '', porcentaje_admin: 10.0, porcentaje_imprevistos: 5.0, porcentaje_utilidad: 10.0, estado: 'Borrador' }
+  });
+
+  const submitNewPresupuesto = (data: PresupuestoFormValues) => {
+    createMutation.mutate(data);
+  };
+
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   const [newPresupuestoData, setNewPresupuestoData] = useState({
@@ -86,7 +141,7 @@ export default function PresupuestosRealesPage() {
   const [explosionData, setExplosionData] = useState([])
   const [loadingExplosion, setLoadingExplosion] = useState(false)
 
-  const [proyectosCRM, setProyectosCRM] = useState([])
+  
   const [userRole, setUserRole] = useState('admin')
 
   useEffect(() => {
@@ -1485,21 +1540,36 @@ export default function PresupuestosRealesPage() {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
             <div className="flex justify-between p-6 border-b"><h3 className="text-xl font-bold">Nuevo Presupuesto</h3><button onClick={() => setIsNewModalOpen(false)}><X/></button></div>
-            <form onSubmit={handleCreatePresupuesto} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold mb-1">Proyecto</label>
-                <select value={newPresupuestoData.nombre_proyecto} onChange={e => setNewPresupuestoData({...newPresupuestoData, nombre_proyecto: e.target.value})} className="w-full border rounded p-2" required>
-                  <option value="" disabled>-- Seleccione --</option>
-                  {proyectosCRM.map(p => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div><label className="block text-xs font-bold">ADMIN (%)</label><input type="number" value={newPresupuestoData.porcentaje_admin} onChange={e => setNewPresupuestoData({...newPresupuestoData, porcentaje_admin: parseFloat(e.target.value)})} className="w-full border rounded p-2" /></div>
-                <div><label className="block text-xs font-bold">IMPREV (%)</label><input type="number" value={newPresupuestoData.porcentaje_imprevistos} onChange={e => setNewPresupuestoData({...newPresupuestoData, porcentaje_imprevistos: parseFloat(e.target.value)})} className="w-full border rounded p-2" /></div>
-                <div><label className="block text-xs font-bold">UTILIDAD (%)</label><input type="number" value={newPresupuestoData.porcentaje_utilidad} onChange={e => setNewPresupuestoData({...newPresupuestoData, porcentaje_utilidad: parseFloat(e.target.value)})} className="w-full border rounded p-2" /></div>
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t"><button type="button" onClick={() => setIsNewModalOpen(false)} className="px-5 py-2 font-bold">Cancelar</button><button type="submit" className="px-5 py-2 font-bold bg-brand-dark text-white rounded">Crear</button></div>
-            </form>
+            <form onSubmit={handleNewSubmit(submitNewPresupuesto)} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1">Proyecto</label>
+                  <select {...registerNew("nombre_proyecto")} className={`w-full border rounded p-2 ${newErrors.nombre_proyecto ? 'border-red-500' : ''}`}>
+                    <option value="" disabled>-- Seleccione --</option>
+                    {proyectosCRM.map((p: any) => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
+                  </select>
+                  {newErrors.nombre_proyecto && <p className="text-red-500 text-xs">{newErrors.nombre_proyecto.message}</p>}
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold">ADMIN (%)</label>
+                    <input type="number" step="0.01" {...registerNew("porcentaje_admin", { valueAsNumber: true })} className="w-full border rounded p-2" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold">IMPREV (%)</label>
+                    <input type="number" step="0.01" {...registerNew("porcentaje_imprevistos", { valueAsNumber: true })} className="w-full border rounded p-2" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold">UTILIDAD (%)</label>
+                    <input type="number" step="0.01" {...registerNew("porcentaje_utilidad", { valueAsNumber: true })} className="w-full border rounded p-2" />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-5 py-2 font-bold text-gray-500">Cancelar</button>
+                  <button type="submit" disabled={isNewSubmitting || createMutation.isPending} className="px-5 py-2 font-bold bg-brand-dark text-white rounded">
+                    {createMutation.isPending ? 'Creando...' : 'Crear'}
+                  </button>
+                </div>
+              </form>
           </div>
         </div>
       )}

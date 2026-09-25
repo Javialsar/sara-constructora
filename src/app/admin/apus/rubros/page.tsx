@@ -1,5 +1,9 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
 import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown } from "lucide-react"
 
@@ -171,6 +175,17 @@ const QuantityInput = ({ item, handleUpdateCantidad }: { item: any, handleUpdate
 };
 
   
+
+const rubroSchema = z.object({
+  codigo: z.string().min(2, "Requerido"),
+  nombre: z.string().min(3, "Requerido"),
+  unidad: z.string().min(1, "Requerido"),
+  herramienta_menor_pct: z.number().min(0, "No negativo"),
+  subfamilia_id: z.string().optional(),
+  familia_id_temp: z.string().optional()
+});
+type RubroFormValues = z.infer<typeof rubroSchema>;
+
 export default function RubrosPage() {
   const [vista, setVista] = useState("catalogo");
   const [familias, setFamilias] = useState<Familia[]>([]);
