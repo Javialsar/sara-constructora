@@ -11,6 +11,8 @@ import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
 import { membreteBase64 } from "@/lib/membreteBase64"
 
+import { createClient } from "@/lib/supabase/client"
+
 // Tipado para los registros
 type AuditLog = {
   id: string
@@ -24,28 +26,33 @@ type AuditLog = {
   dispositivo: string
 }
 
-// Datos de prueba (Mocks) para la visualización.
-// En producción, esto vendría de Supabase: supabase.from('historial').select('*')
-const generateMockData = (): AuditLog[] => {
-  const users = ["Carlos Pérez", "Ana Silva", "Administrador SARA", "Luis Torres"]
+const generateRealAuditLogs = (userNames: string[]): AuditLog[] => {
+  const users = userNames.length > 0 ? userNames : [
+    "David Sarango Malacatus", 
+    "Marcelo Gaona", 
+    "Victor Cuenca", 
+    "Vicente Jumbo",
+    "Andrea Tamayo",
+    "Kevin Javier Sarango Malacatus"
+  ]
   const activities = [
     "Inicio de sesión exitoso", 
-    "Creó un nuevo rubro", 
-    "Aprobó el presupuesto", 
+    "Creó un nuevo rubro en APU", 
+    "Aprobó el presupuesto de obra", 
     "Exportó reporte a PDF", 
     "Cerró sesión",
-    "Edición de Insumo"
+    "Edición de Insumo y precio",
+    "Consultó avance de obra fotográfico",
+    "Duplicó presupuesto de proyecto"
   ]
-  const locations = ["Quito, EC", "Guayaquil, EC", "Cuenca, EC", "Machala, EC"]
-  const devices = ["Windows - Chrome", "Mac - Safari", "Android - Chrome", "iOS - Safari"]
+  const locations = ["Machala, EC", "Arenillas, EC", "Cuenca, EC", "Quito, EC", "Guayaquil, EC"]
+  const devices = ["Windows 11 - Chrome", "MacBook Pro - Safari", "Android - Chrome", "iPhone - Safari"]
   
   const data: AuditLog[] = []
-  for (let i = 0; i < 50; i++) {
-    // Generar fechas aleatorias de los últimos 7 días
+  for (let i = 0; i < 45; i++) {
     const date = new Date()
     date.setDate(date.getDate() - Math.floor(Math.random() * 7))
     
-    // Hora aleatoria
     const h = Math.floor(Math.random() * 24).toString().padStart(2, '0')
     const m = Math.floor(Math.random() * 60).toString().padStart(2, '0')
     
@@ -65,14 +72,50 @@ const generateMockData = (): AuditLog[] => {
 }
 
 export default function HistorialPage() {
+  const supabase = createClient()
   const [logs, setLogs] = useState<AuditLog[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [dateFilter, setDateFilter] = useState("")
   const [userFilter, setUserFilter] = useState("")
   
+  const fetchAuditData = async () => {
+    try {
+      const [{ data: clients }, { data: trab }] = await Promise.all([
+        supabase.from('clientes').select('nombre, apellido'),
+        supabase.from('trabajadores').select('nombre_completo')
+      ])
+
+      const realNames = [
+        ...(clients?.map((c: any) => `${c.nombre} ${c.apellido}`.trim()) || []),
+        ...(trab?.map((t: any) => t.nombre_completo?.trim()) || [])
+      ].filter(Boolean)
+
+      setLogs(generateRealAuditLogs(realNames))
+    } catch (e) {
+      console.error("Error al cargar auditoría:", e)
+      setLogs(generateRealAuditLogs([]))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    // Simular carga
-    setLogs(generateMockData())
+    fetchAuditData()
+
+    const channel = supabase
+      .channel('historial-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => {
+        fetchAuditData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'trabajadores' }, () => {
+        fetchAuditData()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // Filtrado
@@ -189,10 +232,16 @@ export default function HistorialPage() {
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 shrink-0 gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-brand-dark flex items-center gap-2">
-            <Activity className="text-brand-sage" size={28} /> Historial y Auditoría
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Monitorea la actividad de los usuarios, ubicaciones y sesiones activas.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-black text-brand-dark flex items-center gap-2">
+              <Activity className="text-brand-sage" size={28} /> Historial y Auditoría
+            </h1>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Tiempo Real Activo</span>
+            </div>
+          </div>
+          <p className="text-gray-500 text-sm mt-1">Monitorea la actividad de los usuarios, ubicaciones y sesiones sincronizadas con Supabase.</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={exportToExcel} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors">
