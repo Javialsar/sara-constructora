@@ -350,6 +350,7 @@ const AIRBNB_DATA: AirbnbListing[] = [
 ]
 
 export default function AirbnbPage() {
+  const [destinoInput, setDestinoInput] = useState<string>("")
   const [alcanceTab, setAlcanceTab] = useState<"todos" | "nacional" | "internacional">("todos")
   const [sectorFiltro, setSectorFiltro] = useState<string>("todos")
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos")
@@ -451,15 +452,24 @@ export default function AirbnbPage() {
   // Filtrado de alojamientos
   const filteredStays = useMemo(() => {
     return AIRBNB_DATA.filter((stay) => {
-      // Alcance (Nacional vs Internacional)
-      if (alcanceTab !== "todos" && stay.alcance !== alcanceTab) return false
-      // Sector
-      if (sectorFiltro !== "todos" && stay.sector.toLowerCase() !== sectorFiltro.toLowerCase() && stay.ciudad.toLowerCase() !== sectorFiltro.toLowerCase()) return false
+      // Destino libre ingresado por el usuario (sin limitaciones de ciudad ni país)
+      if (destinoInput.trim()) {
+        const q = destinoInput.toLowerCase().trim()
+        const matchDestino = (
+          stay.ciudad.toLowerCase().includes(q) ||
+          stay.pais.toLowerCase().includes(q) ||
+          stay.sector.toLowerCase().includes(q) ||
+          stay.titulo.toLowerCase().includes(q) ||
+          stay.descripcion.toLowerCase().includes(q)
+        )
+        if (!matchDestino) return false
+      }
+
       // Tipo
       if (tipoFiltro !== "todos" && stay.tipo !== tipoFiltro) return false
       // Huéspedes
-      if (huespedesFiltro > 1 && stay.maxHuespedes < huespedesFiltro) return false
-      // Texto
+      if (guestsCount > 1 && stay.maxHuespedes < guestsCount) return false
+      // Texto adicional
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase()
         const match = (
@@ -473,7 +483,7 @@ export default function AirbnbPage() {
       }
       return true
     })
-  }, [alcanceTab, sectorFiltro, tipoFiltro, huespedesFiltro, searchTerm])
+  }, [destinoInput, tipoFiltro, guestsCount, searchTerm])
 
   // Mapeo para el componente del mapa
   const mapItems = useMemo(() => {
@@ -494,42 +504,46 @@ export default function AirbnbPage() {
     }))
   }, [filteredStays])
 
-  // Manejar el cambio de destino y centrar el mapa
-  const handleDestinoChange = (destino: string) => {
-    setSectorFiltro(destino)
-    if (destino === "Cuenca") {
+  // Manejar el cambio de destino dinámico e interactuar con el mapa
+  const handleDestinoInputChange = (val: string) => {
+    setDestinoInput(val)
+    const lower = val.toLowerCase().trim()
+    if (!lower) {
       setMapCenter([-2.8980, -79.0100])
-      setMapZoom(13)
-    } else if (destino === "Puertas del Sol") {
-      setMapCenter([-2.8980, -79.0180])
-      setMapZoom(15)
-    } else if (destino === "Centro Histórico") {
-      setMapCenter([-2.8974, -79.0045])
-      setMapZoom(15)
-    } else if (destino === "Valle de Yunguilla") {
-      setMapCenter([-3.2730, -79.3140])
-      setMapZoom(13)
-    } else if (destino === "Guayaquil") {
-      setMapCenter([-2.1810, -79.8760])
-      setMapZoom(14)
-    } else if (destino === "Galápagos") {
-      setMapCenter([-0.7432, -90.3135])
       setMapZoom(12)
-    } else if (destino === "Miami, FL") {
+      return
+    }
+
+    if (lower.includes("miami") || lower.includes("florida") || lower.includes("brickell") || lower.includes("ee.uu") || lower.includes("usa")) {
       setMapCenter([25.7617, -80.1918])
       setMapZoom(13)
-    } else if (destino === "Madrid") {
+    } else if (lower.includes("madrid") || lower.includes("españa") || lower.includes("spain") || lower.includes("salamanca") || lower.includes("retiro")) {
       setMapCenter([40.4280, -3.6840])
       setMapZoom(13)
-    } else if (destino === "Cancún") {
+    } else if (lower.includes("cancun") || lower.includes("cancún") || lower.includes("mexico") || lower.includes("méxico")) {
       setMapCenter([21.1350, -86.7490])
       setMapZoom(12)
-    } else if (destino === "Medellín") {
+    } else if (lower.includes("medellin") || lower.includes("medellín") || lower.includes("colombia") || lower.includes("poblado") || lower.includes("provenza")) {
       setMapCenter([6.2085, -75.5670])
       setMapZoom(13)
-    } else {
-      setMapCenter([-2.8980, -79.0100])
+    } else if (lower.includes("yunguilla") || lower.includes("lentag") || lower.includes("léntag") || lower.includes("santa isabel")) {
+      setMapCenter([-3.2730, -79.3140])
+      setMapZoom(13)
+    } else if (lower.includes("guayaquil") || lower.includes("santa ana")) {
+      setMapCenter([-2.1810, -79.8760])
+      setMapZoom(14)
+    } else if (lower.includes("galapagos") || lower.includes("galápagos") || lower.includes("ayora")) {
+      setMapCenter([-0.7432, -90.3135])
       setMapZoom(12)
+    } else if (lower.includes("puertas del sol")) {
+      setMapCenter([-2.8980, -79.0180])
+      setMapZoom(15)
+    } else if (lower.includes("centro") || lower.includes("calle larga")) {
+      setMapCenter([-2.8974, -79.0045])
+      setMapZoom(15)
+    } else if (lower.includes("cuenca") || lower.includes("tomebamba") || lower.includes("solano")) {
+      setMapCenter([-2.8980, -79.0100])
+      setMapZoom(13)
     }
   }
 
@@ -611,78 +625,32 @@ export default function AirbnbPage() {
 
           {/* Caja Flotante de Reserva Inteligente */}
           <form onSubmit={handleSearchSubmit} className="max-w-5xl mx-auto lg:mx-0 lg:ml-8 bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
-            {/* Pestañas de Alcance Geográfico */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4 mb-5">
-              {[
-                { id: "todos", label: "🌎 Todos los Destinos", count: AIRBNB_DATA.length },
-                { id: "nacional", label: "🇪🇨 Ecuador (Nacional)", count: AIRBNB_DATA.filter(i => i.alcance === 'nacional').length },
-                { id: "internacional", label: "✈️ Internacional (Mundial)", count: AIRBNB_DATA.filter(i => i.alcance === 'internacional').length }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => {
-                    setAlcanceTab(tab.id as any)
-                    setSectorFiltro("todos")
-                    if (tab.id === 'nacional') {
-                      setMapCenter([-2.8980, -79.0100])
-                      setMapZoom(8)
-                    } else if (tab.id === 'internacional') {
-                      setMapCenter([25.0000, -40.0000])
-                      setMapZoom(3)
-                    } else {
-                      setMapCenter([-2.8980, -79.0100])
-                      setMapZoom(12)
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 ${
-                    alcanceTab === tab.id
-                      ? "bg-slate-900 text-white shadow-md"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  <span>{tab.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                    alcanceTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
-                  }`}>
-                    {tab.count}
-                  </span>
-                </button>
-              ))}
-
-              <div className="ml-auto text-xs text-gray-500 font-semibold flex items-center gap-1">
-                <ShieldCheck size={14} className="text-emerald-600" /> Tarifas Transparentes sin Comisiones
-              </div>
-            </div>
-
             {/* Barra de Filtros en Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {/* Selector de Destino */}
+              {/* Entrada Abierta de Destino (Sin limitaciones) */}
               <div className="lg:col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Destino / Zona</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Destino / Ciudad / Zona
+                </label>
                 <div className="relative">
-                  <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select 
-                    value={sectorFiltro}
-                    onChange={(e) => handleDestinoChange(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs md:text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800"
-                  >
-                    <option value="todos">Cualquier destino disponible</option>
-                    <optgroup label="🇪🇨 Ecuador">
-                      <option value="Cuenca">Cuenca (Todas las zonas)</option>
-                      <option value="Puertas del Sol">Cuenca - Puertas del Sol</option>
-                      <option value="Centro Histórico">Cuenca - Centro Histórico</option>
-                      <option value="Valle de Yunguilla">Valle de Yunguilla (Piscina)</option>
-                      <option value="Guayaquil">Guayaquil - Puerto Santa Ana</option>
-                      <option value="Galápagos">Galápagos - Puerto Ayora</option>
-                    </optgroup>
-                    <optgroup label="🌎 Internacional">
-                      <option value="Miami, FL">Miami, FL (Brickell - EE.UU.)</option>
-                      <option value="Madrid">Madrid (Barrio Salamanca - España)</option>
-                      <option value="Cancún">Cancún (Zona Hotelera - México)</option>
-                      <option value="Medellín">Medellín (El Poblado - Colombia)</option>
-                    </optgroup>
-                  </select>
+                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input 
+                    type="text"
+                    value={destinoInput}
+                    onChange={(e) => handleDestinoInputChange(e.target.value)}
+                    placeholder="¿A dónde quieres ir? Ej: Cuenca, Miami, Madrid, Yunguilla..."
+                    className="w-full pl-10 pr-9 py-2.5 text-xs md:text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 placeholder:font-normal placeholder:text-gray-400 transition-all"
+                  />
+                  {destinoInput && (
+                    <button
+                      type="button"
+                      onClick={() => handleDestinoInputChange("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                      title="Borrar destino"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
 
