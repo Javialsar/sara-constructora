@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette } from "lucide-react"
+import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { getCuentasBancarias, saveCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
 
 interface MiembroEquipo {
   id: string
@@ -32,6 +33,7 @@ export default function ConfiguracionPage() {
   })
 
   const [equipo, setEquipo] = useState<MiembroEquipo[]>([])
+  const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [currentTheme, setCurrentTheme] = useState<string>('')
@@ -66,6 +68,8 @@ export default function ConfiguracionPage() {
       })
       setEquipo(data.equipo_directivo || [])
     }
+    const ctas = await getCuentasBancarias()
+    setCuentasBancarias(ctas)
     setLoading(false)
   }
 
@@ -77,6 +81,28 @@ export default function ConfiguracionPage() {
     const newEquipo = [...equipo]
     newEquipo[index] = { ...newEquipo[index], [field]: value }
     setEquipo(newEquipo)
+  }
+
+  const handleAddCuenta = () => {
+    const nueva: CuentaBancariaEmpresa = {
+      id: `cta-${Date.now()}`,
+      banco: "Banco Pichincha",
+      tipoCuenta: "Corriente",
+      numeroCuenta: "",
+      cedulaRuc: "0190458923001",
+      beneficiario: formData.nombre_empresa || "SARA CONSTRUCTORA CIA. LTDA.",
+      correoComprobantes: formData.email_contacto || "pagos@saraconstructora.com",
+      activa: true
+    }
+    setCuentasBancarias(prev => [...prev, nueva])
+  }
+
+  const handleRemoveCuenta = (id: string) => {
+    setCuentasBancarias(prev => prev.filter(c => c.id !== id))
+  }
+
+  const handleCuentaChange = (id: string, field: keyof CuentaBancariaEmpresa, value: any) => {
+    setCuentasBancarias(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
 
   const changeTheme = (themeClass: string) => {
@@ -165,11 +191,13 @@ export default function ConfiguracionPage() {
       })
       .eq('id', configId)
 
+    const bankSaved = await saveCuentasBancarias(cuentasBancarias)
+
     setSaving(false)
-    if (error) {
-      alert("Error al guardar: " + error.message)
+    if (error || !bankSaved) {
+      alert("Error al guardar: " + (error?.message || "No se pudieron guardar las cuentas bancarias."))
     } else {
-      alert("Configuración guardada exitosamente.")
+      alert("Configuración y cuentas bancarias guardadas exitosamente.")
     }
   }
 
@@ -407,6 +435,139 @@ export default function ConfiguracionPage() {
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* SECCIÓN: CUENTAS BANCARIAS DE LA EMPRESA (AIRBNB & RESERVAS) */}
+      {/* ============================================================ */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-amber-500 p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+              <Building size={20} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Cuentas Bancarias para Cobros & Reservas</h2>
+              <p className="text-xs text-gray-500">
+                Configura los datos de las cuentas bancarias que los clientes visualizarán para transferencias al reservar en <strong>Airbnb</strong> o comprar en <strong>Inmobiliaria</strong>.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddCuenta}
+            className="px-4 py-2 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer self-start sm:self-auto"
+          >
+            <Plus size={15} /> Agregar Cuenta Bancaria
+          </button>
+        </div>
+
+        {/* Lista de Cuentas */}
+        <div className="space-y-4">
+          {cuentasBancarias.map((cta, index) => (
+            <div key={cta.id || index} className="p-4 rounded-xl border border-gray-200 bg-slate-50/70 space-y-3">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                <span className="text-xs font-black uppercase text-amber-800 flex items-center gap-1.5">
+                  <Building size={14} className="text-amber-600" /> Cuenta #{index + 1} — {cta.banco || "Nuevo Banco"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCuenta(cta.id)}
+                  className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 p-1 cursor-pointer"
+                >
+                  <Trash2 size={13} /> Eliminar
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Nombre del Banco */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Nombre del Banco</label>
+                  <input
+                    type="text"
+                    value={cta.banco}
+                    placeholder="Ej. Banco Pichincha"
+                    onChange={(e) => handleCuentaChange(cta.id, "banco", e.target.value)}
+                    className="w-full text-xs font-bold p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                {/* Tipo de Cuenta */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Tipo de Cta</label>
+                  <select
+                    value={cta.tipoCuenta}
+                    onChange={(e) => handleCuentaChange(cta.id, "tipoCuenta", e.target.value as any)}
+                    className="w-full text-xs font-bold p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="Corriente">Cta. Corriente</option>
+                    <option value="Ahorros">Cta. de Ahorros</option>
+                  </select>
+                </div>
+
+                {/* Número de Cuenta */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Nro de Cta</label>
+                  <input
+                    type="text"
+                    value={cta.numeroCuenta}
+                    placeholder="Ej. 2100239485"
+                    onChange={(e) => handleCuentaChange(cta.id, "numeroCuenta", e.target.value)}
+                    className="w-full text-xs font-mono font-bold p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                {/* Cédula o RUC */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Cédula / RUC</label>
+                  <input
+                    type="text"
+                    value={cta.cedulaRuc}
+                    placeholder="Ej. 0190458923001"
+                    onChange={(e) => handleCuentaChange(cta.id, "cedulaRuc", e.target.value)}
+                    className="w-full text-xs font-mono font-bold p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Beneficiario / Titular */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Beneficiario / Titular</label>
+                  <input
+                    type="text"
+                    value={cta.beneficiario}
+                    placeholder="Ej. SARA CONSTRUCTORA CIA. LTDA."
+                    onChange={(e) => handleCuentaChange(cta.id, "beneficiario", e.target.value)}
+                    className="w-full text-xs font-medium p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                {/* Correo para Comprobantes */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Correo para Comprobantes</label>
+                  <input
+                    type="email"
+                    value={cta.correoComprobantes || ""}
+                    placeholder="Ej. pagos@saraconstructora.com"
+                    onChange={(e) => handleCuentaChange(cta.id, "correoComprobantes", e.target.value)}
+                    className="w-full text-xs font-medium p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {cuentasBancarias.length === 0 && (
+            <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
+              <Building className="mx-auto text-gray-300 mb-2" size={32} />
+              <p className="text-sm font-bold text-gray-600">No hay cuentas bancarias registradas aún</p>
+              <p className="text-xs text-gray-400 mt-1">Haz clic en "+ Agregar Cuenta Bancaria" para configurar los datos de cobro oficiales.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Selector de Temas */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden mt-6">
         <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between">

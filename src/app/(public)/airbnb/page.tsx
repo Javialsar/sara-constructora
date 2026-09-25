@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { 
   Sparkles, 
@@ -45,10 +45,14 @@ import {
   BadgeCheck,
   Receipt,
   MessageSquareQuote,
-  ThumbsUp
+  ThumbsUp,
+  Copy,
+  ChevronDown,
+  Info
 } from "lucide-react"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
+import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
 
 export interface ResenaHuesped {
   id: string
@@ -527,6 +531,24 @@ export default function AirbnbPage() {
     titularTarjeta: ""
   })
 
+  // Estados para Cuentas Bancarias de la Empresa (Cargadas dinámicamente de Configuración)
+  const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  useEffect(() => {
+    getCuentasBancarias().then(setCuentasBancarias)
+  }, [])
+
+  const handleCopyText = (text: string, id: string) => {
+    try {
+      navigator.clipboard.writeText(text)
+      setCopiedField(id)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch {
+      // Fallback
+    }
+  }
+
   // Estados para Reseñas y Comentarios de Usuarios (Imagen 2)
   const [userReviews, setUserReviews] = useState<Record<string, ResenaHuesped[]>>({})
   const [showAddReview, setShowAddReview] = useState<boolean>(false)
@@ -570,20 +592,72 @@ export default function AirbnbPage() {
     setBookingStep(1)
   }
 
-  const handleConfirmReservation = (e?: React.FormEvent) => {
+  const handleConfirmReservation = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
+    if (!bookingStay) return
+
     setIsProcessingBooking(true)
-    setTimeout(() => {
-      const randomCode = `SARA-RSV-2026-${Math.floor(1000 + Math.random() * 9000)}`
+    const randomCode = `SARA-RSV-2026-${Math.floor(1000 + Math.random() * 9000)}`
+
+    try {
+      const payload = {
+        codigoReserva: randomCode,
+        alojamiento: {
+          id: bookingStay.id,
+          codigo: bookingStay.codigo,
+          titulo: bookingStay.titulo,
+          ciudad: bookingStay.ciudad,
+          pais: bookingStay.pais,
+          sector: bookingStay.sector,
+          precioNoche: bookingStay.precioNoche
+        },
+        huesped: guestData,
+        fechas: {
+          checkIn: checkInDate,
+          checkOut: checkOutDate,
+          noches: totalNoches,
+          huespedes: guestsCount
+        },
+        totales: {
+          precioNoche: bookingStay.precioNoche,
+          tarifaLimpieza: bookingStay.tarifaLimpieza,
+          granTotal: (bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza
+        },
+        metodoPago: guestData.metodoPago,
+        peticionesEspeciales: guestData.peticiones
+      }
+
+      const res = await fetch("/api/airbnb/reserva", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setConfirmedReservationCode(data.codigo || randomCode)
+      } else {
+        setConfirmedReservationCode(randomCode)
+      }
+    } catch (err) {
+      console.warn("Respaldo local de código de reserva por conectividad:", err)
       setConfirmedReservationCode(randomCode)
+    } finally {
       setIsProcessingBooking(false)
       setBookingStep(4)
-    }, 900)
+    }
   }
 
   const getWhatsAppVoucherMessage = (stay: AirbnbListing) => {
     const subtotal = stay.precioNoche * totalNoches
     const granTotal = subtotal + stay.tarifaLimpieza
+
+    let bankDetailText = ""
+    if (guestData.metodoPago === "transferencia" && cuentasBancarias.length > 0) {
+      const c = cuentasBancarias[0]
+      bankDetailText = `\n🏦 *Datos Bancarios para Transferencia (${c.banco}):*\n• ${c.tipoCuenta === "Corriente" ? "Cta. Corriente" : "Cta. Ahorros"} N° ${c.numeroCuenta}\n• Cédula/RUC: ${c.cedulaRuc || "0190458923001"}\n• Beneficiario: ${c.beneficiario || "SARA CONSTRUCTORA CIA. LTDA."}\n`
+    }
+
     const msg = encodeURIComponent(
       `✅ *COMPROBANTE DE RESERVA - SARA HOSPITALITY*\n` +
       `🔖 *Código de Reserva:* ${confirmedReservationCode}\n` +
@@ -599,8 +673,9 @@ export default function AirbnbPage() {
       `💰 *Desglose de Pago:*\n` +
       `• ${totalNoches} noches × $${stay.precioNoche} = $${subtotal} USD\n` +
       `• Tarifa de Limpieza = $${stay.tarifaLimpieza} USD\n` +
-      `• *TOTAL:* $${granTotal} USD (${guestData.metodoPago === 'transferencia' ? 'Transferencia Bancaria' : guestData.metodoPago === 'tarjeta' ? 'Tarjeta Cifrada' : 'Anticipo 30% Garantizado'})\n\n` +
-      `📍 *Ubicación:* ${stay.sector}, ${stay.ciudad}.\n` +
+      `• *TOTAL:* $${granTotal} USD (${guestData.metodoPago === 'transferencia' ? 'Transferencia Bancaria' : guestData.metodoPago === 'tarjeta' ? 'Tarjeta Cifrada' : 'Anticipo 30% Garantizado'})\n` +
+      bankDetailText +
+      `\n📍 *Ubicación:* ${stay.sector}, ${stay.ciudad}.\n` +
       `¡Bienvenido a SARA Constructora & Hospitality!`
     )
     window.open(`https://wa.me/593981804023?text=${msg}`, "_blank")
@@ -781,11 +856,11 @@ export default function AirbnbPage() {
           </div>
 
           {/* Caja Flotante de Reserva Inteligente */}
-          <form onSubmit={handleSearchSubmit} className="max-w-5xl mx-auto lg:mx-0 lg:ml-8 bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
-            {/* Barra de Filtros en Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <form onSubmit={handleSearchSubmit} className="w-full max-w-6xl mx-auto lg:mx-0 bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
+            {/* Barra de Filtros en Grid Balanceada */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
               {/* Entrada Abierta de Destino (Sin limitaciones) */}
-              <div className="lg:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
                   Destino / Ciudad / Zona
                 </label>
@@ -796,7 +871,7 @@ export default function AirbnbPage() {
                     value={destinoInput}
                     onChange={(e) => handleDestinoInputChange(e.target.value)}
                     placeholder="¿A dónde quieres ir? Ej: Cuenca, Miami, Madrid, Yunguilla..."
-                    className="w-full pl-10 pr-9 py-2.5 text-xs md:text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 placeholder:font-normal placeholder:text-gray-400 transition-all"
+                    className="w-full pl-10 pr-9 py-2.5 text-xs md:text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 placeholder:font-normal placeholder:text-gray-400 transition-all h-[42px]"
                   />
                   {destinoInput && (
                     <button
@@ -812,7 +887,7 @@ export default function AirbnbPage() {
               </div>
 
               {/* Selector de Rango de Fechas (Estilo Airbnb Oficial) */}
-              <div className="lg:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-4">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
                   Fechas de Estadía ({totalNoches} noche{totalNoches > 1 ? "s" : ""})
                 </label>
@@ -826,27 +901,37 @@ export default function AirbnbPage() {
                 />
               </div>
 
-              {/* Huéspedes & Botón */}
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Huéspedes</label>
+              {/* Selector de Huéspedes Espacioso y Responsivo */}
+              <div className="sm:col-span-1 lg:col-span-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Huéspedes
+                </label>
+                <div className="relative">
+                  <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <select
                     value={huespedesFiltro}
                     onChange={(e) => setHuespedesFiltro(Number(e.target.value))}
-                    className="w-full px-2.5 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white text-gray-700 font-bold"
+                    className="w-full pl-10 pr-8 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 font-bold transition-all appearance-none cursor-pointer h-[42px]"
                   >
-                    <option value={1}>1 Persona</option>
-                    <option value={2}>2 Personas</option>
-                    <option value={4}>4+ Personas</option>
-                    <option value={6}>6+ Personas</option>
+                    <option value={1}>1 Huésped</option>
+                    <option value={2}>2 Huéspedes</option>
+                    <option value={3}>3 Huéspedes</option>
+                    <option value={4}>4+ Huéspedes</option>
+                    <option value={6}>6+ Huéspedes</option>
+                    <option value={8}>8+ Huéspedes</option>
                   </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
+              </div>
 
+              {/* Botón de Búsqueda Destacado */}
+              <div className="sm:col-span-1 lg:col-span-2">
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-950/20 transition-all shrink-0"
+                  className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-slate-950 font-black rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer h-[42px]"
                 >
-                  <Search size={14} /> Buscar
+                  <Search size={16} className="stroke-[2.5]" />
+                  <span>Buscar</span>
                 </button>
               </div>
             </div>
@@ -940,8 +1025,16 @@ export default function AirbnbPage() {
                   return (
                     <div
                       key={stay.id}
+                      onClick={() => {
+                        setSelectedMapId(stay.id)
+                        setMapCenter([stay.lat, stay.lng])
+                        setMapZoom(15)
+                        if (vistaModo === "grid") {
+                          setVistaModo("split")
+                        }
+                      }}
                       onMouseEnter={() => setSelectedMapId(stay.id)}
-                      className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col group ${
+                      className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col group cursor-pointer ${
                         isHoveredOrActive ? "border-amber-500 ring-2 ring-amber-400/40" : "border-gray-200"
                       }`}
                     >
@@ -984,7 +1077,9 @@ export default function AirbnbPage() {
                         <div>
                           <div className="flex items-center justify-between text-xs text-gray-500 font-semibold mb-1">
                             <span className="font-bold text-gray-800">{stay.sector}</span>
-                            <span>Hasta {stay.maxHuespedes} pers.</span>
+                            <span className="text-[11px] text-amber-600 hover:text-amber-700 font-bold flex items-center gap-1">
+                              <MapPin size={12} /> Ver en mapa
+                            </span>
                           </div>
 
                           <h3 className="font-bold text-gray-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1">
@@ -1015,17 +1110,23 @@ export default function AirbnbPage() {
                         {/* Acciones de Reserva */}
                         <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
                               setSelectedStay(stay)
                               setActivePhotoIdx(0)
                             }}
-                            className="flex-1 py-2 px-3 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-center"
+                            className="flex-1 py-2 px-3 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-center cursor-pointer"
                           >
                             Detalles
                           </button>
 
                           <button
-                            onClick={() => handleStartBooking(stay)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleStartBooking(stay)
+                            }}
                             className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <Calendar size={13} /> Reservar
@@ -1833,20 +1934,95 @@ export default function AirbnbPage() {
 
                   {/* Detalle del Método Seleccionado */}
                   {guestData.metodoPago === "transferencia" && (
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-2 text-xs">
-                      <div className="flex items-center gap-2 font-bold text-gray-800">
-                        <Building size={16} className="text-brand-sage" />
-                        <span>Datos Oficiales para Transferencia / Depósito Directo:</span>
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-3 text-xs">
+                      <div className="flex items-center justify-between font-bold text-gray-800">
+                        <div className="flex items-center gap-2">
+                          <Building size={16} className="text-brand-sage" />
+                          <span>Cuentas Bancarias Oficiales de la Empresa:</span>
+                        </div>
+                        <span className="text-[10px] text-gray-500 font-normal">Depósito o Transferencia Directa</span>
                       </div>
-                      <div className="bg-white p-3 rounded-xl border border-gray-200 space-y-1 font-mono text-[11px] text-gray-700">
-                        <p><strong>Beneficiario:</strong> SARA CONSTRUCTORA CIA. LTDA.</p>
-                        <p><strong>RUC:</strong> 0190458923001</p>
-                        <p><strong>Banco Pichincha:</strong> Cta. Corriente No. 2100239485</p>
-                        <p><strong>Banco de Guayaquil:</strong> Cta. Corriente No. 0014892301</p>
-                        <p><strong>Correo para comprobantes:</strong> pagos@saraconstructora.com</p>
-                      </div>
-                      <p className="text-[11px] text-gray-500">
-                        * Al confirmar, tus fechas quedarán inmediatamente reservadas y recibirás el código de acceso al verificar la transferencia.
+
+                      {cuentasBancarias && cuentasBancarias.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {cuentasBancarias.map((cta) => (
+                            <div
+                              key={cta.id}
+                              className="bg-white p-3 rounded-xl border border-gray-200 space-y-2 shadow-xs"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-extrabold text-gray-900 text-xs">{cta.banco}</span>
+                                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-800">
+                                  {cta.tipoCuenta === "Corriente" ? "Cta. Corriente" : "Cta. Ahorros"}
+                                </span>
+                              </div>
+
+                              <div className="space-y-1 font-mono text-[11px] text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                <div className="flex items-center justify-between">
+                                  <span>N°: <strong>{cta.numeroCuenta}</strong></span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(cta.numeroCuenta, `${cta.id}_cta`)}
+                                    className="text-emerald-700 hover:text-emerald-800 font-sans text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                  >
+                                    {copiedField === `${cta.id}_cta` ? (
+                                      <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Check size={11} /> Copiado</span>
+                                    ) : (
+                                      <span className="flex items-center gap-0.5"><Copy size={11} /> Copiar</span>
+                                    )}
+                                  </button>
+                                </div>
+                                {cta.cedulaRuc && (
+                                  <div className="flex items-center justify-between">
+                                    <span>RUC/CI: <strong>{cta.cedulaRuc}</strong></span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyText(cta.cedulaRuc, `${cta.id}_ci`)}
+                                      className="text-emerald-700 hover:text-emerald-800 font-sans text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {copiedField === `${cta.id}_ci` ? (
+                                        <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Check size={11} /> Copiado</span>
+                                      ) : (
+                                        <span className="flex items-center gap-0.5"><Copy size={11} /> Copiar</span>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                                {cta.beneficiario && (
+                                  <p className="text-[10px] text-gray-600 pt-0.5 font-sans">
+                                    Titular: <strong>{cta.beneficiario}</strong>
+                                  </p>
+                                )}
+                              </div>
+
+                              {cta.correoComprobantes && (
+                                <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-gray-100">
+                                  <span className="truncate">Email: {cta.correoComprobantes}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(cta.correoComprobantes!, `${cta.id}_mail`)}
+                                    className="text-gray-500 hover:text-gray-800 text-[10px] font-bold ml-1 cursor-pointer"
+                                  >
+                                    {copiedField === `${cta.id}_mail` ? "✓ Copiado" : "Copiar"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-white p-3 rounded-xl border border-gray-200 space-y-1 font-mono text-[11px] text-gray-700">
+                          <p><strong>Beneficiario:</strong> SARA CONSTRUCTORA CIA. LTDA.</p>
+                          <p><strong>RUC:</strong> 0190458923001</p>
+                          <p><strong>Banco Pichincha:</strong> Cta. Corriente No. 2100239485</p>
+                          <p><strong>Banco de Guayaquil:</strong> Cta. Corriente No. 0014892301</p>
+                          <p><strong>Correo para comprobantes:</strong> pagos@saraconstructora.com</p>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                        <Info size={13} className="text-amber-500 shrink-0" />
+                        Al emitir tu reserva, tus fechas quedan inmediatamente aseguradas en el sistema. Puedes enviar el comprobante de transferencia al WhatsApp de atención al cliente.
                       </p>
                     </div>
                   )}
@@ -2022,6 +2198,24 @@ export default function AirbnbPage() {
                           ✓ Cerradura digital habilitada para tus fechas
                         </p>
                       </div>
+
+                      {guestData.metodoPago === "transferencia" && cuentasBancarias.length > 0 && (
+                        <div className="sm:col-span-2 bg-white/5 p-3.5 rounded-xl border border-white/10 space-y-2">
+                          <p className="text-[10px] uppercase font-bold text-amber-400">
+                            Cuentas Bancarias para el Depósito o Transferencia:
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            {cuentasBancarias.map((cta) => (
+                              <div key={cta.id} className="bg-black/40 p-2.5 rounded-lg border border-white/5 font-mono text-[11px] text-gray-200">
+                                <p className="font-bold text-white text-xs">{cta.banco} ({cta.tipoCuenta === "Corriente" ? "Cta. Cte." : "Cta. Ahorros"})</p>
+                                <p className="mt-0.5">N° <strong>{cta.numeroCuenta}</strong></p>
+                                {cta.cedulaRuc && <p className="text-[10px] text-gray-400">RUC/CI: {cta.cedulaRuc}</p>}
+                                {cta.beneficiario && <p className="text-[10px] text-gray-400 truncate">Titular: {cta.beneficiario}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
