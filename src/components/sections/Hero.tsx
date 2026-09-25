@@ -39,7 +39,7 @@ export default function Hero() {
         urls = fallbackData?.map((p: any) => p.imagen_url).filter(Boolean) || []
       }
 
-      setImages([actualLogo, ...urls])
+      setImages([actualLogo])
     }
     fetchData()
   }, [])
