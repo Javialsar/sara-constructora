@@ -48,7 +48,7 @@ export default function PresupuestosRealesPage() {
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
-  const [showFormulas, setShowFormulas] = useState(false)
+  const [showFormulas, setShowFormulas] = useState(true)
   const [openGroup, setOpenGroup] = useState({ 1: false, 2: false, 3: true, 4: true, 5: true, 6: true })
   const [activeTab, setActiveTab] = useState('detalle')
   
@@ -915,7 +915,7 @@ export default function PresupuestosRealesPage() {
                   <div className="flex items-center gap-2">
                     <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className='px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg text-slate-600 shadow-sm hover:bg-slate-50 transition-colors'>% Porcentajes por defecto</button>
                     <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-medium bg-slate-100 border border-transparent rounded-lg text-slate-600 hover:bg-slate-200 transition-colors'>Restaurar Fórmulas por defecto</button>
-                    <label className="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" checked={showFormulas} onChange={e => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage"/> Habilitar Edición de Fórmulas</label>
+                    
                   </div>
                   <button onClick={handleSaveIndirectos} className="bg-brand-sage hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm text-sm">
                     <Save size={16} /> Grabar Fórmulas
@@ -929,7 +929,7 @@ export default function PresupuestosRealesPage() {
                     
                   </div>
                   <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
-                    <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 hover:bg-gray-50 transition-colors">
                       <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales y Equipos</div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smaq.toFixed(2)}</div>
                       {showFormulas && (
@@ -939,9 +939,9 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Herramientas Menores % M.O.</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pmaq1</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pmaq1} onChange={(e) => setIndForm({...indForm, pmaq1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -953,7 +953,7 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-100 font-bold border-t border-gray-200">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Total Equipos</div>
                       <div className="w-24 pl-8"></div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{cmaq.toFixed(2)}</div>
@@ -972,7 +972,7 @@ export default function PresupuestosRealesPage() {
                     
                   </div>
                   <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
-                    <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 hover:bg-gray-50 transition-colors">
                       <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Mano de Obra</div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smob.toFixed(2)}</div>
                       {showFormulas && (
@@ -982,9 +982,9 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium"></div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pmob1</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pmob1} onChange={(e) => setIndForm({...indForm, pmob1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -996,7 +996,7 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-100 font-bold border-t border-gray-200">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Total Mano de Obra</div>
                       <div className="w-24 pl-8"></div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{cmob.toFixed(2)}</div>
@@ -1015,7 +1015,7 @@ export default function PresupuestosRealesPage() {
                     
                   </div>
                   <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
-                    <div className="flex p-3 items-center hover:bg-gray-50 transition-colors">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 hover:bg-gray-50 transition-colors">
                       <div className="w-1/3 text-right pr-4 text-gray-600 font-medium">Subtotal Materiales</div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{smat.toFixed(2)}</div>
                       {showFormulas && (
@@ -1025,9 +1025,9 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium"></div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pmat1</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pmat1} onChange={(e) => setIndForm({...indForm, pmat1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1039,7 +1039,7 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-100 font-bold border-t border-gray-200">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Total Materiales</div>
                       <div className="w-24 pl-8"></div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{cmat.toFixed(2)}</div>
@@ -1069,9 +1069,9 @@ export default function PresupuestosRealesPage() {
                     
                   </div>
                   <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos generales = (% de 1+2+3)</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$ggen</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.ggen} onChange={(e) => setIndForm({...indForm, ggen: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1083,9 +1083,9 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Gastos de obra</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pgas1</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pgas1} onChange={(e) => setIndForm({...indForm, pgas1: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1097,9 +1097,9 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Financiamiento</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pgas2</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pgas2} onChange={(e) => setIndForm({...indForm, pgas2: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1111,9 +1111,9 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Polizas y Seguros</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pgas3</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pgas3} onChange={(e) => setIndForm({...indForm, pgas3: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1125,7 +1125,7 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-100 font-bold border-t border-gray-200">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Total gastos generales y administrativos</div>
                       <div className="w-24 pl-8"></div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{totalGastosGenerales.toFixed(2)}</div>
@@ -1155,9 +1155,9 @@ export default function PresupuestosRealesPage() {
                     
                   </div>
                   <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Imprevistos = (% de 1+2+3)</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$pimp</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.pimp} onChange={(e) => setIndForm({...indForm, pimp: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1169,7 +1169,7 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-100 font-bold border-t border-gray-200">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Total de Imprevistos</div>
                       <div className="w-24 pl-8"></div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{simp.toFixed(2)}</div>
@@ -1188,9 +1188,9 @@ export default function PresupuestosRealesPage() {
                     
                   </div>
                   <div className="bg-white divide-y divide-gray-100 border border-gray-200 rounded-b-xl shadow-sm mb-4">
-                    <div className="flex p-3 items-center bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-50/50 hover:bg-gray-100/80 transition-colors border-l-4 border-brand-sage">
                       <div className="w-1/3 text-left pl-4 font-medium">Utilidad = (% de 1+2+3)</div>
-                      <div className="flex items-center w-48">
+                      <div className="flex items-center w-48 flex-shrink-0">
                         <span className={`font-mono text-xs text-gray-400 w-16 text-right mr-2 ${showFormulas ? '' : 'hidden'}`}>$util</span>
                         <div className="relative"><input type="number" step="0.1" min="0" value={indForm.util} onChange={(e) => setIndForm({...indForm, util: e.target.value})} className="w-24 h-9 border border-gray-300 rounded-lg text-right pr-7 pl-2 text-sm font-bold text-brand-dark outline-none focus:border-brand-sage focus:ring-1 focus:ring-brand-sage transition-all bg-white shadow-sm" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span></div>
                       </div>
@@ -1202,7 +1202,7 @@ export default function PresupuestosRealesPage() {
                         </>
                       )}
                     </div>
-                    <div className="flex p-3 items-center bg-gray-100 font-bold border-t border-gray-200">
+                    <div className="flex flex-wrap md:flex-nowrap p-3 items-center gap-y-2 bg-gray-100 font-bold border-t border-gray-200">
                       <div className="w-1/3 text-right pr-4 text-gray-700">Precio de venta</div>
                       <div className="w-24 pl-8"></div>
                       <div className={`text-right pr-4 font-mono ${showFormulas ? "w-24" : "flex-1"}`}>{granTotal.toFixed(2)}</div>
