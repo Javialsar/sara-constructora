@@ -36,6 +36,7 @@ const defaultFormulas = {
 
 const presupuestoSchema = z.object({
   nombre_proyecto: z.string().min(2, "Seleccione un proyecto"),
+  cliente_id: z.string().nullable().optional(),
   porcentaje_admin: z.number().min(0, "Mínimo 0"),
   porcentaje_imprevistos: z.number().min(0, "Mínimo 0"),
   porcentaje_utilidad: z.number().min(0, "Mínimo 0"),
@@ -58,7 +59,7 @@ export default function PresupuestosRealesPage() {
   const { data: presupuestos = [] } = useQuery({
     queryKey: ['presupuestos'],
     queryFn: async () => {
-      const { data } = await supabase.from('presupuestos_reales').select('*').order('created_at', { ascending: false });
+      const { data } = await supabase.from('presupuestos_reales').select('*, cliente:clientes(id, nombre, apellido, email)').order('created_at', { ascending: false });
       return data || [];
     }
   });
@@ -66,14 +67,22 @@ export default function PresupuestosRealesPage() {
   const { data: proyectosCRM = [] } = useQuery({
     queryKey: ['proyectosCRM'],
     queryFn: async () => {
-      const { data } = await supabase.from('proyectos').select('id, nombre, cliente:clientes(nombre, apellido)').order('created_at', { ascending: false });
+      const { data } = await supabase.from('proyectos').select('id, nombre, cliente_id, cliente:clientes(id, nombre, apellido, email)').order('created_at', { ascending: false });
+      return data || [];
+    }
+  });
+
+  const { data: clientesCRM = [] } = useQuery({
+    queryKey: ['clientesCRM'],
+    queryFn: async () => {
+      const { data } = await supabase.from('clientes').select('id, nombre, apellido, email').order('nombre', { ascending: true });
       return data || [];
     }
   });
 
   const createMutation = useMutation({
     mutationFn: async (values: PresupuestoFormValues) => {
-      const { data, error } = await supabase.from('presupuestos_reales').insert([values]).select().single();
+      const { data, error } = await supabase.from('presupuestos_reales').insert([values]).select('*, cliente:clientes(id, nombre, apellido, email)').single();
       if (error) throw error;
       return data;
     },
@@ -91,7 +100,11 @@ export default function PresupuestosRealesPage() {
   });
 
   const submitNewPresupuesto = (data: PresupuestoFormValues) => {
-    createMutation.mutate(data);
+    const matched = proyectosCRM.find((p: any) => p.nombre === data.nombre_proyecto);
+    createMutation.mutate({
+      ...data,
+      cliente_id: matched?.cliente_id || null
+    });
   };
 
 
@@ -146,9 +159,26 @@ export default function PresupuestosRealesPage() {
   const [userRole, setUserRole] = useState('admin')
   const [userName, setUserName] = useState('')
 
+  // Modal Duplicar Presupuesto
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+  const [cloneSource, setCloneSource] = useState<any>(null);
+  const [cloneDestinoTipo, setCloneDestinoTipo] = useState<'crm' | 'manual'>('crm');
+  const [cloneProyectoCrmId, setCloneProyectoCrmId] = useState('');
+  const [cloneNombreProyecto, setCloneNombreProyecto] = useState('');
+  const [cloneClienteId, setCloneClienteId] = useState('');
+  const [isCloning, setIsCloning] = useState(false);
+
+  // Modal Reasignar Proyecto / Cliente
+  const [isEditMetaModalOpen, setIsEditMetaModalOpen] = useState(false);
+  const [metaTargetPresupuesto, setMetaTargetPresupuesto] = useState<any>(null);
+  const [metaDestinoTipo, setMetaDestinoTipo] = useState<'crm' | 'manual'>('crm');
+  const [metaProyectoCrmId, setMetaProyectoCrmId] = useState('');
+  const [metaNombreProyecto, setMetaNombreProyecto] = useState('');
+  const [metaClienteId, setMetaClienteId] = useState('');
+  const [isSavingMeta, setIsSavingMeta] = useState(false);
+
   useEffect(() => {
     fetchPresupuestos()
-    fetchProyectosCRM()
     
     // Fetch actual user role
     const fetchUser = async () => {
@@ -165,40 +195,52 @@ export default function PresupuestosRealesPage() {
     fetchUser()
   }, [])
 
-  const fetchProyectosCRM = async () => {
-    const { data } = await supabase.from('proyectos').select('id, nombre, cliente:clientes(nombre, apellido)').order('created_at', { ascending: false })
-    if (data) setProyectosCRM(data)
-  }
-
   const fetchPresupuestos = async () => {
-    const { data } = await supabase.from('presupuestos_reales').select('*').order('created_at', { ascending: false })
-    if (data) setPresupuestos(data)
+    await queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
   }
 
-  const handleCreatePresupuesto = async (e) => {
-    e.preventDefault()
-    const { data, error } = await supabase.from('presupuestos_reales').insert([newPresupuestoData]).select().single()
-    if (!error) {
-      setIsNewModalOpen(false)
-      fetchPresupuestos()
-      openEditor(data)
+  const openCloneModal = (presupuesto: any, e?: any) => {
+    if (e) e.stopPropagation();
+    setCloneSource(presupuesto);
+    setCloneDestinoTipo('crm');
+    setCloneProyectoCrmId('');
+    setCloneNombreProyecto(presupuesto.nombre_proyecto + " (Copia)");
+    setCloneClienteId(presupuesto.cliente_id || '');
+    setIsCloneModalOpen(true);
+  };
+
+  const handleSelectCrmProjectForClone = (projectId: string) => {
+    setCloneProyectoCrmId(projectId);
+    const found = proyectosCRM.find((p: any) => p.id === projectId);
+    if (found) {
+      setCloneNombreProyecto(found.nombre);
+      if (found.cliente_id) {
+        setCloneClienteId(found.cliente_id);
+      }
     }
-  }
+  };
 
-  
-  const handleClonePresupuesto = async (presupuesto: any, e: any) => {
-    e.stopPropagation();
-    if (!confirm(`¿Estás seguro de duplicar el presupuesto "${presupuesto.nombre_proyecto}"? Se copiarán todos sus rubros e insumos.`)) return;
+  const executeClonePresupuesto = async () => {
+    if (!cloneSource) return;
+    const targetNombre = cloneNombreProyecto.trim();
+    if (!targetNombre) {
+      alert("Por favor ingrese o seleccione el nombre del proyecto.");
+      return;
+    }
 
+    setIsCloning(true);
     try {
-      const { id, created_at, updated_at, costo_directo_total, gran_total, clientes, proyectos, ...parentData } = presupuesto;
+      const { id, created_at, updated_at, cliente, clientes, proyectos, ...parentData } = cloneSource;
       
-      // 1. Insert new budget
+      // 1. Insert new budget with new project name, new client_id, and preserve totals & indirects
       const { data: newPresupuesto, error: errParent } = await supabase.from('presupuestos_reales').insert([{
         ...parentData,
-        nombre_proyecto: parentData.nombre_proyecto + " (Copia)",
-        estado: 'borrador'
-      }]).select().single();
+        nombre_proyecto: targetNombre,
+        cliente_id: cloneClienteId ? cloneClienteId : null,
+        estado: 'borrador',
+        costo_directo_total: cloneSource.costo_directo_total || 0,
+        gran_total: cloneSource.gran_total || 0
+      }]).select('*, cliente:clientes(id, nombre, apellido, email)').single();
       
       if (errParent) throw errParent;
 
@@ -206,7 +248,6 @@ export default function PresupuestosRealesPage() {
       const { data: oldRubros } = await supabase.from('presupuesto_rubros').select('*').eq('presupuesto_id', id);
       
       if (oldRubros && oldRubros.length > 0) {
-        // We will insert rubros one by one to reliably map their new IDs for their insumos
         for (const oldRubro of oldRubros) {
           const { id: oldRubroId, created_at: cat, updated_at: ucat, ...rData } = oldRubro;
           
@@ -233,14 +274,78 @@ export default function PresupuestosRealesPage() {
         }
       }
       
-      alert("¡Presupuesto clonado con éxito!");
-      queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      await queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      setIsCloneModalOpen(false);
+      alert(`¡Presupuesto duplicado con éxito y asignado a "${targetNombre}"!`);
+      openEditor(newPresupuesto);
       
     } catch (error: any) {
       console.error("Error al clonar:", error);
       alert("Ocurrió un error al clonar: " + (error.message || error.details || JSON.stringify(error)));
+    } finally {
+      setIsCloning(false);
     }
-  }
+  };
+
+  const openEditMetaModal = (presupuesto: any, e?: any) => {
+    if (e) e.stopPropagation();
+    setMetaTargetPresupuesto(presupuesto);
+    const matchedCrm = proyectosCRM.find((p: any) => p.nombre?.trim().toLowerCase() === presupuesto.nombre_proyecto?.trim().toLowerCase());
+    if (matchedCrm) {
+      setMetaDestinoTipo('crm');
+      setMetaProyectoCrmId(matchedCrm.id);
+    } else {
+      setMetaDestinoTipo('manual');
+      setMetaProyectoCrmId('');
+    }
+    setMetaNombreProyecto(presupuesto.nombre_proyecto || '');
+    setMetaClienteId(presupuesto.cliente_id || '');
+    setIsEditMetaModalOpen(true);
+  };
+
+  const handleSelectCrmProjectForMeta = (projectId: string) => {
+    setMetaProyectoCrmId(projectId);
+    const found = proyectosCRM.find((p: any) => p.id === projectId);
+    if (found) {
+      setMetaNombreProyecto(found.nombre);
+      if (found.cliente_id) {
+        setMetaClienteId(found.cliente_id);
+      }
+    }
+  };
+
+  const executeSaveMeta = async () => {
+    if (!metaTargetPresupuesto) return;
+    const targetNombre = metaNombreProyecto.trim();
+    if (!targetNombre) {
+      alert("Por favor ingrese o seleccione el nombre del proyecto.");
+      return;
+    }
+
+    setIsSavingMeta(true);
+    try {
+      const { data, error } = await supabase.from('presupuestos_reales').update({
+        nombre_proyecto: targetNombre,
+        cliente_id: metaClienteId ? metaClienteId : null
+      }).eq('id', metaTargetPresupuesto.id).select('*, cliente:clientes(id, nombre, apellido, email)').single();
+
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+
+      if (currentPresupuesto && currentPresupuesto.id === metaTargetPresupuesto.id) {
+        setCurrentPresupuesto(data);
+      }
+
+      setIsEditMetaModalOpen(false);
+      alert("¡Proyecto y cliente actualizados correctamente!");
+    } catch (error: any) {
+      console.error("Error al actualizar:", error);
+      alert("Error al actualizar: " + (error.message || JSON.stringify(error)));
+    } finally {
+      setIsSavingMeta(false);
+    }
+  };
 
   const handleDeletePresupuesto = async (id, e) => {
     e.stopPropagation()
@@ -268,20 +373,21 @@ export default function PresupuestosRealesPage() {
     fetchPresupuestos()
   }
 
-  const openEditor = async (presupuesto) => {
-    setCurrentPresupuesto(presupuesto)
-    setIndForm({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(presupuesto.indirectos_config || {}) })
-    setActiveTab('detalle')
-    setIndForm({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(presupuesto.indirectos_config || {}) })
-    setActiveTab('detalle')
-    setView('editor')
-    fetchPresupuestoRubros(presupuesto.id)
+  const openEditor = async (presupuesto: any) => {
+    let pres = { ...presupuesto };
+    if (!pres.cliente && pres.cliente_id && clientesCRM?.length > 0) {
+      pres.cliente = clientesCRM.find((c: any) => c.id === pres.cliente_id) || null;
+    }
+    setCurrentPresupuesto(pres);
+    setIndForm({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(presupuesto.indirectos_config || {}) });
+    setActiveTab('detalle');
+    setView('editor');
+    fetchPresupuestoRubros(presupuesto.id);
     
     if (allRubros.length === 0) {
-      const { data } = await supabase.from('rubros').select('*').order('categoria', { ascending: true })
-      if (data) setAllRubros(data)
+      const { data } = await supabase.from('rubros').select('*').order('categoria', { ascending: true });
+      if (data) setAllRubros(data);
     }
-    
   }
 
   const fetchPresupuestoRubros = async (presupuesto_id) => {
@@ -845,11 +951,28 @@ export default function PresupuestosRealesPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => setView('lista')} className="p-2 bg-white rounded-lg text-gray-500 shadow-sm border"><ArrowLeft size={20} /></button>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black text-brand-dark flex items-center gap-2"><FileText className="text-brand-sage" /> {currentPresupuesto.nombre_proyecto}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl font-black text-brand-dark flex items-center gap-2">
+                  <FileText className="text-brand-sage" /> {currentPresupuesto.nombre_proyecto}
+                </h1>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${isBorrador ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800 flex items-center gap-1'}`}>
-                  {!isBorrador && <Lock size={12}/>} {currentPresupuesto.estado || 'Borrador'}
+                  {!isBorrador && <Lock size={12}/>} {currentPresupuesto.estado || 'borrador'}
                 </span>
+                <button 
+                  onClick={() => openEditMetaModal(currentPresupuesto)} 
+                  title="Cambiar Proyecto o Cliente asignado" 
+                  className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition shadow-sm ml-2"
+                >
+                  <Edit3 size={13} /> Reasignar Proyecto / Cliente
+                </button>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 flex items-center gap-3">
+                <span className="flex items-center gap-1 font-medium text-gray-600">
+                  <Users size={13} className="text-gray-400" />
+                  Cliente: <strong className="text-gray-900">{currentPresupuesto.cliente ? `${currentPresupuesto.cliente.nombre} ${currentPresupuesto.cliente.apellido}` : (clientesCRM.find((c: any) => c.id === currentPresupuesto.cliente_id) ? `${clientesCRM.find((c: any) => c.id === currentPresupuesto.cliente_id).nombre} ${clientesCRM.find((c: any) => c.id === currentPresupuesto.cliente_id).apellido}` : 'Sin cliente asignado')}</strong>
+                </span>
+                <span>•</span>
+                <span>Creado: {new Date(currentPresupuesto.created_at).toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -1609,27 +1732,100 @@ export default function PresupuestosRealesPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-900/5 mb-6 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50"><input type="text" placeholder="Buscar proyecto..." value={searchPresupuesto} onChange={(e) => setSearchPresupuesto(e.target.value)} className="w-full max-w-md px-4 py-2 border rounded-lg" /></div>
-        <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200"><tr><th className="px-6 py-4">Proyecto</th><th className="px-6 py-4">Fecha</th><th className="px-6 py-4 text-center">Estado</th><th className="px-6 py-4 text-right">Costo Directo</th><th className="px-6 py-4 text-right">Gran Total</th><th className="px-6 py-4 text-center">Acciones</th></tr></thead><tbody className="divide-y divide-gray-50">
-          {presupuestos.filter(p => p.nombre_proyecto.toLowerCase().includes(searchPresupuesto.toLowerCase())).map((p) => (
-            <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
-              <td className="px-6 py-3 font-bold text-brand-dark">{p.nombre_proyecto}</td>
-              <td className="px-6 py-3 text-gray-500">{new Date(p.created_at).toLocaleDateString()}</td>
-              <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'aprobado' || p.estado === 'enviado' || p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>{p.estado || 'borrador'}</span></td>
-              <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
-              <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
-              <td className="px-6 py-3 text-center">
-  <span className="text-brand-sage font-bold mr-2 text-xs">Editar / Ver</span>
-  {userRole === 'admin' && (
-    <>
-      <button onClick={(e) => handleClonePresupuesto(p, e)} title="Duplicar Presupuesto" className="text-gray-400 hover:text-blue-500 p-1.5 transition-colors"><Copy size={16}/></button>
-      <button onClick={(e) => handleDeletePresupuesto(p.id, e)} title="Eliminar Presupuesto" className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"><Trash2 size={16}/></button>
-    </>
-  )}
-</td>
-            </tr>
-          ))}
-        </tbody></table>
+        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <input 
+            type="text" 
+            placeholder="Buscar por proyecto o cliente..." 
+            value={searchPresupuesto} 
+            onChange={(e) => setSearchPresupuesto(e.target.value)} 
+            className="w-full max-w-md px-4 py-2 border rounded-lg text-sm bg-white" 
+          />
+          <div className="text-xs text-gray-500 font-medium">
+            Total presupuestos: {presupuestos.length}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left divide-y divide-gray-200">
+            <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-4">Proyecto</th>
+                <th className="px-6 py-4">Cliente</th>
+                <th className="px-6 py-4">Fecha</th>
+                <th className="px-6 py-4 text-center">Estado</th>
+                <th className="px-6 py-4 text-right">Costo Directo</th>
+                <th className="px-6 py-4 text-right">Gran Total</th>
+                <th className="px-6 py-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {presupuestos.filter(p => {
+                const searchLower = searchPresupuesto.toLowerCase();
+                const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
+                const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
+                return matchProject || clientName.includes(searchLower);
+              }).map((p) => (
+                <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
+                  <td className="px-6 py-3">
+                    <div className="font-bold text-brand-dark text-sm">{p.nombre_proyecto}</div>
+                  </td>
+                  <td className="px-6 py-3">
+                    {p.cliente ? (
+                      <div className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-[10px]">
+                          {p.cliente.nombre?.[0] || 'C'}
+                        </div>
+                        <span>{p.cliente.nombre} {p.cliente.apellido}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">Sin cliente</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-3 text-gray-500 text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-3 text-center">
+                    <span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'aprobado' || p.estado === 'enviado' || p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>
+                      {p.estado || 'borrador'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
+                  <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
+                  <td className="px-6 py-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <button 
+                        onClick={() => openEditor(p)} 
+                        className="text-brand-sage font-bold mr-1 text-xs hover:underline"
+                      >
+                        Editar / Ver
+                      </button>
+                      <button 
+                        onClick={(e) => openEditMetaModal(p, e)} 
+                        title="Reasignar Proyecto / Cliente" 
+                        className="text-gray-400 hover:text-emerald-600 p-1.5 transition-colors rounded hover:bg-emerald-50"
+                      >
+                        <Edit3 size={16}/>
+                      </button>
+                      <button 
+                        onClick={(e) => openCloneModal(p, e)} 
+                        title="Duplicar para otro Proyecto o Cliente" 
+                        className="text-gray-400 hover:text-blue-500 p-1.5 transition-colors rounded hover:bg-blue-50"
+                      >
+                        <Copy size={16}/>
+                      </button>
+                      {userRole === 'admin' && (
+                        <button 
+                          onClick={(e) => handleDeletePresupuesto(p.id, e)} 
+                          title="Eliminar Presupuesto" 
+                          className="text-gray-400 hover:text-red-500 p-1.5 transition-colors rounded hover:bg-red-50"
+                        >
+                          <Trash2 size={16}/>
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {isNewModalOpen && (
@@ -1641,7 +1837,7 @@ export default function PresupuestosRealesPage() {
                   <label className="block text-xs font-bold mb-1">Proyecto</label>
                   <select {...registerNew("nombre_proyecto")} className={`w-full border rounded p-2 ${newErrors.nombre_proyecto ? 'border-red-500' : ''}`}>
                     <option value="" disabled>-- Seleccione --</option>
-                    {proyectosCRM.map((p: any) => <option key={p.id} value={p.nombre}>{p.nombre}</option>)}
+                    {proyectosCRM.map((p: any) => <option key={p.id} value={p.nombre}>{p.nombre} {p.cliente ? `(${p.cliente.nombre} ${p.cliente.apellido})` : ''}</option>)}
                   </select>
                   {newErrors.nombre_proyecto && <p className="text-red-500 text-xs">{newErrors.nombre_proyecto.message}</p>}
                 </div>
@@ -1666,6 +1862,285 @@ export default function PresupuestosRealesPage() {
                   </button>
                 </div>
               </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DUPLICAR PRESUPUESTO */}
+      {isCloneModalOpen && cloneSource && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center p-6 border-b bg-gray-50/50">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Copy size={20} className="text-brand-sage" /> Duplicar Presupuesto
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Asigna esta copia a otro proyecto y cliente de tu empresa.
+                </p>
+              </div>
+              <button onClick={() => !isCloning && setIsCloneModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Presupuesto Origen */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900">
+                <div className="font-bold flex items-center gap-1.5 mb-1 text-amber-950">
+                  <span>Presupuesto origen a duplicar:</span>
+                </div>
+                <div className="text-sm font-semibold">{cloneSource.nombre_proyecto}</div>
+                <div className="text-amber-800/80 mt-0.5">
+                  Se copiarán automáticamente todos sus rubros, insumos, cantidades y fórmulas de costos indirectos.
+                </div>
+              </div>
+
+              {/* Selector de Modo */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2">Destino del Presupuesto Duplicado</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setCloneDestinoTipo('crm')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${cloneDestinoTipo === 'crm' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    Proyecto de CRM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCloneDestinoTipo('manual');
+                      if (cloneDestinoTipo === 'crm') {
+                        setCloneNombreProyecto(cloneSource.nombre_proyecto + ' (Copia)');
+                      }
+                    }}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${cloneDestinoTipo === 'manual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    Nombre Personalizado
+                  </button>
+                </div>
+              </div>
+
+              {cloneDestinoTipo === 'crm' ? (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Seleccionar Proyecto de "MIS PROYECTOS"
+                  </label>
+                  <select
+                    value={cloneProyectoCrmId}
+                    onChange={(e) => handleSelectCrmProjectForClone(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
+                  >
+                    <option value="">-- Selecciona un proyecto existente --</option>
+                    {proyectosCRM.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} {p.cliente ? `(Cliente: ${p.cliente.nombre} ${p.cliente.apellido})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Al seleccionar un proyecto, se asignará su nombre y su cliente automáticamente.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Nombre del Nuevo Proyecto / Presupuesto *
+                  </label>
+                  <input
+                    type="text"
+                    value={cloneNombreProyecto}
+                    onChange={(e) => setCloneNombreProyecto(e.target.value)}
+                    placeholder="Ej. Casa de Playa - Familia López"
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Selector de Cliente */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Cliente Asignado
+                </label>
+                <select
+                  value={cloneClienteId}
+                  onChange={(e) => setCloneClienteId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
+                >
+                  <option value="">-- Sin cliente asignado (o definir luego) --</option>
+                  {clientesCRM.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} {c.apellido} {c.email ? `(${c.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Puedes cambiar el cliente libremente o asignarlo más adelante.
+                </p>
+              </div>
+
+              {/* Footer acciones */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  disabled={isCloning}
+                  onClick={() => setIsCloneModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isCloning || !cloneNombreProyecto.trim()}
+                  onClick={executeClonePresupuesto}
+                  className="px-6 py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isCloning ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Duplicando...
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={16} /> Duplicar y Asignar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL REASIGNAR PROYECTO / CLIENTE */}
+      {isEditMetaModalOpen && metaTargetPresupuesto && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center p-6 border-b bg-gray-50/50">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Edit3 size={20} className="text-brand-sage" /> Reasignar Proyecto y Cliente
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Modifica a qué proyecto o cliente pertenece este presupuesto.
+                </p>
+              </div>
+              <button onClick={() => !isSavingMeta && setIsEditMetaModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Presupuesto actual */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs text-slate-700">
+                <div className="text-[11px] uppercase font-bold text-slate-500">Presupuesto actual:</div>
+                <div className="text-sm font-bold text-gray-900">{metaTargetPresupuesto.nombre_proyecto}</div>
+                <div className="text-slate-500 mt-0.5">
+                  Cliente actual: <strong>{metaTargetPresupuesto.cliente ? `${metaTargetPresupuesto.cliente.nombre} ${metaTargetPresupuesto.cliente.apellido}` : 'Sin cliente'}</strong>
+                </div>
+              </div>
+
+              {/* Selector de Modo */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2">Asignar Proyecto</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setMetaDestinoTipo('crm')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${metaDestinoTipo === 'crm' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    Vincular a Proyecto CRM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMetaDestinoTipo('manual')}
+                    className={`py-2 text-xs font-bold rounded-lg transition-all ${metaDestinoTipo === 'manual' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+                  >
+                    Escribir Nombre Libre
+                  </button>
+                </div>
+              </div>
+
+              {metaDestinoTipo === 'crm' ? (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Seleccionar de "MIS PROYECTOS"
+                  </label>
+                  <select
+                    value={metaProyectoCrmId}
+                    onChange={(e) => handleSelectCrmProjectForMeta(e.target.value)}
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
+                  >
+                    <option value="">-- Selecciona un proyecto existente --</option>
+                    {proyectosCRM.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} {p.cliente ? `(Cliente: ${p.cliente.nombre} ${p.cliente.apellido})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Nombre del Proyecto *
+                  </label>
+                  <input
+                    type="text"
+                    value={metaNombreProyecto}
+                    onChange={(e) => setMetaNombreProyecto(e.target.value)}
+                    placeholder="Nombre del proyecto..."
+                    className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* Selector de Cliente */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Cliente Asignado
+                </label>
+                <select
+                  value={metaClienteId}
+                  onChange={(e) => setMetaClienteId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
+                >
+                  <option value="">-- Sin cliente asignado --</option>
+                  {clientesCRM.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} {c.apellido} {c.email ? `(${c.email})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Footer acciones */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  disabled={isSavingMeta}
+                  onClick={() => setIsEditMetaModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingMeta || !metaNombreProyecto.trim()}
+                  onClick={executeSaveMeta}
+                  className="px-6 py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingMeta ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} /> Guardar Cambios
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
