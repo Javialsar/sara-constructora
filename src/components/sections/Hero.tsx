@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/Button"
-import { ArrowRight, ChevronLeft, ChevronRight, Calendar, Building2 } from "lucide-react"
+import { ArrowRight, ChevronLeft, ChevronRight, Calendar, Building2, Eye } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
 
@@ -32,22 +32,51 @@ interface HeroSlide {
 
 export default function Hero() {
   const [logoUrl, setLogoUrl] = useState<string>('/logo-hero.png')
+  const [projectSlides, setProjectSlides] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 
   useEffect(() => {
-    const fetchLogo = async () => {
+    const fetchData = async () => {
       const supabase = createClient()
+      
+      // 1. Obtener Logo Oficial
       const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
       if (config?.logo_url) {
         setLogoUrl(config.logo_url)
       }
+
+      // 2. Obtener Proyectos marcados para mostrarse (destacados)
+      const { data } = await supabase
+        .from('proyectos')
+        .select('id, nombre, ubicacion, estado, imagen_url')
+        .eq('destacado', true)
+        .not('imagen_url', 'is', null)
+
+      if (data && data.length > 0) {
+        setProjectSlides(data)
+      } else {
+        // Fallback por si aún no tienen destacados marcados
+        const { data: fallbackData } = await supabase
+          .from('proyectos')
+          .select('id, nombre, ubicacion, estado, imagen_url')
+          .not('imagen_url', 'is', null)
+          .limit(4)
+
+        if (fallbackData && fallbackData.length > 0) {
+          setProjectSlides(fallbackData)
+        }
+      }
     }
-    fetchLogo()
+    fetchData()
   }, [])
 
-  // 3 Slides solicitados en orden: 1. Constructora, 2. Airbnb, 3. Inmobiliaria
-  const slides: HeroSlide[] = [
+  // Construcción de la lista completa de slides en el orden exacto:
+  // 1. Constructora (Imagen 1)
+  // 2. Airbnb (Imagen 2)
+  // 3. Inmobiliaria (Imagen 3)
+  // 4 en adelante. Proyectos marcados para mostrarse (como estaban originalmente)
+  const allSlides: HeroSlide[] = [
     {
       id: "constructora",
       label: "01 · Constructora",
@@ -75,7 +104,7 @@ export default function Hero() {
     },
     {
       id: "airbnb",
-      label: "02 · Airbnb & Hospitality",
+      label: "02 · Airbnb",
       tag: "Hospitality · Suites · Renta Vacacional & Corporativa",
       title: (
         <>
@@ -126,26 +155,55 @@ export default function Hero() {
       isLogo: false,
       accentColor: "text-emerald-400",
       pillActiveBg: "bg-emerald-400 text-slate-950"
-    }
+    },
+    ...projectSlides.map((p, idx) => {
+      const slideNum = String(idx + 4).padStart(2, '0')
+      return {
+        id: `proy-${p.id}`,
+        label: `${slideNum} · ${p.nombre}`,
+        tag: `Proyecto Destacado · ${p.ubicacion || 'Ecuador'}`,
+        title: (
+          <>
+            {p.nombre.toUpperCase()}
+          </>
+        ),
+        description: `Obra arquitectónica y constructiva ejecutada con ingeniería de precisión y los más altos estándares de diseño por SARA Constructora.`,
+        primaryBtn: {
+          text: "Ver Detalles del Proyecto",
+          href: `/proyectos/${p.id}`,
+          variant: "sage" as const,
+          icon: <Eye size={16} />
+        },
+        secondaryBtn: {
+          text: "Ver Todo el Portafolio",
+          href: "/proyectos"
+        },
+        image: p.imagen_url,
+        isLogo: false,
+        accentColor: "text-brand-sage",
+        pillActiveBg: "bg-brand-sage text-slate-950"
+      }
+    })
   ]
 
   // Rotación automática cada 6 segundos
   useEffect(() => {
-    if (isPaused) return
+    if (isPaused || allSlides.length <= 1) return
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % slides.length)
+      setCurrentIndex((prev) => (prev + 1) % allSlides.length)
     }, 6000)
     return () => clearInterval(interval)
-  }, [isPaused, slides.length])
+  }, [isPaused, allSlides.length])
 
-  const currentSlide = slides[currentIndex]
+  const safeIndex = currentIndex % (allSlides.length || 1)
+  const currentSlide = allSlides[safeIndex] || allSlides[0]
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : slides.length - 1))
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : allSlides.length - 1))
   }
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % slides.length)
+    setCurrentIndex((prev) => (prev + 1) % allSlides.length)
   }
 
   return (
@@ -154,9 +212,9 @@ export default function Hero() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative min-h-[90vh] lg:min-h-screen flex items-center pt-24 pb-16 overflow-hidden bg-brand-dark"
     >
-      {/* Fondo Split con las 3 imágenes (Imagen 1, Imagen 2, Imagen 3) en transición fluida */}
-      {slides.map((slide, index) => {
-        const isActive = index === currentIndex
+      {/* Fondo Split con las imágenes en rotación: 1. Constructora, 2. Airbnb, 3. Inmobiliaria, 4+. Proyectos */}
+      {allSlides.map((slide, index) => {
+        const isActive = index === safeIndex
         return (
           <div
             key={slide.id}
@@ -171,12 +229,12 @@ export default function Hero() {
               opacity: isActive ? (slide.isLogo ? 0.92 : 1) : 0 
             }}
           >
-            {/* Máscara de desvanecimiento suave para que la imagen se integre armónicamente con el fondo verde */}
+            {/* Máscara de desvanecimiento suave para fundir la fotografía con el fondo oscuro */}
             {!slide.isLogo && (
               <div className="hidden lg:block absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-brand-dark via-brand-dark/85 to-transparent z-10" />
             )}
             
-            {/* Oscurecimiento en pantallas móviles para garantizar máxima legibilidad del texto */}
+            {/* Oscurecimiento en pantallas móviles para asegurar legibilidad */}
             {!slide.isLogo && (
               <div className="lg:hidden absolute inset-0 bg-brand-dark/80 z-10" />
             )}
@@ -187,16 +245,16 @@ export default function Hero() {
       {/* Gradiente sutil para mantener los textos nítidos */}
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/65 to-transparent w-full md:w-[120%]" />
       
-      {/* Resplandor verde de marca sutil de fondo */}
+      {/* Resplandor verde de marca de fondo */}
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-25 pointer-events-none" />
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[75vh]">
         <div className="max-w-3xl space-y-6 md:pl-8">
           
-          {/* Tag de Categoría con animación al cambiar de Slide */}
+          {/* Tag de Categoría animado */}
           <AnimatePresence mode="wait">
             <motion.div 
-              key={`tag-${currentIndex}`}
+              key={`tag-${safeIndex}`}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
@@ -213,7 +271,7 @@ export default function Hero() {
           {/* Título Principal Dinámico */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={`title-${currentIndex}`}
+              key={`title-${safeIndex}`}
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -229,7 +287,7 @@ export default function Hero() {
           {/* Descripción Dinámica */}
           <AnimatePresence mode="wait">
             <motion.p 
-              key={`desc-${currentIndex}`}
+              key={`desc-${safeIndex}`}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
@@ -243,7 +301,7 @@ export default function Hero() {
           {/* Botones de Acción Dinámicos */}
           <AnimatePresence mode="wait">
             <motion.div 
-              key={`btns-${currentIndex}`}
+              key={`btns-${safeIndex}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -298,16 +356,16 @@ export default function Hero() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navegador y Selector de Slides (Imagen 1, Imagen 2, Imagen 3) */}
-          <div className="pt-8 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10">
-              {slides.map((s, idx) => {
-                const isSelected = idx === currentIndex
+          {/* Navegador de Slides: 01 Constructora, 02 Airbnb, 03 Inmobiliaria, 04+ Proyectos */}
+          <div className="pt-6 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 max-w-full overflow-x-auto">
+              {allSlides.map((s, idx) => {
+                const isSelected = idx === safeIndex
                 return (
                   <button
                     key={s.id}
                     onClick={() => setCurrentIndex(idx)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
                       isSelected 
                         ? s.pillActiveBg + " shadow-md scale-105" 
                         : "text-gray-300 hover:text-white hover:bg-white/10"
@@ -319,7 +377,7 @@ export default function Hero() {
               })}
             </div>
 
-            {/* Flechas manuales de anterior y siguiente */}
+            {/* Flechas manuales */}
             <div className="flex items-center gap-1">
               <button
                 onClick={handlePrev}
@@ -341,7 +399,7 @@ export default function Hero() {
         </div>
       </div>
       
-      {/* Scroll indicator */}
+      {/* Indicador sutil de scroll */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
