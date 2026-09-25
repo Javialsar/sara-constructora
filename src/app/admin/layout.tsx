@@ -20,7 +20,9 @@ import {
   ChevronDown,
   ChevronRight,
   History,
-  Key
+  Key,
+  Building2,
+  Sparkles
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -134,6 +136,13 @@ export default function AdminLayout({
       items: [
         { href: "/admin/cotizador", label: "Cotizador Automático", icon: Calculator },
         { href: "/admin/cotizaciones", label: "Cotizaciones Recibidas", icon: FileText },
+      ]
+    },
+    {
+      title: "INMOBILIARIA & AIRBNB",
+      items: [
+        { href: "/admin/inmobiliaria", label: "Gestión Inmobiliaria", icon: Building2 },
+        { href: "/admin/airbnb", label: "Gestión Airbnb", icon: Sparkles },
       ]
     },
     {
