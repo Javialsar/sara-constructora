@@ -14,7 +14,7 @@ const supabase = createClient();
 const proveedorSchema = z.object({
   razon_social: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
   ruc: z.string().optional(),
-  dias_credito: z.preprocess((val) => Number(val) || 0, z.number().min(0, "No puede ser negativo")),
+  dias_credito: z.number().min(0, "No puede ser negativo"),
   contacto_vendedor: z.string().optional(),
   telefono: z.string().optional(),
   email: z.union([z.literal(""), z.string().email("Correo inválido")]).optional(),
@@ -284,7 +284,7 @@ export default function ProveedoresPage() {
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Días de Crédito (0 = Contado)</label>
                   <input 
                     type="number"
-                    {...register("dias_credito")}
+                    {...register("dias_credito", { valueAsNumber: true })}
                     className={`w-full border ${errors.dias_credito ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
                   />
                   {errors.dias_credito && <p className="text-red-500 text-xs mt-1 font-medium">{errors.dias_credito.message as string}</p>}
