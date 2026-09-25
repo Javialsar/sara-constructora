@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet } from "lucide-react"
+import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2 } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
@@ -198,6 +198,7 @@ export default function RubrosPage() {
   const [expandedFamilias, setExpandedFamilias] = useState<Set<string>>(new Set());
   const [selectedFamilia, setSelectedFamilia] = useState<string | null>(null);
   const [selectedSubfamilia, setSelectedSubfamilia] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const supabase = createClient()
   
@@ -458,79 +459,277 @@ const renderInsumoRow = (item: any) => (
     <GruposManager familias={familias} subfamilias={subfamilias} setFamilias={setFamilias} setSubfamilias={setSubfamilias} onBack={() => setVista('catalogo')} />
   )
 
-  // Exportar Excel con Encabezado Institucional
-  const exportToExcel = () => {
-    const headerRows = [
-      ["SARA CONSTRUCTORA S.A."],
-      ["SISTEMA INTEGRADO DE CONTROL OPERATIVO - MÓDULO APU-SARA"],
-      ["REPORTE: CATÁLOGO DE RUBROS (ANÁLISIS DE PRECIOS UNITARIOS)"],
-      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
-      [`Total de Registros: ${filteredRubros.length}`],
-      [],
-      ["Nº", "CÓDIGO", "NOMBRE DEL RUBRO", "GRUPO", "UNIDAD", "COSTO DIRECTO ($)"]
-    ];
+  // Consultar todas las recetas de los rubros filtrados
+  const fetchAllRecipesForRubros = async (rubroList: any[]) => {
+    if (!rubroList || rubroList.length === 0) return {};
+    const ids = rubroList.map(r => r.id);
+    let allItems: any[] = [];
+    const chunkSize = 50;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data, error } = await supabase
+        .from('rubro_insumos')
+        .select('id, rubro_id, cantidad, insumo_id, insumos ( id, codigo, nombre, unidad, tipo, precio_sin_iva, subfamilia_id )')
+        .in('rubro_id', chunk)
+        .order('id', { ascending: true });
+      if (!error && data) {
+        allItems = allItems.concat(data);
+      }
+    }
+    const grouped: Record<string, any[]> = {};
+    allItems.forEach(item => {
+      if (!grouped[item.rubro_id]) grouped[item.rubro_id] = [];
+      grouped[item.rubro_id].push(item);
+    });
+    return grouped;
+  };
 
-    const dataRows = filteredRubros.map((r: any, idx: number) => {
-      const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
-      const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
-      return [
-        idx + 1,
-        r.codigo || "",
-        r.nombre,
-        fam ? fam.nombre : "",
-        r.unidad,
-        Number(r.total_costo_directo || 0)
+  // Exportar Excel: Resumen General + Recetas Detalladas (APU)
+  const exportToExcel = async () => {
+    if (filteredRubros.length === 0) {
+      alert("No hay rubros para exportar con los filtros seleccionados.");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const recipesMap = await fetchAllRecipesForRubros(filteredRubros);
+
+      const nombreGrupo = selectedFamilia 
+        ? (familias.find(f => f.id === selectedFamilia)?.nombre || "Grupo Seleccionado")
+        : "Todos los Grupos";
+
+      // 1. HOJA DE RESUMEN GENERAL
+      const headerResumen = [
+        ["SARA CONSTRUCTORA S.A."],
+        ["SISTEMA INTEGRADO DE CONTROL OPERATIVO - MÓDULO APU-SARA"],
+        ["REPORTE: CATÁLOGO GENERAL DE RUBROS (RESUMEN)"],
+        [`Grupo: ${nombreGrupo.toUpperCase()}`],
+        [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+        [`Total de Rubros: ${filteredRubros.length}`],
+        [],
+        ["Nº", "CÓDIGO", "NOMBRE DEL RUBRO", "GRUPO", "UNIDAD", "COSTO DIRECTO ($)"]
       ];
-    });
 
-    const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rubros");
-    XLSX.writeFile(wb, "Catalogo_Rubros.xlsx");
-  }
+      const dataResumen = filteredRubros.map((r: any, idx: number) => {
+        const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
+        const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+        return [
+          idx + 1,
+          r.codigo || "",
+          r.nombre,
+          fam ? fam.nombre : "",
+          r.unidad,
+          Number(r.total_costo_directo || 0)
+        ];
+      });
 
-  // Exportar PDF con Membrete Institucional
-  const exportToPDF = () => {
-    const doc = new jsPDF('landscape');
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    // Membrete Oficial centrado
-    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
-
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("CATÁLOGO DE RUBROS Y RECETAS (APU)", 14, 45);
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
-    doc.text(`Total de registros: ${filteredRubros.length}`, 14, 56);
-
-    const tableColumn = ["Nº", "Código", "Nombre del Rubro", "Grupo", "Unidad", "Costo Directo ($)"];
-    const tableRows = filteredRubros.map((r: any, idx: number) => {
-      const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
-      const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
-      return [
-        idx + 1,
-        r.codigo || "—",
-        r.nombre,
-        fam ? fam.nombre : "—",
-        r.unidad,
-        `$${Number(r.total_costo_directo || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`
+      // 2. HOJA DE RECETAS DETALLADAS (APU)
+      const dataDetalle: any[][] = [
+        ["SARA CONSTRUCTORA S.A."],
+        ["ANÁLISIS DE PRECIOS UNITARIOS DETALLADO (RECETAS POR RUBRO)"],
+        [`Grupo: ${nombreGrupo.toUpperCase()}`],
+        [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+        [`Total de Rubros: ${filteredRubros.length}`],
+        []
       ];
-    });
 
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 61,
-      theme: 'grid',
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [0, 71, 63] } // Brand dark / sage
-    });
+      filteredRubros.forEach((r: any, idx: number) => {
+        const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
+        const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+        const items = recipesMap[r.id] || [];
 
-    doc.save("Catalogo_Rubros.pdf");
-  }
+        dataDetalle.push([`RUBRO Nº ${idx + 1}: [${r.codigo || 'S/C'}] ${r.nombre}`]);
+        dataDetalle.push([
+          `Grupo: ${fam ? fam.nombre : 'General'}`,
+          `Unidad: ${r.unidad}`,
+          `Herramienta Menor: ${r.herramienta_menor_pct || 0}%`,
+          `Costo Directo Total: $${Number(r.total_costo_directo || 0).toFixed(4)}`
+        ]);
+        dataDetalle.push(["TIPO", "CÓDIGO INSUMO", "DESCRIPCIÓN DEL INSUMO", "UNIDAD", "CANTIDAD", "PRECIO UNIT ($)", "SUBTOTAL ($)"]);
+
+        if (items.length === 0) {
+          dataDetalle.push(["-", "-", "(Este rubro aún no tiene insumos agregados en su receta)", "-", "-", "-", "$0.00"]);
+        } else {
+          items.forEach((item: any) => {
+            const ins = item.insumos || {};
+            const pUnit = Number(ins.precio_sin_iva || 0);
+            const sub = Number(item.cantidad || 0) * pUnit;
+            dataDetalle.push([
+              (ins.tipo || 'material').toUpperCase(),
+              ins.codigo || "—",
+              ins.nombre || "—",
+              ins.unidad || "—",
+              Number(item.cantidad || 0),
+              pUnit,
+              sub
+            ]);
+          });
+        }
+        dataDetalle.push(["", "", "", "", "", "TOTAL COSTO DIRECTO:", Number(r.total_costo_directo || 0)]);
+        dataDetalle.push([]); // Espacio entre rubros
+      });
+
+      const wb = XLSX.utils.book_new();
+      const wsResumen = XLSX.utils.aoa_to_sheet([...headerResumen, ...dataResumen]);
+      const wsDetalle = XLSX.utils.aoa_to_sheet(dataDetalle);
+
+      XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen General");
+      XLSX.utils.book_append_sheet(wb, wsDetalle, "Recetas Detalladas");
+
+      XLSX.writeFile(wb, `Catalogo_Rubros_y_Recetas_${new Date().toISOString().split('T')[0]}.xlsx`);
+    } catch (err) {
+      console.error(err);
+      alert("Error al generar el archivo Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Exportar PDF: Resumen General + Recetas Detalladas (APU)
+  const exportToPDF = async () => {
+    if (filteredRubros.length === 0) {
+      alert("No hay rubros para exportar con los filtros seleccionados.");
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const recipesMap = await fetchAllRecipesForRubros(filteredRubros);
+      const doc = new jsPDF('landscape');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const nombreGrupo = selectedFamilia 
+        ? (familias.find(f => f.id === selectedFamilia)?.nombre || "Grupo Seleccionado")
+        : "Todos los Grupos";
+
+      // Membrete Oficial centrado
+      doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+
+      // Título Principal
+      doc.setFontSize(15);
+      doc.setFont("helvetica", "bold");
+      doc.text("CATÁLOGO DE RUBROS Y ANÁLISIS DE PRECIOS UNITARIOS (APU)", 14, 45);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Filtro / Grupo: ${nombreGrupo} | Emisión: ${new Date().toLocaleString()} | SARA Constructora`, 14, 51);
+      doc.text(`Total de Rubros: ${filteredRubros.length}`, 14, 56);
+
+      // 1. TABLA RESUMEN GENERAL
+      const tableColumn = ["Nº", "Código", "Nombre del Rubro", "Grupo", "Unidad", "Costo Directo ($)"];
+      const tableRows = filteredRubros.map((r: any, idx: number) => {
+        const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
+        const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+        return [
+          idx + 1,
+          r.codigo || "—",
+          r.nombre,
+          fam ? fam.nombre : "—",
+          r.unidad,
+          `$${Number(r.total_costo_directo || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        ];
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 61,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [0, 71, 63] }
+      });
+
+      // 2. SECCIÓN DETALLADA: RECETAS POR RUBRO
+      doc.addPage();
+      let currentY = 15;
+
+      // Encabezado de la sección de recetas
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("DESGLOSE DETALLADO DE RECETAS (ANÁLISIS DE PRECIOS UNITARIOS)", 14, currentY);
+      currentY += 7;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Detalle de Materiales, Mano de Obra y Equipos que componen cada rubro:", 14, currentY);
+      currentY += 8;
+
+      filteredRubros.forEach((r: any, idx: number) => {
+        const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
+        const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
+        const items = recipesMap[r.id] || [];
+
+        // Si estamos cerca del final de la página (más de 160mm), creamos nueva página
+        if (currentY > 165) {
+          doc.addPage();
+          currentY = 15;
+        }
+
+        // Título del Rubro
+        doc.setFillColor(241, 245, 249); // slate-100
+        doc.rect(14, currentY - 4, pageWidth - 28, 8, 'F');
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 71, 63); // brand-dark
+        doc.text(`${idx + 1}. [${r.codigo || 'S/C'}] ${r.nombre}`, 16, currentY + 1.5);
+        
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(70, 70, 70);
+        doc.text(`Unidad: ${r.unidad} | Grupo: ${fam ? fam.nombre : 'General'} | H. Menor: ${r.herramienta_menor_pct || 0}% | Costo Directo: $${Number(r.total_costo_directo || 0).toFixed(4)}`, pageWidth - 16, currentY + 1.5, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+
+        currentY += 8;
+
+        if (items.length === 0) {
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(140, 140, 140);
+          doc.text("Sin insumos asignados en la receta de este rubro.", 20, currentY);
+          doc.setTextColor(0, 0, 0);
+          currentY += 8;
+        } else {
+          const recipeCols = ["Tipo", "Código", "Insumo", "Unidad", "Cant.", "P. Unit ($)", "Subtotal ($)"];
+          const recipeRows = items.map((it: any) => {
+            const ins = it.insumos || {};
+            const pUnit = Number(ins.precio_sin_iva || 0);
+            const sub = Number(it.cantidad || 0) * pUnit;
+            return [
+              (ins.tipo || 'material').toUpperCase(),
+              ins.codigo || "—",
+              ins.nombre || "—",
+              ins.unidad || "—",
+              Number(it.cantidad || 0).toFixed(4),
+              `$${pUnit.toFixed(4)}`,
+              `$${sub.toFixed(4)}`
+            ];
+          });
+
+          // Agregar pie con el costo directo
+          recipeRows.push([
+            "", "", "", "", "", "TOTAL COSTO DIRECTO:", `$${Number(r.total_costo_directo || 0).toFixed(4)}`
+          ]);
+
+          autoTable(doc, {
+            head: [recipeCols],
+            body: recipeRows,
+            startY: currentY,
+            theme: 'striped',
+            styles: { fontSize: 7.5, cellPadding: 1.5 },
+            headStyles: { fillColor: [51, 65, 85] }, // slate-700
+            margin: { left: 14, right: 14 }
+          });
+
+          currentY = (doc as any).lastAutoTable?.finalY + 8;
+        }
+      });
+
+      doc.save(`Catalogo_Rubros_y_Recetas_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert("Error al generar el archivo PDF");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] p-4 md:p-6 bg-gray-50/50 overflow-hidden">
@@ -544,11 +743,23 @@ const renderInsumoRow = (item: any) => (
           <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={exportToExcel} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a Excel">
-            <FileSpreadsheet size={16} /> Excel
+          <button 
+            onClick={exportToExcel} 
+            disabled={isExporting}
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" 
+            title="Exportar Resumen y Recetas a Excel"
+          >
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
+            <span>Excel</span>
           </button>
-          <button onClick={exportToPDF} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a PDF">
-            <Download size={16} /> PDF
+          <button 
+            onClick={exportToPDF} 
+            disabled={isExporting}
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" 
+            title="Exportar Resumen y Recetas a PDF"
+          >
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            <span>PDF</span>
           </button>
           <button onClick={() => {
             let initialValues = { codigo: '', nombre: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '', familia_id_temp: '' };
