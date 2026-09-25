@@ -79,15 +79,15 @@ export default function InmobiliariaAirbnbShowcase() {
                   <Sparkles size={24} />
                 </div>
                 <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  Renta Temporal · Noches
+                  Nacional & Mundial
                 </span>
               </div>
 
               <h3 className="text-2xl font-black text-white mb-3 group-hover:text-amber-300 transition-colors">
-                SARA Suites & Airbnb
+                SARA Suites & Alojamientos Globales
               </h3>
               <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                Suites ejecutivas frente al río Tomebamba, lofts en el Centro Histórico y villas vacacionales con piscina en Yunguilla. Reserva por noche de forma directa y sin comisiones de plataformas intermediarias.
+                Descubre suites ejecutivas y villas vacacionales en los destinos más cotizados de Ecuador (Cuenca, Quito, Guayaquil, Galápagos) y ciudades internacionales de primer nivel (Miami, Madrid, Cancún, Medellín). Reserva directa sin comisiones extras.
               </p>
 
               <ul className="space-y-2.5 text-xs text-gray-300 mb-8">
