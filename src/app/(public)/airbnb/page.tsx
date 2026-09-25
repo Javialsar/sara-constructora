@@ -31,8 +31,11 @@ import {
   DollarSign,
   Globe,
   Compass,
-  Plane
+  Map as MapIcon,
+  LayoutGrid,
+  Columns
 } from "lucide-react"
+import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 
 export interface AirbnbListing {
   id: string
@@ -44,6 +47,8 @@ export interface AirbnbListing {
   bandera: string
   ciudad: string
   sector: string
+  lat: number
+  lng: number
   precioNoche: number
   tarifaLimpieza: number
   rating: number
@@ -73,6 +78,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇪🇨",
     ciudad: "Cuenca",
     sector: "Puertas del Sol",
+    lat: -2.8980,
+    lng: -79.0180,
     precioNoche: 48,
     tarifaLimpieza: 15,
     rating: 4.98,
@@ -101,6 +108,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇪🇨",
     ciudad: "Cuenca",
     sector: "Centro Histórico",
+    lat: -2.8974,
+    lng: -79.0045,
     precioNoche: 59,
     tarifaLimpieza: 20,
     rating: 4.95,
@@ -129,6 +138,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇪🇨",
     ciudad: "Santa Isabel",
     sector: "Valle de Yunguilla",
+    lat: -3.2730,
+    lng: -79.3140,
     precioNoche: 165,
     tarifaLimpieza: 35,
     rating: 5.0,
@@ -157,6 +168,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇪🇨",
     ciudad: "Guayaquil",
     sector: "Puerto Santa Ana",
+    lat: -2.1810,
+    lng: -79.8760,
     precioNoche: 68,
     tarifaLimpieza: 20,
     rating: 4.96,
@@ -184,6 +197,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇪🇨",
     ciudad: "Galápagos",
     sector: "Santa Cruz / Puerto Ayora",
+    lat: -0.7432,
+    lng: -90.3135,
     precioNoche: 185,
     tarifaLimpieza: 40,
     rating: 4.99,
@@ -215,6 +230,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇺🇸",
     ciudad: "Miami, FL",
     sector: "Brickell Financial District",
+    lat: 25.7617,
+    lng: -80.1918,
     precioNoche: 220,
     tarifaLimpieza: 50,
     rating: 4.97,
@@ -243,6 +260,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇪🇸",
     ciudad: "Madrid",
     sector: "Barrio de Salamanca",
+    lat: 40.4280,
+    lng: -3.6840,
     precioNoche: 135,
     tarifaLimpieza: 30,
     rating: 4.96,
@@ -270,6 +289,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇲🇽",
     ciudad: "Cancún",
     sector: "Zona Hotelera / Playa",
+    lat: 21.1350,
+    lng: -86.7490,
     precioNoche: 290,
     tarifaLimpieza: 60,
     rating: 5.0,
@@ -297,6 +318,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
     bandera: "🇨🇴",
     ciudad: "Medellín",
     sector: "El Poblado / Provenza",
+    lat: 6.2085,
+    lng: -75.5670,
     precioNoche: 75,
     tarifaLimpieza: 20,
     rating: 4.94,
@@ -318,11 +341,19 @@ const AIRBNB_DATA: AirbnbListing[] = [
 
 export default function AirbnbPage() {
   const [alcanceTab, setAlcanceTab] = useState<"todos" | "nacional" | "internacional">("todos")
-  const [paisFiltro, setPaisFiltro] = useState<string>("todos")
+  const [sectorFiltro, setSectorFiltro] = useState<string>("todos")
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos")
   const [huespedesFiltro, setHuespedesFiltro] = useState<number>(1)
   const [searchTerm, setSearchTerm] = useState<string>("")
+
+  // Modo de visualización: 'split' (dividido lista + mapa), 'grid' (solo lista grande), 'map' (solo mapa)
+  const [vistaModo, setVistaModo] = useState<"split" | "grid" | "map">("split")
   
+  // Selección e interacción con el Mapa
+  const [selectedMapId, setSelectedMapId] = useState<string | null>("ab-1")
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-2.8980, -79.0100])
+  const [mapZoom, setMapZoom] = useState<number>(13)
+
   // Modal de Reserva
   const [selectedStay, setSelectedStay] = useState<AirbnbListing | null>(null)
   const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0)
@@ -349,8 +380,8 @@ export default function AirbnbPage() {
     return AIRBNB_DATA.filter((stay) => {
       // Alcance (Nacional vs Internacional)
       if (alcanceTab !== "todos" && stay.alcance !== alcanceTab) return false
-      // País
-      if (paisFiltro !== "todos" && stay.pais.toLowerCase() !== paisFiltro.toLowerCase()) return false
+      // Sector
+      if (sectorFiltro !== "todos" && stay.sector.toLowerCase() !== sectorFiltro.toLowerCase() && stay.ciudad.toLowerCase() !== sectorFiltro.toLowerCase()) return false
       // Tipo
       if (tipoFiltro !== "todos" && stay.tipo !== tipoFiltro) return false
       // Huéspedes
@@ -369,7 +400,74 @@ export default function AirbnbPage() {
       }
       return true
     })
-  }, [alcanceTab, paisFiltro, tipoFiltro, huespedesFiltro, searchTerm])
+  }, [alcanceTab, sectorFiltro, tipoFiltro, huespedesFiltro, searchTerm])
+
+  // Mapeo para el componente del mapa
+  const mapItems = useMemo(() => {
+    return filteredStays.map(s => ({
+      id: s.id,
+      codigo: s.codigo,
+      titulo: s.titulo,
+      precioNoche: s.precioNoche,
+      lat: s.lat,
+      lng: s.lng,
+      ciudad: s.ciudad,
+      sector: s.sector,
+      bandera: s.bandera,
+      rating: s.rating,
+      reviewsCount: s.reviewsCount,
+      imagen: s.imagenes[0],
+      maxHuespedes: s.maxHuespedes
+    }))
+  }, [filteredStays])
+
+  // Manejar el cambio de destino y centrar el mapa
+  const handleDestinoChange = (destino: string) => {
+    setSectorFiltro(destino)
+    if (destino === "Cuenca") {
+      setMapCenter([-2.8980, -79.0100])
+      setMapZoom(13)
+    } else if (destino === "Puertas del Sol") {
+      setMapCenter([-2.8980, -79.0180])
+      setMapZoom(15)
+    } else if (destino === "Centro Histórico") {
+      setMapCenter([-2.8974, -79.0045])
+      setMapZoom(15)
+    } else if (destino === "Valle de Yunguilla") {
+      setMapCenter([-3.2730, -79.3140])
+      setMapZoom(13)
+    } else if (destino === "Guayaquil") {
+      setMapCenter([-2.1810, -79.8760])
+      setMapZoom(14)
+    } else if (destino === "Galápagos") {
+      setMapCenter([-0.7432, -90.3135])
+      setMapZoom(12)
+    } else if (destino === "Miami, FL") {
+      setMapCenter([25.7617, -80.1918])
+      setMapZoom(13)
+    } else if (destino === "Madrid") {
+      setMapCenter([40.4280, -3.6840])
+      setMapZoom(13)
+    } else if (destino === "Cancún") {
+      setMapCenter([21.1350, -86.7490])
+      setMapZoom(12)
+    } else if (destino === "Medellín") {
+      setMapCenter([6.2085, -75.5670])
+      setMapZoom(13)
+    } else {
+      setMapCenter([-2.8980, -79.0100])
+      setMapZoom(12)
+    }
+  }
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (filteredStays.length > 0) {
+      setMapCenter([filteredStays[0].lat, filteredStays[0].lng])
+      setMapZoom(14)
+      setSelectedMapId(filteredStays[0].id)
+    }
+  }
 
   const openWhatsAppReserva = (stay: AirbnbListing) => {
     const subtotal = stay.precioNoche * totalNoches
@@ -390,25 +488,25 @@ export default function AirbnbPage() {
       {/* ============================================================ */}
       {/* 1. HERO SECTION: HOSPITALITY GLOBAL (NACIONAL & MUNDIAL)    */}
       {/* ============================================================ */}
-      <section className="relative pt-32 pb-24 bg-gradient-to-b from-[#0a1b12] via-[#0d2218] to-slate-900 text-white overflow-hidden">
+      <section className="relative pt-32 pb-20 bg-gradient-to-b from-[#0a1b12] via-[#0d2218] to-slate-900 text-white overflow-hidden">
         {/* Grilla sutil de fondo */}
         <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
         <div className="container mx-auto px-4 md:px-8 relative z-10">
-          <div className="max-w-3xl mx-auto text-center mb-10">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-4 backdrop-blur-md">
+          <div className="max-w-3xl mx-auto text-center mb-8">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black tracking-widest uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-3 backdrop-blur-md">
               <Globe size={14} /> Red Global SARA Hospitality · Nacional & Mundial
             </span>
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-4 leading-tight">
-              Alojamientos Exclusivos y Suites en Ecuador y el Mundo
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white mb-3 leading-tight">
+              Alojamientos Exclusivos y Suites con Precios en Mapa
             </h1>
             <p className="text-gray-300 text-sm md:text-base leading-relaxed">
-              Descubre suites de diseño, departamentos ejecutivos y villas vacacionales con el estándar de confort y seguridad de SARA. Reserva por noche con atención personalizada 24/7 y sin comisiones extras.
+              Selecciona tu destino, fechas de viaje y número de huéspedes para explorar la disponibilidad y tarifas exactas georreferenciadas en tiempo real.
             </p>
           </div>
 
           {/* Caja Flotante de Reserva Inteligente */}
-          <div className="max-w-5xl mx-auto bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
+          <form onSubmit={handleSearchSubmit} className="max-w-5xl mx-auto bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
             {/* Pestañas de Alcance Geográfico */}
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4 mb-5">
               {[
@@ -418,9 +516,20 @@ export default function AirbnbPage() {
               ].map((tab) => (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => {
                     setAlcanceTab(tab.id as any)
-                    setPaisFiltro("todos")
+                    setSectorFiltro("todos")
+                    if (tab.id === 'nacional') {
+                      setMapCenter([-2.8980, -79.0100])
+                      setMapZoom(8)
+                    } else if (tab.id === 'internacional') {
+                      setMapCenter([25.0000, -40.0000])
+                      setMapZoom(3)
+                    } else {
+                      setMapCenter([-2.8980, -79.0100])
+                      setMapZoom(12)
+                    }
                   }}
                   className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all flex items-center gap-1.5 ${
                     alcanceTab === tab.id
@@ -438,24 +547,38 @@ export default function AirbnbPage() {
               ))}
 
               <div className="ml-auto text-xs text-gray-500 font-semibold flex items-center gap-1">
-                <ShieldCheck size={14} className="text-emerald-600" /> Alojamientos 100% Verificados
+                <ShieldCheck size={14} className="text-emerald-600" /> Tarifas Transparentes sin Comisiones
               </div>
             </div>
 
             {/* Barra de Filtros en Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              {/* Buscador de Ciudad / Destino */}
+              {/* Selector de Destino */}
               <div className="lg:col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Destino o Palabra Clave</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Destino / Zona</label>
                 <div className="relative">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Ej. Cuenca, Miami, Galápagos, Madrid..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white"
-                  />
+                  <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <select 
+                    value={sectorFiltro}
+                    onChange={(e) => handleDestinoChange(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs md:text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800"
+                  >
+                    <option value="todos">Cualquier destino disponible</option>
+                    <optgroup label="🇪🇨 Ecuador">
+                      <option value="Cuenca">Cuenca (Todas las zonas)</option>
+                      <option value="Puertas del Sol">Cuenca - Puertas del Sol</option>
+                      <option value="Centro Histórico">Cuenca - Centro Histórico</option>
+                      <option value="Valle de Yunguilla">Valle de Yunguilla (Piscina)</option>
+                      <option value="Guayaquil">Guayaquil - Puerto Santa Ana</option>
+                      <option value="Galápagos">Galápagos - Puerto Ayora</option>
+                    </optgroup>
+                    <optgroup label="🌎 Internacional">
+                      <option value="Miami, FL">Miami, FL (Brickell - EE.UU.)</option>
+                      <option value="Madrid">Madrid (Barrio Salamanca - España)</option>
+                      <option value="Cancún">Cancún (Zona Hotelera - México)</option>
+                      <option value="Medellín">Medellín (El Poblado - Colombia)</option>
+                    </optgroup>
+                  </select>
                 </div>
               </div>
 
@@ -481,221 +604,247 @@ export default function AirbnbPage() {
                 />
               </div>
 
-              {/* Huéspedes */}
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Huéspedes</label>
-                <select
-                  value={huespedesFiltro}
-                  onChange={(e) => setHuespedesFiltro(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white text-gray-700 font-bold"
+              {/* Huéspedes & Botón */}
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Huéspedes</label>
+                  <select
+                    value={huespedesFiltro}
+                    onChange={(e) => setHuespedesFiltro(Number(e.target.value))}
+                    className="w-full px-2.5 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white text-gray-700 font-bold"
+                  >
+                    <option value={1}>1 Persona</option>
+                    <option value={2}>2 Personas</option>
+                    <option value={4}>4+ Personas</option>
+                    <option value={6}>6+ Personas</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md shadow-amber-950/20 transition-all shrink-0"
                 >
-                  <option value={1}>1 Persona</option>
-                  <option value={2}>2 Personas</option>
-                  <option value={4}>4+ Personas</option>
-                  <option value={6}>6+ Personas</option>
-                </select>
+                  <Search size={14} /> Buscar
+                </button>
               </div>
             </div>
-          </div>
+          </form>
         </div>
       </section>
 
       {/* ============================================================ */}
-      {/* 2. CATÁLOGO AIRBNB CON DISTINTIVO NACIONAL & MUNDIAL        */}
+      {/* 2. BARRA DE CONTROL Y ALTERNADOR DE VISTAS (SPLIT / GRID)    */}
       {/* ============================================================ */}
       <section className="container mx-auto px-4 md:px-8 -mt-6 relative z-20">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-              <Compass className="text-amber-500" size={24} /> 
-              {alcanceTab === 'nacional' ? 'Alojamientos en Ecuador' : alcanceTab === 'internacional' ? 'Destinos Internacionales' : 'Estadías Nacionales y Mundiales'} ({filteredStays.length})
-            </h2>
-            <p className="text-xs text-gray-500">
-              Propiedades exclusivas con check-in autónomo, alta velocidad de internet y comodidades premium
-            </p>
-          </div>
-
-          {/* Selector de Tipo de Propiedad */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2">
-            {[
-              { id: "todos", label: "Todos" },
-              { id: "suite", label: "Suites" },
-              { id: "loft", label: "Lofts" },
-              { id: "quinta", label: "Villas & Quintas" },
-              { id: "penthouse", label: "Penthouses" }
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTipoFiltro(t.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  tipoFiltro === t.id
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Grid de Alojamientos tipo Airbnb */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredStays.map((stay) => (
-            <div
-              key={stay.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col group"
-            >
-              {/* Carrusel de Fotos */}
-              <div className="relative h-64 w-full overflow-hidden bg-gray-100">
-                <img
-                  src={stay.imagenes[0]}
-                  alt={stay.titulo}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-
-                {/* Badges Superiores con País y Bandera */}
-                <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/75 text-white shadow-md backdrop-blur-sm flex items-center gap-1">
-                    <span>{stay.bandera}</span>
-                    <span>{stay.ciudad}</span>
-                  </span>
-                  {stay.isSuperhost && (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/95 text-gray-900 shadow-md backdrop-blur-sm border border-gray-200 flex items-center gap-1">
-                      <Star size={11} className="fill-amber-400 text-amber-400" /> SUPERHOST
-                    </span>
-                  )}
-                </div>
-
-                {/* Rating en la esquina derecha */}
-                <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-md">
-                  <Star size={12} className="fill-amber-400 text-amber-400" />
-                  <span>{stay.rating.toFixed(2)}</span>
-                  <span className="text-[10px] text-gray-300">({stay.reviewsCount})</span>
-                </div>
-
-                {/* Precio por noche flotante */}
-                <div className="absolute bottom-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl text-white shadow-md">
-                  <span className="text-xl font-black">${stay.precioNoche}</span>
-                  <span className="text-xs text-gray-300 font-normal"> USD / noche</span>
-                </div>
-              </div>
-
-              {/* Información del Alojamiento */}
-              <div className="p-5 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 font-semibold mb-1">
-                    <span className="font-bold text-gray-700">{stay.sector}</span>
-                    <span>·</span>
-                    <span>Hasta {stay.maxHuespedes} huéspedes</span>
-                    <span>·</span>
-                    <span>{stay.camas} cama(s)</span>
-                  </div>
-
-                  <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-2">
-                    {stay.titulo}
-                  </h3>
-
-                  <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-4">
-                    {stay.descripcion}
-                  </p>
-
-                  {/* Amenidades destacadas */}
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {stay.amenidades.slice(0, 3).map((amenidad, idx) => (
-                      <span key={idx} className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">
-                        {amenidad}
-                      </span>
-                    ))}
-                    {stay.amenidades.length > 3 && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-50 text-gray-400">
-                        +{stay.amenidades.length - 3} más
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Acciones de Reserva */}
-                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                  <button
-                    onClick={() => {
-                      setSelectedStay(stay)
-                      setActivePhotoIdx(0)
-                    }}
-                    className="flex-1 py-2 px-3 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-center"
-                  >
-                    Ver Detalles
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setSelectedStay(stay)
-                      setActivePhotoIdx(0)
-                    }}
-                    className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5"
-                  >
-                    <Calendar size={13} /> Reservar
-                  </button>
-                </div>
-              </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+              <Compass size={22} />
             </div>
-          ))}
-        </div>
+            <div>
+              <h2 className="text-lg md:text-xl font-black text-gray-900 tracking-tight">
+                {filteredStays.length} Alojamientos Disponibles
+              </h2>
+              <p className="text-xs text-gray-500">
+                Estadía calculada para <strong>{totalNoches} noche(s)</strong> ({checkInDate} al {checkOutDate})
+              </p>
+            </div>
+          </div>
 
-        {filteredStays.length === 0 && (
-          <div className="bg-white rounded-2xl p-12 text-center border border-gray-200 max-w-md mx-auto my-12">
-            <Globe className="mx-auto text-gray-300 mb-3" size={48} />
-            <h3 className="font-bold text-gray-800 text-lg">No encontramos alojamientos en este destino</h3>
-            <p className="text-xs text-gray-500 mt-1 mb-4">
-              Prueba buscando por "Ecuador", "Miami", "Cuenca", o restablece los filtros.
-            </p>
+          {/* Selector de Modos de Vista */}
+          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
             <button
-              onClick={() => {
-                setAlcanceTab("todos")
-                setPaisFiltro("todos")
-                setTipoFiltro("todos")
-                setSearchTerm("")
-              }}
-              className="text-xs font-bold text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200"
+              onClick={() => setVistaModo("split")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                vistaModo === "split" 
+                  ? "bg-white text-gray-900 shadow-sm" 
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
             >
-              Restablecer Filtros
+              <Columns size={14} />
+              <span className="hidden sm:inline">Vista Dividida (Lista + Mapa)</span>
+              <span className="sm:hidden">Dividida</span>
+            </button>
+
+            <button
+              onClick={() => setVistaModo("grid")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                vistaModo === "grid" 
+                  ? "bg-white text-gray-900 shadow-sm" 
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <LayoutGrid size={14} />
+              <span className="hidden sm:inline">Solo Tarjetas</span>
+              <span className="sm:hidden">Lista</span>
+            </button>
+
+            <button
+              onClick={() => setVistaModo("map")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                vistaModo === "map" 
+                  ? "bg-white text-gray-900 shadow-sm" 
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              <MapIcon size={14} />
+              <span className="hidden sm:inline">Solo Mapa</span>
+              <span className="sm:hidden">Mapa</span>
             </button>
           </div>
-        )}
-      </section>
+        </div>
 
-      {/* ============================================================ */}
-      {/* 3. BANNER PARA INVERSIONISTAS Y ANFITRIONES GLOBALES        */}
-      {/* ============================================================ */}
-      <section className="container mx-auto px-4 md:px-8 mt-20">
-        <div className="bg-gradient-to-r from-slate-900 via-[#10241b] to-slate-900 rounded-3xl p-8 md:p-12 text-white shadow-xl relative overflow-hidden border border-amber-500/20">
-          <div className="max-w-2xl relative z-10">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-400/20 text-amber-300 border border-amber-400/30 mb-4">
-              <Globe size={14} /> Red Internacional de Inversionistas SARA
-            </span>
-            <h2 className="text-2xl md:text-4xl font-black tracking-tight mb-4 leading-tight">
-              ¿Quieres rentabilizar tu propiedad en Ecuador o en el exterior con Airbnb?
-            </h2>
-            <p className="text-gray-300 text-sm md:text-base leading-relaxed mb-6">
-              En SARA Hospitality conectamos inversionistas y propietarios con la industria del turismo mundial: te construimos las suites, las amoblamos con estándares hoteleros y las gestionamos en Airbnb y Booking para que recibas dividendos mensuales en dólares sin preocuparte por la logística.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href="https://wa.me/593981804023?text=Hola%20SARA%20Hospitality%2C%20tengo%20inter%C3%A9s%20en%20el%20servicio%20de%20gesti%C3%B3n%20e%20inversi%C3%B3n%20inmobiliaria%20para%20Airbnb%20a%20nivel%20nacional%20e%20internacional."
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-950/40 inline-flex items-center gap-2"
-              >
-                Conversar con un Asesor Internacional <ArrowRight size={15} />
-              </a>
-              <Link
-                href="/contacto"
-                className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all border border-white/20"
-              >
-                Agendar Reunión en Oficina
-              </Link>
+        {/* ============================================================ */}
+        {/* 3. LAYOUT DINÁMICO: SPLIT VIEW (LISTA 50% + MAPA 50%)       */}
+        {/* ============================================================ */}
+        <div className={`grid gap-6 ${
+          vistaModo === "split" ? "grid-cols-1 lg:grid-cols-12" : "grid-cols-1"
+        }`}>
+          {/* Columna de Tarjetas */}
+          {vistaModo !== "map" && (
+            <div className={`${
+              vistaModo === "split" 
+                ? "lg:col-span-7 xl:col-span-7 max-h-[850px] overflow-y-auto pr-1" 
+                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            }`}>
+              <div className={`grid gap-5 ${
+                vistaModo === "split" ? "grid-cols-1 sm:grid-cols-2" : "contents"
+              }`}>
+                {filteredStays.map((stay) => {
+                  const isHoveredOrActive = selectedMapId === stay.id
+                  const subtotal = stay.precioNoche * totalNoches
+                  const granTotal = subtotal + stay.tarifaLimpieza
+
+                  return (
+                    <div
+                      key={stay.id}
+                      onMouseEnter={() => setSelectedMapId(stay.id)}
+                      className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col group ${
+                        isHoveredOrActive ? "border-amber-500 ring-2 ring-amber-400/40" : "border-gray-200"
+                      }`}
+                    >
+                      {/* Portada */}
+                      <div className="relative h-56 w-full overflow-hidden bg-gray-100">
+                        <img
+                          src={stay.imagenes[0]}
+                          alt={stay.titulo}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+
+                        {/* Badges Superiores con País y Bandera */}
+                        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/75 text-white shadow-md backdrop-blur-sm flex items-center gap-1">
+                            <span>{stay.bandera}</span>
+                            <span>{stay.ciudad}</span>
+                          </span>
+                          {stay.isSuperhost && (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/95 text-gray-900 shadow-md backdrop-blur-sm border border-gray-200 flex items-center gap-1">
+                              <Star size={10} className="fill-amber-400 text-amber-400" /> SUPERHOST
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Rating */}
+                        <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md">
+                          <Star size={11} className="fill-amber-400 text-amber-400" />
+                          <span>{stay.rating.toFixed(2)}</span>
+                        </div>
+
+                        {/* Precio por noche en el mapa y tarjeta */}
+                        <div className="absolute bottom-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1.5 rounded-xl text-white shadow-md">
+                          <span className="text-lg font-black">${stay.precioNoche}</span>
+                          <span className="text-[11px] text-gray-300 font-normal"> USD / noche</span>
+                        </div>
+                      </div>
+
+                      {/* Información de la Tarjeta */}
+                      <div className="p-4 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between text-xs text-gray-500 font-semibold mb-1">
+                            <span className="font-bold text-gray-800">{stay.sector}</span>
+                            <span>Hasta {stay.maxHuespedes} pers.</span>
+                          </div>
+
+                          <h3 className="font-bold text-gray-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1.5">
+                            {stay.titulo}
+                          </h3>
+
+                          {/* Cálculo de total por estadía */}
+                          <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-2.5 my-2.5 flex items-center justify-between text-xs">
+                            <div>
+                              <span className="text-[10px] text-gray-500 block">Total por {totalNoches} noche(s):</span>
+                              <span className="font-black text-amber-900 text-sm">${granTotal} USD</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-medium">+${stay.tarifaLimpieza} limp.</span>
+                          </div>
+                        </div>
+
+                        {/* Acciones de Reserva */}
+                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                          <button
+                            onClick={() => {
+                              setSelectedStay(stay)
+                              setActivePhotoIdx(0)
+                            }}
+                            className="flex-1 py-2 px-3 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-center"
+                          >
+                            Detalles
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setSelectedStay(stay)
+                              setActivePhotoIdx(0)
+                            }}
+                            className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                          >
+                            <Calendar size={13} /> Reservar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Columna del Mapa Interactivo Leaflet con Pines de Precio */}
+          {vistaModo !== "grid" && (
+            <div className={`${
+              vistaModo === "split" 
+                ? "lg:col-span-5 xl:col-span-5 h-[600px] lg:h-[850px] sticky top-28" 
+                : "w-full h-[650px]"
+            }`}>
+              <div className="w-full h-full relative">
+                <AirbnbMapWrapper
+                  items={mapItems}
+                  selectedId={selectedMapId}
+                  onSelectItem={(id) => {
+                    setSelectedMapId(id)
+                    const found = filteredStays.find(s => s.id === id)
+                    if (found) {
+                      setMapCenter([found.lat, found.lng])
+                    }
+                  }}
+                  onOpenDetails={(item) => {
+                    const fullStay = filteredStays.find(s => s.id === item.id)
+                    if (fullStay) {
+                      setSelectedStay(fullStay)
+                      setActivePhotoIdx(0)
+                    }
+                  }}
+                  centerCoords={mapCenter}
+                  zoomLevel={mapZoom}
+                />
+
+                <div className="absolute top-4 left-4 z-[400] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-gray-200 shadow-md text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                  Precios por noche en tiempo real
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
