@@ -39,7 +39,7 @@ const presupuestoSchema = z.object({
   porcentaje_admin: z.number().min(0, "Mínimo 0"),
   porcentaje_imprevistos: z.number().min(0, "Mínimo 0"),
   porcentaje_utilidad: z.number().min(0, "Mínimo 0"),
-  estado: z.string().default('Borrador')
+  estado: z.string().default('borrador')
 });
 type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 
@@ -87,7 +87,7 @@ export default function PresupuestosRealesPage() {
 
   const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<PresupuestoFormValues>({
     resolver: zodResolver(presupuestoSchema),
-    defaultValues: { nombre_proyecto: '', porcentaje_admin: 10.0, porcentaje_imprevistos: 5.0, porcentaje_utilidad: 10.0, estado: 'Borrador' }
+    defaultValues: { nombre_proyecto: '', porcentaje_admin: 10.0, porcentaje_imprevistos: 5.0, porcentaje_utilidad: 10.0, estado: 'borrador' }
   });
 
   const submitNewPresupuesto = (data: PresupuestoFormValues) => {
@@ -101,7 +101,7 @@ export default function PresupuestosRealesPage() {
     porcentaje_admin: 10.0,
     porcentaje_imprevistos: 5.0,
     porcentaje_utilidad: 10.0,
-    estado: 'Borrador'
+    estado: 'borrador'
   })
 
   const [currentPresupuesto, setCurrentPresupuesto] = useState(null)
@@ -197,7 +197,7 @@ export default function PresupuestosRealesPage() {
       const { data: newPresupuesto, error: errParent } = await supabase.from('presupuestos_reales').insert([{
         ...parentData,
         nombre_proyecto: parentData.nombre_proyecto + " (Copia)",
-        estado: 'Borrador'
+        estado: 'borrador'
       }]).select().single();
       
       if (errParent) throw errParent;
@@ -262,9 +262,9 @@ export default function PresupuestosRealesPage() {
   }
 
   const handleMarcarEntregado = async () => {
-    if (!confirm("¿Marcar como ENTREGADO? Ya no podrás editarlo.")) return
-    await supabase.from('presupuestos_reales').update({ estado: 'Entregado' }).eq('id', currentPresupuesto.id)
-    setCurrentPresupuesto({...currentPresupuesto, estado: 'Entregado'})
+    if (!confirm("¿Marcar como ENTREGADO / APROBADO? Ya no podrás editarlo.")) return
+    await supabase.from('presupuestos_reales').update({ estado: 'aprobado' }).eq('id', currentPresupuesto.id)
+    setCurrentPresupuesto({...currentPresupuesto, estado: 'aprobado'})
     fetchPresupuestos()
   }
 
@@ -1615,7 +1615,7 @@ export default function PresupuestosRealesPage() {
             <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
               <td className="px-6 py-3 font-bold text-brand-dark">{p.nombre_proyecto}</td>
               <td className="px-6 py-3 text-gray-500">{new Date(p.created_at).toLocaleDateString()}</td>
-              <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>{p.estado || 'Borrador'}</span></td>
+              <td className="px-6 py-3 text-center"><span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'aprobado' || p.estado === 'enviado' || p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>{p.estado || 'borrador'}</span></td>
               <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
               <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
               <td className="px-6 py-3 text-center">
