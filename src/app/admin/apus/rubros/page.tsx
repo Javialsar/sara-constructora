@@ -187,6 +187,7 @@ const rubroSchema = z.object({
 type RubroFormValues = z.infer<typeof rubroSchema>;
 
 export default function RubrosPage() {
+  const queryClient = useQueryClient();
   const [vista, setVista] = useState("catalogo");
   const [familias, setFamilias] = useState<Familia[]>([]);
   const [subfamilias, setSubfamilias] = useState<Subfamilia[]>([]);
@@ -207,9 +208,35 @@ export default function RubrosPage() {
   const itemsPerPage = 10
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
-  const [newRubroData, setNewRubroData] = useState<any>({
-    codigo: '', nombre: '', categoria: '', unidad: 'm3', herramienta_menor_pct: 5.0
-  })
+  
+  const createMutation = useMutation({
+    mutationFn: async (values: RubroFormValues) => {
+      const payload = { ...values, subfamilia_id: values.subfamilia_id || null }; 
+      delete (payload as any).familia_id_temp;
+      const { data, error } = await supabase.from('rubros').insert([payload]).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['rubros'] });
+      setIsNewModalOpen(false);
+      openEditor(data);
+      resetNewForm();
+    },
+    onError: () => {
+      alert("Error al crear el rubro. Revisa que el código no esté duplicado.");
+    }
+  });
+
+  const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, formState: { errors: newErrors, isSubmitting: isNewSubmitting }, setValue: setNewValue, watch: watchNew } = useForm<RubroFormValues>({
+    resolver: zodResolver(rubroSchema),
+    defaultValues: { codigo: '', nombre: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '', familia_id_temp: '' }
+  });
+
+  const submitNewRubro = (data: RubroFormValues) => {
+    createMutation.mutate(data);
+  };
+
 
   const [familiasInsumo, setFamiliasInsumo] = useState<any[]>([])
   const [currentRubro, setCurrentRubro] = useState<any>(null)
@@ -247,19 +274,16 @@ export default function RubrosPage() {
     }
 
   const fetchRubros = async () => {
-    setLoading(true)
-    const [dRubros, dFam, dSub, dFamIns] = await Promise.all([
-      fetchAll('rubros'), fetchAll('familias', {col:'grupo_sugerido', val:'rubro'}), fetchAll('subfamilias'), fetchAll('familias')
+    const [dFam, dSub, dFamIns] = await Promise.all([
+      fetchAll('familias', {col:'grupo_sugerido', val:'rubro'}), fetchAll('subfamilias'), fetchAll('familias')
     ])
-    if (dRubros) setRubros(dRubros.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
-      if (dFamIns) setFamiliasInsumo(dFamIns.filter((f:any) => f.grupo_sugerido !== 'rubro').sort((a:any,b:any) => a.nombre.localeCompare(b.nombre)))
+    if (dFamIns) setFamiliasInsumo(dFamIns.filter((f:any) => f.grupo_sugerido !== 'rubro').sort((a:any,b:any) => a.nombre.localeCompare(b.nombre)))
     if (dFam) { 
-      dFam.sort((a,b)=>a.nombre.localeCompare(b.nombre)); 
+      dFam.sort((a:any,b:any)=>a.nombre.localeCompare(b.nombre)); 
       setFamilias(dFam); 
-      setExpandedFamilias(new Set(dFam.map(f=>f.id))) 
+      setExpandedFamilias(new Set(dFam.map((f:any)=>f.id))) 
     }
-    if (dSub) setSubfamilias(dSub.sort((a,b)=>a.nombre.localeCompare(b.nombre)))
-    setLoading(false)
+    if (dSub) setSubfamilias(dSub.sort((a:any,b:any)=>a.nombre.localeCompare(b.nombre)))
   }
 
     const fetchAllInsumos = async () => {
@@ -270,19 +294,12 @@ export default function RubrosPage() {
     }
   }
 
-  const handleCreateRubro = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const payload = { ...newRubroData, subfamilia_id: (newRubroData as any).subfamilia_id || null }; delete (payload as any).categoria; delete (payload as any).familia_id_temp; const { data, error } = await supabase.from('rubros').insert([payload]).select().single()
-    if (!error) { setIsNewModalOpen(false); fetchRubros(); openEditor(data); }
-    else { alert("Error al crear el rubro. Revisa que el código no esté duplicado.") }
-  }
-
   const handleDeleteRubro = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm("¿Eliminar este rubro? Esto también borrará su receta.")) return
     await supabase.from('rubros').delete().eq('id', id)
     if (currentRubro && currentRubro.id === id) { setCurrentRubro(null); setRubroInsumos([]); setIsEditorOpen(false); }
-    fetchRubros()
+      queryClient.invalidateQueries({ queryKey: ['rubros'] });
   }
 
   const openEditor = async (rubro: any) => {
@@ -340,7 +357,7 @@ export default function RubrosPage() {
     const { totalCostoDirecto } = calcTotalesReceta()
     const { error } = await supabase.from('rubros').update({ herramienta_menor_pct: currentRubro.herramienta_menor_pct, total_costo_directo: totalCostoDirecto, nombre: currentRubro.nombre, unidad: currentRubro.unidad }).eq('id', currentRubro.id)
     if (!error) {
-      setRubros(rubros.map((r:any) => r.id === currentRubro.id ? {...r, total_costo_directo: totalCostoDirecto, herramienta_menor_pct: currentRubro.herramienta_menor_pct, nombre: currentRubro.nombre, unidad: currentRubro.unidad} : r))
+      // setRubros(rubros.map((r:any) => r.id === currentRubro.id ? {...r, total_costo_directo: totalCostoDirecto, herramienta_menor_pct: currentRubro.herramienta_menor_pct, nombre: currentRubro.nombre, unidad: currentRubro.unidad} : r))
       closeEditor()
     }
   }
@@ -414,7 +431,7 @@ const renderInsumoRow = (item: any) => (
           <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
         <button onClick={() => {
-          setNewRubroData({ codigo: '', nombre: '', categoria: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '' });
+          resetNewForm();
           setIsNewModalOpen(true);
         }} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
           <Plus size={18} /> Nuevo Rubro
@@ -674,54 +691,60 @@ const renderInsumoRow = (item: any) => (
               <h3 className="text-lg font-bold text-gray-800">Crear Nuevo Rubro</h3>
               <button onClick={() => setIsNewModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <form onSubmit={handleCreateRubro} className="p-5 space-y-4">
-              <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Grupo</label>
-  <select required value={(newRubroData as any).familia_id_temp || ''} onChange={e => {
-    const famId = e.target.value;
-    let newCode = newRubroData.codigo;
-    let targetSubId = '';
-    
-    if (famId) {
-      const f = familias.find(fam => fam.id === famId);
-      const sf = subfamilias.find(s => s.familia_id === famId); // The auto-created 'General' subfamilia
-      if (sf) targetSubId = sf.id;
-      
-      if (f) {
-        const preF = (f.nombre.match(/[a-zA-Z]+/g) || []).join('').substring(0,3).toUpperCase();
-        
-        // Count all rubros in this familia
-        const sfsOfFam = subfamilias.filter(s => s.familia_id === famId).map(s => s.id);
-        const rubrosEnFam = rubros.filter(r => sfsOfFam.includes(r.subfamilia_id));
-        
-        let maxSeq = 0;
-        rubrosEnFam.forEach(r => {
-          const m = r.codigo?.match(/\d+$/);
-          if (m) {
-            const num = parseInt(m[0], 10);
-            if (num > maxSeq) maxSeq = num;
-          }
-        });
-        const seq = (maxSeq + 1).toString().padStart(3, '0');
-        newCode = `${preF}-${seq}`;
-      }
-    }
-    setNewRubroData({...newRubroData, familia_id_temp: famId, subfamilia_id: targetSubId, codigo: newCode} as any);
-  }} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm bg-white">
-      <option value="">Seleccione...</option>
-      {familias.map(f => (
-        <option key={f.id} value={f.id}>{f.nombre}</option>
-      ))}
-  </select></div>
-              <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Rubro</label><input type="text" value={newRubroData.nombre} onChange={e => setNewRubroData({...newRubroData, nombre: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="Ej. Hormigón simple f'c=210" required /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código (Auto)</label><input type="text" value={newRubroData.codigo} readOnly className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-gray-100 text-gray-500 cursor-not-allowed font-mono" placeholder="Se genera al elegir Grupo" /></div>
-                <div><label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad</label><input type="text" value={newRubroData.unidad} onChange={e => setNewRubroData({...newRubroData, unidad: e.target.value})} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-brand-sage text-sm" placeholder="m3, m2, ml, glb" required /></div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
-                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage transition-colors">Crear Rubro</button>
-              </div>
-            </form>
+            <form onSubmit={handleNewSubmit(submitNewRubro)} className="p-5 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Grupo</label>
+                  <select required {...registerNew("familia_id_temp")} onChange={e => {
+                    const famId = e.target.value;
+                    let targetSubId = '';
+                    if (famId) {
+                      const subs = subfamilias.filter((sf:any) => sf.familia_id === famId);
+                      if (subs.length > 0) targetSubId = subs[0].id;
+                    }
+                    setNewValue('familia_id_temp', famId);
+                    setNewValue('subfamilia_id', targetSubId);
+                  }} className={`w-full border rounded-lg px-3 py-2 outline-none ${newErrors.familia_id_temp ? 'border-red-500' : 'border-gray-300'}`}>
+                    <option value="" disabled>-- Seleccione Grupo --</option>
+                    {familias.filter((f:any) => f.grupo_sugerido === 'rubro').map((f:any) => (
+                      <option key={f.id} value={f.id}>{f.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Subgrupo (Opcional)</label>
+                  <select {...registerNew("subfamilia_id")} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none">
+                    <option value="">-- Sin Subgrupo --</option>
+                    {subfamilias.filter((sf:any) => sf.familia_id === watchNew('familia_id_temp')).map((sf:any) => (
+                      <option key={sf.id} value={sf.id}>{sf.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código</label>
+                    <input type="text" {...registerNew("codigo")} className={`w-full border rounded-lg px-3 py-2 outline-none ${newErrors.codigo ? 'border-red-500' : 'border-gray-300'}`} placeholder="EJ: MAM-2005" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Herr. Menor (%)</label>
+                    <input type="number" step="0.1" {...registerNew("herramienta_menor_pct", { valueAsNumber: true })} className={`w-full border rounded-lg px-3 py-2 outline-none ${newErrors.herramienta_menor_pct ? 'border-red-500' : 'border-gray-300'}`} required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Descripción / Nombre</label>
+                  <textarea {...registerNew("nombre")} rows={2} className={`w-full border rounded-lg px-3 py-2 outline-none ${newErrors.nombre ? 'border-red-500' : 'border-gray-300'}`} placeholder="Pared de bloque vibrado e=10cm..." required></textarea>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Unidad</label>
+                  <input type="text" {...registerNew("unidad")} className={`w-full border rounded-lg px-3 py-2 outline-none ${newErrors.unidad ? 'border-red-500' : 'border-gray-300'}`} placeholder="m3, m2, ml, glb" required />
+                </div>
+                
+                <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                  <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors">Cancelar</button>
+                  <button type="submit" disabled={isNewSubmitting || createMutation.isPending} className="px-4 py-2 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage transition-colors">
+                    {createMutation.isPending ? 'Creando...' : 'Crear Rubro'}
+                  </button>
+                </div>
+              </form>
           </div>
         </div>
       )}
