@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Copy, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings} from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
 import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } from "@/lib/pdfGenerator"
+import { generatePresupuestoGeneralExcel } from "@/lib/excelGenerator"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
 
@@ -709,6 +710,17 @@ export default function PresupuestosRealesPage() {
     fetchPresupuestoRubros(currentPresupuesto.id);
   }
 
+    const handleGeneratePresupuestoGeneralExcel = () => {
+    generatePresupuestoGeneralExcel({
+      currentPresupuesto,
+      proyectosCRM,
+      totales: calcTotales(),
+      presupuestoRubros,
+      rubrosRecipes,
+      allRubros
+    });
+  }
+
   const handleGeneratePresupuestoGeneralPDF = () => {
     generatePresupuestoGeneralPDF({
       currentPresupuesto,
@@ -1348,15 +1360,15 @@ export default function PresupuestosRealesPage() {
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
                   <td className="px-6 py-4 font-bold text-gray-800">Presupuesto</td>
                   <td className="px-6 py-4 text-center">
-                    <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <FileText size={14}/> Generar
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <Settings size={14}/> Configurar
-                    </button>
-                  </td>
+                      <button onClick={handleGeneratePresupuestoGeneralPDF} className="bg-red-600 hover:bg-red-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                        <FileText size={14}/> PDF
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={handleGeneratePresupuestoGeneralExcel} className="bg-green-600 hover:bg-green-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                        <Download size={14}/> Excel
+                      </button>
+                    </td>
                   <td className="px-6 py-4 text-gray-600">Totales del presupuesto.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1366,11 +1378,7 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <Settings size={14}/> Configurar
-                    </button>
-                  </td>
+                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
                   <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1380,11 +1388,7 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <Settings size={14}/> Configurar
-                    </button>
-                  </td>
+                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
                   <td className="px-6 py-4 text-gray-600">Precios unitarios elementales.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1394,11 +1398,7 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <Settings size={14}/> Configurar
-                    </button>
-                  </td>
+                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
                   <td className="px-6 py-4 text-gray-600">Totales de maquinaria y equipos del presupuesto. En unidades comerciales.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1408,11 +1408,7 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <Settings size={14}/> Configurar
-                    </button>
-                  </td>
+                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
                   <td className="px-6 py-4 text-gray-600">Totales de mano de obra del presupuesto. En unidades comerciales.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1422,11 +1418,7 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
-                      <Settings size={14}/> Configurar
-                    </button>
-                  </td>
+                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
                   <td className="px-6 py-4 text-gray-600">Totales de materiales agrupados por categorías. En unidades comerciales.</td>
                 </tr>
               </tbody>
