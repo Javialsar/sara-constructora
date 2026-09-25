@@ -169,3 +169,64 @@ export const generatePresupuestoGeneralExcel = (options: any) => {
     alert("Ocurrió un error al generar el archivo Excel.");
   }
 };
+
+export const generateExplosionExcel = (options: {
+  currentPresupuesto: any;
+  explosionData: any[];
+  title?: string;
+}) => {
+  try {
+    const { currentPresupuesto, explosionData, title = "EXPLOSIÓN DE INSUMOS" } = options;
+    const wb = XLSX.utils.book_new();
+    const projectName = currentPresupuesto?.nombre_proyecto || 'Proyecto';
+
+    const sheetData: any[][] = [
+      ["SARA CONSTRUCTORA - SISTEMA DE PRESUPUESTOS"],
+      [title],
+      ["Proyecto:", projectName],
+      ["Código:", currentPresupuesto?.codigo || 'N/A'],
+      ["Fecha de Reporte:", new Date().toLocaleDateString()],
+      [],
+      ["CÓDIGO", "INSUMO", "TIPO", "UNIDAD", "CANT. TOTAL", "PRECIO UNIT. ($)", "COSTO TOTAL ($)"]
+    ];
+
+    let totalCosto = 0;
+    explosionData.forEach((item) => {
+      const cant = Number(item.cantidad_total || 0);
+      const pu = Number(item.costo || 0);
+      const tot = Number(item.costo_total || 0);
+      totalCosto += tot;
+      sheetData.push([
+        item.codigo || '-',
+        item.nombre || 'Insumo',
+        (item.tipo || 'material').toUpperCase(),
+        item.unidad || 'UND',
+        cant,
+        pu,
+        tot
+      ]);
+    });
+
+    sheetData.push([]);
+    sheetData.push(["", "", "", "", "", "COSTO TOTAL:", totalCosto]);
+
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws['!cols'] = [
+      { wch: 16 }, // Codigo
+      { wch: 45 }, // Insumo
+      { wch: 18 }, // Tipo
+      { wch: 10 }, // Unidad
+      { wch: 15 }, // Cantidad Total
+      { wch: 16 }, // Precio Unitario
+      { wch: 16 }  // Costo Total
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Explosión Insumos");
+    const safeName = projectName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    XLSX.writeFile(wb, `Explosion_${safeName}.xlsx`);
+  } catch (err) {
+    console.error("Error generating explosion excel:", err);
+    alert("Error al exportar la explosión de insumos a Excel.");
+  }
+};
+

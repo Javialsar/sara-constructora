@@ -90,6 +90,24 @@ html {
   --color-sara-black: #000000;
 }
 
+:root.theme-sunset {
+  --color-sara-dark: #0f172a;
+  --color-sara-sage: #ea580c;
+  --color-sara-black: #020617;
+}
+
+:root.theme-nordic {
+  --color-sara-dark: #042f2e;
+  --color-sara-sage: #06b6d4;
+  --color-sara-black: #021a19;
+}
+
+:root.theme-ruby {
+  --color-sara-dark: #18181b;
+  --color-sara-sage: #e11d48;
+  --color-sara-black: #09090b;
+}
+
 /* Force spin buttons */
 input[type="number"].admin-spin::-webkit-inner-spin-button,
 input[type="number"].admin-spin::-webkit-outer-spin-button {

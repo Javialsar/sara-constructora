@@ -6,10 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Copy, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings} from "lucide-react"
+import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Copy, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings, Filter, Layers, Package, Boxes, PieChart} from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
 import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } from "@/lib/pdfGenerator"
-import { generatePresupuestoGeneralExcel } from "@/lib/excelGenerator"
+import { generatePresupuestoGeneralExcel, generateExplosionExcel } from "@/lib/excelGenerator"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
 
@@ -53,6 +53,8 @@ export default function PresupuestosRealesPage() {
   const [showFormulas, setShowFormulas] = useState(false)
   const [openGroup, setOpenGroup] = useState({ 1: false, 2: false, 3: true, 4: true, 5: true, 6: true })
   const [activeTab, setActiveTab] = useState('detalle')
+  const [explosionTypeFilter, setExplosionTypeFilter] = useState('todos')
+  const [explosionSearch, setExplosionSearch] = useState('')
   
   const [searchPresupuesto, setSearchPresupuesto] = useState("")
 
@@ -1441,7 +1443,7 @@ export default function PresupuestosRealesPage() {
             )}
 
         {activeTab === 'explosion' && (() => {
-            const consolidado = {};
+            const consolidado: Record<string, any> = {};
             presupuestoRubros.forEach(pr => {
               const q = Number(pr.cantidad_obra || 0);
               const items = rubrosRecipes[pr.id] || [];
@@ -1458,30 +1460,431 @@ export default function PresupuestosRealesPage() {
                 consolidado[insId].costo_total += costoTotal;
               });
             });
-            const memExplosionData = Object.values(consolidado).sort((a, b) => {
+
+            const allExplosionItems = Object.values(consolidado).sort((a, b) => {
               if (a.tipo < b.tipo) return -1; if (a.tipo > b.tipo) return 1; return a.nombre.localeCompare(b.nombre);
             });
-            const totMateriales = memExplosionData.filter(i => i.tipo === 'material').reduce((acc, curr) => acc + curr.costo_total, 0);
-            const totMO = memExplosionData.filter(i => i.tipo === 'mano_de_obra').reduce((acc, curr) => acc + curr.costo_total, 0);
-            const totEq = memExplosionData.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor').reduce((acc, curr) => acc + curr.costo_total, 0);
-            const totOtros = memExplosionData.filter(i => i.tipo === 'otros').reduce((acc, curr) => acc + curr.costo_total, 0);
+
+            const matItems = allExplosionItems.filter(i => i.tipo === 'material');
+            const moItems = allExplosionItems.filter(i => i.tipo === 'mano_de_obra');
+            const eqItems = allExplosionItems.filter(i => i.tipo === 'equipo' || i.tipo === 'herramienta_menor');
+            const otrosItems = allExplosionItems.filter(i => i.tipo === 'otros');
+
+            const totMateriales = matItems.reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totMO = moItems.reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totEq = eqItems.reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totOtros = otrosItems.reduce((acc, curr) => acc + curr.costo_total, 0);
+            const totDirecto = totMateriales + totMO + totEq + totOtros;
+
+            // Apply type filter
+            let filteredItems = allExplosionItems;
+            if (explosionTypeFilter === 'material') {
+              filteredItems = matItems;
+            } else if (explosionTypeFilter === 'mano_de_obra') {
+              filteredItems = moItems;
+            } else if (explosionTypeFilter === 'equipo') {
+              filteredItems = eqItems;
+            } else if (explosionTypeFilter === 'otros') {
+              filteredItems = otrosItems;
+            }
+
+            // Apply search filter
+            if (explosionSearch.trim()) {
+              const q = explosionSearch.toLowerCase().trim();
+              filteredItems = filteredItems.filter(i => 
+                (i.nombre && i.nombre.toLowerCase().includes(q)) ||
+                (i.codigo && i.codigo.toLowerCase().includes(q)) ||
+                (i.unidad && i.unidad.toLowerCase().includes(q))
+              );
+            }
+
+            const filteredTotalCost = filteredItems.reduce((acc, curr) => acc + curr.costo_total, 0);
+
+            const handleExportCurrentExplosionPDF = () => {
+              const filterParam = explosionTypeFilter === 'todos' ? undefined : explosionTypeFilter;
+              handleGenerateExplosionPDF(filterParam);
+            };
+
+            const handleExportCurrentExplosionExcel = () => {
+              let filterTitle = "EXPLOSIÓN GENERAL DE INSUMOS";
+              if (explosionTypeFilter === 'material') filterTitle = "REPORTE DE INSUMOS - MATERIALES";
+              else if (explosionTypeFilter === 'mano_de_obra') filterTitle = "REPORTE DE INSUMOS - MANO DE OBRA";
+              else if (explosionTypeFilter === 'equipo') filterTitle = "REPORTE DE INSUMOS - EQUIPOS Y MAQUINARIA";
+              else if (explosionTypeFilter === 'otros') filterTitle = "REPORTE DE INSUMOS - OTROS";
+
+              generateExplosionExcel({
+                currentPresupuesto,
+                explosionData: filteredItems,
+                title: filterTitle
+              });
+            };
 
             return (
-              <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-10 border border-gray-100">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-0 border-b bg-gray-50">
-                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Materiales</p><p className="text-xl font-black text-blue-600">${totMateriales.toFixed(2)}</p></div>
-                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Mano Obra</p><p className="text-xl font-black text-orange-600">${totMO.toFixed(2)}</p></div>
-                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Equipos</p><p className="text-xl font-black text-purple-600">${totEq.toFixed(2)}</p></div>
-                  <div className="p-4 text-center border-r"><p className="text-gray-500 text-xs font-bold mb-1">Otros</p><p className="text-xl font-black text-gray-600">${totOtros.toFixed(2)}</p></div>
-                  <div className="p-4 text-center"><p className="text-gray-800 text-xs font-bold mb-1">Costo Directo</p><p className="text-xl font-black text-brand-sage">${(totMateriales + totMO + totEq + totOtros).toFixed(2)}</p></div>
+              <div className="space-y-6 mb-12">
+                {/* Header Superior y Acciones */}
+                <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-brand-sage/10 text-brand-sage flex items-center justify-center font-bold">
+                      <Layers size={22} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-gray-900 tracking-tight">Explosión Consolidada de Insumos</h2>
+                      <p className="text-xs text-gray-500">
+                        Consolidación matemática de recursos en base a las cantidades de obra del proyecto
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportCurrentExplosionPDF}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:bg-rose-800 rounded-lg shadow-sm transition-colors"
+                      title="Descargar reporte en formato PDF"
+                    >
+                      <FileText size={15} />
+                      Exportar PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExportCurrentExplosionExcel}
+                      className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-lg shadow-sm transition-colors"
+                      title="Descargar reporte en formato Excel .xlsx"
+                    >
+                      <Download size={15} />
+                      Exportar Excel
+                    </button>
+                  </div>
                 </div>
-                <div className="overflow-x-auto min-h-[400px]">
-                  <table className="w-full text-sm text-left divide-y divide-gray-200"><thead className="bg-slate-100 text-slate-700 border-b border-gray-200"><tr><th className="px-4 py-3">Cód</th><th className="px-4 py-3">Insumo</th><th className="px-4 py-3">Tipo</th><th className="px-4 py-3">Und</th><th className="px-4 py-3 text-right">CANT. TOTAL</th><th className="px-4 py-3 text-right">P.U</th><th className="px-4 py-3 text-right">TOTAL</th></tr></thead><tbody className="divide-y divide-gray-100">
-                    {memExplosionData.map((ins, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50"><td className="px-4 py-2 text-xs text-gray-500">{ins.codigo}</td><td className="px-4 py-2 font-medium">{ins.nombre}</td><td className="px-4 py-2"><span className="px-2 py-1 bg-gray-100 text-xs rounded">{ins.tipo}</span></td><td className="px-4 py-2 text-gray-400">{ins.unidad}</td><td className="px-4 py-2 text-right font-black text-brand-sage">{Number(ins.cantidad_total).toFixed(2)}</td><td className="px-4 py-2 text-right text-gray-500">${Number(ins.costo).toFixed(4)}</td><td className="px-4 py-2 text-right font-bold">${Number(ins.costo_total).toFixed(2)}</td></tr>
-                    ))}
-                    {memExplosionData.length === 0 && <tr><td colSpan="7" className="text-center py-10 text-gray-400">No hay insumos. Verifica que los rubros tengan recetas.</td></tr>}
-                  </tbody></table>
+
+                {/* 5 Tarjetas KPI Ejecutivas */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {/* Tarjeta Costo Directo */}
+                  <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-xl p-4 shadow-sm border border-gray-700 relative overflow-hidden flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-gray-300 uppercase tracking-wider">Costo Directo</span>
+                      <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center text-emerald-400">
+                        <Calculator size={15} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black tracking-tight text-white">${totDirecto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <div className="flex items-center justify-between text-[11px] text-gray-300 mt-2 pt-2 border-t border-white/10">
+                        <span>{allExplosionItems.length} insumos totales</span>
+                        <span className="font-semibold text-emerald-400">100% CD</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Materiales */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-200 hover:border-blue-300 transition-all flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Materiales</span>
+                      <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <Package size={15} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black tracking-tight text-blue-900">${totMateriales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        <span>{matItems.length} ítems</span>
+                        <span className="font-semibold text-blue-600">
+                          {totDirecto > 0 ? ((totMateriales / totDirecto) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Mano de Obra */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-200 hover:border-amber-300 transition-all flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Mano de Obra</span>
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <Users size={15} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black tracking-tight text-amber-900">${totMO.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        <span>{moItems.length} cuadrillas</span>
+                        <span className="font-semibold text-amber-600">
+                          {totDirecto > 0 ? ((totMO / totDirecto) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Equipos */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-purple-200 hover:border-purple-300 transition-all flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Equipos & Maq.</span>
+                      <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                        <Wrench size={15} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black tracking-tight text-purple-900">${totEq.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        <span>{eqItems.length} máquinas</span>
+                        <span className="font-semibold text-purple-600">
+                          {totDirecto > 0 ? ((totEq / totDirecto) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tarjeta Otros */}
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:border-gray-300 transition-all flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider">Otros / Varios</span>
+                      <div className="w-7 h-7 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center">
+                        <Boxes size={15} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-black tracking-tight text-gray-800">${totOtros.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                      <div className="flex items-center justify-between text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        <span>{otrosItems.length} especiales</span>
+                        <span className="font-semibold text-gray-600">
+                          {totDirecto > 0 ? ((totOtros / totDirecto) * 100).toFixed(1) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtros de Categoría y Barra de Búsqueda */}
+                <div className="bg-white rounded-xl p-3 border border-gray-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  {/* Pills de Filtrado */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setExplosionTypeFilter('todos')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        explosionTypeFilter === 'todos'
+                          ? 'bg-gray-900 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Todos
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        explosionTypeFilter === 'todos' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                      }`}>
+                        {allExplosionItems.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExplosionTypeFilter('material')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        explosionTypeFilter === 'material'
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                      }`}
+                    >
+                      Materiales
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        explosionTypeFilter === 'material' ? 'bg-white/20 text-white' : 'bg-blue-200 text-blue-800'
+                      }`}>
+                        {matItems.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExplosionTypeFilter('mano_de_obra')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        explosionTypeFilter === 'mano_de_obra'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                      }`}
+                    >
+                      Mano de Obra
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        explosionTypeFilter === 'mano_de_obra' ? 'bg-white/20 text-white' : 'bg-amber-200 text-amber-900'
+                      }`}>
+                        {moItems.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExplosionTypeFilter('equipo')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        explosionTypeFilter === 'equipo'
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                      }`}
+                    >
+                      Equipos
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        explosionTypeFilter === 'equipo' ? 'bg-white/20 text-white' : 'bg-purple-200 text-purple-800'
+                      }`}>
+                        {eqItems.length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setExplosionTypeFilter('otros')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                        explosionTypeFilter === 'otros'
+                          ? 'bg-gray-700 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Otros
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        explosionTypeFilter === 'otros' ? 'bg-white/20 text-white' : 'bg-gray-300 text-gray-800'
+                      }`}>
+                        {otrosItems.length}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Input de Búsqueda */}
+                  <div className="relative min-w-[260px]">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar insumo o código..."
+                      value={explosionSearch}
+                      onChange={(e) => setExplosionSearch(e.target.value)}
+                      className="w-full pl-9 pr-8 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white transition-all text-gray-800"
+                    />
+                    {explosionSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setExplosionSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabla de Insumos Ejecutiva */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase font-bold text-[11px]">
+                        <tr>
+                          <th className="px-4 py-3.5 w-24">Cód.</th>
+                          <th className="px-4 py-3.5">Descripción del Insumo</th>
+                          <th className="px-4 py-3.5 text-center w-32">Categoría</th>
+                          <th className="px-4 py-3.5 text-center w-20">Und</th>
+                          <th className="px-4 py-3.5 text-right w-32">Cant. Requerida</th>
+                          <th className="px-4 py-3.5 text-right w-28">P. Unitario</th>
+                          <th className="px-4 py-3.5 text-right w-32">Costo Total</th>
+                          <th className="px-4 py-3.5 text-right w-28">% Incidencia</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {filteredItems.map((ins, idx) => {
+                          const cant = Number(ins.cantidad_total || 0);
+                          const pu = Number(ins.costo || 0);
+                          const cTot = Number(ins.costo_total || 0);
+                          const pct = totDirecto > 0 ? (cTot / totDirecto) * 100 : 0;
+
+                          // Categoría badge
+                          let badgeClass = "bg-gray-100 text-gray-700 border-gray-200";
+                          let badgeLabel = ins.tipo || 'General';
+                          if (ins.tipo === 'material') {
+                            badgeClass = "bg-blue-50 text-blue-700 border-blue-200";
+                            badgeLabel = "Material";
+                          } else if (ins.tipo === 'mano_de_obra') {
+                            badgeClass = "bg-amber-50 text-amber-800 border-amber-200";
+                            badgeLabel = "Mano de Obra";
+                          } else if (ins.tipo === 'equipo' || ins.tipo === 'herramienta_menor') {
+                            badgeClass = "bg-purple-50 text-purple-700 border-purple-200";
+                            badgeLabel = "Equipo / Maq.";
+                          } else if (ins.tipo === 'otros') {
+                            badgeClass = "bg-gray-100 text-gray-600 border-gray-300";
+                            badgeLabel = "Otros";
+                          }
+
+                          return (
+                            <tr key={idx} className="hover:bg-indigo-50/20 transition-colors">
+                              <td className="px-4 py-3 font-mono text-gray-500 font-medium">
+                                {ins.codigo || '-'}
+                              </td>
+                              <td className="px-4 py-3 font-semibold text-gray-900">
+                                {ins.nombre}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}`}>
+                                  {badgeLabel}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-center text-gray-500 font-mono">
+                                <span className="px-2 py-0.5 rounded bg-gray-100 text-[10px] font-semibold text-gray-700">
+                                  {ins.unidad || 'UND'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-right font-black text-gray-900 font-mono">
+                                {cant.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-600 font-mono">
+                                ${pu.toFixed(4)}
+                              </td>
+                              <td className="px-4 py-3 text-right font-black text-gray-900 font-mono">
+                                ${cTot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <div className="w-12 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                    <div 
+                                      className="bg-brand-sage h-full rounded-full" 
+                                      style={{ width: `${Math.min(pct * 2, 100)}%` }} 
+                                    />
+                                  </div>
+                                  <span className="font-mono text-[10px] text-gray-500 w-9 text-right font-semibold">
+                                    {pct.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                        {filteredItems.length === 0 && (
+                          <tr>
+                            <td colSpan={8} className="text-center py-16">
+                              <div className="max-w-xs mx-auto text-gray-400 flex flex-col items-center">
+                                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
+                                  <Layers size={24} />
+                                </div>
+                                <p className="font-bold text-gray-700 text-sm">No se encontraron insumos</p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {explosionSearch 
+                                    ? `No hay coincidencias para "${explosionSearch}".` 
+                                    : "Verifica que los rubros del presupuesto tengan recetas con insumos asignados."}
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+
+                      {filteredItems.length > 0 && (
+                        <tfoot className="bg-gray-50 border-t-2 border-gray-300 font-bold text-gray-900">
+                          <tr>
+                            <td colSpan={4} className="px-4 py-3 text-right text-[11px] text-gray-500 uppercase tracking-wider">
+                              Subtotal Insumos Filtrados ({filteredItems.length} ítems):
+                            </td>
+                            <td colSpan={3} className="px-4 py-3 text-right font-black text-sm text-brand-dark font-mono">
+                              ${filteredTotalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3 text-right font-mono text-xs text-gray-700">
+                              {totDirecto > 0 ? ((filteredTotalCost / totDirecto) * 100).toFixed(1) : 0}%
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
                 </div>
               </div>
             );

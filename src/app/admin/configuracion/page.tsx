@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload } from "lucide-react"
+import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 interface MiembroEquipo {
@@ -34,9 +34,12 @@ export default function ConfiguracionPage() {
   const [equipo, setEquipo] = useState<MiembroEquipo[]>([])
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState<string>('')
 
   useEffect(() => {
     loadConfig()
+    const saved = localStorage.getItem('sara_theme') || ''
+    setCurrentTheme(saved)
   }, [])
 
   const loadConfig = async () => {
@@ -77,11 +80,12 @@ export default function ConfiguracionPage() {
   }
 
   const changeTheme = (themeClass: string) => {
-    document.documentElement.classList.remove('theme-ocean', 'theme-gold', 'theme-apucons')
+    document.documentElement.classList.remove('theme-ocean', 'theme-gold', 'theme-apucons', 'theme-sunset', 'theme-nordic', 'theme-ruby')
     if (themeClass) {
       document.documentElement.classList.add(themeClass)
     }
     localStorage.setItem('sara_theme', themeClass)
+    setCurrentTheme(themeClass)
   }
 
   const addMiembro = () => {
@@ -405,40 +409,130 @@ export default function ConfiguracionPage() {
       </div>
       {/* Selector de Temas */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden mt-6">
-        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
-            <Settings size={18} />
+        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
+              <Palette size={18} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Apariencia y Tema (Administrador)</h2>
+              <p className="text-xs text-gray-500">Personaliza la paleta cromática de la suite administrativa de SARA Constructora</p>
+            </div>
           </div>
-          <h2 className="text-lg font-bold text-gray-800">Apariencia y Tema (Administrador)</h2>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+            6 Estilos Disponibles
+          </span>
         </div>
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          
-          <button onClick={() => changeTheme('')} className="flex flex-col gap-2 items-center text-center p-4 rounded-xl border-2 hover:border-brand-sage transition-all border-gray-200">
-            <div className="flex gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-[#07130d]"></div>
-              <div className="w-6 h-6 rounded-full bg-[#3c7a52]"></div>
-            </div>
-            <span className="font-bold text-gray-800">Sara Sage</span>
-            <span className="text-xs text-gray-500">Tema Corporativo (Por defecto)</span>
-          </button>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {[
+            {
+              id: '',
+              name: 'Sara Sage',
+              category: 'Corporativo Oficial',
+              desc: 'Verde esmeralda y bosque profundo característico de SARA',
+              c1: '#07130d',
+              c2: '#3c7a52',
+              c3: '#f4fbf6',
+              accentRing: 'ring-emerald-500'
+            },
+            {
+              id: 'theme-sunset',
+              name: 'Zafiro & Naranja',
+              category: 'Contraste Moderno',
+              desc: 'Azul zafiro ejecutivo combinado con naranja dinámico de alta visibilidad',
+              c1: '#0f172a',
+              c2: '#ea580c',
+              c3: '#fff7ed',
+              accentRing: 'ring-orange-500'
+            },
+            {
+              id: 'theme-ocean',
+              name: 'Constructor Ocean',
+              category: 'Técnico Marítimo',
+              desc: 'Tonos azul pizarra y cobalto brillante para ingeniería y planos',
+              c1: '#1e293b',
+              c2: '#3b82f6',
+              c3: '#eff6ff',
+              accentRing: 'ring-blue-500'
+            },
+            {
+              id: 'theme-nordic',
+              name: 'Nórdico Glaciar',
+              category: 'Glaciar Minimal',
+              desc: 'Aguamarina ártica y turquesa glaciar de balance cromático limpio',
+              c1: '#042f2e',
+              c2: '#06b6d4',
+              c3: '#ecfeff',
+              accentRing: 'ring-cyan-500'
+            },
+            {
+              id: 'theme-ruby',
+              name: 'Titanio & Rubí',
+              category: 'Lujo Vanguardista',
+              desc: 'Base zinc y carbón mate con acentos rubí neón de alto impacto',
+              c1: '#18181b',
+              c2: '#e11d48',
+              c3: '#fff1f2',
+              accentRing: 'ring-rose-500'
+            },
+            {
+              id: 'theme-gold',
+              name: 'Elegante Dark',
+              category: 'Premium Dorado',
+              desc: 'Negro obsidian de máximo contraste con sutil oro metálico',
+              c1: '#171717',
+              c2: '#d4af37',
+              c3: '#fefce8',
+              accentRing: 'ring-yellow-500'
+            },
+          ].map((theme) => {
+            const isActive = currentTheme === theme.id;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => changeTheme(theme.id)}
+                className={`relative group text-left p-4 rounded-xl border-2 transition-all duration-200 flex flex-col justify-between hover:shadow-md ${
+                  isActive 
+                    ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/20 shadow-sm' 
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                {isActive && (
+                  <div className="absolute top-3 right-3 flex items-center gap-1 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                    <Check size={12} strokeWidth={3} />
+                    <span>Activo</span>
+                  </div>
+                )}
+                
+                <div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex -space-x-1.5 p-1 rounded-lg bg-gray-100/80 border border-gray-200">
+                      <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c1 }} title="Color Primario" />
+                      <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c2 }} title="Color Acento" />
+                      <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c3 }} title="Color Fondo Suave" />
+                    </div>
+                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{theme.category}</span>
+                  </div>
 
-          <button onClick={() => changeTheme('theme-ocean')} className="flex flex-col gap-2 items-center text-center p-4 rounded-xl border-2 hover:border-blue-500 transition-all border-gray-200">
-            <div className="flex gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-[#1e293b]"></div>
-              <div className="w-6 h-6 rounded-full bg-[#3b82f6]"></div>
-            </div>
-            <span className="font-bold text-gray-800">Constructor Ocean</span>
-            <span className="text-xs text-gray-500">Tonos azules y grises técnicos</span>
-          </button>
+                  <h3 className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                    {theme.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    {theme.desc}
+                  </p>
+                </div>
 
-          <button onClick={() => changeTheme('theme-gold')} className="flex flex-col gap-2 items-center text-center p-4 rounded-xl border-2 hover:border-yellow-500 transition-all border-gray-200">
-            <div className="flex gap-2 mb-2">
-              <div className="w-6 h-6 rounded-full bg-[#171717]"></div>
-              <div className="w-6 h-6 rounded-full bg-[#d4af37]"></div>
-            </div>
-            <span className="font-bold text-gray-800">Elegante Dark</span>
-            <span className="text-xs text-gray-500">Oscuro alto contraste con dorado</span>
-          </button>
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                  <span className="text-gray-400 text-[11px]">Vista previa:</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-3 w-8 rounded-sm" style={{ backgroundColor: theme.c1 }} />
+                    <div className="h-3 w-12 rounded-sm" style={{ backgroundColor: theme.c2 }} />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
