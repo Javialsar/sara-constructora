@@ -191,7 +191,7 @@ export default function PresupuestosRealesPage() {
     if (!confirm(`¿Estás seguro de duplicar el presupuesto "${presupuesto.nombre_proyecto}"? Se copiarán todos sus rubros e insumos.`)) return;
 
     try {
-      const { id, created_at, costo_directo_total, gran_total, clientes, proyectos, ...parentData } = presupuesto;
+      const { id, created_at, updated_at, costo_directo_total, gran_total, clientes, proyectos, ...parentData } = presupuesto;
       
       // 1. Insert new budget
       const { data: newPresupuesto, error: errParent } = await supabase.from('presupuestos_reales').insert([{
@@ -208,7 +208,7 @@ export default function PresupuestosRealesPage() {
       if (oldRubros && oldRubros.length > 0) {
         // We will insert rubros one by one to reliably map their new IDs for their insumos
         for (const oldRubro of oldRubros) {
-          const { id: oldRubroId, created_at: cat, ...rData } = oldRubro;
+          const { id: oldRubroId, created_at: cat, updated_at: ucat, ...rData } = oldRubro;
           
           const { data: newRubro, error: errRubro } = await supabase.from('presupuesto_rubros').insert([{
             ...rData,
@@ -222,7 +222,7 @@ export default function PresupuestosRealesPage() {
           
           if (oldInsumos && oldInsumos.length > 0) {
             const insumosPayload = oldInsumos.map((ins: any) => {
-              const { id: oldInsId, created_at: catIns, ...iData } = ins;
+              const { id: oldInsId, created_at: catIns, updated_at: ucatIns, ...iData } = ins;
               return {
                 ...iData,
                 presupuesto_rubro_id: newRubro.id
@@ -238,7 +238,7 @@ export default function PresupuestosRealesPage() {
       
     } catch (error: any) {
       console.error("Error al clonar:", error);
-      alert("Ocurrió un error al clonar el presupuesto. Revisa la consola.");
+      alert("Ocurrió un error al clonar: " + (error.message || error.details || JSON.stringify(error)));
     }
   }
 
@@ -1394,7 +1394,11 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
+                  <td className="px-6 py-4 text-center">
+                      <button onClick={handleGeneratePresupuestoGeneralExcel} className="bg-green-600 hover:bg-green-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                          <Download size={14}/> Excel
+                      </button>
+                    </td>
                   <td className="px-6 py-4 text-gray-600">Análisis de precios unitarios.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1418,7 +1422,11 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
+                  <td className="px-6 py-4 text-center">
+                      <button onClick={handleGeneratePresupuestoGeneralExcel} className="bg-green-600 hover:bg-green-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                          <Download size={14}/> Excel
+                      </button>
+                    </td>
                   <td className="px-6 py-4 text-gray-600">Totales de maquinaria y equipos del presupuesto. En unidades comerciales.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1428,7 +1436,11 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
+                  <td className="px-6 py-4 text-center">
+                      <button onClick={handleGeneratePresupuestoGeneralExcel} className="bg-green-600 hover:bg-green-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                          <Download size={14}/> Excel
+                      </button>
+                    </td>
                   <td className="px-6 py-4 text-gray-600">Totales de mano de obra del presupuesto. En unidades comerciales.</td>
                 </tr>
                 <tr className="hover:bg-brand-sage/5 even:bg-slate-50 border-b border-gray-100 transition-colors">
@@ -1438,7 +1450,11 @@ export default function PresupuestosRealesPage() {
                       <FileText size={14}/> Generar
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-center"><button disabled className="bg-gray-300 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed">Próximamente</button></td>
+                  <td className="px-6 py-4 text-center">
+                      <button onClick={handleGeneratePresupuestoGeneralExcel} className="bg-green-600 hover:bg-green-700 text-white w-full py-1.5 rounded text-xs font-bold flex items-center justify-center gap-2">
+                          <Download size={14}/> Excel
+                      </button>
+                    </td>
                   <td className="px-6 py-4 text-gray-600">Totales de materiales agrupados por categorías. En unidades comerciales.</td>
                 </tr>
               </tbody>
