@@ -14,7 +14,7 @@ const supabase = createClient();
 const proveedorSchema = z.object({
   razon_social: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
   ruc: z.string().optional(),
-  dias_credito: z.coerce.number().min(0, "No puede ser negativo"),
+  dias_credito: z.any().transform(v => Number(v) || 0),
   contacto_vendedor: z.string().optional(),
   telefono: z.string().optional(),
   email: z.union([z.literal(""), z.string().email("Correo inválido")]).optional(),
@@ -36,7 +36,7 @@ export default function ProveedoresPage() {
     reset,
     setError,
     formState: { errors, isSubmitting },
-  } = useForm<ProveedorFormValues>({
+  } = useForm<any>({
     resolver: zodResolver(proveedorSchema),
     defaultValues: {
       razon_social: "",
