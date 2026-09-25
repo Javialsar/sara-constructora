@@ -1000,7 +1000,10 @@ export default function PresupuestosRealesPage() {
                   <div className="flex items-center gap-2">
                     <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className='px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg text-slate-600 shadow-sm hover:bg-slate-50 transition-colors'>% Porcentajes por defecto</button>
                     <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-medium bg-slate-100 border border-transparent rounded-lg text-slate-600 hover:bg-slate-200 transition-colors'>Restaurar Fórmulas por defecto</button>
-                    
+                    <div className="flex items-center gap-2 ml-4">
+                      <input type="checkbox" id="show-formulas" checked={showFormulas} onChange={(e) => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage w-4 h-4 cursor-pointer" />
+                      <label htmlFor="show-formulas" className="text-sm text-gray-600 font-medium cursor-pointer">Visualizar fórmulas</label>
+                    </div>
                   </div>
                   <button onClick={handleSaveIndirectos} className="bg-brand-sage hover:opacity-90 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-sm text-sm">
                     <Save size={16} /> Grabar Fórmulas

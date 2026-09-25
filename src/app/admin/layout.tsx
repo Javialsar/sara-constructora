@@ -18,7 +18,9 @@ import {
   Briefcase,
   Wrench,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  History,
+  Key
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -88,7 +90,14 @@ export default function AdminLayout({
       title: "PANEL PRINCIPAL",
       items: [
         { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+      ]
+    },
+    {
+      title: "MIS PROYECTOS",
+      items: [
         { href: "/admin/proyectos", label: "Proyectos (Obras)", icon: HardHat },
+        { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
+        { href: "/admin/documentos", label: "Gestor Documental", icon: FileText },
       ]
     },
     {
@@ -118,14 +127,19 @@ export default function AdminLayout({
     {
       title: "PORTAL WEB",
       items: [
-        { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
-        { href: "/admin/documentos", label: "Gestor Documental", icon: FileText },
         { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
         { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
         { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
       ]
-    }
+    },
+    {
+      title: "AUDITORÍA",
+      items: [
+        { href: "/admin/historial", label: "Historial", icon: History },
+        { href: "/admin/accesos", label: "Accesos", icon: Key },
       ]
+    }
+  ]
     
     // RBAC FRONTEND: Filtrar menú según el rol
     const navGroups = allNavGroups.map(cat => {

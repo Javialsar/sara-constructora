@@ -256,6 +256,36 @@ export default function RubrosPage() {
   useEffect(() => { fetchRubros(); fetchAllInsumos(); }, [])
   useEffect(() => { setCurrentPage(1) }, [searchTerm, selectedFamilia, selectedSubfamilia])
 
+  const watchedFamId = watchNew('familia_id_temp');
+  useEffect(() => {
+    if (watchedFamId && isNewModalOpen) {
+      const fam = familias.find((f:any) => f.id === watchedFamId);
+      if (fam) {
+        let famCode = fam.nombre.substring(0, 3).toUpperCase();
+        const validSubs = subfamilias.filter((sf:any) => sf.familia_id === watchedFamId).map((sf:any) => sf.id);
+        const rubrosFam = rubros.filter((r:any) => validSubs.includes(r.subfamilia_id));
+        
+        let maxSeq = 0;
+        rubrosFam.forEach((r:any) => {
+          if (r.codigo) {
+            const parts = r.codigo.split('-');
+            if (parts.length > 0) {
+               const num = parseInt(parts[parts.length - 1], 10);
+               if (!isNaN(num) && num > maxSeq) maxSeq = num;
+            }
+          }
+        });
+        const seq = maxSeq > 0 ? maxSeq + 1 : 1;
+        const newCode = `${famCode}-${seq.toString().padStart(4, '0')}`;
+        
+        // Evitamos loop infinito verificando el valor actual
+        if (watchNew('codigo') !== newCode) {
+          setNewValue('codigo', newCode);
+        }
+      }
+    }
+  }, [watchedFamId, isNewModalOpen, familias, subfamilias, rubros, setNewValue, watchNew]);
+
     const fetchAll = async (table: string, filter?: {col: string, val: string}) => {
       let qCount = supabase.from(table).select('*', { count: 'exact', head: true });
       if (filter) qCount = qCount.eq(filter.col, filter.val);
@@ -436,7 +466,13 @@ const renderInsumoRow = (item: any) => (
           <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
         </div>
         <button onClick={() => {
-          resetNewForm();
+          let initialValues = { codigo: '', nombre: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '', familia_id_temp: '' };
+          if (selectedFamilia) {
+             initialValues.familia_id_temp = selectedFamilia;
+             const subs = subfamilias.filter((sf:any) => sf.familia_id === selectedFamilia);
+             if (subs.length > 0) initialValues.subfamilia_id = subs[0].id;
+          }
+          resetNewForm(initialValues);
           setIsNewModalOpen(true);
         }} className="bg-brand-sage text-white font-bold py-2 px-6 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap">
           <Plus size={18} /> Nuevo Rubro
@@ -715,19 +751,11 @@ const renderInsumoRow = (item: any) => (
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Subgrupo (Opcional)</label>
-                  <select {...registerNew("subfamilia_id")} className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none">
-                    <option value="">-- Sin Subgrupo --</option>
-                    {subfamilias.filter((sf:any) => sf.familia_id === watchNew('familia_id_temp')).map((sf:any) => (
-                      <option key={sf.id} value={sf.id}>{sf.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Selector de subgrupo removido por requerimiento */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Código</label>
-                    <input type="text" {...registerNew("codigo")} className={`w-full border rounded-lg px-3 py-2 outline-none ${newErrors.codigo ? 'border-red-500' : 'border-gray-300'}`} placeholder="EJ: MAM-2005" required />
+                    <input type="text" {...registerNew("codigo")} disabled className={`w-full border bg-gray-100 text-gray-500 cursor-not-allowed rounded-lg px-3 py-2 outline-none ${newErrors.codigo ? 'border-red-500' : 'border-gray-300'}`} placeholder="Auto-generado" required />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Herr. Menor (%)</label>
