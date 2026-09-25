@@ -48,6 +48,7 @@ import {
   ThumbsUp
 } from "lucide-react"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
+import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
 
 export interface ResenaHuesped {
   id: string
@@ -810,25 +811,18 @@ export default function AirbnbPage() {
                 </div>
               </div>
 
-              {/* Check-In */}
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Fecha Llegada</label>
-                <input 
-                  type="date"
-                  value={checkInDate}
-                  onChange={(e) => setCheckInDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white text-gray-700 font-bold"
-                />
-              </div>
-
-              {/* Check-Out */}
-              <div>
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Fecha Salida</label>
-                <input 
-                  type="date"
-                  value={checkOutDate}
-                  onChange={(e) => setCheckOutDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white text-gray-700 font-bold"
+              {/* Selector de Rango de Fechas (Estilo Airbnb Oficial) */}
+              <div className="lg:col-span-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Fechas de Estadía ({totalNoches} noche{totalNoches > 1 ? "s" : ""})
+                </label>
+                <AirbnbDateRangePicker
+                  checkIn={checkInDate}
+                  checkOut={checkOutDate}
+                  onChange={(inD, outD) => {
+                    setCheckInDate(inD)
+                    setCheckOutDate(outD)
+                  }}
                 />
               </div>
 
@@ -1207,25 +1201,15 @@ export default function AirbnbPage() {
 
                     {/* Selector de Fechas en el Modal */}
                     <div className="border border-gray-200 rounded-xl overflow-hidden bg-white mb-4 text-xs">
-                      <div className="grid grid-cols-2 border-b border-gray-200">
-                        <div className="p-2 border-r border-gray-200">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase block">Llegada</label>
-                          <input 
-                            type="date" 
-                            value={checkInDate} 
-                            onChange={(e) => setCheckInDate(e.target.value)}
-                            className="w-full text-xs font-bold outline-none text-gray-800"
-                          />
-                        </div>
-                        <div className="p-2">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase block">Salida</label>
-                          <input 
-                            type="date" 
-                            value={checkOutDate} 
-                            onChange={(e) => setCheckOutDate(e.target.value)}
-                            className="w-full text-xs font-bold outline-none text-gray-800"
-                          />
-                        </div>
+                      <div className="p-2 border-b border-gray-200">
+                        <AirbnbDateRangePicker
+                          checkIn={checkInDate}
+                          checkOut={checkOutDate}
+                          onChange={(inD, outD) => {
+                            setCheckInDate(inD)
+                            setCheckOutDate(outD)
+                          }}
+                        />
                       </div>
                       <div className="p-2">
                         <label className="text-[10px] font-bold text-gray-400 uppercase block">Huéspedes</label>
@@ -1575,30 +1559,19 @@ export default function AirbnbPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200">
+                    <div className="sm:col-span-2 bg-slate-50 p-3.5 rounded-xl border border-gray-200">
                       <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
-                        Fecha Check-In (Entrada)
+                        Fechas de Estadía ({totalNoches} noche{totalNoches > 1 ? "s" : ""})
                       </label>
-                      <input
-                        type="date"
-                        value={checkInDate}
-                        onChange={(e) => setCheckInDate(e.target.value)}
-                        className="w-full text-xs font-bold text-gray-800 bg-white p-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                      <AirbnbDateRangePicker
+                        checkIn={checkInDate}
+                        checkOut={checkOutDate}
+                        onChange={(inD, outD) => {
+                          setCheckInDate(inD)
+                          setCheckOutDate(outD)
+                        }}
                       />
-                      <span className="text-[10px] text-gray-400 mt-1 block">Check-in: 15:00 a 22:00</span>
-                    </div>
-
-                    <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200">
-                      <label className="text-[11px] font-bold text-gray-500 uppercase block mb-1">
-                        Fecha Check-Out (Salida)
-                      </label>
-                      <input
-                        type="date"
-                        value={checkOutDate}
-                        onChange={(e) => setCheckOutDate(e.target.value)}
-                        className="w-full text-xs font-bold text-gray-800 bg-white p-2 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
-                      />
-                      <span className="text-[10px] text-gray-400 mt-1 block">Check-out: hasta las 11:00</span>
+                      <span className="text-[10px] text-gray-400 mt-1.5 block">Check-in: 15:00 a 22:00 • Check-out: hasta las 11:00</span>
                     </div>
 
                     <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200">
