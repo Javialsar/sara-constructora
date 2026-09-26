@@ -2992,7 +2992,7 @@ export default function AirbnbPage() {
                         </div>
 
                         <p className="text-[10px] text-gray-400 italic pt-1 border-t border-white/10">
-                          * Los reembolsos se transfieren en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}.
+                          * Los reembolsos se transfieren en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}. El porcentaje retenido se destina en un {politicas.anfitrionSharePenalizacionMas10Dias ?? 50}% como compensación directa al anfitrión por las fechas reservadas y el remanente a gastos operativos de SARA.
                         </p>
                       </div>
                     </div>

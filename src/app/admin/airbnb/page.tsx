@@ -2526,10 +2526,10 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   <span className="text-[10px] text-gray-400 font-medium">Sobre el total de la reserva</span>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {/* Escenario 1: Más de 10 días */}
-                  <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-1.5 font-bold text-emerald-950 text-xs">
                           <span>📅 Cancelación con MÁS de 10 Días de Anticipación</span>
@@ -2539,32 +2539,67 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         </p>
                       </div>
 
-                      <div className="relative w-36 shrink-0">
-                        <input
-                          type="number"
-                          min="0"
-                          max={politicasStays.porcentajeAnticipo}
-                          step="1"
-                          required
-                          value={politicasStays.penalizacionMas10Dias}
-                          onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacionMas10Dias: Number(e.target.value) })}
-                          className="w-full pl-3 pr-8 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-black text-emerald-900 text-right focus:ring-2 focus:ring-emerald-500 outline-none"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Penalización Total */}
+                        <div className="text-right">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Penalización</label>
+                          <div className="relative w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              max={politicasStays.porcentajeAnticipo}
+                              step="1"
+                              required
+                              value={politicasStays.penalizacionMas10Dias}
+                              onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacionMas10Dias: Number(e.target.value) })}
+                              className="w-full pl-2 pr-7 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-black text-emerald-900 text-right focus:ring-2 focus:ring-emerald-500 outline-none"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                          </div>
+                        </div>
+
+                        {/* % Asignado al Anfitrión */}
+                        <div className="text-right">
+                          <label className="text-[10px] font-bold text-emerald-700 uppercase block mb-0.5">Al Anfitrión</label>
+                          <div className="relative w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="5"
+                              required
+                              value={politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50}
+                              onChange={(e) => setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacionMas10Dias: Number(e.target.value) })}
+                              className="w-full pl-2 pr-7 py-1.5 bg-white border border-emerald-400 rounded-lg text-xs font-black text-emerald-900 text-right focus:ring-2 focus:ring-emerald-500 outline-none shadow-xs"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-xs">%</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-emerald-200/50">
-                      <span className="text-gray-500">Retención SARA / Anfitrión: <strong>{politicasStays.penalizacionMas10Dias}%</strong></span>
+                    {/* Desglose de Distribución */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-2 border-t border-emerald-200/60 bg-white/60 p-2 rounded-lg">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-gray-600">
+                          Retención: <strong>{politicasStays.penalizacionMas10Dias}%</strong>
+                        </span>
+                        <span className="text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded font-bold border border-emerald-200">
+                          🏠 Anfitrión ({politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50}%): {((politicasStays.penalizacionMas10Dias * (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)) / 100).toFixed(1)}% del total
+                        </span>
+                        <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
+                          🏢 SARA ({100 - (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)}%): {((politicasStays.penalizacionMas10Dias * (100 - (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50))) / 100).toFixed(1)}% del total
+                        </span>
+                      </div>
                       <span className="text-emerald-700 font-extrabold">
-                        ✓ Reembolso al Cliente: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}% del total
+                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Escenario 2: Entre 2 y 10 días */}
-                  <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-3">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-1.5 font-bold text-amber-950 text-xs">
                           <span>⏱️ Cancelación de 2 a 10 Días de Anticipación (&gt; 48 Horas)</span>
@@ -2574,32 +2609,67 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         </p>
                       </div>
 
-                      <div className="relative w-36 shrink-0">
-                        <input
-                          type="number"
-                          min="0"
-                          max={politicasStays.porcentajeAnticipo}
-                          step="1"
-                          required
-                          value={politicasStays.penalizacion2a10Dias}
-                          onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacion2a10Dias: Number(e.target.value) })}
-                          className="w-full pl-3 pr-8 py-2 bg-white border border-amber-300 rounded-xl text-xs font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Penalización Total */}
+                        <div className="text-right">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Penalización</label>
+                          <div className="relative w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              max={politicasStays.porcentajeAnticipo}
+                              step="1"
+                              required
+                              value={politicasStays.penalizacion2a10Dias}
+                              onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacion2a10Dias: Number(e.target.value) })}
+                              className="w-full pl-2 pr-7 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                          </div>
+                        </div>
+
+                        {/* % Asignado al Anfitrión */}
+                        <div className="text-right">
+                          <label className="text-[10px] font-bold text-amber-800 uppercase block mb-0.5">Al Anfitrión</label>
+                          <div className="relative w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="5"
+                              required
+                              value={politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50}
+                              onChange={(e) => setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacion2a10Dias: Number(e.target.value) })}
+                              className="w-full pl-2 pr-7 py-1.5 bg-white border border-amber-400 rounded-lg text-xs font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none shadow-xs"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-700 font-bold text-xs">%</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-amber-200/50">
-                      <span className="text-gray-500">Retención SARA / Anfitrión: <strong>{politicasStays.penalizacion2a10Dias}%</strong></span>
+                    {/* Desglose de Distribución */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-2 border-t border-amber-200/60 bg-white/60 p-2 rounded-lg">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-gray-600">
+                          Retención: <strong>{politicasStays.penalizacion2a10Dias}%</strong>
+                        </span>
+                        <span className="text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded font-bold border border-amber-200">
+                          🏠 Anfitrión ({politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50}%): {((politicasStays.penalizacion2a10Dias * (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)) / 100).toFixed(1)}% del total
+                        </span>
+                        <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
+                          🏢 SARA ({100 - (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)}%): {((politicasStays.penalizacion2a10Dias * (100 - (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50))) / 100).toFixed(1)}% del total
+                        </span>
+                      </div>
                       <span className="text-amber-800 font-extrabold">
-                        ✓ Reembolso al Cliente: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}% del total
+                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}%
                       </span>
                     </div>
                   </div>
 
                   {/* Escenario 3: 24 Horas o Menos */}
-                  <div className="p-4 rounded-xl bg-rose-50/50 border border-rose-200/80 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-rose-50/50 border border-rose-200/80 space-y-3">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                       <div>
                         <div className="flex items-center gap-1.5 font-bold text-rose-950 text-xs">
                           <span>🚨 Cancelación con 24 Horas o Menos (Última Hora)</span>
@@ -2609,25 +2679,60 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         </p>
                       </div>
 
-                      <div className="relative w-36 shrink-0">
-                        <input
-                          type="number"
-                          min="0"
-                          max={politicasStays.porcentajeAnticipo}
-                          step="1"
-                          required
-                          value={politicasStays.penalizacion24Horas}
-                          onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacion24Horas: Number(e.target.value) })}
-                          className="w-full pl-3 pr-8 py-2 bg-white border border-rose-300 rounded-xl text-xs font-black text-rose-900 text-right focus:ring-2 focus:ring-rose-500 outline-none"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {/* Penalización Total */}
+                        <div className="text-right">
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Penalización</label>
+                          <div className="relative w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              max={politicasStays.porcentajeAnticipo}
+                              step="1"
+                              required
+                              value={politicasStays.penalizacion24Horas}
+                              onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacion24Horas: Number(e.target.value) })}
+                              className="w-full pl-2 pr-7 py-1.5 bg-white border border-rose-300 rounded-lg text-xs font-black text-rose-900 text-right focus:ring-2 focus:ring-rose-500 outline-none"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                          </div>
+                        </div>
+
+                        {/* % Asignado al Anfitrión */}
+                        <div className="text-right">
+                          <label className="text-[10px] font-bold text-rose-800 uppercase block mb-0.5">Al Anfitrión</label>
+                          <div className="relative w-28">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="5"
+                              required
+                              value={politicasStays.anfitrionSharePenalizacion24Horas ?? 50}
+                              onChange={(e) => setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacion24Horas: Number(e.target.value) })}
+                              className="w-full pl-2 pr-7 py-1.5 bg-white border border-rose-400 rounded-lg text-xs font-black text-rose-900 text-right focus:ring-2 focus:ring-rose-500 outline-none shadow-xs"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-700 font-bold text-xs">%</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-rose-200/50">
-                      <span className="text-gray-500">Retención SARA / Anfitrión: <strong>{politicasStays.penalizacion24Horas}%</strong></span>
+                    {/* Desglose de Distribución */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-2 border-t border-rose-200/60 bg-white/60 p-2 rounded-lg">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-gray-600">
+                          Retención: <strong>{politicasStays.penalizacion24Horas}%</strong>
+                        </span>
+                        <span className="text-rose-900 bg-rose-100/80 px-2 py-0.5 rounded font-bold border border-rose-200">
+                          🏠 Anfitrión ({politicasStays.anfitrionSharePenalizacion24Horas ?? 50}%): {((politicasStays.penalizacion24Horas * (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)) / 100).toFixed(1)}% del total
+                        </span>
+                        <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
+                          🏢 SARA ({100 - (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)}%): {((politicasStays.penalizacion24Horas * (100 - (politicasStays.anfitrionSharePenalizacion24Horas ?? 50))) / 100).toFixed(1)}% del total
+                        </span>
+                      </div>
                       <span className="text-rose-700 font-extrabold">
-                        ✓ Reembolso al Cliente: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}% del total
+                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}%
                       </span>
                     </div>
                   </div>
@@ -2863,64 +2968,133 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   </p>
 
                   {/* Caso 1: > 10 Días */}
-                  <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1">
-                    <div className="flex items-center justify-between text-emerald-300 font-bold">
-                      <span>1. Más de 10 días</span>
-                      <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">
-                        Penalización {politicasStays.penalizacionMas10Dias}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-gray-300">
-                      <span>Retención por penalización:</span>
-                      <span className="text-rose-400 font-semibold">-${(simuladorMonto * (politicasStays.penalizacionMas10Dias / 100)).toFixed(2)} USD</span>
-                    </div>
-                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
-                      <span className="text-emerald-400 font-bold">Reembolso devuelto al cliente:</span>
-                      <strong className="text-emerald-400 text-sm font-black">
-                        ${(simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias) / 100)).toFixed(2)} USD
-                      </strong>
-                    </div>
-                  </div>
+                  {(() => {
+                    const penMonto = simuladorMonto * (politicasStays.penalizacionMas10Dias / 100)
+                    const hostShare = politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50
+                    const hostMonto = penMonto * (hostShare / 100)
+                    const saraMonto = penMonto * ((100 - hostShare) / 100)
+                    const reembolso = simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias) / 100)
+
+                    return (
+                      <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between text-emerald-300 font-bold">
+                          <span>1. Más de 10 días</span>
+                          <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono">
+                            Penalización {politicasStays.penalizacionMas10Dias}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-gray-300">
+                          <span>Retención total por penalización:</span>
+                          <span className="text-rose-400 font-bold">-${penMonto.toFixed(2)} USD</span>
+                        </div>
+
+                        {/* Reparto Anfitrión y SARA */}
+                        <div className="bg-black/40 p-2 rounded-lg space-y-1 text-[10px] border border-white/5">
+                          <div className="flex justify-between text-emerald-300 font-medium">
+                            <span>🏠 Compensación Anfitrión ({hostShare}%):</span>
+                            <strong className="font-bold">+${hostMonto.toFixed(2)} USD</strong>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>🏢 Retención Operativa SARA ({100 - hostShare}%):</span>
+                            <span>+${saraMonto.toFixed(2)} USD</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                          <span className="text-emerald-400 font-bold">Reembolso devuelto al cliente:</span>
+                          <strong className="text-emerald-400 text-sm font-black">
+                            ${reembolso.toFixed(2)} USD
+                          </strong>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Caso 2: 2 a 10 Días */}
-                  <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 space-y-1">
-                    <div className="flex items-center justify-between text-amber-300 font-bold">
-                      <span>2. De 2 a 10 días</span>
-                      <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">
-                        Penalización {politicasStays.penalizacion2a10Dias}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-gray-300">
-                      <span>Retención por penalización:</span>
-                      <span className="text-rose-400 font-semibold">-${(simuladorMonto * (politicasStays.penalizacion2a10Dias / 100)).toFixed(2)} USD</span>
-                    </div>
-                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
-                      <span className="text-amber-400 font-bold">Reembolso devuelto al cliente:</span>
-                      <strong className="text-amber-400 text-sm font-black">
-                        ${(simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias) / 100)).toFixed(2)} USD
-                      </strong>
-                    </div>
-                  </div>
+                  {(() => {
+                    const penMonto = simuladorMonto * (politicasStays.penalizacion2a10Dias / 100)
+                    const hostShare = politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50
+                    const hostMonto = penMonto * (hostShare / 100)
+                    const saraMonto = penMonto * ((100 - hostShare) / 100)
+                    const reembolso = simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias) / 100)
+
+                    return (
+                      <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between text-amber-300 font-bold">
+                          <span>2. De 2 a 10 días</span>
+                          <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-mono">
+                            Penalización {politicasStays.penalizacion2a10Dias}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-gray-300">
+                          <span>Retención total por penalización:</span>
+                          <span className="text-rose-400 font-bold">-${penMonto.toFixed(2)} USD</span>
+                        </div>
+
+                        {/* Reparto Anfitrión y SARA */}
+                        <div className="bg-black/40 p-2 rounded-lg space-y-1 text-[10px] border border-white/5">
+                          <div className="flex justify-between text-amber-300 font-medium">
+                            <span>🏠 Compensación Anfitrión ({hostShare}%):</span>
+                            <strong className="font-bold">+${hostMonto.toFixed(2)} USD</strong>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>🏢 Retención Operativa SARA ({100 - hostShare}%):</span>
+                            <span>+${saraMonto.toFixed(2)} USD</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                          <span className="text-amber-400 font-bold">Reembolso devuelto al cliente:</span>
+                          <strong className="text-amber-400 text-sm font-black">
+                            ${reembolso.toFixed(2)} USD
+                          </strong>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Caso 3: 24 Horas */}
-                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 space-y-1">
-                    <div className="flex items-center justify-between text-rose-300 font-bold">
-                      <span>3. Con 24 horas o menos</span>
-                      <span className="text-[11px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded">
-                        Penalización {politicasStays.penalizacion24Horas}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-gray-300">
-                      <span>Retención por penalización:</span>
-                      <span className="text-rose-400 font-semibold">-${(simuladorMonto * (politicasStays.penalizacion24Horas / 100)).toFixed(2)} USD</span>
-                    </div>
-                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
-                      <span className="text-rose-300 font-bold">Reembolso devuelto al cliente:</span>
-                      <strong className="text-rose-300 text-sm font-black">
-                        ${(simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas) / 100)).toFixed(2)} USD
-                      </strong>
-                    </div>
-                  </div>
+                  {(() => {
+                    const penMonto = simuladorMonto * (politicasStays.penalizacion24Horas / 100)
+                    const hostShare = politicasStays.anfitrionSharePenalizacion24Horas ?? 50
+                    const hostMonto = penMonto * (hostShare / 100)
+                    const saraMonto = penMonto * ((100 - hostShare) / 100)
+                    const reembolso = simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas) / 100)
+
+                    return (
+                      <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between text-rose-300 font-bold">
+                          <span>3. Con 24 horas o menos</span>
+                          <span className="text-[11px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-mono">
+                            Penalización {politicasStays.penalizacion24Horas}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-gray-300">
+                          <span>Retención total por penalización:</span>
+                          <span className="text-rose-400 font-bold">-${penMonto.toFixed(2)} USD</span>
+                        </div>
+
+                        {/* Reparto Anfitrión y SARA */}
+                        <div className="bg-black/40 p-2 rounded-lg space-y-1 text-[10px] border border-white/5">
+                          <div className="flex justify-between text-rose-300 font-medium">
+                            <span>🏠 Compensación Anfitrión ({hostShare}%):</span>
+                            <strong className="font-bold">+${hostMonto.toFixed(2)} USD</strong>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>🏢 Retención Operativa SARA ({100 - hostShare}%):</span>
+                            <span>+${saraMonto.toFixed(2)} USD</span>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                          <span className="text-rose-300 font-bold">Reembolso devuelto al cliente:</span>
+                          <strong className="text-rose-300 text-sm font-black">
+                            ${reembolso.toFixed(2)} USD
+                          </strong>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 {/* Botón para Copiar Texto para WhatsApp */}
@@ -2928,14 +3102,15 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   <button
                     type="button"
                     onClick={() => {
-                      const msg = `*POLÍTICAS DE RESERVA Y CANCELACIÓN - SARA STAYS*\n\n` +
+                      const msg = `*POLÍTICAS DE RESERVA, CANCELACIÓN & COMPENSACIÓN AL ANFITRIÓN - SARA STAYS*\n\n` +
                         `✅ *Anticipo para Confirmar:* ${politicasStays.porcentajeAnticipo}% del valor de la estadía.\n` +
-                        `💵 *Saldo restante:* Se liquida al momento del Check-in.\n\n` +
-                        `📋 *Escala de Cancelación y Reembolso Transparente:*\n` +
-                        `• *Más de 10 días:* Penalización del ${politicasStays.penalizacionMas10Dias}%. Te devolvemos el ${politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias}% restante de tu anticipo.\n` +
-                        `• *De 2 a 10 días:* Penalización del ${politicasStays.penalizacion2a10Dias}%. Te devolvemos el ${politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias}% restante de tu anticipo.\n` +
-                        `• *24 horas o menos:* Penalización del ${politicasStays.penalizacion24Horas}%. Te devolvemos el ${politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas}% restante de tu anticipo.\n\n` +
-                        `⏱️ *Plazo de Devolución:* ${politicasStays.diasReembolso} mediante ${politicasStays.metodoDevolucion}.`
+                        `💵 *Saldo restante:* Se liquida al Check-in directamente a cuenta SARA.\n\n` +
+                        `📋 *Escala de Cancelación, Reembolso y Compensación al Anfitrión:*\n` +
+                        `• *Más de 10 días:* Penalización ${politicasStays.penalizacionMas10Dias}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}% | Anfitrión recibe: ${politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50}% de la penalización).\n` +
+                        `• *De 2 a 10 días:* Penalización ${politicasStays.penalizacion2a10Dias}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}% | Anfitrión recibe: ${politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50}% de la penalización).\n` +
+                        `• *24 horas o menos:* Penalización ${politicasStays.penalizacion24Horas}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}% | Anfitrión recibe: ${politicasStays.anfitrionSharePenalizacion24Horas ?? 50}% de la penalización).\n\n` +
+                        `⏱️ *Plazo de Devolución:* ${politicasStays.diasReembolso} mediante ${politicasStays.metodoDevolucion}.\n` +
+                        `🏛️ *IVA / Gastos Adm. sobre Comisión:* ${politicasStays.ivaPorcentaje}%.`
 
                       navigator.clipboard.writeText(msg)
                       alert("¡Texto de políticas copiado al portapapeles! Listo para enviar por WhatsApp o correo.")
