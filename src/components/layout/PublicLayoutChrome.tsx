@@ -21,10 +21,14 @@ export default function PublicLayoutChrome({
 }: PublicLayoutChromeProps) {
   const pathname = usePathname()
 
-  // Ocultar cabecera de menú, pie de página, barra móvil y chatbot en la pantalla de autenticación
-  const isAuthPage = pathname === "/airbnb/auth" || pathname.startsWith("/airbnb/auth/")
+  // Ocultar cabecera de menú corporativo, pie de página y chatbot en pantallas dedicadas de Airbnb (Auth y Mis Reservas)
+  const isStandaloneAirbnb = 
+    pathname === "/airbnb/auth" || 
+    pathname.startsWith("/airbnb/auth/") ||
+    pathname === "/airbnb/mis-reservas" || 
+    pathname.startsWith("/airbnb/mis-reservas/")
 
-  if (isAuthPage) {
+  if (isStandaloneAirbnb) {
     return (
       <main className="min-h-screen w-full flex flex-col bg-slate-950">
         {children}

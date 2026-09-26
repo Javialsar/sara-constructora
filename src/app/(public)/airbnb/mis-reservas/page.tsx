@@ -835,11 +835,106 @@ export default function MisReservasPage() {
   const currentShowcase = fotosShowcase[activePhotoIdx] || fotosShowcase[0]
 
   return (
-    <div className="min-h-screen bg-slate-50 text-gray-900 pb-24">
+    <div className="min-h-screen bg-slate-100 text-gray-900 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+      {/* ============================================================ */}
+      {/* 0. APP HEADER EXCLUSIVO: PORTAL AIRBNB (STANDALONE)          */}
+      {/* ============================================================ */}
+      <header className="sticky top-0 z-40 w-full bg-slate-950/90 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3.5 transition-all">
+        <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
+          
+          {/* Logo y Marca SARA Airbnb */}
+          <Link href="/airbnb" className="flex items-center gap-3 group">
+            <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
+              <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md shadow-xs">
+                  HOSPITALITY
+                </span>
+              </div>
+              <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
+                Portal de Huéspedes & Anfitriones
+              </span>
+            </div>
+          </Link>
+
+          {/* Segmented Control Central: Pestañas Principales */}
+          <div className="hidden md:flex items-center bg-slate-900/90 border border-slate-800 p-1 rounded-2xl shadow-inner">
+            <button
+              type="button"
+              onClick={() => setMainPortalTab("reservas")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                mainPortalTab === "reservas"
+                  ? "bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-md font-extrabold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Calendar size={14} />
+              <span>1. Mis Reservas ({reservas.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMainPortalTab("alojamientos")}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                mainPortalTab === "alojamientos"
+                  ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md font-extrabold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              <Building size={14} />
+              <span>2. Mis Alojamientos ({misAlojamientos.length})</span>
+            </button>
+          </div>
+
+          {/* Acciones de Cabecera y Perfil */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95"
+            >
+              <PlusCircle size={15} />
+              <span className="hidden sm:inline">Crear Alojamiento</span>
+            </button>
+
+            <Link
+              href="/airbnb"
+              className="px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-gray-200 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700/80 flex items-center gap-1.5"
+              title="Ir al catálogo público de alojamientos"
+            >
+              <Compass size={15} className="text-amber-400" />
+              <span className="hidden md:inline">Catálogo</span>
+            </Link>
+
+            <div className="h-6 w-px bg-slate-800 mx-1 hidden sm:block" />
+
+            {/* Perfil del Huésped / Anfitrión */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-slate-950 font-black text-xs flex items-center justify-center shadow-md shrink-0">
+                {guest?.nombre ? guest.nombre.charAt(0).toUpperCase() : "C"}
+              </div>
+              <div className="hidden lg:block text-left leading-tight">
+                <span className="text-xs font-bold text-white block max-w-[120px] truncate">{guest?.nombre}</span>
+                <span className="text-[10px] text-emerald-400 font-medium">Verificado</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
+                title="Cerrar sesión"
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* ============================================================ */}
       {/* 1. HEADER HERO: IZQUIERDA (IMAGEN 4) + DERECHA (SHOWCASE)   */}
       {/* ============================================================ */}
-      <section className="bg-brand-dark pt-28 pb-14 text-white relative overflow-hidden">
+      <section className="bg-slate-900 pt-7 pb-14 text-white relative overflow-hidden">
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none"
           style={{ backgroundImage: "url('/sara-airbnb.png')" }}
@@ -1981,6 +2076,34 @@ export default function MisReservasPage() {
         activeGuest={guest}
         existingCount={misAlojamientos.length}
       />
+
+      {/* ============================================================ */}
+      {/* 3. PORTAL FOOTER EXCLUSIVO                                   */}
+      {/* ============================================================ */}
+      <footer className="mt-auto py-8 bg-slate-900 border-t border-slate-800 text-center text-xs text-gray-400 space-y-2">
+        <div className="max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center gap-3 flex-wrap text-xs text-gray-300">
+            <span className="font-extrabold text-white">SARA Constructora & Hospitality</span>
+            <span className="text-gray-600">•</span>
+            <span>Cerraduras Inteligentes Smart Lock 24/7</span>
+            <span className="text-gray-600">•</span>
+            <span>Gestión y Liquidación de Reservas en Tiempo Real</span>
+            <span className="text-gray-600">•</span>
+            <a
+              href="https://wa.me/593981804023"
+              target="_blank"
+              rel="noreferrer"
+              className="text-emerald-400 hover:underline font-bold flex items-center gap-1 inline-flex"
+            >
+              <MessageCircle size={13} />
+              <span>Soporte VIP WhatsApp (+593 98 180 4023)</span>
+            </a>
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">
+            © 2026 SARA Constructora. Todos los derechos reservados. Portal exclusivo para huéspedes y anfitriones con encriptación SSL y Smart Lock Cloud.
+          </p>
+        </div>
+      </footer>
     </div>
   )
 }
