@@ -398,16 +398,17 @@ export default function InmobiliariaPage() {
       <section className="relative pt-12 pb-24 lg:pb-28 overflow-hidden bg-slate-950">
         {/* Fondo Arquitectónico Corporativo de Alta Resolución */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105"
+          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105 filter brightness-[0.92] contrast-[1.05]"
           style={{ 
             backgroundImage: `url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=2560&q=85')` 
           }}
         />
 
-        {/* Gradientes y Filtros de Iluminación Ejecutiva */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/55" />
-        <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60" />
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(16,185,129,0.18)_0%,_transparent_60%)] pointer-events-none" />
+        {/* Gradientes y Filtros de Iluminación Ejecutiva Equilibrados */}
+        <div className="absolute inset-0 z-10 bg-slate-950/30" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-slate-950/20" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(16,185,129,0.15)_0%,_transparent_60%)] pointer-events-none" />
 
         <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -779,45 +780,63 @@ export default function InmobiliariaPage() {
           </div>
         </div>
 
-        {/* Grid de Propiedades */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Grid de Propiedades con Diseño 3D de Alta Gama */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
           {filteredInmuebles.map((inm) => (
             <div 
               key={inm.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-200 flex flex-col group"
+              onClick={() => {
+                setSelectedInmueble(inm)
+                setActivePhotoIdx(0)
+              }}
+              className="relative bg-white rounded-3xl overflow-hidden border border-slate-200/80 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.07),0_8px_10px_-6px_rgba(0,0,0,0.05)] hover:shadow-[0_25px_45px_-12px_rgba(16,185,129,0.22),0_12px_24px_rgba(0,0,0,0.12)] hover:-translate-y-2.5 hover:border-emerald-500/40 transition-all duration-500 flex flex-col group cursor-pointer transform-gpu"
             >
-              {/* Portada / Carrusel */}
-              <div className="relative h-64 w-full overflow-hidden bg-gray-100">
+              {/* Línea superior con brillo 3D */}
+              <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-emerald-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none" />
+
+              {/* Portada / Carrusel con zoom 3D */}
+              <div className="relative aspect-[16/11] w-full overflow-hidden bg-slate-950">
                 <img 
                   src={inm.imagenes[0]} 
                   alt={inm.titulo} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
                 />
+
+                {/* Sombra de viñeta 3D para contraste */}
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
                 
-                {/* Badges superiores */}
-                <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-md ${
-                    inm.modalidad === 'venta' ? 'bg-blue-600' : 'bg-emerald-600'
+                {/* Badges superiores 3D flotantes */}
+                <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-white shadow-[0_4px_10px_rgba(0,0,0,0.3)] backdrop-blur-md border border-white/20 ${
+                    inm.modalidad === 'venta' 
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
+                      : 'bg-gradient-to-r from-emerald-600 to-teal-600'
                   }`}>
                     {inm.modalidad === 'venta' ? 'EN VENTA' : 'EN ARRIENDO'}
                   </span>
+
                   {inm.destacada && (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-md">
-                      DESTACADA
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_4px_10px_rgba(245,158,11,0.4)] border border-amber-300/40">
+                      ⭐ DESTACADA
                     </span>
                   )}
+
                   {inm.tipo === 'terreno' && (
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-brand-dark text-emerald-400 border border-emerald-400/30 shadow-md">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-950/85 text-emerald-300 border border-emerald-500/40 shadow-[0_4px_10px_rgba(0,0,0,0.4)] backdrop-blur-md">
                       + OBRA LLAVE EN MANO
                     </span>
                   )}
                 </div>
 
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white pointer-events-none">
-                  <div className="bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl font-black text-lg md:text-xl text-white shadow-md">
-                    ${inm.precio.toLocaleString()} {inm.modalidad === 'arriendo' && <span className="text-xs font-normal text-gray-300">/mes</span>}
+                {/* Etiqueta de Precio 3D Flotante */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
+                  <div className="bg-slate-950/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl font-black text-lg md:text-xl text-white shadow-[0_8px_20px_rgba(0,0,0,0.4)] border border-white/15 flex items-baseline gap-1">
+                    <span>${inm.precio.toLocaleString()}</span>
+                    {inm.modalidad === 'arriendo' && (
+                      <span className="text-xs font-normal text-emerald-300">/mes</span>
+                    )}
                   </div>
-                  <div className="text-[10px] font-bold bg-white/90 text-gray-800 px-2 py-1 rounded-md shadow-sm">
+                  <div className="text-[10px] font-mono font-bold bg-white/95 text-slate-900 px-2.5 py-1 rounded-xl shadow-md border border-slate-200/80">
                     {inm.codigo}
                   </div>
                 </div>
@@ -826,54 +845,73 @@ export default function InmobiliariaPage() {
               {/* Información de la Tarjeta */}
               <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center gap-1.5 text-xs text-brand-sage font-bold uppercase tracking-wider mb-1.5">
-                    <MapPin size={14} /> {inm.sector}, {inm.ciudad}
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold uppercase tracking-wider mb-1.5">
+                    <MapPin size={13} className="text-emerald-500 shrink-0" />
+                    <span className="truncate">{inm.sector}, {inm.ciudad}</span>
                   </div>
 
-                  <h3 className="font-bold text-gray-900 text-base leading-snug group-hover:text-brand-sage transition-colors line-clamp-2 mb-2">
+                  <h3 className="font-extrabold text-slate-900 text-base leading-snug group-hover:text-emerald-600 transition-colors line-clamp-2 mb-2">
                     {inm.titulo}
                   </h3>
 
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                  <p className="text-xs text-slate-500 line-clamp-2 mb-4 leading-relaxed">
                     {inm.descripcion}
                   </p>
 
-                  {/* Iconos de Características */}
-                  <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-100 text-xs text-gray-600 mb-4">
-                    {inm.habitaciones > 0 && (
-                      <div className="flex items-center gap-1.5" title={`${inm.habitaciones} Dormitorios`}>
-                        <Bed size={15} className="text-brand-sage shrink-0" />
-                        <span className="font-semibold">{inm.habitaciones} Hab.</span>
+                  {/* Panel de Métricas 3D Inset */}
+                  <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-slate-50/90 rounded-2xl border border-slate-200/70 text-xs text-slate-700 mb-4 shadow-inner">
+                    {inm.habitaciones > 0 ? (
+                      <div className="flex items-center gap-1.5 justify-center" title={`${inm.habitaciones} Dormitorios`}>
+                        <Bed size={15} className="text-emerald-600 shrink-0" />
+                        <span className="font-bold">{inm.habitaciones} Hab.</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <Building2 size={15} className="text-emerald-600 shrink-0" />
+                        <span className="font-bold capitalize">{inm.tipo}</span>
                       </div>
                     )}
-                    {inm.banos > 0 && (
-                      <div className="flex items-center gap-1.5" title={`${inm.banos} Baños`}>
-                        <Bath size={15} className="text-brand-sage shrink-0" />
-                        <span className="font-semibold">{inm.banos} Baños</span>
+
+                    {inm.banos > 0 ? (
+                      <div className="flex items-center gap-1.5 justify-center" title={`${inm.banos} Baños`}>
+                        <Bath size={15} className="text-emerald-600 shrink-0" />
+                        <span className="font-bold">{inm.banos} Baños</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <ShieldCheck size={15} className="text-emerald-600 shrink-0" />
+                        <span className="font-bold">Verificado</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5" title="Superficie Total">
-                      <Maximize2 size={15} className="text-brand-sage shrink-0" />
-                      <span className="font-semibold">{inm.areaTotalM2} m²</span>
+
+                    <div className="flex items-center gap-1.5 justify-center" title="Superficie Total">
+                      <Maximize2 size={15} className="text-emerald-600 shrink-0" />
+                      <span className="font-bold">{inm.areaTotalM2} m²</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Acciones de Conversión */}
-                <div className="flex items-center gap-2 pt-2">
+                {/* Acciones de Conversión 3D */}
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                   <button
-                    onClick={() => {
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
                       setSelectedInmueble(inm)
                       setActivePhotoIdx(0)
                     }}
-                    className="flex-1 py-2 px-3 text-xs font-bold text-brand-dark bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 px-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-200/80 shadow-sm active:scale-95 cursor-pointer"
                   >
                     <Eye size={14} /> Ficha Completa
                   </button>
 
                   <button
-                    onClick={() => openWhatsAppInmueble(inm)}
-                    className="py-2 px-3 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openWhatsAppInmueble(inm)
+                    }}
+                    className="py-2.5 px-3.5 text-xs font-black text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:shadow-[0_6px_16px_rgba(16,185,129,0.4)] active:scale-95 cursor-pointer"
                     title="Consultar por WhatsApp"
                   >
                     <MessageCircle size={15} /> WhatsApp

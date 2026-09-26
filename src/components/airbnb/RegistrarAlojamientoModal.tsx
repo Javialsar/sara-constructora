@@ -406,95 +406,122 @@ export default function RegistrarAlojamientoModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-gray-100 relative my-4 sm:my-8 flex flex-col max-h-[92vh]">
-        {/* Header del Modal */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0 bg-slate-50/70 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-orange-500/10 text-orange-600 rounded-xl border border-orange-200">
+    <div className="fixed inset-0 z-[100] w-screen h-screen bg-slate-950/90 backdrop-blur-2xl flex flex-col overflow-hidden animate-fadeIn">
+      <div className="w-full h-full bg-slate-50 flex flex-col overflow-hidden">
+        {/* Header a Pantalla Completa de Alta Gama */}
+        <div className="px-6 sm:px-10 py-4 bg-slate-900 border-b border-slate-800 text-white flex items-center justify-between shrink-0 shadow-lg">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-gradient-to-br from-amber-500 to-orange-500 text-slate-950 rounded-2xl shadow-md border border-amber-300/30 shrink-0">
               <Building size={22} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg sm:text-xl font-black text-gray-900">
-                  Registrar Nuevo Alojamiento Airbnb
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Registrar Nuevo Alojamiento SARA Stays
                 </h3>
-                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
+                <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-amber-400/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30">
                   <Lock size={10} /> {formAlojamiento.codigo}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Configuración integral de ficha pública, geolocalización, multimedia, anfitrión y comisiones SARA.
+              <p className="text-xs text-slate-300 mt-0.5">
+                Configuración integral de ficha pública, geolocalización en tiempo real, multimedia, anfitrión y comisiones SARA.
               </p>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-            title="Cerrar ventana"
-          >
-            <X size={20} />
-          </button>
+          {/* Acciones de Cabecera */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-white/10 shadow-sm"
+              title="Cerrar ventana (Esc)"
+            >
+              <X size={16} />
+              <span className="hidden sm:inline">Cerrar (Esc)</span>
+            </button>
+          </div>
         </div>
 
-        {/* Barra de Viñetas / Pestañas */}
-        <div className="px-6 pt-2 border-b border-gray-200 bg-white shrink-0 overflow-x-auto no-scrollbar">
-          <div className="flex items-center gap-1 sm:gap-2 min-w-max">
+        {/* Stepper / Barra de Pasos Organizada */}
+        <div className="px-6 sm:px-10 py-3 bg-white border-b border-slate-200 shrink-0 shadow-xs">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+            {/* Paso 1 */}
             <button
               type="button"
               onClick={() => setModalTab("general")}
-              className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                 modalTab === "general"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <MapPin size={15} className={modalTab === "general" ? "text-orange-500" : ""} />
-              <span>1. Ubicación & Mapa</span>
+              <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
+                modalTab === "general" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
+              }`}>1</span>
+              <span>Ubicación & Mapa</span>
             </button>
 
+            <div className="h-px w-6 bg-slate-200 hidden md:block" />
+
+            {/* Paso 2 */}
             <button
               type="button"
               onClick={() => setModalTab("multimedia")}
-              className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                 modalTab === "multimedia"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <ImageIcon size={15} className={modalTab === "multimedia" ? "text-orange-500" : ""} />
-              <span>2. Fotos & Video</span>
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.2 rounded-full font-bold">
+              <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
+                modalTab === "multimedia" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
+              }`}>2</span>
+              <span>Fotos & Video</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                modalTab === "multimedia" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+              }`}>
                 {formAlojamiento.imagenes.length}
               </span>
             </button>
 
+            <div className="h-px w-6 bg-slate-200 hidden md:block" />
+
+            {/* Paso 3 */}
             <button
               type="button"
               onClick={() => setModalTab("anfitrion")}
-              className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                 modalTab === "anfitrion"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <Users size={15} className={modalTab === "anfitrion" ? "text-orange-500" : ""} />
-              <span>3. Anfitrión & Banco</span>
+              <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
+                modalTab === "anfitrion" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
+              }`}>3</span>
+              <span>Anfitrión & Banco</span>
             </button>
 
+            <div className="h-px w-6 bg-slate-200 hidden md:block" />
+
+            {/* Paso 4 */}
             <button
               type="button"
               onClick={() => setModalTab("caracteristicas")}
-              className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                 modalTab === "caracteristicas"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-500 hover:text-gray-800"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              <CheckCircle2 size={15} className={modalTab === "caracteristicas" ? "text-orange-500" : ""} />
-              <span>4. Checklist & Amenidades</span>
-              <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.2 rounded-full font-bold">
+              <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
+                modalTab === "caracteristicas" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
+              }`}>4</span>
+              <span>Checklist & Tarifas</span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                modalTab === "caracteristicas" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"
+              }`}>
                 {formAlojamiento.amenidades.length}
               </span>
             </button>
@@ -503,135 +530,143 @@ export default function RegistrarAlojamientoModal({
 
         {/* Alerta de Error */}
         {errorMessage && (
-          <div className="mx-6 mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
+          <div className="mx-6 sm:mx-10 mt-3 p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold flex items-center gap-2">
             <AlertCircle size={16} className="text-rose-600 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        {/* Formulario */}
+        {/* Formulario a Pantalla Completa */}
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-          <div className="p-6 overflow-y-auto space-y-5 flex-1">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 lg:px-12 py-6 bg-slate-100/50">
+            <div className="max-w-6xl mx-auto space-y-6 pb-8">
             {/* ========================================================= */}
             {/* VIÑETA 1: DATOS GENERALES & MAPA DE GEOLOCALIZACIÓN       */}
             {/* ========================================================= */}
             {modalTab === "general" && (
-              <div className="space-y-4 animate-fadeIn">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                      <MapPin size={16} className="text-orange-500" />
-                      Identificación del Inmueble y Ubicación Geográfica
-                    </h4>
-                    <p className="text-xs text-gray-500">
-                      El código del sistema es único y no modificable. Ubica la propiedad en el mapa para capturar las coordenadas exactas.
-                    </p>
+              <div className="space-y-6 animate-fadeIn">
+                {/* Tarjeta 1: Información de Registro y Clasificación */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-xl border border-amber-200 shrink-0">
+                        <MapPin size={20} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-extrabold text-slate-900">
+                          Identificación del Inmueble y Ubicación
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          Datos de catalogación pública para los viajeros en SARA Stays.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* Fila 1: Código no editable + Título */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
-                      <Lock size={12} className="text-amber-600" />
-                      <span>Código (No Modificable)</span>
-                    </label>
-                    <div className="relative">
+                  {/* Fila 1: Código no editable + Título */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <Lock size={12} className="text-amber-600" />
+                        <span>Código del Sistema</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          readOnly
+                          value={formAlojamiento.codigo}
+                          className="w-full pl-9 pr-3 py-2.5 bg-slate-100 border border-slate-300 rounded-xl text-xs font-mono font-black text-slate-800 select-all cursor-not-allowed shadow-inner"
+                        />
+                        <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        🔒 Secuencia única automatizada
+                      </span>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Título del Anuncio SARA Stays <span className="text-rose-500">*</span>
+                      </label>
                       <input
                         type="text"
-                        readOnly
-                        value={formAlojamiento.codigo}
-                        className="w-full pl-8 pr-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs font-mono font-black text-slate-700 select-all cursor-not-allowed shadow-inner"
+                        required
+                        placeholder="Ej: Master Suite de Diseño Contemporáneo Frente al Río Tomebamba"
+                        value={formAlojamiento.titulo}
+                        onChange={(e) => setFormAlojamiento({ ...formAlojamiento, titulo: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none transition-all shadow-2xs"
                       />
-                      <Lock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     </div>
-                    <span className="text-[10px] text-gray-400 mt-1 block">
-                      🔒 Generado de forma secuencial
-                    </span>
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Título del Anuncio Airbnb <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej: Master Suite de Diseño Frente al Río Tomebamba"
-                      value={formAlojamiento.titulo}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, titulo: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-900 focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-                </div>
+                  {/* Fila 2: Alcance + Tipo + Ciudad + Sector */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Alcance Geográfico</label>
+                      <select
+                        value={formAlojamiento.alcance}
+                        onChange={(e) => {
+                          const val = e.target.value as any
+                          setFormAlojamiento({
+                            ...formAlojamiento,
+                            alcance: val,
+                            pais: val === "nacional" ? "Ecuador" : "Estados Unidos",
+                            bandera: val === "nacional" ? "🇪🇨" : "🇺🇸"
+                          })
+                        }}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+                      >
+                        <option value="nacional">🇪🇨 Nacional (Ecuador)</option>
+                        <option value="internacional">🌎 Internacional</option>
+                      </select>
+                    </div>
 
-                {/* Fila 2: Alcance + Tipo + Ciudad + Sector */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Alcance</label>
-                    <select
-                      value={formAlojamiento.alcance}
-                      onChange={(e) => {
-                        const val = e.target.value as any
-                        setFormAlojamiento({
-                          ...formAlojamiento,
-                          alcance: val,
-                          pais: val === "nacional" ? "Ecuador" : "Estados Unidos",
-                          bandera: val === "nacional" ? "🇪🇨" : "🇺🇸"
-                        })
-                      }}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800"
-                    >
-                      <option value="nacional">🇪🇨 Nacional (Ecuador)</option>
-                      <option value="internacional">🌎 Internacional</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Tipo de Hospedaje <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={formAlojamiento.tipo}
+                        onChange={(e) => setFormAlojamiento({ ...formAlojamiento, tipo: e.target.value as any })}
+                        className="w-full px-3 py-2.5 bg-white border border-amber-400 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+                      >
+                        <option value="suite">Suite</option>
+                        <option value="departamento">Departamento</option>
+                        <option value="penthouse">Penthouse</option>
+                        <option value="casa">Casa</option>
+                        <option value="villa">Villa</option>
+                        <option value="quinta">Quinta</option>
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      Tipo de Inmueble <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={formAlojamiento.tipo}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, tipo: e.target.value as any })}
-                      className="w-full px-2.5 py-2 bg-white border border-orange-300 rounded-lg text-xs font-bold text-gray-800 focus:ring-2 focus:ring-orange-500"
-                    >
-                      <option value="suite">Suite</option>
-                      <option value="departamento">Departamento</option>
-                      <option value="penthouse">Penthouse</option>
-                      <option value="casa">Casa</option>
-                      <option value="villa">Villa</option>
-                      <option value="quinta">Quinta</option>
-                    </select>
-                  </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Ciudad</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Cuenca"
+                        value={formAlojamiento.ciudad}
+                        onChange={(e) => setFormAlojamiento({ ...formAlojamiento, ciudad: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Ciudad</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Cuenca"
-                      value={formAlojamiento.ciudad}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, ciudad: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Sector / Barrio</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Av. Ordóñez Lasso"
-                      value={formAlojamiento.sector}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, sector: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium"
-                    />
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Sector / Barrio</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Av. Ordóñez Lasso"
+                        value={formAlojamiento.sector}
+                        onChange={(e) => setFormAlojamiento({ ...formAlojamiento, sector: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Mapa interactivo con selección de coordenadas GPS */}
-                <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                {/* Tarjeta 2: Geolocalización en el Mapa */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/90 shadow-xs space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <MapPin size={16} className="text-rose-500" />
@@ -1258,19 +1293,32 @@ export default function RegistrarAlojamientoModal({
                 </div>
               </div>
             )}
+            </div>
           </div>
 
-          {/* Footer Fijo con Botones de Acción */}
-          <div className="p-4 border-t border-gray-200 bg-slate-50/80 rounded-b-2xl flex items-center justify-between gap-3 shrink-0">
+          {/* Footer Fijo a Pantalla Completa */}
+          <div className="px-6 sm:px-10 py-4 border-t border-slate-200 bg-white flex items-center justify-between gap-4 shrink-0 shadow-lg">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              className="px-4 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancelar
             </button>
 
-            <div className="flex items-center gap-2">
+            {/* Indicador de Paso */}
+            <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-500">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>
+                Paso {modalTab === "general" ? "1" : modalTab === "multimedia" ? "2" : modalTab === "anfitrion" ? "3" : "4"} de 4:
+                {" "}
+                <strong className="text-slate-800">
+                  {modalTab === "general" ? "Ubicación & Mapa" : modalTab === "multimedia" ? "Fotos & Video" : modalTab === "anfitrion" ? "Anfitrión & Liquidaciones" : "Tarifas & Amenidades"}
+                </strong>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
               {modalTab !== "general" && (
                 <button
                   type="button"
@@ -1279,9 +1327,9 @@ export default function RegistrarAlojamientoModal({
                     else if (modalTab === "anfitrion") setModalTab("multimedia")
                     else if (modalTab === "multimedia") setModalTab("general")
                   }}
-                  className="px-3.5 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-4 py-2.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
-                  <ChevronLeft size={14} />
+                  <ChevronLeft size={16} />
                   <span>Anterior</span>
                 </button>
               )}
@@ -1294,18 +1342,18 @@ export default function RegistrarAlojamientoModal({
                     else if (modalTab === "multimedia") setModalTab("anfitrion")
                     else if (modalTab === "anfitrion") setModalTab("caracteristicas")
                   }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-black shadow-md transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
                 >
                   <span>Siguiente</span>
-                  <ChevronRight size={14} />
+                  <ChevronRight size={16} />
                 </button>
               )}
 
-              {/* Botón Naranja de Registrar Alojamiento (Imagen 3) */}
+              {/* Botón Naranja de Registrar Alojamiento */}
               <button
                 type="submit"
                 disabled={isSaving}
-                className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 active:scale-[0.98] text-white rounded-xl text-xs font-extrabold shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 active:scale-[0.98] text-white rounded-xl text-xs sm:text-sm font-black shadow-lg shadow-orange-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isSaving ? (
                   <>
