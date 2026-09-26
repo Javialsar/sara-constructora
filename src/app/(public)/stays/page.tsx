@@ -59,6 +59,7 @@ import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
 import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
 import { getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
+import { getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
 
 export interface ResenaHuesped {
@@ -623,6 +624,18 @@ export default function AirbnbPage() {
     getCuentasBancarias().then(setCuentasBancarias)
   }, [])
 
+  // Estados para Políticas de Reserva y Cancelación de SARA Stays
+  const [politicas, setPoliticas] = useState<StaysPolicies>(DEFAULT_STAYS_POLICIES)
+
+  useEffect(() => {
+    getStaysPolicies().then(setPoliticas)
+    const handlePolicyUpdate = (e: any) => {
+      if (e.detail) setPoliticas(e.detail)
+    }
+    window.addEventListener("sara_stays_policies_updated", handlePolicyUpdate)
+    return () => window.removeEventListener("sara_stays_policies_updated", handlePolicyUpdate)
+  }, [])
+
   // Sincronizar alojamientos en tiempo real desde la Base de Datos de Supabase
   useEffect(() => {
     async function loadAlojamientosBD() {
@@ -1021,7 +1034,12 @@ export default function AirbnbPage() {
       `💰 *Desglose de Pago:*\n` +
       `• ${totalNoches} noches × $${stay.precioNoche} = $${subtotal} USD\n` +
       `• Tarifa de Limpieza = $${stay.tarifaLimpieza} USD\n` +
-      `• *TOTAL:* $${granTotal} USD (${guestData.metodoPago === 'transferencia' ? 'Transferencia Bancaria' : guestData.metodoPago === 'tarjeta' ? 'Tarjeta Cifrada' : 'Anticipo 30% Garantizado'})\n` +
+      `• *TOTAL:* $${granTotal} USD (${guestData.metodoPago === 'transferencia' ? 'Transferencia Bancaria' : guestData.metodoPago === 'tarjeta' ? 'Tarjeta Cifrada' : `Anticipo Flexible (${politicas.porcentajeAnticipo}%)`})\n` +
+      `\n📋 *POLÍTICA DE CANCELACIÓN Y REEMBOLSO:*\n` +
+      `• Más de 10 días: Penalización ${politicas.penalizacionMas10Dias}% (Devolución ${Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias)}% del total)\n` +
+      `• De 2 a 10 días: Penalización ${politicas.penalizacion2a10Dias}% (Devolución ${Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias)}% del total)\n` +
+      `• 24 horas o menos: Penalización ${politicas.penalizacion24Horas}% (Devolución ${Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas)}% del total)\n` +
+      `• Reembolsos en ${politicas.diasReembolso} mediante ${politicas.metodoDevolucion}\n` +
       bankDetailText +
       `\n📍 *Ubicación:* ${stay.sector}, ${stay.ciudad}.\n` +
       `¡Bienvenido a SARA Constructora & Hospitality!`
@@ -2723,8 +2741,8 @@ export default function AirbnbPage() {
                         },
                         {
                           id: "anticipo",
-                          title: "Anticipo Flexible (30%)",
-                          desc: "Bloquea tu fecha con solo el 30% ahora y liquida el resto al check-in.",
+                          title: `Anticipo Flexible (${politicas.porcentajeAnticipo}%)`,
+                          desc: `Bloquea tu fecha con solo el ${politicas.porcentajeAnticipo}% ahora y liquida el resto al check-in.`,
                           icon: ShieldCheck
                         }
                       ].map((metodo) => {
@@ -2893,22 +2911,71 @@ export default function AirbnbPage() {
                   )}
 
                   {guestData.metodoPago === "anticipo" && (
-                    <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2 text-xs">
-                      <div className="flex items-center gap-2 font-bold text-amber-900">
-                        <ShieldCheck size={16} className="text-amber-600" />
-                        <span>Garantía de Anticipo Flexible (30%):</span>
+                    <div className="space-y-3">
+                      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2 text-xs">
+                        <div className="flex items-center gap-2 font-bold text-amber-900">
+                          <ShieldCheck size={16} className="text-amber-600" />
+                          <span>Garantía de Anticipo Flexible ({politicas.porcentajeAnticipo}%):</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span>Anticipo a pagar hoy ({politicas.porcentajeAnticipo}%):</span>
+                          <strong className="text-base font-black text-amber-900">
+                            ${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * (politicas.porcentajeAnticipo / 100))} USD
+                          </strong>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-gray-500 border-t border-amber-200/60 pt-1">
+                          <span>Saldo restante al Check-in ({100 - politicas.porcentajeAnticipo}%):</span>
+                          <strong>
+                            ${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * ((100 - politicas.porcentajeAnticipo) / 100))} USD
+                          </strong>
+                        </div>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span>Anticipo a pagar hoy:</span>
-                        <strong className="text-base font-black text-amber-900">
-                          ${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * 0.3)} USD
-                        </strong>
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-gray-500 border-t border-amber-200/60 pt-1">
-                        <span>Saldo restante al Check-in:</span>
-                        <strong>
-                          ${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * 0.7)} USD
-                        </strong>
+
+                      {/* Política Oficial de Cancelación y Reembolso Transparente */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white border border-slate-800 space-y-2.5 text-xs shadow-md">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-bold text-amber-400">
+                            <ShieldCheck size={16} />
+                            <span className="text-xs uppercase tracking-wide">Política de Cancelación & Reembolso</span>
+                          </div>
+                          <span className="text-[10px] bg-white/10 text-emerald-300 font-bold px-2 py-0.5 rounded">
+                            Transparencia SARA
+                          </span>
+                        </div>
+                        
+                        <p className="text-[11px] text-gray-300 leading-snug">
+                          Aseguras tus fechas con el <strong>{politicas.porcentajeAnticipo}% de anticipo</strong>. Si requieres cancelar tu estadía, se aplica la siguiente escala de retención y te transferimos la diferencia a tu cuenta:
+                        </p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-white/10">
+                            <span className="font-bold text-white block">📅 Más de 10 días:</span>
+                            <span className="text-gray-400 block text-[10px]">Penalización: {politicas.penalizacionMas10Dias}% del total</span>
+                            <span className="text-emerald-400 font-extrabold block text-xs mt-0.5">
+                              ✓ Devolución: {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias)}% del total (${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * ((politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias) / 100))} USD)
+                            </span>
+                          </div>
+
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-white/10">
+                            <span className="font-bold text-white block">⏱️ De 2 a 10 días:</span>
+                            <span className="text-gray-400 block text-[10px]">Penalización: {politicas.penalizacion2a10Dias}% del total</span>
+                            <span className="text-amber-400 font-extrabold block text-xs mt-0.5">
+                              ✓ Devolución: {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias)}% del total (${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * ((politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias) / 100))} USD)
+                            </span>
+                          </div>
+
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-white/10">
+                            <span className="font-bold text-white block">🚨 24 Horas o menos:</span>
+                            <span className="text-gray-400 block text-[10px]">Penalización: {politicas.penalizacion24Horas}% del total</span>
+                            <span className="text-rose-300 font-extrabold block text-xs mt-0.5">
+                              ✓ Devolución: {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas)}% del total (${Math.round(((bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza) * ((politicas.porcentajeAnticipo - politicas.penalizacion24Horas) / 100))} USD)
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] text-gray-400 italic pt-1 border-t border-white/10">
+                          * Los reembolsos se transfieren en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -3039,6 +3106,21 @@ export default function AirbnbPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Políticas de Cancelación y Reembolso en el Voucher */}
+                      <div className="sm:col-span-2 bg-white/5 p-3.5 rounded-xl border border-white/10 text-xs space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-amber-400 font-bold text-[10px] uppercase tracking-wider">
+                          <ShieldCheck size={14} />
+                          <span>Garantía & Política de Cancelación y Reembolso</span>
+                        </div>
+                        <p className="text-[11px] text-gray-300 leading-snug">
+                          Reserva garantizada con anticipo del <strong>{politicas.porcentajeAnticipo}%</strong>. En caso de cancelación voluntaria:
+                          <br />• <strong>Más de 10 días:</strong> Penalización {politicas.penalizacionMas10Dias}% (Devolución del {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias)}% del total).
+                          <br />• <strong>De 2 a 10 días:</strong> Penalización {politicas.penalizacion2a10Dias}% (Devolución del {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias)}% del total).
+                          <br />• <strong>24 horas o menos:</strong> Penalización {politicas.penalizacion24Horas}% (Devolución del {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas)}% del total).
+                          <br />• Reembolsos liquidados en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}.
+                        </p>
+                      </div>
                     </div>
 
                     <div className="mt-4 pt-4 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">

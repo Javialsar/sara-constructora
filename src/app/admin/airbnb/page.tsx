@@ -54,10 +54,14 @@ import {
   Unlock,
   RefreshCw,
   Copy,
-  Key
+  Key,
+  Percent,
+  Calculator,
+  Sliders
 } from "lucide-react"
 import AirbnbCoordinatePickerWrapper from "@/components/ui/AirbnbCoordinatePickerWrapper"
 import { exportarAExcel, exportarAPDF } from "@/lib/services/exportReports"
+import { StaysPolicies, DEFAULT_STAYS_POLICIES, getStaysPolicies, saveStaysPolicies } from "@/lib/services/staysPoliciesService"
 
 export interface AirbnbAdminListing {
   id: string
@@ -674,8 +678,37 @@ export default function AdminAirbnbPage() {
     loadReservasReales()
   }, [])
 
-  // Pestaña Activa: "alojamientos", "reservas" o "usuarios"
-  const [activeTab, setActiveTab] = useState<"alojamientos" | "reservas" | "usuarios">("alojamientos")
+  // Pestaña Activa: "alojamientos", "reservas", "usuarios" o "politicas"
+  const [activeTab, setActiveTab] = useState<"alojamientos" | "reservas" | "usuarios" | "politicas">("alojamientos")
+
+  // Estados para Políticas de Reserva y Cancelación de SARA Stays
+  const [politicasStays, setPoliticasStays] = useState<StaysPolicies>(DEFAULT_STAYS_POLICIES)
+  const [isSavingPoliticas, setIsSavingPoliticas] = useState(false)
+  const [politicasSuccessMsg, setPoliticasSuccessMsg] = useState("")
+  const [simuladorMonto, setSimuladorMonto] = useState<number>(200)
+
+  useEffect(() => {
+    getStaysPolicies().then(setPoliticasStays)
+  }, [])
+
+  const handleSavePoliticas = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSavingPoliticas(true)
+    setPoliticasSuccessMsg("")
+    try {
+      const ok = await saveStaysPolicies(politicasStays)
+      if (ok) {
+        setPoliticasSuccessMsg("¡Políticas y porcentajes de penalización actualizados exitosamente! Ya se aplican en la web de reservas.")
+        setTimeout(() => setPoliticasSuccessMsg(""), 5000)
+      } else {
+        alert("Las políticas se guardaron localmente. Verifica la conexión con la base de datos.")
+      }
+    } catch (err: any) {
+      alert("Error al guardar: " + err.message)
+    } finally {
+      setIsSavingPoliticas(false)
+    }
+  }
 
   // Estado para Huéspedes & Usuarios Registrados
   const [usuarios, setUsuarios] = useState<UsuarioHuespedAdmin[]>([])
@@ -1604,10 +1637,10 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
             <span className="p-2 bg-brand-sage/10 text-brand-sage rounded-lg">
               <Sparkles size={24} />
             </span>
-            <h2 className="text-2xl font-bold text-gray-800">Gestión Airbnb & Liquidación de Comisiones</h2>
+            <h2 className="text-2xl font-bold text-gray-800">Gestión Stays (Alojamientos) & Liquidación de Comisiones</h2>
           </div>
           <p className="text-gray-500 text-sm mt-1 max-w-3xl">
-            Control de alojamientos turísticos nacionales e internacionales, cobro de comisiones por reserva (15%-20%), membresías de promoción y liquidación a anfitriones.
+            Control de alojamientos turísticos nacionales e internacionales, políticas de reserva con anticipo del {politicasStays.porcentajeAnticipo}%, comisiones y liquidación a anfitriones.
           </p>
         </div>
 
@@ -1718,11 +1751,11 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
         </div>
       </div>
 
-      {/* Selector de Pestañas: Alojamientos vs Reservas y Liquidaciones */}
-      <div className="flex border-b border-gray-200">
+      {/* Selector de Pestañas: Alojamientos vs Reservas vs Usuarios vs Políticas */}
+      <div className="flex border-b border-gray-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab("alojamientos")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+          className={`px-5 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
             activeTab === "alojamientos"
               ? "border-brand-sage text-brand-dark"
               : "border-transparent text-gray-500 hover:text-gray-800"
@@ -1734,113 +1767,127 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
 
         <button
           onClick={() => setActiveTab("reservas")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+          className={`px-5 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
             activeTab === "reservas"
               ? "border-brand-sage text-brand-dark"
               : "border-transparent text-gray-500 hover:text-gray-800"
           }`}
         >
           <Receipt size={16} />
-          <span>Reservas & Liquidaciones de Comisión ({reservas.length})</span>
+          <span>Reservas & Liquidaciones ({reservas.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab("usuarios")}
-          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+          className={`px-5 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
             activeTab === "usuarios"
               ? "border-brand-sage text-brand-dark"
               : "border-transparent text-gray-500 hover:text-gray-800"
           }`}
         >
           <Users size={16} />
-          <span>Huéspedes & Usuarios Registrados ({usuarios.length})</span>
+          <span>Huéspedes & Usuarios ({usuarios.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("politicas")}
+          className={`px-5 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            activeTab === "politicas"
+              ? "border-amber-500 text-amber-800 bg-amber-50/60"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <ShieldCheck size={16} className={activeTab === "politicas" ? "text-amber-600" : ""} />
+          <span>Políticas & Penalizaciones</span>
         </button>
       </div>
 
-      {/* Filtros y Buscador */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3 items-center justify-between">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder={
-              activeTab === "alojamientos"
-                ? "Buscar por código, título, ciudad, anfitrión..."
-                : activeTab === "reservas"
-                ? "Buscar por código de reserva, huésped, anfitrión..."
-                : "Buscar por nombre, apellido, cédula, email, teléfono..."
-            }
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white transition-all"
-          />
+      {/* Filtros y Buscador (Oculto en Pestaña Políticas) */}
+      {activeTab !== "politicas" && (
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder={
+                activeTab === "alojamientos"
+                  ? "Buscar por código, título, ciudad, anfitrión..."
+                  : activeTab === "reservas"
+                  ? "Buscar por código de reserva, huésped, anfitrión..."
+                  : "Buscar por nombre, apellido, cédula, email, teléfono..."
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white transition-all"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            {activeTab === "alojamientos" ? (
+              <select
+                value={filtroAlcance}
+                onChange={(e) => setFiltroAlcance(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+              >
+                <option value="todos">Todos los Destinos (Nacional y Mundial)</option>
+                <option value="nacional">🇪🇨 Solo Nacional (Ecuador)</option>
+                <option value="internacional">🌎 Solo Internacional (Miami, Madrid, etc.)</option>
+              </select>
+            ) : activeTab === "reservas" ? (
+              <select
+                value={filtroLiquidacion}
+                onChange={(e) => setFiltroLiquidacion(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+              >
+                <option value="todos">Todos los Estados de Liquidación</option>
+                <option value="pendiente">⏳ Pendiente de Transferencia</option>
+                <option value="liquidado">✅ Liquidado al Anfitrión</option>
+              </select>
+            ) : (
+              <select
+                value={filtroEstadoUsuario}
+                onChange={(e) => setFiltroEstadoUsuario(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+              >
+                <option value="todos">Todos los Estados (Activos y Bloqueados)</option>
+                <option value="activo">✅ Solo Cuentas Activas</option>
+                <option value="bloqueado">🔒 Solo Cuentas Bloqueadas</option>
+              </select>
+            )}
+
+            {/* Botones Descargar Excel y PDF */}
+            <button
+              onClick={
+                activeTab === "alojamientos"
+                  ? handleExportarAlojamientosExcel
+                  : activeTab === "reservas"
+                  ? handleExportarReservasExcel
+                  : handleExportarUsuariosExcel
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Descargar datos en Microsoft Excel (.xlsx)"
+            >
+              <FileSpreadsheet size={15} className="text-emerald-600" />
+              <span>Descargar Excel</span>
+            </button>
+
+            <button
+              onClick={
+                activeTab === "alojamientos"
+                  ? handleExportarAlojamientosPDF
+                  : activeTab === "reservas"
+                  ? handleExportarReservasPDF
+                  : handleExportarUsuariosPDF
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Descargar reporte en formato PDF (.pdf)"
+            >
+              <FileText size={15} className="text-rose-600" />
+              <span>Descargar PDF</span>
+            </button>
+          </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          {activeTab === "alojamientos" ? (
-            <select
-              value={filtroAlcance}
-              onChange={(e) => setFiltroAlcance(e.target.value)}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
-            >
-              <option value="todos">Todos los Destinos (Nacional y Mundial)</option>
-              <option value="nacional">🇪🇨 Solo Nacional (Ecuador)</option>
-              <option value="internacional">🌎 Solo Internacional (Miami, Madrid, etc.)</option>
-            </select>
-          ) : activeTab === "reservas" ? (
-            <select
-              value={filtroLiquidacion}
-              onChange={(e) => setFiltroLiquidacion(e.target.value)}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
-            >
-              <option value="todos">Todos los Estados de Liquidación</option>
-              <option value="pendiente">⏳ Pendiente de Transferencia</option>
-              <option value="liquidado">✅ Liquidado al Anfitrión</option>
-            </select>
-          ) : (
-            <select
-              value={filtroEstadoUsuario}
-              onChange={(e) => setFiltroEstadoUsuario(e.target.value)}
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
-            >
-              <option value="todos">Todos los Estados (Activos y Bloqueados)</option>
-              <option value="activo">✅ Solo Cuentas Activas</option>
-              <option value="bloqueado">🔒 Solo Cuentas Bloqueadas</option>
-            </select>
-          )}
-
-          {/* Botones Descargar Excel y PDF */}
-          <button
-            onClick={
-              activeTab === "alojamientos"
-                ? handleExportarAlojamientosExcel
-                : activeTab === "reservas"
-                ? handleExportarReservasExcel
-                : handleExportarUsuariosExcel
-            }
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
-            title="Descargar datos en Microsoft Excel (.xlsx)"
-          >
-            <FileSpreadsheet size={15} className="text-emerald-600" />
-            <span>Descargar Excel</span>
-          </button>
-
-          <button
-            onClick={
-              activeTab === "alojamientos"
-                ? handleExportarAlojamientosPDF
-                : activeTab === "reservas"
-                ? handleExportarReservasPDF
-                : handleExportarUsuariosPDF
-            }
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
-            title="Descargar reporte en formato PDF (.pdf)"
-          >
-            <FileText size={15} className="text-rose-600" />
-            <span>Descargar PDF</span>
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* CONTENIDO PESTAÑA 1: ALOJAMIENTOS & ANFITRIONES */}
       {activeTab === "alojamientos" && (
@@ -2361,6 +2408,408 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* CONTENIDO PESTAÑA 4: POLÍTICAS & PENALIZACIONES DE RESERVA */}
+      {activeTab === "politicas" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Cabecera de la sección */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 border-t-4 border-t-amber-500 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="p-3.5 bg-amber-50 text-amber-600 rounded-2xl border border-amber-200 shrink-0">
+                <ShieldCheck size={28} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Políticas de Anticipo, Cancelación & Penalizaciones
+                  </h3>
+                  <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    SARA Stays
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 max-w-2xl leading-relaxed">
+                  Configura el porcentaje obligatorio de anticipo para bloquear fechas en el calendario y la escala progresiva de penalizaciones y devoluciones según los días de anticipación con los que cancele el cliente.
+                </p>
+              </div>
+            </div>
+
+            {politicasStays.actualizadoEn && (
+              <div className="text-left md:text-right shrink-0">
+                <span className="text-[10px] text-gray-400 block uppercase font-bold tracking-wider">Última Actualización</span>
+                <span className="text-xs font-semibold text-gray-700">
+                  {new Date(politicasStays.actualizadoEn).toLocaleDateString("es-EC", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Mensaje de confirmación al guardar */}
+          {politicasSuccessMsg && (
+            <div className="p-4 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs font-bold flex items-center gap-3 animate-fadeIn">
+              <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+              <span>{politicasSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Cuadrícula Principal: Formulario de Configuración + Simulador Interactivo */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Columna Izquierda (7 Cols): Formulario de Configuración de Porcentajes */}
+            <form onSubmit={handleSavePoliticas} className="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+              
+              {/* Sección 1: Anticipo Obligatorio */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center">1</span>
+                  <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
+                    Anticipo Requerido para Bloquear la Reserva
+                  </h4>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-gray-200 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-800 block">
+                        Porcentaje de Anticipo Inicial (%)
+                      </label>
+                      <p className="text-[11px] text-gray-500 max-w-sm mt-0.5">
+                        Monto liquidado hoy para confirmar las fechas en el calendario. El saldo ({100 - (politicasStays.porcentajeAnticipo || 30)}%) se liquida al Check-in.
+                      </p>
+                    </div>
+
+                    <div className="relative w-36 shrink-0">
+                      <input
+                        type="number"
+                        min="5"
+                        max="100"
+                        step="1"
+                        required
+                        value={politicasStays.porcentajeAnticipo}
+                        onChange={(e) => setPoliticasStays({ ...politicasStays, porcentajeAnticipo: Number(e.target.value) })}
+                        className="w-full pl-3 pr-8 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección 2: Escala de Penalizaciones y Reembolso */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center">2</span>
+                    <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
+                      Escala de Penalizaciones por Cancelación
+                    </h4>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-medium">Sobre el total de la reserva</span>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Escenario 1: Más de 10 días */}
+                  <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-950 text-xs">
+                          <span>📅 Cancelación con MÁS de 10 Días de Anticipación</span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 mt-0.5">
+                          Tiempo prudente que permite volver a colocar las fechas a otros viajeros.
+                        </p>
+                      </div>
+
+                      <div className="relative w-36 shrink-0">
+                        <input
+                          type="number"
+                          min="0"
+                          max={politicasStays.porcentajeAnticipo}
+                          step="1"
+                          required
+                          value={politicasStays.penalizacionMas10Dias}
+                          onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacionMas10Dias: Number(e.target.value) })}
+                          className="w-full pl-3 pr-8 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-black text-emerald-900 text-right focus:ring-2 focus:ring-emerald-500 outline-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-emerald-200/50">
+                      <span className="text-gray-500">Retención SARA / Anfitrión: <strong>{politicasStays.penalizacionMas10Dias}%</strong></span>
+                      <span className="text-emerald-700 font-extrabold">
+                        ✓ Reembolso al Cliente: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}% del total
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Escenario 2: Entre 2 y 10 días */}
+                  <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-bold text-amber-950 text-xs">
+                          <span>⏱️ Cancelación de 2 a 10 Días de Anticipación (&gt; 48 Horas)</span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 mt-0.5">
+                          Ventana intermedia con impacto medio en la ocupación del anfitrión.
+                        </p>
+                      </div>
+
+                      <div className="relative w-36 shrink-0">
+                        <input
+                          type="number"
+                          min="0"
+                          max={politicasStays.porcentajeAnticipo}
+                          step="1"
+                          required
+                          value={politicasStays.penalizacion2a10Dias}
+                          onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacion2a10Dias: Number(e.target.value) })}
+                          className="w-full pl-3 pr-8 py-2 bg-white border border-amber-300 rounded-xl text-xs font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-amber-200/50">
+                      <span className="text-gray-500">Retención SARA / Anfitrión: <strong>{politicasStays.penalizacion2a10Dias}%</strong></span>
+                      <span className="text-amber-800 font-extrabold">
+                        ✓ Reembolso al Cliente: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}% del total
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Escenario 3: 24 Horas o Menos */}
+                  <div className="p-4 rounded-xl bg-rose-50/50 border border-rose-200/80 space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5 font-bold text-rose-950 text-xs">
+                          <span>🚨 Cancelación con 24 Horas o Menos (Última Hora)</span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 mt-0.5">
+                          Aviso in extremis que bloqueó las fechas sin posibilidad razonable de reocupación.
+                        </p>
+                      </div>
+
+                      <div className="relative w-36 shrink-0">
+                        <input
+                          type="number"
+                          min="0"
+                          max={politicasStays.porcentajeAnticipo}
+                          step="1"
+                          required
+                          value={politicasStays.penalizacion24Horas}
+                          onChange={(e) => setPoliticasStays({ ...politicasStays, penalizacion24Horas: Number(e.target.value) })}
+                          className="w-full pl-3 pr-8 py-2 bg-white border border-rose-300 rounded-xl text-xs font-black text-rose-900 text-right focus:ring-2 focus:ring-rose-500 outline-none"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-rose-200/50">
+                      <span className="text-gray-500">Retención SARA / Anfitrión: <strong>{politicasStays.penalizacion24Horas}%</strong></span>
+                      <span className="text-rose-700 font-extrabold">
+                        ✓ Reembolso al Cliente: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}% del total
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección 3: Métodos y Plazos */}
+              <div className="space-y-3 pt-2 border-t border-gray-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center">3</span>
+                  <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
+                    Plazos y Mecanismo de Devolución
+                  </h4>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      Plazo Estimado de Devolución
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={politicasStays.diasReembolso}
+                      onChange={(e) => setPoliticasStays({ ...politicasStays, diasReembolso: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-gray-300 rounded-xl text-xs font-medium text-gray-800 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                      placeholder="Ej: 48 a 72 horas laborables"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      Método Oficial de Reembolso
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={politicasStays.metodoDevolucion}
+                      onChange={(e) => setPoliticasStays({ ...politicasStays, metodoDevolucion: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 border border-gray-300 rounded-xl text-xs font-medium text-gray-800 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none"
+                      placeholder="Transferencia bancaria directa / reverso de tarjeta"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón Guardar Cambios */}
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={isSavingPoliticas}
+                  className="w-full py-3.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 size={16} />
+                  <span>{isSavingPoliticas ? "Guardando Políticas..." : "Guardar y Publicar Políticas en SARA Stays"}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Columna Derecha (5 Cols): Simulador Interactivo de Reembolsos en Vivo */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-xl border border-slate-800 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Calculator size={18} className="text-amber-400" />
+                    <h4 className="font-bold text-sm text-white">Simulador de Reembolso en Tiempo Real</h4>
+                  </div>
+                  <span className="text-[10px] bg-white/10 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">
+                    Cálculo Automático
+                  </span>
+                </div>
+
+                {/* Input de prueba para el simulador */}
+                <div className="space-y-1.5">
+                  <label className="text-xs text-gray-300 font-semibold block">
+                    Monto Total de Prueba para Reserva ($ USD):
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                    <input
+                      type="number"
+                      min="10"
+                      step="5"
+                      value={simuladorMonto}
+                      onChange={(e) => setSimuladorMonto(Number(e.target.value) || 0)}
+                      className="w-full pl-8 pr-12 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm font-black text-amber-300 focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono">USD</span>
+                  </div>
+                </div>
+
+                {/* Resumen del Anticipo Inicial */}
+                <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1 text-xs">
+                  <div className="flex justify-between text-gray-300">
+                    <span>Total Reserva:</span>
+                    <strong className="text-white">${simuladorMonto.toFixed(2)} USD</strong>
+                  </div>
+                  <div className="flex justify-between text-amber-300">
+                    <span>Anticipo cobrado hoy ({politicasStays.porcentajeAnticipo}%):</span>
+                    <strong className="text-base font-black">${(simuladorMonto * (politicasStays.porcentajeAnticipo / 100)).toFixed(2)} USD</strong>
+                  </div>
+                  <div className="flex justify-between text-gray-400 text-[11px]">
+                    <span>Saldo pendiente al Check-in ({100 - politicasStays.porcentajeAnticipo}%):</span>
+                    <span>${(simuladorMonto * ((100 - politicasStays.porcentajeAnticipo) / 100)).toFixed(2)} USD</span>
+                  </div>
+                </div>
+
+                {/* Tabla de Resultados Simulados en los 3 Casos */}
+                <div className="space-y-2 pt-1 text-xs">
+                  <p className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
+                    ¿Qué sucede si el huésped cancela?
+                  </p>
+
+                  {/* Caso 1: > 10 Días */}
+                  <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-emerald-300 font-bold">
+                      <span>1. Más de 10 días</span>
+                      <span className="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">
+                        Penalización {politicasStays.penalizacionMas10Dias}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-gray-300">
+                      <span>Retención por penalización:</span>
+                      <span className="text-rose-400 font-semibold">-${(simuladorMonto * (politicasStays.penalizacionMas10Dias / 100)).toFixed(2)} USD</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                      <span className="text-emerald-400 font-bold">Reembolso devuelto al cliente:</span>
+                      <strong className="text-emerald-400 text-sm font-black">
+                        ${(simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias) / 100)).toFixed(2)} USD
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Caso 2: 2 a 10 Días */}
+                  <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-amber-300 font-bold">
+                      <span>2. De 2 a 10 días</span>
+                      <span className="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">
+                        Penalización {politicasStays.penalizacion2a10Dias}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-gray-300">
+                      <span>Retención por penalización:</span>
+                      <span className="text-rose-400 font-semibold">-${(simuladorMonto * (politicasStays.penalizacion2a10Dias / 100)).toFixed(2)} USD</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                      <span className="text-amber-400 font-bold">Reembolso devuelto al cliente:</span>
+                      <strong className="text-amber-400 text-sm font-black">
+                        ${(simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias) / 100)).toFixed(2)} USD
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Caso 3: 24 Horas */}
+                  <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-500/30 space-y-1">
+                    <div className="flex items-center justify-between text-rose-300 font-bold">
+                      <span>3. Con 24 horas o menos</span>
+                      <span className="text-[11px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded">
+                        Penalización {politicasStays.penalizacion24Horas}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[11px] text-gray-300">
+                      <span>Retención por penalización:</span>
+                      <span className="text-rose-400 font-semibold">-${(simuladorMonto * (politicasStays.penalizacion24Horas / 100)).toFixed(2)} USD</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1 border-t border-white/5">
+                      <span className="text-rose-300 font-bold">Reembolso devuelto al cliente:</span>
+                      <strong className="text-rose-300 text-sm font-black">
+                        ${(simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas) / 100)).toFixed(2)} USD
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botón para Copiar Texto para WhatsApp */}
+                <div className="pt-2 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const msg = `*POLÍTICAS DE RESERVA Y CANCELACIÓN - SARA STAYS*\n\n` +
+                        `✅ *Anticipo para Confirmar:* ${politicasStays.porcentajeAnticipo}% del valor de la estadía.\n` +
+                        `💵 *Saldo restante:* Se liquida al momento del Check-in.\n\n` +
+                        `📋 *Escala de Cancelación y Reembolso Transparente:*\n` +
+                        `• *Más de 10 días:* Penalización del ${politicasStays.penalizacionMas10Dias}%. Te devolvemos el ${politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias}% restante de tu anticipo.\n` +
+                        `• *De 2 a 10 días:* Penalización del ${politicasStays.penalizacion2a10Dias}%. Te devolvemos el ${politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias}% restante de tu anticipo.\n` +
+                        `• *24 horas o menos:* Penalización del ${politicasStays.penalizacion24Horas}%. Te devolvemos el ${politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas}% restante de tu anticipo.\n\n` +
+                        `⏱️ *Plazo de Devolución:* ${politicasStays.diasReembolso} mediante ${politicasStays.metodoDevolucion}.`
+
+                      navigator.clipboard.writeText(msg)
+                      alert("¡Texto de políticas copiado al portapapeles! Listo para enviar por WhatsApp o correo.")
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer border border-white/10"
+                  >
+                    <Copy size={14} className="text-amber-400" />
+                    <span>Copiar Texto Oficial para WhatsApp / Correo</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
