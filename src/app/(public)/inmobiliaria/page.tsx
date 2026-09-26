@@ -27,7 +27,11 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  HardHat
+  HardHat,
+  Sparkles,
+  Award,
+  Briefcase,
+  PlusCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -323,18 +327,18 @@ export default function InmobiliariaPage() {
           {/* Logo y Marca SARA Inmobiliaria */}
           <div className="flex items-center gap-6">
             <Link href="/inmobiliaria" className="flex items-center gap-3 group">
-              <div className="relative w-10 h-10 rounded-xl bg-brand-dark p-1.5 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-brand-sage/40 shrink-0">
+              <div className="relative w-10 h-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-emerald-400/40 shrink-0">
                 <img src="/logo-3d-white.png" alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md shadow-xs">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 rounded-md shadow-xs font-black">
                     INMOBILIARIA
                   </span>
                 </div>
                 <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
-                  Bienes Raíces · Arquitectura · Plusvalía
+                  División Corporativa · Bienes Raíces & Arquitectura
                 </span>
               </div>
             </Link>
@@ -364,11 +368,12 @@ export default function InmobiliariaPage() {
             <button
               type="button"
               onClick={() => setIsConsignarOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg transition-all cursor-pointer border border-emerald-400/40 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-black shadow-lg shadow-emerald-950/20 transition-all cursor-pointer border border-emerald-300/40 active:scale-[0.98]"
+              title="Consigna tu inmueble para venta o arrendamiento"
             >
               <Building2 size={15} />
               <span className="hidden sm:inline">Consignar Propiedad</span>
-              <span className="sm:hidden">Consignar</span>
+              <span className="sm:hidden">+ Consignar</span>
             </button>
 
             {/* Botón WhatsApp */}
@@ -377,6 +382,7 @@ export default function InmobiliariaPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
+              title="Asesoría Inmobiliaria Directa"
             >
               <Phone size={13} className="text-emerald-400" />
               <span className="hidden md:inline">+593 98 180 4023</span>
@@ -387,266 +393,374 @@ export default function InmobiliariaPage() {
       </header>
 
       {/* ============================================================ */}
-      {/* 1. HERO SECTION & BUSCADOR INTELIGENTE                       */}
+      {/* 1. HERO SECTION: DIVISIÓN CORPORATIVA & RESIDENCIAL          */}
       {/* ============================================================ */}
-      <section className="relative pt-8 pb-16 overflow-hidden bg-brand-dark">
-        {/* Split Layout: Background Image on Right Side */}
-        <div
-          className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full bg-cover bg-center z-0"
-          style={{ backgroundImage: `url('/sara-inmobiliaria.png')` }}
-        >
-          {/* Máscara de desvanecimiento para la fotografía (mezcla suave con el fondo verde) */}
-          <div className="hidden lg:block absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-brand-dark via-brand-dark/80 to-transparent z-10" />
-          {/* Oscurecimiento sutil en móviles para asegurar lectura */}
-          <div className="lg:hidden absolute inset-0 bg-brand-dark/80 z-10" />
-        </div>
+      <section className="relative pt-12 pb-24 lg:pb-28 overflow-hidden bg-slate-950">
+        {/* Fondo Arquitectónico Corporativo de Alta Resolución */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105"
+          style={{ 
+            backgroundImage: `url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=2560&q=85')` 
+          }}
+        />
 
-        {/* Gradiente sutil para mantener el texto nítido */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/65 to-transparent w-full md:w-[120%]" />
+        {/* Gradientes y Filtros de Iluminación Ejecutiva */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/85 to-slate-950/55" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(16,185,129,0.18)_0%,_transparent_60%)] pointer-events-none" />
 
-        {/* Resplandor verde de marca sutil */}
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-20 pointer-events-none" />
+        <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            
+            {/* Columna Principal: Mensaje de Autoridad y Respaldo Técnico */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* Eyebrow Corporativo */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-emerald-300 text-xs font-bold shadow-lg">
+                <Sparkles size={14} className="text-emerald-400 animate-pulse" />
+                <span className="tracking-widest uppercase text-[11px]">SARA INMOBILIARIA · DIVISIÓN CORPORATIVA & RESIDENCIAL</span>
+              </div>
 
-        <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[60vh]">
-          <div className="max-w-3xl space-y-6 md:pl-8 mb-10">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-px bg-brand-sage" />
-              <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
-                Ingeniería · Arquitectura · Bienes Raíces
-              </h2>
+              {/* Titular Ejecutivo y de Alto Impacto */}
+              <div className="space-y-2">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
+                  Patrimonio sólido.<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-amber-200">
+                    Inversión con Respaldo Constructivo.
+                  </span>
+                </h1>
+              </div>
+
+              {/* Párrafo Descriptivo Empresarial */}
+              <p className="text-sm sm:text-base lg:text-lg text-slate-200 max-w-2xl leading-relaxed font-light drop-shadow-md">
+                Residencias de alta gama, departamentos de diseño, oficinas corporativas y lotes urbanizados con proyectos llave en mano. Seguridad jurídica total, estructuración crediticia preferencial (Crédito VIP 4.99% / Biess / Banca Privada) y garantía técnica certificada en Cuenca y el Austro.
+              </p>
+
+              {/* Indicadores de Confianza Empresarial */}
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-white border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <Building2 size={13} className="text-emerald-400" />
+                  <span>Respaldo Directo SARA Constructora</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-emerald-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <ShieldCheck size={13} className="text-emerald-400" />
+                  <span>Seguridad Jurídica & Títulos Claros</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-amber-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <CheckCircle2 size={13} className="text-amber-400" />
+                  <span>Crédito VIP (4.99%) & Biess Aprobado</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-teal-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <Award size={13} className="text-teal-400" />
+                  <span>Plusvalía Técnica Proyectada</span>
+                </span>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
-                DISEÑAMOS <span className="font-light italic text-brand-sage">HOGARES.</span><br />
-                CONSTRUIMOS PLUSVALÍA.
-              </h1>
+            {/* Columna Secundaria: Tarjeta Corporativa de Consignaciones para Propietarios / Inversionistas */}
+            <div className="hidden lg:block lg:col-span-4">
+              <div className="relative rounded-3xl p-6 bg-gradient-to-b from-white/12 via-white/6 to-white/2 backdrop-blur-2xl border border-white/20 shadow-2xl text-white overflow-hidden group">
+                <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/30 transition-colors" />
+                
+                <div className="flex items-center gap-3 mb-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-inner">
+                    <Briefcase size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
+                      División de Consignaciones
+                    </span>
+                    <h3 className="text-base font-extrabold text-white">
+                      ¿Deseas vender o rentar?
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Tasación técnica pericial, posicionamiento digital multicanal y compradores calificados con respaldo fiduciario y legal directo de SARA.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setIsConsignarOpen(true)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer border border-emerald-200/40 active:scale-[0.98]"
+                >
+                  <Building2 size={15} />
+                  <span>Consignar mi Inmueble</span>
+                </button>
+              </div>
             </div>
 
-            <p className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg">
-              Casas de alta gama, departamentos panorámicos y lotes urbanizados con proyectos arquitectónicos llave en mano y garantía estructural en Cuenca y el Austro.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/20 backdrop-blur-sm">
-                <Building2 size={14} className="text-brand-sage" /> Respaldo Constructivo Directo
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-emerald-300 border border-white/20 backdrop-blur-sm">
-                <CheckCircle2 size={13} className="text-brand-sage" /> Calificadas para Crédito VIP / Biess
-              </span>
-            </div>
-          </div>
-
-          {/* Caja del Buscador Principal tipo Portal */}
-          <div className="w-full max-w-6xl mx-auto lg:mx-0 lg:ml-8 bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
-            {/* 1. Botones de Selección (Alquiler, Compra) */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4 mb-5">
-              <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setModalidadTab("venta")}
-                  className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
-                    modalidadTab === "venta"
-                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Compra
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModalidadTab("arriendo")}
-                  className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
-                    modalidadTab === "arriendo"
-                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Alquiler
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModalidadTab("terrenos")}
-                  className={`px-3.5 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
-                    modalidadTab === "terrenos"
-                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  Terrenos & Lotes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModalidadTab("todos")}
-                  className={`px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
-                    modalidadTab === "todos"
-                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  Ver Todos
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsConsignarOpen(true)}
-                className="text-xs font-bold text-brand-sage hover:underline flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-brand-sage/30 bg-emerald-50 shadow-xs cursor-pointer ml-auto"
-              >
-                <Tag size={13} /> Consigna tu Inmueble
-              </button>
-            </div>
-
-            {/* 2. Barra de Filtros en Grid (Tipo, Ubicación, Precio Min/Max, Buscar) */}
-            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
-              {/* Tipo de Inmueble (imagen 2) */}
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Tipo de Inmueble
-                </label>
-                <select
-                  value={tipoFiltro}
-                  onChange={(e) => setTipoFiltro(e.target.value)}
-                  className="w-full px-3 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all h-[42px] cursor-pointer"
-                >
-                  <option value="todos">Todos los tipos</option>
-                  <option value="casa">Casas Residenciales</option>
-                  <option value="departamento">Departamentos</option>
-                  <option value="terreno">Terrenos / Lotes</option>
-                  <option value="suite">Suites Modernas</option>
-                  <option value="quinta">Quintas Vacacionales</option>
-                  <option value="local">Locales Comerciales</option>
-                </select>
-              </div>
-
-              {/* Ubicación (cuadro de texto libre) */}
-              <div className="sm:col-span-2 lg:col-span-3">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Ubicación
-                </label>
-                <div className="relative">
-                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input
-                    type="text"
-                    value={ubicacionInput}
-                    onChange={(e) => setUbicacionInput(e.target.value)}
-                    placeholder="¿Dónde buscas? Ej: Challuabamba, Cuenca..."
-                    className="w-full pl-10 pr-8 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all placeholder:font-normal placeholder:text-gray-400 h-[42px]"
-                  />
-                  {ubicacionInput && (
-                    <button
-                      type="button"
-                      onClick={() => setUbicacionInput("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
-                      title="Borrar ubicación"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Selector Precio Mínimo */}
-              <div className="sm:col-span-1 lg:col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Precio Mínimo
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step={modalidadTab === "arriendo" ? "50" : "5000"}
-                    value={precioMin}
-                    onChange={(e) => setPrecioMin(e.target.value === "" ? "" : Number(e.target.value))}
-                    placeholder="Mínimo"
-                    className="w-full pl-8 pr-2.5 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all h-[42px]"
-                  />
-                </div>
-              </div>
-
-              {/* Selector Precio Máximo */}
-              <div className="sm:col-span-1 lg:col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Precio Máximo
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step={modalidadTab === "arriendo" ? "50" : "5000"}
-                    value={precioMax}
-                    onChange={(e) => setPrecioMax(e.target.value === "" ? "" : Number(e.target.value))}
-                    placeholder="Máximo"
-                    className="w-full pl-8 pr-2.5 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all h-[42px]"
-                  />
-                </div>
-              </div>
-
-              {/* Botón Buscar */}
-              <div className="sm:col-span-2 lg:col-span-2">
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 bg-brand-sage hover:bg-emerald-700 active:scale-[0.98] text-white font-black rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer h-[42px]"
-                >
-                  <Search size={16} className="stroke-[2.5]" />
-                  <span>Buscar</span>
-                </button>
-              </div>
-            </form>
-
-            {/* Resumen de filtros activos */}
-            {(ubicacionInput || tipoFiltro !== "todos" || precioMin !== "" || precioMax !== "" || modalidadTab !== "todos") && (
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-3 border-t border-gray-100 text-xs">
-                <div className="flex items-center gap-1.5 text-gray-500 text-[11px] flex-wrap">
-                  <span className="font-semibold text-gray-400">Filtros aplicados:</span>
-                  {modalidadTab !== "todos" && (
-                    <span className="bg-emerald-50 text-brand-sage px-2 py-0.5 rounded-md font-bold border border-emerald-100">
-                      {modalidadTab === "venta" ? "En Venta" : modalidadTab === "arriendo" ? "En Alquiler" : "Terrenos"}
-                    </span>
-                  )}
-                  {tipoFiltro !== "todos" && (
-                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold">
-                      {tipoFiltro === "casa" ? "Casas" : tipoFiltro === "departamento" ? "Departamentos" : tipoFiltro === "terreno" ? "Terrenos" : tipoFiltro === "suite" ? "Suites" : tipoFiltro === "quinta" ? "Quintas" : "Locales"}
-                    </span>
-                  )}
-                  {ubicacionInput && (
-                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
-                      <MapPin size={11} className="text-brand-sage" /> {ubicacionInput}
-                    </span>
-                  )}
-                  {(precioMin !== "" || precioMax !== "") && (
-                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold">
-                      ${precioMin || "0"} - ${precioMax || "Sin tope"}
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalidadTab("todos")
-                    setTipoFiltro("todos")
-                    setUbicacionInput("")
-                    setPrecioMin("")
-                    setPrecioMax("")
-                    setSearchTerm("")
-                  }}
-                  className="text-xs text-gray-500 hover:text-red-600 font-bold transition-colors cursor-pointer ml-auto"
-                >
-                  Restablecer
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </section>
 
       {/* ============================================================ */}
-      {/* 2. CATÁLOGO DE PROPIEDADES (GRID DE TARJETAS DE ALTA GAMA)   */}
+      {/* 2. CONSOLA DE BÚSQUEDA INMOBILIARIA & FILTROS EN TIEMPO REAL */}
       {/* ============================================================ */}
-      <section id="catalogo-propiedades" className="container mx-auto px-4 md:px-8 -mt-6 relative z-20">
+      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 lg:-mt-14 relative z-30 mb-8">
+        <div className="bg-white rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-slate-950/20 border border-slate-100">
+          
+          {/* Modalidad de Operación (Compra / Alquiler / Terrenos / Todos) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-5">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setModalidadTab("venta")}
+                className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
+                  modalidadTab === "venta"
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                En Venta (Comprar)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalidadTab("arriendo")}
+                className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
+                  modalidadTab === "arriendo"
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                En Alquiler (Rentar)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalidadTab("terrenos")}
+                className={`px-3.5 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
+                  modalidadTab === "terrenos"
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Terrenos & Lotes
+              </button>
+              <button
+                type="button"
+                onClick={() => setModalidadTab("todos")}
+                className={`px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
+                  modalidadTab === "todos"
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                Ver Todas
+              </button>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <ShieldCheck size={15} className="text-emerald-500" />
+              <span>Propiedades con verificación técnica y jurídica</span>
+            </div>
+          </div>
+
+          {/* Formulario de Búsqueda de 4 Columnas */}
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
+            {/* Tipo de Inmueble */}
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                <Building2 size={13} className="text-emerald-600" />
+                <span>Tipo de Inmueble</span>
+              </label>
+              <select
+                value={tipoFiltro}
+                onChange={(e) => setTipoFiltro(e.target.value)}
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-gray-800 font-bold transition-all h-[44px] cursor-pointer"
+              >
+                <option value="todos">Todos los tipos de propiedad</option>
+                <option value="casa">Casas Residenciales</option>
+                <option value="departamento">Departamentos</option>
+                <option value="terreno">Terrenos & Lotes</option>
+                <option value="suite">Suites Modernas</option>
+                <option value="quinta">Quintas Vacacionales</option>
+                <option value="local">Locales Comerciales & Oficinas</option>
+              </select>
+            </div>
+
+            {/* Ubicación */}
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                <MapPin size={13} className="text-emerald-600" />
+                <span>Ubicación / Sector</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={ubicacionInput}
+                  onChange={(e) => setUbicacionInput(e.target.value)}
+                  placeholder="Ciudad o sector (Ej: Challuabamba, Cuenca...)"
+                  className="w-full pl-3.5 pr-9 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-gray-800 font-bold transition-all placeholder:font-normal placeholder:text-gray-400 h-[44px]"
+                />
+                {ubicacionInput && (
+                  <button
+                    type="button"
+                    onClick={() => setUbicacionInput("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                    title="Limpiar ubicación"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Selector Precio Mínimo */}
+            <div className="sm:col-span-1 lg:col-span-2">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1.5">
+                Presupuesto Mínimo ($)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step={modalidadTab === "arriendo" ? "50" : "5000"}
+                  value={precioMin}
+                  onChange={(e) => setPrecioMin(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="Mínimo"
+                  className="w-full pl-8 pr-2.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-gray-800 font-bold transition-all h-[44px]"
+                />
+              </div>
+            </div>
+
+            {/* Selector Precio Máximo */}
+            <div className="sm:col-span-1 lg:col-span-2">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block mb-1.5">
+                Presupuesto Máximo ($)
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step={modalidadTab === "arriendo" ? "50" : "5000"}
+                  value={precioMax}
+                  onChange={(e) => setPrecioMax(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="Máximo"
+                  className="w-full pl-8 pr-2.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white text-gray-800 font-bold transition-all h-[44px]"
+                />
+              </div>
+            </div>
+
+            {/* Botón Buscar */}
+            <div className="sm:col-span-2 lg:col-span-2">
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 active:scale-[0.98] text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer h-[44px]"
+              >
+                <Search size={16} className="stroke-[2.5]" />
+                <span>Buscar Inmueble</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Chips de Categorías Rápidas e Interactivas */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 shrink-0 mr-1 hidden sm:inline">
+              Filtros Rápidos:
+            </span>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setModalidadTab("todos")
+                setTipoFiltro("todos")
+                setUbicacionInput("")
+                setPrecioMin("")
+                setPrecioMax("")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                modalidadTab === "todos" && tipoFiltro === "todos" && !ubicacionInput
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              ✨ Todos ({INMUEBLES_DATA.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTipoFiltro("casa")}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "casa"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏡 Casas de Lujo
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTipoFiltro("departamento")}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "departamento"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏢 Departamentos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTipoFiltro("terreno")}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "terreno"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🌱 Terrenos Urbanizados
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTipoFiltro("quinta")}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "quinta"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🌴 Quintas en Yunguilla
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setModalidadTab("venta")
+                setPrecioMax(100000)
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                precioMax === 100000
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏛️ Crédito VIP (&lt; $100K)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTipoFiltro("local")}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "local"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              💼 Locales & Oficinas
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 3. CATÁLOGO DE PROPIEDADES (GRID DE TARJETAS DE ALTA GAMA)   */}
+      {/* ============================================================ */}
+      <section id="catalogo-propiedades" className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 mb-6 relative z-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
@@ -831,27 +945,47 @@ export default function InmobiliariaPage() {
       {/* 4. MODAL DETALLE DE LA PROPIEDAD & CALCULADORA HIPOTECARIA  */}
       {/* ============================================================ */}
       {selectedInmueble && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl border border-gray-100 relative flex flex-col">
-            {/* Header del Modal */}
-            <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-gray-100 flex items-center justify-between z-20">
-              <div>
-                <span className="text-[11px] font-bold text-brand-sage uppercase tracking-wider">
+        <div className="fixed inset-0 z-[100] bg-white w-screen h-screen overflow-y-auto flex flex-col animate-fadeIn">
+          {/* Header Pantalla Completa Inmersiva */}
+          <div className="sticky top-0 bg-white/95 backdrop-blur-md px-4 sm:px-8 py-3.5 border-b border-gray-200 flex items-center justify-between z-30 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setSelectedInmueble(null)}
+                className="p-2 -ml-2 rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-100 transition-colors flex items-center gap-1.5 cursor-pointer font-bold text-xs shrink-0"
+                title="Volver al catálogo"
+              >
+                <ChevronLeft size={20} className="text-gray-800" />
+                <span className="hidden sm:inline">Volver a Propiedades</span>
+              </button>
+              <div className="border-l border-gray-200 pl-3 min-w-0">
+                <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
                   {selectedInmueble.codigo} · {selectedInmueble.modalidad === 'venta' ? 'En Venta' : 'En Arriendo'}
                 </span>
-                <h3 className="font-black text-gray-900 text-lg md:text-xl line-clamp-1">
+                <h3 className="font-black text-gray-900 text-sm sm:text-base truncate max-w-[260px] sm:max-w-md lg:max-w-2xl">
                   {selectedInmueble.titulo}
                 </h3>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openWhatsAppInmueble(selectedInmueble)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+              >
+                <MessageCircle size={15} />
+                <span>Consultar Asesor</span>
+              </button>
               <button 
                 onClick={() => setSelectedInmueble(null)}
-                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors"
+                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
+                title="Cerrar Ficha"
               >
                 <X size={18} />
               </button>
             </div>
+          </div>
 
-            <div className="p-6 space-y-6">
+          <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-8 space-y-6 flex-1">
               {/* Galería Principal */}
               <div>
                 <div className="relative h-72 md:h-96 w-full rounded-2xl overflow-hidden bg-gray-900 mb-3 shadow-inner">
@@ -1029,7 +1163,6 @@ export default function InmobiliariaPage() {
                   </div>
                 </div>
               )}
-            </div>
           </div>
         </div>
       )}
