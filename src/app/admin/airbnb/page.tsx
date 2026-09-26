@@ -570,6 +570,24 @@ export default function AdminAirbnbPage() {
   const [reservas, setReservas] = useState<ReservaAdmin[]>(RESERVAS_INICIALES)
   const [isLoadingReservas, setIsLoadingReservas] = useState(false)
 
+  // Cargar alojamientos reales almacenados en la base de datos de Supabase
+  useEffect(() => {
+    async function loadAlojamientosBD() {
+      try {
+        const res = await fetch("/api/airbnb/alojamientos")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.alojamientos && Array.isArray(data.alojamientos) && data.alojamientos.length > 0) {
+            setAlojamientos(data.alojamientos)
+          }
+        }
+      } catch (err) {
+        console.warn("No se pudieron cargar alojamientos de Supabase:", err)
+      }
+    }
+    loadAlojamientosBD()
+  }, [])
+
   // Cargar reservas reales almacenadas en la base de datos de Supabase
   useEffect(() => {
     async function loadReservasReales() {
@@ -1060,6 +1078,100 @@ export default function AdminAirbnbPage() {
       }
       setAlojamientos(prev => [nuevo, ...prev])
     }
+
+    // Sincronizar de inmediato con la base de datos de Supabase
+    const payloadBD = editingAlojamiento ? {
+      ...editingAlojamiento,
+      codigo: formAlojamiento.codigo,
+      titulo: formAlojamiento.titulo,
+      tipo: formAlojamiento.tipo,
+      alcance: formAlojamiento.alcance,
+      pais: formAlojamiento.pais,
+      bandera: formAlojamiento.bandera,
+      ciudad: formAlojamiento.ciudad,
+      sector: formAlojamiento.sector,
+      lat: formAlojamiento.lat,
+      lng: formAlojamiento.lng,
+      precioNoche: formAlojamiento.precioNoche,
+      tarifaLimpieza: formAlojamiento.tarifaLimpieza,
+      isSuperhost: formAlojamiento.isSuperhost,
+      maxHuespedes: formAlojamiento.maxHuespedes,
+      habitaciones: formAlojamiento.habitaciones,
+      banos: formAlojamiento.banos,
+      camas: formAlojamiento.camas,
+      imagenUrl: formAlojamiento.imagenUrl,
+      imagenes: imagenesFinal,
+      videoUrl: formAlojamiento.videoUrl,
+      amenidades: formAlojamiento.amenidades,
+      descripcion: formAlojamiento.descripcion,
+      reglas: reglasArray,
+      publicado: formAlojamiento.publicado,
+      anfitrion: {
+        nombre: formAlojamiento.anfitrionNombre,
+        telefono: formAlojamiento.anfitrionTelefono,
+        email: formAlojamiento.anfitrionEmail,
+        cedulaRuc: formAlojamiento.anfitrionCedulaRuc,
+        banco: formAlojamiento.anfitrionBanco,
+        tipoCuenta: formAlojamiento.anfitrionTipoCuenta,
+        numeroCuenta: formAlojamiento.anfitrionNumeroCuenta,
+        titular: formAlojamiento.anfitrionTitular,
+        cuentaBancaria: formattedCuenta
+      },
+      monetizacion: {
+        ...editingAlojamiento.monetizacion,
+        modelo: formAlojamiento.modeloMonetizacion,
+        porcentajeComision: formAlojamiento.porcentajeComision,
+        cuotaFijaMensual: formAlojamiento.cuotaFijaMensual
+      }
+    } : {
+      codigo: formAlojamiento.codigo,
+      titulo: formAlojamiento.titulo,
+      tipo: formAlojamiento.tipo,
+      alcance: formAlojamiento.alcance,
+      pais: formAlojamiento.pais,
+      bandera: formAlojamiento.bandera,
+      ciudad: formAlojamiento.ciudad,
+      sector: formAlojamiento.sector,
+      lat: formAlojamiento.lat,
+      lng: formAlojamiento.lng,
+      precioNoche: formAlojamiento.precioNoche,
+      tarifaLimpieza: formAlojamiento.tarifaLimpieza,
+      isSuperhost: formAlojamiento.isSuperhost,
+      maxHuespedes: formAlojamiento.maxHuespedes,
+      habitaciones: formAlojamiento.habitaciones,
+      banos: formAlojamiento.banos,
+      camas: formAlojamiento.camas,
+      imagenUrl: formAlojamiento.imagenUrl,
+      imagenes: imagenesFinal,
+      videoUrl: formAlojamiento.videoUrl,
+      amenidades: formAlojamiento.amenidades,
+      descripcion: formAlojamiento.descripcion,
+      reglas: reglasArray,
+      publicado: formAlojamiento.publicado,
+      anfitrion: {
+        nombre: formAlojamiento.anfitrionNombre,
+        telefono: formAlojamiento.anfitrionTelefono,
+        email: formAlojamiento.anfitrionEmail,
+        cedulaRuc: formAlojamiento.anfitrionCedulaRuc,
+        banco: formAlojamiento.anfitrionBanco,
+        tipoCuenta: formAlojamiento.anfitrionTipoCuenta,
+        numeroCuenta: formAlojamiento.anfitrionNumeroCuenta,
+        titular: formAlojamiento.anfitrionTitular,
+        cuentaBancaria: formattedCuenta
+      },
+      monetizacion: {
+        modelo: formAlojamiento.modeloMonetizacion,
+        porcentajeComision: formAlojamiento.porcentajeComision,
+        cuotaFijaMensual: formAlojamiento.cuotaFijaMensual,
+        totalComisionesGeneradas: 0
+      }
+    }
+
+    fetch("/api/airbnb/alojamientos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payloadBD)
+    }).catch(err => console.warn("Error guardando alojamiento en Supabase:", err))
 
     setIsAlojamientoModalOpen(false)
   }
