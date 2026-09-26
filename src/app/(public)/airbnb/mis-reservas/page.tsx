@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { 
@@ -18,18 +18,20 @@ import {
   LogOut, 
   User, 
   Compass, 
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  ShieldCheck,
-  DollarSign,
-  TrendingUp,
-  PlusCircle,
-  MessageSquare,
-  Award,
-  Home,
-  Check,
-  Info
+  Sparkles, 
+  ExternalLink, 
+  ChevronRight, 
+  ChevronLeft,
+  ShieldCheck, 
+  DollarSign, 
+  TrendingUp, 
+  PlusCircle, 
+  MessageSquare, 
+  Award, 
+  Home, 
+  Check, 
+  Info,
+  Camera
 } from "lucide-react"
 import { getGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
@@ -119,6 +121,17 @@ interface AlojamientoAnfitrion {
   resenas: ResenaRecibida[]
 }
 
+interface FotoShowcase {
+  id: string
+  titulo: string
+  codigo: string
+  ciudad: string
+  sector: string
+  imagen: string
+  tipo: "Reservado" | "Tu Propiedad"
+  precioNoche: number
+}
+
 export default function MisReservasPage() {
   const router = useRouter()
   const [guest, setGuest] = useState<GuestProfile | null>(null)
@@ -136,7 +149,10 @@ export default function MisReservasPage() {
   const [selectedAlojamientoTab, setSelectedAlojamientoTab] = useState<{ [aljId: string]: "hospedajes" | "resenas" }>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
-  // Modal de Calificación (para huéspedes que concluyeron estadía)
+  // Showcase de Fotos en la Cabecera Derecha
+  const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0)
+
+  // Modal de Calificación Directa (al hacer clic en cualquier tarjeta de reserva)
   const [reservaParaCalificar, setReservaParaCalificar] = useState<ReservaHuesped | null>(null)
   const [ratingInput, setRatingInput] = useState<number>(5)
   const [ratingHover, setRatingHover] = useState<number>(5)
@@ -202,7 +218,7 @@ export default function MisReservasPage() {
                   })
                 }
               } catch (e) {
-                // Ignore parse errors
+                // Ignore parse error
               }
             })
           }
@@ -213,6 +229,36 @@ export default function MisReservasPage() {
           listaReservas.push(
             {
               id: "res-demo-01",
+              codigoReserva: "SARA-RSV-2026-9899",
+              alojamiento: {
+                id: "ab-3",
+                codigo: "SARA-EC-03",
+                titulo: "Villa Campestre de Lujo con Jacuzzi en Yunguilla",
+                ciudad: "Yunguilla",
+                pais: "Ecuador",
+                sector: "Santa Isabel",
+                precioNoche: 85,
+                imagenUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80"
+              },
+              fechas: {
+                checkIn: "2026-10-04",
+                checkOut: "2026-10-05",
+                noches: 1,
+                huespedes: 2
+              },
+              totales: {
+                precioNoche: 85,
+                tarifaLimpieza: 25,
+                granTotal: 175
+              },
+              metodoPago: "transferencia",
+              peticionesEspeciales: "Jacuzzi con temperatura lista al llegar",
+              estadoReserva: "confirmada",
+              fechaCreacion: "2026-09-24",
+              smartLockPin: "#4829#"
+            },
+            {
+              id: "res-demo-02",
               codigoReserva: "SARA-RSV-2026-1693",
               alojamiento: {
                 id: "ab-2",
@@ -240,35 +286,6 @@ export default function MisReservasPage() {
               estadoReserva: "completada",
               fechaCreacion: "2026-09-08",
               smartLockPin: "#5912#"
-            },
-            {
-              id: "res-demo-02",
-              codigoReserva: "SARA-RSV-2026-8941",
-              alojamiento: {
-                id: "ab-1",
-                codigo: "SARA-EC-01",
-                titulo: "Master Suite de Diseño Frente al Río Tomebamba",
-                ciudad: "Cuenca",
-                pais: "Ecuador",
-                sector: "Puertas del Sol",
-                precioNoche: 48,
-                imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80"
-              },
-              fechas: {
-                checkIn: "2026-10-15",
-                checkOut: "2026-10-18",
-                noches: 3,
-                huespedes: 2
-              },
-              totales: {
-                precioNoche: 48,
-                tarifaLimpieza: 15,
-                granTotal: 159
-              },
-              metodoPago: "transferencia",
-              estadoReserva: "confirmada",
-              fechaCreacion: "2026-09-24",
-              smartLockPin: "#4829#"
             }
           )
         }
@@ -281,7 +298,6 @@ export default function MisReservasPage() {
         if (resAlojamientos.ok) {
           const dataAlj = await resAlojamientos.json()
           if (Array.isArray(dataAlj.alojamientos)) {
-            // Filtrar alojamientos que pertenezcan al usuario
             const emailLower = userEmail.toLowerCase()
             const nameLower = userName.toLowerCase()
 
@@ -297,7 +313,6 @@ export default function MisReservasPage() {
               )
             })
 
-            // Mapear los coincidentes de la base de datos
             coincidentes.forEach((a: any) => {
               misPropiedades.push({
                 id: a.id,
@@ -384,7 +399,7 @@ export default function MisReservasPage() {
           }
         }
 
-        // Si el anfitrión no tiene alojamientos creados aún en la base de datos, incluir la propiedad modelo
+        // Si el anfitrión no tiene alojamientos creados aún en la base de datos, incluir propiedad modelo demostrativa
         if (misPropiedades.length === 0) {
           misPropiedades.push({
             id: "alj-host-01",
@@ -485,6 +500,54 @@ export default function MisReservasPage() {
     router.push("/airbnb")
   }
 
+  // Colección de fotografías de todos los hospedajes creados o reservados por el cliente
+  const fotosShowcase: FotoShowcase[] = useMemo(() => {
+    const list: FotoShowcase[] = []
+
+    // Alojamientos reservados
+    reservas.forEach((r) => {
+      if (r.alojamiento.imagenUrl && !list.some(item => item.imagen === r.alojamiento.imagenUrl)) {
+        list.push({
+          id: `res-${r.id}`,
+          titulo: r.alojamiento.titulo,
+          codigo: r.alojamiento.codigo,
+          ciudad: r.alojamiento.ciudad,
+          sector: r.alojamiento.sector,
+          imagen: r.alojamiento.imagenUrl,
+          tipo: "Reservado",
+          precioNoche: r.alojamiento.precioNoche
+        })
+      }
+    })
+
+    // Alojamientos creados / propios
+    misAlojamientos.forEach((alj) => {
+      if (alj.imagenUrl && !list.some(item => item.imagen === alj.imagenUrl)) {
+        list.push({
+          id: `alj-${alj.id}`,
+          titulo: alj.titulo,
+          codigo: alj.codigo,
+          ciudad: alj.ciudad,
+          sector: alj.sector,
+          imagen: alj.imagenUrl,
+          tipo: "Tu Propiedad",
+          precioNoche: alj.precioNoche
+        })
+      }
+    })
+
+    return list
+  }, [reservas, misAlojamientos])
+
+  // Rotación automática suave del showcase de fotos
+  useEffect(() => {
+    if (fotosShowcase.length <= 1) return
+    const timer = setInterval(() => {
+      setActivePhotoIdx(prev => (prev + 1) % fotosShowcase.length)
+    }, 4500)
+    return () => clearInterval(timer)
+  }, [fotosShowcase.length])
+
   // Filtrar reservas del huésped según pestaña interna
   const reservasFiltradas = reservas.filter((r) => {
     if (filtroTab === "todas") return true
@@ -499,13 +562,13 @@ export default function MisReservasPage() {
     return true
   })
 
-  // Enviar Calificación como Huésped
+  // Enviar Calificación Directa (Actualiza en Base de Datos de Supabase)
   const handleSubmitRating = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!reservaParaCalificar) return
 
     if (!comentarioInput.trim()) {
-      alert("Por favor escribe tu opinión sobre la estadía.")
+      alert("Por favor escribe tu opinión y comentario sobre la estadía.")
       return
     }
 
@@ -529,12 +592,36 @@ export default function MisReservasPage() {
       })
 
       if (res.ok) {
-        setReviewSuccessMsg("¡Gracias! Tu reseña y calificación han sido publicadas con éxito.")
+        setReviewSuccessMsg("¡Gracias! Tu reseña y calificación han sido actualizadas y publicadas con éxito en la base de datos.")
+        
+        // Actualizar en el estado local de reservas
         setReservas(prev => prev.map(r => {
           if (r.id === reservaParaCalificar.id) {
             return { ...r, calificada: true, ratingDado: ratingInput }
           }
           return r
+        }))
+
+        // Si coincide con alguno de sus alojamientos propios, actualizar reseñas
+        setMisAlojamientos(prev => prev.map(alj => {
+          if (alj.id === reservaParaCalificar.alojamiento.id || alj.codigo === reservaParaCalificar.alojamiento.codigo) {
+            const nuevaRev: ResenaRecibida = {
+              id: `rev-${Date.now()}`,
+              autor: `${guest?.nombre} ${guest?.apellido || ""}`.trim(),
+              ciudadOrigen: guest?.ciudadPais || "Ecuador",
+              pais: "Ecuador",
+              rating: ratingInput,
+              fecha: new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" }),
+              hora: new Date().toLocaleTimeString("es-EC", { hour: "2-digit", minute: "2-digit" }),
+              comentario: comentarioInput.trim(),
+              verificado: true
+            }
+            return {
+              ...alj,
+              resenas: [nuevaRev, ...alj.resenas]
+            }
+          }
+          return alj
         }))
 
         setTimeout(() => {
@@ -582,7 +669,6 @@ export default function MisReservasPage() {
     return acc + alj.hospedajes.reduce((sub, h) => sub + h.tiempoTotalHoras, 0)
   }, 0)
 
-  // Calificación promedio general recibida por el anfitrión
   const todasLasResenas = misAlojamientos.flatMap(a => a.resenas)
   const ratingPromedioHost = todasLasResenas.length > 0
     ? (todasLasResenas.reduce((acc, r) => acc + r.rating, 0) / todasLasResenas.length)
@@ -615,10 +701,12 @@ export default function MisReservasPage() {
     alert("¡Alojamiento registrado exitosamente! Ya se encuentra visible en tu panel de anfitrión y en el catálogo público.")
   }
 
+  const currentShowcase = fotosShowcase[activePhotoIdx] || fotosShowcase[0]
+
   return (
     <div className="min-h-screen bg-slate-50 text-gray-900 pb-24">
       {/* ============================================================ */}
-      {/* 1. HEADER CORPORATIVO DEL CLIENTE (HUÉSPED & ANFITRIÓN)      */}
+      {/* 1. HEADER HERO: IZQUIERDA (IMAGEN 4) + DERECHA (SHOWCASE)   */}
       {/* ============================================================ */}
       <section className="bg-brand-dark pt-28 pb-14 text-white relative overflow-hidden">
         <div 
@@ -626,119 +714,254 @@ export default function MisReservasPage() {
           style={{ backgroundImage: "url('/sara-airbnb.png')" }}
         />
         <div className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/10">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-brand-sage/20 border border-brand-sage/40 text-brand-sage flex items-center justify-center font-bold text-2xl shadow-lg shrink-0">
-                <User size={30} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                    Hola, {guest?.nombre} {guest?.apellido || ""}
-                  </h1>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    <ShieldCheck size={12} /> Cliente Verificado SARA
-                  </span>
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6 pb-2">
+            
+            {/* -------------------------------------------------------- */}
+            {/* COLUMNA IZQUIERDA: INFORMACIÓN Y ACCIONES (IMAGEN 4)     */}
+            {/* -------------------------------------------------------- */}
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-brand-sage/20 border border-brand-sage/40 text-brand-sage flex items-center justify-center font-bold text-2xl shadow-lg shrink-0">
+                  <User size={32} />
                 </div>
-                <p className="text-xs sm:text-sm text-gray-300 mt-1 flex items-center gap-2 flex-wrap">
-                  <span>{guest?.email}</span>
-                  {guest?.cedula && <span>• C.I.: <strong className="font-mono text-white">{guest.cedula}</strong></span>}
-                  {guest?.telefono && <span>• Tel: {guest.telefono}</span>}
-                </p>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                      Hola, {guest?.nombre} {guest?.apellido || ""}
+                    </h1>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <ShieldCheck size={12} /> Cliente Verificado SARA
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-300 mt-1 flex items-center gap-2 flex-wrap">
+                    <span>{guest?.email}</span>
+                    {guest?.cedula && <span>• C.I.: <strong className="font-mono text-white">{guest.cedula}</strong></span>}
+                    {guest?.telefono && <span>• Tel: {guest.telefono}</span>}
+                  </p>
+                </div>
+              </div>
+
+              {/* Botones de Acción (Imagen 4) */}
+              <div className="flex items-center gap-2.5 flex-wrap pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer border border-amber-300/30 active:scale-[0.98]"
+                >
+                  <PlusCircle size={16} />
+                  <span>Crear un Nuevo Alojamiento</span>
+                </button>
+
+                <Link
+                  href="/airbnb"
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-100 hover:text-white font-bold rounded-xl text-xs sm:text-sm transition-all border border-white/15 flex items-center gap-1.5"
+                >
+                  <Compass size={16} />
+                  <span>Explorar Catálogo</span>
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="px-3.5 py-2.5 bg-white/5 hover:bg-rose-500/20 text-gray-300 hover:text-rose-200 rounded-xl text-xs sm:text-sm font-bold transition-all border border-white/10 flex items-center gap-1.5 cursor-pointer"
+                  title="Cerrar mi sesión"
+                >
+                  <LogOut size={16} />
+                  <span className="hidden sm:inline">Cerrar Sesión</span>
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all shadow-md flex items-center gap-1.5 cursor-pointer border border-amber-300/30 active:scale-[0.98]"
-              >
-                <PlusCircle size={16} />
-                <span>Crear un Nuevo Alojamiento</span>
-              </button>
+            {/* -------------------------------------------------------- */}
+            {/* COLUMNA DERECHA: FOTOGRAFÍAS DE HOSPEDAJES DEL USUARIO    */}
+            {/* -------------------------------------------------------- */}
+            {fotosShowcase.length > 0 && currentShowcase && (
+              <div className="w-full lg:max-w-md xl:max-w-lg bg-white/10 border border-white/15 rounded-3xl p-3 sm:p-4 backdrop-blur-md shadow-2xl flex flex-col justify-between shrink-0 animate-fadeIn">
+                {/* Cabecera del Showcase */}
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                    <Camera size={14} />
+                    <span>Tus Destinos & Alojamientos ({fotosShowcase.length})</span>
+                  </div>
 
-              <Link
-                href="/airbnb"
-                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-100 hover:text-white font-bold rounded-xl text-xs sm:text-sm transition-all border border-white/15 flex items-center gap-1.5"
-              >
-                <Compass size={16} />
-                <span>Explorar Catálogo</span>
-              </Link>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setActivePhotoIdx((prev) => (prev - 1 + fotosShowcase.length) % fotosShowcase.length)}
+                      className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+                      title="Foto anterior"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="text-[10px] font-mono text-gray-300 px-1">
+                      {activePhotoIdx + 1}/{fotosShowcase.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActivePhotoIdx((prev) => (prev + 1) % fotosShowcase.length)}
+                      className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+                      title="Siguiente foto"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
 
-              <button
-                onClick={handleLogout}
-                className="px-3.5 py-2.5 bg-white/5 hover:bg-rose-500/20 text-gray-300 hover:text-rose-200 rounded-xl text-xs sm:text-sm font-bold transition-all border border-white/10 flex items-center gap-1.5 cursor-pointer"
-                title="Cerrar mi sesión"
-              >
-                <LogOut size={16} />
-                <span className="hidden sm:inline">Cerrar Sesión</span>
-              </button>
+                {/* Fotografía Principal Activa */}
+                <div className="relative h-44 sm:h-48 rounded-2xl overflow-hidden group">
+                  <img
+                    src={currentShowcase.imagen}
+                    alt={currentShowcase.titulo}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+
+                  {/* Insignia de Tipo de Relación */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-md ${
+                      currentShowcase.tipo === "Tu Propiedad"
+                        ? "bg-orange-500 text-white"
+                        : "bg-emerald-600 text-white"
+                    }`}>
+                      {currentShowcase.tipo === "Tu Propiedad" ? "🏠 Tu Propiedad Creada" : "🛎️ Tu Estadía Reservada"}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-black/60 text-white px-2 py-0.5 rounded-full backdrop-blur-xs">
+                      {currentShowcase.codigo}
+                    </span>
+                  </div>
+
+                  {/* Información al pie de la foto */}
+                  <div className="absolute bottom-2 left-3 right-3 text-white">
+                    <h4 className="font-extrabold text-xs sm:text-sm line-clamp-1 drop-shadow-md">
+                      {currentShowcase.titulo}
+                    </h4>
+                    <div className="flex items-center justify-between text-[11px] text-gray-200 mt-0.5">
+                      <span className="flex items-center gap-1">
+                        <MapPin size={11} className="text-amber-400" />
+                        {currentShowcase.sector}, {currentShowcase.ciudad}
+                      </span>
+                      <span className="font-extrabold text-amber-300">
+                        ${currentShowcase.precioNoche} USD/noche
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tira de Miniaturas */}
+                {fotosShowcase.length > 1 && (
+                  <div className="flex items-center gap-2 pt-2.5 overflow-x-auto no-scrollbar">
+                    {fotosShowcase.map((f, idx) => (
+                      <button
+                        key={`${f.id}-${idx}`}
+                        type="button"
+                        onClick={() => setActivePhotoIdx(idx)}
+                        className={`relative w-12 h-10 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                          idx === activePhotoIdx 
+                            ? "border-amber-400 scale-105 shadow-md" 
+                            : "border-transparent opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <img src={f.imagen} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 2. ÁREA BLANCA PRINCIPAL                                     */}
+      {/* ============================================================ */}
+      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 space-y-6">
+        
+        {/* ========================================================== */}
+        {/* 2.A SECCIÓN IMAGEN 2: ESTADÍSTICAS DENTRO DEL ÁREA BLANCA  */}
+        {/* ========================================================== */}
+        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-md border border-gray-200 animate-fadeIn">
+          <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-500" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-gray-700">
+                {mainPortalTab === "reservas" 
+                  ? "Resumen de Estadías y Accesos Digitales del Huésped" 
+                  : "Rendimiento Global y Ganancias del Propietario / Anfitrión"}
+              </h3>
             </div>
+            <span className="text-[11px] font-bold text-gray-400 hidden sm:inline">
+              Sincronizado con Base de Datos SARA
+            </span>
           </div>
 
-          {/* Estadísticas Dinámicas según la Viñeta Seleccionada */}
           {mainPortalTab === "reservas" ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 animate-fadeIn">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Total Estadías</span>
-                <p className="text-xl sm:text-2xl font-black text-white mt-0.5">{reservas.length}</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-slate-50 border border-gray-200 rounded-2xl p-4 transition-all hover:border-gray-300">
+                <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Estadías</span>
+                <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-1">{reservas.length}</p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Próximos Viajes</span>
-                <p className="text-xl sm:text-2xl font-black text-amber-400 mt-0.5">
+
+              <div className="bg-amber-50/60 border border-amber-200 rounded-2xl p-4 transition-all hover:border-amber-300">
+                <span className="text-[10px] uppercase font-bold text-amber-800 block">Próximos Viajes</span>
+                <p className="text-2xl sm:text-3xl font-black text-amber-900 mt-1">
                   {reservas.filter(r => new Date(r.fechas.checkOut) >= new Date()).length}
                 </p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Smart Lock Activo</span>
-                <p className="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">Autónomo 24/7</p>
+
+              <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 transition-all hover:border-emerald-300">
+                <span className="text-[10px] uppercase font-bold text-emerald-800 block flex items-center gap-1">
+                  <Key size={12} /> Smart Lock Activo
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-emerald-700 mt-1">Autónomo 24/7</p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Nivel de Huésped</span>
-                <p className="text-xl sm:text-2xl font-black text-amber-300 mt-0.5 flex items-center gap-1">
-                  <Star size={16} className="fill-amber-400" /> SARA Gold
+
+              <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 transition-all hover:border-amber-300">
+                <span className="text-[10px] uppercase font-bold text-amber-800 block">Nivel de Huésped</span>
+                <p className="text-xl sm:text-2xl font-black text-amber-800 mt-1 flex items-center gap-1">
+                  <Star size={18} className="fill-amber-400 text-amber-400" /> SARA Gold
                 </p>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 animate-fadeIn">
-              <div className="bg-emerald-500/15 border border-emerald-400/30 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-emerald-300 block flex items-center gap-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 transition-all hover:border-emerald-300">
+                <span className="text-[10px] uppercase font-bold text-emerald-800 block flex items-center gap-1">
                   <DollarSign size={12} /> Ganancias Netas Generadas
                 </span>
-                <p className="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">
-                  ${totalGananciasNetasHost.toFixed(2)} <span className="text-xs font-normal text-emerald-200">USD</span>
+                <p className="text-2xl sm:text-3xl font-black text-emerald-900 mt-1">
+                  ${totalGananciasNetasHost.toFixed(2)} <span className="text-xs font-normal text-emerald-700">USD</span>
                 </p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Huéspedes Recibidos</span>
-                <p className="text-xl sm:text-2xl font-black text-amber-400 mt-0.5">
+
+              <div className="bg-slate-50 border border-gray-200 rounded-2xl p-4 transition-all hover:border-gray-300">
+                <span className="text-[10px] uppercase font-bold text-gray-500 block">Huéspedes Recibidos</span>
+                <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-1">
                   {totalHuespedesRecibidos} viajeros
                 </p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Tiempo Hospedado</span>
-                <p className="text-xl sm:text-2xl font-black text-white mt-0.5">
-                  {totalNochesHospedadas} noches <span className="text-xs font-normal text-gray-300">({totalHorasHospedadas}h)</span>
+
+              <div className="bg-slate-50 border border-gray-200 rounded-2xl p-4 transition-all hover:border-gray-300">
+                <span className="text-[10px] uppercase font-bold text-gray-500 block">Tiempo Hospedado</span>
+                <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1">
+                  {totalNochesHospedadas} noches <span className="text-xs font-normal text-gray-500">({totalHorasHospedadas}h)</span>
                 </p>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block">Calificación Anfitrión</span>
-                <p className="text-xl sm:text-2xl font-black text-amber-300 mt-0.5 flex items-center gap-1">
-                  <Star size={16} className="fill-amber-400" /> {ratingPromedioHost.toFixed(2)} / 5.0
+
+              <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 transition-all hover:border-amber-300">
+                <span className="text-[10px] uppercase font-bold text-amber-800 block">Calificación Anfitrión</span>
+                <p className="text-xl sm:text-2xl font-black text-amber-800 mt-1 flex items-center gap-1">
+                  <Star size={18} className="fill-amber-400 text-amber-400" /> {ratingPromedioHost.toFixed(2)} / 5.0
                 </p>
               </div>
             </div>
           )}
         </div>
-      </section>
 
-      {/* ============================================================ */}
-      {/* 2. BARRA DE VIÑETAS PRINCIPALES DEL PORTAL                   */}
-      {/* ============================================================ */}
-      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
-        <div className="bg-white rounded-2xl p-2 shadow-md border border-gray-200 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* ========================================================== */}
+        {/* 2.B SECCIÓN IMAGEN 3: VIÑETAS DEBAJO DE LAS ESTADÍSTICAS   */}
+        {/* ========================================================== */}
+        <div className="bg-white rounded-2xl p-2.5 shadow-sm border border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Tabs Principales: Reservas vs Alojamientos */}
           <div className="flex items-center gap-2">
             <button
@@ -778,7 +1001,7 @@ export default function MisReservasPage() {
             </button>
           </div>
 
-          {/* Botón de Acción contextual en la barra */}
+          {/* Filtros Contextuales */}
           {mainPortalTab === "reservas" ? (
             <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl self-end sm:self-auto">
               <button
@@ -818,18 +1041,18 @@ export default function MisReservasPage() {
           )}
         </div>
 
-        {/* ============================================================ */}
-        {/* 3. CONTENIDO VIÑETA 1: RESERVAS REALIZADAS (COMO HUÉSPED)   */}
-        {/* ============================================================ */}
+        {/* ========================================================== */}
+        {/* 2.C CONTENIDO: TARJETAS DE RESERVA CON CALIFICACIÓN DIRECTA */}
+        {/* ========================================================== */}
         {mainPortalTab === "reservas" && (
           <div className="space-y-6 animate-fadeIn">
             {isLoading ? (
-              <div className="p-12 text-center bg-white rounded-2xl border border-gray-200 text-gray-400">
+              <div className="p-12 text-center bg-white rounded-3xl border border-gray-200 text-gray-400">
                 <Clock size={32} className="mx-auto mb-2 animate-spin text-brand-sage" />
                 <p className="text-sm font-bold text-gray-700">Cargando tus reservas...</p>
               </div>
             ) : reservasFiltradas.length === 0 ? (
-              <div className="p-12 text-center bg-white rounded-2xl border border-gray-200 space-y-3">
+              <div className="p-12 text-center bg-white rounded-3xl border border-gray-200 space-y-3">
                 <Compass size={40} className="mx-auto text-amber-500 opacity-80" />
                 <h3 className="text-base font-bold text-gray-800">No tienes reservaciones en esta categoría</h3>
                 <p className="text-xs text-gray-500 max-w-md mx-auto">
@@ -850,13 +1073,20 @@ export default function MisReservasPage() {
                   return (
                     <div
                       key={r.id}
-                      className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                      onClick={() => {
+                        // Al hacer clic en la tarjeta, abre la ventana para calificar y comentar
+                        setReservaParaCalificar(r)
+                        setRatingInput(r.ratingDado || 5)
+                        setComentarioInput("")
+                      }}
+                      className="bg-white rounded-3xl border-2 border-gray-200 hover:border-amber-400 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col justify-between cursor-pointer group"
+                      title="Haz clic para calificar y dejar tu comentario sobre este hospedaje"
                     >
-                      <div className="p-5 space-y-4">
-                        {/* Header con código y estado */}
+                      <div className="p-5 sm:p-6 space-y-4">
+                        {/* Header de la tarjeta */}
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-extrabold bg-gray-100 text-brand-dark px-2 py-0.5 rounded border border-gray-200">
+                            <span className="font-mono text-xs font-black bg-gray-100 text-brand-dark px-2.5 py-0.5 rounded-lg border border-gray-200">
                               {r.codigoReserva}
                             </span>
                             <span className="text-xs font-bold text-gray-500">
@@ -882,27 +1112,27 @@ export default function MisReservasPage() {
                           <img
                             src={r.alojamiento.imagenUrl}
                             alt={r.alojamiento.titulo}
-                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl object-cover border border-gray-200 shrink-0"
+                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border border-gray-200 shadow-sm shrink-0 group-hover:scale-105 transition-transform"
                           />
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex items-center gap-1 text-xs text-amber-700 font-bold">
                               <MapPin size={13} />
                               <span>{r.alojamiento.ciudad}, {r.alojamiento.pais} • {r.alojamiento.sector}</span>
                             </div>
-                            <h3 className="font-black text-gray-900 text-sm sm:text-base leading-snug line-clamp-2" title={r.alojamiento.titulo}>
+                            <h3 className="font-black text-gray-900 text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-amber-800 transition-colors">
                               {r.alojamiento.titulo}
                             </h3>
 
                             {/* Fechas de Estadía */}
-                            <div className="bg-slate-50 p-2 rounded-lg border border-gray-100 text-xs text-gray-700 font-medium">
+                            <div className="bg-slate-50 p-2 rounded-xl border border-gray-100 text-xs text-gray-700 font-medium">
                               📅 <strong>{r.fechas.checkIn}</strong> al <strong>{r.fechas.checkOut}</strong> ({r.fechas.noches} noche{r.fechas.noches > 1 ? "s" : ""})
                             </div>
                           </div>
                         </div>
 
-                        {/* Fila de Smart Lock PIN & Total Pagado */}
+                        {/* Fila de Acceso Digital y Total */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                          <div className="bg-emerald-50/70 border border-emerald-200/80 p-3 rounded-xl flex items-center justify-between">
+                          <div className="bg-emerald-50/70 border border-emerald-200/80 p-3 rounded-2xl flex items-center justify-between">
                             <div>
                               <span className="text-[10px] uppercase font-bold text-emerald-800 block flex items-center gap-1">
                                 <Key size={12} /> Cerradura Smart Lock
@@ -916,55 +1146,40 @@ export default function MisReservasPage() {
                             </span>
                           </div>
 
-                          <div className="bg-gray-50 border border-gray-200 p-3 rounded-xl flex items-center justify-between">
+                          <div className="bg-gray-50 border border-gray-200 p-3 rounded-2xl flex items-center justify-between">
                             <div>
                               <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Pagado</span>
                               <span className="font-black text-gray-900 text-base">
                                 ${r.totales.granTotal} USD
                               </span>
                             </div>
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] text-gray-500 font-semibold">
                               {r.metodoPago === "transferencia" ? "Transferencia" : "Tarjeta"}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Barra de Acciones */}
+                      {/* Barra Inferior Interactiva para Calificar y Acciones */}
                       <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
-                        {isPast ? (
-                          r.calificada ? (
-                            <div className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-                              <CheckCircle2 size={14} />
-                              <span>¡Ya calificaste con {r.ratingDado || 5} ⭐!</span>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setReservaParaCalificar(r)
-                                setRatingInput(5)
-                                setComentarioInput("")
-                              }}
-                              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <Star size={14} className="fill-slate-950" />
-                              <span>⭐ Calificar mi Estadía</span>
-                            </button>
-                          )
+                        {r.calificada ? (
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/70 px-3 py-1.5 rounded-xl border border-emerald-200">
+                            <Star size={13} className="fill-amber-400 text-amber-400" />
+                            <span>¡Calificaste con {r.ratingDado || 5} ⭐! (Clic para ver/editar)</span>
+                          </div>
                         ) : (
-                          <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                            <Clock size={13} className="text-amber-600" />
-                            Podrás calificar después de tu Check-out
-                          </span>
+                          <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-3.5 py-1.5 rounded-xl border border-amber-300 transition-colors shadow-2xs">
+                            <Star size={14} className="fill-amber-500 text-amber-500" />
+                            <span>⭐ Clic aquí para Calificar y Comentar</span>
+                          </div>
                         )}
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                           <a
                             href={getWhatsAppVoucherLink(r)}
                             target="_blank"
                             rel="noreferrer"
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 shadow-sm"
                             title="Abrir voucher en WhatsApp"
                           >
                             <MessageCircle size={14} />
@@ -974,7 +1189,7 @@ export default function MisReservasPage() {
                           <button
                             type="button"
                             onClick={() => window.print()}
-                            className="p-1.5 bg-white hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-200 transition-colors"
+                            className="p-1.5 bg-white hover:bg-gray-200 text-gray-700 rounded-xl border border-gray-200 transition-colors cursor-pointer"
                             title="Imprimir comprobante"
                           >
                             <Printer size={15} />
@@ -989,39 +1204,13 @@ export default function MisReservasPage() {
           </div>
         )}
 
-        {/* ============================================================ */}
-        {/* 4. CONTENIDO VIÑETA 2: MIS ALOJAMIENTOS & GANANCIAS         */}
-        {/* ============================================================ */}
+        {/* ========================================================== */}
+        {/* 2.D CONTENIDO: MIS ALOJAMIENTOS & GANANCIAS (ANFITRIÓN)    */}
+        {/* ========================================================== */}
         {mainPortalTab === "alojamientos" && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Banner de Resumen Financiero del Anfitrión */}
-            <div className="bg-gradient-to-r from-brand-dark via-slate-900 to-brand-dark rounded-2xl p-6 text-white border border-brand-sage/20 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-1">
-                <span className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <TrendingUp size={15} />
-                  Panel Financiero del Anfitrión SARA
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black text-white">
-                  Rendimiento y Calificaciones de tus Alojamientos
-                </h3>
-                <p className="text-xs text-gray-300 max-w-2xl leading-relaxed">
-                  Supervisa en tiempo real las reservas recibidas, el tiempo exacto que tus huéspedes estuvieron hospedados, tus ganancias netas transferidas y las reseñas públicas con comentarios.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="px-5 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold rounded-xl text-xs sm:text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer border border-amber-300/40 shrink-0 self-start md:self-auto"
-              >
-                <PlusCircle size={18} />
-                <span>Crear un Nuevo Alojamiento</span>
-              </button>
-            </div>
-
-            {/* Listado de Alojamientos del Anfitrión con sus Estadísticas y Reseñas */}
             {misAlojamientos.length === 0 ? (
-              <div className="p-12 text-center bg-white rounded-2xl border border-gray-200 space-y-4">
+              <div className="p-12 text-center bg-white rounded-3xl border border-gray-200 space-y-4">
                 <Building size={48} className="mx-auto text-orange-400 opacity-80" />
                 <h3 className="text-lg font-bold text-gray-800">Aún no has registrado ningún alojamiento</h3>
                 <p className="text-xs text-gray-500 max-w-md mx-auto">
@@ -1083,7 +1272,7 @@ export default function MisReservasPage() {
                           </div>
                         </div>
 
-                        {/* Tarjetas de Resumen Financiero de este Alojamiento */}
+                        {/* Tarjetas de Resumen Financiero */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
                           <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-center">
                             <span className="text-[9px] uppercase font-bold text-emerald-800 block">Ganancia Neta</span>
@@ -1106,7 +1295,7 @@ export default function MisReservasPage() {
                         </div>
                       </div>
 
-                      {/* Sub-Viñetas Internas del Alojamiento */}
+                      {/* Sub-Pestañas Internas */}
                       <div className="px-6 pt-3 border-b border-gray-200 bg-white flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <button
@@ -1140,16 +1329,13 @@ export default function MisReservasPage() {
                           href="/airbnb"
                           className="text-xs text-brand-sage hover:underline font-bold inline-flex items-center gap-1 pb-2"
                         >
-                          <span>Ver ficha pública</span>
+                          <span>Ver ficha en catálogo</span>
                           <ExternalLink size={12} />
                         </Link>
                       </div>
 
-                      {/* Cuerpo de las Sub-Viñetas */}
+                      {/* Contenido de las Sub-Pestañas */}
                       <div className="p-5 sm:p-6 bg-white">
-                        {/* ======================================================== */}
-                        {/* SUB-VIÑETA A: HISTORIAL DE HUÉSPEDES, FECHAS & GANANCIAS */}
-                        {/* ======================================================== */}
                         {currentSubTab === "hospedajes" && (
                           <div className="space-y-4 animate-fadeIn">
                             {alj.hospedajes.length === 0 ? (
@@ -1237,9 +1423,6 @@ export default function MisReservasPage() {
                           </div>
                         )}
 
-                        {/* ======================================================== */}
-                        {/* SUB-VIÑETA B: CALIFICACIONES & COMENTARIOS RECIBIDOS     */}
-                        {/* ======================================================== */}
                         {currentSubTab === "resenas" && (
                           <div className="space-y-4 animate-fadeIn">
                             {alj.resenas.length === 0 ? (
@@ -1254,7 +1437,6 @@ export default function MisReservasPage() {
                                     key={rev.id}
                                     className="p-4 sm:p-5 rounded-2xl border border-gray-200 bg-slate-50/60 hover:bg-white hover:shadow-sm transition-all space-y-3"
                                   >
-                                    {/* Cabecera de la Reseña */}
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="flex items-center gap-2.5">
                                         <div className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-900 font-black text-xs flex items-center justify-center border border-amber-300">
@@ -1275,7 +1457,6 @@ export default function MisReservasPage() {
                                         </div>
                                       </div>
 
-                                      {/* Puntuación en Estrellas */}
                                       <div className="flex items-center gap-0.5 text-amber-500 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
                                         {[...Array(rev.rating)].map((_, i) => (
                                           <Star key={i} size={13} className="fill-amber-400 text-amber-400" />
@@ -1286,12 +1467,10 @@ export default function MisReservasPage() {
                                       </div>
                                     </div>
 
-                                    {/* Comentario del Huésped */}
                                     <p className="text-xs text-gray-700 leading-relaxed italic bg-white p-3 rounded-xl border border-gray-100 shadow-2xs">
                                       "{rev.comentario}"
                                     </p>
 
-                                    {/* Fecha y Hora Exacta de Publicación */}
                                     <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1 border-t border-gray-100">
                                       <span className="flex items-center gap-1">
                                         <Calendar size={12} />
@@ -1319,7 +1498,7 @@ export default function MisReservasPage() {
       </section>
 
       {/* ============================================================ */}
-      {/* MODAL: CALIFICAR Y DEJAR COMENTARIO DE ESTADÍA               */}
+      {/* MODAL: CALIFICAR Y ESCRIBIR COMENTARIO EN BASE DE DATOS      */}
       {/* ============================================================ */}
       {reservaParaCalificar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
@@ -1337,10 +1516,10 @@ export default function MisReservasPage() {
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-black text-gray-900">
-                  Calificar tu Estadía en {reservaParaCalificar.alojamiento.ciudad}
+                  Calificar Estadía en {reservaParaCalificar.alojamiento.ciudad}
                 </h3>
                 <p className="text-xs text-gray-500">
-                  {reservaParaCalificar.alojamiento.titulo}
+                  {reservaParaCalificar.alojamiento.titulo} (Ref: {reservaParaCalificar.codigoReserva})
                 </p>
               </div>
             </div>
@@ -1348,12 +1527,12 @@ export default function MisReservasPage() {
             {reviewSuccessMsg ? (
               <div className="p-6 text-center space-y-2 bg-emerald-50 rounded-2xl border border-emerald-200">
                 <CheckCircle2 size={36} className="text-emerald-600 mx-auto" />
-                <h4 className="font-bold text-emerald-900 text-base">¡Calificación Registrada!</h4>
+                <h4 className="font-bold text-emerald-900 text-base">¡Calificación Guardada con Éxito!</h4>
                 <p className="text-xs text-emerald-700">{reviewSuccessMsg}</p>
               </div>
             ) : (
               <form onSubmit={handleSubmitRating} className="space-y-4">
-                <div className="text-center py-2 bg-slate-50 rounded-2xl border border-gray-200">
+                <div className="text-center py-3 bg-slate-50 rounded-2xl border border-gray-200">
                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
                     Tu Puntuación General
                   </span>
@@ -1392,18 +1571,18 @@ export default function MisReservasPage() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                    Comparte tu experiencia con otros viajeros <span className="text-rose-500">*</span>
+                    Comparte tu experiencia y comentarios <span className="text-rose-500">*</span>
                   </label>
                   <textarea
                     required
                     rows={4}
-                    placeholder="¿Qué tal estuvo la limpieza, la atención del anfitrión, la vista o la comodidad de las camas?..."
+                    placeholder="¿Qué tal estuvo la limpieza, el Smart Lock, la vista o la comodidad de las camas?..."
                     value={comentarioInput}
                     onChange={(e) => setComentarioInput(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none leading-relaxed"
                   />
                   <p className="text-[11px] text-gray-400 mt-1">
-                    Tu opinión aparecerá con la insignia de <strong className="text-emerald-700">Huésped Verificado</strong> en la ficha pública.
+                    Esta información se actualizará directamente en la ficha del hospedaje con tu insignia de <strong className="text-emerald-700">Huésped Verificado SARA</strong>.
                   </p>
                 </div>
 
@@ -1421,7 +1600,7 @@ export default function MisReservasPage() {
                     className="px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     <CheckCircle2 size={16} />
-                    <span>{isSubmittingReview ? "Publicando..." : "Publicar Calificación"}</span>
+                    <span>{isSubmittingReview ? "Guardando en BD..." : "Publicar y Guardar Calificación"}</span>
                   </button>
                 </div>
               </form>
