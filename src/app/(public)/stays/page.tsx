@@ -565,7 +565,7 @@ export default function AirbnbPage() {
   }, [searchParams])
 
   const handleLogout = () => {
-    if (confirm("¿Deseas cerrar tu sesión de huésped en SARA Airbnb?")) {
+    if (confirm("¿Deseas cerrar tu sesión de huésped en SARA Stays?")) {
       clearGuestSession()
       setActiveGuest(null)
     }
@@ -584,7 +584,7 @@ export default function AirbnbPage() {
     setMapCenter([nuevo.lat, nuevo.lng])
     setMapZoom(14)
     setSelectedMapId(nuevo.id)
-    alert("¡Alojamiento registrado exitosamente! Ya se encuentra visible en el mapa y catálogo de SARA Airbnb.")
+    alert("¡Alojamiento registrado exitosamente! Ya se encuentra visible en el mapa y catálogo de SARA Stays.")
   }
 
   // Estados para Cuentas Bancarias de la Empresa (Cargadas dinámicamente de Configuración)
@@ -986,10 +986,15 @@ export default function AirbnbPage() {
         if (!matchDestino) return false
       }
 
+      // Alcance
+      if (alcanceTab !== "todos" && stay.alcance !== alcanceTab) return false
+
       // Tipo
       if (tipoFiltro !== "todos" && stay.tipo !== tipoFiltro) return false
+
       // Huéspedes
-      if (guestsCount > 1 && stay.maxHuespedes < guestsCount) return false
+      if (huespedesFiltro > 1 && stay.maxHuespedes < huespedesFiltro) return false
+
       // Texto adicional
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase()
@@ -1004,7 +1009,7 @@ export default function AirbnbPage() {
       }
       return true
     })
-  }, [alojamientos, destinoInput, tipoFiltro, guestsCount, searchTerm])
+  }, [alojamientos, destinoInput, alcanceTab, tipoFiltro, huespedesFiltro, searchTerm])
 
   // Mapeo para el componente del mapa
   const mapItems = useMemo(() => {
@@ -1100,7 +1105,7 @@ export default function AirbnbPage() {
     const subtotal = stay.precioNoche * totalNoches
     const granTotal = subtotal + stay.tarifaLimpieza
     const msg = encodeURIComponent(
-      `Hola SARA Hospitality / Red Airbnb.\n` +
+      `Hola SARA Stays / Hospedaje.\n` +
       `Me gustaría reservar el alojamiento "${stay.titulo}" (Ref: ${stay.codigo}) en ${stay.ciudad}, ${stay.pais} ${stay.bandera}.\n` +
       `📅 Fechas: ${checkInDate} al ${checkOutDate} (${totalNoches} noches)\n` +
       `👥 Huéspedes: ${guestsCount} persona(s)\n` +
@@ -1113,20 +1118,20 @@ export default function AirbnbPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-gray-900 pb-20">
       {/* ============================================================ */}
-      {/* 0. APP HEADER EXCLUSIVO: RED SARA AIRBNB (STANDALONE)        */}
+      {/* 0. APP HEADER EXCLUSIVO: SARA STAYS (STANDALONE)             */}
       {/* ============================================================ */}
       <header className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3 transition-all">
         <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
-          {/* Logo y Marca SARA Airbnb */}
+          {/* Logo y Marca SARA STAYS */}
           <div className="flex items-center gap-6">
             <Link href="/stays" className="flex items-center gap-3 group">
               <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
-                <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-full h-full object-contain" />
+                <img src="/logo-sara-airbnb.png" alt="SARA Stays" className="w-full h-full object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md shadow-xs">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 rounded-md shadow-xs">
                     STAYS
                   </span>
                 </div>
@@ -1155,20 +1160,21 @@ export default function AirbnbPage() {
             </nav>
           </div>
 
-          {/* Acciones Rápidas */}
+          {/* Acciones Principales */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Botón Crear Nuevo Alojamiento */}
+            {/* Botón Anfitrión: Publicar Alojamiento */}
             <button
               type="button"
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-black shadow-lg hover:shadow-orange-500/30 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
-              title="Registrar y promocionar un nuevo hospedaje"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
+              title="Registrar y promocionar un nuevo hospedaje en SARA Stays"
             >
               <PlusCircle size={15} />
-              <span className="hidden sm:inline">Crear Alojamiento</span>
-              <span className="sm:hidden">+ Crear</span>
+              <span className="hidden sm:inline">Publicar Propiedad</span>
+              <span className="sm:hidden">+ Publicar</span>
             </button>
 
+            {/* Acceso Huésped / Mis Reservas */}
             {activeGuest ? (
               <div className="flex items-center gap-2">
                 <Link
@@ -1182,7 +1188,7 @@ export default function AirbnbPage() {
                     {activeGuest.nombre}
                   </span>
                   <span className="text-[10px] bg-amber-400/30 px-1.5 py-0.5 rounded text-amber-300 font-extrabold">
-                    Portal
+                    Mis Reservas
                   </span>
                 </Link>
                 <button
@@ -1199,233 +1205,332 @@ export default function AirbnbPage() {
                 href="/stays/auth"
                 className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
               >
-                <User size={13} className="text-amber-400" />
-                <span>Ingresar / Mis Reservas</span>
+                <Key size={13} className="text-amber-400" />
+                <span>Mis Reservas</span>
               </Link>
             )}
 
-            {/* Botón WhatsApp Directo */}
+            {/* Concierge WhatsApp */}
             <a
-              href="https://wa.me/593981804023?text=Hola%20SARA%20Airbnb,%20deseo%20asistencia%20con%20un%20alojamiento"
+              href="https://wa.me/593981804023?text=Hola%20SARA%20Stays,%20deseo%20asistencia%20con%20un%20alojamiento"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition-colors"
+              title="Concierge y Atención 24/7"
             >
               <Phone size={13} />
-              <span>WhatsApp</span>
+              <span className="hidden md:inline">Concierge</span>
             </a>
           </div>
         </div>
       </header>
 
       {/* ============================================================ */}
-      {/* 1. HERO SECTION: HOSPITALITY GLOBAL (NACIONAL & MUNDIAL)    */}
+      {/* 1. HERO SECTION: HOSPITALITY DE NIVEL & RESIDENCIAS DE AUTOR */}
       {/* ============================================================ */}
-      <section className="relative pt-8 pb-16 overflow-hidden bg-brand-dark">
-        {/* Split Layout: Background Image on Right Side */}
-        <div
-          className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full bg-cover bg-center z-0"
-          style={{ backgroundImage: `url('/sara-airbnb.png')` }}
-        >
-          {/* Máscara de desvanecimiento para la fotografía (mezcla suave con el fondo verde) */}
-          <div className="hidden lg:block absolute inset-y-0 left-0 w-64 bg-gradient-to-r from-brand-dark via-brand-dark/80 to-transparent z-10" />
-          {/* Oscurecimiento sutil en móviles para asegurar lectura */}
-          <div className="lg:hidden absolute inset-0 bg-brand-dark/80 z-10" />
-        </div>
+      <section className="relative pt-12 pb-24 lg:pb-28 overflow-hidden bg-slate-950">
+        {/* Fondo Cinematográfico Arquitectónico de Alta Definición */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105"
+          style={{
+            backgroundImage: `url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2560&q=85')`
+          }}
+        />
 
-        {/* Gradiente sutil para mantener el texto nítido */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/65 to-transparent w-full md:w-[120%]" />
+        {/* Gradientes y Filtros de Iluminación de Lujo */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/50" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(245,158,11,0.15)_0%,_transparent_60%)] pointer-events-none" />
 
-        {/* Resplandor verde de marca sutil */}
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-20 pointer-events-none" />
-
-        <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center min-h-[60vh]">
-          <div className="max-w-4xl space-y-6 md:pl-4 mb-10">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-px bg-brand-sage" />
-                <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
-                  Hospitality · Suites · Alojamientos
-                </h2>
+        <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            
+            {/* Columna Principal: Mensaje de Marca y Filosofía */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* Eyebrow de Prestigio */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold shadow-lg">
+                <Sparkles size={14} className="text-amber-400 animate-pulse" />
+                <span className="tracking-widest uppercase text-[11px]">SARA STAYS · HOSPITALITY & RESIDENCIAS DE AUTOR</span>
               </div>
 
-              {/* Barra de Acciones del Usuario: Crear Alojamiento, Sesión y Salir */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                {/* Botón Destacado: Crear un Nuevo Alojamiento (Abre Modal de la Imagen 3) */}
+              {/* Titular Emocional y Directo (Sin redundancias) */}
+              <div className="space-y-2">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
+                  Lugares inolvidables.<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400">
+                    Diseñados para inspirar.
+                  </span>
+                </h1>
+              </div>
+
+              {/* Párrafo Descriptivo Limpio */}
+              <p className="text-sm sm:text-base lg:text-lg text-slate-200 max-w-2xl leading-relaxed font-light drop-shadow-md">
+                Suites contemporáneas, lofts de arquitectura y villas vacacionales con georreferenciación en tiempo real. Disfruta de llegada autónoma inteligente 24/7 y reserva directa sin sobreprecios de intermediarios.
+              </p>
+
+              {/* Pilares de Confianza y Calidad (Micro-badges de Lujo) */}
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-white border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <Key size={13} className="text-amber-400" />
+                  <span>Check-in Autónomo 24/7 (Smart Lock)</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-amber-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <Star size={13} className="fill-amber-400 text-amber-400" />
+                  <span>Superhosts Verificados</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-white border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <Globe size={13} className="text-emerald-400" />
+                  <span>Ecuador & Destinos Globales</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-emerald-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
+                  <ShieldCheck size={13} className="text-emerald-400" />
+                  <span>Tarifa Directa Sin Comisiones</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Columna Secundaria: Tarjeta Exclusiva para Propietarios / Anfitriones */}
+            <div className="hidden lg:block lg:col-span-4">
+              <div className="relative rounded-3xl p-6 bg-gradient-to-b from-white/12 via-white/6 to-white/2 backdrop-blur-2xl border border-white/20 shadow-2xl text-white overflow-hidden group">
+                <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/30 transition-colors" />
+                
+                <div className="flex items-center gap-3 mb-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner">
+                    <Building size={20} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                      Red de Anfitriones
+                    </span>
+                    <h3 className="text-base font-extrabold text-white">
+                      ¿Tienes una propiedad?
+                    </h3>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed mb-4">
+                  Convierte tu suite, casa o villa en una fuente de ingresos con el respaldo de SARA. Gestión integral de reservas, cerraduras inteligentes y huéspedes calificados.
+                </p>
+
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-black shadow-lg hover:shadow-orange-500/30 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
-                  title="Registrar y promocionar un nuevo hospedaje en la red SARA Airbnb"
+                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-200/40 active:scale-[0.98]"
                 >
-                  <PlusCircle size={15} className="text-white" />
-                  <span>Crear un Nuevo Alojamiento</span>
+                  <PlusCircle size={15} />
+                  <span>Publicar mi Alojamiento</span>
                 </button>
-
-                {activeGuest ? (
-                  <>
-                    {/* Saludo con Nombre del Usuario y Acceso a Mis Reservas */}
-                    <Link
-                      href="/stays/mis-reservas"
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold backdrop-blur-md transition-all shadow-md hover:shadow-amber-500/20 cursor-pointer"
-                      title="Ver mis reservas y códigos de acceso"
-                    >
-                      <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
-                        {activeGuest.nombre.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="truncate max-w-[130px] sm:max-w-none">
-                        Hola, {activeGuest.nombre} {activeGuest.apellido || ""}
-                      </span>
-                      <span className="text-[10px] bg-amber-400/30 px-1.5 py-0.2 rounded text-amber-300 hidden md:inline">
-                        Mis Reservas
-                      </span>
-                      <ChevronRight size={13} className="text-amber-400" />
-                    </Link>
-
-                    {/* Botón Cerrar Sesión */}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-rose-500/25 hover:border-rose-400/50 border border-white/20 text-gray-200 hover:text-rose-200 text-xs font-bold backdrop-blur-md transition-all cursor-pointer"
-                      title="Cerrar sesión de huésped"
-                    >
-                      <LogOut size={13} />
-                      <span className="hidden sm:inline">Cerrar Sesión</span>
-                    </button>
-                  </>
-                ) : (
-                  <Link
-                    href="/stays/auth"
-                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all shadow-md hover:border-amber-400/60 cursor-pointer group"
-                  >
-                    <User size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
-                    <span>Iniciar Sesión / Mis Reservas</span>
-                    <Key size={12} className="text-brand-sage opacity-75" />
-                  </Link>
-                )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
-                EXPERIENCIAS <span className="font-light italic text-brand-sage">ÚNICAS.</span><br />
-                HOSPEDAJE DE NIVEL.
-              </h1>
-            </div>
-
-            <p className="text-base md:text-lg text-gray-100 max-w-3xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg">
-              Suites contemporáneas, lofts de diseño y villas vacacionales con georreferenciación y precios en tiempo real. Cobertura nacional (Ecuador) y mundial sin comisiones de intermediarios.
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/20 backdrop-blur-sm">
-                <Globe size={14} className="text-brand-sage" /> Ecuador & Destinos Mundiales
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-amber-300 border border-white/20 backdrop-blur-sm">
-                <Star size={13} className="fill-amber-400 text-amber-400" /> Categoría Superhost & Smart Lock
-              </span>
-              <Link
-                href={activeGuest ? "/stays/mis-reservas" : "/stays/auth"}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 backdrop-blur-sm hover:bg-amber-500/30 transition-colors"
-              >
-                <Key size={13} className="text-amber-400" />
-                <span>{activeGuest ? "Mis Claves Smart Lock (#PIN#)" : "Portal Huésped · Claves de Acceso"}</span>
-              </Link>
-            </div>
           </div>
-
-          {/* Caja Flotante de Reserva Inteligente */}
-          <form onSubmit={handleSearchSubmit} className="w-full max-w-[1760px] mx-auto bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
-            {/* Barra de Filtros en Grid Balanceada */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
-              {/* Entrada Abierta de Destino (Sin limitaciones) */}
-              <div className="sm:col-span-2 lg:col-span-4">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Destino / Ciudad / Zona
-                </label>
-                <div className="relative">
-                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text"
-                    value={destinoInput}
-                    onChange={(e) => handleDestinoInputChange(e.target.value)}
-                    placeholder="¿A dónde quieres ir? Ej: Cuenca, Miami, Madrid, Yunguilla..."
-                    className="w-full pl-10 pr-9 py-2.5 text-xs md:text-sm font-bold bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 placeholder:font-normal placeholder:text-gray-400 transition-all h-[42px]"
-                  />
-                  {destinoInput && (
-                    <button
-                      type="button"
-                      onClick={() => handleDestinoInputChange("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
-                      title="Borrar destino"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Selector de Rango de Fechas (Estilo Airbnb Oficial) */}
-              <div className="sm:col-span-2 lg:col-span-4">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Fechas de Estadía ({totalNoches} noche{totalNoches > 1 ? "s" : ""})
-                </label>
-                <AirbnbDateRangePicker
-                  checkIn={checkInDate}
-                  checkOut={checkOutDate}
-                  onChange={(inD, outD) => {
-                    setCheckInDate(inD)
-                    setCheckOutDate(outD)
-                  }}
-                />
-              </div>
-
-              {/* Selector de Huéspedes Espacioso y Responsivo */}
-              <div className="sm:col-span-1 lg:col-span-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
-                  Huéspedes
-                </label>
-                <div className="relative">
-                  <Users size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <select
-                    value={huespedesFiltro}
-                    onChange={(e) => setHuespedesFiltro(Number(e.target.value))}
-                    className="w-full pl-10 pr-8 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 font-bold transition-all appearance-none cursor-pointer h-[42px]"
-                  >
-                    <option value={1}>1 Huésped</option>
-                    <option value={2}>2 Huéspedes</option>
-                    <option value={3}>3 Huéspedes</option>
-                    <option value={4}>4+ Huéspedes</option>
-                    <option value={6}>6+ Huéspedes</option>
-                    <option value={8}>8+ Huéspedes</option>
-                  </select>
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Botón de Búsqueda Destacado */}
-              <div className="sm:col-span-1 lg:col-span-2">
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-slate-950 font-black rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer h-[42px]"
-                >
-                  <Search size={16} className="stroke-[2.5]" />
-                  <span>Buscar</span>
-                </button>
-              </div>
-            </div>
-          </form>
         </div>
       </section>
 
       {/* ============================================================ */}
-      {/* 2. BARRA DE CONTROL Y ALTERNADOR DE VISTAS (SPLIT / GRID)    */}
+      {/* 2. CONSOLA DE BÚSQUEDA FLOTANTE & CATEGORÍAS EN TIEMPO REAL  */}
       {/* ============================================================ */}
-      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 -mt-10 lg:-mt-14 relative z-30 mb-8">
+        <div className="bg-white rounded-3xl p-4 sm:p-5 lg:p-6 shadow-2xl shadow-slate-950/20 border border-slate-100">
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
+            
+            {/* Destino */}
+            <div className="sm:col-span-2 lg:col-span-4">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                <MapPin size={13} className="text-amber-500" />
+                <span>¿A dónde quieres ir?</span>
+              </label>
+              <div className="relative">
+                <input 
+                  type="text"
+                  value={destinoInput}
+                  onChange={(e) => handleDestinoInputChange(e.target.value)}
+                  placeholder="Ciudad, sector o país (Ej: Cuenca, Yunguilla, Miami, Madrid...)"
+                  className="w-full pl-3.5 pr-9 py-2.5 text-xs sm:text-sm font-bold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 placeholder:font-normal placeholder:text-gray-400 transition-all h-[44px]"
+                />
+                {destinoInput && (
+                  <button
+                    type="button"
+                    onClick={() => handleDestinoInputChange("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                    title="Limpiar destino"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Fechas de Estadía */}
+            <div className="sm:col-span-2 lg:col-span-4">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider flex items-center justify-between mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <Calendar size={13} className="text-amber-500" />
+                  <span>Fechas de Estadía</span>
+                </span>
+                <span className="text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-md text-[10px]">
+                  {totalNoches} noche{totalNoches > 1 ? "s" : ""}
+                </span>
+              </label>
+              <AirbnbDateRangePicker
+                checkIn={checkInDate}
+                checkOut={checkOutDate}
+                onChange={(inD, outD) => {
+                  setCheckInDate(inD)
+                  setCheckOutDate(outD)
+                }}
+              />
+            </div>
+
+            {/* Huéspedes */}
+            <div className="sm:col-span-1 lg:col-span-2">
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                <Users size={13} className="text-amber-500" />
+                <span>Huéspedes</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={huespedesFiltro}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    setHuespedesFiltro(val)
+                    setGuestsCount(val)
+                  }}
+                  className="w-full pl-3.5 pr-8 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white text-gray-800 font-bold transition-all appearance-none cursor-pointer h-[44px]"
+                >
+                  <option value={1}>1 Huésped</option>
+                  <option value={2}>2 Huéspedes</option>
+                  <option value={3}>3 Huéspedes</option>
+                  <option value={4}>4 Huéspedes</option>
+                  <option value={6}>6+ Huéspedes</option>
+                  <option value={8}>8+ Huéspedes</option>
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Botón Buscar */}
+            <div className="sm:col-span-1 lg:col-span-2">
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer h-[44px]"
+              >
+                <Search size={16} className="stroke-[2.5]" />
+                <span>Buscar Estadía</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Chips de Categorías Rápidas e Interactivas */}
+          <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 shrink-0 mr-1 hidden sm:inline">
+              Filtros Rápidos:
+            </span>
+            
+            <button
+              type="button"
+              onClick={() => {
+                setDestinoInput("")
+                setTipoFiltro("todos")
+                setAlcanceTab("todos")
+                setMapCenter([-2.8980, -79.0100])
+                setMapZoom(13)
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                !destinoInput && tipoFiltro === "todos" && alcanceTab === "todos"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              ✨ Todos ({alojamientos.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTipoFiltro("suite")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "suite"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏙️ Suites Urbanas
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTipoFiltro("quinta")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "quinta"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🌿 Quintas & Vacacionales
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                handleDestinoInputChange("Cuenca")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                destinoInput.toLowerCase().includes("cuenca")
+                  ? "bg-amber-500 text-slate-950 shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏔️ Cuenca Histórica
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                handleDestinoInputChange("Yunguilla")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                destinoInput.toLowerCase().includes("yunguilla")
+                  ? "bg-amber-500 text-slate-950 shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🌴 Yunguilla Valle
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setAlcanceTab("internacional")
+                const match = alojamientos.find(s => s.alcance === "internacional")
+                if (match) {
+                  setMapCenter([match.lat, match.lng])
+                  setMapZoom(13)
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                alcanceTab === "internacional"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🌎 Destinos Internacionales
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 3. BARRA DE CONTROL Y ALTERNADOR DE VISTAS (SPLIT / GRID)    */}
+      {/* ============================================================ */}
+      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-              <Compass size={22} />
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-700 border border-amber-200 flex items-center justify-center font-bold">
+              <Compass size={22} className="text-amber-600" />
             </div>
             <div>
               <h2 className="text-lg md:text-xl font-black text-gray-900 tracking-tight">
@@ -1438,10 +1543,10 @@ export default function AirbnbPage() {
           </div>
 
           {/* Selector de Modos de Vista */}
-          <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200/60">
             <button
               onClick={() => setVistaModo("split")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 vistaModo === "split" 
                   ? "bg-white text-gray-900 shadow-sm" 
                   : "text-gray-600 hover:text-gray-900"
@@ -1454,7 +1559,7 @@ export default function AirbnbPage() {
 
             <button
               onClick={() => setVistaModo("grid")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 vistaModo === "grid" 
                   ? "bg-white text-gray-900 shadow-sm" 
                   : "text-gray-600 hover:text-gray-900"
@@ -1467,7 +1572,7 @@ export default function AirbnbPage() {
 
             <button
               onClick={() => setVistaModo("map")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 vistaModo === "map" 
                   ? "bg-white text-gray-900 shadow-sm" 
                   : "text-gray-600 hover:text-gray-900"
