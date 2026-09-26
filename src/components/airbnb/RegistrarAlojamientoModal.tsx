@@ -113,12 +113,8 @@ export default function RegistrarAlojamientoModal({
     habitaciones: 1,
     banos: 1,
     camas: 1,
-    imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-    imagenes: [
-      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
-    ],
+    imagenUrl: "",
+    imagenes: [] as string[],
     videoUrl: "",
     nuevaFotoUrl: "",
     amenidades: [
@@ -150,19 +146,26 @@ export default function RegistrarAlojamientoModal({
     cuotaFijaMensual: 45
   })
 
-  // Sincronizar datos del anfitrión cuando activeGuest cambie
+  // Limpiar y resetear el formulario cada vez que se abre el modal para crear nuevo alojamiento
   useEffect(() => {
-    if (activeGuest) {
+    if (isOpen) {
+      setModalTab("general")
+      setErrorMessage("")
       setFormAlojamiento(prev => ({
         ...prev,
-        anfitrionNombre: `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() || prev.anfitrionNombre,
-        anfitrionTelefono: activeGuest.telefono || prev.anfitrionTelefono,
-        anfitrionEmail: activeGuest.email || prev.anfitrionEmail,
-        anfitrionCedulaRuc: activeGuest.cedula || prev.anfitrionCedulaRuc,
-        anfitrionTitular: `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() || prev.anfitrionTitular
+        codigo: generatedCode,
+        imagenUrl: "",
+        imagenes: [],
+        videoUrl: "",
+        nuevaFotoUrl: "",
+        anfitrionNombre: activeGuest ? `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() : prev.anfitrionNombre,
+        anfitrionTelefono: activeGuest?.telefono || prev.anfitrionTelefono,
+        anfitrionEmail: activeGuest?.email || prev.anfitrionEmail,
+        anfitrionCedulaRuc: activeGuest?.cedula || prev.anfitrionCedulaRuc,
+        anfitrionTitular: activeGuest ? `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() : prev.anfitrionTitular
       }))
     }
-  }, [activeGuest])
+  }, [isOpen, generatedCode, activeGuest])
 
   if (!isOpen) return null
 
@@ -286,6 +289,12 @@ export default function RegistrarAlojamientoModal({
     if (!formAlojamiento.titulo.trim()) {
       setModalTab("general")
       setErrorMessage("Por favor ingresa el título del anuncio.")
+      return
+    }
+
+    if (formAlojamiento.imagenes.length === 0) {
+      setModalTab("multimedia")
+      setErrorMessage("Por favor agrega al menos una fotografía para la galería del alojamiento.")
       return
     }
 
@@ -746,9 +755,27 @@ export default function RegistrarAlojamientoModal({
 
                   {/* Grilla de Fotos Cargadas */}
                   {formAlojamiento.imagenes.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400 border border-dashed border-gray-300 rounded-xl bg-white">
-                      <ImageIcon size={32} className="mx-auto text-gray-300 mb-1" />
-                      <p className="text-xs">No hay fotos en la galería. Agrega al menos 1 fotografía.</p>
+                    <div className="text-center py-10 px-4 text-gray-400 border-2 border-dashed border-gray-300 rounded-2xl bg-white space-y-3">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-orange-50 text-orange-500 flex items-center justify-center">
+                        <ImageIcon size={24} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-gray-700">Esta sección se encuentra limpia y lista para tus fotos</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">Sube fotografías reales de tu inmueble desde tu dispositivo, ingresa un enlace o usa un ejemplo rápido</p>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 pt-1">
+                        <label className="cursor-pointer px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                          <Upload size={14} />
+                          <span>Subir Fotos desde tu Dispositivo</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleDevicePhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
