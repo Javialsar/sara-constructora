@@ -2717,6 +2717,24 @@ export default function AirbnbPage() {
               {/* PASO 3: PAGO Y GARANTÍA */}
               {bookingStep === 3 && (
                 <div className="space-y-5 animate-fadeIn">
+                  {/* Banner de Seguridad y Transparencia Corporativa SARA */}
+                  <div className="p-3.5 bg-gradient-to-r from-emerald-50 via-slate-50 to-amber-50 rounded-2xl border border-emerald-200/80 flex items-start gap-3">
+                    <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                      <ShieldCheck size={20} />
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-slate-900">Reserva Segura con SARA Constructora Cía. Ltda.</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Garantía 100% Corporativa
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-[11px] leading-relaxed">
+                        Todos los pagos (el anticipo del <strong>{politicas.porcentajeAnticipo}%</strong> al reservar y el saldo del <strong>{100 - politicas.porcentajeAnticipo}%</strong> al hacer check-in) se realizan directamente a las cuentas oficiales de la empresa <strong>SARA</strong>. El pago neto es transferido al anfitrión <strong>únicamente una vez realizado tu check-in satisfactorio</strong>, protegiendo tu inversión y respaldando el cumplimiento total del servicio.
+                      </p>
+                    </div>
+                  </div>
+
                   <div>
                     <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider mb-2">
                       Selecciona tu Método de Pago o Garantía

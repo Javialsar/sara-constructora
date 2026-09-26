@@ -1611,19 +1611,27 @@ export default function AdminAirbnbPage() {
     const rawPhone = r.anfitrionTelefono.replace(/[^0-9]/g, "")
     const phoneWithCode = rawPhone.startsWith("593") ? rawPhone : `593${rawPhone.replace(/^0/, "")}`
 
+    // Cálculo con retención de IVA / Gastos Administrativos
+    const ivaComision = Number(((r.comisionGanadaSara * politicasStays.ivaPorcentaje) / 100).toFixed(2))
+    const totalRetencionSara = Number((r.comisionGanadaSara + ivaComision).toFixed(2))
+    const netoConIva = Number((r.totalHuesped - totalRetencionSara).toFixed(2))
+
     const msg = `Estimado(a) ${r.anfitrionNombre}, le enviamos la liquidación de su alojamiento *${r.alojamientoTitulo}* (Reserva ${r.codigoReserva}):
     
 🗓 Fechas: ${r.fechaCheckIn} al ${r.fechaCheckOut} (${r.noches} noches)
 👤 Huésped: ${r.huespedNombre} (${r.huespedPais})
 💵 Subtotal Estancia: $${r.subtotalNoches}
 🧹 Tarifa Limpieza: $${r.tarifaLimpieza}
-📊 Total Cobrado Huésped: $${r.totalHuesped}
+📊 Total Recaudado en Cuenta SARA: $${r.totalHuesped} (100% cobrado)
 
-🏢 Retención Comisión SARA (${r.porcentajeComisionSara}%): -$${r.comisionGanadaSara}
-✅ NETO A TRANSFERIR A SU CUENTA: $${r.netoParaAnfitrion}
+🏢 Retención Comisión SARA (${r.porcentajeComisionSara}%): -$${r.comisionGanadaSara.toFixed(2)}
+🏛️ Retención IVA / Gastos Adm. (${politicasStays.ivaPorcentaje}%): -$${ivaComision.toFixed(2)}
+📦 Total Retenido por SARA: -$${totalRetencionSara.toFixed(2)}
 
-${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO CON ÉXITO.*" : "⏳ *ESTADO: EN PROCESO DE TRANSFERENCIA BANCARIA.*"}
-¡Gracias por confiar la administración y promoción de su alojamiento en SARA!`
+✅ NETO A TRANSFERIR A SU CUENTA TRAS CHECK-IN: $${netoConIva.toFixed(2)}
+
+${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO CON ÉXITO TRAS CHECK-IN.*" : "⏳ *ESTADO: EN PROCESO DE TRANSFERENCIA TRAS CHECK-IN EFECTIVO DEL HUÉSPED.*"}
+¡Gracias por confiar la administración y promoción de su alojamiento en SARA STAYS!`
 
     return `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(msg)}`
   }
@@ -2049,7 +2057,7 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
               Registro de Reservas y Liquidación de Ganancias ({reservasFiltradas.length})
             </h3>
             <span className="text-xs text-gray-500 font-medium">
-              Cálculo automático: Cobro Huésped - Comisión SARA = Saldo Anfitrión
+              Flujo oficial: Pago 100% en cuenta SARA ➔ Retención Comisión e IVA ({politicasStays.ivaPorcentaje}%) ➔ Transferencia a Anfitrión post Check-in
             </span>
           </div>
 
@@ -2060,9 +2068,9 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   <th className="px-5 py-3.5">Código / Huésped</th>
                   <th className="px-5 py-3.5">Alojamiento</th>
                   <th className="px-5 py-3.5">Estancia</th>
-                  <th className="px-5 py-3.5">Total Huésped</th>
-                  <th className="px-5 py-3.5">Comisión SARA</th>
-                  <th className="px-5 py-3.5">Neto Anfitrión</th>
+                  <th className="px-5 py-3.5">Cobro en SARA</th>
+                  <th className="px-5 py-3.5">Retención SARA (Com. + IVA {politicasStays.ivaPorcentaje}%)</th>
+                  <th className="px-5 py-3.5">Neto Anfitrión (Post Check-in)</th>
                   <th className="px-5 py-3.5 text-center">Estado Liquidación</th>
                   <th className="px-5 py-3.5 text-right">Comprobante</th>
                 </tr>
@@ -2070,6 +2078,9 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
               <tbody className="divide-y divide-gray-100">
                 {reservasFiltradas.map((r) => {
                   const whatsappLink = getWhatsAppLiquidacionLink(r)
+                  const ivaComision = Number(((r.comisionGanadaSara * politicasStays.ivaPorcentaje) / 100).toFixed(2))
+                  const totalRetencion = Number((r.comisionGanadaSara + ivaComision).toFixed(2))
+                  const netoPostCheckIn = Number((r.totalHuesped - totalRetencion).toFixed(2))
 
                   return (
                     <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
@@ -2121,28 +2132,34 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         </p>
                       </td>
 
-                      {/* Total Huésped */}
+                      {/* Cobro en SARA */}
                       <td className="px-5 py-4">
-                        <p className="text-sm font-extrabold text-gray-900">${r.totalHuesped}</p>
+                        <p className="text-sm font-black text-gray-900">${r.totalHuesped}</p>
+                        <p className="text-[10px] text-brand-dark/70 font-medium">
+                          100% en cuenta SARA
+                        </p>
                         <p className="text-[10px] text-gray-400">
                           (${r.subtotalNoches} + ${r.tarifaLimpieza} limp.)
                         </p>
                       </td>
 
-                      {/* Comisión Ganada por SARA */}
+                      {/* Retención SARA (Comisión + IVA) */}
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-extrabold rounded">
-                          +${r.comisionGanadaSara.toFixed(2)}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-200 text-xs font-extrabold rounded">
+                          -${totalRetencion.toFixed(2)}
                         </span>
-                        <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-                          ({r.porcentajeComisionSara}% retenido)
-                        </p>
+                        <div className="text-[10px] text-gray-500 mt-1 space-y-0.5">
+                          <p>• Com. SARA ({r.porcentajeComisionSara}%): ${r.comisionGanadaSara.toFixed(2)}</p>
+                          <p>• Gastos/IVA ({politicasStays.ivaPorcentaje}%): ${ivaComision.toFixed(2)}</p>
+                        </div>
                       </td>
 
                       {/* Saldo Neto para Anfitrión */}
                       <td className="px-5 py-4">
-                        <p className="text-sm font-black text-gray-900">${r.netoParaAnfitrion.toFixed(2)}</p>
-                        <p className="text-[10px] text-gray-400">Por transferir</p>
+                        <p className="text-sm font-black text-emerald-950">${netoPostCheckIn.toFixed(2)}</p>
+                        <span className="inline-block text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mt-0.5">
+                          Post Check-in
+                        </span>
                       </td>
 
                       {/* Estado Liquidación */}
@@ -2657,6 +2674,90 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                 </div>
               </div>
 
+              {/* Sección 4: Configuración Tributaria y Gastos Administrativos (IVA Turístico) */}
+              <div className="space-y-3 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-black text-xs flex items-center justify-center">4</span>
+                    <h4 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
+                      Gastos Administrativos e IVA Turístico Gubernamental
+                    </h4>
+                  </div>
+                  <span className="text-[10px] text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full font-bold">
+                    Configurable por Decreto
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-gray-200 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-gray-800 block">
+                        Porcentaje de IVA / Gastos Administrativos (%)
+                      </label>
+                      <p className="text-[11px] text-gray-500 max-w-sm mt-0.5">
+                        Se aplica sobre la comisión y gestión de SARA Stays antes de liquidar el saldo neto al anfitrión tras el Check-in.
+                      </p>
+                    </div>
+
+                    <div className="relative w-36 shrink-0">
+                      <input
+                        type="number"
+                        min="0"
+                        max="30"
+                        step="0.5"
+                        required
+                        value={politicasStays.ivaPorcentaje}
+                        onChange={(e) => setPoliticasStays({ ...politicasStays, ivaPorcentaje: Number(e.target.value) })}
+                        className="w-full pl-3 pr-8 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                    </div>
+                  </div>
+
+                  {/* Botones de Acceso Rápido según Decretos Gubernamentales */}
+                  <div className="pt-2 border-t border-gray-200 flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase">Ajuste rápido por decreto:</span>
+                    <button
+                      type="button"
+                      onClick={() => setPoliticasStays({ ...politicasStays, ivaPorcentaje: 8 })}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        politicasStays.ivaPorcentaje === 8
+                          ? "bg-emerald-600 text-white shadow-xs"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      🏖️ Feriado Turístico (8%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPoliticasStays({ ...politicasStays, ivaPorcentaje: 12 })}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        politicasStays.ivaPorcentaje === 12
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      📉 Tarifa Reducida (12%)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPoliticasStays({ ...politicasStays, ivaPorcentaje: 15 })}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        politicasStays.ivaPorcentaje === 15
+                          ? "bg-amber-600 text-white shadow-xs"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      🏛️ Tarifa Estándar Nacional (15%)
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-gray-500 italic pt-1">
+                    ℹ️ <strong>Mecanismo Financiero SARA:</strong> Los huéspedes depositan el 100% de la estadía a la cuenta de la empresa SARA (30% anticipo al reservar y 70% saldo al hacer Check-in). Tras confirmarse el ingreso del huésped, SARA liquida y transfiere el valor al anfitrión deduciendo la comisión de gestión + los gastos administrativos e IVA vigente ({politicasStays.ivaPorcentaje}%).
+                  </p>
+                </div>
+              </div>
+
               {/* Botón Guardar Cambios */}
               <div className="pt-3">
                 <button
@@ -2670,13 +2771,13 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
               </div>
             </form>
 
-            {/* Columna Derecha (5 Cols): Simulador Interactivo de Reembolsos en Vivo */}
+            {/* Columna Derecha (5 Cols): Simulador Interactivo de Reembolsos y Liquidaciones */}
             <div className="lg:col-span-5 space-y-4">
               <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-xl border border-slate-800 space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2">
                     <Calculator size={18} className="text-amber-400" />
-                    <h4 className="font-bold text-sm text-white">Simulador de Reembolso en Tiempo Real</h4>
+                    <h4 className="font-bold text-sm text-white">Simulador de Reembolso & Liquidación</h4>
                   </div>
                   <span className="text-[10px] bg-white/10 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">
                     Cálculo Automático
@@ -2705,7 +2806,7 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                 {/* Resumen del Anticipo Inicial */}
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10 space-y-1 text-xs">
                   <div className="flex justify-between text-gray-300">
-                    <span>Total Reserva:</span>
+                    <span>Total Reserva (Cuenta SARA):</span>
                     <strong className="text-white">${simuladorMonto.toFixed(2)} USD</strong>
                   </div>
                   <div className="flex justify-between text-amber-300">
@@ -2713,8 +2814,45 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                     <strong className="text-base font-black">${(simuladorMonto * (politicasStays.porcentajeAnticipo / 100)).toFixed(2)} USD</strong>
                   </div>
                   <div className="flex justify-between text-gray-400 text-[11px]">
-                    <span>Saldo pendiente al Check-in ({100 - politicasStays.porcentajeAnticipo}%):</span>
+                    <span>Saldo a cobrar al Check-in ({100 - politicasStays.porcentajeAnticipo}%):</span>
                     <span>${(simuladorMonto * ((100 - politicasStays.porcentajeAnticipo) / 100)).toFixed(2)} USD</span>
+                  </div>
+                </div>
+
+                {/* Desglose de Liquidación SARA al Anfitrión tras el Check-in */}
+                <div className="p-3.5 bg-gradient-to-br from-slate-950 to-slate-900 rounded-xl border border-amber-500/30 space-y-2 text-xs">
+                  <div className="flex items-center justify-between text-amber-400 font-bold border-b border-white/10 pb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <Receipt size={14} />
+                      <span>Liquidación al Anfitrión (Post Check-in)</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-bold">100% Fondos en SARA</span>
+                  </div>
+
+                  <div className="space-y-1 text-[11px] text-gray-300">
+                    <div className="flex justify-between">
+                      <span>Total cobrado al huésped en SARA:</span>
+                      <strong className="text-white">${simuladorMonto.toFixed(2)} USD</strong>
+                    </div>
+                    <div className="flex justify-between text-rose-300">
+                      <span>• Retención Comisión SARA (15%):</span>
+                      <span>-${(simuladorMonto * 0.15).toFixed(2)} USD</span>
+                    </div>
+                    <div className="flex justify-between text-amber-300">
+                      <span>• Gastos Adm. / IVA ({politicasStays.ivaPorcentaje}% sobre comisión):</span>
+                      <span>-${((simuladorMonto * 0.15) * (politicasStays.ivaPorcentaje / 100)).toFixed(2)} USD</span>
+                    </div>
+                    <div className="flex justify-between text-gray-400 pt-0.5 border-t border-white/5">
+                      <span>Total retenido por SARA:</span>
+                      <strong className="text-rose-400">-${((simuladorMonto * 0.15) + ((simuladorMonto * 0.15) * (politicasStays.ivaPorcentaje / 100))).toFixed(2)} USD</strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1.5 border-t border-amber-500/30 bg-emerald-500/10 p-2 rounded-lg">
+                    <span className="text-emerald-300 font-bold">Neto a Transferir al Dueño:</span>
+                    <strong className="text-base text-emerald-400 font-black">
+                      ${(simuladorMonto - ((simuladorMonto * 0.15) + ((simuladorMonto * 0.15) * (politicasStays.ivaPorcentaje / 100)))).toFixed(2)} USD
+                    </strong>
                   </div>
                 </div>
 

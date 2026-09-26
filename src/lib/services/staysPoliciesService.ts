@@ -1,12 +1,14 @@
 import { createClient } from "@/lib/supabase/client"
 
 export interface StaysPolicies {
-  porcentajeAnticipo: number // Default 30
-  penalizacionMas10Dias: number // Default 10
-  penalizacion2a10Dias: number // Default 15
-  penalizacion24Horas: number // Default 20
+  porcentajeAnticipo: number // Default 30%
+  penalizacionMas10Dias: number // Default 10%
+  penalizacion2a10Dias: number // Default 15%
+  penalizacion24Horas: number // Default 20%
   diasReembolso: string // Default "48 a 72 horas laborables"
   metodoDevolucion: string // Default "Transferencia bancaria directa a la cuenta del huésped o reverso de tarjeta"
+  ivaPorcentaje: number // Default 15% (Ecuador general: 15%, Feriados turísticos decretados por el Gobierno: 8%, o 12%)
+  gastosAdministrativosDescripcion?: string
   actualizadoEn?: string
 }
 
@@ -16,7 +18,9 @@ export const DEFAULT_STAYS_POLICIES: StaysPolicies = {
   penalizacion2a10Dias: 15,
   penalizacion24Horas: 20,
   diasReembolso: "48 a 72 horas laborables",
-  metodoDevolucion: "Transferencia bancaria directa a la cuenta del huésped o reverso de tarjeta."
+  metodoDevolucion: "Transferencia bancaria directa a la cuenta del huésped o reverso de tarjeta.",
+  ivaPorcentaje: 15,
+  gastosAdministrativosDescripcion: "Gastos Administrativos e IVA sobre comisión SARA Stays (modificable según feriados turísticos gubernamentales)"
 }
 
 const STORAGE_KEY = "sara_stays_policies_config"
@@ -34,13 +38,15 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
     if (!error && data?.indirectos_default?.politicas_stays) {
       const dbPolicies = data.indirectos_default.politicas_stays
       if (typeof dbPolicies.porcentajeAnticipo === "number") {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(dbPolicies))
-        }
-        return {
+        const merged: StaysPolicies = {
           ...DEFAULT_STAYS_POLICIES,
-          ...dbPolicies
+          ...dbPolicies,
+          ivaPorcentaje: typeof dbPolicies.ivaPorcentaje === "number" ? dbPolicies.ivaPorcentaje : DEFAULT_STAYS_POLICIES.ivaPorcentaje
         }
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+        }
+        return merged
       }
     }
   } catch (err) {
@@ -54,7 +60,11 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
       if (local) {
         const parsed = JSON.parse(local)
         if (parsed && typeof parsed.porcentajeAnticipo === "number") {
-          return { ...DEFAULT_STAYS_POLICIES, ...parsed }
+          return {
+            ...DEFAULT_STAYS_POLICIES,
+            ...parsed,
+            ivaPorcentaje: typeof parsed.ivaPorcentaje === "number" ? parsed.ivaPorcentaje : DEFAULT_STAYS_POLICIES.ivaPorcentaje
+          }
         }
       }
     } catch {}
@@ -66,6 +76,7 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
 export async function saveStaysPolicies(policies: StaysPolicies): Promise<boolean> {
   const payload: StaysPolicies = {
     ...policies,
+    ivaPorcentaje: Number(policies.ivaPorcentaje) || DEFAULT_STAYS_POLICIES.ivaPorcentaje,
     actualizadoEn: new Date().toISOString()
   }
 
