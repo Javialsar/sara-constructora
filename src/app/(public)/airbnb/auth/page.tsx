@@ -128,7 +128,9 @@ const DESTACADOS_BASE: HospedajeDestacado[] = [
 export default function AirbnbAuthPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTarget = searchParams.get("redirect") || "/airbnb/mis-reservas"
+  const rawRedirect = searchParams.get("redirect") || "/airbnb"
+  const actionParam = searchParams.get("action")
+  const redirectTarget = actionParam ? `${rawRedirect}${rawRedirect.includes("?") ? "&" : "?"}action=${actionParam}` : rawRedirect
 
   // Pantalla de carga con logotipo 3D giratorio al ingresar
   const [showRotatingSplash, setShowRotatingSplash] = useState(true)

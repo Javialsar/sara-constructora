@@ -48,12 +48,16 @@ import {
   ThumbsUp,
   Copy,
   ChevronDown,
-  Info
+  Info,
+  PlusCircle,
+  LogOut
 } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
 import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
-import { getGuestSession, setGuestSession, GuestProfile } from "@/lib/services/guestAuth"
+import { getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
+import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
 
 export interface ResenaHuesped {
   id: string
@@ -534,8 +538,12 @@ export default function AirbnbPage() {
     titularTarjeta: ""
   })
 
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   // Sesión del Huésped Autenticado
   const [activeGuest, setActiveGuest] = useState<GuestProfile | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false)
 
   useEffect(() => {
     setActiveGuest(getGuestSession())
@@ -545,6 +553,36 @@ export default function AirbnbPage() {
     window.addEventListener("guest-session-change", handleSessionChange)
     return () => window.removeEventListener("guest-session-change", handleSessionChange)
   }, [])
+
+  // Si viene con el parámetro ?action=crear_alojamiento, abrir modal automáticamente
+  useEffect(() => {
+    if (searchParams.get("action") === "crear_alojamiento") {
+      setIsCreateModalOpen(true)
+    }
+  }, [searchParams])
+
+  const handleLogout = () => {
+    if (confirm("¿Deseas cerrar tu sesión de huésped en SARA Airbnb?")) {
+      clearGuestSession()
+      setActiveGuest(null)
+    }
+  }
+
+  const handleOpenCreateModal = () => {
+    if (!activeGuest) {
+      router.push("/airbnb/auth?redirect=/airbnb&action=crear_alojamiento")
+      return
+    }
+    setIsCreateModalOpen(true)
+  }
+
+  const handleAlojamientoCreado = (nuevo: AirbnbListing) => {
+    setAlojamientos(prev => [nuevo, ...prev])
+    setMapCenter([nuevo.lat, nuevo.lng])
+    setMapZoom(14)
+    setSelectedMapId(nuevo.id)
+    alert("¡Alojamiento registrado exitosamente! Ya se encuentra visible en el mapa y catálogo de SARA Airbnb.")
+  }
 
   // Estados para Cuentas Bancarias de la Empresa (Cargadas dinámicamente de Configuración)
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
@@ -1008,28 +1046,61 @@ export default function AirbnbPage() {
                 </h2>
               </div>
 
-              {/* Botón de Acceso al Portal del Huésped */}
-              {activeGuest ? (
-                <Link
-                  href="/airbnb/mis-reservas"
-                  className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold backdrop-blur-md transition-all shadow-lg hover:shadow-amber-500/20 cursor-pointer"
+              {/* Barra de Acciones del Usuario: Crear Alojamiento, Sesión y Salir */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                {/* Botón Destacado: Crear un Nuevo Alojamiento (Abre Modal de la Imagen 3) */}
+                <button
+                  type="button"
+                  onClick={handleOpenCreateModal}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-black shadow-lg hover:shadow-orange-500/30 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
+                  title="Registrar y promocionar un nuevo hospedaje en la red SARA Airbnb"
                 >
-                  <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
-                    {activeGuest.nombre.charAt(0)}
-                  </div>
-                  <span>Hola, {activeGuest.nombre} · Mis Reservas</span>
-                  <ChevronRight size={13} className="text-amber-400" />
-                </Link>
-              ) : (
-                <Link
-                  href="/airbnb/auth"
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all shadow-md hover:border-amber-400/60 cursor-pointer group"
-                >
-                  <User size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span>Iniciar Sesión / Mis Reservas</span>
-                  <Key size={12} className="text-brand-sage opacity-75" />
-                </Link>
-              )}
+                  <PlusCircle size={15} className="text-white" />
+                  <span>Crear un Nuevo Alojamiento</span>
+                </button>
+
+                {activeGuest ? (
+                  <>
+                    {/* Saludo con Nombre del Usuario y Acceso a Mis Reservas */}
+                    <Link
+                      href="/airbnb/mis-reservas"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold backdrop-blur-md transition-all shadow-md hover:shadow-amber-500/20 cursor-pointer"
+                      title="Ver mis reservas y códigos de acceso"
+                    >
+                      <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
+                        {activeGuest.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="truncate max-w-[130px] sm:max-w-none">
+                        Hola, {activeGuest.nombre} {activeGuest.apellido || ""}
+                      </span>
+                      <span className="text-[10px] bg-amber-400/30 px-1.5 py-0.2 rounded text-amber-300 hidden md:inline">
+                        Mis Reservas
+                      </span>
+                      <ChevronRight size={13} className="text-amber-400" />
+                    </Link>
+
+                    {/* Botón Cerrar Sesión */}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-rose-500/25 hover:border-rose-400/50 border border-white/20 text-gray-200 hover:text-rose-200 text-xs font-bold backdrop-blur-md transition-all cursor-pointer"
+                      title="Cerrar sesión de huésped"
+                    >
+                      <LogOut size={13} />
+                      <span className="hidden sm:inline">Cerrar Sesión</span>
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/airbnb/auth"
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all shadow-md hover:border-amber-400/60 cursor-pointer group"
+                  >
+                    <User size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span>Iniciar Sesión / Mis Reservas</span>
+                    <Key size={12} className="text-brand-sage opacity-75" />
+                  </Link>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -2520,6 +2591,15 @@ export default function AirbnbPage() {
           </div>
         </div>
       )}
+
+      {/* Modal: Registrar Nuevo Alojamiento Airbnb (Imagen 3) */}
+      <RegistrarAlojamientoModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={handleAlojamientoCreado}
+        activeGuest={activeGuest}
+        existingCount={alojamientos.length}
+      />
     </div>
   )
 }
