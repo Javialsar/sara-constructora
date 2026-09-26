@@ -50,7 +50,8 @@ import {
   ChevronDown,
   Info,
   PlusCircle,
-  LogOut
+  LogOut,
+  Camera
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
@@ -1575,75 +1576,94 @@ export default function AirbnbPage() {
       {/* 4. MODAL DETALLE & COTIZADOR DE ESTADÍA                     */}
       {/* ============================================================ */}
       {selectedStay && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 md:p-6 overflow-y-auto">
-          <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-y-auto shadow-2xl border border-gray-100 relative flex flex-col">
-            {/* Header del Modal */}
-            <div className="sticky top-0 bg-white/95 backdrop-blur-md px-6 py-4 border-b border-gray-100 flex items-center justify-between z-20">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
-                  <span>{selectedStay.bandera}</span> {selectedStay.ciudad}, {selectedStay.pais}
-                </span>
-                <h3 className="font-black text-gray-900 text-base md:text-lg line-clamp-1">
-                  {selectedStay.titulo}
-                </h3>
+        <div className="fixed inset-0 z-[100] bg-white w-screen h-screen overflow-y-auto flex flex-col animate-fadeIn">
+          {/* Header Pantalla Completa Inmersiva */}
+          <div className="sticky top-0 bg-white/95 backdrop-blur-md px-4 sm:px-8 py-3.5 border-b border-gray-200 flex items-center justify-between z-30 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setSelectedStay(null)}
+                className="p-2 -ml-2 rounded-xl text-gray-700 hover:text-gray-950 hover:bg-gray-100 transition-colors flex items-center gap-1.5 cursor-pointer font-bold text-xs shrink-0"
+                title="Volver a los alojamientos"
+              >
+                <ChevronLeft size={20} className="text-gray-800" />
+                <span className="hidden sm:inline">Volver a los Alojamientos</span>
+              </button>
+              <div className="h-5 w-px bg-gray-200 hidden sm:block shrink-0" />
+              <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 flex items-center gap-1 shrink-0">
+                <span>{selectedStay.bandera}</span> {selectedStay.ciudad}, {selectedStay.pais}
+              </span>
+              <h3 className="font-black text-gray-900 text-sm sm:text-base md:text-lg truncate">
+                {selectedStay.titulo}
+              </h3>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden md:flex items-center gap-1.5 text-xs font-bold text-gray-800 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                <Star size={14} className="fill-amber-400 text-amber-500" />
+                <span className="font-black text-gray-900">{getStayStats(selectedStay).rating.toFixed(2)}</span>
+                <span className="text-gray-300">•</span>
+                <span className="text-gray-600">{getStayStats(selectedStay).reviewsCount} evaluaciones</span>
               </div>
               <button
                 onClick={() => setSelectedStay(null)}
-                className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors"
+                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 hover:text-gray-950 transition-colors cursor-pointer shadow-xs"
+                aria-label="Cerrar pantalla completa"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
+          </div>
 
-            <div className="p-6 space-y-6">
-              {/* Galería Principal */}
-              <div>
-                <div className="relative h-72 md:h-96 w-full rounded-2xl overflow-hidden bg-gray-900 mb-3 shadow-inner">
-                  <img
-                    src={selectedStay.imagenes[activePhotoIdx]}
-                    alt={selectedStay.titulo}
-                    className="w-full h-full object-cover"
-                  />
-                  {selectedStay.imagenes.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : selectedStay.imagenes.length - 1))}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-                      >
-                        <ChevronLeft size={20} />
-                      </button>
-                      <button
-                        onClick={() => setActivePhotoIdx((prev) => (prev < selectedStay.imagenes.length - 1 ? prev + 1 : 0))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
-                      >
-                        <ChevronRight size={20} />
-                      </button>
-                    </>
-                  )}
-                  <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
-                    {activePhotoIdx + 1} / {selectedStay.imagenes.length} fotos
-                  </div>
-                </div>
-
-                {/* Miniaturas */}
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {selectedStay.imagenes.map((img, idx) => (
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 space-y-8 flex-1">
+            {/* Galería Principal a Pantalla Completa */}
+            <div>
+              <div className="relative h-80 sm:h-[450px] md:h-[540px] w-full rounded-3xl overflow-hidden bg-gray-950 mb-3 shadow-lg">
+                <img
+                  src={selectedStay.imagenes[activePhotoIdx]}
+                  alt={selectedStay.titulo}
+                  className="w-full h-full object-cover"
+                />
+                {selectedStay.imagenes.length > 1 && (
+                  <>
                     <button
-                      key={idx}
-                      onClick={() => setActivePhotoIdx(idx)}
-                      className={`relative w-20 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
-                        activePhotoIdx === idx ? 'border-amber-500 ring-2 ring-amber-400/30' : 'border-transparent opacity-70 hover:opacity-100'
-                      }`}
+                      onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : selectedStay.imagenes.length - 1))}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer shadow-lg backdrop-blur-sm"
                     >
-                      <img src={img} alt="Miniatura" className="w-full h-full object-cover" />
+                      <ChevronLeft size={24} />
                     </button>
-                  ))}
+                    <button
+                      onClick={() => setActivePhotoIdx((prev) => (prev < selectedStay.imagenes.length - 1 ? prev + 1 : 0))}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center transition-all cursor-pointer shadow-lg backdrop-blur-sm"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  </>
+                )}
+                <div className="absolute bottom-4 right-4 bg-black/75 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                  <Camera size={14} />
+                  <span>{activePhotoIdx + 1} / {selectedStay.imagenes.length} fotos</span>
                 </div>
               </div>
 
-              {/* Ficha y Desglose de Precios */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                <div className="md:col-span-2 space-y-4">
+              {/* Miniaturas de la Galería */}
+              <div className="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar">
+                {selectedStay.imagenes.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActivePhotoIdx(idx)}
+                    className={`relative w-24 sm:w-28 h-16 sm:h-20 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                      activePhotoIdx === idx ? 'border-amber-500 ring-2 ring-amber-400/40 shadow-md' : 'border-transparent opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="Miniatura" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ficha y Desglose de Precios */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-2 items-start">
+              <div className="lg:col-span-2 space-y-6">
                   <div>
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Descripción de la Estadía</h4>
                     <p className="text-sm text-gray-700 leading-relaxed">
@@ -1679,7 +1699,7 @@ export default function AirbnbPage() {
                 </div>
 
                 {/* Caja de Reserva Directa con desglose de noches */}
-                <div className="bg-slate-50 rounded-2xl p-5 border border-gray-200 flex flex-col justify-between">
+                <div className="bg-slate-50 rounded-3xl p-6 border border-gray-200/90 shadow-lg sticky top-24 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div>
@@ -1950,8 +1970,7 @@ export default function AirbnbPage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* ============================================================ */}
       {/* 5. MODAL INTERACTIVO DE PROCESO DE RESERVA (BOOKING FLOW)    */}
