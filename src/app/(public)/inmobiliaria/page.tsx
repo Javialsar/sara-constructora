@@ -216,8 +216,9 @@ const INMUEBLES_DATA: Inmueble[] = [
 export default function InmobiliariaPage() {
   const [modalidadTab, setModalidadTab] = useState<"todos" | "venta" | "arriendo" | "terrenos">("todos")
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos")
-  const [sectorFiltro, setSectorFiltro] = useState<string>("todos")
-  const [precioMax, setPrecioMax] = useState<number>(500000)
+  const [ubicacionInput, setUbicacionInput] = useState<string>("")
+  const [precioMin, setPrecioMin] = useState<number | "">("")
+  const [precioMax, setPrecioMax] = useState<number | "">("")
   const [habFiltro, setHabFiltro] = useState<number>(0)
   const [searchTerm, setSearchTerm] = useState<string>("")
   
@@ -234,29 +235,53 @@ export default function InmobiliariaPage() {
   const [isConsignarOpen, setIsConsignarOpen] = useState(false)
   const [consignarEnviado, setConsignarEnviado] = useState(false)
 
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const targetSection = document.getElementById("catalogo-propiedades")
+    if (targetSection) {
+      targetSection.scrollIntoView({ behavior: "smooth" })
+    }
+  }
+
   // Filtrado reactivo de propiedades
   const filteredInmuebles = useMemo(() => {
     return INMUEBLES_DATA.filter((item) => {
-      // Filtro Modalidad
+      // Filtro Modalidad (Compra / Alquiler / Terrenos / Todos)
       if (modalidadTab === "venta" && item.modalidad !== "venta") return false
       if (modalidadTab === "arriendo" && item.modalidad !== "arriendo") return false
       if (modalidadTab === "terrenos" && item.tipo !== "terreno") return false
 
-      // Filtro Tipo
+      // Filtro Tipo de Inmueble (imagen 2)
       if (tipoFiltro !== "todos" && item.tipo !== tipoFiltro) return false
 
-      // Filtro Sector
-      if (sectorFiltro !== "todos" && item.sector.toLowerCase() !== sectorFiltro.toLowerCase()) return false
+      // Filtro Ubicación (Cuadro de texto libre)
+      if (ubicacionInput.trim()) {
+        const q = ubicacionInput.toLowerCase().trim()
+        const matchUbicacion = (
+          item.ciudad.toLowerCase().includes(q) ||
+          item.sector.toLowerCase().includes(q) ||
+          item.direccionAprox.toLowerCase().includes(q) ||
+          item.titulo.toLowerCase().includes(q)
+        )
+        if (!matchUbicacion) return false
+      }
+
+      // Filtro Precio Mínimo
+      if (precioMin !== "" && Number(precioMin) > 0) {
+        if (item.precio < Number(precioMin)) return false
+      }
 
       // Filtro Precio Máximo
-      if (item.precio > precioMax) return false
+      if (precioMax !== "" && Number(precioMax) > 0) {
+        if (item.precio > Number(precioMax)) return false
+      }
 
       // Filtro Habitaciones
       if (habFiltro > 0 && item.habitaciones < habFiltro) return false
 
       // Filtro Búsqueda Texto
       if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase()
+        const q = searchTerm.toLowerCase().trim()
         const matchText = (
           item.titulo.toLowerCase().includes(q) ||
           item.sector.toLowerCase().includes(q) ||
@@ -268,7 +293,7 @@ export default function InmobiliariaPage() {
 
       return true
     })
-  }, [modalidadTab, tipoFiltro, sectorFiltro, precioMax, habFiltro, searchTerm])
+  }, [modalidadTab, tipoFiltro, ubicacionInput, precioMin, precioMax, habFiltro, searchTerm])
 
   // Cálculo de cuota hipotecaria mensual
   const cuotaMensualEstimada = useMemo(() => {
@@ -342,60 +367,76 @@ export default function InmobiliariaPage() {
           </div>
 
           {/* Caja del Buscador Principal tipo Portal */}
-          <div className="max-w-5xl mx-auto lg:mx-0 lg:ml-8 bg-white rounded-2xl p-4 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
-            {/* Pestañas de Modalidad */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4 mb-5">
-              {[
-                { id: "todos", label: "Todas las Propiedades" },
-                { id: "venta", label: "Comprar / En Venta" },
-                { id: "arriendo", label: "Arrendar / Alquiler" },
-                { id: "terrenos", label: "Terrenos & Lotes" }
-              ].map((tab) => (
+          <div className="w-full max-w-6xl mx-auto lg:mx-0 lg:ml-8 bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
+            {/* 1. Botones de Selección (Alquiler, Compra) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4 mb-5">
+              <div className="flex items-center gap-1.5 p-1 bg-gray-100 rounded-xl">
                 <button
-                  key={tab.id}
-                  onClick={() => setModalidadTab(tab.id as any)}
-                  className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold transition-all ${
-                    modalidadTab === tab.id
+                  type="button"
+                  onClick={() => setModalidadTab("venta")}
+                  className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
+                    modalidadTab === "venta"
                       ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  {tab.label}
+                  Compra
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setModalidadTab("arriendo")}
+                  className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
+                    modalidadTab === "arriendo"
+                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Alquiler
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalidadTab("terrenos")}
+                  className={`px-3.5 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
+                    modalidadTab === "terrenos"
+                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Terrenos & Lotes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalidadTab("todos")}
+                  className={`px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
+                    modalidadTab === "todos"
+                      ? "bg-brand-sage text-white shadow-md shadow-emerald-950/20"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  Ver Todos
+                </button>
+              </div>
 
               <button
+                type="button"
                 onClick={() => setIsConsignarOpen(true)}
-                className="ml-auto text-xs font-bold text-brand-sage hover:underline flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-sage/30 bg-emerald-50"
+                className="text-xs font-bold text-brand-sage hover:underline flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-brand-sage/30 bg-emerald-50 shadow-xs cursor-pointer ml-auto"
               >
                 <Tag size={13} /> Consigna tu Inmueble
               </button>
             </div>
 
-            {/* Barra de Filtros en Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Buscador de Texto */}
-              <div className="relative">
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Palabra Clave / Ref</label>
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Ej. Challuabamba, jardín..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white"
-                  />
-                </div>
-              </div>
-
-              {/* Selector Tipo */}
-              <div>
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Tipo de Inmueble</label>
+            {/* 2. Barra de Filtros en Grid (Tipo, Ubicación, Precio Min/Max, Buscar) */}
+            <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
+              {/* Tipo de Inmueble (imagen 2) */}
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Tipo de Inmueble
+                </label>
                 <select
                   value={tipoFiltro}
                   onChange={(e) => setTipoFiltro(e.target.value)}
-                  className="w-full px-3 py-2 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white"
+                  className="w-full px-3 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all h-[42px] cursor-pointer"
                 >
                   <option value="todos">Todos los tipos</option>
                   <option value="casa">Casas Residenciales</option>
@@ -407,41 +448,126 @@ export default function InmobiliariaPage() {
                 </select>
               </div>
 
-              {/* Selector Sector */}
-              <div>
-                <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Ubicación / Sector</label>
-                <select
-                  value={sectorFiltro}
-                  onChange={(e) => setSectorFiltro(e.target.value)}
-                  className="w-full px-3 py-2 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white"
-                >
-                  <option value="todos">Todos los sectores</option>
-                  <option value="Challuabamba">Challuabamba</option>
-                  <option value="Puertas del Sol">Puertas del Sol</option>
-                  <option value="El Vergel">El Vergel / Estadio</option>
-                  <option value="Ricaurte">Ricaurte</option>
-                  <option value="Valle de Yunguilla">Valle de Yunguilla</option>
-                  <option value="Remigio Crespo">Remigio Crespo</option>
-                </select>
+              {/* Ubicación (cuadro de texto libre) */}
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Ubicación
+                </label>
+                <div className="relative">
+                  <MapPin size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={ubicacionInput}
+                    onChange={(e) => setUbicacionInput(e.target.value)}
+                    placeholder="¿Dónde buscas? Ej: Challuabamba, Cuenca..."
+                    className="w-full pl-10 pr-8 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all placeholder:font-normal placeholder:text-gray-400 h-[42px]"
+                  />
+                  {ubicacionInput && (
+                    <button
+                      type="button"
+                      onClick={() => setUbicacionInput("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                      title="Borrar ubicación"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Rango Precio */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Precio Máximo</label>
-                  <span className="text-xs font-black text-brand-sage">${precioMax.toLocaleString()}</span>
+              {/* Selector Precio Mínimo */}
+              <div className="sm:col-span-1 lg:col-span-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Precio Mínimo
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step={modalidadTab === "arriendo" ? "50" : "5000"}
+                    value={precioMin}
+                    onChange={(e) => setPrecioMin(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="Mínimo"
+                    className="w-full pl-8 pr-2.5 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all h-[42px]"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="300"
-                  max="500000"
-                  step="5000"
-                  value={precioMax}
-                  onChange={(e) => setPrecioMax(Number(e.target.value))}
-                  className="w-full accent-brand-sage cursor-pointer mt-2"
-                />
               </div>
-            </div>
+
+              {/* Selector Precio Máximo */}
+              <div className="sm:col-span-1 lg:col-span-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">
+                  Precio Máximo
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step={modalidadTab === "arriendo" ? "50" : "5000"}
+                    value={precioMax}
+                    onChange={(e) => setPrecioMax(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="Máximo"
+                    className="w-full pl-8 pr-2.5 py-2.5 text-xs md:text-sm bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white text-gray-800 font-bold transition-all h-[42px]"
+                  />
+                </div>
+              </div>
+
+              {/* Botón Buscar */}
+              <div className="sm:col-span-2 lg:col-span-2">
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-4 bg-brand-sage hover:bg-emerald-700 active:scale-[0.98] text-white font-black rounded-xl text-xs md:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer h-[42px]"
+                >
+                  <Search size={16} className="stroke-[2.5]" />
+                  <span>Buscar</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Resumen de filtros activos */}
+            {(ubicacionInput || tipoFiltro !== "todos" || precioMin !== "" || precioMax !== "" || modalidadTab !== "todos") && (
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 mt-3 border-t border-gray-100 text-xs">
+                <div className="flex items-center gap-1.5 text-gray-500 text-[11px] flex-wrap">
+                  <span className="font-semibold text-gray-400">Filtros aplicados:</span>
+                  {modalidadTab !== "todos" && (
+                    <span className="bg-emerald-50 text-brand-sage px-2 py-0.5 rounded-md font-bold border border-emerald-100">
+                      {modalidadTab === "venta" ? "En Venta" : modalidadTab === "arriendo" ? "En Alquiler" : "Terrenos"}
+                    </span>
+                  )}
+                  {tipoFiltro !== "todos" && (
+                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold">
+                      {tipoFiltro === "casa" ? "Casas" : tipoFiltro === "departamento" ? "Departamentos" : tipoFiltro === "terreno" ? "Terrenos" : tipoFiltro === "suite" ? "Suites" : tipoFiltro === "quinta" ? "Quintas" : "Locales"}
+                    </span>
+                  )}
+                  {ubicacionInput && (
+                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold flex items-center gap-1">
+                      <MapPin size={11} className="text-brand-sage" /> {ubicacionInput}
+                    </span>
+                  )}
+                  {(precioMin !== "" || precioMax !== "") && (
+                    <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md font-bold">
+                      ${precioMin || "0"} - ${precioMax || "Sin tope"}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalidadTab("todos")
+                    setTipoFiltro("todos")
+                    setUbicacionInput("")
+                    setPrecioMin("")
+                    setPrecioMax("")
+                    setSearchTerm("")
+                  }}
+                  className="text-xs text-gray-500 hover:text-red-600 font-bold transition-colors cursor-pointer ml-auto"
+                >
+                  Restablecer
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -449,7 +575,7 @@ export default function InmobiliariaPage() {
       {/* ============================================================ */}
       {/* 2. CATÁLOGO DE PROPIEDADES (GRID DE TARJETAS DE ALTA GAMA)   */}
       {/* ============================================================ */}
-      <section className="container mx-auto px-4 md:px-8 -mt-6 relative z-20">
+      <section id="catalogo-propiedades" className="container mx-auto px-4 md:px-8 -mt-6 relative z-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h2 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
@@ -584,11 +710,12 @@ export default function InmobiliariaPage() {
               onClick={() => {
                 setModalidadTab("todos")
                 setTipoFiltro("todos")
-                setSectorFiltro("todos")
-                setPrecioMax(500000)
+                setUbicacionInput("")
+                setPrecioMin("")
+                setPrecioMax("")
                 setSearchTerm("")
               }}
-              className="text-xs font-bold text-brand-sage bg-emerald-50 px-4 py-2 rounded-lg border border-brand-sage/20"
+              className="text-xs font-bold text-brand-sage bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-lg border border-brand-sage/20 transition-colors cursor-pointer"
             >
               Restablecer Filtros
             </button>
