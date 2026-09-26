@@ -16,7 +16,8 @@ import {
   MapPin,
   Star,
   ExternalLink,
-  Compass,
+  ChevronLeft,
+  ChevronRight,
   Phone
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -41,7 +42,7 @@ const DESTACADOS_BASE: HospedajeDestacado[] = [
   {
     id: "ab-1",
     codigo: "SARA-EC-01",
-    titulo: "Master Suite de Diseño Frente al Río Tomebamba",
+    titulo: "Master Suite Frente al Río Tomebamba",
     ciudad: "Cuenca",
     sector: "Puertas del Sol",
     pais: "Ecuador",
@@ -69,7 +70,7 @@ const DESTACADOS_BASE: HospedajeDestacado[] = [
   {
     id: "ab-2",
     codigo: "SARA-EC-02",
-    titulo: "Loft Patrimonial en Calle Larga - Centro Histórico",
+    titulo: "Loft Patrimonial en Calle Larga - Centro",
     ciudad: "Cuenca",
     sector: "Centro Histórico",
     pais: "Ecuador",
@@ -135,9 +136,11 @@ export default function AirbnbAuthPage() {
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
 
-  // Filtro de Zona para el Banner de Hospedajes Destacados
+  // Filtro de Zona y Carrusel Circulante de 2 Tarjetas
   const [selectedZona, setSelectedZona] = useState<"todas" | "cuenca" | "cariamanga" | "yunguilla" | "internacional">("todas")
   const [destacados, setDestacados] = useState<HospedajeDestacado[]>(DESTACADOS_BASE)
+  const [currentIndex, setCurrentIndex] = useState<number>(0)
+  const [isPaused, setIsPaused] = useState<boolean>(false)
 
   // Form State: Login
   const [loginEmail, setLoginEmail] = useState("")
@@ -163,7 +166,7 @@ export default function AirbnbAuthPage() {
     }
   }, [router, redirectTarget])
 
-  // Cargar alojamientos dinámicos desde Supabase para nutrir el banner de destacados
+  // Cargar alojamientos dinámicos desde Supabase
   useEffect(() => {
     async function loadAlojamientos() {
       try {
@@ -215,11 +218,45 @@ export default function AirbnbAuthPage() {
     loadAlojamientos()
   }, [])
 
-  // Filtrado de hospedajes según la zona seleccionada
+  // Filtrado según la zona elegida
   const filteredDestacados = useMemo(() => {
     if (selectedZona === "todas") return destacados
     return destacados.filter(d => d.zonaId === selectedZona)
   }, [destacados, selectedZona])
+
+  // Reiniciar índice al cambiar de zona
+  useEffect(() => {
+    setCurrentIndex(0)
+  }, [selectedZona])
+
+  // Controles de Carrusel (Siguiente / Anterior)
+  const handleNext = () => {
+    if (filteredDestacados.length <= 2) return
+    setCurrentIndex(prev => (prev + 1) % filteredDestacados.length)
+  }
+
+  const handlePrev = () => {
+    if (filteredDestacados.length <= 2) return
+    setCurrentIndex(prev => (prev - 1 + filteredDestacados.length) % filteredDestacados.length)
+  }
+
+  // Rotación automática de derecha a izquierda cada 3.8 segundos
+  useEffect(() => {
+    if (isPaused || filteredDestacados.length <= 2) return
+    const timer = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % filteredDestacados.length)
+    }, 3800)
+    return () => clearInterval(timer)
+  }, [isPaused, filteredDestacados.length])
+
+  // Exactamente 2 tarjetas visibles circulando
+  const visibleCards = useMemo(() => {
+    if (filteredDestacados.length === 0) return []
+    if (filteredDestacados.length === 1) return [filteredDestacados[0]]
+    const idx1 = currentIndex % filteredDestacados.length
+    const idx2 = (currentIndex + 1) % filteredDestacados.length
+    return [filteredDestacados[idx1], filteredDestacados[idx2]]
+  }, [filteredDestacados, currentIndex])
 
   // Manejar Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -232,7 +269,6 @@ export default function AirbnbAuthPage() {
         throw new Error("Por favor completa tu correo y contraseña.")
       }
 
-      // Intentar con Supabase Auth
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: loginEmail.trim(),
         password: loginPassword
@@ -252,7 +288,6 @@ export default function AirbnbAuthPage() {
         guestCedula = metadata.cedula || ""
       }
 
-      // Guardar sesión de huésped
       setGuestSession({
         id: guestId,
         nombre: guestName,
@@ -361,97 +396,112 @@ export default function AirbnbAuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-gray-900 relative flex items-center justify-center p-3 sm:p-6 py-12 md:py-20">
-      {/* Fondo con imagen y overlay de marca */}
+    <div className="min-h-screen w-full bg-slate-950 text-gray-900 relative flex items-center justify-center p-3 sm:p-6 py-6 md:py-10">
+      {/* Fondo con imagen de marca difuminada para atmósfera elegante */}
       <div 
-        className="absolute inset-0 bg-cover bg-center z-0 opacity-20"
+        className="absolute inset-0 bg-cover bg-center z-0 opacity-15"
         style={{ backgroundImage: "url('/sara-airbnb.png')" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/95 to-brand-dark/90 z-0" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-slate-900/90 z-0" />
 
-      {/* Contenedor Principal Expandido y Centrado */}
-      <div className="relative z-10 w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-fadeIn">
+      {/* Contenedor Principal Centrado y Compacto */}
+      <div className="relative z-10 w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100/90 overflow-hidden animate-fadeIn">
         
         {/* ============================================================ */}
         {/* 1. CABECERA CON EL LOGO CORPORATIVO SARA AIRBNB (IMAGEN 2)  */}
         {/* ============================================================ */}
-        <div className="bg-brand-dark p-6 sm:p-8 text-white relative border-b border-brand-sage/20">
+        <div className="bg-brand-dark p-5 sm:p-6 text-white relative border-b border-brand-sage/20">
           <Link
             href="/airbnb"
-            className="inline-flex items-center gap-1.5 text-xs text-brand-sage hover:text-white font-bold mb-4 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs text-brand-sage hover:text-white font-bold mb-3 transition-colors cursor-pointer"
           >
             <ArrowLeft size={14} /> Volver al Catálogo de Hospedajes
           </Link>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
-            {/* Logo de la empresa en contenedor de alto contraste */}
-            <div className="bg-white/95 rounded-2xl p-2 sm:p-2.5 shadow-xl border border-white/20 shrink-0 self-start sm:self-auto flex items-center justify-center">
+          <div className="flex items-center gap-4">
+            {/* Logo oficial SARA Airbnb en contenedor blanco nítido */}
+            <div className="bg-white/95 rounded-2xl p-2 shadow-lg border border-white/20 shrink-0 flex items-center justify-center">
               <img
                 src="/logo-sara-airbnb.png"
                 alt="Logo SARA Airbnb"
-                className="h-14 sm:h-16 w-auto object-contain drop-shadow"
+                className="h-12 sm:h-14 w-auto object-contain drop-shadow"
               />
             </div>
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
+                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
                   Portal del Huésped
                 </h1>
-                <span className="text-xs bg-amber-400/20 text-amber-300 font-bold px-2.5 py-0.5 rounded-full border border-amber-400/30">
+                <span className="text-[10px] sm:text-xs bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
                   SARA Airbnb
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-gray-300 mt-1 max-w-2xl leading-relaxed">
-                Accede a tus reservas, consulta las claves de cerraduras inteligentes (Smart Lock) y califica tus estadías.
+              <p className="text-xs text-gray-300 mt-0.5 max-w-md leading-snug">
+                Accede a tus reservas, consulta las claves de cerraduras inteligentes y califica tus estadías.
               </p>
             </div>
           </div>
         </div>
 
         {/* ============================================================ */}
-        {/* 2. BANNER DE HOSPEDAJES DESTACADOS SEGÚN LA ZONA/UBICACIÓN   */}
+        {/* 2. BANNER DE 2 TARJETAS CIRCULANDO DE DERECHA A IZQUIERDA   */}
         {/* ============================================================ */}
-        <div className="bg-slate-50 border-b border-gray-200 p-5 sm:p-6 space-y-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-amber-500" />
-                <h3 className="text-xs sm:text-sm font-black text-gray-900 uppercase tracking-wider">
-                  Hospedajes Más Destacados en tu Zona
-                </h3>
-              </div>
-              <p className="text-[11px] sm:text-xs text-gray-500">
-                Selecciona tu destino o explora las mejores propiedades verificadas por SARA Hospitality:
-              </p>
+        <div 
+          className="bg-slate-50 border-b border-gray-200 p-4 sm:p-5 space-y-3"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          {/* Fila Superior del Banner: Título y Controles */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <Sparkles size={15} className="text-amber-500 shrink-0" />
+              <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">
+                Hospedajes Más Destacados en tu Zona
+              </h3>
             </div>
 
-            <Link
-              href="/airbnb"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-900 self-start sm:self-auto"
-            >
-              <span>Ver todas en el mapa</span>
-              <ExternalLink size={12} />
-            </Link>
+            {/* Controles de Navegación del Carrusel */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-gray-400 font-mono hidden sm:inline mr-1">
+                {(currentIndex % filteredDestacados.length) + 1} de {filteredDestacados.length}
+              </span>
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+                title="Hospedaje anterior"
+              >
+                <ChevronLeft size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+                title="Hospedaje siguiente"
+              >
+                <ChevronRight size={15} />
+              </button>
+            </div>
           </div>
 
-          {/* Etiquetas / Chips de Filtro por Zona */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+          {/* Filtros de Zona en Etiquetas Sutiles */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
             {[
-              { id: "todas", label: "🗺️ Todas las Zonas" },
-              { id: "cuenca", label: "📍 Cuenca & Río Tomebamba" },
-              { id: "cariamanga", label: "📍 Cariamanga / Cerro Ahuaca" },
-              { id: "yunguilla", label: "📍 Valle de Yunguilla" },
-              { id: "internacional", label: "🌎 Destinos Mundiales (Miami / Madrid)" }
+              { id: "todas", label: "🗺️ Todas" },
+              { id: "cuenca", label: "📍 Cuenca" },
+              { id: "cariamanga", label: "📍 Cariamanga" },
+              { id: "yunguilla", label: "📍 Yunguilla" },
+              { id: "internacional", label: "🌎 Mundial" }
             ].map(tab => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setSelectedZona(tab.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
                   selectedZona === tab.id
-                    ? "bg-brand-dark text-amber-400 shadow-sm border border-brand-dark"
-                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100 hover:text-gray-900"
+                    ? "bg-brand-dark text-amber-400 shadow-2xs border border-brand-dark"
+                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                 }`}
               >
                 {tab.label}
@@ -459,33 +509,36 @@ export default function AirbnbAuthPage() {
             ))}
           </div>
 
-          {/* Carrusel / Grid de Tarjetas de Hospedajes Destacados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
-            {filteredDestacados.slice(0, 3).map((item) => (
+          {/* Contenedor de Exactamente 2 Tarjetas Circulando de Derecha a Izquierda */}
+          <div 
+            key={currentIndex}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-3 transition-opacity duration-300 ease-out"
+          >
+            {visibleCards.map((item, idx) => (
               <Link
-                key={item.id}
+                key={`${item.id}-${idx}`}
                 href="/airbnb"
-                className="group bg-white rounded-2xl p-2.5 border border-gray-200 hover:border-amber-400 hover:shadow-lg transition-all flex items-center gap-3"
+                className="group bg-white rounded-2xl p-2 border border-gray-200 hover:border-amber-400 hover:shadow-md transition-all flex items-center gap-2.5 overflow-hidden"
               >
-                {/* Miniatura */}
-                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden shrink-0 bg-gray-100">
+                {/* Miniatura Fotográfica */}
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100">
                   <img
                     src={item.imagen}
                     alt={item.titulo}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                  <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold px-1 rounded">
                     {item.bandera}
                   </div>
                 </div>
 
-                {/* Info de la tarjeta */}
-                <div className="flex-1 min-w-0">
+                {/* Datos del Hospedaje */}
+                <div className="flex-1 min-w-0 pr-1">
                   <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5">
                     <MapPin size={11} className="text-amber-500 shrink-0" />
                     <span className="truncate">{item.sector}, {item.ciudad}</span>
                   </div>
-                  
+
                   <h4 className="text-xs font-bold text-gray-900 truncate group-hover:text-amber-800 transition-colors">
                     {item.titulo}
                   </h4>
@@ -504,6 +557,25 @@ export default function AirbnbAuthPage() {
               </Link>
             ))}
           </div>
+
+          {/* Indicadores Circulares de Posición */}
+          {filteredDestacados.length > 2 && (
+            <div className="flex justify-center items-center gap-1.5 pt-0.5">
+              {filteredDestacados.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setCurrentIndex(i)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    i === (currentIndex % filteredDestacados.length)
+                      ? "w-4 bg-amber-500"
+                      : "w-1.5 bg-gray-300 hover:bg-gray-400"
+                  }`}
+                  aria-label={`Ir al hospedaje ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ============================================================ */}
@@ -514,10 +586,10 @@ export default function AirbnbAuthPage() {
             <button
               type="button"
               onClick={() => { setActiveTab("login"); setError(""); }}
-              className={`flex-1 py-3.5 text-xs sm:text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
+              className={`flex-1 py-3 text-xs sm:text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
                 activeTab === "login"
                   ? "border-brand-sage text-brand-dark bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-800 bg-slate-50/60"
+                  : "border-transparent text-gray-500 hover:text-gray-800 bg-slate-50/70"
               }`}
             >
               Iniciar Sesión
@@ -525,10 +597,10 @@ export default function AirbnbAuthPage() {
             <button
               type="button"
               onClick={() => { setActiveTab("registro"); setError(""); }}
-              className={`flex-1 py-3.5 text-xs sm:text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
+              className={`flex-1 py-3 text-xs sm:text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
                 activeTab === "registro"
                   ? "border-brand-sage text-brand-dark bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-800 bg-slate-50/60"
+                  : "border-transparent text-gray-500 hover:text-gray-800 bg-slate-50/70"
               }`}
             >
               Crear Cuenta Nueva
@@ -537,17 +609,17 @@ export default function AirbnbAuthPage() {
         </div>
 
         {/* Cuerpo del Formulario de Autenticación */}
-        <div className="p-6 sm:p-8 space-y-5">
+        <div className="p-5 sm:p-6 space-y-4">
           {/* Mensajes de Alerta */}
           {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold animate-fadeIn">
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold animate-fadeIn">
               ⚠️ {error}
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-fadeIn flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-600" />
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-fadeIn flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
               <span>{successMsg}</span>
             </div>
           )}
@@ -556,7 +628,7 @@ export default function AirbnbAuthPage() {
           {/* FORMULARIO 1: INICIAR SESIÓN */}
           {/* ======================================================== */}
           {activeTab === "login" && (
-            <form onSubmit={handleLogin} className="space-y-4 max-w-xl mx-auto">
+            <form onSubmit={handleLogin} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
                   Correo Electrónico
@@ -607,12 +679,12 @@ export default function AirbnbAuthPage() {
                 <ArrowRight size={16} />
               </button>
 
-              {/* Botón de acceso rápido para demo/huésped frecuente */}
-              <div className="pt-2 text-center">
+              {/* Botón de acceso demo rápido */}
+              <div className="pt-1 text-center">
                 <button
                   type="button"
                   onClick={handleQuickDemoAccess}
-                  className="text-xs text-brand-dark hover:underline font-bold inline-flex items-center gap-1.5 cursor-pointer bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-xl border border-amber-300 transition-colors shadow-xs"
+                  className="text-xs text-brand-dark hover:underline font-bold inline-flex items-center gap-1.5 cursor-pointer bg-amber-50 hover:bg-amber-100 px-3.5 py-1.5 rounded-xl border border-amber-300 transition-colors shadow-2xs"
                 >
                   <Sparkles size={14} className="text-amber-600" />
                   <span>Acceso Huésped Frecuente (Alexandra Malacatus)</span>
@@ -625,8 +697,8 @@ export default function AirbnbAuthPage() {
           {/* FORMULARIO 2: CREAR CUENTA NUEVA */}
           {/* ======================================================== */}
           {activeTab === "registro" && (
-            <form onSubmit={handleRegister} className="space-y-3.5 max-w-xl mx-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <form onSubmit={handleRegister} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Nombres <span className="text-rose-500">*</span>
@@ -655,7 +727,7 @@ export default function AirbnbAuthPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Cédula / Pasaporte <span className="text-rose-500">*</span>
@@ -708,7 +780,7 @@ export default function AirbnbAuthPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Contraseña <span className="text-rose-500">*</span>
@@ -741,7 +813,7 @@ export default function AirbnbAuthPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+                className="w-full py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
               >
                 <span>{isLoading ? "Creando tu cuenta..." : "Crear Cuenta de Huésped SARA"}</span>
                 <CheckCircle2 size={16} />
