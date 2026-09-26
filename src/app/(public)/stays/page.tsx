@@ -896,6 +896,37 @@ export default function AirbnbPage() {
     }
   }
 
+  // Sincronizar automáticamente los datos del huésped activo si la ventana de reserva está abierta
+  useEffect(() => {
+    if (activeGuest) {
+      setGuestData(prev => ({
+        ...prev,
+        nombre: activeGuest.nombre || prev.nombre,
+        apellido: activeGuest.apellido || prev.apellido,
+        email: activeGuest.email || prev.email,
+        telefono: activeGuest.telefono || prev.telefono,
+        identificacion: activeGuest.cedula || prev.identificacion,
+        ciudadPais: activeGuest.ciudad ? `${activeGuest.ciudad}, Ecuador` : prev.ciudadPais
+      }))
+    }
+  }, [activeGuest])
+
+  // Reanudar la reserva o abrir alojamiento automáticamente si el usuario regresa tras autenticarse
+  useEffect(() => {
+    const action = searchParams.get("action")
+    const targetStayId = searchParams.get("stayId") || searchParams.get("stay")
+    if (targetStayId && alojamientos.length > 0) {
+      const match = alojamientos.find(a => a.id === targetStayId || a.codigo === targetStayId)
+      if (match) {
+        if (action === "reservar") {
+          handleStartBooking(match)
+        } else if (!action) {
+          setSelectedStay(match)
+        }
+      }
+    }
+  }, [searchParams, alojamientos])
+
   const handleConfirmReservation = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!bookingStay) return
@@ -1247,7 +1278,7 @@ export default function AirbnbPage() {
               </div>
             ) : (
               <Link
-                href="/stays/auth"
+                href="/stays/auth?redirect=/stays/mis-reservas"
                 className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
               >
                 <Key size={13} className="text-amber-400" />
@@ -2531,7 +2562,10 @@ export default function AirbnbPage() {
                           <Info size={15} className="text-amber-600 shrink-0" />
                           <span>¿Ya tienes cuenta de Huésped SARA?</span>
                         </div>
-                        <Link href="/stays/auth" className="text-xs font-bold text-amber-800 underline hover:text-amber-950">
+                        <Link 
+                          href={`/stays/auth?redirect=/stays&stayId=${bookingStay.id}&action=reservar&title=${encodeURIComponent(bookingStay.titulo)}`} 
+                          className="text-xs font-bold text-amber-800 underline hover:text-amber-950"
+                        >
                           Inicia Sesión aquí
                         </Link>
                       </div>

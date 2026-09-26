@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -14,123 +14,26 @@ import {
   CheckCircle2, 
   ArrowLeft,
   Sparkles,
-  MapPin,
-  Star,
-  ChevronLeft,
-  ChevronRight,
-  Phone
+  Phone,
+  User,
+  UserPlus,
+  Key,
+  Home,
+  Check
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { setGuestSession, getGuestSession } from "@/lib/services/guestAuth"
 
-interface HospedajeDestacado {
-  id: string
-  codigo: string
-  titulo: string
-  ciudad: string
-  sector: string
-  pais: string
-  bandera: string
-  precioNoche: number
-  rating: number
-  isSuperhost: boolean
-  imagen: string
-  zonaId: "cuenca" | "cariamanga" | "yunguilla" | "internacional" | "todas"
+interface ReturnContext {
+  redirect: string
+  action?: string | null
+  stayId?: string | null
+  stayTitle?: string | null
 }
-
-const DESTACADOS_BASE: HospedajeDestacado[] = [
-  {
-    id: "ab-1",
-    codigo: "SARA-EC-01",
-    titulo: "Master Suite Frente al Río Tomebamba",
-    ciudad: "Cuenca",
-    sector: "Puertas del Sol",
-    pais: "Ecuador",
-    bandera: "🇪🇨",
-    precioNoche: 48,
-    rating: 4.98,
-    isSuperhost: true,
-    imagen: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80",
-    zonaId: "cuenca"
-  },
-  {
-    id: "ab-cariamanga-1",
-    codigo: "SARA-CAR-01",
-    titulo: "Hospedaje El Halcón con Vista al Cerro Ahuaca",
-    ciudad: "Cariamanga",
-    sector: "Centro / Vía Ahuaca",
-    pais: "Ecuador",
-    bandera: "🇪🇨",
-    precioNoche: 35,
-    rating: 5.0,
-    isSuperhost: true,
-    imagen: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=600&q=80",
-    zonaId: "cariamanga"
-  },
-  {
-    id: "ab-2",
-    codigo: "SARA-EC-02",
-    titulo: "Loft Patrimonial en Calle Larga - Centro",
-    ciudad: "Cuenca",
-    sector: "Centro Histórico",
-    pais: "Ecuador",
-    bandera: "🇪🇨",
-    precioNoche: 59,
-    rating: 4.95,
-    isSuperhost: true,
-    imagen: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80",
-    zonaId: "cuenca"
-  },
-  {
-    id: "ab-3",
-    codigo: "SARA-EC-03",
-    titulo: "Villa Campestre Los Guayacanes con Piscina",
-    ciudad: "Santa Isabel",
-    sector: "Valle de Yunguilla",
-    pais: "Ecuador",
-    bandera: "🇪🇨",
-    precioNoche: 165,
-    rating: 5.0,
-    isSuperhost: true,
-    imagen: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80",
-    zonaId: "yunguilla"
-  },
-  {
-    id: "ab-6",
-    codigo: "SARA-INT-01",
-    titulo: "High-Rise Penthouse en Brickell con Bahía View",
-    ciudad: "Miami, FL",
-    sector: "Brickell Financial",
-    pais: "Estados Unidos",
-    bandera: "🇺🇸",
-    precioNoche: 220,
-    rating: 4.97,
-    isSuperhost: true,
-    imagen: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80",
-    zonaId: "internacional"
-  },
-  {
-    id: "ab-7",
-    codigo: "SARA-INT-02",
-    titulo: "Apartamento de Diseño en Barrio de Salamanca",
-    ciudad: "Madrid",
-    sector: "Barrio Salamanca",
-    pais: "España",
-    bandera: "🇪🇸",
-    precioNoche: 135,
-    rating: 4.96,
-    isSuperhost: true,
-    imagen: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=600&q=80",
-    zonaId: "internacional"
-  }
-]
 
 export default function AirbnbAuthPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const rawRedirect = searchParams.get("redirect") || "/stays"
-  const actionParam = searchParams.get("action")
-  const redirectTarget = actionParam ? `${rawRedirect}${rawRedirect.includes("?") ? "&" : "?"}action=${actionParam}` : rawRedirect
 
   // Pantalla de carga con logotipo 3D giratorio al ingresar
   const [showRotatingSplash, setShowRotatingSplash] = useState(true)
@@ -138,10 +41,11 @@ export default function AirbnbAuthPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowRotatingSplash(false)
-    }, 1500)
+    }, 1200)
     return () => clearTimeout(timer)
   }, [])
 
+  // Tab activo: Iniciar Sesión vs Registro
   const [activeTab, setActiveTab] = useState<"login" | "registro">("login")
   const [showPassword, setShowPassword] = useState(false)
   const [showRegPassword, setShowRegPassword] = useState(false)
@@ -149,12 +53,6 @@ export default function AirbnbAuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
-
-  // Filtro de Zona y Carrusel Circulante de 2 Tarjetas
-  const [selectedZona, setSelectedZona] = useState<"todas" | "cuenca" | "cariamanga" | "yunguilla" | "internacional">("todas")
-  const [destacados, setDestacados] = useState<HospedajeDestacado[]>(DESTACADOS_BASE)
-  const [currentIndex, setCurrentIndex] = useState<number>(0)
-  const [isPaused, setIsPaused] = useState<boolean>(false)
 
   // Form State: Login
   const [loginEmail, setLoginEmail] = useState("")
@@ -171,106 +69,88 @@ export default function AirbnbAuthPage() {
     confirmPassword: ""
   })
 
+  // Gestión de Referencia de Origen (Preserva dónde estaba el cliente)
+  const [returnContext, setReturnContext] = useState<ReturnContext>({
+    redirect: "/stays"
+  })
+
+  useEffect(() => {
+    // 1. Obtener parámetros directos de la URL
+    const urlRedirect = searchParams.get("redirect")
+    const urlAction = searchParams.get("action")
+    const urlStayId = searchParams.get("stayId") || searchParams.get("stay")
+    const urlStayTitle = searchParams.get("title")
+
+    if (urlRedirect || urlAction || urlStayId) {
+      const ctx: ReturnContext = {
+        redirect: urlRedirect || "/stays",
+        action: urlAction || null,
+        stayId: urlStayId || null,
+        stayTitle: urlStayTitle || null
+      }
+      setReturnContext(ctx)
+      try {
+        sessionStorage.setItem("sara_stays_auth_return", JSON.stringify(ctx))
+      } catch (e) {
+        console.warn("Aviso: no se pudo guardar referencia en sessionStorage", e)
+      }
+    } else {
+      // 2. Recuperar de sessionStorage si la URL viene limpia
+      try {
+        const saved = sessionStorage.getItem("sara_stays_auth_return")
+        if (saved) {
+          const parsed = JSON.parse(saved)
+          if (parsed && typeof parsed === "object") {
+            setReturnContext(parsed)
+          }
+        }
+      } catch (e) {
+        console.warn("Aviso: no se pudo restaurar referencia de sessionStorage", e)
+      }
+    }
+  }, [searchParams])
+
+  // Calcular la URL final de redirección asegurando todos los parámetros
+  const computeFinalRedirectUrl = (): string => {
+    const base = returnContext.redirect || "/stays"
+    let pathname = base
+    const params = new URLSearchParams()
+
+    if (base.includes("?")) {
+      const parts = base.split("?")
+      pathname = parts[0]
+      const existingParams = new URLSearchParams(parts[1])
+      existingParams.forEach((v, k) => params.set(k, v))
+    }
+
+    if (returnContext.action) {
+      params.set("action", returnContext.action)
+    }
+    if (returnContext.stayId) {
+      params.set("stayId", returnContext.stayId)
+    }
+
+    const qs = params.toString()
+    const target = qs ? `${pathname}?${qs}` : pathname
+
+    // Limpiar referencia de almacenamiento tras uso
+    try {
+      sessionStorage.removeItem("sara_stays_auth_return")
+    } catch {}
+
+    return target
+  }
+
   const supabase = createClient()
 
+  // Si ya tiene sesión activa previa, redirigir de inmediato al destino guardado
   useEffect(() => {
     const existing = getGuestSession()
     if (existing) {
-      router.push(redirectTarget)
+      const target = computeFinalRedirectUrl()
+      router.push(target)
     }
-  }, [router, redirectTarget])
-
-  // Cargar alojamientos dinámicos desde Supabase
-  useEffect(() => {
-    async function loadAlojamientos() {
-      try {
-        const res = await fetch("/api/airbnb/alojamientos")
-        if (res.ok) {
-          const data = await res.json()
-          if (Array.isArray(data.alojamientos) && data.alojamientos.length > 0) {
-            const mappedDB: HospedajeDestacado[] = data.alojamientos
-              .filter((a: any) => a.publicado !== false)
-              .map((a: any) => {
-                const ciudadLower = (a.ciudad || "").toLowerCase()
-                let zona: "cuenca" | "cariamanga" | "yunguilla" | "internacional" | "todas" = "cuenca"
-                if (ciudadLower.includes("cariamanga") || ciudadLower.includes("calvas") || ciudadLower.includes("loja")) {
-                  zona = "cariamanga"
-                } else if (ciudadLower.includes("yunguilla") || ciudadLower.includes("isabel")) {
-                  zona = "yunguilla"
-                } else if (a.alcance === "internacional" || ciudadLower.includes("miami") || ciudadLower.includes("madrid") || ciudadLower.includes("cancun")) {
-                  zona = "internacional"
-                }
-
-                return {
-                  id: a.id,
-                  codigo: a.codigo,
-                  titulo: a.titulo,
-                  ciudad: a.ciudad,
-                  sector: a.sector || "",
-                  pais: a.pais || "Ecuador",
-                  bandera: a.bandera || "🇪🇨",
-                  precioNoche: Number(a.precioNoche) || 45,
-                  rating: Number(a.rating) || 5.0,
-                  isSuperhost: Boolean(a.isSuperhost),
-                  imagen: (Array.isArray(a.imagenes) && a.imagenes[0]) || a.imagenUrl || DESTACADOS_BASE[0].imagen,
-                  zonaId: zona
-                }
-              })
-
-            setDestacados(prev => {
-              const codigosDB = new Set(mappedDB.map(d => d.codigo))
-              const staticRestantes = DESTACADOS_BASE.filter(d => !codigosDB.has(d.codigo))
-              return [...mappedDB, ...staticRestantes]
-            })
-          }
-        }
-      } catch (err) {
-        console.warn("Aviso: cargando destacados de respaldo local:", err)
-      }
-    }
-
-    loadAlojamientos()
-  }, [])
-
-  // Filtrado según la zona elegida
-  const filteredDestacados = useMemo(() => {
-    if (selectedZona === "todas") return destacados
-    return destacados.filter(d => d.zonaId === selectedZona)
-  }, [destacados, selectedZona])
-
-  // Reiniciar índice al cambiar de zona
-  useEffect(() => {
-    setCurrentIndex(0)
-  }, [selectedZona])
-
-  // Controles de Carrusel (Siguiente / Anterior)
-  const handleNext = () => {
-    if (filteredDestacados.length <= 2) return
-    setCurrentIndex(prev => (prev + 1) % filteredDestacados.length)
-  }
-
-  const handlePrev = () => {
-    if (filteredDestacados.length <= 2) return
-    setCurrentIndex(prev => (prev - 1 + filteredDestacados.length) % filteredDestacados.length)
-  }
-
-  // Rotación automática de derecha a izquierda cada 3.8 segundos
-  useEffect(() => {
-    if (isPaused || filteredDestacados.length <= 2) return
-    const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % filteredDestacados.length)
-    }, 3800)
-    return () => clearInterval(timer)
-  }, [isPaused, filteredDestacados.length])
-
-  // Exactamente 2 tarjetas visibles circulando
-  const visibleCards = useMemo(() => {
-    if (filteredDestacados.length === 0) return []
-    if (filteredDestacados.length === 1) return [filteredDestacados[0]]
-    const idx1 = currentIndex % filteredDestacados.length
-    const idx2 = (currentIndex + 1) % filteredDestacados.length
-    return [filteredDestacados[idx1], filteredDestacados[idx2]]
-  }, [filteredDestacados, currentIndex])
+  }, [router, returnContext])
 
   // Manejar Login
   const handleLogin = async (e: React.FormEvent) => {
@@ -304,7 +184,6 @@ export default function AirbnbAuthPage() {
         guestCedula = metadata.cedula || ""
       }
 
-      // Limpiar y formatear nombre legible (ej. clarisa.paredes -> Clarisa Paredes)
       const cleanParts = rawName.replace(/[._-]+/g, " ").trim().split(/\s+/)
       let finalNombre = cleanParts.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
       if (!guestApellido && cleanParts.length > 1) {
@@ -324,10 +203,11 @@ export default function AirbnbAuthPage() {
         fechaRegistro: new Date().toISOString()
       })
 
-      setSuccessMsg("¡Bienvenido! Redirigiendo a tus estadías...")
+      setSuccessMsg("¡Bienvenido! Redirigiendo a tu solicitud...")
       setTimeout(() => {
-        router.push(redirectTarget)
-      }, 1000)
+        const dest = computeFinalRedirectUrl()
+        router.push(dest)
+      }, 900)
     } catch (err: any) {
       setError(err.message || "Error al iniciar sesión.")
     } finally {
@@ -391,7 +271,7 @@ export default function AirbnbAuthPage() {
         fechaRegistro: new Date().toISOString()
       })
 
-      // 3. Persistir en Base de Datos para el Módulo Administrador de Huéspedes
+      // 3. Persistir en Base de Datos de Huéspedes
       try {
         await fetch("/api/airbnb/usuarios", {
           method: "POST",
@@ -410,10 +290,11 @@ export default function AirbnbAuthPage() {
         console.warn("Aviso registrando usuario en base de datos:", err)
       }
 
-      setSuccessMsg("¡Cuenta creada exitosamente! Redirigiendo...")
+      setSuccessMsg("¡Cuenta creada exitosamente! Continuando con tu proceso...")
       setTimeout(() => {
-        router.push(redirectTarget)
-      }, 1200)
+        const dest = computeFinalRedirectUrl()
+        router.push(dest)
+      }, 1000)
     } catch (err: any) {
       setError(err.message || "Error al registrar la cuenta.")
     } finally {
@@ -421,7 +302,7 @@ export default function AirbnbAuthPage() {
     }
   }
 
-  // Acceso Rápido para Prueba (Alexandra Malacatus o Huésped Frecuente)
+  // Acceso Rápido para Pruebas (Alexandra Malacatus - Huésped VIP)
   const handleQuickDemoAccess = () => {
     setGuestSession({
       id: "demo-alexandra-01",
@@ -434,14 +315,20 @@ export default function AirbnbAuthPage() {
       ciudadPais: "Cariamanga / Loja, Ecuador",
       fechaRegistro: new Date().toISOString()
     })
-    setSuccessMsg("Iniciando como Alexandra Malacatus (Huésped Verificado)...")
+    setSuccessMsg("Iniciando como Alexandra Malacatus (Huésped VIP)...")
     setTimeout(() => {
-      router.push(redirectTarget)
-    }, 800)
+      const dest = computeFinalRedirectUrl()
+      router.push(dest)
+    }, 700)
   }
 
+  // URL para el botón Volver
+  const backTarget = returnContext.stayId && returnContext.action === "reservar"
+    ? `/stays?stayId=${returnContext.stayId}&action=reservar`
+    : returnContext.redirect || "/stays"
+
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-gray-900 relative flex items-center justify-center p-3 sm:p-6 py-6 md:py-10">
+    <div className="min-h-screen w-full bg-slate-950 text-white relative flex items-center justify-center p-3 sm:p-6 py-8 md:py-12 overflow-x-hidden selection:bg-brand-sage selection:text-white">
       
       {/* ============================================================ */}
       {/* SPLASH SCREEN CON LOGOTIPO GIRATORIO 3D AL ENTRAR           */}
@@ -451,314 +338,289 @@ export default function AirbnbAuthPage() {
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center"
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center"
             style={{ perspective: 1200 }}
           >
             {/* Logotipo en rotación continua 360° */}
             <motion.div
               animate={{ rotateY: 360 }}
               transition={{ 
-                duration: 1.5, 
+                duration: 1.4, 
                 ease: "easeInOut",
                 repeat: Infinity,
                 repeatType: "loop"
               }}
-              className="relative w-44 h-44 sm:w-56 sm:h-56 mb-8 transform-style-3d"
+              className="relative w-44 h-44 sm:w-52 sm:h-52 mb-6"
               style={{ transformStyle: "preserve-3d" }}
             >
               <img
                 src="/images/logo-3d-blanco.png"
-                alt="SARA Constructora Logo 3D Giratorio"
-                className="w-full h-full object-contain drop-shadow-2xl"
-                style={{ backfaceVisibility: "visible", transform: "translateZ(50px)" }}
+                alt="SARA Stays Logo 3D Giratorio"
+                className="w-full h-full object-contain drop-shadow-[0_20px_35px_rgba(16,185,129,0.3)]"
+                style={{ backfaceVisibility: "visible" }}
               />
             </motion.div>
 
             {/* Barra de progreso de carga */}
-            <div className="w-48 h-1 bg-gray-100 rounded-full relative overflow-hidden mb-5">
+            <div className="w-48 h-1 bg-slate-800 rounded-full relative overflow-hidden mb-4">
               <motion.div 
                 initial={{ x: "-100%" }}
                 animate={{ x: "100%" }}
-                transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                className="absolute top-0 bottom-0 left-0 w-1/2 bg-brand-sage"
+                transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+                className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-brand-sage to-amber-400"
               />
             </div>
 
-            <span className="text-xs uppercase tracking-[0.25em] font-extrabold text-brand-dark">
-              SARA HOSPITALITY · AIRBNB
+            <span className="text-xs uppercase tracking-[0.3em] font-extrabold text-amber-400">
+              SARA STAYS · HOSPEDAJE
             </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Fondo con imagen de marca difuminada para atmósfera elegante */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center z-0 opacity-15"
-        style={{ backgroundImage: "url('/sara-airbnb.png')" }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/95 to-slate-900/90 z-0" />
+      {/* ============================================================ */}
+      {/* FONDOS AMBIENTALES Y LUCES 3D DINÁMICAS                      */}
+      {/* ============================================================ */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-emerald-600/10 blur-[130px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-amber-500/10 blur-[140px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vw] rounded-full bg-slate-900/60 blur-[160px]" />
+        <div 
+          className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+          style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "32px 32px"
+          }}
+        />
+      </div>
 
-      {/* Contenedor Principal Centrado y Compacto */}
-      <div className="relative z-10 w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100/90 overflow-hidden animate-fadeIn">
-        
-        {/* ============================================================ */}
-        {/* 1. CABECERA CON EL LOGO CORPORATIVO SARA AIRBNB (IMAGEN 2)  */}
-        {/* ============================================================ */}
-        <div className="bg-brand-dark p-5 sm:p-6 text-white relative border-b border-brand-sage/20">
-          <Link
-            href="/stays"
-            className="inline-flex items-center gap-1.5 text-xs text-brand-sage hover:text-white font-bold mb-3 transition-colors cursor-pointer"
-          >
-            <ArrowLeft size={14} /> Volver al Catálogo de Hospedajes
-          </Link>
+      {/* ============================================================ */}
+      {/* TARJETA PRINCIPAL 3D DE AUTENTICACIÓN (SIN BANNERS)          */}
+      {/* ============================================================ */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative z-10 w-full max-w-xl bg-slate-900/85 backdrop-blur-2xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] border border-white/10 overflow-hidden"
+      >
+        {/* Borde sutil superior brillante */}
+        <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500" />
+
+        {/* 1. Cabecera Corporativa SARA Stays */}
+        <div className="p-5 sm:p-7 pb-4 bg-gradient-to-b from-slate-950/80 to-transparent border-b border-white/5">
+          <div className="flex items-center justify-between mb-4">
+            <Link
+              href={backTarget}
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-bold transition-colors group cursor-pointer"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+              <span>Volver a Hospedajes</span>
+            </Link>
+
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/25 flex items-center gap-1">
+              <Sparkles size={11} className="text-amber-400" />
+              <span>SARA Stays</span>
+            </span>
+          </div>
 
           <div className="flex items-center gap-4">
-            {/* Logo oficial SARA Airbnb en contenedor blanco nítido */}
-            <div className="bg-white/95 rounded-2xl p-2 shadow-lg border border-white/20 shrink-0 flex items-center justify-center">
+            {/* Logo en contenedor premium con sombra */}
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/95 p-2 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] border border-white/20 shrink-0 flex items-center justify-center">
               <img
                 src="/logo-sara-airbnb.png"
-                alt="Logo SARA Airbnb"
-                className="h-12 sm:h-14 w-auto object-contain drop-shadow"
+                alt="Logo SARA Stays"
+                className="w-full h-full object-contain"
               />
             </div>
 
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
-                  Portal del Huésped
-                </h1>
-                <span className="text-[10px] sm:text-xs bg-amber-400/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-400/30">
-                  SARA Airbnb
-                </span>
-              </div>
-              <p className="text-xs text-gray-300 mt-0.5 max-w-md leading-snug">
-                Accede a tus reservas, consulta las claves de cerraduras inteligentes y califica tus estadías.
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>Portal del Huésped</span>
+              </h1>
+              <p className="text-xs text-slate-400 mt-0.5 leading-snug">
+                Accede para gestionar tus reservas, llaves digitales y tarifas directas.
               </p>
             </div>
           </div>
         </div>
 
-        {/* ============================================================ */}
-        {/* 2. BANNER DE 2 TARJETAS CIRCULANDO DE DERECHA A IZQUIERDA   */}
-        {/* ============================================================ */}
-        <div 
-          className="bg-slate-50 border-b border-gray-200 p-4 sm:p-5 space-y-3"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-        >
-          {/* Fila Superior del Banner: Título y Controles */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
-              <Sparkles size={15} className="text-amber-500 shrink-0" />
-              <h3 className="text-xs font-black text-gray-900 uppercase tracking-wider">
-                Hospedajes Más Destacados en tu Zona
-              </h3>
-            </div>
-
-            {/* Controles de Navegación del Carrusel */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400 font-mono hidden sm:inline mr-1">
-                {(currentIndex % filteredDestacados.length) + 1} de {filteredDestacados.length}
-              </span>
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
-                title="Hospedaje anterior"
-              >
-                <ChevronLeft size={15} />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="w-7 h-7 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
-                title="Hospedaje siguiente"
-              >
-                <ChevronRight size={15} />
-              </button>
-            </div>
-          </div>
-
-          {/* Filtros de Zona en Etiquetas Sutiles */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            {[
-              { id: "todas", label: "🗺️ Todas" },
-              { id: "cuenca", label: "📍 Cuenca" },
-              { id: "cariamanga", label: "📍 Cariamanga" },
-              { id: "yunguilla", label: "📍 Yunguilla" },
-              { id: "internacional", label: "🌎 Mundial" }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedZona(tab.id as any)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedZona === tab.id
-                    ? "bg-brand-dark text-amber-400 shadow-2xs border border-brand-dark"
-                    : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Contenedor de Exactamente 2 Tarjetas Circulando de Derecha a Izquierda */}
-          <div 
-            key={currentIndex}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-3 transition-opacity duration-300 ease-out"
-          >
-            {visibleCards.map((item, idx) => (
-              <Link
-                key={`${item.id}-${idx}`}
-                href="/stays"
-                className="group bg-white rounded-2xl p-2 border border-gray-200 hover:border-amber-400 hover:shadow-md transition-all flex items-center gap-2.5 overflow-hidden"
-              >
-                {/* Miniatura Fotográfica */}
-                <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100">
-                  <img
-                    src={item.imagen}
-                    alt={item.titulo}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs text-white text-[9px] font-bold px-1 rounded">
-                    {item.bandera}
-                  </div>
+        {/* 2. Chip de Referencia Contextual (Si viene de reservar o crear propiedad) */}
+        <div className="px-5 sm:px-7 pt-4">
+          {returnContext.action === "reservar" && (
+            <motion.div 
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-400/30 flex items-start gap-3 text-left"
+            >
+              <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                <Sparkles size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Continuando con tu Reserva</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
+                <p className="text-xs text-slate-300 mt-0.5 leading-snug">
+                  {returnContext.stayTitle ? (
+                    <>Estás a un paso de reservar <strong>{returnContext.stayTitle}</strong>. </>
+                  ) : returnContext.stayId ? (
+                    <>Estás a un paso de reservar el hospedaje <strong>#{returnContext.stayId}</strong>. </>
+                  ) : null}
+                  Inicia sesión o crea tu cuenta para asegurar tus fechas al instante.
+                </p>
+              </div>
+            </motion.div>
+          )}
 
-                {/* Datos del Hospedaje */}
-                <div className="flex-1 min-w-0 pr-1">
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-0.5">
-                    <MapPin size={11} className="text-amber-500 shrink-0" />
-                    <span className="truncate">{item.sector}, {item.ciudad}</span>
-                  </div>
-
-                  <h4 className="text-xs font-bold text-gray-900 truncate group-hover:text-amber-800 transition-colors">
-                    {item.titulo}
-                  </h4>
-
-                  <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-100 text-[11px]">
-                    <div className="flex items-center gap-0.5 text-amber-600 font-bold">
-                      <Star size={11} className="fill-amber-400 text-amber-400" />
-                      <span>{item.rating.toFixed(2)}</span>
-                    </div>
-
-                    <span className="font-black text-gray-900">
-                      ${item.precioNoche} <span className="text-[9px] font-normal text-gray-500">/noche</span>
-                    </span>
-                  </div>
+          {returnContext.action === "crear_alojamiento" && (
+            <motion.div 
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent border border-emerald-400/30 flex items-start gap-3 text-left"
+            >
+              <div className="w-8 h-8 rounded-xl bg-emerald-400/20 text-emerald-300 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                <Home size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>Publicar tu Alojamiento</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Indicadores Circulares de Posición */}
-          {filteredDestacados.length > 2 && (
-            <div className="flex justify-center items-center gap-1.5 pt-0.5">
-              {filteredDestacados.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setCurrentIndex(i)}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    i === (currentIndex % filteredDestacados.length)
-                      ? "w-4 bg-amber-500"
-                      : "w-1.5 bg-gray-300 hover:bg-gray-400"
-                  }`}
-                  aria-label={`Ir al hospedaje ${i + 1}`}
-                />
-              ))}
-            </div>
+                <p className="text-xs text-slate-300 mt-0.5 leading-snug">
+                  Inicia sesión o regístrate para publicar tu propiedad y recibir huéspedes en SARA Stays.
+                </p>
+              </div>
+            </motion.div>
           )}
         </div>
 
-        {/* ============================================================ */}
-        {/* 3. SECCIÓN DE AUTENTICACIÓN (TABS LOGIN & REGISTRO)          */}
-        {/* ============================================================ */}
-        <div className="border-b border-gray-200 bg-white">
-          <div className="flex">
+        {/* 3. Selector de Pestañas Interactivas (Tabs con animación fluida) */}
+        <div className="px-5 sm:px-7 pt-4">
+          <div className="relative p-1 rounded-2xl bg-slate-950/60 border border-white/5 flex gap-1">
             <button
               type="button"
               onClick={() => { setActiveTab("login"); setError(""); }}
-              className={`flex-1 py-3 text-xs sm:text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
+              className={`relative z-10 flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 activeTab === "login"
-                  ? "border-brand-sage text-brand-dark bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-800 bg-slate-50/70"
+                  ? "text-slate-950 shadow-md"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
-              Iniciar Sesión
+              {activeTab === "login" && (
+                <motion.div
+                  layoutId="activeTabBadge"
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-xl"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <Key size={14} />
+                <span>Iniciar Sesión</span>
+              </span>
             </button>
+
             <button
               type="button"
               onClick={() => { setActiveTab("registro"); setError(""); }}
-              className={`flex-1 py-3 text-xs sm:text-sm font-bold text-center border-b-2 transition-all cursor-pointer ${
+              className={`relative z-10 flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                 activeTab === "registro"
-                  ? "border-brand-sage text-brand-dark bg-white"
-                  : "border-transparent text-gray-500 hover:text-gray-800 bg-slate-50/70"
+                  ? "text-slate-950 shadow-md"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
-              Crear Cuenta Nueva
+              {activeTab === "registro" && (
+                <motion.div
+                  layoutId="activeTabBadge"
+                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-xl"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                <UserPlus size={14} />
+                <span>Crear Cuenta Nueva</span>
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Cuerpo del Formulario de Autenticación */}
-        <div className="p-5 sm:p-6 space-y-4">
+        {/* 4. Formulario Dinámico */}
+        <div className="p-5 sm:p-7 space-y-4">
           {/* Mensajes de Alerta */}
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold animate-fadeIn">
-              ⚠️ {error}
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2"
+            >
+              <span className="text-base">⚠️</span>
+              <span>{error}</span>
+            </motion.div>
           )}
 
           {successMsg && (
-            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold animate-fadeIn flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+            <motion.div 
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2"
+            >
+              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
               <span>{successMsg}</span>
-            </div>
+            </motion.div>
           )}
 
           {/* ======================================================== */}
           {/* FORMULARIO 1: INICIAR SESIÓN */}
           {/* ======================================================== */}
           {activeTab === "login" && (
-            <form onSubmit={handleLogin} className="space-y-3.5">
+            <motion.form 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25 }}
+              onSubmit={handleLogin} 
+              className="space-y-4"
+            >
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
                   Correo Electrónico
                 </label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="email"
                     required
                     placeholder="tu.correo@ejemplo.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
-                  Contraseña
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                    Contraseña
+                  </label>
+                  <span className="text-[11px] text-slate-400 hover:text-amber-400 transition-colors cursor-pointer">
+                    ¿Olvidaste tu clave?
+                  </span>
+                </div>
                 <div className="relative">
-                  <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none"
+                    className="w-full pl-10 pr-11 py-3 bg-slate-950/70 border border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer transition-colors p-1"
+                    title={showPassword ? "Ocultar" : "Mostrar"}
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -768,48 +630,57 @@ export default function AirbnbAuthPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-2xl text-xs sm:text-sm font-extrabold shadow-[0_10px_25px_-5px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99]"
               >
-                <span>{isLoading ? "Ingresando..." : "Ingresar a Mi Cuenta"}</span>
+                <span>{isLoading ? "Ingresando a tu cuenta..." : "Ingresar a Mi Cuenta"}</span>
                 <ArrowRight size={16} />
               </button>
 
-              {/* Botón de acceso demo rápido */}
-              <div className="pt-1 text-center">
+              {/* Acceso Rápido VIP para pruebas */}
+              <div className="pt-2 text-center">
                 <button
                   type="button"
                   onClick={handleQuickDemoAccess}
-                  className="text-xs text-brand-dark hover:underline font-bold inline-flex items-center gap-1.5 cursor-pointer bg-amber-50 hover:bg-amber-100 px-3.5 py-1.5 rounded-xl border border-amber-300 transition-colors shadow-2xs"
+                  className="group text-xs text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-2 cursor-pointer bg-amber-400/10 hover:bg-amber-400/20 px-4 py-2 rounded-2xl border border-amber-400/30 transition-all shadow-xs"
                 >
-                  <Sparkles size={14} className="text-amber-600" />
-                  <span>Acceso Huésped Frecuente (Alexandra Malacatus)</span>
+                  <Sparkles size={14} className="text-amber-400 group-hover:rotate-12 transition-transform" />
+                  <span>Acceso Rápido VIP (Alexandra Malacatus)</span>
                 </button>
               </div>
-            </form>
+            </motion.form>
           )}
 
           {/* ======================================================== */}
-          {/* FORMULARIO 2: CREAR CUENTA NUEVA (CON BOTONES VER CLAVE) */}
+          {/* FORMULARIO 2: CREAR CUENTA NUEVA */}
           {/* ======================================================== */}
           {activeTab === "registro" && (
-            <form onSubmit={handleRegister} className="space-y-3">
+            <motion.form 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.25 }}
+              onSubmit={handleRegister} 
+              className="space-y-3"
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Nombres <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Nombres <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej: Alexandra"
-                    value={regForm.nombre}
-                    onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white"
-                  />
+                  <div className="relative">
+                    <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: Alexandra"
+                      value={regForm.nombre}
+                      onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })}
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
                     Apellidos
                   </label>
                   <input
@@ -817,69 +688,68 @@ export default function AirbnbAuthPage() {
                     placeholder="Ej: Malacatus"
                     value={regForm.apellido}
                     onChange={(e) => setRegForm({ ...regForm, apellido: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white"
+                    className="w-full px-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Cédula / Pasaporte <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Cédula / Pasaporte <span className="text-rose-400">*</span>
                   </label>
                   <div className="relative">
-                    <CreditCard size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <CreditCard size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="text"
                       required
                       placeholder="1103711592"
                       value={regForm.cedula}
                       onChange={(e) => setRegForm({ ...regForm, cedula: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-brand-sage focus:bg-white"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    WhatsApp <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    WhatsApp <span className="text-rose-400">*</span>
                   </label>
                   <div className="relative">
-                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="tel"
                       required
                       placeholder="+593 981804023"
                       value={regForm.telefono}
                       onChange={(e) => setRegForm({ ...regForm, telefono: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white"
+                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">
-                  Correo Electrónico <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Correo Electrónico <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="email"
                     required
                     placeholder="huesped@ejemplo.com"
                     value={regForm.email}
                     onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                    className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white"
+                    className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
                   />
                 </div>
               </div>
 
-              {/* Casillas de Contraseña con Botón de Ver/Ocultar (Eye/EyeOff) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Contraseña <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Contraseña <span className="text-rose-400">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -888,13 +758,13 @@ export default function AirbnbAuthPage() {
                       placeholder="Mínimo 6 carácteres"
                       value={regForm.password}
                       onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                      className="w-full pl-3 pr-9 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none"
+                      className="w-full pl-3 pr-9 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
                     />
                     <button
                       type="button"
                       onClick={() => setShowRegPassword(!showRegPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
-                      title={showRegPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                      title={showRegPassword ? "Ocultar" : "Mostrar"}
                     >
                       {showRegPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -902,8 +772,8 @@ export default function AirbnbAuthPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Confirmar Contraseña <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Confirmar Contraseña <span className="text-rose-400">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -912,13 +782,13 @@ export default function AirbnbAuthPage() {
                       placeholder="Repite tu contraseña"
                       value={regForm.confirmPassword}
                       onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
-                      className="w-full pl-3 pr-9 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none"
+                      className="w-full pl-3 pr-9 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
                     />
                     <button
                       type="button"
                       onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
-                      title={showRegConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                      title={showRegConfirmPassword ? "Ocultar" : "Mostrar"}
                     >
                       {showRegConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
@@ -929,20 +799,35 @@ export default function AirbnbAuthPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
+                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-2xl text-xs sm:text-sm font-extrabold shadow-[0_10px_25px_-5px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2 hover:scale-[1.01] active:scale-[0.99]"
               >
                 <span>{isLoading ? "Creando tu cuenta..." : "Crear Cuenta de Huésped SARA"}</span>
                 <CheckCircle2 size={16} />
               </button>
-            </form>
+            </motion.form>
           )}
 
-          <div className="pt-2 text-center text-xs text-gray-500 border-t border-gray-100 flex items-center justify-center gap-2">
-            <ShieldCheck size={14} className="text-emerald-600" />
-            <span>Tus datos se encuentran cifrados bajo protocolo seguro SSL</span>
+          {/* 5. Micro-Badges de Confianza e Interacción */}
+          <div className="pt-3 border-t border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-400">
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
+              <Check size={12} className="text-emerald-400 shrink-0" />
+              <span>Smart Lock 24/7</span>
+            </div>
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
+              <Check size={12} className="text-emerald-400 shrink-0" />
+              <span>Tarifa Directa</span>
+            </div>
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
+              <Check size={12} className="text-emerald-400 shrink-0" />
+              <span>Confirmación ⚡</span>
+            </div>
+            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
+              <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
+              <span>SSL 256-bit</span>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
