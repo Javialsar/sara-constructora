@@ -107,7 +107,7 @@ export default function InmobiliariaAirbnbShowcase() {
             </div>
 
             <Link
-              href="/airbnb"
+              href="/stays"
               className="w-full py-3.5 px-6 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-950/40 transition-all"
             >
               Ver Alojamientos y Reservar <ArrowRight size={15} />

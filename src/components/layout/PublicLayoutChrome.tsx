@@ -23,6 +23,7 @@ export default function PublicLayoutChrome({
 
   // Ocultar cabecera de menú corporativo, pie de página, chatbot y barra móvil en portales dedicados
   const isStandaloneModule = 
+    pathname.startsWith("/stays") ||
     pathname.startsWith("/airbnb") || 
     pathname.startsWith("/inmobiliaria")
 

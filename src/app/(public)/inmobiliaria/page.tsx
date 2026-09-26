@@ -342,7 +342,7 @@ export default function InmobiliariaPage() {
             {/* Navegación Rápida entre Portales */}
             <nav className="hidden lg:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs font-semibold">
               <Link 
-                href="/airbnb" 
+                href="/stays" 
                 className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
               >
                 <Compass size={14} className="text-amber-400" />
@@ -1047,7 +1047,7 @@ export default function InmobiliariaPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-6 text-xs">
-            <Link href="/airbnb" className="hover:text-white transition-colors">Portal SARA STAYS / Hospédate</Link>
+            <Link href="/stays" className="hover:text-white transition-colors">Portal SARA STAYS / Hospédate</Link>
             <Link href="/" className="hover:text-white transition-colors">Sara Constructora Principal</Link>
             <button onClick={() => setIsConsignarOpen(true)} className="hover:text-emerald-400 transition-colors cursor-pointer">Consignar Propiedad</button>
             <a href="https://wa.me/593981804023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Asesoría Inmobiliaria: +593 98 180 4023</a>

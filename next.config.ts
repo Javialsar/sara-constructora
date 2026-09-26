@@ -9,6 +9,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/airbnb',
+        destination: '/stays',
+        permanent: true,
+      },
+      {
+        source: '/airbnb/:path*',
+        destination: '/stays/:path*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

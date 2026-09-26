@@ -1023,7 +1023,7 @@ export default function AdminAirbnbPage() {
         
         const enviarWhatsApp = confirm(`✅ Nueva clave generada con éxito:\n\nUsuario: ${u.email}\nNueva Clave: ${clavePersonalizada.trim()}\n\n¿Deseas abrir WhatsApp para enviársela directamente a ${u.telefono}?`)
         if (enviarWhatsApp) {
-          const msg = encodeURIComponent(`Hola ${u.nombre}, tu nueva contraseña para ingresar al Portal de Huéspedes SARA Airbnb es: ${clavePersonalizada.trim()}\n\nPuedes acceder aquí: https://sara-constructora.vercel.app/airbnb/auth`)
+          const msg = encodeURIComponent(`Hola ${u.nombre}, tu nueva contraseña para ingresar al Portal de Huéspedes SARA STAYS es: ${clavePersonalizada.trim()}\n\nPuedes acceder aquí: https://sara-constructora.vercel.app/stays/auth`)
           window.open(`https://wa.me/${u.telefono.replace(/[^0-9]/g, "")}?text=${msg}`, "_blank")
         }
       }
@@ -1613,12 +1613,12 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <Link
-            href="/airbnb"
+            href="/stays"
             target="_blank"
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-all shadow-sm"
           >
             <ExternalLink size={16} />
-            <span>Ver Portal Airbnb Público</span>
+            <span>Ver Portal Stays Público</span>
           </Link>
 
           <button

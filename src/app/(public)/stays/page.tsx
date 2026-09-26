@@ -573,7 +573,7 @@ export default function AirbnbPage() {
 
   const handleOpenCreateModal = () => {
     if (!activeGuest) {
-      router.push("/airbnb/auth?redirect=/airbnb&action=crear_alojamiento")
+      router.push("/stays/auth?redirect=/stays&action=crear_alojamiento")
       return
     }
     setIsCreateModalOpen(true)
@@ -1119,7 +1119,7 @@ export default function AirbnbPage() {
         <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
           {/* Logo y Marca SARA Airbnb */}
           <div className="flex items-center gap-6">
-            <Link href="/airbnb" className="flex items-center gap-3 group">
+            <Link href="/stays" className="flex items-center gap-3 group">
               <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
                 <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-full h-full object-contain" />
               </div>
@@ -1172,7 +1172,7 @@ export default function AirbnbPage() {
             {activeGuest ? (
               <div className="flex items-center gap-2">
                 <Link
-                  href="/airbnb/mis-reservas"
+                  href="/stays/mis-reservas"
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold transition-all shadow-sm"
                 >
                   <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
@@ -1196,7 +1196,7 @@ export default function AirbnbPage() {
               </div>
             ) : (
               <Link
-                href="/airbnb/auth"
+                href="/stays/auth"
                 className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
               >
                 <User size={13} className="text-amber-400" />
@@ -1266,7 +1266,7 @@ export default function AirbnbPage() {
                   <>
                     {/* Saludo con Nombre del Usuario y Acceso a Mis Reservas */}
                     <Link
-                      href="/airbnb/mis-reservas"
+                      href="/stays/mis-reservas"
                       className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold backdrop-blur-md transition-all shadow-md hover:shadow-amber-500/20 cursor-pointer"
                       title="Ver mis reservas y códigos de acceso"
                     >
@@ -1295,7 +1295,7 @@ export default function AirbnbPage() {
                   </>
                 ) : (
                   <Link
-                    href="/airbnb/auth"
+                    href="/stays/auth"
                     className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all shadow-md hover:border-amber-400/60 cursor-pointer group"
                   >
                     <User size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
@@ -1325,7 +1325,7 @@ export default function AirbnbPage() {
                 <Star size={13} className="fill-amber-400 text-amber-400" /> Categoría Superhost & Smart Lock
               </span>
               <Link
-                href={activeGuest ? "/airbnb/mis-reservas" : "/airbnb/auth"}
+                href={activeGuest ? "/stays/mis-reservas" : "/stays/auth"}
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 backdrop-blur-sm hover:bg-amber-500/30 transition-colors"
               >
                 <Key size={13} className="text-amber-400" />
@@ -2279,7 +2279,7 @@ export default function AirbnbPage() {
                           <Info size={15} className="text-amber-600 shrink-0" />
                           <span>¿Ya tienes cuenta de Huésped SARA?</span>
                         </div>
-                        <Link href="/airbnb/auth" className="text-xs font-bold text-amber-800 underline hover:text-amber-950">
+                        <Link href="/stays/auth" className="text-xs font-bold text-amber-800 underline hover:text-amber-950">
                           Inicia Sesión aquí
                         </Link>
                       </div>
@@ -2780,7 +2780,7 @@ export default function AirbnbPage() {
                     </button>
 
                     <Link
-                      href="/airbnb/mis-reservas"
+                      href="/stays/mis-reservas"
                       onClick={() => setBookingStay(null)}
                       className="w-full sm:w-auto py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
                     >
@@ -2819,13 +2819,13 @@ export default function AirbnbPage() {
           <div className="flex items-center gap-3">
             <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-8 h-8 rounded-lg object-contain bg-white p-0.5" />
             <div>
-              <span className="font-black text-white text-sm tracking-wide">SARA HOSPITALITY</span>
-              <p className="text-xs text-gray-500">Red Global de Alojamientos, Suites & Hospedaje Inteligente</p>
+              <span className="font-black text-white text-sm tracking-wide">SARA STAYS</span>
+              <p className="text-xs text-gray-500">Hospédate · Red Global de Alojamientos, Suites & Hospedaje Inteligente</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-6 text-xs">
             <Link href="/inmobiliaria" className="hover:text-white transition-colors">Portal Inmobiliario</Link>
-            <Link href="/airbnb/mis-reservas" className="hover:text-white transition-colors">Mis Reservas & Anfitrión</Link>
+            <Link href="/stays/mis-reservas" className="hover:text-white transition-colors">Mis Reservas & Anfitrión</Link>
             <Link href="/" className="hover:text-white transition-colors">Sara Constructora</Link>
             <a href="https://wa.me/593981804023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Soporte WhatsApp: +593 98 180 4023</a>
           </div>

@@ -128,7 +128,7 @@ const DESTACADOS_BASE: HospedajeDestacado[] = [
 export default function AirbnbAuthPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const rawRedirect = searchParams.get("redirect") || "/airbnb"
+  const rawRedirect = searchParams.get("redirect") || "/stays"
   const actionParam = searchParams.get("action")
   const redirectTarget = actionParam ? `${rawRedirect}${rawRedirect.includes("?") ? "&" : "?"}action=${actionParam}` : rawRedirect
 
@@ -507,7 +507,7 @@ export default function AirbnbAuthPage() {
         {/* ============================================================ */}
         <div className="bg-brand-dark p-5 sm:p-6 text-white relative border-b border-brand-sage/20">
           <Link
-            href="/airbnb"
+            href="/stays"
             className="inline-flex items-center gap-1.5 text-xs text-brand-sage hover:text-white font-bold mb-3 transition-colors cursor-pointer"
           >
             <ArrowLeft size={14} /> Volver al Catálogo de Hospedajes
@@ -612,7 +612,7 @@ export default function AirbnbAuthPage() {
             {visibleCards.map((item, idx) => (
               <Link
                 key={`${item.id}-${idx}`}
-                href="/airbnb"
+                href="/stays"
                 className="group bg-white rounded-2xl p-2 border border-gray-200 hover:border-amber-400 hover:shadow-md transition-all flex items-center gap-2.5 overflow-hidden"
               >
                 {/* Miniatura Fotográfica */}

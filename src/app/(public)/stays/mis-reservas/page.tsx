@@ -171,7 +171,7 @@ export default function MisReservasPage() {
   useEffect(() => {
     const session = getGuestSession()
     if (!session) {
-      router.push("/airbnb/auth?redirect=/airbnb/mis-reservas")
+      router.push("/stays/auth?redirect=/stays/mis-reservas")
       return
     }
     setGuest(session)
@@ -588,7 +588,7 @@ export default function MisReservasPage() {
 
   const handleLogout = () => {
     clearGuestSession()
-    router.push("/airbnb")
+    router.push("/stays")
   }
 
   // Colección de fotografías de todos los hospedajes creados o reservados por el cliente
@@ -843,7 +843,7 @@ export default function MisReservasPage() {
         <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
           
           {/* Logo y Marca SARA Airbnb */}
-          <Link href="/airbnb" className="flex items-center gap-3 group">
+          <Link href="/stays" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
               <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-full h-full object-contain" />
             </div>
@@ -900,7 +900,7 @@ export default function MisReservasPage() {
             </button>
 
             <Link
-              href="/airbnb"
+              href="/stays"
               className="px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-gray-200 hover:text-white rounded-xl text-xs font-bold transition-all border border-slate-700/80 flex items-center gap-1.5"
               title="Ir al catálogo público de alojamientos"
             >
@@ -979,7 +979,7 @@ export default function MisReservasPage() {
                 </button>
 
                 <Link
-                  href="/airbnb"
+                  href="/stays"
                   className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-gray-100 hover:text-white font-bold rounded-xl text-xs sm:text-sm transition-all border border-white/15 flex items-center gap-1.5"
                 >
                   <Compass size={16} />
@@ -1285,7 +1285,7 @@ export default function MisReservasPage() {
                   Explora nuestro catálogo en Cariamanga, Cuenca, Yunguilla o destinos internacionales y planifica tu próximo descanso.
                 </p>
                 <Link
-                  href="/airbnb"
+                  href="/stays"
                   className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-brand-sage text-white rounded-xl text-xs font-bold shadow transition-all hover:bg-brand-sage/90"
                 >
                   <Compass size={15} /> Ver Alojamientos Disponibles
@@ -1608,7 +1608,7 @@ export default function MisReservasPage() {
                           </button>
 
                           <Link
-                            href="/airbnb"
+                            href="/stays"
                             className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center"
                           >
                             <span>Ver en Catálogo</span>

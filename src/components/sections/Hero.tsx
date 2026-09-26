@@ -104,7 +104,7 @@ export default function Hero() {
     },
     {
       id: "airbnb",
-      label: "02 · Airbnb",
+      label: "02 · SARA Stays",
       tag: "Hospitality · Suites · Renta Vacacional & Corporativa",
       title: (
         <>
@@ -114,8 +114,8 @@ export default function Hero() {
       ),
       description: "Convierte tu casa, departamento o propiedad en una fuente de ingresos con el respaldo de SARA Constructora. Reserva y hospédate en suites de primer nivel nacional y mundial.",
       primaryBtn: {
-        text: "Ver Alojamientos Airbnb",
-        href: "/airbnb",
+        text: "Ver Alojamientos Stays",
+        href: "/stays",
         variant: "amber",
         icon: <Calendar size={16} />
       },

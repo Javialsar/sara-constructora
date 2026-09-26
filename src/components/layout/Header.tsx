@@ -12,7 +12,7 @@ const navLinks = [
   { name: "Servicios", href: "/servicios" },
   { name: "Proyectos", href: "/proyectos" },
   { name: "Inmobiliaria", href: "/inmobiliaria", isFeatured: true },
-  { name: "Stays", href: "/airbnb", isFeatured: true },
+  { name: "Stays", href: "/stays", isFeatured: true },
   { name: "Noticias", href: "/noticias" },
   { name: "FAQ", href: "/#faq" },
   { name: "Clientes", href: "/clientes" },
