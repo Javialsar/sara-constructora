@@ -53,6 +53,7 @@ import {
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
 import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
+import { getGuestSession, setGuestSession, GuestProfile } from "@/lib/services/guestAuth"
 
 export interface ResenaHuesped {
   id: string
@@ -174,7 +175,7 @@ export interface AirbnbListing {
   id: string
   codigo: string
   titulo: string
-  tipo: "suite" | "loft" | "penthouse" | "quinta" | "studio" | "villa"
+  tipo: "suite" | "loft" | "penthouse" | "quinta" | "studio" | "villa" | "casa" | "departamento"
   alcance: "nacional" | "internacional"
   pais: string
   bandera: string
@@ -474,6 +475,8 @@ const AIRBNB_DATA: AirbnbListing[] = [
 ]
 
 export default function AirbnbPage() {
+  const [alojamientos, setAlojamientos] = useState<AirbnbListing[]>(AIRBNB_DATA)
+  const [isLoadingAlojamientos, setIsLoadingAlojamientos] = useState<boolean>(true)
   const [destinoInput, setDestinoInput] = useState<string>("")
   const [alcanceTab, setAlcanceTab] = useState<"todos" | "nacional" | "internacional">("todos")
   const [sectorFiltro, setSectorFiltro] = useState<string>("todos")
@@ -531,12 +534,79 @@ export default function AirbnbPage() {
     titularTarjeta: ""
   })
 
+  // Sesión del Huésped Autenticado
+  const [activeGuest, setActiveGuest] = useState<GuestProfile | null>(null)
+
+  useEffect(() => {
+    setActiveGuest(getGuestSession())
+    const handleSessionChange = () => {
+      setActiveGuest(getGuestSession())
+    }
+    window.addEventListener("guest-session-change", handleSessionChange)
+    return () => window.removeEventListener("guest-session-change", handleSessionChange)
+  }, [])
+
   // Estados para Cuentas Bancarias de la Empresa (Cargadas dinámicamente de Configuración)
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
   useEffect(() => {
     getCuentasBancarias().then(setCuentasBancarias)
+  }, [])
+
+  // Sincronizar alojamientos en tiempo real desde la Base de Datos de Supabase
+  useEffect(() => {
+    async function loadAlojamientosBD() {
+      try {
+        const res = await fetch("/api/airbnb/alojamientos")
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data.alojamientos) && data.alojamientos.length > 0) {
+            const listingsDB: AirbnbListing[] = data.alojamientos
+              .filter((a: any) => a.publicado !== false)
+              .map((a: any) => ({
+                id: a.id,
+                codigo: a.codigo,
+                titulo: a.titulo,
+                tipo: (a.tipo || "suite") as any,
+                alcance: (a.alcance || "nacional") as any,
+                pais: a.pais || "Ecuador",
+                bandera: a.bandera || "🇪🇨",
+                ciudad: a.ciudad,
+                sector: a.sector,
+                lat: Number(a.lat) || -2.9001,
+                lng: Number(a.lng) || -79.0059,
+                precioNoche: Number(a.precioNoche) || 50,
+                tarifaLimpieza: Number(a.tarifaLimpieza) || 15,
+                rating: Number(a.rating) || 5.0,
+                reviewsCount: Math.floor(Math.random() * 20) + 12,
+                isSuperhost: Boolean(a.isSuperhost),
+                maxHuespedes: Number(a.maxHuespedes) || 2,
+                camas: Number(a.camas) || 1,
+                habitaciones: Number(a.habitaciones) || 1,
+                banos: Number(a.banos) || 1,
+                imagenes: Array.isArray(a.imagenes) && a.imagenes.length > 0 ? a.imagenes : [a.imagenUrl],
+                videoUrl: a.videoUrl || "",
+                descripcion: a.descripcion || "",
+                amenidades: Array.isArray(a.amenidades) ? a.amenidades : [],
+                reglas: Array.isArray(a.reglas) ? a.reglas : []
+              }))
+
+            setAlojamientos(prev => {
+              const codigosDB = new Set(listingsDB.map(d => d.codigo))
+              const staticUnicos = AIRBNB_DATA.filter(d => !codigosDB.has(d.codigo))
+              return [...listingsDB, ...staticUnicos]
+            })
+          }
+        }
+      } catch (err) {
+        console.warn("Error cargando alojamientos de base de datos:", err)
+      } finally {
+        setIsLoadingAlojamientos(false)
+      }
+    }
+
+    loadAlojamientosBD()
   }, [])
 
   const handleCopyText = (text: string, id: string) => {
@@ -557,7 +627,50 @@ export default function AirbnbPage() {
   const [newReviewRating, setNewReviewRating] = useState<number>(5)
   const [newReviewComment, setNewReviewComment] = useState<string>("")
 
-  const handleAddReview = (e: React.FormEvent, stayId: string) => {
+  // Cargar reseñas guardadas en la base de datos de Supabase
+  useEffect(() => {
+    async function loadResenasBD() {
+      try {
+        const res = await fetch("/api/airbnb/resenas")
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data.resenas)) {
+            const grouped: Record<string, ResenaHuesped[]> = {}
+            for (const r of data.resenas) {
+              const stayId = r.alojamientoId || "ab-1"
+              if (!grouped[stayId]) grouped[stayId] = []
+              grouped[stayId].push({
+                id: r.id || `db-rev-${Math.random()}`,
+                autor: r.huespedNombre || "Huésped Verificado",
+                ciudadOrigen: r.huespedEmail ? "Huésped Registrado" : "Ecuador",
+                pais: "Ecuador",
+                bandera: "🇪🇨",
+                fecha: r.fecha || "Reciente",
+                rating: Number(r.rating) || 5,
+                comentario: r.comentario || ""
+              })
+            }
+            setUserReviews(prev => ({ ...prev, ...grouped }))
+          }
+        }
+      } catch (err) {
+        console.warn("Error cargando reseñas BD:", err)
+      }
+    }
+    loadResenasBD()
+  }, [])
+
+  // Si hay un huésped activo, precompletar el formulario de reseña
+  useEffect(() => {
+    if (activeGuest) {
+      setNewReviewAuthor(`${activeGuest.nombre} ${activeGuest.apellido}`.trim())
+      if (activeGuest.ciudad) {
+        setNewReviewCity(`${activeGuest.ciudad}, Ecuador`)
+      }
+    }
+  }, [activeGuest])
+
+  const handleAddReview = async (e: React.FormEvent, stayId: string) => {
     e.preventDefault()
     if (!newReviewAuthor.trim() || !newReviewComment.trim()) {
       alert("Por favor completa tu nombre y comentario.")
@@ -580,7 +693,24 @@ export default function AirbnbPage() {
       [stayId]: [nuevaResena, ...(prev[stayId] || [])]
     }))
 
-    setNewReviewAuthor("")
+    // Persistir en Supabase
+    try {
+      await fetch("/api/airbnb/resenas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alojamientoId: stayId,
+          alojamientoTitulo: selectedStay?.titulo,
+          huespedNombre: newReviewAuthor.trim(),
+          huespedEmail: activeGuest?.email || "",
+          rating: newReviewRating,
+          comentario: newReviewComment.trim()
+        })
+      })
+    } catch (err) {
+      console.warn("Error persistiendo reseña en Supabase:", err)
+    }
+
     setNewReviewComment("")
     setShowAddReview(false)
     alert("¡Muchas gracias! Tu opinión y calificación han sido registradas y publicadas exitosamente.")
@@ -590,6 +720,17 @@ export default function AirbnbPage() {
     setSelectedStay(null)
     setBookingStay(stay)
     setBookingStep(1)
+    if (activeGuest) {
+      setGuestData(prev => ({
+        ...prev,
+        nombre: activeGuest.nombre || prev.nombre,
+        apellido: activeGuest.apellido || prev.apellido,
+        email: activeGuest.email || prev.email,
+        telefono: activeGuest.telefono || prev.telefono,
+        identificacion: activeGuest.cedula || prev.identificacion,
+        ciudadPais: activeGuest.ciudad ? `${activeGuest.ciudad}, Ecuador` : prev.ciudadPais
+      }))
+    }
   }
 
   const handleConfirmReservation = async (e?: React.FormEvent) => {
@@ -639,6 +780,19 @@ export default function AirbnbPage() {
       } else {
         setConfirmedReservationCode(randomCode)
       }
+
+      // Auto-iniciar sesión si no estaba autenticado para que pueda ver sus reservas
+      if (!activeGuest && guestData.email) {
+        setGuestSession({
+          id: `guest_${Date.now()}`,
+          email: guestData.email.toLowerCase().trim(),
+          nombre: guestData.nombre.trim(),
+          apellido: guestData.apellido.trim(),
+          cedula: guestData.identificacion.trim(),
+          telefono: guestData.telefono.trim(),
+          ciudad: guestData.ciudadPais.split(",")[0]?.trim() || "Cuenca"
+        })
+      }
     } catch (err) {
       console.warn("Respaldo local de código de reserva por conectividad:", err)
       setConfirmedReservationCode(randomCode)
@@ -681,9 +835,9 @@ export default function AirbnbPage() {
     window.open(`https://wa.me/593981804023?text=${msg}`, "_blank")
   }
 
-  // Filtrado de alojamientos
+  // Filtrado de alojamientos en tiempo real desde Base de Datos
   const filteredStays = useMemo(() => {
-    return AIRBNB_DATA.filter((stay) => {
+    return alojamientos.filter((stay) => {
       // Destino libre ingresado por el usuario (sin limitaciones de ciudad ni país)
       if (destinoInput.trim()) {
         const q = destinoInput.toLowerCase().trim()
@@ -715,7 +869,7 @@ export default function AirbnbPage() {
       }
       return true
     })
-  }, [destinoInput, tipoFiltro, guestsCount, searchTerm])
+  }, [alojamientos, destinoInput, tipoFiltro, guestsCount, searchTerm])
 
   // Mapeo para el componente del mapa
   const mapItems = useMemo(() => {
@@ -746,7 +900,26 @@ export default function AirbnbPage() {
       return
     }
 
-    if (lower.includes("miami") || lower.includes("florida") || lower.includes("brickell") || lower.includes("ee.uu") || lower.includes("usa")) {
+    // Centrar automáticamente si coincide con algún alojamiento en la base de datos
+    const matchAlojamiento = alojamientos.find(s => 
+      s.ciudad.toLowerCase().includes(lower) || 
+      s.sector.toLowerCase().includes(lower) ||
+      s.titulo.toLowerCase().includes(lower)
+    )
+    if (matchAlojamiento) {
+      setMapCenter([matchAlojamiento.lat, matchAlojamiento.lng])
+      setMapZoom(14)
+      return
+    }
+
+    // Catálogo de ciudades frecuentes
+    if (lower.includes("cariamanga") || lower.includes("ahuaca") || lower.includes("calvas")) {
+      setMapCenter([-4.3297, -79.5544])
+      setMapZoom(14)
+    } else if (lower.includes("loja") || lower.includes("catamayo") || lower.includes("vilcabamba")) {
+      setMapCenter([-3.9931, -79.2042])
+      setMapZoom(13)
+    } else if (lower.includes("miami") || lower.includes("florida") || lower.includes("brickell") || lower.includes("ee.uu") || lower.includes("usa")) {
       setMapCenter([25.7617, -80.1918])
       setMapZoom(13)
     } else if (lower.includes("madrid") || lower.includes("españa") || lower.includes("spain") || lower.includes("salamanca") || lower.includes("retiro")) {
@@ -825,13 +998,38 @@ export default function AirbnbPage() {
         {/* Resplandor verde de marca sutil */}
         <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-20 pointer-events-none" />
 
-        <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[60vh]">
-          <div className="max-w-3xl space-y-6 md:pl-8 mb-10">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-px bg-brand-sage" />
-              <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
-                Hospitality · Suites · Alojamientos
-              </h2>
+        <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center min-h-[60vh]">
+          <div className="max-w-4xl space-y-6 md:pl-4 mb-10">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-px bg-brand-sage" />
+                <h2 className="text-brand-sage font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md">
+                  Hospitality · Suites · Alojamientos
+                </h2>
+              </div>
+
+              {/* Botón de Acceso al Portal del Huésped */}
+              {activeGuest ? (
+                <Link
+                  href="/airbnb/mis-reservas"
+                  className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold backdrop-blur-md transition-all shadow-lg hover:shadow-amber-500/20 cursor-pointer"
+                >
+                  <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
+                    {activeGuest.nombre.charAt(0)}
+                  </div>
+                  <span>Hola, {activeGuest.nombre} · Mis Reservas</span>
+                  <ChevronRight size={13} className="text-amber-400" />
+                </Link>
+              ) : (
+                <Link
+                  href="/airbnb/auth"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white text-xs font-bold backdrop-blur-md transition-all shadow-md hover:border-amber-400/60 cursor-pointer group"
+                >
+                  <User size={13} className="text-amber-400 group-hover:scale-110 transition-transform" />
+                  <span>Iniciar Sesión / Mis Reservas</span>
+                  <Key size={12} className="text-brand-sage opacity-75" />
+                </Link>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -841,7 +1039,7 @@ export default function AirbnbPage() {
               </h1>
             </div>
 
-            <p className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg">
+            <p className="text-base md:text-lg text-gray-100 max-w-3xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg">
               Suites contemporáneas, lofts de diseño y villas vacacionales con georreferenciación y precios en tiempo real. Cobertura nacional (Ecuador) y mundial sin comisiones de intermediarios.
             </p>
 
@@ -852,11 +1050,18 @@ export default function AirbnbPage() {
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-amber-300 border border-white/20 backdrop-blur-sm">
                 <Star size={13} className="fill-amber-400 text-amber-400" /> Categoría Superhost & Smart Lock
               </span>
+              <Link
+                href={activeGuest ? "/airbnb/mis-reservas" : "/airbnb/auth"}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 backdrop-blur-sm hover:bg-amber-500/30 transition-colors"
+              >
+                <Key size={13} className="text-amber-400" />
+                <span>{activeGuest ? "Mis Claves Smart Lock (#PIN#)" : "Portal Huésped · Claves de Acceso"}</span>
+              </Link>
             </div>
           </div>
 
           {/* Caja Flotante de Reserva Inteligente */}
-          <form onSubmit={handleSearchSubmit} className="w-full max-w-6xl mx-auto lg:mx-0 bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
+          <form onSubmit={handleSearchSubmit} className="w-full max-w-[1760px] mx-auto bg-white rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-gray-100 text-gray-800">
             {/* Barra de Filtros en Grid Balanceada */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 sm:gap-4 items-end">
               {/* Entrada Abierta de Destino (Sin limitaciones) */}
@@ -942,7 +1147,7 @@ export default function AirbnbPage() {
       {/* ============================================================ */}
       {/* 2. BARRA DE CONTROL Y ALTERNADOR DE VISTAS (SPLIT / GRID)    */}
       {/* ============================================================ */}
-      <section className="container mx-auto px-4 md:px-8 -mt-6 relative z-20">
+      <section className="w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20">
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
@@ -1017,10 +1222,30 @@ export default function AirbnbPage() {
               <div className={`grid gap-5 ${
                 vistaModo === "split" ? "grid-cols-1 sm:grid-cols-2" : "contents"
               }`}>
-                {filteredStays.map((stay) => {
-                  const isHoveredOrActive = selectedMapId === stay.id
-                  const subtotal = stay.precioNoche * totalNoches
-                  const granTotal = subtotal + stay.tarifaLimpieza
+                {filteredStays.length === 0 ? (
+                  <div className="col-span-full bg-white rounded-2xl p-10 text-center border border-gray-200 shadow-sm">
+                    <Compass size={40} className="mx-auto text-amber-500 mb-3 opacity-80" />
+                    <h3 className="text-base font-bold text-gray-800">No se encontraron alojamientos para "{destinoInput}"</h3>
+                    <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+                      Verifica el nombre o limpia los filtros para explorar todo nuestro catálogo de hospedajes en Ecuador y el mundo.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDestinoInput("")
+                        setTipoFiltro("todos")
+                        setHuespedesFiltro(1)
+                      }}
+                      className="mt-4 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer shadow"
+                    >
+                      Ver Todos los Alojamientos
+                    </button>
+                  </div>
+                ) : (
+                  filteredStays.map((stay) => {
+                    const isHoveredOrActive = selectedMapId === stay.id
+                    const subtotal = stay.precioNoche * totalNoches
+                    const granTotal = subtotal + stay.tarifaLimpieza
 
                   return (
                     <div
@@ -1135,7 +1360,8 @@ export default function AirbnbPage() {
                       </div>
                     </div>
                   )
-                })}
+                })
+              )}
               </div>
             </div>
           )}
@@ -1748,6 +1974,25 @@ export default function AirbnbPage() {
                       Información del Huésped Principal (Titular de la Reserva)
                     </h5>
 
+                    {activeGuest ? (
+                      <div className="mb-3.5 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-800">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                          <span>Sesión de Huésped activa: <strong>{activeGuest.nombre} {activeGuest.apellido}</strong> ({activeGuest.email}). Datos completados automáticamente.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mb-3.5 p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between text-xs text-amber-900">
+                        <div className="flex items-center gap-2">
+                          <Info size={15} className="text-amber-600 shrink-0" />
+                          <span>¿Ya tienes cuenta de Huésped SARA?</span>
+                        </div>
+                        <Link href="/airbnb/auth" className="text-xs font-bold text-amber-800 underline hover:text-amber-950">
+                          Inicia Sesión aquí
+                        </Link>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
                         <label className="text-xs font-semibold text-gray-700 block mb-1">Nombres *</label>
@@ -2242,13 +2487,22 @@ export default function AirbnbPage() {
                       <span>Enviar Voucher a mi WhatsApp</span>
                     </button>
 
+                    <Link
+                      href="/airbnb/mis-reservas"
+                      onClick={() => setBookingStay(null)}
+                      className="w-full sm:w-auto py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                    >
+                      <Key size={15} />
+                      <span>Ver en Mis Reservas</span>
+                    </Link>
+
                     <button
                       type="button"
                       onClick={() => window.print()}
                       className="w-full sm:w-auto py-3 px-4 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       <Printer size={16} />
-                      <span>Imprimir Voucher</span>
+                      <span>Imprimir</span>
                     </button>
 
                     <button

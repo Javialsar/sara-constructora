@@ -135,8 +135,11 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const emailParam = searchParams.get("email")?.toLowerCase().trim()
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -158,14 +161,28 @@ export async function GET() {
       .limit(1)
       .single()
 
-    const reservasGlobales = globalParam?.indirectos_default?.reservas_airbnb || []
+    let reservasGlobales: any[] = globalParam?.indirectos_default?.reservas_airbnb || []
 
     // 2. Obtener de solicitudes_servicio (tipo_servicio: alojamiento_airbnb)
-    const { data: solicitudes } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("solicitudes_servicio")
       .select("*")
       .eq("tipo_servicio", "alojamiento_airbnb")
       .order("created_at", { ascending: false })
+
+    if (emailParam) {
+      query = query.ilike("email", `%${emailParam}%`)
+    }
+
+    const { data: solicitudes } = await query
+
+    // Si viene emailParam, filtrar también en reservasGlobales
+    if (emailParam) {
+      reservasGlobales = reservasGlobales.filter((r: any) => 
+        (r.huesped?.email || "").toLowerCase().includes(emailParam) ||
+        (r.emailHuesped || "").toLowerCase().includes(emailParam)
+      )
+    }
 
     return NextResponse.json({
       success: true,

@@ -30,8 +30,11 @@ import {
   Home,
   MapPin,
   Check,
-  ChevronDown
+  ChevronDown,
+  FileSpreadsheet,
+  FileText
 } from "lucide-react"
+import { exportarAExcel, exportarAPDF } from "@/lib/services/exportReports"
 
 export interface InmuebleAdmin {
   id: string
@@ -544,6 +547,53 @@ export default function AdminInmobiliariaPage() {
     return `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(msg)}`
   }
 
+  // Exportar Reporte Inmobiliario a Excel
+  const handleExportarExcel = () => {
+    const dataFormatted = inmueblesFiltrados.map(inm => ({
+      "Código": inm.codigo,
+      "Título de la Propiedad": inm.titulo,
+      "Tipo": inm.tipo.toUpperCase(),
+      "Modalidad": inm.modalidad.toUpperCase(),
+      "Precio ($ USD)": inm.precio,
+      "Ciudad": inm.ciudad,
+      "Sector": inm.sector,
+      "Área (m²)": inm.areaM2,
+      "Habitaciones": inm.habitaciones,
+      "Baños": inm.banos,
+      "Propietario": inm.propietario.nombre,
+      "Contacto Propietario": inm.propietario.telefono,
+      "Email Propietario": inm.propietario.email,
+      "Plan de Promoción": inm.promocion.nombrePlan,
+      "Cuota Mensual ($)": inm.promocion.tarifaMensual,
+      "Estado de Pago": inm.promocion.estadoPago === "al_dia" ? "Al Día" : inm.promocion.estadoPago === "por_vencer" ? "Por Vencer" : "Vencido",
+      "Total Recaudado ($)": inm.promocion.totalRecaudado,
+      "Publicado": inm.publicado ? "Sí" : "No"
+    }))
+    exportarAExcel(dataFormatted, "Reporte_Inventario_Inmobiliario_SARA", "Inmuebles SARA")
+  }
+
+  // Exportar Reporte Inmobiliario a PDF
+  const handleExportarPDF = () => {
+    const headers = ["Código", "Propiedad", "Tipo/Mod.", "Precio", "Ubicación", "Propietario", "Plan Promoción", "Estado Pago"]
+    const rows = inmueblesFiltrados.map(inm => [
+      inm.codigo,
+      inm.titulo.length > 25 ? inm.titulo.substring(0, 25) + "..." : inm.titulo,
+      `${inm.tipo.toUpperCase()} (${inm.modalidad.toUpperCase()})`,
+      `$${inm.precio.toLocaleString()}`,
+      `${inm.ciudad} - ${inm.sector}`,
+      inm.propietario.nombre,
+      `$${inm.promocion.tarifaMensual}/mes`,
+      inm.promocion.estadoPago === "al_dia" ? "Al Día" : inm.promocion.estadoPago === "por_vencer" ? "Por Vencer" : "Vencido"
+    ])
+    exportarAPDF(
+      "REPORTE DE INVENTARIO INMOBILIARIO & PROPIEDADES SARA",
+      headers,
+      rows,
+      "Reporte_Inmuebles_SARA",
+      `Generado: ${new Date().toLocaleDateString('es-EC')} | Total propiedades listadas: ${inmueblesFiltrados.length}`
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Principal con Botón de Creación */}
@@ -738,13 +788,35 @@ export default function AdminInmobiliariaPage() {
 
       {/* Tabla de Inmuebles & Monitoreo de Cobros */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
-            <span>Listado de Inmuebles ({inmueblesFiltrados.length})</span>
-          </h3>
-          <span className="text-xs text-gray-500 font-medium">
-            Control de cobranzas, vigencia publicitaria y datos de propietarios
-          </span>
+        <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+              <span>Listado de Inmuebles ({inmueblesFiltrados.length})</span>
+            </h3>
+            <span className="text-xs text-gray-500 font-medium">
+              Control de cobranzas, vigencia publicitaria y datos de propietarios
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportarExcel}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Descargar listado en Excel (.xlsx)"
+            >
+              <FileSpreadsheet size={15} className="text-emerald-600" />
+              <span>Descargar Excel</span>
+            </button>
+
+            <button
+              onClick={handleExportarPDF}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Descargar listado en PDF (.pdf)"
+            >
+              <FileText size={15} className="text-rose-600" />
+              <span>Descargar PDF</span>
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">

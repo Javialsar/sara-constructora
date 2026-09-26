@@ -47,9 +47,13 @@ import {
   ChevronRight,
   Flame,
   Layers,
-  Sparkle
+  Sparkle,
+  FileSpreadsheet,
+  FileText,
+  Upload
 } from "lucide-react"
 import AirbnbCoordinatePickerWrapper from "@/components/ui/AirbnbCoordinatePickerWrapper"
+import { exportarAExcel, exportarAPDF } from "@/lib/services/exportReports"
 
 export interface AirbnbAdminListing {
   id: string
@@ -134,9 +138,9 @@ export interface ReservaAdmin {
 
 export const AMENIDADES_DISPONIBLES = [
   { id: "vista_rio", label: "Vista al Río", icon: "🌊" },
-  { id: "wifi", label: "WiFi 300 Mbps Fibra", icon: "📶" },
+  { id: "wifi", label: "Internet/Wifi", icon: "📶" },
   { id: "smart_lock", label: "Smart Lock (Self Check-in)", icon: "🔐" },
-  { id: "smart_tv", label: "Smart TV 55\" 4K", icon: "📺" },
+  { id: "smart_tv", label: "Smart TV", icon: "📺" },
   { id: "cafetera", label: "Cafetera Nespresso", icon: "☕" },
   { id: "parqueadero", label: "Parqueadero Subterráneo", icon: "🚗" },
   { id: "cocina", label: "Cocina Equipada", icon: "🍳" },
@@ -206,9 +210,9 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     amenidades: [
       "Vista al Río",
-      "WiFi 300 Mbps Fibra",
+      "Internet/Wifi",
       "Smart Lock (Self Check-in)",
-      "Smart TV 55\" 4K",
+      "Smart TV",
       "Cafetera Nespresso",
       "Parqueadero Subterráneo",
       "Cocina Equipada",
@@ -270,9 +274,9 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     amenidades: [
       "Terraza / Balcón",
       "Área BBQ / Parrilla",
-      "WiFi 300 Mbps Fibra",
+      "Internet/Wifi",
       "Smart Lock (Self Check-in)",
-      "Smart TV 55\" 4K",
+      "Smart TV",
       "Cocina Equipada",
       "Sala de Estar",
       "Comedor",
@@ -337,7 +341,7 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
       "Cocina Equipada",
       "Sala de Estar",
       "Comedor",
-      "WiFi 300 Mbps Fibra",
+      "Internet/Wifi",
       "Parqueadero Privado",
       "Pet Friendly"
     ],
@@ -395,8 +399,8 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     amenidades: [
       "Piscina",
       "Gimnasio",
-      "WiFi 300 Mbps Fibra",
-      "Smart TV 55\" 4K",
+      "Internet/Wifi",
+      "Smart TV",
       "Smart Lock (Self Check-in)",
       "Cocina Equipada",
       "Aire Acondicionado",
@@ -455,8 +459,8 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     ],
     videoUrl: "",
     amenidades: [
-      "WiFi 300 Mbps Fibra",
-      "Smart TV 55\" 4K",
+      "Internet/Wifi",
+      "Smart TV",
       "Cafetera Nespresso",
       "Cocina Equipada",
       "Sala de Estar",
@@ -700,9 +704,9 @@ export default function AdminAirbnbPage() {
     nuevaFotoUrl: "",
     amenidades: [
       "Vista al Río",
-      "WiFi 300 Mbps Fibra",
+      "Internet/Wifi",
       "Smart Lock (Self Check-in)",
-      "Smart TV 55\" 4K",
+      "Smart TV",
       "Cafetera Nespresso",
       "Parqueadero Subterráneo",
       "Cocina Equipada",
@@ -761,6 +765,152 @@ export default function AdminAirbnbPage() {
 
   const handleSetPortada = (url: string) => {
     setFormAlojamiento(prev => ({ ...prev, imagenUrl: url }))
+  }
+
+  // Subida de fotos desde el dispositivo (PC, Móvil, Tablet)
+  const handleDevicePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string
+        if (base64) {
+          setFormAlojamiento(prev => {
+            if (!prev.imagenes.includes(base64)) {
+              return {
+                ...prev,
+                imagenes: [...prev.imagenes, base64],
+                imagenUrl: prev.imagenUrl ? prev.imagenUrl : base64
+              }
+            }
+            return prev
+          })
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+    e.target.value = ""
+  }
+
+  // Subida de video desde el dispositivo
+  const handleDeviceVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      if (base64) {
+        setFormAlojamiento(prev => ({ ...prev, videoUrl: base64 }))
+      }
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
+
+  // Exportar Alojamientos a Excel
+  const handleExportarAlojamientosExcel = () => {
+    const dataFormatted = alojamientosFiltrados.map(a => ({
+      "Código": a.codigo,
+      "Título del Alojamiento": a.titulo,
+      "Tipo de Inmueble": a.tipo.toUpperCase(),
+      "Alcance": a.alcance === "nacional" ? "Nacional (Ecuador)" : "Internacional",
+      "Ciudad": a.ciudad,
+      "Sector": a.sector,
+      "Precio/Noche ($ USD)": a.precioNoche,
+      "Tarifa Limpieza ($ USD)": a.tarifaLimpieza,
+      "Huéspedes Máx.": a.maxHuespedes,
+      "Habitaciones": a.habitaciones,
+      "Baños": a.banos,
+      "Camas": a.camas,
+      "Superhost": a.isSuperhost ? "Sí" : "No",
+      "Nombre Anfitrión": a.anfitrion.nombre,
+      "Cédula / RUC": a.anfitrion.cedulaRuc || "N/A",
+      "Teléfono Anfitrión": a.anfitrion.telefono,
+      "Email Anfitrión": a.anfitrion.email,
+      "Banco": a.anfitrion.banco || "N/A",
+      "Tipo de Cuenta": a.anfitrion.tipoCuenta || "N/A",
+      "Número de Cuenta": a.anfitrion.numeroCuenta || "N/A",
+      "Modelo Comisión SARA": a.monetizacion.modelo === "gestion_completa" ? "Gestión 20%" : a.monetizacion.modelo === "comision_reserva" ? "Comisión 15%" : "Membresía $45/mes",
+      "Comisiones Generadas SARA ($)": a.monetizacion.totalComisionesGeneradas,
+      "Publicado": a.publicado ? "Sí (Visible en Mapa)" : "Oculto"
+    }))
+    exportarAExcel(dataFormatted, "Catalogo_Alojamientos_Airbnb_SARA", "Alojamientos SARA")
+  }
+
+  // Exportar Alojamientos a PDF
+  const handleExportarAlojamientosPDF = () => {
+    const headers = ["Código", "Alojamiento", "Ciudad", "Precio/N.", "Capacidad", "Anfitrión", "Cédula/RUC", "Banco / Cuenta", "Comisión SARA"]
+    const rows = alojamientosFiltrados.map(a => [
+      a.codigo,
+      a.titulo.length > 22 ? a.titulo.substring(0, 22) + "..." : a.titulo,
+      `${a.bandera} ${a.ciudad}`,
+      `$${a.precioNoche}`,
+      `${a.maxHuespedes} huéspedes`,
+      a.anfitrion.nombre,
+      a.anfitrion.cedulaRuc || "N/A",
+      `${a.anfitrion.banco || 'Banco'} (${a.anfitrion.numeroCuenta || '---'})`,
+      a.monetizacion.modelo === "gestion_completa" ? "20%" : a.monetizacion.modelo === "comision_reserva" ? "15%" : "$45/m"
+    ])
+    exportarAPDF(
+      "CATÁLOGO DE ALOJAMIENTOS & ANFITRIONES AIRBNB SARA",
+      headers,
+      rows,
+      "Catalogo_Alojamientos_SARA",
+      `Generado: ${new Date().toLocaleDateString('es-EC')} | Total alojamientos: ${alojamientosFiltrados.length}`
+    )
+  }
+
+  // Exportar Reservas a Excel
+  const handleExportarReservasExcel = () => {
+    const dataFormatted = reservasFiltradas.map(r => ({
+      "Código Reserva": r.codigoReserva,
+      "Huésped": r.huespedNombre,
+      "Cédula / Pasaporte": r.identificacionHuesped || "N/A",
+      "Teléfono Huésped": r.huespedTelefono,
+      "Email Huésped": r.emailHuesped || "N/A",
+      "Alojamiento": r.alojamientoTitulo,
+      "Código Alojamiento": r.alojamientoCodigo,
+      "Dueño / Anfitrión": r.anfitrionNombre,
+      "Check-In": r.fechaCheckIn,
+      "Check-Out": r.fechaCheckOut,
+      "Noches": r.noches,
+      "Tarifa/Noche ($)": r.tarifaNoche,
+      "Subtotal Estadía ($)": r.subtotalNoches,
+      "Tarifa Limpieza ($)": r.tarifaLimpieza,
+      "Total Huésped ($)": r.totalHuesped,
+      "Comisión SARA ($)": r.comisionGanadaSara,
+      "% Retención SARA": `${r.porcentajeComisionSara}%`,
+      "Neto para Anfitrión ($)": r.netoParaAnfitrion,
+      "Estado Liquidación": r.estadoLiquidacion === "liquidado" ? "Liquidado" : "Pendiente de Transferencia",
+      "Método de Pago": r.metodoPago || "Transferencia Bancaria",
+      "Origen": r.origen === "web" ? "Portal Web" : "Manual"
+    }))
+    exportarAExcel(dataFormatted, "Reporte_Reservas_Liquidaciones_SARA", "Reservas SARA")
+  }
+
+  // Exportar Reservas a PDF
+  const handleExportarReservasPDF = () => {
+    const headers = ["Reserva", "Huésped", "Alojamiento", "Fechas", "Total Cobrado", "Comisión SARA", "Neto Anfitrión", "Estado"]
+    const rows = reservasFiltradas.map(r => [
+      r.codigoReserva,
+      r.huespedNombre,
+      r.alojamientoCodigo,
+      `${r.fechaCheckIn} al ${r.fechaCheckOut} (${r.noches} n.)`,
+      `$${r.totalHuesped}`,
+      `+$${r.comisionGanadaSara.toFixed(2)} (${r.porcentajeComisionSara}%)`,
+      `$${r.netoParaAnfitrion.toFixed(2)}`,
+      r.estadoLiquidacion === "liquidado" ? "Liquidado" : "Pendiente"
+    ])
+    exportarAPDF(
+      "REPORTE DE RESERVAS & LIQUIDACIONES FINANCIERAS SARA",
+      headers,
+      rows,
+      "Reporte_Reservas_SARA",
+      `Generado: ${new Date().toLocaleDateString('es-EC')} | Total reservas: ${reservasFiltradas.length}`
+    )
   }
 
   // Funciones de gestión de amenidades
@@ -888,9 +1038,9 @@ export default function AdminAirbnbPage() {
       nuevaFotoUrl: "",
       amenidades: [
         "Vista al Río",
-        "WiFi 300 Mbps Fibra",
+        "Internet/Wifi",
         "Smart Lock (Self Check-in)",
-        "Smart TV 55\" 4K",
+        "Smart TV",
         "Cafetera Nespresso",
         "Parqueadero Subterráneo",
         "Cocina Equipada",
@@ -945,9 +1095,9 @@ export default function AdminAirbnbPage() {
       nuevaFotoUrl: "",
       amenidades: alj.amenidades && alj.amenidades.length > 0 ? alj.amenidades : [
         "Vista al Río",
-        "WiFi 300 Mbps Fibra",
+        "Internet/Wifi",
         "Smart Lock (Self Check-in)",
-        "Smart TV 55\" 4K",
+        "Smart TV",
         "Cocina Equipada",
         "Sala de Estar",
         "Comedor"
@@ -1439,27 +1589,48 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
           />
         </div>
 
-        {activeTab === "alojamientos" ? (
-          <select
-            value={filtroAlcance}
-            onChange={(e) => setFiltroAlcance(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {activeTab === "alojamientos" ? (
+            <select
+              value={filtroAlcance}
+              onChange={(e) => setFiltroAlcance(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+            >
+              <option value="todos">Todos los Destinos (Nacional y Mundial)</option>
+              <option value="nacional">🇪🇨 Solo Nacional (Ecuador)</option>
+              <option value="internacional">🌎 Solo Internacional (Miami, Madrid, etc.)</option>
+            </select>
+          ) : (
+            <select
+              value={filtroLiquidacion}
+              onChange={(e) => setFiltroLiquidacion(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+            >
+              <option value="todos">Todos los Estados de Liquidación</option>
+              <option value="pendiente">⏳ Pendiente de Transferencia</option>
+              <option value="liquidado">✅ Liquidado al Anfitrión</option>
+            </select>
+          )}
+
+          {/* Botones Descargar Excel y PDF */}
+          <button
+            onClick={activeTab === "alojamientos" ? handleExportarAlojamientosExcel : handleExportarReservasExcel}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+            title="Descargar datos en Microsoft Excel (.xlsx)"
           >
-            <option value="todos">Todos los Destinos (Nacional y Mundial)</option>
-            <option value="nacional">🇪🇨 Solo Nacional (Ecuador)</option>
-            <option value="internacional">🌎 Solo Internacional (Miami, Madrid, etc.)</option>
-          </select>
-        ) : (
-          <select
-            value={filtroLiquidacion}
-            onChange={(e) => setFiltroLiquidacion(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+            <FileSpreadsheet size={15} className="text-emerald-600" />
+            <span>Descargar Excel</span>
+          </button>
+
+          <button
+            onClick={activeTab === "alojamientos" ? handleExportarAlojamientosPDF : handleExportarReservasPDF}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+            title="Descargar reporte en formato PDF (.pdf)"
           >
-            <option value="todos">Todos los Estados de Liquidación</option>
-            <option value="pendiente">⏳ Pendiente de Transferencia</option>
-            <option value="liquidado">✅ Liquidado al Anfitrión</option>
-          </select>
-        )}
+            <FileText size={15} className="text-rose-600" />
+            <span>Descargar PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* CONTENIDO PESTAÑA 1: ALOJAMIENTOS & ANFITRIONES */}
@@ -1534,7 +1705,12 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                     {/* Anfitrión & Cuenta Bancaria */}
                     <td className="px-5 py-4">
                       <p className="font-bold text-gray-900 text-sm">{alj.anfitrion.nombre}</p>
-                      <p className="text-xs text-gray-500">{alj.anfitrion.telefono}</p>
+                      <p className="text-xs text-gray-600 font-medium">{alj.anfitrion.telefono}</p>
+                      {alj.anfitrion.cedulaRuc && (
+                        <p className="text-[11px] text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-blue-200/60">
+                          CI/RUC: {alj.anfitrion.cedulaRuc}
+                        </p>
+                      )}
                       <p className="text-[11px] text-gray-400 font-mono mt-0.5 truncate max-w-xs" title={alj.anfitrion.cuentaBancaria}>
                         {alj.anfitrion.cuentaBancaria}
                       </p>
@@ -2221,15 +2397,31 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                       </div>
                     </div>
 
-                    {/* Agregar Foto por URL o mediante Presets de Arquitectura */}
+                    {/* Agregar Foto por URL o mediante Presets de Arquitectura o Archivo Local */}
                     <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
-                        Agregar Foto a la Galería
-                      </label>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                          Agregar Fotos a la Galería
+                        </label>
+
+                        {/* Botón para subir fotos desde el dispositivo (PC, Móvil, Tablet) */}
+                        <label className="cursor-pointer px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                          <Upload size={14} />
+                          <span>Subir Fotos desde este Dispositivo</span>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            multiple 
+                            onChange={handleDevicePhotoUpload} 
+                            className="hidden" 
+                          />
+                        </label>
+                      </div>
+
                       <div className="flex gap-2">
                         <input
                           type="url"
-                          placeholder="https://images.unsplash.com/photo-..."
+                          placeholder="O ingresa enlace web: https://images.unsplash.com/photo-..."
                           value={formAlojamiento.nuevaFotoUrl}
                           onChange={(e) => setFormAlojamiento({ ...formAlojamiento, nuevaFotoUrl: e.target.value })}
                           className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
@@ -2240,7 +2432,7 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           className="px-4 py-2 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0"
                         >
                           <Plus size={15} />
-                          <span>Agregar</span>
+                          <span>Añadir Enlace</span>
                         </button>
                       </div>
 
@@ -2339,21 +2531,50 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                     </div>
 
                     {/* Sección de Video Tour */}
-                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-2">
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                        <Video size={14} className="text-brand-sage" />
-                        <span>Video del Recorrido Virtual (YouTube / Vimeo / MP4)</span>
-                      </label>
-                      <input
-                        type="url"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        value={formAlojamiento.videoUrl}
-                        onChange={(e) => setFormAlojamiento({ ...formAlojamiento, videoUrl: e.target.value })}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                      />
-                      <p className="text-[11px] text-gray-500">
-                        Opcional: Si ingresas un video, aparecerá un botón de "Tour Virtual" en la ficha del huésped.
-                      </p>
+                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                          <Video size={14} className="text-brand-sage" />
+                          <span>Video del Recorrido Virtual</span>
+                        </label>
+
+                        {/* Botón para subir video desde el dispositivo */}
+                        <label className="cursor-pointer px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                          <Upload size={13} />
+                          <span>Subir Video desde este Dispositivo</span>
+                          <input 
+                            type="file" 
+                            accept="video/*" 
+                            onChange={handleDeviceVideoUpload} 
+                            className="hidden" 
+                          />
+                        </label>
+                      </div>
+
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          placeholder="O pega URL de video (YouTube, Vimeo o enlace directo .mp4)..."
+                          value={formAlojamiento.videoUrl}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, videoUrl: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
+                        />
+                        {formAlojamiento.videoUrl && (
+                          <div className="flex items-center justify-between text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 mt-1">
+                            <span className="truncate max-w-md">📹 Video cargado correctamente</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormAlojamiento({ ...formAlojamiento, videoUrl: "" })}
+                              className="text-rose-600 hover:underline font-bold ml-2 cursor-pointer"
+                            >
+                              Eliminar video
+                            </button>
+                          </div>
+                        )}
+                        <p className="text-[11px] text-gray-500">
+                          Permite a los huéspedes realizar un recorrido inmersivo antes de reservar su estadía.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -2424,15 +2645,17 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-gray-700 mb-1">
-                            Cédula / RUC del Propietario
+                          <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+                            <span>Cédula / RUC del Propietario <span className="text-rose-500">*</span></span>
+                            <span className="text-[10px] text-brand-dark font-bold bg-amber-100 px-1.5 py-0.5 rounded">Identificación Oficial</span>
                           </label>
                           <input
                             type="text"
-                            placeholder="0103492817"
+                            required
+                            placeholder="Ej: 0103492817 o 0190458923001"
                             value={formAlojamiento.anfitrionCedulaRuc}
                             onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionCedulaRuc: e.target.value })}
-                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono"
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold"
                           />
                         </div>
                       </div>
@@ -2503,18 +2726,37 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                             className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-medium"
                           />
                         </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center justify-between">
+                            <span>C.I. / RUC del Titular para Transferencia</span>
+                            <span className="text-[10px] text-blue-700 font-bold">Para Comprobante</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej: 0103492817"
+                            value={formAlojamiento.anfitrionCedulaRuc}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionCedulaRuc: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-mono font-bold"
+                          />
+                        </div>
                       </div>
 
                       {/* Tarjeta resumen de liquidación bancaria */}
-                      <div className="bg-white p-3 rounded-lg border border-blue-200 flex items-center justify-between text-xs text-blue-900 font-medium">
+                      <div className="bg-white p-3.5 rounded-lg border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center justify-between text-xs text-blue-900 font-medium gap-2 shadow-sm">
                         <div className="flex items-center gap-2">
-                          <CreditCard size={16} className="text-blue-600" />
+                          <CreditCard size={18} className="text-blue-600 shrink-0" />
                           <span>
                             Destino de Liquidación: <strong className="font-bold">{formAlojamiento.anfitrionBanco}</strong> • {formAlojamiento.anfitrionTipoCuenta} No. <strong className="font-mono">{formAlojamiento.anfitrionNumeroCuenta || "---"}</strong>
+                            {formAlojamiento.anfitrionCedulaRuc && (
+                              <span className="ml-2 text-blue-800 font-bold bg-blue-100 px-2 py-0.5 rounded border border-blue-200">
+                                C.I./RUC: {formAlojamiento.anfitrionCedulaRuc}
+                              </span>
+                            )}
                           </span>
                         </div>
-                        <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
-                          Verificado
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold shrink-0">
+                          Cuenta Verificada SARA
                         </span>
                       </div>
                     </div>
