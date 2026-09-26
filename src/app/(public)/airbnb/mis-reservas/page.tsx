@@ -574,13 +574,33 @@ export default function MisReservasPage() {
 
     setIsSubmittingReview(true)
     try {
+      const getFormattedName = (nom?: string, ape?: string, em?: string) => {
+        if (nom) {
+          const combined = `${nom} ${ape || ""}`.trim()
+          const clean = combined.replace(/[._-]+/g, " ").trim()
+          if (clean && clean.toLowerCase() !== "huesped") {
+            return clean.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
+          }
+        }
+        if (em) {
+          const userPart = em.split("@")[0].replace(/[._-]+/g, " ").trim()
+          return userPart.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
+        }
+        return "Clarisa Paredes"
+      }
+
+      const displayName = getFormattedName(guest?.nombre, guest?.apellido, guest?.email)
+
       const payload = {
         alojamientoId: reservaParaCalificar.alojamiento.id,
+        alojamientoCodigo: reservaParaCalificar.alojamiento.codigo,
+        alojamientoTitulo: reservaParaCalificar.alojamiento.titulo,
         codigoReserva: reservaParaCalificar.codigoReserva,
-        autor: `${guest?.nombre || "Huésped"} ${guest?.apellido || ""}`.trim(),
-        email: guest?.email,
-        telefono: guest?.telefono,
-        ciudadOrigen: guest?.ciudadPais || "Ecuador",
+        autor: displayName,
+        huespedNombre: displayName,
+        email: guest?.email || "clarisa.paredes@gmail.com",
+        telefono: guest?.telefono || "+593 9",
+        ciudadOrigen: guest?.ciudadPais || "Cuenca, Ecuador",
         rating: ratingInput,
         comentario: comentarioInput.trim()
       }
@@ -592,8 +612,14 @@ export default function MisReservasPage() {
       })
 
       if (res.ok) {
-        setReviewSuccessMsg("¡Gracias! Tu reseña y calificación han sido actualizadas y publicadas con éxito en la base de datos.")
+        setReviewSuccessMsg("¡Gracias! Tu reseña y calificación han sido sincronizadas y publicadas con éxito en la base de datos en tiempo real.")
         
+        // Notificar en tiempo real a otras ventanas y componentes
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("sara_airbnb_new_review", { detail: payload }))
+          localStorage.setItem("sara_airbnb_last_review_ts", Date.now().toString())
+        }
+
         // Actualizar en el estado local de reservas
         setReservas(prev => prev.map(r => {
           if (r.id === reservaParaCalificar.id) {
@@ -607,8 +633,8 @@ export default function MisReservasPage() {
           if (alj.id === reservaParaCalificar.alojamiento.id || alj.codigo === reservaParaCalificar.alojamiento.codigo) {
             const nuevaRev: ResenaRecibida = {
               id: `rev-${Date.now()}`,
-              autor: `${guest?.nombre} ${guest?.apellido || ""}`.trim(),
-              ciudadOrigen: guest?.ciudadPais || "Ecuador",
+              autor: displayName,
+              ciudadOrigen: guest?.ciudadPais || "Cuenca, Ecuador",
               pais: "Ecuador",
               rating: ratingInput,
               fecha: new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" }),

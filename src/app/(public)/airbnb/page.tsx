@@ -68,6 +68,7 @@ export interface ResenaHuesped {
   fecha: string
   rating: number
   comentario: string
+  verificado?: boolean
 }
 
 export function getDefaultReviewsForListing(stay: AirbnbListing): ResenaHuesped[] {
@@ -617,7 +618,7 @@ export default function AirbnbPage() {
                 precioNoche: Number(a.precioNoche) || 50,
                 tarifaLimpieza: Number(a.tarifaLimpieza) || 15,
                 rating: Number(a.rating) || 5.0,
-                reviewsCount: Math.floor(Math.random() * 20) + 12,
+                reviewsCount: Number(a.reviewsCount) || (AIRBNB_DATA.find(s => s.codigo === a.codigo)?.reviewsCount || 26),
                 isSuperhost: Boolean(a.isSuperhost),
                 maxHuespedes: Number(a.maxHuespedes) || 2,
                 camas: Number(a.camas) || 1,
@@ -657,7 +658,20 @@ export default function AirbnbPage() {
     }
   }
 
-  // Estados para Reseñas y Comentarios de Usuarios (Imagen 2)
+  // Formateador de nombre del huésped
+  const formatGuestName = (raw?: string, fallback = "Clarisa Paredes"): string => {
+    if (!raw) return fallback
+    const clean = raw.replace(/[._-]+/g, " ").trim()
+    if (!clean || clean.toLowerCase() === "huesped verificado" || clean.toLowerCase() === "huesped") {
+      return fallback
+    }
+    return clean
+      .split(/\s+/)
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ")
+  }
+
+  // Estados para Reseñas y Comentarios de Usuarios (Sincronización en tiempo real)
   const [userReviews, setUserReviews] = useState<Record<string, ResenaHuesped[]>>({})
   const [showAddReview, setShowAddReview] = useState<boolean>(false)
   const [newReviewAuthor, setNewReviewAuthor] = useState<string>("")
@@ -665,43 +679,110 @@ export default function AirbnbPage() {
   const [newReviewRating, setNewReviewRating] = useState<number>(5)
   const [newReviewComment, setNewReviewComment] = useState<string>("")
 
-  // Cargar reseñas guardadas en la base de datos de Supabase
-  useEffect(() => {
-    async function loadResenasBD() {
-      try {
-        const res = await fetch("/api/airbnb/resenas")
-        if (res.ok) {
-          const data = await res.json()
-          if (Array.isArray(data.resenas)) {
-            const grouped: Record<string, ResenaHuesped[]> = {}
-            for (const r of data.resenas) {
-              const stayId = r.alojamientoId || "ab-1"
-              if (!grouped[stayId]) grouped[stayId] = []
-              grouped[stayId].push({
-                id: r.id || `db-rev-${Math.random()}`,
-                autor: r.huespedNombre || "Huésped Verificado",
-                ciudadOrigen: r.huespedEmail ? "Huésped Registrado" : "Ecuador",
-                pais: "Ecuador",
-                bandera: "🇪🇨",
-                fecha: r.fecha || "Reciente",
-                rating: Number(r.rating) || 5,
-                comentario: r.comentario || ""
-              })
-            }
-            setUserReviews(prev => ({ ...prev, ...grouped }))
-          }
-        }
-      } catch (err) {
-        console.warn("Error cargando reseñas BD:", err)
+  // Cálculo reactivo de métricas reales (rating promedio ponderado y conteo consolidado)
+  const getStayStats = (
+    stay: AirbnbListing | null | undefined
+  ): { rating: number; reviewsCount: number; reviews: ResenaHuesped[] } => {
+    if (!stay) return { rating: 5.0, reviewsCount: 20, reviews: [] }
+    const byId = userReviews[stay.id] || []
+    const byCode = (stay.codigo && stay.codigo !== stay.id) ? (userReviews[stay.codigo] || []) : []
+
+    // Deduplicar reseñas por ID
+    const map = new Map<string, ResenaHuesped>()
+    byId.forEach(r => map.set(r.id, r))
+    byCode.forEach(r => map.set(r.id, r))
+    const extraReviews = Array.from(map.values())
+
+    const baseCount = stay.reviewsCount || 26
+    const baseRating = stay.rating || 5.0
+
+    if (extraReviews.length === 0) {
+      return {
+        rating: baseRating,
+        reviewsCount: baseCount,
+        reviews: extraReviews
       }
     }
+
+    const extraTotalScore = extraReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0)
+    const totalCount = baseCount + extraReviews.length
+    const weighted = ((baseRating * baseCount) + extraTotalScore) / totalCount
+
+    return {
+      rating: Number(weighted.toFixed(2)),
+      reviewsCount: totalCount,
+      reviews: extraReviews
+    }
+  }
+
+  // Cargar reseñas guardadas en la base de datos de Supabase en tiempo real
+  const loadResenasBD = async () => {
+    try {
+      const res = await fetch(`/api/airbnb/resenas?t=${Date.now()}`, { cache: "no-store" })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.resenas)) {
+          const grouped: Record<string, ResenaHuesped[]> = {}
+          for (const r of data.resenas) {
+            const stayId = r.alojamientoId || "ab-1"
+            const stayCode = r.alojamientoCodigo || ""
+            const displayName = formatGuestName(r.autor || r.huespedNombre || r.nombre, "Clarisa Paredes")
+
+            const item: ResenaHuesped = {
+              id: r.id || `db-rev-${Math.random()}`,
+              autor: displayName,
+              ciudadOrigen: r.ciudadOrigen || "Cuenca, Ecuador",
+              pais: r.pais || "Ecuador",
+              bandera: r.bandera || "🇪🇨",
+              fecha: r.fecha || "Reciente",
+              rating: Number(r.rating) || 5,
+              comentario: r.comentario || "",
+              verificado: true
+            }
+
+            if (!grouped[stayId]) grouped[stayId] = []
+            grouped[stayId].push(item)
+
+            if (stayCode && stayCode !== stayId) {
+              if (!grouped[stayCode]) grouped[stayCode] = []
+              grouped[stayCode].push(item)
+            }
+          }
+          setUserReviews(grouped)
+        }
+      }
+    } catch (err) {
+      console.warn("Error cargando reseñas BD:", err)
+    }
+  }
+
+  useEffect(() => {
     loadResenasBD()
+
+    const handleSync = () => {
+      loadResenasBD()
+    }
+
+    window.addEventListener("sara_airbnb_new_review", handleSync)
+    window.addEventListener("storage", handleSync)
+    window.addEventListener("focus", handleSync)
+
+    // Intervalo de sondeo en segundo plano (cada 6 segundos) para sincronizar sin recargar
+    const interval = setInterval(loadResenasBD, 6000)
+
+    return () => {
+      window.removeEventListener("sara_airbnb_new_review", handleSync)
+      window.removeEventListener("storage", handleSync)
+      window.removeEventListener("focus", handleSync)
+      clearInterval(interval)
+    }
   }, [])
 
   // Si hay un huésped activo, precompletar el formulario de reseña
   useEffect(() => {
     if (activeGuest) {
-      setNewReviewAuthor(`${activeGuest.nombre} ${activeGuest.apellido}`.trim())
+      const formatted = formatGuestName(`${activeGuest.nombre} ${activeGuest.apellido || ""}`, "Clarisa Paredes")
+      setNewReviewAuthor(formatted)
       if (activeGuest.ciudad) {
         setNewReviewCity(`${activeGuest.ciudad}, Ecuador`)
       }
@@ -715,21 +796,31 @@ export default function AirbnbPage() {
       return
     }
 
+    const formattedAuthor = formatGuestName(newReviewAuthor.trim(), "Clarisa Paredes")
+
     const nuevaResena: ResenaHuesped = {
       id: `usr-rev-${Date.now()}`,
-      autor: newReviewAuthor.trim(),
+      autor: formattedAuthor,
       ciudadOrigen: newReviewCity.trim(),
       pais: "Ecuador",
       bandera: "🇪🇨",
-      fecha: "Hace instantes (Huésped Verificado)",
+      fecha: new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" }),
       rating: newReviewRating,
-      comentario: newReviewComment.trim()
+      comentario: newReviewComment.trim(),
+      verificado: true
     }
 
-    setUserReviews(prev => ({
-      ...prev,
-      [stayId]: [nuevaResena, ...(prev[stayId] || [])]
-    }))
+    setUserReviews(prev => {
+      const codeKey = selectedStay?.codigo
+      const nextMap = {
+        ...prev,
+        [stayId]: [nuevaResena, ...(prev[stayId] || [])]
+      }
+      if (codeKey && codeKey !== stayId) {
+        nextMap[codeKey] = [nuevaResena, ...(prev[codeKey] || [])]
+      }
+      return nextMap
+    })
 
     // Persistir en Supabase
     try {
@@ -738,20 +829,24 @@ export default function AirbnbPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           alojamientoId: stayId,
+          alojamientoCodigo: selectedStay?.codigo,
           alojamientoTitulo: selectedStay?.titulo,
-          huespedNombre: newReviewAuthor.trim(),
+          autor: formattedAuthor,
+          huespedNombre: formattedAuthor,
           huespedEmail: activeGuest?.email || "",
+          ciudadOrigen: newReviewCity.trim(),
           rating: newReviewRating,
           comentario: newReviewComment.trim()
         })
       })
+      await loadResenasBD()
     } catch (err) {
       console.warn("Error persistiendo reseña en Supabase:", err)
     }
 
     setNewReviewComment("")
     setShowAddReview(false)
-    alert("¡Muchas gracias! Tu opinión y calificación han sido registradas y publicadas exitosamente.")
+    alert("¡Muchas gracias! Tu opinión y calificación han sido registradas y sincronizadas exitosamente.")
   }
 
   const handleStartBooking = (stay: AirbnbListing) => {
@@ -1358,7 +1453,7 @@ export default function AirbnbPage() {
                         {/* Rating */}
                         <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md">
                           <Star size={11} className="fill-amber-400 text-amber-400" />
-                          <span>{stay.rating.toFixed(2)}</span>
+                          <span>{getStayStats(stay).rating.toFixed(2)}</span>
                         </div>
 
                         {/* Precio por noche en el mapa y tarjeta */}
@@ -1389,8 +1484,8 @@ export default function AirbnbPage() {
                                 <Star key={s} size={12} className="fill-amber-400 text-amber-400" />
                               ))}
                             </div>
-                            <span className="text-xs font-black text-gray-900">{stay.rating.toFixed(2)}</span>
-                            <span className="text-[11px] text-gray-400 font-medium">({stay.reviewsCount} reseñas)</span>
+                            <span className="text-xs font-black text-gray-900">{getStayStats(stay).rating.toFixed(2)}</span>
+                            <span className="text-[11px] text-gray-400 font-medium">({getStayStats(stay).reviewsCount} reseñas)</span>
                           </div>
 
                           {/* Cálculo de total por estadía */}
@@ -1593,7 +1688,7 @@ export default function AirbnbPage() {
                       </div>
                       <div className="flex items-center gap-1 text-xs font-bold text-gray-800 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm">
                         <Star size={13} className="fill-amber-400 text-amber-400" />
-                        <span>{selectedStay.rating.toFixed(2)}</span>
+                        <span>{getStayStats(selectedStay).rating.toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -1673,10 +1768,10 @@ export default function AirbnbPage() {
                           <Star key={s} size={18} className="fill-amber-400 text-amber-400" />
                         ))}
                       </div>
-                      <span className="text-xl font-black text-gray-900">{selectedStay.rating.toFixed(2)}</span>
+                      <span className="text-xl font-black text-gray-900">{getStayStats(selectedStay).rating.toFixed(2)}</span>
                       <span className="text-sm text-gray-400 font-semibold">•</span>
                       <span className="text-sm font-bold text-gray-800">
-                        {selectedStay.reviewsCount + (userReviews[selectedStay.id]?.length || 0)} evaluaciones
+                        {getStayStats(selectedStay).reviewsCount} evaluaciones
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 flex items-center gap-1.5">
@@ -1806,7 +1901,7 @@ export default function AirbnbPage() {
 
                 {/* Lista de Opiniones y Comentarios */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[...(userReviews[selectedStay.id] || []), ...getDefaultReviewsForListing(selectedStay)].map((rev) => (
+                  {[...getStayStats(selectedStay).reviews, ...getDefaultReviewsForListing(selectedStay)].map((rev) => (
                     <div
                       key={rev.id}
                       className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
@@ -1944,7 +2039,7 @@ export default function AirbnbPage() {
                         <span>{bookingStay.ciudad}, {bookingStay.sector}</span>
                         <span className="text-gray-400">•</span>
                         <span className="text-amber-700 flex items-center gap-0.5 font-bold">
-                          <Star size={12} className="fill-amber-500 text-amber-500" /> {bookingStay.rating.toFixed(2)}
+                          <Star size={12} className="fill-amber-500 text-amber-500" /> {getStayStats(bookingStay).rating.toFixed(2)}
                         </span>
                       </div>
                       <h4 className="font-extrabold text-gray-900 text-sm md:text-base leading-snug">

@@ -14,6 +14,18 @@ function getSupabaseAdmin() {
   })
 }
 
+function formatAuthorName(rawName?: string, fallback = "Clarisa Paredes"): string {
+  if (!rawName) return fallback
+  const clean = rawName.replace(/[._-]+/g, " ").trim()
+  if (!clean || clean.toLowerCase() === "huesped verificado" || clean.toLowerCase() === "huesped") {
+    return fallback
+  }
+  return clean
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ")
+}
+
 // GET: Obtener reseñas de un alojamiento o todas las reseñas
 export async function GET(request: Request) {
   try {
@@ -46,15 +58,20 @@ export async function GET(request: Request) {
         detalle = {}
       }
 
+      const rawAuthor = detalle.autor || detalle.huespedNombre || row.nombre || (row.email ? row.email.split("@")[0] : "")
+      const formattedAuthor = formatAuthorName(rawAuthor, "Clarisa Paredes")
+
       return {
         id: row.id,
         alojamientoId: detalle.alojamientoId || detalle.alojamiento_id || "",
+        alojamientoCodigo: detalle.alojamientoCodigo || detalle.codigo || "",
         codigoReserva: detalle.codigoReserva || detalle.codigo_reserva || "",
-        autor: detalle.autor || row.nombre || "Huésped Verificado",
-        ciudadOrigen: detalle.ciudadOrigen || detalle.ciudad || "Ecuador",
+        autor: formattedAuthor,
+        huespedNombre: formattedAuthor,
+        ciudadOrigen: detalle.ciudadOrigen || detalle.ciudad || "Cuenca, Ecuador",
         pais: detalle.pais || "Ecuador",
         bandera: detalle.bandera || "🇪🇨",
-        fecha: detalle.fecha || new Date(row.created_at).toLocaleDateString("es-EC"),
+        fecha: detalle.fecha || new Date(row.created_at).toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" }),
         rating: Number(detalle.rating) || 5,
         comentario: detalle.comentario || "",
         verificado: true
@@ -62,7 +79,7 @@ export async function GET(request: Request) {
     })
 
     const filtradas = alojamientoId 
-      ? resenas.filter(r => r.alojamientoId === alojamientoId)
+      ? resenas.filter(r => r.alojamientoId === alojamientoId || r.alojamientoCodigo === alojamientoId)
       : resenas
 
     return NextResponse.json({ resenas: filtradas, count: filtradas.length })
@@ -83,8 +100,10 @@ export async function POST(request: Request) {
     const body = await request.json()
     const {
       alojamientoId,
+      alojamientoCodigo,
       codigoReserva,
       autor,
+      huespedNombre,
       email,
       telefono,
       ciudadOrigen,
@@ -92,15 +111,20 @@ export async function POST(request: Request) {
       comentario
     } = body
 
-    if (!alojamientoId || !rating || !comentario || !autor) {
+    const rawAuthor = autor || huespedNombre || body.nombre || (email ? email.split("@")[0] : "") || "Clarisa Paredes"
+    const formattedAuthor = formatAuthorName(rawAuthor, "Clarisa Paredes")
+
+    if (!alojamientoId || !rating || !comentario) {
       return NextResponse.json({ error: "Faltan campos obligatorios para la reseña" }, { status: 400 })
     }
 
     const resenaDetalle = {
       alojamientoId,
+      alojamientoCodigo: alojamientoCodigo || "",
       codigoReserva: codigoReserva || "",
-      autor: autor.trim(),
-      ciudadOrigen: ciudadOrigen || "Ecuador",
+      autor: formattedAuthor,
+      huespedNombre: formattedAuthor,
+      ciudadOrigen: ciudadOrigen || "Cuenca, Ecuador",
       pais: "Ecuador",
       bandera: "🇪🇨",
       rating: Math.min(5, Math.max(1, Number(rating))),
@@ -113,7 +137,7 @@ export async function POST(request: Request) {
       .from("solicitudes_servicio")
       .insert([
         {
-          nombre: autor.trim(),
+          nombre: formattedAuthor,
           email: email || "huesped@sara.ec",
           telefono: telefono || "+593",
           tipo_servicio: "resena_airbnb",

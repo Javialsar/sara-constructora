@@ -288,29 +288,39 @@ export default function AirbnbAuthPage() {
         password: loginPassword
       })
 
-      let guestName = loginEmail.split("@")[0]
+      let rawName = loginEmail.split("@")[0]
       let guestId = data?.user?.id || `guest-${Date.now()}`
       let guestPhone = "+593 9"
       let guestCedula = ""
+      let guestApellido = ""
 
       if (authError) {
         console.warn("Supabase auth advertencia, evaluando sesión de huésped:", authError.message)
       } else if (data?.user) {
         const metadata = data.user.user_metadata || {}
-        guestName = metadata.nombre || guestName
+        rawName = metadata.nombre || rawName
+        guestApellido = metadata.apellido || ""
         guestPhone = metadata.telefono || guestPhone
         guestCedula = metadata.cedula || ""
       }
 
+      // Limpiar y formatear nombre legible (ej. clarisa.paredes -> Clarisa Paredes)
+      const cleanParts = rawName.replace(/[._-]+/g, " ").trim().split(/\s+/)
+      let finalNombre = cleanParts.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
+      if (!guestApellido && cleanParts.length > 1) {
+        finalNombre = cleanParts[0].charAt(0).toUpperCase() + cleanParts[0].slice(1).toLowerCase()
+        guestApellido = cleanParts.slice(1).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")
+      }
+
       setGuestSession({
         id: guestId,
-        nombre: guestName,
-        apellido: "",
+        nombre: finalNombre,
+        apellido: guestApellido,
         cedula: guestCedula,
         email: loginEmail.trim(),
         telefono: guestPhone,
         ciudad: "Ecuador",
-        ciudadPais: "Ecuador",
+        ciudadPais: "Cuenca, Ecuador",
         fechaRegistro: new Date().toISOString()
       })
 
