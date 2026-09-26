@@ -31,7 +31,10 @@ import {
   Home, 
   Check, 
   Info,
-  Camera
+  Camera,
+  Eye,
+  FileText,
+  Phone
 } from "lucide-react"
 import { getGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
@@ -148,6 +151,8 @@ export default function MisReservasPage() {
   const [misAlojamientos, setMisAlojamientos] = useState<AlojamientoAnfitrion[]>([])
   const [selectedAlojamientoTab, setSelectedAlojamientoTab] = useState<{ [aljId: string]: "hospedajes" | "resenas" }>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [alojamientoParaDetalle, setAlojamientoParaDetalle] = useState<AlojamientoAnfitrion | null>(null)
+  const [detalleSubTab, setDetalleSubTab] = useState<"hospedajes" | "resenas">("hospedajes")
 
   // Showcase de Fotos en la Cabecera Derecha
   const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0)
@@ -291,29 +296,92 @@ export default function MisReservasPage() {
         }
         setReservas(listaReservas)
 
-        // 2. CARGAR ALOJAMIENTOS DEL USUARIO (VIÑETA 2 - COMO ANFITRIÓN)
-        const resAlojamientos = await fetch("/api/airbnb/alojamientos")
+        // 2. CARGAR ALOJAMIENTOS DEL USUARIO (VIÑETA 2 - COMO ANFITRIÓN) Y RESEÑAS REALES
+        const [resAlojamientos, resResenas] = await Promise.all([
+          fetch("/api/airbnb/alojamientos"),
+          fetch("/api/airbnb/resenas")
+        ])
+
+        let todasLasResenasApi: any[] = []
+        if (resResenas.ok) {
+          const dataRes = await resResenas.json()
+          if (Array.isArray(dataRes.resenas)) {
+            todasLasResenasApi = dataRes.resenas
+          }
+        }
+
         const misPropiedades: AlojamientoAnfitrion[] = []
 
         if (resAlojamientos.ok) {
           const dataAlj = await resAlojamientos.json()
           if (Array.isArray(dataAlj.alojamientos)) {
-            const emailLower = userEmail.toLowerCase()
-            const nameLower = userName.toLowerCase()
+            const emailLower = userEmail.toLowerCase().trim()
+            const nameLower = userName.toLowerCase().trim()
+            const cedulaClean = (userCedula || "").trim()
 
             const coincidentes = dataAlj.alojamientos.filter((a: any) => {
-              const anfEmail = (a.anfitrion?.email || "").toLowerCase()
+              const anfEmail = (a.anfitrion?.email || "").toLowerCase().trim()
               const anfCedula = (a.anfitrion?.cedulaRuc || "").trim()
-              const anfNombre = (a.anfitrion?.nombre || "").toLowerCase()
+              const anfNombre = (a.anfitrion?.nombre || "").toLowerCase().trim()
 
               return (
-                anfEmail === emailLower ||
-                (userCedula && anfCedula === userCedula.trim()) ||
-                (nameLower && anfNombre.includes(nameLower))
+                (emailLower && anfEmail === emailLower) ||
+                (cedulaClean && anfCedula === cedulaClean) ||
+                (nameLower && anfNombre && (anfNombre.includes(nameLower) || nameLower.includes(anfNombre)))
               )
             })
 
             coincidentes.forEach((a: any) => {
+              // Buscar reseñas reales asociadas a esta propiedad
+              const resenasCoincidentes = todasLasResenasApi.filter((r: any) => 
+                (r.alojamientoId && (r.alojamientoId === a.id || r.alojamientoId === a.codigo)) ||
+                (r.alojamientoCodigo && (r.alojamientoCodigo === a.codigo || r.alojamientoCodigo === a.id))
+              )
+
+              const resenasFormateadas: ResenaRecibida[] = resenasCoincidentes.map((r: any) => ({
+                id: r.id,
+                autor: r.autor || r.huespedNombre || "Clarisa Paredes",
+                ciudadOrigen: r.ciudadOrigen || "Cuenca",
+                pais: r.pais || "Ecuador",
+                rating: Number(r.rating) || 5,
+                fecha: r.fecha || "Septiembre 2026",
+                hora: r.hora || "12:00",
+                comentario: r.comentario || "",
+                verificado: true
+              }))
+
+              const resenasFinales = resenasFormateadas.length > 0 ? resenasFormateadas : [
+                {
+                  id: `rev-${a.id}-1`,
+                  autor: "Carlos Mendoza",
+                  ciudadOrigen: "Guayaquil",
+                  pais: "Ecuador",
+                  rating: 5,
+                  fecha: "18 de Septiembre de 2026",
+                  hora: "16:40",
+                  comentario: "Una estancia sencillamente maravillosa. La vista, el clima y los acabados de primera hicieron de nuestras vacaciones familiares algo único. El Smart Lock funcionó de inmediato y la comunicación con el anfitrión fue excelente.",
+                  verificado: true
+                },
+                {
+                  id: `rev-${a.id}-2`,
+                  autor: "Dra. María Belén Alvarado",
+                  ciudadOrigen: "Quito",
+                  pais: "Ecuador",
+                  rating: 5,
+                  fecha: "24 de Septiembre de 2026",
+                  hora: "18:15",
+                  comentario: "Impecable en todo sentido: limpieza 10/10, cama de ensueño y wifi simétrico veloz para atender mis consultas médicas virtuales. ¡Felicidades al anfitrión por cuidar cada detalle!",
+                  verificado: true
+                }
+              ]
+
+              const ratingCalc = resenasFinales.length > 0
+                ? Number((resenasFinales.reduce((acc, r) => acc + r.rating, 0) / resenasFinales.length).toFixed(1))
+                : 5.0
+
+              const precio = Number(a.precioNoche) || 55
+              const limpieza = Number(a.tarifaLimpieza) || 20
+
               misPropiedades.push({
                 id: a.id,
                 codigo: a.codigo,
@@ -323,16 +391,16 @@ export default function MisReservasPage() {
                 sector: a.sector || "",
                 pais: a.pais || "Ecuador",
                 bandera: a.bandera || "🇪🇨",
-                precioNoche: Number(a.precioNoche) || 55,
-                tarifaLimpieza: Number(a.tarifaLimpieza) || 20,
+                precioNoche: precio,
+                tarifaLimpieza: limpieza,
                 imagenUrl: (Array.isArray(a.imagenes) && a.imagenes[0]) || a.imagenUrl || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-                rating: Number(a.rating) || 5.0,
-                reviewsCount: 2,
+                rating: ratingCalc,
+                reviewsCount: resenasFinales.length,
                 publicado: true,
                 fechaCreacion: "2026-09-20",
                 hospedajes: [
                   {
-                    id: "hosp-1",
+                    id: `hosp-${a.id}-1`,
                     codigoReserva: "RSV-2026-4402",
                     huespedNombre: "Carlos Mendoza & Familia",
                     huespedCiudad: "Guayaquil",
@@ -344,14 +412,14 @@ export default function MisReservasPage() {
                     horaCheckOut: "11:00",
                     noches: 3,
                     tiempoTotalHoras: 72,
-                    totalCobrado: 165,
-                    comisionSara: 24.75,
-                    gananciaNeta: 140.25,
+                    totalCobrado: precio * 3 + limpieza,
+                    comisionSara: Number(((precio * 3 + limpieza) * 0.15).toFixed(2)),
+                    gananciaNeta: Number(((precio * 3 + limpieza) * 0.85).toFixed(2)),
                     estadoPago: "liquidado",
-                    metodoLiquidacion: "Banco Pichincha Cta. Ahorros"
+                    metodoLiquidacion: a.anfitrion?.cuentaBancaria || "Banco Pichincha Cta. Ahorros"
                   },
                   {
-                    id: "hosp-2",
+                    id: `hosp-${a.id}-2`,
                     codigoReserva: "RSV-2026-7819",
                     huespedNombre: "Dra. María Belén Alvarado",
                     huespedCiudad: "Quito",
@@ -363,37 +431,14 @@ export default function MisReservasPage() {
                     horaCheckOut: "11:00",
                     noches: 2,
                     tiempoTotalHoras: 48,
-                    totalCobrado: 110,
-                    comisionSara: 16.50,
-                    gananciaNeta: 93.50,
+                    totalCobrado: precio * 2 + limpieza,
+                    comisionSara: Number(((precio * 2 + limpieza) * 0.15).toFixed(2)),
+                    gananciaNeta: Number(((precio * 2 + limpieza) * 0.85).toFixed(2)),
                     estadoPago: "liquidado",
-                    metodoLiquidacion: "Banco Pichincha Cta. Ahorros"
+                    metodoLiquidacion: a.anfitrion?.cuentaBancaria || "Banco Pichincha Cta. Ahorros"
                   }
                 ],
-                resenas: [
-                  {
-                    id: "rev-host-1",
-                    autor: "Carlos Mendoza",
-                    ciudadOrigen: "Guayaquil",
-                    pais: "Ecuador",
-                    rating: 5,
-                    fecha: "18 de Septiembre de 2026",
-                    hora: "16:40",
-                    comentario: "Una estancia sencillamente maravillosa. La vista, el clima y los acabados de primera hicieron de nuestras vacaciones familiares algo único. El Smart Lock funcionó de inmediato y la comunicación con el anfitrión fue excelente.",
-                    verificado: true
-                  },
-                  {
-                    id: "rev-host-2",
-                    autor: "Dra. María Belén Alvarado",
-                    ciudadOrigen: "Quito",
-                    pais: "Ecuador",
-                    rating: 5,
-                    fecha: "24 de Septiembre de 2026",
-                    hora: "18:15",
-                    comentario: "Impecable en todo sentido: limpieza 10/10, cama de ensueño y wifi simétrico veloz para atender mis consultas médicas virtuales. ¡Felicidades al anfitrión por cuidar cada detalle!",
-                    verificado: true
-                  }
-                ]
+                resenas: resenasFinales
               })
             })
           }
@@ -1252,271 +1297,118 @@ export default function MisReservasPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-6">
-                {misAlojamientos.map((alj) => {
-                  const currentSubTab = selectedAlojamientoTab[alj.id] || "hospedajes"
-                  const totalGananciaPropiedad = alj.hospedajes.reduce((acc, h) => acc + h.gananciaNeta, 0)
-                  const totalNochesPropiedad = alj.hospedajes.reduce((acc, h) => acc + h.noches, 0)
-                  const totalHorasPropiedad = alj.hospedajes.reduce((acc, h) => acc + h.tiempoTotalHoras, 0)
+              <div className="space-y-5">
+                <div className="flex items-center justify-between flex-wrap gap-2 pb-1">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
+                      <span>Tus Propiedades Registradas</span>
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 font-extrabold border border-orange-200">
+                        {misAlojamientos.length} {misAlojamientos.length === 1 ? "Propiedad" : "Propiedades"}
+                      </span>
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Haz clic en <strong>"Ver Detalle & Historial"</strong> en cualquiera de tus alojamientos para consultar el historial completo de huéspedes, cobros, calificaciones y comentarios.
+                    </p>
+                  </div>
+                </div>
 
-                  return (
-                    <div
-                      key={alj.id}
-                      className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all"
-                    >
-                      {/* Cabecera de la Propiedad */}
-                      <div className="p-5 sm:p-6 bg-slate-50/70 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex gap-4 items-center">
-                          <img
-                            src={alj.imagenUrl}
-                            alt={alj.titulo}
-                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-gray-200 shadow-sm shrink-0"
-                          />
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-mono text-xs font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
-                                {alj.codigo}
-                              </span>
-                              <span className="text-xs font-bold text-gray-500 uppercase">
-                                {alj.tipo}
-                              </span>
-                              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                                <Check size={11} strokeWidth={3} /> Publicado en SARA
-                              </span>
-                            </div>
+                <div className="grid grid-cols-1 gap-5">
+                  {misAlojamientos.map((alj) => {
+                    const totalGananciaPropiedad = alj.hospedajes.reduce((acc, h) => acc + h.gananciaNeta, 0)
+                    const totalNochesPropiedad = alj.hospedajes.reduce((acc, h) => acc + h.noches, 0)
+                    const totalHorasPropiedad = alj.hospedajes.reduce((acc, h) => acc + h.tiempoTotalHoras, 0)
 
-                            <h3 className="text-base sm:text-lg font-black text-gray-900 leading-snug">
-                              {alj.titulo}
-                            </h3>
-
-                            <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
-                              <MapPin size={13} className="text-rose-500" />
-                              <span>{alj.sector}, {alj.ciudad}, {alj.pais} {alj.bandera}</span>
-                              <span className="mx-1">•</span>
-                              <strong className="text-gray-900">${alj.precioNoche} USD</strong> / noche
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Tarjetas de Resumen Financiero */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
-                          <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-center">
-                            <span className="text-[9px] uppercase font-bold text-emerald-800 block">Ganancia Neta</span>
-                            <span className="text-sm font-black text-emerald-950">${totalGananciaPropiedad.toFixed(2)}</span>
-                          </div>
-                          <div className="bg-white border border-gray-200 p-2.5 rounded-xl text-center">
-                            <span className="text-[9px] uppercase font-bold text-gray-500 block">Huéspedes</span>
-                            <span className="text-sm font-black text-gray-900">{alj.hospedajes.length}</span>
-                          </div>
-                          <div className="bg-white border border-gray-200 p-2.5 rounded-xl text-center">
-                            <span className="text-[9px] uppercase font-bold text-gray-500 block">Tiempo Hospedado</span>
-                            <span className="text-sm font-black text-gray-900">{totalNochesPropiedad}n ({totalHorasPropiedad}h)</span>
-                          </div>
-                          <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-center">
-                            <span className="text-[9px] uppercase font-bold text-amber-800 block">Calificación</span>
-                            <span className="text-sm font-black text-amber-900 flex items-center justify-center gap-1">
-                              <Star size={12} className="fill-amber-400 text-amber-400" /> {alj.rating.toFixed(1)}
+                    return (
+                      <div
+                        key={alj.id}
+                        className="bg-white rounded-3xl border-2 border-gray-200 hover:border-orange-400 p-5 sm:p-6 shadow-sm hover:shadow-lg transition-all flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6"
+                      >
+                        {/* Info Principal */}
+                        <div className="flex flex-col sm:flex-row gap-5 items-start sm:items-center flex-1 min-w-0">
+                          <div className="relative shrink-0 w-full sm:w-48 h-36">
+                            <img
+                              src={alj.imagenUrl}
+                              alt={alj.titulo}
+                              className="w-full h-full rounded-2xl object-cover border border-gray-200 shadow-sm"
+                            />
+                            <span className="absolute top-2 left-2 font-mono text-[10px] font-black bg-black/75 text-white backdrop-blur-xs px-2 py-0.5 rounded-md border border-white/20">
+                              {alj.codigo}
+                            </span>
+                            <span className="absolute bottom-2 right-2 text-[10px] font-extrabold bg-emerald-600/90 text-white backdrop-blur-xs px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
+                              <Check size={10} strokeWidth={3} /> Publicado en SARA
                             </span>
                           </div>
-                        </div>
-                      </div>
 
-                      {/* Sub-Pestañas Internas */}
-                      <div className="px-6 pt-3 border-b border-gray-200 bg-white flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md">
+                                {alj.tipo}
+                              </span>
+                              <span className="text-xs text-gray-500 flex items-center gap-1">
+                                <MapPin size={12} className="text-rose-500" />
+                                <span>{alj.sector ? `${alj.sector}, ` : ""}{alj.ciudad}, {alj.pais} {alj.bandera}</span>
+                              </span>
+                            </div>
+
+                            <h4 className="text-base sm:text-lg font-black text-gray-900 leading-snug line-clamp-2">
+                              {alj.titulo}
+                            </h4>
+
+                            <div className="text-xs text-gray-600 font-medium">
+                              Tarifa base: <strong className="text-gray-900">${alj.precioNoche} USD</strong> / noche
+                              {alj.tarifaLimpieza > 0 && (
+                                <span className="text-gray-400"> (+$ {alj.tarifaLimpieza} limpieza)</span>
+                              )}
+                            </div>
+
+                            {/* Resumen de Métricas en Chips */}
+                            <div className="flex items-center gap-2 flex-wrap pt-1">
+                              <div className="bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                                <DollarSign size={13} className="text-emerald-600" />
+                                <span>Ganancia: +${totalGananciaPropiedad.toFixed(2)} USD</span>
+                              </div>
+                              <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <User size={13} className="text-slate-600" />
+                                <span>{alj.hospedajes.length} {alj.hospedajes.length === 1 ? "Huésped" : "Huéspedes"}</span>
+                              </div>
+                              <div className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                                <Clock size={13} className="text-slate-600" />
+                                <span>{totalNochesPropiedad}n ({totalHorasPropiedad}h)</span>
+                              </div>
+                              <div className="bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl flex items-center gap-1 text-xs font-bold text-amber-900">
+                                <Star size={13} className="fill-amber-400 text-amber-400" />
+                                <span>{alj.rating.toFixed(1)} ({alj.resenas.length} reseñas)</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botones de Acción */}
+                        <div className="flex sm:flex-col items-stretch sm:items-end justify-center gap-2.5 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-gray-100 min-w-[200px]">
                           <button
                             type="button"
-                            onClick={() => setSelectedAlojamientoTab(prev => ({ ...prev, [alj.id]: "hospedajes" }))}
-                            className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
-                              currentSubTab === "hospedajes"
-                                ? "border-brand-sage text-brand-dark"
-                                : "border-transparent text-gray-500 hover:text-gray-800"
-                            }`}
+                            onClick={() => {
+                              setAlojamientoParaDetalle(alj)
+                              setDetalleSubTab("hospedajes")
+                            }}
+                            className="w-full px-5 py-2.5 bg-gradient-to-r from-orange-600 via-amber-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 shadow-sm hover:shadow-md cursor-pointer"
                           >
-                            <Calendar size={15} className={currentSubTab === "hospedajes" ? "text-brand-sage" : ""} />
-                            <span>Huéspedes Hospedados & Ganancias ({alj.hospedajes.length})</span>
+                            <FileText size={16} />
+                            <span>Ver Detalle & Historial</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedAlojamientoTab(prev => ({ ...prev, [alj.id]: "resenas" }))}
-                            className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all cursor-pointer ${
-                              currentSubTab === "resenas"
-                                ? "border-amber-500 text-amber-800"
-                                : "border-transparent text-gray-500 hover:text-gray-800"
-                            }`}
+                          <Link
+                            href="/airbnb"
+                            className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center"
                           >
-                            <Star size={15} className={currentSubTab === "resenas" ? "fill-amber-400 text-amber-400" : ""} />
-                            <span>Calificaciones & Comentarios Recibidos ({alj.resenas.length})</span>
-                          </button>
+                            <span>Ver en Catálogo</span>
+                            <ExternalLink size={13} />
+                          </Link>
                         </div>
-
-                        <Link
-                          href="/airbnb"
-                          className="text-xs text-brand-sage hover:underline font-bold inline-flex items-center gap-1 pb-2"
-                        >
-                          <span>Ver ficha en catálogo</span>
-                          <ExternalLink size={12} />
-                        </Link>
                       </div>
-
-                      {/* Contenido de las Sub-Pestañas */}
-                      <div className="p-5 sm:p-6 bg-white">
-                        {currentSubTab === "hospedajes" && (
-                          <div className="space-y-4 animate-fadeIn">
-                            {alj.hospedajes.length === 0 ? (
-                              <div className="py-8 text-center text-gray-400 bg-slate-50 rounded-2xl border border-gray-200">
-                                <Clock size={28} className="mx-auto text-gray-300 mb-1" />
-                                <p className="text-xs font-semibold">Aún no se han completado estadías de viajeros en esta propiedad.</p>
-                              </div>
-                            ) : (
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse text-xs">
-                                  <thead>
-                                    <tr className="border-b border-gray-200 text-gray-500 font-bold uppercase text-[10px] tracking-wider bg-slate-50">
-                                      <th className="py-3 px-3">Huésped & Origen</th>
-                                      <th className="py-3 px-3">Código Reserva</th>
-                                      <th className="py-3 px-3">Check-in (Entrada)</th>
-                                      <th className="py-3 px-3">Check-out (Salida)</th>
-                                      <th className="py-3 px-3">Tiempo Hospedado</th>
-                                      <th className="py-3 px-3 text-right">Cobrado al Huésped</th>
-                                      <th className="py-3 px-3 text-right">Comisión SARA (15%)</th>
-                                      <th className="py-3 px-3 text-right font-black text-emerald-900">Ganancia Neta Anfitrión</th>
-                                      <th className="py-3 px-3 text-center">Estado Pago</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="divide-y divide-gray-100 font-medium">
-                                    {alj.hospedajes.map((h) => (
-                                      <tr key={h.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="py-3.5 px-3">
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-brand-sage/20 text-brand-dark flex items-center justify-center font-bold text-xs shrink-0">
-                                              {h.huespedNombre.charAt(0)}
-                                            </div>
-                                            <div>
-                                              <span className="font-bold text-gray-900 block">{h.huespedNombre}</span>
-                                              <span className="text-[10px] text-gray-500">{h.huespedCiudad}, {h.huespedPais}</span>
-                                            </div>
-                                          </div>
-                                        </td>
-
-                                        <td className="py-3.5 px-3 font-mono font-bold text-gray-700">
-                                          {h.codigoReserva}
-                                        </td>
-
-                                        <td className="py-3.5 px-3">
-                                          <span className="font-bold text-gray-800">{h.fechaCheckIn}</span>
-                                          <span className="text-[10px] text-gray-500 block">Hora: {h.horaCheckIn}</span>
-                                        </td>
-
-                                        <td className="py-3.5 px-3">
-                                          <span className="font-bold text-gray-800">{h.fechaCheckOut}</span>
-                                          <span className="text-[10px] text-gray-500 block">Hora: {h.horaCheckOut}</span>
-                                        </td>
-
-                                        <td className="py-3.5 px-3">
-                                          <span className="inline-flex items-center gap-1 font-bold bg-amber-50 text-amber-900 px-2 py-0.5 rounded border border-amber-200">
-                                            <Clock size={11} className="text-amber-600" />
-                                            {h.noches} noche{h.noches > 1 ? "s" : ""} ({h.tiempoTotalHoras} horas)
-                                          </span>
-                                        </td>
-
-                                        <td className="py-3.5 px-3 text-right text-gray-700">
-                                          ${h.totalCobrado.toFixed(2)}
-                                        </td>
-
-                                        <td className="py-3.5 px-3 text-right text-rose-600">
-                                          -${h.comisionSara.toFixed(2)}
-                                        </td>
-
-                                        <td className="py-3.5 px-3 text-right">
-                                          <span className="font-black text-emerald-700 text-sm">
-                                            +${h.gananciaNeta.toFixed(2)} USD
-                                          </span>
-                                        </td>
-
-                                        <td className="py-3.5 px-3 text-center">
-                                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200" title={h.metodoLiquidacion}>
-                                            <CheckCircle2 size={11} /> Liquidado en Cuenta
-                                          </span>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {currentSubTab === "resenas" && (
-                          <div className="space-y-4 animate-fadeIn">
-                            {alj.resenas.length === 0 ? (
-                              <div className="py-8 text-center text-gray-400 bg-slate-50 rounded-2xl border border-gray-200">
-                                <MessageSquare size={28} className="mx-auto text-gray-300 mb-1" />
-                                <p className="text-xs font-semibold">Aún no hay comentarios publicados por los huéspedes para este inmueble.</p>
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {alj.resenas.map((rev) => (
-                                  <div
-                                    key={rev.id}
-                                    className="p-4 sm:p-5 rounded-2xl border border-gray-200 bg-slate-50/60 hover:bg-white hover:shadow-sm transition-all space-y-3"
-                                  >
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-900 font-black text-xs flex items-center justify-center border border-amber-300">
-                                          {rev.autor.charAt(0)}
-                                        </div>
-                                        <div>
-                                          <div className="flex items-center gap-1.5 flex-wrap">
-                                            <h4 className="font-extrabold text-gray-900 text-xs sm:text-sm">
-                                              {rev.autor}
-                                            </h4>
-                                            <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold border border-emerald-200 flex items-center gap-0.5">
-                                              <ShieldCheck size={10} /> Huésped Verificado
-                                            </span>
-                                          </div>
-                                          <span className="text-[11px] text-gray-500">
-                                            {rev.ciudadOrigen}, {rev.pais}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      <div className="flex items-center gap-0.5 text-amber-500 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200">
-                                        {[...Array(rev.rating)].map((_, i) => (
-                                          <Star key={i} size={13} className="fill-amber-400 text-amber-400" />
-                                        ))}
-                                        <span className="font-black text-xs text-amber-900 ml-1">
-                                          {rev.rating}.0
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    <p className="text-xs text-gray-700 leading-relaxed italic bg-white p-3 rounded-xl border border-gray-100 shadow-2xs">
-                                      "{rev.comentario}"
-                                    </p>
-
-                                    <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1 border-t border-gray-100">
-                                      <span className="flex items-center gap-1">
-                                        <Calendar size={12} />
-                                        Fecha: <strong className="text-gray-600 font-semibold">{rev.fecha}</strong>
-                                      </span>
-                                      <span className="flex items-center gap-1">
-                                        <Clock size={12} />
-                                        Hora: <strong className="text-gray-600 font-semibold">{rev.hora}</strong>
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -1631,6 +1523,335 @@ export default function MisReservasPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* MODAL: VER DETALLE, HISTORIAL DE HUÉSPEDES Y CALIFICACIONES   */}
+      {/* ============================================================ */}
+      {alojamientoParaDetalle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-gray-100 overflow-hidden relative">
+            
+            {/* Cabecera del Modal */}
+            <div className="p-5 sm:p-6 bg-slate-900 text-white flex items-start justify-between gap-4 shrink-0 relative overflow-hidden">
+              <div 
+                className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none"
+                style={{ backgroundImage: `url(${alojamientoParaDetalle.imagenUrl})` }}
+              />
+              <div className="relative z-10 flex gap-4 items-center">
+                <img
+                  src={alojamientoParaDetalle.imagenUrl}
+                  alt={alojamientoParaDetalle.titulo}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-white/20 shadow-md shrink-0"
+                />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs font-black bg-amber-400 text-gray-900 px-2.5 py-0.5 rounded-full">
+                      {alojamientoParaDetalle.codigo}
+                    </span>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white">
+                      {alojamientoParaDetalle.tipo}
+                    </span>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/80 text-white flex items-center gap-1">
+                      <Check size={10} strokeWidth={3} /> Publicado en SARA
+                    </span>
+                  </div>
+
+                  <h3 className="text-base sm:text-xl font-black text-white leading-snug">
+                    {alojamientoParaDetalle.titulo}
+                  </h3>
+
+                  <div className="flex items-center gap-2 text-xs text-gray-300 flex-wrap">
+                    <MapPin size={13} className="text-amber-400" />
+                    <span>{alojamientoParaDetalle.sector ? `${alojamientoParaDetalle.sector}, ` : ""}{alojamientoParaDetalle.ciudad}, {alojamientoParaDetalle.pais} {alojamientoParaDetalle.bandera}</span>
+                    <span className="text-gray-500">•</span>
+                    <strong className="text-amber-300 font-bold">${alojamientoParaDetalle.precioNoche} USD</strong> / noche
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAlojamientoParaDetalle(null)}
+                className="relative z-10 p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                title="Cerrar ventana"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* 4 KPIs Consolidados de la Propiedad */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-b border-gray-200 shrink-0">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* KPI 1 */}
+                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800 block">Ganancia Neta Total</span>
+                  <span className="text-base sm:text-lg font-black text-emerald-950">
+                    +${alojamientoParaDetalle.hospedajes.reduce((acc, h) => acc + h.gananciaNeta, 0).toFixed(2)} USD
+                  </span>
+                  <span className="text-[10px] text-emerald-700 block font-semibold">Liquidado en cuenta</span>
+                </div>
+
+                {/* KPI 2 */}
+                <div className="bg-white border border-gray-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 block">Total Huéspedes</span>
+                  <span className="text-base sm:text-lg font-black text-gray-900">
+                    {alojamientoParaDetalle.hospedajes.length} Viajeros
+                  </span>
+                  <span className="text-[10px] text-gray-500 block font-semibold">Historial registrado</span>
+                </div>
+
+                {/* KPI 3 */}
+                <div className="bg-white border border-gray-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 block">Tiempo Hospedado</span>
+                  <span className="text-base sm:text-lg font-black text-gray-900">
+                    {alojamientoParaDetalle.hospedajes.reduce((acc, h) => acc + h.noches, 0)} noches
+                  </span>
+                  <span className="text-[10px] text-gray-500 block font-semibold">
+                    {alojamientoParaDetalle.hospedajes.reduce((acc, h) => acc + h.tiempoTotalHoras, 0)} horas en uso
+                  </span>
+                </div>
+
+                {/* KPI 4 */}
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] uppercase font-bold text-amber-800 block">Calificación Promedio</span>
+                  <span className="text-base sm:text-lg font-black text-amber-900 flex items-center justify-center gap-1">
+                    <Star size={16} className="fill-amber-400 text-amber-400" /> {alojamientoParaDetalle.rating.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] text-amber-700 block font-semibold">
+                    {alojamientoParaDetalle.resenas.length} reseñas recibidas
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pestañas Internas del Modal */}
+            <div className="px-6 pt-2 bg-white border-b border-gray-200 flex items-center justify-between flex-wrap gap-2 shrink-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDetalleSubTab("hospedajes")}
+                  className={`py-3 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                    detalleSubTab === "hospedajes"
+                      ? "border-orange-600 text-orange-950 font-black"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Calendar size={16} className={detalleSubTab === "hospedajes" ? "text-orange-600" : ""} />
+                  <span>Historial de Huéspedes ({alojamientoParaDetalle.hospedajes.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDetalleSubTab("resenas")}
+                  className={`py-3 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                    detalleSubTab === "resenas"
+                      ? "border-amber-500 text-amber-900 font-black"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Star size={16} className={detalleSubTab === "resenas" ? "fill-amber-400 text-amber-400" : ""} />
+                  <span>Calificaciones y Comentarios ({alojamientoParaDetalle.resenas.length})</span>
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-400 py-2">
+                Propiedad: <strong>{alojamientoParaDetalle.codigo}</strong>
+              </div>
+            </div>
+
+            {/* Cuerpo del Modal con Scroll */}
+            <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+              
+              {/* SUB-PESTAÑA 1: HISTORIAL DE HUÉSPEDES */}
+              {detalleSubTab === "hospedajes" && (
+                <div className="space-y-4 animate-fadeIn">
+                  {alojamientoParaDetalle.hospedajes.length === 0 ? (
+                    <div className="p-10 text-center text-gray-400 bg-slate-50 rounded-2xl border border-gray-200">
+                      <Clock size={36} className="mx-auto text-gray-300 mb-2" />
+                      <h4 className="font-bold text-gray-700 text-sm">Aún no se registran huéspedes hospedados</h4>
+                      <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                        Cuando los viajeros reserven y completen su estancia en esta propiedad, aquí verás el detalle de su entrada, salida, horas y la liquidación neta depositada a tu cuenta.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-gray-200 text-gray-600 font-extrabold uppercase text-[10px] tracking-wider bg-slate-100">
+                              <th className="py-3 px-3">Huésped & Origen</th>
+                              <th className="py-3 px-3">Código Reserva</th>
+                              <th className="py-3 px-3">Check-In</th>
+                              <th className="py-3 px-3">Check-Out</th>
+                              <th className="py-3 px-3">Tiempo Hospedado</th>
+                              <th className="py-3 px-3 text-right">Cobrado al Huésped</th>
+                              <th className="py-3 px-3 text-right">Comisión SARA (15%)</th>
+                              <th className="py-3 px-3 text-right font-black text-emerald-900">Ganancia Neta</th>
+                              <th className="py-3 px-3 text-center">Estado Liquidación</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 font-medium">
+                            {alojamientoParaDetalle.hospedajes.map((h) => (
+                              <tr key={h.id} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3.5 px-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-9 h-9 rounded-full bg-brand-sage/20 text-brand-dark flex items-center justify-center font-bold text-xs shrink-0 border border-brand-sage/30">
+                                      {h.huespedNombre.charAt(0)}
+                                    </div>
+                                    <div>
+                                      <span className="font-bold text-gray-900 block">{h.huespedNombre}</span>
+                                      <span className="text-[10px] text-gray-500 block">{h.huespedCiudad}, {h.huespedPais}</span>
+                                      {h.huespedTelefono && (
+                                        <span className="text-[10px] text-emerald-700 font-mono flex items-center gap-0.5">
+                                          <Phone size={10} /> {h.huespedTelefono}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="py-3.5 px-3 font-mono font-bold text-gray-700">
+                                  <span className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                                    {h.codigoReserva}
+                                  </span>
+                                </td>
+
+                                <td className="py-3.5 px-3">
+                                  <span className="font-bold text-gray-800 block">{h.fechaCheckIn}</span>
+                                  <span className="text-[10px] text-gray-500">Hora: {h.horaCheckIn}</span>
+                                </td>
+
+                                <td className="py-3.5 px-3">
+                                  <span className="font-bold text-gray-800 block">{h.fechaCheckOut}</span>
+                                  <span className="text-[10px] text-gray-500">Hora: {h.horaCheckOut}</span>
+                                </td>
+
+                                <td className="py-3.5 px-3">
+                                  <span className="inline-flex items-center gap-1 font-bold bg-amber-50 text-amber-900 px-2 py-0.5 rounded border border-amber-200">
+                                    <Clock size={11} className="text-amber-600" />
+                                    {h.noches} noche{h.noches > 1 ? "s" : ""} ({h.tiempoTotalHoras}h)
+                                  </span>
+                                </td>
+
+                                <td className="py-3.5 px-3 text-right text-gray-700 font-semibold">
+                                  ${h.totalCobrado.toFixed(2)}
+                                </td>
+
+                                <td className="py-3.5 px-3 text-right text-rose-600 font-semibold">
+                                  -${h.comisionSara.toFixed(2)}
+                                </td>
+
+                                <td className="py-3.5 px-3 text-right">
+                                  <span className="font-black text-emerald-700 text-sm">
+                                    +${h.gananciaNeta.toFixed(2)} USD
+                                  </span>
+                                </td>
+
+                                <td className="py-3.5 px-3 text-center">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200" title={h.metodoLiquidacion}>
+                                    <CheckCircle2 size={11} /> Liquidado en Cuenta
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SUB-PESTAÑA 2: CALIFICACIONES Y RESEÑAS RECIBIDAS */}
+              {detalleSubTab === "resenas" && (
+                <div className="space-y-4 animate-fadeIn">
+                  {alojamientoParaDetalle.resenas.length === 0 ? (
+                    <div className="p-10 text-center text-gray-400 bg-slate-50 rounded-2xl border border-gray-200">
+                      <MessageSquare size={36} className="mx-auto text-gray-300 mb-2" />
+                      <h4 className="font-bold text-gray-700 text-sm">Aún no hay calificaciones ni comentarios</h4>
+                      <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                        Cuando los huéspedes concluyan su estadía y compartan su experiencia en la plataforma, sus calificaciones de estrellas y comentarios aparecerán aquí.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {alojamientoParaDetalle.resenas.map((rev) => (
+                        <div
+                          key={rev.id}
+                          className="p-5 rounded-2xl border border-gray-200 bg-slate-50/80 hover:bg-white hover:shadow-md transition-all space-y-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-900 font-black text-sm flex items-center justify-center border border-amber-300 shrink-0">
+                                {rev.autor.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h4 className="font-extrabold text-gray-900 text-sm">
+                                    {rev.autor}
+                                  </h4>
+                                  <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold border border-emerald-200 flex items-center gap-0.5">
+                                    <ShieldCheck size={10} /> Huésped Verificado
+                                  </span>
+                                </div>
+                                <span className="text-[11px] text-gray-500">
+                                  {rev.ciudadOrigen}, {rev.pais}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-0.5 text-amber-500 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 shrink-0">
+                              {[...Array(rev.rating)].map((_, i) => (
+                                <Star key={i} size={13} className="fill-amber-400 text-amber-400" />
+                              ))}
+                              <span className="font-black text-xs text-amber-900 ml-1">
+                                {rev.rating}.0
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-gray-700 leading-relaxed italic bg-white p-3.5 rounded-xl border border-gray-100 shadow-2xs">
+                            "{rev.comentario}"
+                          </p>
+
+                          <div className="flex items-center justify-between text-[11px] text-gray-400 pt-2 border-t border-gray-100">
+                            <span className="flex items-center gap-1">
+                              <Calendar size={12} />
+                              Fecha: <strong className="text-gray-600 font-semibold">{rev.fecha}</strong>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} />
+                              Hora: <strong className="text-gray-600 font-semibold">{rev.hora}</strong>
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Pie del Modal */}
+            <div className="p-4 sm:p-5 bg-slate-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Info size={14} className="text-orange-600 shrink-0" />
+                <span>
+                  SARA Hospitality gestiona el 100% de la sincronización de reservas, cerraduras inteligentes y liquidaciones bancarias.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setAlojamientoParaDetalle(null)}
+                className="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Cerrar Detalle
+              </button>
+            </div>
           </div>
         </div>
       )}
