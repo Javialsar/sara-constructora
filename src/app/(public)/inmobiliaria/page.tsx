@@ -346,7 +346,7 @@ export default function InmobiliariaPage() {
                 className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
               >
                 <Compass size={14} className="text-amber-400" />
-                <span>SARA Airbnb / Hospitality</span>
+                <span>SARA Stays / Hospitality</span>
               </Link>
               <Link 
                 href="/" 
