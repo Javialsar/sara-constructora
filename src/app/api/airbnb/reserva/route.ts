@@ -134,3 +134,49 @@ export async function POST(request: Request) {
     )
   }
 }
+
+export async function GET() {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: "Credenciales de base de datos no configuradas" },
+        { status: 500 }
+      )
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false }
+    })
+
+    // 1. Obtener de parametros_globales (reservas_airbnb)
+    const { data: globalParam } = await supabaseAdmin
+      .from("parametros_globales")
+      .select("indirectos_default")
+      .limit(1)
+      .single()
+
+    const reservasGlobales = globalParam?.indirectos_default?.reservas_airbnb || []
+
+    // 2. Obtener de solicitudes_servicio (tipo_servicio: alojamiento_airbnb)
+    const { data: solicitudes } = await supabaseAdmin
+      .from("solicitudes_servicio")
+      .select("*")
+      .eq("tipo_servicio", "alojamiento_airbnb")
+      .order("created_at", { ascending: false })
+
+    return NextResponse.json({
+      success: true,
+      reservas: reservasGlobales,
+      solicitudes: solicitudes || []
+    })
+  } catch (err: any) {
+    console.error("Error al obtener reservas:", err)
+    return NextResponse.json(
+      { error: err?.message || "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}

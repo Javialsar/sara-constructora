@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { 
   Sparkles, 
@@ -95,6 +95,11 @@ export interface ReservaAdmin {
   estadoLiquidacion: "pendiente" | "liquidado"
   fechaLiquidacion?: string
   metodoLiquidacion?: string
+  origen?: "web" | "manual"
+  emailHuesped?: string
+  identificacionHuesped?: string
+  metodoPago?: string
+  peticionesEspeciales?: string
 }
 
 const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
@@ -323,6 +328,72 @@ const RESERVAS_INICIALES: ReservaAdmin[] = [
 export default function AdminAirbnbPage() {
   const [alojamientos, setAlojamientos] = useState<AirbnbAdminListing[]>(ALOJAMIENTOS_INICIALES)
   const [reservas, setReservas] = useState<ReservaAdmin[]>(RESERVAS_INICIALES)
+  const [isLoadingReservas, setIsLoadingReservas] = useState(false)
+
+  // Cargar reservas reales almacenadas en la base de datos de Supabase
+  useEffect(() => {
+    async function loadReservasReales() {
+      setIsLoadingReservas(true)
+      try {
+        const res = await fetch("/api/airbnb/reserva")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.reservas && Array.isArray(data.reservas) && data.reservas.length > 0) {
+            const reservasReales: ReservaAdmin[] = data.reservas.map((r: any, idx: number) => {
+              const noches = Number(r.fechas?.noches) || 1
+              const tarifaNoche = Number(r.totales?.precio_noche) || Number(r.alojamiento?.precio_noche) || 50
+              const subtotal = tarifaNoche * noches
+              const tarifaLimpieza = Number(r.totales?.tarifa_limpieza) || 20
+              const totalHuesped = Number(r.totales?.gran_total) || (subtotal + tarifaLimpieza)
+              const comisionSara = subtotal * 0.15
+              const netoAnfitrion = (subtotal * 0.85) + tarifaLimpieza
+
+              return {
+                id: r.codigo_reserva || `res-web-${idx}`,
+                codigoReserva: r.codigo_reserva || `SARA-RSV-${idx}`,
+                alojamientoId: r.alojamiento?.id || "ab-2",
+                alojamientoTitulo: r.alojamiento?.titulo || "Alojamiento SARA",
+                alojamientoCodigo: r.alojamiento?.codigo || "SARA-EC-02",
+                anfitrionNombre: "SARA Hospitality Cía.",
+                anfitrionTelefono: "+593 98 180 4023",
+                huespedNombre: `${r.huesped?.nombre || ""} ${r.huesped?.apellido || ""}`.trim(),
+                huespedTelefono: r.huesped?.telefono || "",
+                huespedPais: `${r.alojamiento?.ciudad || "Ecuador"}, ${r.alojamiento?.pais || "Ecuador"} 🇪🇨`,
+                fechaCheckIn: r.fechas?.check_in || "",
+                fechaCheckOut: r.fechas?.check_out || "",
+                noches: noches,
+                tarifaNoche: tarifaNoche,
+                subtotalNoches: subtotal,
+                tarifaLimpieza: tarifaLimpieza,
+                totalHuesped: totalHuesped,
+                porcentajeComisionSara: 15,
+                comisionGanadaSara: comisionSara,
+                netoParaAnfitrion: netoAnfitrion,
+                estadoLiquidacion: r.estado_reserva === "confirmada_liquidada" ? "liquidado" : "pendiente",
+                origen: "web",
+                emailHuesped: r.huesped?.email || "",
+                identificacionHuesped: r.huesped?.identificacion || "",
+                metodoPago: r.metodo_pago || "transferencia",
+                peticionesEspeciales: r.peticiones_especiales || ""
+              }
+            })
+
+            setReservas(prev => {
+              const codigosReales = new Set(reservasReales.map(r => r.codigoReserva))
+              const mockFiltradas = prev.filter(m => !codigosReales.has(m.codigoReserva))
+              return [...reservasReales, ...mockFiltradas]
+            })
+          }
+        }
+      } catch (err) {
+        console.error("Error al cargar reservas de base de datos:", err)
+      } finally {
+        setIsLoadingReservas(false)
+      }
+    }
+
+    loadReservasReales()
+  }, [])
 
   // Pestaña Activa: "alojamientos" o "reservas"
   const [activeTab, setActiveTab] = useState<"alojamientos" | "reservas">("alojamientos")
@@ -1032,11 +1103,29 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                     <tr key={r.id} className="hover:bg-slate-50/80 transition-colors">
                       {/* Código + Huésped */}
                       <td className="px-5 py-4">
-                        <span className="text-xs font-mono font-bold text-brand-dark bg-gray-100 px-1.5 py-0.5 rounded">
-                          {r.codigoReserva}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-mono font-bold text-brand-dark bg-gray-100 px-1.5 py-0.5 rounded">
+                            {r.codigoReserva}
+                          </span>
+                          {r.origen === "web" && (
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Reserva Web
+                            </span>
+                          )}
+                        </div>
                         <h4 className="font-bold text-gray-900 text-sm mt-1">{r.huespedNombre}</h4>
-                        <p className="text-xs text-gray-500">{r.huespedPais}</p>
+                        <p className="text-xs text-gray-600 font-medium">{r.huespedTelefono}</p>
+                        {r.identificacionHuesped && (
+                          <p className="text-[11px] text-gray-400">CI/RUC: {r.identificacionHuesped}</p>
+                        )}
+                        {r.emailHuesped && (
+                          <p className="text-[11px] text-gray-400 truncate max-w-[200px]" title={r.emailHuesped}>{r.emailHuesped}</p>
+                        )}
+                        {r.peticionesEspeciales && (
+                          <p className="text-[11px] text-amber-800 bg-amber-50 rounded p-1 mt-1 border border-amber-200/60">
+                            📝 Petición: <em>{r.peticionesEspeciales}</em>
+                          </p>
+                        )}
                       </td>
 
                       {/* Alojamiento */}
