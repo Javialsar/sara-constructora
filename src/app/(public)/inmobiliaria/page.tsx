@@ -316,9 +316,80 @@ export default function InmobiliariaPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-gray-900 pb-20">
       {/* ============================================================ */}
+      {/* 0. APP HEADER EXCLUSIVO: SARA INMOBILIARIA (STANDALONE)     */}
+      {/* ============================================================ */}
+      <header className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3 transition-all">
+        <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
+          {/* Logo y Marca SARA Inmobiliaria */}
+          <div className="flex items-center gap-6">
+            <Link href="/inmobiliaria" className="flex items-center gap-3 group">
+              <div className="relative w-10 h-10 rounded-xl bg-brand-dark p-1.5 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-brand-sage/40 shrink-0">
+                <img src="/logo-3d-white.png" alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md shadow-xs">
+                    INMOBILIARIA
+                  </span>
+                </div>
+                <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
+                  Bienes Raíces · Arquitectura · Plusvalía
+                </span>
+              </div>
+            </Link>
+
+            {/* Navegación Rápida entre Portales */}
+            <nav className="hidden lg:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs font-semibold">
+              <Link 
+                href="/airbnb" 
+                className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
+              >
+                <Compass size={14} className="text-amber-400" />
+                <span>SARA Airbnb / Hospitality</span>
+              </Link>
+              <Link 
+                href="/" 
+                className="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+              >
+                <Home size={13} />
+                <span>Sara Constructora</span>
+              </Link>
+            </nav>
+          </div>
+
+          {/* Acciones */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Botón Consignar Propiedad */}
+            <button
+              type="button"
+              onClick={() => setIsConsignarOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-lg transition-all cursor-pointer border border-emerald-400/40 active:scale-[0.98]"
+            >
+              <Building2 size={15} />
+              <span className="hidden sm:inline">Consignar Propiedad</span>
+              <span className="sm:hidden">Consignar</span>
+            </button>
+
+            {/* Botón WhatsApp */}
+            <a
+              href="https://wa.me/593981804023?text=Hola%20SARA%20Inmobiliaria,%20deseo%20asesor%C3%ADa%20sobre%20una%20propiedad"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
+            >
+              <Phone size={13} className="text-emerald-400" />
+              <span className="hidden md:inline">+593 98 180 4023</span>
+              <span className="md:hidden">WhatsApp</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* ============================================================ */}
       {/* 1. HERO SECTION & BUSCADOR INTELIGENTE                       */}
       {/* ============================================================ */}
-      <section className="relative pt-28 pb-16 overflow-hidden bg-brand-dark">
+      <section className="relative pt-8 pb-16 overflow-hidden bg-brand-dark">
         {/* Split Layout: Background Image on Right Side */}
         <div
           className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full bg-cover bg-center z-0"
@@ -962,6 +1033,30 @@ export default function InmobiliariaPage() {
           </div>
         </div>
       )}
+
+      {/* Dedicated Footer for Standalone Inmobiliaria */}
+      <footer className="bg-slate-950 border-t border-slate-800 text-gray-400 py-12 px-4 sm:px-8 mt-20">
+        <div className="w-full max-w-[1760px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-dark border border-brand-sage/40 p-1 flex items-center justify-center">
+              <img src="/logo-3d-white.png" alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <span className="font-black text-white text-sm tracking-wide">SARA INMOBILIARIA</span>
+              <p className="text-xs text-gray-500">Bienes Raíces, Arquitectura y Garantía Constructiva en Cuenca y el Austro</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-6 text-xs">
+            <Link href="/airbnb" className="hover:text-white transition-colors">Portal Airbnb / Hospedaje</Link>
+            <Link href="/" className="hover:text-white transition-colors">Sara Constructora Principal</Link>
+            <button onClick={() => setIsConsignarOpen(true)} className="hover:text-emerald-400 transition-colors cursor-pointer">Consignar Propiedad</button>
+            <a href="https://wa.me/593981804023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Asesoría Inmobiliaria: +593 98 180 4023</a>
+          </div>
+          <div className="text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} SARA Constructora & Inmobiliaria. Todos los derechos reservados.
+          </div>
+        </div>
+      </footer>
 
       {/* ============================================================ */}
       {/* 5. MODAL FORMULARIO: "CONSIGNA TU PROPIEDAD"                */}

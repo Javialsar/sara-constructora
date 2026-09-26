@@ -25,6 +25,7 @@ import {
   ArrowRight, 
   Check, 
   Building,
+  Home,
   Palmtree,
   Laptop,
   CheckCircle2,
@@ -1112,9 +1113,115 @@ export default function AirbnbPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-gray-900 pb-20">
       {/* ============================================================ */}
+      {/* 0. APP HEADER EXCLUSIVO: RED SARA AIRBNB (STANDALONE)        */}
+      {/* ============================================================ */}
+      <header className="sticky top-0 z-40 w-full bg-slate-950/95 backdrop-blur-xl border-b border-slate-800/80 px-4 sm:px-8 py-3 transition-all">
+        <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
+          {/* Logo y Marca SARA Airbnb */}
+          <div className="flex items-center gap-6">
+            <Link href="/airbnb" className="flex items-center gap-3 group">
+              <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
+                <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md shadow-xs">
+                    HOSPITALITY
+                  </span>
+                </div>
+                <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
+                  Red Global de Alojamientos & Suites
+                </span>
+              </div>
+            </Link>
+
+            {/* Navegación Rápida entre Portales */}
+            <nav className="hidden lg:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs font-semibold">
+              <Link 
+                href="/inmobiliaria" 
+                className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
+              >
+                <Building size={14} className="text-emerald-400" />
+                <span>Portal Inmobiliario</span>
+              </Link>
+              <Link 
+                href="/" 
+                className="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex items-center gap-1.5"
+              >
+                <Home size={13} />
+                <span>Sara Constructora</span>
+              </Link>
+            </nav>
+          </div>
+
+          {/* Acciones Rápidas */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Botón Crear Nuevo Alojamiento */}
+            <button
+              type="button"
+              onClick={handleOpenCreateModal}
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-black shadow-lg hover:shadow-orange-500/30 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
+              title="Registrar y promocionar un nuevo hospedaje"
+            >
+              <PlusCircle size={15} />
+              <span className="hidden sm:inline">Crear Alojamiento</span>
+              <span className="sm:hidden">+ Crear</span>
+            </button>
+
+            {activeGuest ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/airbnb/mis-reservas"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold transition-all shadow-sm"
+                >
+                  <div className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-[10px]">
+                    {activeGuest.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden md:inline truncate max-w-[120px]">
+                    {activeGuest.nombre}
+                  </span>
+                  <span className="text-[10px] bg-amber-400/30 px-1.5 py-0.5 rounded text-amber-300 font-extrabold">
+                    Portal
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/20 text-gray-300 hover:text-rose-200 border border-white/10 transition-colors cursor-pointer"
+                  title="Cerrar Sesión"
+                >
+                  <LogOut size={14} />
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/airbnb/auth"
+                className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
+              >
+                <User size={13} className="text-amber-400" />
+                <span>Ingresar / Mis Reservas</span>
+              </Link>
+            )}
+
+            {/* Botón WhatsApp Directo */}
+            <a
+              href="https://wa.me/593981804023?text=Hola%20SARA%20Airbnb,%20deseo%20asistencia%20con%20un%20alojamiento"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition-colors"
+            >
+              <Phone size={13} />
+              <span>WhatsApp</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      {/* ============================================================ */}
       {/* 1. HERO SECTION: HOSPITALITY GLOBAL (NACIONAL & MUNDIAL)    */}
       {/* ============================================================ */}
-      <section className="relative pt-28 pb-16 overflow-hidden bg-brand-dark">
+      <section className="relative pt-8 pb-16 overflow-hidden bg-brand-dark">
         {/* Split Layout: Background Image on Right Side */}
         <div
           className="absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full bg-cover bg-center z-0"
@@ -2705,6 +2812,28 @@ export default function AirbnbPage() {
           </div>
         </div>
       )}
+
+      {/* Dedicated Footer for Standalone Airbnb */}
+      <footer className="bg-slate-950 border-t border-slate-800 text-gray-400 py-12 px-4 sm:px-8 mt-20">
+        <div className="w-full max-w-[1760px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3">
+            <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-8 h-8 rounded-lg object-contain bg-white p-0.5" />
+            <div>
+              <span className="font-black text-white text-sm tracking-wide">SARA HOSPITALITY</span>
+              <p className="text-xs text-gray-500">Red Global de Alojamientos, Suites & Hospedaje Inteligente</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-6 text-xs">
+            <Link href="/inmobiliaria" className="hover:text-white transition-colors">Portal Inmobiliario</Link>
+            <Link href="/airbnb/mis-reservas" className="hover:text-white transition-colors">Mis Reservas & Anfitrión</Link>
+            <Link href="/" className="hover:text-white transition-colors">Sara Constructora</Link>
+            <a href="https://wa.me/593981804023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Soporte WhatsApp: +593 98 180 4023</a>
+          </div>
+          <div className="text-xs text-gray-500">
+            &copy; {new Date().getFullYear()} SARA Constructora & Hospitality. Todos los derechos reservados.
+          </div>
+        </div>
+      </footer>
 
       {/* Modal: Registrar Nuevo Alojamiento Airbnb (Imagen 3) */}
       <RegistrarAlojamientoModal
