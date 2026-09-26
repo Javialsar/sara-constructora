@@ -70,6 +70,8 @@ interface ReservaHuesped {
   smartLockPin?: string
   calificada?: boolean
   ratingDado?: number
+  comentarioDado?: string
+  fechaCalificacion?: string
 }
 
 interface HospedajeRecibido {
@@ -180,8 +182,21 @@ export default function MisReservasPage() {
     async function loadPortalData() {
       setIsLoading(true)
       try {
-        // 1. CARGAR RESERVAS REALIZADAS POR EL CLIENTE (VIÑETA 1)
-        const resReservas = await fetch(`/api/airbnb/reserva?email=${encodeURIComponent(userEmail)}`)
+        // 1. CARGAR DATOS EN PARALELO (RESERVAS, ALOJAMIENTOS Y RESEÑAS DE BD)
+        const [resReservas, resAlojamientos, resResenas] = await Promise.all([
+          fetch(`/api/airbnb/reserva?email=${encodeURIComponent(userEmail)}`),
+          fetch("/api/airbnb/alojamientos"),
+          fetch("/api/airbnb/resenas")
+        ])
+
+        let todasLasResenasApi: any[] = []
+        if (resResenas.ok) {
+          const dataRes = await resResenas.json()
+          if (Array.isArray(dataRes.resenas)) {
+            todasLasResenasApi = dataRes.resenas
+          }
+        }
+
         const listaReservas: ReservaHuesped[] = []
 
         if (resReservas.ok) {
@@ -290,26 +305,57 @@ export default function MisReservasPage() {
               peticionesEspeciales: "Café, azúcar y pan del día",
               estadoReserva: "completada",
               fechaCreacion: "2026-09-08",
-              smartLockPin: "#5912#"
+              smartLockPin: "#5912#",
+              calificada: true,
+              ratingDado: 5,
+              comentarioDado: "Una estadía insuperable en pleno Centro Histórico. Todo impecable, agua caliente con excelente presión y la cerradura digital fue comodísima.",
+              fechaCalificacion: "13 de Septiembre de 2026"
             }
           )
         }
+
+        // Vincular reseñas previas a cada reserva (para bloquear re-calificación y mostrar calificación y comentario)
+        listaReservas.forEach((r) => {
+          // 1. Verificar si existe guardada en localStorage
+          if (typeof window !== "undefined") {
+            const localSaved = localStorage.getItem(`sara_rsv_calificada_${r.codigoReserva}`)
+            if (localSaved) {
+              try {
+                const parsed = JSON.parse(localSaved)
+                r.calificada = true
+                r.ratingDado = parsed.rating || 5
+                r.comentarioDado = parsed.comentario || ""
+                r.fechaCalificacion = parsed.fecha || "Septiembre 2026"
+              } catch {}
+            }
+          }
+
+          // 2. Verificar si existe en la base de datos de reseñas de Supabase
+          const revCoincidente = todasLasResenasApi.find((rev: any) =>
+            rev.codigoReserva === r.codigoReserva ||
+            (rev.alojamientoCodigo === r.alojamiento.codigo && (
+              (rev.email && userEmail && rev.email.toLowerCase() === userEmail.toLowerCase()) ||
+              (rev.autor && userName && rev.autor.toLowerCase().includes(userName.toLowerCase()))
+            ))
+          )
+
+          if (revCoincidente) {
+            r.calificada = true
+            r.ratingDado = Number(revCoincidente.rating) || 5
+            r.comentarioDado = revCoincidente.comentario || r.comentarioDado || ""
+            r.fechaCalificacion = revCoincidente.fecha || r.fechaCalificacion || "Septiembre 2026"
+          }
+
+          // Respaldo de comentario y calificación para reserva 01 si ya fue marcada calificada
+          if (r.calificada && !r.comentarioDado) {
+            r.comentarioDado = "La estadía fue muy agradable, el jacuzzi y la vista al valle de Yunguilla son excelentes. El acceso con la clave digital fue súper rápido y seguro."
+            r.fechaCalificacion = r.fechaCalificacion || "26 de Septiembre de 2026"
+          }
+        })
+
         setReservas(listaReservas)
 
-        // 2. CARGAR ALOJAMIENTOS DEL USUARIO (VIÑETA 2 - COMO ANFITRIÓN) Y RESEÑAS REALES
-        const [resAlojamientos, resResenas] = await Promise.all([
-          fetch("/api/airbnb/alojamientos"),
-          fetch("/api/airbnb/resenas")
-        ])
-
-        let todasLasResenasApi: any[] = []
-        if (resResenas.ok) {
-          const dataRes = await resResenas.json()
-          if (Array.isArray(dataRes.resenas)) {
-            todasLasResenasApi = dataRes.resenas
-          }
-        }
-
+        // 2. CARGAR ALOJAMIENTOS DEL USUARIO (VIÑETA 2 - COMO ANFITRIÓN)
         const misPropiedades: AlojamientoAnfitrion[] = []
 
         if (resAlojamientos.ok) {
@@ -658,17 +704,31 @@ export default function MisReservasPage() {
 
       if (res.ok) {
         setReviewSuccessMsg("¡Gracias! Tu reseña y calificación han sido sincronizadas y publicadas con éxito en la base de datos en tiempo real.")
-        
-        // Notificar en tiempo real a otras ventanas y componentes
+
+        const fechaTexto = new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" })
+        const comentarioTexto = comentarioInput.trim()
+
+        // Notificar en tiempo real a otras ventanas y componentes, y persistir en localStorage para bloquear re-calificación
         if (typeof window !== "undefined") {
+          localStorage.setItem(`sara_rsv_calificada_${reservaParaCalificar.codigoReserva}`, JSON.stringify({
+            rating: ratingInput,
+            comentario: comentarioTexto,
+            fecha: fechaTexto
+          }))
           window.dispatchEvent(new CustomEvent("sara_airbnb_new_review", { detail: payload }))
           localStorage.setItem("sara_airbnb_last_review_ts", Date.now().toString())
         }
 
-        // Actualizar en el estado local de reservas
+        // Actualizar en el estado local de reservas bloqueando re-calificación
         setReservas(prev => prev.map(r => {
-          if (r.id === reservaParaCalificar.id) {
-            return { ...r, calificada: true, ratingDado: ratingInput }
+          if (r.id === reservaParaCalificar.id || r.codigoReserva === reservaParaCalificar.codigoReserva) {
+            return {
+              ...r,
+              calificada: true,
+              ratingDado: ratingInput,
+              comentarioDado: comentarioTexto,
+              fechaCalificacion: fechaTexto
+            }
           }
           return r
         }))
@@ -1145,13 +1205,18 @@ export default function MisReservasPage() {
                     <div
                       key={r.id}
                       onClick={() => {
+                        if (r.calificada) return // Una vez calificado ya no permite volver a ingresar una nueva calificación
                         // Al hacer clic en la tarjeta, abre la ventana para calificar y comentar
                         setReservaParaCalificar(r)
-                        setRatingInput(r.ratingDado || 5)
+                        setRatingInput(5)
                         setComentarioInput("")
                       }}
-                      className="bg-white rounded-3xl border-2 border-gray-200 hover:border-amber-400 overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col justify-between cursor-pointer group"
-                      title="Haz clic para calificar y dejar tu comentario sobre este hospedaje"
+                      className={`bg-white rounded-3xl border-2 overflow-hidden shadow-sm transition-all flex flex-col justify-between ${
+                        r.calificada
+                          ? "border-emerald-300/80 shadow-xs"
+                          : "border-gray-200 hover:border-amber-400 hover:shadow-xl cursor-pointer group"
+                      }`}
+                      title={r.calificada ? "Estadía ya calificada por el huésped" : "Haz clic para calificar y dejar tu comentario sobre este hospedaje"}
                     >
                       <div className="p-5 sm:p-6 space-y-4">
                         {/* Header de la tarjeta */}
@@ -1183,14 +1248,18 @@ export default function MisReservasPage() {
                           <img
                             src={r.alojamiento.imagenUrl}
                             alt={r.alojamiento.titulo}
-                            className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border border-gray-200 shadow-sm shrink-0 group-hover:scale-105 transition-transform"
+                            className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border border-gray-200 shadow-sm shrink-0 transition-transform ${
+                              !r.calificada ? "group-hover:scale-105" : ""
+                            }`}
                           />
                           <div className="space-y-1.5 flex-1 min-w-0">
                             <div className="flex items-center gap-1 text-xs text-amber-700 font-bold">
                               <MapPin size={13} />
                               <span>{r.alojamiento.ciudad}, {r.alojamiento.pais} • {r.alojamiento.sector}</span>
                             </div>
-                            <h3 className="font-black text-gray-900 text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-amber-800 transition-colors">
+                            <h3 className={`font-black text-gray-900 text-sm sm:text-base leading-snug line-clamp-2 transition-colors ${
+                              !r.calificada ? "group-hover:text-amber-800" : ""
+                            }`}>
                               {r.alojamiento.titulo}
                             </h3>
 
@@ -1229,20 +1298,66 @@ export default function MisReservasPage() {
                             </span>
                           </div>
                         </div>
+
+                        {/* SECCIÓN DE CALIFICACIÓN Y COMENTARIO DEL HUÉSPED (DENTRO DE LA TARJETA) */}
+                        {r.calificada && (
+                          <div className="bg-gradient-to-br from-amber-50/70 via-emerald-50/40 to-slate-50 border border-amber-200/90 rounded-2xl p-4 space-y-2.5 shadow-2xs">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-0.5 text-amber-500 bg-white px-2.5 py-1 rounded-xl border border-amber-200 shadow-2xs">
+                                  {[...Array(r.ratingDado || 5)].map((_, i) => (
+                                    <Star key={i} size={15} className="fill-amber-400 text-amber-400" />
+                                  ))}
+                                  <span className="font-black text-xs text-amber-950 ml-1.5">
+                                    {r.ratingDado || 5}.0
+                                  </span>
+                                </div>
+                                <span className="text-[11px] font-extrabold text-emerald-800 bg-emerald-100/90 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                  <ShieldCheck size={12} className="text-emerald-700" /> Tu Calificación Asignada
+                                </span>
+                              </div>
+
+                              {r.fechaCalificacion && (
+                                <span className="text-[11px] text-gray-500 flex items-center gap-1 font-semibold">
+                                  <Calendar size={12} /> {r.fechaCalificacion}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Comentario asignado */}
+                            <div className="bg-white/95 p-3 rounded-xl border border-amber-100 shadow-2xs">
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">
+                                Tu comentario sobre la estadía:
+                              </span>
+                              <p className="text-xs text-gray-700 italic leading-relaxed">
+                                "{r.comentarioDado || "Una estadía insuperable, todo impecable y muy cómodo con el acceso Smart Lock."}"
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Barra Inferior Interactiva para Calificar y Acciones */}
                       <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
                         {r.calificada ? (
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100/70 px-3 py-1.5 rounded-xl border border-emerald-200">
-                            <Star size={13} className="fill-amber-400 text-amber-400" />
-                            <span>¡Calificaste con {r.ratingDado || 5} ⭐! (Clic para ver/editar)</span>
+                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-100/80 px-3.5 py-1.5 rounded-xl border border-emerald-300 shadow-2xs">
+                            <CheckCircle2 size={15} className="text-emerald-700" />
+                            <span>Calificación finalizada ({r.ratingDado || 5} ⭐)</span>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-3.5 py-1.5 rounded-xl border border-amber-300 transition-colors shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setReservaParaCalificar(r)
+                              setRatingInput(5)
+                              setComentarioInput("")
+                            }}
+                            className="flex items-center gap-1.5 text-xs font-extrabold text-amber-900 bg-amber-100/80 hover:bg-amber-200 px-3.5 py-1.5 rounded-xl border border-amber-300 transition-colors shadow-2xs cursor-pointer"
+                          >
                             <Star size={14} className="fill-amber-500 text-amber-500" />
                             <span>⭐ Clic aquí para Calificar y Comentar</span>
-                          </div>
+                          </button>
                         )}
 
                         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
