@@ -27,31 +27,56 @@ import {
   MapPin, 
   Globe, 
   Bed, 
+  Bath,
   ArrowRight,
   Send,
   Building,
   Tag,
   Star,
   FileCheck2,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Image as ImageIcon,
+  Video,
+  Landmark,
+  Tv,
+  Wifi,
+  Coffee,
+  Car,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  Layers,
+  Sparkle
 } from "lucide-react"
+import AirbnbCoordinatePickerWrapper from "@/components/ui/AirbnbCoordinatePickerWrapper"
 
 export interface AirbnbAdminListing {
   id: string
   codigo: string
   titulo: string
-  tipo: "suite" | "loft" | "penthouse" | "quinta" | "studio" | "villa"
+  tipo: "suite" | "departamento" | "penthouse" | "casa" | "villa" | "quinta" | "loft"
   alcance: "nacional" | "internacional"
   pais: string
   bandera: string
   ciudad: string
   sector: string
+  lat: number
+  lng: number
   precioNoche: number
   tarifaLimpieza: number
   rating: number
   isSuperhost: boolean
   maxHuespedes: number
-  imagenUrl: string
+  habitaciones: number
+  banos: number
+  camas: number
+  imagenUrl: string // Foto de portada principal
+  imagenes: string[] // Galería completa de fotos
+  videoUrl?: string
+  amenidades: string[]
+  descripcion: string
+  reglas: string[]
   publicado: boolean
   // Datos del Anfitrión / Dueño
   anfitrion: {
@@ -59,6 +84,11 @@ export interface AirbnbAdminListing {
     telefono: string
     email: string
     cuentaBancaria: string
+    banco?: string
+    tipoCuenta?: string
+    numeroCuenta?: string
+    cedulaRuc?: string
+    titular?: string
   }
   // Modelo de Cobro SARA (Monetización)
   monetizacion: {
@@ -102,6 +132,50 @@ export interface ReservaAdmin {
   peticionesEspeciales?: string
 }
 
+export const AMENIDADES_DISPONIBLES = [
+  { id: "vista_rio", label: "Vista al Río", icon: "🌊" },
+  { id: "wifi", label: "WiFi 300 Mbps Fibra", icon: "📶" },
+  { id: "smart_lock", label: "Smart Lock (Self Check-in)", icon: "🔐" },
+  { id: "smart_tv", label: "Smart TV 55\" 4K", icon: "📺" },
+  { id: "cafetera", label: "Cafetera Nespresso", icon: "☕" },
+  { id: "parqueadero", label: "Parqueadero Subterráneo", icon: "🚗" },
+  { id: "cocina", label: "Cocina Equipada", icon: "🍳" },
+  { id: "sala", label: "Sala de Estar", icon: "🛋️" },
+  { id: "comedor", label: "Comedor", icon: "🍽️" },
+  { id: "bbq", label: "Área BBQ / Parrilla", icon: "🍖" },
+  { id: "terraza", label: "Terraza / Balcón", icon: "🌅" },
+  { id: "piscina", label: "Piscina", icon: "🏊‍♂️" },
+  { id: "jacuzzi", label: "Jacuzzi / Hidromasaje", icon: "🛁" },
+  { id: "ac", label: "Aire Acondicionado", icon: "❄️" },
+  { id: "lavadora", label: "Lavadora / Secadora", icon: "🧺" },
+  { id: "pet_friendly", label: "Pet Friendly", icon: "🐾" },
+  { id: "gimnasio", label: "Gimnasio", icon: "🏋️" },
+  { id: "seguridad", label: "Seguridad 24/7", icon: "🛡️" }
+]
+
+export const FOTO_PRESETS = [
+  { name: "Fachada Moderna", url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" },
+  { name: "Sala Principal", url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80" },
+  { name: "Dormitorio Master", url: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80" },
+  { name: "Cocina Gourmet", url: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80" },
+  { name: "Terraza Panorámica", url: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" },
+  { name: "Piscina / Jardín", url: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80" }
+]
+
+export const BANCOS_ECUADOR = [
+  "Banco Pichincha",
+  "Banco de Guayaquil",
+  "Banco del Pacífico",
+  "Produbanco - Grupo Promerica",
+  "Banco Bolivariano",
+  "Banco Internacional",
+  "Cooperativa JEP",
+  "Cooperativa Policía Nacional",
+  "Mutualista Pichincha",
+  "Banco de Loja",
+  "Otro Banco / Internacional"
+]
+
 const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
   {
     id: "ab-1",
@@ -113,18 +187,52 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     bandera: "🇪🇨",
     ciudad: "Cuenca",
     sector: "Puertas del Sol",
+    lat: -2.9001,
+    lng: -79.0059,
     precioNoche: 48,
     tarifaLimpieza: 15,
     rating: 4.98,
     isSuperhost: true,
     maxHuespedes: 2,
-    imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80",
+    habitaciones: 1,
+    banos: 1,
+    camas: 1,
+    imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+    imagenes: [
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+    ],
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    amenidades: [
+      "Vista al Río",
+      "WiFi 300 Mbps Fibra",
+      "Smart Lock (Self Check-in)",
+      "Smart TV 55\" 4K",
+      "Cafetera Nespresso",
+      "Parqueadero Subterráneo",
+      "Cocina Equipada",
+      "Sala de Estar",
+      "Comedor"
+    ],
+    descripcion: "Disfruta de amaneceres únicos con el sonido del río Tomebamba. Suite contemporánea equipada con cerradura inteligente para llegada autónoma 24/7, cama King con sábanas de 600 hilos, cafetera Nespresso e internet simétrico de alta velocidad.",
+    reglas: [
+      "Check-in: 15:00 a 22:00",
+      "Check-out: 11:00",
+      "No se permiten fiestas",
+      "No fumar dentro de la suite"
+    ],
     publicado: true,
     anfitrion: {
       nombre: "Patricio Carrasco",
-      telefono: "+593998765432",
+      telefono: "+593 981804023",
       email: "patricio.carrasco@gmail.com",
-      cuentaBancaria: "Banco Pichincha Ahorros 2201984532"
+      cuentaBancaria: "Banco Pichincha Ahorros 2201984532",
+      banco: "Banco Pichincha",
+      tipoCuenta: "Ahorros",
+      numeroCuenta: "2201984532",
+      cedulaRuc: "0103492817",
+      titular: "Patricio Carrasco"
     },
     monetizacion: {
       modelo: "comision_reserva",
@@ -142,18 +250,52 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     bandera: "🇪🇨",
     ciudad: "Cuenca",
     sector: "Av. Solano",
+    lat: -2.9095,
+    lng: -79.0112,
     precioNoche: 95,
     tarifaLimpieza: 25,
     rating: 5.0,
     isSuperhost: true,
     maxHuespedes: 6,
-    imagenUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80",
+    habitaciones: 3,
+    banos: 2.5,
+    camas: 3,
+    imagenUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+    imagenes: [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80"
+    ],
+    videoUrl: "",
+    amenidades: [
+      "Terraza / Balcón",
+      "Área BBQ / Parrilla",
+      "WiFi 300 Mbps Fibra",
+      "Smart Lock (Self Check-in)",
+      "Smart TV 55\" 4K",
+      "Cocina Equipada",
+      "Sala de Estar",
+      "Comedor",
+      "Parqueadero Subterráneo"
+    ],
+    descripcion: "Penthouse exclusivo de dos niveles con vista panorámica a la ciudad y montañas. Terraza privada con pérgola y barbacoa, cocina equipada con isla de cuarzo y sonido envolvente.",
+    reglas: [
+      "Check-in: 15:00 a 22:00",
+      "Check-out: 11:00",
+      "No se permiten fiestas",
+      "No fumar dentro"
+    ],
     publicado: true,
     anfitrion: {
       nombre: "Sofía Arteaga",
-      telefono: "+593991122334",
+      telefono: "+593 991122334",
       email: "sofia.arteaga@hotmail.com",
-      cuentaBancaria: "Banco de Guayaquil Corriente 0012398412"
+      cuentaBancaria: "Banco de Guayaquil Corriente 0012398412",
+      banco: "Banco de Guayaquil",
+      tipoCuenta: "Corriente",
+      numeroCuenta: "0012398412",
+      cedulaRuc: "0102983741",
+      titular: "Sofía Arteaga"
     },
     monetizacion: {
       modelo: "gestion_completa",
@@ -171,18 +313,52 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     bandera: "🇪🇨",
     ciudad: "Yunguilla",
     sector: "Santa Isabel",
+    lat: -3.2389,
+    lng: -79.2889,
     precioNoche: 140,
     tarifaLimpieza: 35,
     rating: 4.96,
     isSuperhost: false,
     maxHuespedes: 10,
-    imagenUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=600&q=80",
+    habitaciones: 4,
+    banos: 3,
+    camas: 6,
+    imagenUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
+    imagenes: [
+      "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80"
+    ],
+    videoUrl: "",
+    amenidades: [
+      "Piscina",
+      "Jacuzzi / Hidromasaje",
+      "Área BBQ / Parrilla",
+      "Terraza / Balcón",
+      "Cocina Equipada",
+      "Sala de Estar",
+      "Comedor",
+      "WiFi 300 Mbps Fibra",
+      "Parqueadero Privado",
+      "Pet Friendly"
+    ],
+    descripcion: "Fabulosa villa en el clima cálido del valle de Yunguilla. Piscina privada con cascada, jacuzzi climatizado, amplios jardines y zona de barbacoa rústica.",
+    reglas: [
+      "Check-in: 14:00",
+      "Check-out: 12:00",
+      "Música moderada después de las 23:00",
+      "Mascotas bienvenidas en áreas verdes"
+    ],
     publicado: true,
     anfitrion: {
       nombre: "Dr. Roberto Morales",
-      telefono: "+593987654321",
+      telefono: "+593 987654321",
       email: "roberto.morales@clinica.ec",
-      cuentaBancaria: "Produbanco Ahorros 1205098734"
+      cuentaBancaria: "Produbanco Ahorros 1205098734",
+      banco: "Produbanco - Grupo Promerica",
+      tipoCuenta: "Ahorros",
+      numeroCuenta: "1205098734",
+      cedulaRuc: "0101827463",
+      titular: "Roberto Morales"
     },
     monetizacion: {
       modelo: "comision_reserva",
@@ -200,18 +376,50 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     bandera: "🇺🇸",
     ciudad: "Miami",
     sector: "Brickell Financial",
+    lat: 25.7617,
+    lng: -80.1918,
     precioNoche: 185,
     tarifaLimpieza: 60,
     rating: 4.97,
     isSuperhost: true,
     maxHuespedes: 4,
-    imagenUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80",
+    habitaciones: 2,
+    banos: 2,
+    camas: 2,
+    imagenUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+    imagenes: [
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+    ],
+    videoUrl: "",
+    amenidades: [
+      "Piscina",
+      "Gimnasio",
+      "WiFi 300 Mbps Fibra",
+      "Smart TV 55\" 4K",
+      "Smart Lock (Self Check-in)",
+      "Cocina Equipada",
+      "Aire Acondicionado",
+      "Seguridad 24/7"
+    ],
+    descripcion: "Condominio de lujo en el corazón de Brickell, Miami. Acceso a piscina infinita en la azotea, gimnasio de última generación y vistas directas a la bahía.",
+    reglas: [
+      "Check-in: 16:00",
+      "Check-out: 11:00",
+      "No fiestas ni eventos",
+      "Prohibido fumar en todo el edificio"
+    ],
     publicado: true,
     anfitrion: {
       nombre: "David Goldstein (Rep. Miami)",
-      telefono: "+13055551234",
+      telefono: "+1 305 555 1234",
       email: "david.miami@properties.com",
-      cuentaBancaria: "Chase Bank Wire 44029104"
+      cuentaBancaria: "Chase Bank Wire 44029104",
+      banco: "Otro Banco / Internacional",
+      tipoCuenta: "Corriente",
+      numeroCuenta: "44029104",
+      cedulaRuc: "US-9928172",
+      titular: "David Goldstein"
     },
     monetizacion: {
       modelo: "membresia_fija",
@@ -230,18 +438,50 @@ const ALOJAMIENTOS_INICIALES: AirbnbAdminListing[] = [
     bandera: "🇪🇸",
     ciudad: "Madrid",
     sector: "Barrio de Salamanca",
+    lat: 40.4168,
+    lng: -3.7038,
     precioNoche: 145,
     tarifaLimpieza: 40,
     rating: 4.95,
     isSuperhost: true,
     maxHuespedes: 4,
-    imagenUrl: "https://images.unsplash.com/photo-1502005229762-ee1b2da92e06?auto=format&fit=crop&w=600&q=80",
+    habitaciones: 2,
+    banos: 2,
+    camas: 2,
+    imagenUrl: "https://images.unsplash.com/photo-1502005229762-ee1b2da92e06?auto=format&fit=crop&w=800&q=80",
+    imagenes: [
+      "https://images.unsplash.com/photo-1502005229762-ee1b2da92e06?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80"
+    ],
+    videoUrl: "",
+    amenidades: [
+      "WiFi 300 Mbps Fibra",
+      "Smart TV 55\" 4K",
+      "Cafetera Nespresso",
+      "Cocina Equipada",
+      "Sala de Estar",
+      "Comedor",
+      "Aire Acondicionado",
+      "Lavadora / Secadora"
+    ],
+    descripcion: "Piso de arquitectura clásica madrileña con techos altos, molduras originales y decoración refinada junto al Parque del Buen Retiro.",
+    reglas: [
+      "Check-in: 15:00",
+      "Check-out: 11:00",
+      "Respetar horas de descanso",
+      "No fumar"
+    ],
     publicado: true,
     anfitrion: {
       nombre: "Elena Serrano",
-      telefono: "+34612345678",
+      telefono: "+34 612 345 678",
       email: "elena.serrano@madrid.es",
-      cuentaBancaria: "Santander IBAN ES912100"
+      cuentaBancaria: "Santander IBAN ES912100",
+      banco: "Otro Banco / Internacional",
+      tipoCuenta: "Corriente",
+      numeroCuenta: "ES912100",
+      cedulaRuc: "ES-Y829104A",
+      titular: "Elena Serrano"
     },
     monetizacion: {
       modelo: "comision_reserva",
@@ -410,6 +650,10 @@ export default function AdminAirbnbPage() {
   const [isReservaModalOpen, setIsReservaModalOpen] = useState(false)
 
   // Form State para Alojamiento
+  // Pestaña activa dentro del Modal de Alojamiento
+  const [modalTab, setModalTab] = useState<"general" | "multimedia" | "anfitrion" | "caracteristicas" | "tarifas">("general")
+
+  // Form State para Alojamiento
   const [formAlojamiento, setFormAlojamiento] = useState({
     codigo: "",
     titulo: "",
@@ -418,21 +662,113 @@ export default function AdminAirbnbPage() {
     pais: "Ecuador",
     bandera: "🇪🇨",
     ciudad: "Cuenca",
-    sector: "",
-    precioNoche: 50,
-    tarifaLimpieza: 15,
+    sector: "Av. Ordóñez Lasso",
+    lat: -2.9001,
+    lng: -79.0059,
+    precioNoche: 55,
+    tarifaLimpieza: 20,
     isSuperhost: true,
     maxHuespedes: 2,
-    imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80",
+    habitaciones: 1,
+    banos: 1,
+    camas: 1,
+    imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+    imagenes: [
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+    ],
+    videoUrl: "",
+    nuevaFotoUrl: "",
+    amenidades: [
+      "Vista al Río",
+      "WiFi 300 Mbps Fibra",
+      "Smart Lock (Self Check-in)",
+      "Smart TV 55\" 4K",
+      "Cafetera Nespresso",
+      "Parqueadero Subterráneo",
+      "Cocina Equipada",
+      "Sala de Estar",
+      "Comedor"
+    ],
+    nuevaAmenidad: "",
+    descripcion: "Disfruta de amaneceres únicos con el sonido del río Tomebamba. Suite contemporánea equipada con cerradura inteligente para llegada autónoma 24/7, cama King con sábanas de 600 hilos, cafetera Nespresso e internet simétrico de alta velocidad.",
+    reglasTexto: "Check-in: 15:00 a 22:00\nCheck-out: 11:00\nNo se permiten fiestas\nNo fumar dentro de la suite",
     publicado: true,
-    anfitrionNombre: "",
-    anfitrionTelefono: "+593 9",
-    anfitrionEmail: "",
-    anfitrionCuenta: "",
+    anfitrionNombre: "Javier Sarango",
+    anfitrionTelefono: "+593 981804023",
+    anfitrionEmail: "javier.sarango@gmail.com",
+    anfitrionCedulaRuc: "0103492817",
+    anfitrionBanco: "Banco Pichincha",
+    anfitrionTipoCuenta: "Ahorros",
+    anfitrionNumeroCuenta: "2201984532",
+    anfitrionTitular: "Javier Sarango",
+    anfitrionCuenta: "Banco Pichincha Ahorros 2201984532",
     modeloMonetizacion: "comision_reserva" as AirbnbAdminListing["monetizacion"]["modelo"],
     porcentajeComision: 15,
     cuotaFijaMensual: 45
   })
+
+  // Funciones de gestión de fotos
+  const handleAddFoto = (urlToAdd?: string) => {
+    const targetUrl = (urlToAdd || formAlojamiento.nuevaFotoUrl).trim()
+    if (!targetUrl) return
+    if (!formAlojamiento.imagenes.includes(targetUrl)) {
+      setFormAlojamiento(prev => ({
+        ...prev,
+        imagenes: [...prev.imagenes, targetUrl],
+        nuevaFotoUrl: "",
+        imagenUrl: prev.imagenUrl ? prev.imagenUrl : targetUrl
+      }))
+    } else {
+      setFormAlojamiento(prev => ({ ...prev, nuevaFotoUrl: "" }))
+    }
+  }
+
+  const handleRemoveFoto = (indexToRemove: number) => {
+    setFormAlojamiento(prev => {
+      const remaining = prev.imagenes.filter((_, idx) => idx !== indexToRemove)
+      const removedUrl = prev.imagenes[indexToRemove]
+      let newCover = prev.imagenUrl
+      if (removedUrl === prev.imagenUrl) {
+        newCover = remaining.length > 0 ? remaining[0] : ""
+      }
+      return {
+        ...prev,
+        imagenes: remaining,
+        imagenUrl: newCover
+      }
+    })
+  }
+
+  const handleSetPortada = (url: string) => {
+    setFormAlojamiento(prev => ({ ...prev, imagenUrl: url }))
+  }
+
+  // Funciones de gestión de amenidades
+  const handleToggleAmenidad = (label: string) => {
+    setFormAlojamiento(prev => {
+      const exists = prev.amenidades.includes(label)
+      const updated = exists 
+        ? prev.amenidades.filter(a => a !== label)
+        : [...prev.amenidades, label]
+      return { ...prev, amenidades: updated }
+    })
+  }
+
+  const handleAddCustomAmenidad = () => {
+    const trimmed = formAlojamiento.nuevaAmenidad.trim()
+    if (!trimmed) return
+    if (!formAlojamiento.amenidades.includes(trimmed)) {
+      setFormAlojamiento(prev => ({
+        ...prev,
+        amenidades: [...prev.amenidades, trimmed],
+        nuevaAmenidad: ""
+      }))
+    } else {
+      setFormAlojamiento(prev => ({ ...prev, nuevaAmenidad: "" }))
+    }
+  }
 
   // Form State para Nueva Reserva y Liquidación
   const [formReserva, setFormReserva] = useState({
@@ -505,6 +841,7 @@ export default function AdminAirbnbPage() {
   const handleOpenNewAlojamiento = () => {
     const nextCode = `SARA-ALJ-0${alojamientos.length + 1}`
     setEditingAlojamiento(null)
+    setModalTab("general")
     setFormAlojamiento({
       codigo: nextCode,
       titulo: "",
@@ -514,16 +851,47 @@ export default function AdminAirbnbPage() {
       bandera: "🇪🇨",
       ciudad: "Cuenca",
       sector: "Av. Ordóñez Lasso",
+      lat: -2.9001,
+      lng: -79.0059,
       precioNoche: 55,
       tarifaLimpieza: 20,
       isSuperhost: true,
       maxHuespedes: 2,
-      imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=600&q=80",
+      habitaciones: 1,
+      banos: 1,
+      camas: 1,
+      imagenUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+      imagenes: [
+        "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
+      ],
+      videoUrl: "",
+      nuevaFotoUrl: "",
+      amenidades: [
+        "Vista al Río",
+        "WiFi 300 Mbps Fibra",
+        "Smart Lock (Self Check-in)",
+        "Smart TV 55\" 4K",
+        "Cafetera Nespresso",
+        "Parqueadero Subterráneo",
+        "Cocina Equipada",
+        "Sala de Estar",
+        "Comedor"
+      ],
+      nuevaAmenidad: "",
+      descripcion: "Disfruta de una estadía inigualable en este exclusivo inmueble gestionado por SARA, diseñado con acabados de primera calidad, conectividad total y atención personalizada.",
+      reglasTexto: "Check-in: 15:00 a 22:00\nCheck-out: 11:00\nNo se permiten fiestas\nNo fumar dentro de la propiedad",
       publicado: true,
-      anfitrionNombre: "",
-      anfitrionTelefono: "+593 9",
-      anfitrionEmail: "",
-      anfitrionCuenta: "Banco Pichincha Ahorros...",
+      anfitrionNombre: "Javier Sarango",
+      anfitrionTelefono: "+593 981804023",
+      anfitrionEmail: "javier.sarango@gmail.com",
+      anfitrionCedulaRuc: "0103492817",
+      anfitrionBanco: "Banco Pichincha",
+      anfitrionTipoCuenta: "Ahorros",
+      anfitrionNumeroCuenta: "2201984532",
+      anfitrionTitular: "Javier Sarango",
+      anfitrionCuenta: "Banco Pichincha Ahorros 2201984532",
       modeloMonetizacion: "comision_reserva",
       porcentajeComision: 15,
       cuotaFijaMensual: 45
@@ -534,6 +902,7 @@ export default function AdminAirbnbPage() {
   // Abrir Modal Edición Alojamiento
   const handleOpenEditAlojamiento = (alj: AirbnbAdminListing) => {
     setEditingAlojamiento(alj)
+    setModalTab("general")
     setFormAlojamiento({
       codigo: alj.codigo,
       titulo: alj.titulo,
@@ -543,16 +912,41 @@ export default function AdminAirbnbPage() {
       bandera: alj.bandera,
       ciudad: alj.ciudad,
       sector: alj.sector,
+      lat: alj.lat || -2.9001,
+      lng: alj.lng || -79.0059,
       precioNoche: alj.precioNoche,
       tarifaLimpieza: alj.tarifaLimpieza,
       isSuperhost: alj.isSuperhost,
       maxHuespedes: alj.maxHuespedes,
+      habitaciones: alj.habitaciones || 1,
+      banos: alj.banos || 1,
+      camas: alj.camas || 1,
       imagenUrl: alj.imagenUrl,
+      imagenes: alj.imagenes && alj.imagenes.length > 0 ? alj.imagenes : [alj.imagenUrl],
+      videoUrl: alj.videoUrl || "",
+      nuevaFotoUrl: "",
+      amenidades: alj.amenidades && alj.amenidades.length > 0 ? alj.amenidades : [
+        "Vista al Río",
+        "WiFi 300 Mbps Fibra",
+        "Smart Lock (Self Check-in)",
+        "Smart TV 55\" 4K",
+        "Cocina Equipada",
+        "Sala de Estar",
+        "Comedor"
+      ],
+      nuevaAmenidad: "",
+      descripcion: alj.descripcion || "Disfruta de amaneceres únicos con excelente ubicación y confort.",
+      reglasTexto: alj.reglas && alj.reglas.length > 0 ? alj.reglas.join("\n") : "Check-in: 15:00 a 22:00\nCheck-out: 11:00\nNo se permiten fiestas\nNo fumar",
       publicado: alj.publicado,
       anfitrionNombre: alj.anfitrion.nombre,
       anfitrionTelefono: alj.anfitrion.telefono,
       anfitrionEmail: alj.anfitrion.email,
-      anfitrionCuenta: alj.anfitrion.cuentaBancaria,
+      anfitrionCedulaRuc: alj.anfitrion.cedulaRuc || "0103492817",
+      anfitrionBanco: alj.anfitrion.banco || "Banco Pichincha",
+      anfitrionTipoCuenta: alj.anfitrion.tipoCuenta || "Ahorros",
+      anfitrionNumeroCuenta: alj.anfitrion.numeroCuenta || "2201984532",
+      anfitrionTitular: alj.anfitrion.titular || alj.anfitrion.nombre,
+      anfitrionCuenta: alj.anfitrion.cuentaBancaria || `${alj.anfitrion.banco || "Banco Pichincha"} ${alj.anfitrion.tipoCuenta || "Ahorros"} ${alj.anfitrion.numeroCuenta || ""}`,
       modeloMonetizacion: alj.monetizacion.modelo,
       porcentajeComision: alj.monetizacion.porcentajeComision,
       cuotaFijaMensual: alj.monetizacion.cuotaFijaMensual || 45
@@ -563,6 +957,10 @@ export default function AdminAirbnbPage() {
   // Guardar Alojamiento
   const handleSaveAlojamiento = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const formattedCuenta = `${formAlojamiento.anfitrionBanco} ${formAlojamiento.anfitrionTipoCuenta} ${formAlojamiento.anfitrionNumeroCuenta}`.trim()
+    const reglasArray = formAlojamiento.reglasTexto.split("\n").map(r => r.trim()).filter(Boolean)
+    const imagenesFinal = formAlojamiento.imagenes.length > 0 ? formAlojamiento.imagenes : [formAlojamiento.imagenUrl]
 
     if (editingAlojamiento) {
       setAlojamientos(prev => prev.map(item => {
@@ -577,17 +975,32 @@ export default function AdminAirbnbPage() {
             bandera: formAlojamiento.bandera,
             ciudad: formAlojamiento.ciudad,
             sector: formAlojamiento.sector,
+            lat: formAlojamiento.lat,
+            lng: formAlojamiento.lng,
             precioNoche: formAlojamiento.precioNoche,
             tarifaLimpieza: formAlojamiento.tarifaLimpieza,
             isSuperhost: formAlojamiento.isSuperhost,
             maxHuespedes: formAlojamiento.maxHuespedes,
+            habitaciones: formAlojamiento.habitaciones,
+            banos: formAlojamiento.banos,
+            camas: formAlojamiento.camas,
             imagenUrl: formAlojamiento.imagenUrl,
+            imagenes: imagenesFinal,
+            videoUrl: formAlojamiento.videoUrl,
+            amenidades: formAlojamiento.amenidades,
+            descripcion: formAlojamiento.descripcion,
+            reglas: reglasArray,
             publicado: formAlojamiento.publicado,
             anfitrion: {
               nombre: formAlojamiento.anfitrionNombre,
               telefono: formAlojamiento.anfitrionTelefono,
               email: formAlojamiento.anfitrionEmail,
-              cuentaBancaria: formAlojamiento.anfitrionCuenta
+              cedulaRuc: formAlojamiento.anfitrionCedulaRuc,
+              banco: formAlojamiento.anfitrionBanco,
+              tipoCuenta: formAlojamiento.anfitrionTipoCuenta,
+              numeroCuenta: formAlojamiento.anfitrionNumeroCuenta,
+              titular: formAlojamiento.anfitrionTitular,
+              cuentaBancaria: formattedCuenta
             },
             monetizacion: {
               ...item.monetizacion,
@@ -610,18 +1023,33 @@ export default function AdminAirbnbPage() {
         bandera: formAlojamiento.bandera,
         ciudad: formAlojamiento.ciudad,
         sector: formAlojamiento.sector,
+        lat: formAlojamiento.lat,
+        lng: formAlojamiento.lng,
         precioNoche: formAlojamiento.precioNoche,
         tarifaLimpieza: formAlojamiento.tarifaLimpieza,
         rating: 5.0,
         isSuperhost: formAlojamiento.isSuperhost,
         maxHuespedes: formAlojamiento.maxHuespedes,
+        habitaciones: formAlojamiento.habitaciones,
+        banos: formAlojamiento.banos,
+        camas: formAlojamiento.camas,
         imagenUrl: formAlojamiento.imagenUrl,
+        imagenes: imagenesFinal,
+        videoUrl: formAlojamiento.videoUrl,
+        amenidades: formAlojamiento.amenidades,
+        descripcion: formAlojamiento.descripcion,
+        reglas: reglasArray,
         publicado: formAlojamiento.publicado,
         anfitrion: {
           nombre: formAlojamiento.anfitrionNombre,
           telefono: formAlojamiento.anfitrionTelefono,
           email: formAlojamiento.anfitrionEmail,
-          cuentaBancaria: formAlojamiento.anfitrionCuenta
+          cedulaRuc: formAlojamiento.anfitrionCedulaRuc,
+          banco: formAlojamiento.anfitrionBanco,
+          tipoCuenta: formAlojamiento.anfitrionTipoCuenta,
+          numeroCuenta: formAlojamiento.anfitrionNumeroCuenta,
+          titular: formAlojamiento.anfitrionTitular,
+          cuentaBancaria: formattedCuenta
         },
         monetizacion: {
           modelo: formAlojamiento.modeloMonetizacion,
@@ -1380,252 +1808,967 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: NUEVO / EDITAR ALOJAMIENTO AIRBNB */}
+      {/* MODAL: NUEVO / EDITAR ALOJAMIENTO AIRBNB (MULTI-VIÑETAS) */}
       {/* ========================================================= */}
       {isAlojamientoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 relative my-8">
-            <button
-              onClick={() => setIsAlojamientoModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-5">
-              <div className="p-3 bg-brand-sage/10 text-brand-sage rounded-xl">
-                <Building size={24} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-gray-100 relative my-4 sm:my-8 flex flex-col max-h-[92vh]">
+            {/* Header del Modal */}
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0 bg-slate-50/50 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-brand-sage/10 text-brand-sage rounded-xl">
+                  <Building size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg sm:text-xl font-black text-gray-900">
+                      {editingAlojamiento ? "Editar Alojamiento Airbnb" : "Registrar Nuevo Alojamiento Airbnb"}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200">
+                      <Lock size={10} /> {formAlojamiento.codigo}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Configuración integral de ficha pública, geolocalización, multimedia, anfitrión y comisiones SARA.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  {editingAlojamiento ? "Editar Alojamiento Airbnb" : "Registrar Nuevo Alojamiento Airbnb"}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Configura tarifas por noche, datos del anfitrión y comisión de intermediación de SARA.
-                </p>
+
+              <button
+                onClick={() => setIsAlojamientoModalOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+                title="Cerrar ventana"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Barra de Viñetas / Pestañas (Navegación Responsive) */}
+            <div className="px-6 pt-2 border-b border-gray-200 bg-white shrink-0 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1 sm:gap-2 min-w-max">
+                <button
+                  type="button"
+                  onClick={() => setModalTab("general")}
+                  className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all ${
+                    modalTab === "general"
+                      ? "border-brand-sage text-brand-dark"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <MapPin size={15} className={modalTab === "general" ? "text-brand-sage" : ""} />
+                  <span>1. Ubicación & Mapa</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalTab("multimedia")}
+                  className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all ${
+                    modalTab === "multimedia"
+                      ? "border-brand-sage text-brand-dark"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <ImageIcon size={15} className={modalTab === "multimedia" ? "text-brand-sage" : ""} />
+                  <span>2. Fotos & Video</span>
+                  <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.2 rounded-full">
+                    {formAlojamiento.imagenes.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalTab("anfitrion")}
+                  className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all ${
+                    modalTab === "anfitrion"
+                      ? "border-brand-sage text-brand-dark"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Users size={15} className={modalTab === "anfitrion" ? "text-brand-sage" : ""} />
+                  <span>3. Anfitrión & Banco</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalTab("caracteristicas")}
+                  className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all ${
+                    modalTab === "caracteristicas"
+                      ? "border-brand-sage text-brand-dark"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <CheckCircle2 size={15} className={modalTab === "caracteristicas" ? "text-brand-sage" : ""} />
+                  <span>4. Checklist & Amenidades</span>
+                  <span className="text-[10px] bg-brand-sage/10 text-brand-sage px-1.5 py-0.2 rounded-full font-bold">
+                    {formAlojamiento.amenidades.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModalTab("tarifas")}
+                  className={`pb-3 pt-2 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-1.5 transition-all ${
+                    modalTab === "tarifas"
+                      ? "border-brand-sage text-brand-dark"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <DollarSign size={15} className={modalTab === "tarifas" ? "text-brand-sage" : ""} />
+                  <span>5. Tarifas & Comisión</span>
+                </button>
               </div>
             </div>
 
-            <form onSubmit={handleSaveAlojamiento} className="space-y-4">
-              {/* Sección 1: Datos del Alojamiento */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-brand-sage" />
-                  1. Datos del Alojamiento
-                </h4>
+            {/* Contenido del Formulario por Viñetas */}
+            <form onSubmit={handleSaveAlojamiento} className="flex flex-col flex-1 overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-5 flex-1">
+                {/* ========================================================= */}
+                {/* VIÑETA 1: DATOS GENERALES & MAPA DE GEOLOCALIZACIÓN */}
+                {/* ========================================================= */}
+                {modalTab === "general" && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <MapPin size={16} className="text-brand-sage" />
+                          Identificación del Inmueble y Ubicación Geográfica
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          El código del sistema es único y no modificable. Ubica la propiedad en el mapa para capturar las coordenadas exactas.
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Código</label>
-                    <input
-                      type="text"
-                      required
-                      value={formAlojamiento.codigo}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, codigo: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Título del Anuncio</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej: Master Suite de Diseño Frente al Río"
-                      value={formAlojamiento.titulo}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, titulo: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-800"
-                    />
-                  </div>
-                </div>
+                    {/* Fila 1: Código no editable + Título */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                          <Lock size={12} className="text-amber-600" />
+                          <span>Código (No Modificable)</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            readOnly
+                            value={formAlojamiento.codigo}
+                            className="w-full pl-8 pr-3 py-2 bg-slate-100 border border-slate-300 rounded-lg text-xs font-mono font-black text-slate-700 select-all cursor-not-allowed shadow-inner"
+                            title="El código es generado automáticamente por el sistema y no puede ser modificado"
+                          />
+                          <Lock size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        </div>
+                        <span className="text-[10px] text-gray-400 mt-1 block">
+                          🔒 Generado de forma secuencial
+                        </span>
+                      </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Alcance</label>
-                    <select
-                      value={formAlojamiento.alcance}
-                      onChange={(e) => setFormAlojamiento({ 
-                        ...formAlojamiento, 
-                        alcance: e.target.value as any,
-                        pais: e.target.value === "nacional" ? "Ecuador" : "Estados Unidos",
-                        bandera: e.target.value === "nacional" ? "🇪🇨" : "🇺🇸"
-                      })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold"
-                    >
-                      <option value="nacional">🇪🇨 Nacional</option>
-                      <option value="internacional">🌎 Internacional</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo</label>
-                    <select
-                      value={formAlojamiento.tipo}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, tipo: e.target.value as any })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    >
-                      <option value="suite">Suite</option>
-                      <option value="loft">Loft</option>
-                      <option value="penthouse">Penthouse</option>
-                      <option value="quinta">Quinta</option>
-                      <option value="villa">Villa</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Tarifa Noche ($)</label>
-                    <input
-                      type="number"
-                      required
-                      value={formAlojamiento.precioNoche}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, precioNoche: Number(e.target.value) })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Tarifa Limpieza ($)</label>
-                    <input
-                      type="number"
-                      required
-                      value={formAlojamiento.tarifaLimpieza}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, tarifaLimpieza: Number(e.target.value) })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
-                </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Título del Anuncio Airbnb <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Master Suite de Diseño Frente al Río Tomebamba"
+                          value={formAlojamiento.titulo}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, titulo: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-sage"
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Ciudad</label>
-                    <input
-                      type="text"
-                      required
-                      value={formAlojamiento.ciudad}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, ciudad: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
+                    {/* Fila 2: Alcance + Tipo (Exactamente los 6 tipos) + Ciudad + Sector */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Alcance</label>
+                        <select
+                          value={formAlojamiento.alcance}
+                          onChange={(e) => {
+                            const val = e.target.value as any
+                            setFormAlojamiento({ 
+                              ...formAlojamiento, 
+                              alcance: val,
+                              pais: val === "nacional" ? "Ecuador" : "Estados Unidos",
+                              bandera: val === "nacional" ? "🇪🇨" : "🇺🇸"
+                            })
+                          }}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800"
+                        >
+                          <option value="nacional">🇪🇨 Nacional (Ecuador)</option>
+                          <option value="internacional">🌎 Internacional</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Tipo de Inmueble <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          value={formAlojamiento.tipo}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, tipo: e.target.value as any })}
+                          className="w-full px-2.5 py-2 bg-white border border-brand-sage/40 rounded-lg text-xs font-bold text-brand-dark focus:ring-2 focus:ring-brand-sage"
+                        >
+                          <option value="suite">Suite</option>
+                          <option value="departamento">Departamento</option>
+                          <option value="penthouse">Penthouse</option>
+                          <option value="casa">Casa</option>
+                          <option value="villa">Villa</option>
+                          <option value="quinta">Quinta</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Ciudad</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Cuenca"
+                          value={formAlojamiento.ciudad}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, ciudad: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Sector / Barrio</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Av. Ordóñez Lasso"
+                          value={formAlojamiento.sector}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, sector: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Fila 3: Mapa interactivo con selección de coordenadas GPS */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} className="text-rose-500" />
+                          <span className="text-xs font-bold uppercase tracking-wider text-gray-800">
+                            Geolocalización en el Mapa (Clic o Arrastrar Marcador)
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-gray-200">
+                            <span className="text-[10px] font-bold text-gray-400">Lat:</span>
+                            <input
+                              type="number"
+                              step="any"
+                              value={formAlojamiento.lat}
+                              onChange={(e) => setFormAlojamiento({ ...formAlojamiento, lat: Number(e.target.value) })}
+                              className="w-20 text-xs font-mono font-bold text-gray-800 bg-transparent focus:outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border border-gray-200">
+                            <span className="text-[10px] font-bold text-gray-400">Lng:</span>
+                            <input
+                              type="number"
+                              step="any"
+                              value={formAlojamiento.lng}
+                              onChange={(e) => setFormAlojamiento({ ...formAlojamiento, lng: Number(e.target.value) })}
+                              className="w-20 text-xs font-mono font-bold text-gray-800 bg-transparent focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Componente de Mapa Leaflet */}
+                      <AirbnbCoordinatePickerWrapper
+                        lat={formAlojamiento.lat}
+                        lng={formAlojamiento.lng}
+                        ciudad={formAlojamiento.ciudad}
+                        onChange={(newLat, newLng) => {
+                          setFormAlojamiento(prev => ({
+                            ...prev,
+                            lat: newLat,
+                            lng: newLng
+                          }))
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Sector</label>
-                    <input
-                      type="text"
-                      required
-                      value={formAlojamiento.sector}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, sector: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
+                )}
+
+                {/* ========================================================= */}
+                {/* VIÑETA 2: MULTIMEDIA (FOTOS & VIDEO & PORTADA) */}
+                {/* ========================================================= */}
+                {modalTab === "multimedia" && (
+                  <div className="space-y-5 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <ImageIcon size={16} className="text-brand-sage" />
+                          Galería Fotográfica y Video de Recorrido
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Agrega múltiples fotos, define cuál será la foto principal que se mostrará en la tarjeta de búsqueda e inserta video tour.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Agregar Foto por URL o mediante Presets de Arquitectura */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                        Agregar Foto a la Galería
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://images.unsplash.com/photo-..."
+                          value={formAlojamiento.nuevaFotoUrl}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, nuevaFotoUrl: e.target.value })}
+                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddFoto()}
+                          className="px-4 py-2 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 shrink-0"
+                        >
+                          <Plus size={15} />
+                          <span>Agregar</span>
+                        </button>
+                      </div>
+
+                      {/* Accesos rápidos a fotos curadas */}
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          Ejemplos Rápidos:
+                        </span>
+                        {FOTO_PRESETS.map((p) => (
+                          <button
+                            key={p.name}
+                            type="button"
+                            onClick={() => handleAddFoto(p.url)}
+                            className="px-2 py-0.5 text-[10px] font-medium bg-white hover:bg-brand-sage/10 hover:text-brand-dark rounded text-gray-600 border border-gray-200 transition-colors"
+                          >
+                            + {p.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Grid de Fotos con Selector de Portada y Eliminar */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                          Fotos del Alojamiento ({formAlojamiento.imagenes.length})
+                        </span>
+                        <span className="text-[11px] text-gray-500">
+                          Haz clic en <span className="font-bold text-emerald-700">"Hacer Portada"</span> para elegir la foto de la tarjeta principal
+                        </span>
+                      </div>
+
+                      {formAlojamiento.imagenes.length === 0 ? (
+                        <div className="p-8 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 text-gray-400">
+                          <ImageIcon size={32} className="mx-auto mb-2 opacity-50" />
+                          <p className="text-xs font-semibold">No hay fotos agregadas aún.</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Ingresa una URL o haz clic en los ejemplos rápidos arriba.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {formAlojamiento.imagenes.map((imgUrl, idx) => {
+                            const isCover = imgUrl === formAlojamiento.imagenUrl
+                            return (
+                              <div
+                                key={idx}
+                                className={`group relative rounded-xl overflow-hidden border-2 transition-all bg-gray-100 ${
+                                  isCover ? "border-emerald-500 shadow-md ring-2 ring-emerald-500/20" : "border-gray-200 hover:border-gray-300"
+                                }`}
+                              >
+                                <img
+                                  src={imgUrl}
+                                  alt={`Foto ${idx + 1}`}
+                                  className="w-full h-32 object-cover"
+                                />
+
+                                {/* Badge Portada Activa */}
+                                {isCover && (
+                                  <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow flex items-center gap-1 z-10">
+                                    <Star size={11} className="fill-white" />
+                                    <span>Portada Principal</span>
+                                  </div>
+                                )}
+
+                                {/* Barra de Acciones sobre la foto */}
+                                <div className="p-2 bg-white flex items-center justify-between gap-1 border-t border-gray-100">
+                                  {!isCover ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetPortada(imgUrl)}
+                                      className="text-[11px] font-bold text-gray-600 hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                                    >
+                                      <Star size={12} />
+                                      <span>Hacer Portada</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
+                                      <Check size={12} />
+                                      <span>Portada Activa</span>
+                                    </span>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveFoto(idx)}
+                                    className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                                    title="Eliminar foto"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sección de Video Tour */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                        <Video size={14} className="text-brand-sage" />
+                        <span>Video del Recorrido Virtual (YouTube / Vimeo / MP4)</span>
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={formAlojamiento.videoUrl}
+                        onChange={(e) => setFormAlojamiento({ ...formAlojamiento, videoUrl: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
+                      />
+                      <p className="text-[11px] text-gray-500">
+                        Opcional: Si ingresas un video, aparecerá un botón de "Tour Virtual" en la ficha del huésped.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">URL Foto Principal</label>
-                    <input
-                      type="url"
-                      required
-                      value={formAlojamiento.imagenUrl}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, imagenUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
+                )}
+
+                {/* ========================================================= */}
+                {/* VIÑETA 3: DATOS DEL ANFITRIÓN & CUENTA BANCARIA */}
+                {/* ========================================================= */}
+                {modalTab === "anfitrion" && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <Users size={16} className="text-brand-sage" />
+                          Datos del Anfitrión & Cuenta Bancaria para Pagos / Anticipos
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Información completa del dueño o anfitrión para remitir transferencias bancarias, liquidaciones netas de reservas y anticipos.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Datos Personales */}
+                    <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                        1. Contacto del Propietario / Anfitrión
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Nombre Completo <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ej: Javier Sarango"
+                            value={formAlojamiento.anfitrionNombre}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionNombre: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            WhatsApp de Contacto <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="+593 981804023"
+                            value={formAlojamiento.anfitrionTelefono}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionTelefono: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Correo Electrónico
+                          </label>
+                          <input
+                            type="email"
+                            placeholder="anfitrion@correo.com"
+                            value={formAlojamiento.anfitrionEmail}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionEmail: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Cédula / RUC del Propietario
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="0103492817"
+                            value={formAlojamiento.anfitrionCedulaRuc}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionCedulaRuc: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cuenta Bancaria para Pagos / Anticipos */}
+                    <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-200 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Landmark size={16} className="text-blue-700" />
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-blue-900">
+                          2. Cuenta Bancaria para Transferencia de Liquidaciones y Anticipos
+                        </h5>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Institución Bancaria <span className="text-rose-500">*</span>
+                          </label>
+                          <select
+                            value={formAlojamiento.anfitrionBanco}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionBanco: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-bold text-gray-800"
+                          >
+                            {BANCOS_ECUADOR.map(b => (
+                              <option key={b} value={b}>{b}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Tipo de Cuenta <span className="text-rose-500">*</span>
+                          </label>
+                          <select
+                            value={formAlojamiento.anfitrionTipoCuenta}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionTipoCuenta: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-bold text-gray-800"
+                          >
+                            <option value="Ahorros">Cuenta de Ahorros</option>
+                            <option value="Corriente">Cuenta Corriente</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Número de Cuenta <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ej: 2201984532"
+                            value={formAlojamiento.anfitrionNumeroCuenta}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionNumeroCuenta: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-mono font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                            Nombre del Titular de la Cuenta
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Ej: Javier Sarango"
+                            value={formAlojamiento.anfitrionTitular}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionTitular: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tarjeta resumen de liquidación bancaria */}
+                      <div className="bg-white p-3 rounded-lg border border-blue-200 flex items-center justify-between text-xs text-blue-900 font-medium">
+                        <div className="flex items-center gap-2">
+                          <CreditCard size={16} className="text-blue-600" />
+                          <span>
+                            Destino de Liquidación: <strong className="font-bold">{formAlojamiento.anfitrionBanco}</strong> • {formAlojamiento.anfitrionTipoCuenta} No. <strong className="font-mono">{formAlojamiento.anfitrionNumeroCuenta || "---"}</strong>
+                          </span>
+                        </div>
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-bold">
+                          Verificado
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* VIÑETA 4: CARACTERÍSTICAS & CHECKLIST DE AMENIDADES */}
+                {/* ========================================================= */}
+                {modalTab === "caracteristicas" && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-brand-sage" />
+                          Capacidad, Checklist de Amenidades y Reglas del Alojamiento
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Configura el número de habitaciones, baños, camas, el checklist de servicios ofrecidos y las reglas de estadía.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Capacidad y Distribución */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-gray-200">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                          <Bed size={13} className="text-brand-sage" />
+                          <span>Habitaciones</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={formAlojamiento.habitaciones}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, habitaciones: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                          <Bath size={13} className="text-brand-sage" />
+                          <span>Baños</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          step={0.5}
+                          value={formAlojamiento.banos}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, banos: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                          <Bed size={13} className="text-brand-sage" />
+                          <span>Camas</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={formAlojamiento.camas}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, camas: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                          <Users size={13} className="text-brand-sage" />
+                          <span>Huéspedes Máx.</span>
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={formAlojamiento.maxHuespedes}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, maxHuespedes: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Tabla de Checklist de Lo que Ofrece el Alojamiento */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-brand-sage" />
+                          <span>Lo Que Ofrece Este Alojamiento (Checklist)</span>
+                        </label>
+                        <span className="text-[11px] text-gray-500 font-semibold">
+                          {formAlojamiento.amenidades.length} seleccionadas
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        {AMENIDADES_DISPONIBLES.map((item) => {
+                          const isSelected = formAlojamiento.amenidades.includes(item.label)
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => handleToggleAmenidad(item.label)}
+                              className={`p-3 rounded-xl border text-left flex items-center justify-between transition-all ${
+                                isSelected
+                                  ? "bg-emerald-50/70 border-emerald-400 text-emerald-950 font-bold shadow-sm"
+                                  : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <span className="text-lg">{item.icon}</span>
+                                <span className="text-xs">{item.label}</span>
+                              </div>
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
+                                isSelected ? "bg-emerald-600 text-white" : "border border-gray-300 bg-gray-50"
+                              }`}>
+                                {isSelected && <Check size={12} strokeWidth={3} />}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+
+                      {/* Agregar amenidad extra personalizada */}
+                      <div className="flex gap-2 pt-2">
+                        <input
+                          type="text"
+                          placeholder="Agregar otra amenidad personalizada (Ej: Sauna seco, Mesa de billar...)"
+                          value={formAlojamiento.nuevaAmenidad}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, nuevaAmenidad: e.target.value })}
+                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              handleAddCustomAmenidad()
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomAmenidad}
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          + Añadir
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Descripción y Reglas */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                          Descripción de la Estadía
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={formAlojamiento.descripcion}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, descripcion: e.target.value })}
+                          placeholder="Describe las virtudes del inmueble, vistas, acabados, cercanía a servicios..."
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs leading-relaxed"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">
+                          Reglas del Alojamiento (1 por línea)
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={formAlojamiento.reglasTexto}
+                          onChange={(e) => setFormAlojamiento({ ...formAlojamiento, reglasTexto: e.target.value })}
+                          placeholder="Check-in: 15:00 a 22:00&#10;Check-out: 11:00&#10;No se permiten fiestas&#10;No fumar"
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs leading-relaxed font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ========================================================= */}
+                {/* VIÑETA 5: TARIFAS & MODELO DE COMISIÓN SARA */}
+                {/* ========================================================= */}
+                {modalTab === "tarifas" && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <DollarSign size={16} className="text-brand-sage" />
+                          Tarifas al Público y Modelo Comercial de Intermediación SARA
+                        </h4>
+                        <p className="text-xs text-gray-500">
+                          Establece los precios por noche y de limpieza, y define el porcentaje de retención de SARA por reserva.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Precios Base */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-gray-200">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Tarifa por Noche ($ USD) <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-xs">$</span>
+                          <input
+                            type="number"
+                            required
+                            min={10}
+                            value={formAlojamiento.precioNoche}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, precioNoche: Number(e.target.value) })}
+                            className="w-full pl-7 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900 focus:ring-2 focus:ring-brand-sage"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Tarifa de Limpieza ($ USD) <span className="text-rose-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-xs">$</span>
+                          <input
+                            type="number"
+                            required
+                            min={0}
+                            value={formAlojamiento.tarifaLimpieza}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, tarifaLimpieza: Number(e.target.value) })}
+                            className="w-full pl-7 pr-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-sage"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Modelo Comercial y Retención SARA */}
+                    <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 space-y-3">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                        <TrendingUp size={14} className="text-emerald-700" />
+                        <span>Modelo de Monetización SARA</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">Modelo de Cobro SARA</label>
+                          <select
+                            value={formAlojamiento.modeloMonetizacion}
+                            onChange={(e) => {
+                              const modelo = e.target.value as any
+                              setFormAlojamiento({
+                                ...formAlojamiento,
+                                modeloMonetizacion: modelo,
+                                porcentajeComision: modelo === "gestion_completa" ? 20 : 15
+                              })
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-gray-800"
+                          >
+                            <option value="comision_reserva">Comisión por Reserva Estándar (15%)</option>
+                            <option value="gestion_completa">Gestión Integral SARA (20%)</option>
+                            <option value="membresia_fija">Membresía Mensual Publicidad ($45/mes)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 mb-1">% Retención Comisión SARA</label>
+                          <input
+                            type="number"
+                            required
+                            min={5}
+                            max={50}
+                            value={formAlojamiento.porcentajeComision}
+                            onChange={(e) => setFormAlojamiento({ ...formAlojamiento, porcentajeComision: Number(e.target.value) })}
+                            className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg text-xs font-extrabold text-emerald-900"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Simulador Financiero en Tiempo Real */}
+                      <div className="bg-white p-3.5 rounded-lg border border-emerald-200 space-y-2 mt-2">
+                        <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block">
+                          Simulación Financiera para Estancia de 3 Noches:
+                        </span>
+
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                          <div className="bg-slate-50 p-2 rounded border border-gray-100">
+                            <span className="text-[10px] text-gray-500 block">Total Huésped</span>
+                            <span className="font-extrabold text-gray-900">
+                              ${(formAlojamiento.precioNoche * 3) + formAlojamiento.tarifaLimpieza}
+                            </span>
+                          </div>
+
+                          <div className="bg-emerald-50 p-2 rounded border border-emerald-200">
+                            <span className="text-[10px] text-emerald-700 font-bold block">
+                              Comisión SARA ({formAlojamiento.porcentajeComision}%)
+                            </span>
+                            <span className="font-extrabold text-emerald-900">
+                              +${(((formAlojamiento.precioNoche * 3) * formAlojamiento.porcentajeComision) / 100).toFixed(2)}
+                            </span>
+                          </div>
+
+                          <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                            <span className="text-[10px] text-blue-700 font-bold block">Neto Propietario</span>
+                            <span className="font-black text-blue-900">
+                              ${((formAlojamiento.precioNoche * 3) - (((formAlojamiento.precioNoche * 3) * formAlojamiento.porcentajeComision) / 100) + formAlojamiento.tarifaLimpieza).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Sección 2: Anfitrión y Datos Bancarios */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <Users size={14} className="text-brand-sage" />
-                  2. Datos del Anfitrión & Cuenta para Liquidaciones
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre Completo</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej: Patricio Carrasco"
-                      value={formAlojamiento.anfitrionNombre}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionNombre: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp de Contacto</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+593 99 876 5432"
-                      value={formAlojamiento.anfitrionTelefono}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionTelefono: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Cuenta Bancaria para Pagos</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Banco Pichincha Ahorros 220..."
-                      value={formAlojamiento.anfitrionCuenta}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, anfitrionCuenta: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Sección 3: Modelo de Comisión SARA */}
-              <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                  <DollarSign size={14} className="text-emerald-700" />
-                  3. Modelo de Cobro SARA (Comisión por Reserva)
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Modelo Comercial</label>
-                    <select
-                      value={formAlojamiento.modeloMonetizacion}
-                      onChange={(e) => {
-                        const modelo = e.target.value as any
-                        setFormAlojamiento({
-                          ...formAlojamiento,
-                          modeloMonetizacion: modelo,
-                          porcentajeComision: modelo === "gestion_completa" ? 20 : 15
-                        })
-                      }}
-                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-gray-800"
-                    >
-                      <option value="comision_reserva">Comisión por Reserva Estándar (15%)</option>
-                      <option value="gestion_completa">Gestión Integral SARA (20%)</option>
-                      <option value="membresia_fija">Membresía Mensual Publicidad ($45/mes)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">% Comisión Retenida por SARA</label>
-                    <input
-                      type="number"
-                      required
-                      value={formAlojamiento.porcentajeComision}
-                      onChange={(e) => setFormAlojamiento({ ...formAlojamiento, porcentajeComision: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-lg text-xs font-extrabold text-emerald-900"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Botones */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              {/* Footer Fijo con Navegación y Botón Guardar */}
+              <div className="p-4 border-t border-gray-200 bg-slate-50/80 rounded-b-2xl flex items-center justify-between gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsAlojamientoModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100"
+                  className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
-                >
-                  <Check size={16} />
-                  <span>{editingAlojamiento ? "Guardar Cambios" : "Registrar Alojamiento"}</span>
-                </button>
+
+                <div className="flex items-center gap-2">
+                  {modalTab !== "general" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (modalTab === "tarifas") setModalTab("caracteristicas")
+                        else if (modalTab === "caracteristicas") setModalTab("anfitrion")
+                        else if (modalTab === "anfitrion") setModalTab("multimedia")
+                        else if (modalTab === "multimedia") setModalTab("general")
+                      }}
+                      className="px-3.5 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-1"
+                    >
+                      <ChevronLeft size={14} />
+                      <span>Anterior</span>
+                    </button>
+                  )}
+
+                  {modalTab !== "tarifas" ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (modalTab === "general") setModalTab("multimedia")
+                        else if (modalTab === "multimedia") setModalTab("anfitrion")
+                        else if (modalTab === "anfitrion") setModalTab("caracteristicas")
+                        else if (modalTab === "caracteristicas") setModalTab("tarifas")
+                      }}
+                      className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow transition-colors flex items-center gap-1"
+                    >
+                      <span>Siguiente</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
+                  >
+                    <Check size={16} />
+                    <span>{editingAlojamiento ? "Guardar Cambios" : "Registrar Alojamiento"}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
