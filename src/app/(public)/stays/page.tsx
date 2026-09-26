@@ -488,8 +488,36 @@ export default function AirbnbPage() {
   const [alcanceTab, setAlcanceTab] = useState<"todos" | "nacional" | "internacional">("todos")
   const [sectorFiltro, setSectorFiltro] = useState<string>("todos")
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos")
+  const [ordenPrecio, setOrdenPrecio] = useState<"defecto" | "alto" | "bajo">("defecto")
+  const [cardPhotoIdx, setCardPhotoIdx] = useState<Record<string, number>>({})
+  const [favoritos, setFavoritos] = useState<Record<string, boolean>>({})
   const [huespedesFiltro, setHuespedesFiltro] = useState<number>(1)
   const [searchTerm, setSearchTerm] = useState<string>("")
+
+  // Navegación rápida de fotos dentro de las tarjetas
+  const handleNextPhoto = (e: React.MouseEvent, stayId: string, total: number) => {
+    e.stopPropagation()
+    setCardPhotoIdx(prev => ({
+      ...prev,
+      [stayId]: ((prev[stayId] || 0) + 1) % total
+    }))
+  }
+
+  const handlePrevPhoto = (e: React.MouseEvent, stayId: string, total: number) => {
+    e.stopPropagation()
+    setCardPhotoIdx(prev => ({
+      ...prev,
+      [stayId]: ((prev[stayId] || 0) - 1 + total) % total
+    }))
+  }
+
+  const toggleFavorito = (e: React.MouseEvent, stayId: string) => {
+    e.stopPropagation()
+    setFavoritos(prev => ({
+      ...prev,
+      [stayId]: !prev[stayId]
+    }))
+  }
 
   // Modo de visualización: 'split' (dividido lista + mapa), 'grid' (solo lista grande), 'map' (solo mapa)
   const [vistaModo, setVistaModo] = useState<"split" | "grid" | "map">("split")
@@ -970,9 +998,9 @@ export default function AirbnbPage() {
     window.open(`https://wa.me/593981804023?text=${msg}`, "_blank")
   }
 
-  // Filtrado de alojamientos en tiempo real desde Base de Datos
+  // Filtrado y ordenamiento de alojamientos en tiempo real desde Base de Datos
   const filteredStays = useMemo(() => {
-    return alojamientos.filter((stay) => {
+    let result = alojamientos.filter((stay) => {
       // Destino libre ingresado por el usuario (sin limitaciones de ciudad ni país)
       if (destinoInput.trim()) {
         const q = destinoInput.toLowerCase().trim()
@@ -989,8 +1017,16 @@ export default function AirbnbPage() {
       // Alcance
       if (alcanceTab !== "todos" && stay.alcance !== alcanceTab) return false
 
-      // Tipo
-      if (tipoFiltro !== "todos" && stay.tipo !== tipoFiltro) return false
+      // Tipo de Alojamiento (Soporta Departamento, Suite, Penthouse, Villa, Quinta)
+      if (tipoFiltro !== "todos") {
+        if (tipoFiltro === "departamento") {
+          if (stay.tipo !== "departamento" && stay.tipo !== "loft" && stay.tipo !== "studio") return false
+        } else if (tipoFiltro === "villa") {
+          if (stay.tipo !== "villa" && stay.tipo !== "casa") return false
+        } else if (stay.tipo !== tipoFiltro) {
+          return false
+        }
+      }
 
       // Huéspedes
       if (huespedesFiltro > 1 && stay.maxHuespedes < huespedesFiltro) return false
@@ -1009,7 +1045,16 @@ export default function AirbnbPage() {
       }
       return true
     })
-  }, [alojamientos, destinoInput, alcanceTab, tipoFiltro, huespedesFiltro, searchTerm])
+
+    // Ordenamiento por precio: alto o bajo
+    if (ordenPrecio === "alto") {
+      result = [...result].sort((a, b) => b.precioNoche - a.precioNoche)
+    } else if (ordenPrecio === "bajo") {
+      result = [...result].sort((a, b) => a.precioNoche - b.precioNoche)
+    }
+
+    return result
+  }, [alojamientos, destinoInput, alcanceTab, tipoFiltro, huespedesFiltro, searchTerm, ordenPrecio])
 
   // Mapeo para el componente del mapa
   const mapItems = useMemo(() => {
@@ -1231,16 +1276,17 @@ export default function AirbnbPage() {
       <section className="relative pt-12 pb-24 lg:pb-28 overflow-hidden bg-slate-950">
         {/* Fondo Cinematográfico Arquitectónico de Alta Definición */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105"
+          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105 filter brightness-[0.88] contrast-[1.05]"
           style={{
             backgroundImage: `url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2560&q=85')`
           }}
         />
 
-        {/* Gradientes y Filtros de Iluminación de Lujo */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-slate-950/50" />
-        <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60" />
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(245,158,11,0.15)_0%,_transparent_60%)] pointer-events-none" />
+        {/* Gradientes y Filtros de Iluminación de Lujo Equilibrados */}
+        <div className="absolute inset-0 z-10 bg-slate-950/30" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/25" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(245,158,11,0.12)_0%,_transparent_60%)] pointer-events-none" />
 
         <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -1424,27 +1470,30 @@ export default function AirbnbPage() {
           {/* Chips de Categorías Rápidas e Interactivas */}
           <div className="mt-4 pt-3.5 border-t border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 text-xs">
             <span className="text-[10px] font-black uppercase tracking-wider text-gray-400 shrink-0 mr-1 hidden sm:inline">
-              Filtros Rápidos:
+              Filtros:
             </span>
             
+            {/* 1. Todos */}
             <button
               type="button"
               onClick={() => {
                 setDestinoInput("")
                 setTipoFiltro("todos")
+                setOrdenPrecio("defecto")
                 setAlcanceTab("todos")
                 setMapCenter([-2.8980, -79.0100])
                 setMapZoom(13)
               }}
               className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                !destinoInput && tipoFiltro === "todos" && alcanceTab === "todos"
-                  ? "bg-slate-900 text-white shadow-sm"
+                !destinoInput && tipoFiltro === "todos" && alcanceTab === "todos" && ordenPrecio === "defecto"
+                  ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
             >
               ✨ Todos ({alojamientos.length})
             </button>
 
+            {/* 2. Suite */}
             <button
               type="button"
               onClick={() => {
@@ -1452,13 +1501,59 @@ export default function AirbnbPage() {
               }}
               className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 tipoFiltro === "suite"
-                  ? "bg-slate-900 text-white shadow-sm"
+                  ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
             >
-              🏙️ Suites Urbanas
+              🏙️ Suite
             </button>
 
+            {/* 3. Penthouse */}
+            <button
+              type="button"
+              onClick={() => {
+                setTipoFiltro("penthouse")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "penthouse"
+                  ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              💎 Penthouse
+            </button>
+
+            {/* 4. Departamento */}
+            <button
+              type="button"
+              onClick={() => {
+                setTipoFiltro("departamento")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "departamento"
+                  ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏢 Departamento
+            </button>
+
+            {/* 5. Villa */}
+            <button
+              type="button"
+              onClick={() => {
+                setTipoFiltro("villa")
+              }}
+              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
+                tipoFiltro === "villa"
+                  ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              🏖️ Villa
+            </button>
+
+            {/* 6. Quinta */}
             <button
               type="button"
               onClick={() => {
@@ -1466,58 +1561,41 @@ export default function AirbnbPage() {
               }}
               className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 tipoFiltro === "quinta"
-                  ? "bg-slate-900 text-white shadow-sm"
+                  ? "bg-slate-900 text-white shadow-sm ring-2 ring-slate-900/20"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
             >
-              🌿 Quintas & Vacacionales
+              🌿 Quinta
             </button>
 
+            {/* 7. Precio alto */}
             <button
               type="button"
               onClick={() => {
-                handleDestinoInputChange("Cuenca")
+                setOrdenPrecio(prev => prev === "alto" ? "defecto" : "alto")
               }}
               className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                destinoInput.toLowerCase().includes("cuenca")
-                  ? "bg-amber-500 text-slate-950 shadow-sm"
+                ordenPrecio === "alto"
+                  ? "bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-400/40"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
             >
-              🏔️ Cuenca Histórica
+              📈 Precio alto
             </button>
 
+            {/* 8. Precio bajo */}
             <button
               type="button"
               onClick={() => {
-                handleDestinoInputChange("Yunguilla")
+                setOrdenPrecio(prev => prev === "bajo" ? "defecto" : "bajo")
               }}
               className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                destinoInput.toLowerCase().includes("yunguilla")
-                  ? "bg-amber-500 text-slate-950 shadow-sm"
+                ordenPrecio === "bajo"
+                  ? "bg-amber-500 text-slate-950 shadow-sm ring-2 ring-amber-400/40"
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
             >
-              🌴 Yunguilla Valle
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAlcanceTab("internacional")
-                const match = alojamientos.find(s => s.alcance === "internacional")
-                if (match) {
-                  setMapCenter([match.lat, match.lng])
-                  setMapZoom(13)
-                }
-              }}
-              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                alcanceTab === "internacional"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
-              }`}
-            >
-              🌎 Destinos Internacionales
+              📉 Precio bajo
             </button>
           </div>
         </div>
@@ -1586,33 +1664,36 @@ export default function AirbnbPage() {
         </div>
 
         {/* ============================================================ */}
-        {/* 3. LAYOUT DINÁMICO: SPLIT VIEW (LISTA 50% + MAPA 50%)       */}
+        {/* 3. LAYOUT DINÁMICO: SPLIT VIEW (LISTA 50% + MAPA 50%) / SOLO TARJETAS (100% ANCHO) */}
         {/* ============================================================ */}
-        <div className={`grid gap-6 ${
-          vistaModo === "split" ? "grid-cols-1 lg:grid-cols-12" : "grid-cols-1"
+        <div className={`w-full ${
+          vistaModo === "split" ? "grid grid-cols-1 lg:grid-cols-12 gap-6" : "w-full"
         }`}>
           {/* Columna de Tarjetas */}
           {vistaModo !== "map" && (
-            <div className={`${
+            <div className={`w-full ${
               vistaModo === "split" 
                 ? "lg:col-span-7 xl:col-span-7 max-h-[850px] overflow-y-auto pr-1" 
-                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "w-full"
             }`}>
-              <div className={`grid gap-5 ${
-                vistaModo === "split" ? "grid-cols-1 sm:grid-cols-2" : "contents"
+              <div className={`w-full ${
+                vistaModo === "split" 
+                  ? "grid grid-cols-1 sm:grid-cols-2 gap-5" 
+                  : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
               }`}>
                 {filteredStays.length === 0 ? (
                   <div className="col-span-full bg-white rounded-2xl p-10 text-center border border-gray-200 shadow-sm">
                     <Compass size={40} className="mx-auto text-amber-500 mb-3 opacity-80" />
-                    <h3 className="text-base font-bold text-gray-800">No se encontraron alojamientos para "{destinoInput}"</h3>
+                    <h3 className="text-base font-bold text-gray-800">No se encontraron alojamientos</h3>
                     <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
-                      Verifica el nombre o limpia los filtros para explorar todo nuestro catálogo de hospedajes en Ecuador y el mundo.
+                      Verifica el término de búsqueda o limpia los filtros para explorar todo nuestro catálogo de hospedajes en Ecuador y el mundo.
                     </p>
                     <button
                       type="button"
                       onClick={() => {
                         setDestinoInput("")
                         setTipoFiltro("todos")
+                        setOrdenPrecio("defecto")
                         setHuespedesFiltro(1)
                       }}
                       className="mt-4 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer shadow"
@@ -1625,122 +1706,188 @@ export default function AirbnbPage() {
                     const isHoveredOrActive = selectedMapId === stay.id
                     const subtotal = stay.precioNoche * totalNoches
                     const granTotal = subtotal + stay.tarifaLimpieza
+                    const curImgIdx = cardPhotoIdx[stay.id] || 0
+                    const totalImgs = stay.imagenes?.length || 1
+                    const currentImg = stay.imagenes?.[curImgIdx] || stay.imagenes?.[0] || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
+                    const stats = getStayStats(stay)
+                    const isFav = Boolean(favoritos[stay.id])
 
-                  return (
-                    <div
-                      key={stay.id}
-                      onClick={() => {
-                        setSelectedMapId(stay.id)
-                        setMapCenter([stay.lat, stay.lng])
-                        setMapZoom(15)
-                        if (vistaModo === "grid") {
-                          setVistaModo("split")
-                        }
-                      }}
-                      onMouseEnter={() => setSelectedMapId(stay.id)}
-                      className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col group cursor-pointer ${
-                        isHoveredOrActive ? "border-amber-500 ring-2 ring-amber-400/40" : "border-gray-200"
-                      }`}
-                    >
-                      {/* Portada */}
-                      <div className="relative h-56 w-full overflow-hidden bg-gray-100">
-                        <img
-                          src={stay.imagenes[0]}
-                          alt={stay.titulo}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
+                    return (
+                      <div
+                        key={stay.id}
+                        onClick={() => {
+                          if (vistaModo === "split") {
+                            setSelectedMapId(stay.id)
+                            setMapCenter([stay.lat, stay.lng])
+                            setMapZoom(15)
+                          } else {
+                            setSelectedStay(stay)
+                            setActivePhotoIdx(0)
+                          }
+                        }}
+                        onMouseEnter={() => {
+                          if (vistaModo === "split") setSelectedMapId(stay.id)
+                        }}
+                        className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col group cursor-pointer ${
+                          isHoveredOrActive && vistaModo === "split"
+                            ? "border-amber-500 ring-2 ring-amber-400/40" 
+                            : "border-slate-200/90 hover:border-amber-400/60"
+                        }`}
+                      >
+                        {/* Portada con Carousel Inteligente */}
+                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900 select-none">
+                          <img
+                            src={currentImg}
+                            alt={stay.titulo}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
 
-                        {/* Badges Superiores con País y Bandera */}
-                        <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/75 text-white shadow-md backdrop-blur-sm flex items-center gap-1">
-                            <span>{stay.bandera}</span>
-                            <span>{stay.ciudad}</span>
-                          </span>
-                          {stay.isSuperhost && (
-                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/95 text-gray-900 shadow-md backdrop-blur-sm border border-gray-200 flex items-center gap-1">
-                              <Star size={10} className="fill-amber-400 text-amber-400" /> SUPERHOST
-                            </span>
+                          {/* Flechas de Navegación de Fotos (Aparecen al pasar el cursor) */}
+                          {totalImgs > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => handlePrevPhoto(e, stay.id, totalImgs)}
+                                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-slate-900 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer active:scale-90"
+                                title="Foto anterior"
+                              >
+                                <ChevronLeft size={16} className="stroke-[2.5]" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleNextPhoto(e, stay.id, totalImgs)}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-slate-900 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer active:scale-90"
+                                title="Foto siguiente"
+                              >
+                                <ChevronRight size={16} className="stroke-[2.5]" />
+                              </button>
+                            </>
                           )}
-                        </div>
 
-                        {/* Rating */}
-                        <div className="absolute top-3 right-3 bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 shadow-md">
-                          <Star size={11} className="fill-amber-400 text-amber-400" />
-                          <span>{getStayStats(stay).rating.toFixed(2)}</span>
-                        </div>
-
-                        {/* Precio por noche en el mapa y tarjeta */}
-                        <div className="absolute bottom-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1.5 rounded-xl text-white shadow-md">
-                          <span className="text-lg font-black">${stay.precioNoche}</span>
-                          <span className="text-[11px] text-gray-300 font-normal"> USD / noche</span>
-                        </div>
-                      </div>
-
-                      {/* Información de la Tarjeta */}
-                      <div className="p-4 flex-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between text-xs text-gray-500 font-semibold mb-1">
-                            <span className="font-bold text-gray-800">{stay.sector}</span>
-                            <span className="text-[11px] text-amber-600 hover:text-amber-700 font-bold flex items-center gap-1">
-                              <MapPin size={12} /> Ver en mapa
+                          {/* Badges Superiores: Ubicación + Superhost */}
+                          <div className="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5 z-10 pointer-events-none">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-950/80 text-white shadow-md backdrop-blur-md border border-white/10 flex items-center gap-1">
+                              <span>{stay.bandera}</span>
+                              <span>{stay.ciudad}</span>
                             </span>
+                            {stay.isSuperhost && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/95 text-slate-950 shadow-md backdrop-blur-sm border border-slate-200 flex items-center gap-1">
+                                <Star size={10} className="fill-amber-400 text-amber-500" /> SUPERHOST
+                              </span>
+                            )}
                           </div>
 
-                          <h3 className="font-bold text-gray-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1">
-                            {stay.titulo}
-                          </h3>
+                          {/* Botón Favorito (Top Right) */}
+                          <button
+                            type="button"
+                            onClick={(e) => toggleFavorito(e, stay.id)}
+                            className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-md z-20 cursor-pointer active:scale-90 ${
+                              isFav
+                                ? "bg-rose-500 text-white shadow-rose-500/30"
+                                : "bg-slate-950/60 hover:bg-slate-950/85 text-white"
+                            }`}
+                            title="Guardar en favoritos"
+                          >
+                            <Heart size={14} className={isFav ? "fill-white text-white" : "text-white"} />
+                          </button>
 
-                          {/* Calificación con estrellitas de los usuarios */}
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <div className="flex items-center text-amber-500">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star key={s} size={12} className="fill-amber-400 text-amber-400" />
+                          {/* Indicadores de Puntos de Fotos (Bottom Right) */}
+                          {totalImgs > 1 && (
+                            <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 z-10 bg-slate-950/60 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">
+                              {stay.imagenes.slice(0, 5).map((_, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`h-1.5 rounded-full transition-all ${
+                                    curImgIdx === idx ? "w-3 bg-white" : "w-1.5 bg-white/50"
+                                  }`}
+                                />
                               ))}
                             </div>
-                            <span className="text-xs font-black text-gray-900">{getStayStats(stay).rating.toFixed(2)}</span>
-                            <span className="text-[11px] text-gray-400 font-medium">({getStayStats(stay).reviewsCount} reseñas)</span>
-                          </div>
+                          )}
 
-                          {/* Cálculo de total por estadía */}
-                          <div className="bg-amber-50/70 border border-amber-200/60 rounded-xl p-2.5 my-2.5 flex items-center justify-between text-xs">
-                            <div>
-                              <span className="text-[10px] text-gray-500 block">Total por {totalNoches} noche(s):</span>
-                              <span className="font-black text-amber-900 text-sm">${granTotal} USD</span>
-                            </div>
-                            <span className="text-[10px] text-gray-400 font-medium">+${stay.tarifaLimpieza} limp.</span>
+                          {/* Precio por noche (Bottom Left) */}
+                          <div className="absolute bottom-2.5 left-2.5 bg-slate-950/85 backdrop-blur-md px-2.5 py-1 rounded-xl text-white border border-white/10 shadow-lg z-10">
+                            <span className="text-base font-black text-white">${stay.precioNoche}</span>
+                            <span className="text-[11px] text-slate-300 font-medium"> USD/noche</span>
                           </div>
                         </div>
 
-                        {/* Acciones de Reserva */}
-                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedStay(stay)
-                              setActivePhotoIdx(0)
-                            }}
-                            className="flex-1 py-2 px-3 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-center cursor-pointer"
-                          >
-                            Detalles
-                          </button>
+                        {/* Información de la Tarjeta */}
+                        <div className="p-4 flex-1 flex flex-col justify-between">
+                          <div>
+                            {/* Categoría y Sector + Calificación */}
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider truncate max-w-[65%]">
+                                {stay.sector} · {stay.tipo}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-xs font-black text-slate-900 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                                <Star size={11} className="fill-amber-400 text-amber-500" />
+                                <span>{stats.rating.toFixed(2)}</span>
+                              </span>
+                            </div>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleStartBooking(stay)
-                            }}
-                            className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <Calendar size={13} /> Reservar
-                          </button>
+                            {/* Título de la Residencia */}
+                            <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1.5">
+                              {stay.titulo}
+                            </h3>
+
+                            {/* Capacidad y Distribución */}
+                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mb-2">
+                              <span>{stay.camas} cama{stay.camas > 1 ? "s" : ""}</span>
+                              <span>•</span>
+                              <span>{stay.banos} baño{stay.banos > 1 ? "s" : ""}</span>
+                              <span>•</span>
+                              <span>{stay.maxHuespedes} huéspedes</span>
+                            </div>
+
+                            {/* Badge de Seguridad y Autonomía */}
+                            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/60 mb-2.5">
+                              <Key size={12} className="text-emerald-600 shrink-0" />
+                              <span className="truncate">Llegada autónoma 24/7 (Smart Lock)</span>
+                            </div>
+
+                            {/* Desglose de Estadía */}
+                            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 my-1 flex items-center justify-between text-xs">
+                              <div>
+                                <span className="text-[10px] text-slate-500 block">Total por {totalNoches} noche(s):</span>
+                                <span className="font-black text-slate-900 text-sm">${granTotal} USD</span>
+                              </div>
+                              <span className="text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
+                                +${stay.tarifaLimpieza} limp.
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Acciones de la Tarjeta */}
+                          <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedStay(stay)
+                                setActivePhotoIdx(0)
+                              }}
+                              className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all text-center cursor-pointer active:scale-98"
+                            >
+                              Detalles
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleStartBooking(stay)
+                              }}
+                              className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 rounded-xl transition-all shadow-md shadow-amber-500/15 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                            >
+                              <Calendar size={13} /> Reservar
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )
-                })
-              )}
+                    )
+                  })
+                )}
               </div>
             </div>
           )}
