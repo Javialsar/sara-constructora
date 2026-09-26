@@ -851,11 +851,11 @@ export default function MisReservasPage() {
               <div className="flex items-center gap-2">
                 <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
                 <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md shadow-xs">
-                  HOSPITALITY
+                  STAYS
                 </span>
               </div>
               <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
-                Portal de Huéspedes & Anfitriones
+                Hospédate · Portal de Huéspedes & Anfitriones
               </span>
             </div>
           </Link>
