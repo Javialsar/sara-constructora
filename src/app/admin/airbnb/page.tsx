@@ -50,7 +50,11 @@ import {
   Sparkle,
   FileSpreadsheet,
   FileText,
-  Upload
+  Upload,
+  Unlock,
+  RefreshCw,
+  Copy,
+  Key
 } from "lucide-react"
 import AirbnbCoordinatePickerWrapper from "@/components/ui/AirbnbCoordinatePickerWrapper"
 import { exportarAExcel, exportarAPDF } from "@/lib/services/exportReports"
@@ -134,6 +138,19 @@ export interface ReservaAdmin {
   identificacionHuesped?: string
   metodoPago?: string
   peticionesEspeciales?: string
+}
+
+export interface UsuarioHuespedAdmin {
+  id: string
+  created_at: string
+  nombre: string
+  apellido: string
+  cedula: string
+  telefono: string
+  email: string
+  clave: string
+  estado: "activo" | "bloqueado"
+  ciudadPais?: string
 }
 
 export const AMENIDADES_DISPONIBLES = [
@@ -657,8 +674,36 @@ export default function AdminAirbnbPage() {
     loadReservasReales()
   }, [])
 
-  // Pestaña Activa: "alojamientos" o "reservas"
-  const [activeTab, setActiveTab] = useState<"alojamientos" | "reservas">("alojamientos")
+  // Pestaña Activa: "alojamientos", "reservas" o "usuarios"
+  const [activeTab, setActiveTab] = useState<"alojamientos" | "reservas" | "usuarios">("alojamientos")
+
+  // Estado para Huéspedes & Usuarios Registrados
+  const [usuarios, setUsuarios] = useState<UsuarioHuespedAdmin[]>([])
+  const [isLoadingUsuarios, setIsLoadingUsuarios] = useState(false)
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({})
+  const [filtroEstadoUsuario, setFiltroEstadoUsuario] = useState<string>("todos")
+  const [copiedUsuarioField, setCopiedUsuarioField] = useState<string | null>(null)
+
+  const loadUsuarios = async () => {
+    setIsLoadingUsuarios(true)
+    try {
+      const res = await fetch("/api/airbnb/usuarios")
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.usuarios)) {
+          setUsuarios(data.usuarios)
+        }
+      }
+    } catch (err) {
+      console.warn("Aviso cargando usuarios:", err)
+    } finally {
+      setIsLoadingUsuarios(false)
+    }
+  }
+
+  useEffect(() => {
+    loadUsuarios()
+  }, [])
 
   // Filtros y Búsqueda
   const [searchTerm, setSearchTerm] = useState("")
@@ -910,6 +955,130 @@ export default function AdminAirbnbPage() {
       rows,
       "Reporte_Reservas_SARA",
       `Generado: ${new Date().toLocaleDateString('es-EC')} | Total reservas: ${reservasFiltradas.length}`
+    )
+  }
+
+  // Filtrado de Usuarios Huéspedes
+  const usuariosFiltrados = useMemo(() => {
+    return usuarios.filter(u => {
+      if (filtroEstadoUsuario !== "todos" && u.estado !== filtroEstadoUsuario) return false
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim()
+        const match = (
+          u.nombre.toLowerCase().includes(q) ||
+          u.apellido.toLowerCase().includes(q) ||
+          u.cedula.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          u.telefono.toLowerCase().includes(q)
+        )
+        if (!match) return false
+      }
+      return true
+    })
+  }, [usuarios, filtroEstadoUsuario, searchTerm])
+
+  // Bloquear / Activar Usuario
+  const handleToggleEstadoUsuario = async (u: UsuarioHuespedAdmin) => {
+    const nuevoEstado = u.estado === "activo" ? "bloqueado" : "activo"
+    const confirmMsg = nuevoEstado === "bloqueado" 
+      ? `¿Deseas bloquear el acceso a ${u.nombre} ${u.apellido}? No podrá ingresar al Portal de Huéspedes.`
+      : `¿Deseas activar nuevamente la cuenta de ${u.nombre} ${u.apellido}?`
+
+    if (!confirm(confirmMsg)) return
+
+    try {
+      const res = await fetch("/api/airbnb/usuarios", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: u.id, accion: nuevoEstado === "bloqueado" ? "bloquear" : "activar" })
+      })
+
+      if (res.ok) {
+        setUsuarios(prev => prev.map(item => item.id === u.id ? { ...item, estado: nuevoEstado } : item))
+        alert(`Cuenta de ${u.nombre} ${nuevoEstado === "bloqueado" ? "bloqueada" : "activada"} con éxito.`)
+      }
+    } catch {
+      alert("Error al actualizar estado del usuario.")
+    }
+  }
+
+  // Generar Nueva Clave
+  const handleGenerarNuevaClave = async (u: UsuarioHuespedAdmin) => {
+    const numRandom = Math.floor(1000 + Math.random() * 9000)
+    const claveSugerida = `SARA${numRandom}*Key`
+    const clavePersonalizada = prompt(`Generar nueva clave para ${u.nombre} ${u.apellido}.\n\nPuedes usar la sugerida o ingresar una personalizada:`, claveSugerida)
+    
+    if (!clavePersonalizada || !clavePersonalizada.trim()) return
+
+    try {
+      const res = await fetch("/api/airbnb/usuarios", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: u.id, accion: "generar_clave", nuevaClave: clavePersonalizada.trim() })
+      })
+
+      if (res.ok) {
+        setUsuarios(prev => prev.map(item => item.id === u.id ? { ...item, clave: clavePersonalizada.trim(), estado: "activo" } : item))
+        setVisiblePasswords(prev => ({ ...prev, [u.id]: true }))
+        
+        const enviarWhatsApp = confirm(`✅ Nueva clave generada con éxito:\n\nUsuario: ${u.email}\nNueva Clave: ${clavePersonalizada.trim()}\n\n¿Deseas abrir WhatsApp para enviársela directamente a ${u.telefono}?`)
+        if (enviarWhatsApp) {
+          const msg = encodeURIComponent(`Hola ${u.nombre}, tu nueva contraseña para ingresar al Portal de Huéspedes SARA Airbnb es: ${clavePersonalizada.trim()}\n\nPuedes acceder aquí: https://sara-constructora.vercel.app/airbnb/auth`)
+          window.open(`https://wa.me/${u.telefono.replace(/[^0-9]/g, "")}?text=${msg}`, "_blank")
+        }
+      }
+    } catch {
+      alert("Error al actualizar la contraseña del usuario.")
+    }
+  }
+
+  // Eliminar Usuario
+  const handleEliminarUsuario = async (u: UsuarioHuespedAdmin) => {
+    if (!confirm(`¿Estás seguro de eliminar el registro de ${u.nombre} ${u.apellido} (${u.email})?`)) return
+    try {
+      const res = await fetch(`/api/airbnb/usuarios?id=${u.id}`, { method: "DELETE" })
+      if (res.ok) {
+        setUsuarios(prev => prev.filter(item => item.id !== u.id))
+      }
+    } catch {
+      alert("Error al eliminar usuario.")
+    }
+  }
+
+  // Exportar Usuarios a Excel
+  const handleExportarUsuariosExcel = () => {
+    const dataFormatted = usuariosFiltrados.map(u => ({
+      "Fecha Creación": new Date(u.created_at).toLocaleString("es-EC"),
+      "Nombre": u.nombre,
+      "Apellido": u.apellido,
+      "Cédula / Pasaporte": u.cedula,
+      "WhatsApp / Teléfono": u.telefono,
+      "Correo Electrónico": u.email,
+      "Contraseña": u.clave,
+      "Estado": u.estado === "activo" ? "Activo" : "Bloqueado",
+      "Ubicación": u.ciudadPais || "Ecuador"
+    }))
+    exportarAExcel(dataFormatted, "Usuarios_Huespedes_Airbnb_SARA", "Huéspedes SARA")
+  }
+
+  // Exportar Usuarios a PDF
+  const handleExportarUsuariosPDF = () => {
+    const headers = ["Fecha Creación", "Huésped", "Cédula", "Teléfono", "Email", "Clave", "Estado"]
+    const rows = usuariosFiltrados.map(u => [
+      new Date(u.created_at).toLocaleString("es-EC"),
+      `${u.nombre} ${u.apellido}`.trim(),
+      u.cedula,
+      u.telefono,
+      u.email,
+      u.clave,
+      u.estado === "activo" ? "Activo" : "Bloqueado"
+    ])
+    exportarAPDF(
+      "REPORTE DE HUÉSPEDES & USUARIOS REGISTRADOS SARA AIRBNB",
+      headers,
+      rows,
+      "Usuarios_Huespedes_SARA",
+      `Generado: ${new Date().toLocaleDateString('es-EC')} | Total usuarios: ${usuariosFiltrados.length}`
     )
   }
 
@@ -1574,6 +1743,18 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
           <Receipt size={16} />
           <span>Reservas & Liquidaciones de Comisión ({reservas.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab("usuarios")}
+          className={`px-6 py-3 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+            activeTab === "usuarios"
+              ? "border-brand-sage text-brand-dark"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <Users size={16} />
+          <span>Huéspedes & Usuarios Registrados ({usuarios.length})</span>
+        </button>
       </div>
 
       {/* Filtros y Buscador */}
@@ -1582,7 +1763,13 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder={activeTab === "alojamientos" ? "Buscar por código, título, ciudad, anfitrión..." : "Buscar por código de reserva, huésped, anfitrión..."}
+            placeholder={
+              activeTab === "alojamientos"
+                ? "Buscar por código, título, ciudad, anfitrión..."
+                : activeTab === "reservas"
+                ? "Buscar por código de reserva, huésped, anfitrión..."
+                : "Buscar por nombre, apellido, cédula, email, teléfono..."
+            }
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage focus:bg-white transition-all"
@@ -1600,7 +1787,7 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
               <option value="nacional">🇪🇨 Solo Nacional (Ecuador)</option>
               <option value="internacional">🌎 Solo Internacional (Miami, Madrid, etc.)</option>
             </select>
-          ) : (
+          ) : activeTab === "reservas" ? (
             <select
               value={filtroLiquidacion}
               onChange={(e) => setFiltroLiquidacion(e.target.value)}
@@ -1610,11 +1797,27 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
               <option value="pendiente">⏳ Pendiente de Transferencia</option>
               <option value="liquidado">✅ Liquidado al Anfitrión</option>
             </select>
+          ) : (
+            <select
+              value={filtroEstadoUsuario}
+              onChange={(e) => setFiltroEstadoUsuario(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-sage"
+            >
+              <option value="todos">Todos los Estados (Activos y Bloqueados)</option>
+              <option value="activo">✅ Solo Cuentas Activas</option>
+              <option value="bloqueado">🔒 Solo Cuentas Bloqueadas</option>
+            </select>
           )}
 
           {/* Botones Descargar Excel y PDF */}
           <button
-            onClick={activeTab === "alojamientos" ? handleExportarAlojamientosExcel : handleExportarReservasExcel}
+            onClick={
+              activeTab === "alojamientos"
+                ? handleExportarAlojamientosExcel
+                : activeTab === "reservas"
+                ? handleExportarReservasExcel
+                : handleExportarUsuariosExcel
+            }
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
             title="Descargar datos en Microsoft Excel (.xlsx)"
           >
@@ -1623,7 +1826,13 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
           </button>
 
           <button
-            onClick={activeTab === "alojamientos" ? handleExportarAlojamientosPDF : handleExportarReservasPDF}
+            onClick={
+              activeTab === "alojamientos"
+                ? handleExportarAlojamientosPDF
+                : activeTab === "reservas"
+                ? handleExportarReservasPDF
+                : handleExportarUsuariosPDF
+            }
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
             title="Descargar reporte en formato PDF (.pdf)"
           >
@@ -1924,6 +2133,232 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                     </tr>
                   )
                 })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* CONTENIDO PESTAÑA 3: HUÉSPEDES & USUARIOS REGISTRADOS    */}
+      {/* ========================================================= */}
+      {activeTab === "usuarios" && (
+        <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden animate-fadeIn">
+          <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-gray-800 text-base flex items-center gap-2">
+                <Users size={18} className="text-brand-sage" />
+                <span>Gestión de Huéspedes & Usuarios Registrados ({usuariosFiltrados.length})</span>
+              </h3>
+              <p className="text-xs text-gray-500 font-medium">
+                Control de cuentas, consulta de credenciales, bloqueo/activación y generación de nuevas contraseñas
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={loadUsuarios}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                title="Actualizar listado de usuarios"
+              >
+                <RefreshCw size={13} className={isLoadingUsuarios ? "animate-spin text-brand-sage" : "text-gray-500"} />
+                <span>Actualizar</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50 border-b border-gray-200 text-gray-600 uppercase font-black tracking-wider text-[11px]">
+                  <th className="px-4 py-3.5">Fecha y Hora</th>
+                  <th className="px-4 py-3.5">Huésped / Usuario</th>
+                  <th className="px-4 py-3.5">Cédula / Pasaporte</th>
+                  <th className="px-4 py-3.5">Teléfono / WhatsApp</th>
+                  <th className="px-4 py-3.5">Correo Electrónico</th>
+                  <th className="px-4 py-3.5">Clave de Acceso</th>
+                  <th className="px-4 py-3.5 text-center">Estado</th>
+                  <th className="px-4 py-3.5 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {usuariosFiltrados.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-5 py-12 text-center text-gray-400">
+                      <Users size={36} className="mx-auto mb-2 text-gray-300" />
+                      <p className="font-semibold text-sm">No se encontraron usuarios registrados</p>
+                      <p className="text-xs text-gray-400 mt-1">Los nuevos huéspedes que se registren en el portal aparecerán aquí automáticamente.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  usuariosFiltrados.map((u) => {
+                    const isPasswordVisible = Boolean(visiblePasswords[u.id])
+                    const fechaObj = new Date(u.created_at)
+                    const fechaFormateada = isNaN(fechaObj.getTime())
+                      ? "25/09/2026, 21:45:10"
+                      : fechaObj.toLocaleString("es-EC", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit"
+                        })
+
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* Fecha y Hora de Creación */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-mono text-[11px] text-gray-700 font-semibold">
+                            <Clock size={13} className="text-gray-400 shrink-0" />
+                            <span>{fechaFormateada}</span>
+                          </div>
+                        </td>
+
+                        {/* Nombre y Apellido */}
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-brand-sage/20 text-brand-sage font-black flex items-center justify-center text-xs shrink-0">
+                              {u.nombre.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-xs">{u.nombre} {u.apellido}</p>
+                              {u.ciudadPais && (
+                                <p className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                                  <MapPin size={10} /> {u.ciudadPais}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Cédula / Pasaporte */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span className="font-mono font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded text-[11px] border border-gray-200">
+                            {u.cedula || "N/A"}
+                          </span>
+                        </td>
+
+                        {/* Teléfono / WhatsApp */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <a
+                            href={`https://wa.me/${u.telefono.replace(/[^0-9]/g, "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 font-mono text-emerald-700 hover:text-emerald-900 font-semibold hover:underline"
+                            title="Conversar por WhatsApp con el huésped"
+                          >
+                            <Phone size={12} className="text-emerald-600" />
+                            <span>{u.telefono}</span>
+                          </a>
+                        </td>
+
+                        {/* Correo Electrónico */}
+                        <td className="px-4 py-3.5">
+                          <span className="font-medium text-gray-700 text-xs font-mono">
+                            {u.email}
+                          </span>
+                        </td>
+
+                        {/* Clave / Contraseña con Botón Ver/Ocultar y Copiar */}
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5 bg-gray-100/90 px-2 py-1 rounded-lg border border-gray-200">
+                            <Key size={12} className="text-amber-600" />
+                            <span className="font-mono text-xs font-bold text-gray-800 select-all">
+                              {isPasswordVisible ? u.clave : "••••••••"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setVisiblePasswords(prev => ({ ...prev, [u.id]: !isPasswordVisible }))}
+                              className="text-gray-400 hover:text-gray-700 ml-1 p-0.5 cursor-pointer"
+                              title={isPasswordVisible ? "Ocultar clave" : "Ver clave"}
+                            >
+                              {isPasswordVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+                            </button>
+                            {isPasswordVisible && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(u.clave)
+                                  setCopiedUsuarioField(u.id)
+                                  setTimeout(() => setCopiedUsuarioField(null), 2000)
+                                }}
+                                className="text-gray-400 hover:text-gray-700 p-0.5 cursor-pointer"
+                                title="Copiar clave"
+                              >
+                                {copiedUsuarioField === u.id ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Estado */}
+                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                              u.estado === "activo"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-rose-50 text-rose-700 border border-rose-200"
+                            }`}
+                          >
+                            {u.estado === "activo" ? (
+                              <>
+                                <CheckCircle2 size={11} className="text-emerald-600" />
+                                <span>Activo</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock size={11} className="text-rose-600" />
+                                <span>Bloqueado</span>
+                              </>
+                            )}
+                          </span>
+                        </td>
+
+                        {/* Botones de Acción: Bloquear/Activar, Generar Nueva Clave, Eliminar */}
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Bloquear / Activar */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleEstadoUsuario(u)}
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                u.estado === "activo"
+                                  ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200"
+                                  : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+                              }`}
+                              title={u.estado === "activo" ? "Bloquear acceso a este huésped" : "Activar acceso a este huésped"}
+                            >
+                              {u.estado === "activo" ? <Lock size={14} /> : <Unlock size={14} />}
+                            </button>
+
+                            {/* Generar Nueva Clave */}
+                            <button
+                              type="button"
+                              onClick={() => handleGenerarNuevaClave(u)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                              title="Generar nueva clave de acceso y compartir"
+                            >
+                              <Key size={13} className="text-blue-600" />
+                              <span className="hidden sm:inline">Nueva Clave</span>
+                            </button>
+
+                            {/* Eliminar */}
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarUsuario(u)}
+                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                              title="Eliminar usuario"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
           </div>

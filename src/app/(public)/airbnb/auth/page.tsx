@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import { 
   Lock, 
   Mail, 
@@ -15,7 +16,6 @@ import {
   Sparkles,
   MapPin,
   Star,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   Phone
@@ -130,8 +130,20 @@ export default function AirbnbAuthPage() {
   const searchParams = useSearchParams()
   const redirectTarget = searchParams.get("redirect") || "/airbnb/mis-reservas"
 
+  // Pantalla de carga con logotipo 3D giratorio al ingresar
+  const [showRotatingSplash, setShowRotatingSplash] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowRotatingSplash(false)
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [])
+
   const [activeTab, setActiveTab] = useState<"login" | "registro">("login")
   const [showPassword, setShowPassword] = useState(false)
+  const [showRegPassword, setShowRegPassword] = useState(false)
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
@@ -334,6 +346,7 @@ export default function AirbnbAuthPage() {
     setIsLoading(true)
 
     try {
+      // 1. Registro en Supabase Auth
       const { data, error: signUpErr } = await supabase.auth.signUp({
         email: regForm.email.trim(),
         password: regForm.password,
@@ -353,6 +366,7 @@ export default function AirbnbAuthPage() {
 
       const guestId = data?.user?.id || `guest-${Date.now()}`
 
+      // 2. Establecer sesión activa local
       setGuestSession({
         id: guestId,
         nombre: regForm.nombre.trim(),
@@ -364,6 +378,25 @@ export default function AirbnbAuthPage() {
         ciudadPais: "Ecuador",
         fechaRegistro: new Date().toISOString()
       })
+
+      // 3. Persistir en Base de Datos para el Módulo Administrador de Huéspedes
+      try {
+        await fetch("/api/airbnb/usuarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nombre: regForm.nombre.trim(),
+            apellido: regForm.apellido.trim(),
+            cedula: regForm.cedula.trim(),
+            telefono: regForm.telefono.trim(),
+            email: regForm.email.trim(),
+            password: regForm.password,
+            ciudadPais: "Ecuador"
+          })
+        })
+      } catch (err) {
+        console.warn("Aviso registrando usuario en base de datos:", err)
+      }
 
       setSuccessMsg("¡Cuenta creada exitosamente! Redirigiendo...")
       setTimeout(() => {
@@ -397,6 +430,56 @@ export default function AirbnbAuthPage() {
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-gray-900 relative flex items-center justify-center p-3 sm:p-6 py-6 md:py-10">
+      
+      {/* ============================================================ */}
+      {/* SPLASH SCREEN CON LOGOTIPO GIRATORIO 3D AL ENTRAR           */}
+      {/* ============================================================ */}
+      <AnimatePresence>
+        {showRotatingSplash && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+            className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center"
+            style={{ perspective: 1200 }}
+          >
+            {/* Logotipo en rotación continua 360° */}
+            <motion.div
+              animate={{ rotateY: 360 }}
+              transition={{ 
+                duration: 1.5, 
+                ease: "easeInOut",
+                repeat: Infinity,
+                repeatType: "loop"
+              }}
+              className="relative w-44 h-44 sm:w-56 sm:h-56 mb-8 transform-style-3d"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              <img
+                src="/images/logo-3d-blanco.png"
+                alt="SARA Constructora Logo 3D Giratorio"
+                className="w-full h-full object-contain drop-shadow-2xl"
+                style={{ backfaceVisibility: "visible", transform: "translateZ(50px)" }}
+              />
+            </motion.div>
+
+            {/* Barra de progreso de carga */}
+            <div className="w-48 h-1 bg-gray-100 rounded-full relative overflow-hidden mb-5">
+              <motion.div 
+                initial={{ x: "-100%" }}
+                animate={{ x: "100%" }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                className="absolute top-0 bottom-0 left-0 w-1/2 bg-brand-sage"
+              />
+            </div>
+
+            <span className="text-xs uppercase tracking-[0.25em] font-extrabold text-brand-dark">
+              SARA HOSPITALITY · AIRBNB
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Fondo con imagen de marca difuminada para atmósfera elegante */}
       <div 
         className="absolute inset-0 bg-cover bg-center z-0 opacity-15"
@@ -694,7 +777,7 @@ export default function AirbnbAuthPage() {
           )}
 
           {/* ======================================================== */}
-          {/* FORMULARIO 2: CREAR CUENTA NUEVA */}
+          {/* FORMULARIO 2: CREAR CUENTA NUEVA (CON BOTONES VER CLAVE) */}
           {/* ======================================================== */}
           {activeTab === "registro" && (
             <form onSubmit={handleRegister} className="space-y-3">
@@ -780,33 +863,54 @@ export default function AirbnbAuthPage() {
                 </div>
               </div>
 
+              {/* Casillas de Contraseña con Botón de Ver/Ocultar (Eye/EyeOff) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Contraseña <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Mínimo 6 carácteres"
-                    value={regForm.password}
-                    onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showRegPassword ? "text" : "password"}
+                      required
+                      placeholder="Mínimo 6 carácteres"
+                      value={regForm.password}
+                      onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                      className="w-full pl-3 pr-9 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
+                      title={showRegPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                    >
+                      {showRegPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Confirmar Contraseña <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Repite tu contraseña"
-                    value={regForm.confirmPassword}
-                    onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showRegConfirmPassword ? "text" : "password"}
+                      required
+                      placeholder="Repite tu contraseña"
+                      value={regForm.confirmPassword}
+                      onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
+                      className="w-full pl-3 pr-9 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-medium focus:ring-2 focus:ring-brand-sage focus:bg-white outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer p-0.5"
+                      title={showRegConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                    >
+                      {showRegConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
