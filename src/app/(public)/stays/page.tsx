@@ -3332,6 +3332,7 @@ export default function AirbnbPage() {
         onSuccess={handleAlojamientoCreado}
         activeGuest={activeGuest}
         existingCount={alojamientos.length}
+        initialPolicies={politicas}
       />
     </div>
   )
