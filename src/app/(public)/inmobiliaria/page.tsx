@@ -32,7 +32,8 @@ import {
   Sparkles,
   Award,
   Briefcase,
-  PlusCircle
+  PlusCircle,
+  Star
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -242,6 +243,22 @@ export default function InmobiliariaPage() {
 
   // Logotipo dinámico de SARA Inmobiliaria
   const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/sara-inmobiliaria.png")
+
+  // Showcase Cinemático de Propiedades Destacadas (Rotación cada 2.8s)
+  const propiedadesDestacadas = useMemo(() => {
+    const destacadas = INMUEBLES_DATA.filter(i => i.destacada)
+    return destacadas.length > 0 ? destacadas : INMUEBLES_DATA.slice(0, 5)
+  }, [])
+  const [heroSlideIdx, setHeroSlideIdx] = useState(0)
+  const [heroPaused, setHeroPaused] = useState(false)
+
+  useEffect(() => {
+    if (propiedadesDestacadas.length <= 1 || heroPaused) return
+    const interval = setInterval(() => {
+      setHeroSlideIdx(prev => (prev + 1) % propiedadesDestacadas.length)
+    }, 2800) // 2.8 segundos de rotación continua
+    return () => clearInterval(interval)
+  }, [propiedadesDestacadas.length, heroPaused])
 
   useEffect(() => {
     getLogosEmpresa().then(logos => {
@@ -470,18 +487,142 @@ export default function InmobiliariaPage() {
               </div>
             </div>
 
-            {/* Columna Secundaria: Logotipo Oficial 3D y Tarjeta de Consignaciones (Presentación como en SARA Constructora) */}
+            {/* Columna Secundaria: Showcase Cinemático de Propiedades Destacadas & Tarjeta de Consignaciones */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
               {/* Halo de iluminación ambiental 3D cálido */}
               <div className="absolute top-1/4 w-80 h-80 bg-gradient-to-tr from-amber-500/35 via-orange-500/25 to-yellow-300/30 rounded-full blur-3xl pointer-events-none transform -translate-y-8" />
 
-              {/* Logotipo Oficial 3D en Presentación de Alto Impacto */}
-              <div className="relative z-10 w-full max-w-[440px] flex items-center justify-center py-2 group cursor-pointer">
-                <img
-                  src={logoInmobiliaria}
-                  alt="SARA Inmobiliaria 3D"
-                  className="w-full max-h-[300px] sm:max-h-[350px] lg:max-h-[390px] object-contain drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] filter brightness-105 group-hover:scale-105 group-hover:-translate-y-2 transition-all duration-700 ease-out"
-                />
+              {/* Showcase Cinemático de Propiedades Destacadas (Rotación cada 2.8s) */}
+              <div 
+                className="relative z-10 w-full max-w-[460px] group select-none mb-3"
+                onMouseEnter={() => setHeroPaused(true)}
+                onMouseLeave={() => setHeroPaused(false)}
+              >
+                <div 
+                  onClick={() => {
+                    const currentProp = propiedadesDestacadas[heroSlideIdx]
+                    if (currentProp) {
+                      setSelectedInmueble(currentProp)
+                      setActivePhotoIdx(0)
+                    }
+                  }}
+                  className="relative aspect-[16/11] sm:aspect-[16/10] w-full rounded-3xl overflow-hidden shadow-2xl border border-white/20 bg-slate-900 cursor-pointer transition-all duration-500 group-hover:shadow-[0_25px_60px_-15px_rgba(245,158,11,0.35)] group-hover:border-amber-400/60 group-hover:-translate-y-1"
+                >
+                  {/* Carrusel con Crossfade Cinemático */}
+                  {propiedadesDestacadas.map((prop, idx) => (
+                    <div
+                      key={prop.id}
+                      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                        idx === heroSlideIdx ? "opacity-100 scale-100 z-10" : "opacity-0 scale-105 pointer-events-none z-0"
+                      }`}
+                    >
+                      <img
+                        src={prop.imagenes[0] || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"}
+                        alt={prop.titulo}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      />
+                      {/* Gradiente Cinematográfico de Contraste */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-slate-950/60" />
+                    </div>
+                  ))}
+
+                  {/* Sello de Prestigio SARA Inmobiliaria (Top Left) */}
+                  <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-white/20 shadow-lg text-white">
+                      <div className="w-5 h-5 rounded-md overflow-hidden bg-slate-900 flex items-center justify-center shrink-0 border border-amber-400/40">
+                        <img src={logoInmobiliaria} alt="SARA" className="w-full h-full object-contain" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                        Destacadas SARA
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Badge Modalidad & Tipo (Top Right) */}
+                  <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-md">
+                      {propiedadesDestacadas[heroSlideIdx]?.modalidad === "venta" ? "En Venta" : "En Arriendo"}
+                    </span>
+                  </div>
+
+                  {/* Flechas manuales que aparecen al hacer hover */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setHeroSlideIdx(prev => (prev - 1 + propiedadesDestacadas.length) % propiedadesDestacadas.length)
+                    }}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white flex items-center justify-center backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg cursor-pointer border border-white/20 active:scale-90"
+                    title="Anterior"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setHeroSlideIdx(prev => (prev + 1) % propiedadesDestacadas.length)
+                    }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white flex items-center justify-center backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-20 shadow-lg cursor-pointer border border-white/20 active:scale-90"
+                    title="Siguiente"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+
+                  {/* Información Dinámica del Inmueble (Bottom) */}
+                  <div className="absolute bottom-0 inset-x-0 p-4 z-20">
+                    <div className="bg-slate-950/85 backdrop-blur-md p-3 rounded-2xl border border-white/15 text-white shadow-xl space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider truncate flex items-center gap-1">
+                          <MapPin size={11} className="shrink-0" />
+                          {propiedadesDestacadas[heroSlideIdx]?.sector}, {propiedadesDestacadas[heroSlideIdx]?.ciudad}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider bg-white/10 px-2 py-0.5 rounded-full shrink-0">
+                          {propiedadesDestacadas[heroSlideIdx]?.tipo}
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-black text-white leading-snug line-clamp-1 group-hover:text-amber-300 transition-colors">
+                        {propiedadesDestacadas[heroSlideIdx]?.titulo}
+                      </h4>
+
+                      <div className="flex items-center justify-between pt-1 border-t border-white/10">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xs text-amber-400 font-bold">$</span>
+                          <span className="text-base font-black text-white font-mono tracking-tight">
+                            {propiedadesDestacadas[heroSlideIdx]?.precio.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-slate-300 font-medium">USD</span>
+                        </div>
+
+                        <span className="text-[11px] font-bold text-amber-400 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                          <span>Ver Ficha</span>
+                          <ArrowRight size={12} />
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Indicadores de Barra de Progreso */}
+                    <div className="flex items-center justify-center gap-1.5 pt-2">
+                      {propiedadesDestacadas.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setHeroSlideIdx(idx)
+                          }}
+                          className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                            idx === heroSlideIdx
+                              ? "w-6 bg-gradient-to-r from-amber-400 to-orange-400 shadow-sm"
+                              : "w-1.5 bg-white/40 hover:bg-white/70"
+                          }`}
+                          title={`Ver propiedad ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Tarjeta Corporativa de Consignaciones para Propietarios / Inversionistas */}
