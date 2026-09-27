@@ -1805,27 +1805,30 @@ export default function AirbnbPage() {
                         onMouseEnter={() => {
                           if (vistaModo === "split") setSelectedMapId(stay.id)
                         }}
-                        className={`bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border flex flex-col group cursor-pointer ${
+                        className={`bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border flex flex-col group cursor-pointer hover:-translate-y-1 relative ${
                           isHoveredOrActive && vistaModo === "split"
-                            ? "border-amber-500 ring-2 ring-amber-400/40" 
-                            : "border-slate-200/90 hover:border-amber-400/60"
+                            ? "border-amber-500 ring-4 ring-amber-400/25 shadow-xl -translate-y-1" 
+                            : "border-slate-200/80 hover:border-amber-400/70"
                         }`}
                       >
-                        {/* Portada con Carousel Inteligente */}
-                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-900 select-none">
+                        {/* Portada con Carousel Inteligente y Aspect Ratio Expansivo */}
+                        <div className="relative aspect-[16/11] w-full overflow-hidden bg-slate-950 select-none">
                           <img
                             src={currentImg}
                             alt={stay.titulo}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                           />
 
-                          {/* Flechas de Navegación de Fotos (Aparecen al pasar el cursor) */}
+                          {/* Gradiente Cinematográfico Sutil */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-slate-950/30 pointer-events-none" />
+
+                          {/* Flechas de Navegación de Fotos */}
                           {totalImgs > 1 && (
                             <>
                               <button
                                 type="button"
                                 onClick={(e) => handlePrevPhoto(e, stay.id, totalImgs)}
-                                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-slate-900 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer active:scale-90"
+                                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-900 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90 hover:scale-105"
                                 title="Foto anterior"
                               >
                                 <ChevronLeft size={16} className="stroke-[2.5]" />
@@ -1833,7 +1836,7 @@ export default function AirbnbPage() {
                               <button
                                 type="button"
                                 onClick={(e) => handleNextPhoto(e, stay.id, totalImgs)}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 hover:bg-white text-slate-900 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20 cursor-pointer active:scale-90"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/95 hover:bg-white text-slate-900 flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer active:scale-90 hover:scale-105"
                                 title="Foto siguiente"
                               >
                                 <ChevronRight size={16} className="stroke-[2.5]" />
@@ -1842,14 +1845,14 @@ export default function AirbnbPage() {
                           )}
 
                           {/* Badges Superiores: Ubicación + Superhost */}
-                          <div className="absolute top-2.5 left-2.5 flex flex-wrap items-center gap-1.5 z-10 pointer-events-none">
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-950/80 text-white shadow-md backdrop-blur-md border border-white/10 flex items-center gap-1">
+                          <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5 z-10 pointer-events-none">
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-950/75 text-white shadow-md backdrop-blur-md border border-white/15 flex items-center gap-1">
                               <span>{stay.bandera}</span>
                               <span>{stay.ciudad}</span>
                             </span>
                             {stay.isSuperhost && (
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-white/95 text-slate-950 shadow-md backdrop-blur-sm border border-slate-200 flex items-center gap-1">
-                                <Star size={10} className="fill-amber-400 text-amber-500" /> SUPERHOST
+                              <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-md backdrop-blur-sm border border-amber-300/50 flex items-center gap-1">
+                                <Star size={10} className="fill-slate-950 text-slate-950" /> SUPERHOST
                               </span>
                             )}
                           </div>
@@ -1858,10 +1861,10 @@ export default function AirbnbPage() {
                           <button
                             type="button"
                             onClick={(e) => toggleFavorito(e, stay.id)}
-                            className={`absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-md z-20 cursor-pointer active:scale-90 ${
+                            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-all shadow-md z-20 cursor-pointer active:scale-90 hover:scale-110 ${
                               isFav
-                                ? "bg-rose-500 text-white shadow-rose-500/30"
-                                : "bg-slate-950/60 hover:bg-slate-950/85 text-white"
+                                ? "bg-rose-500 text-white shadow-rose-500/40 ring-2 ring-white/70"
+                                : "bg-slate-950/45 hover:bg-slate-950/80 text-white border border-white/20"
                             }`}
                             title="Guardar en favoritos"
                           >
@@ -1870,73 +1873,91 @@ export default function AirbnbPage() {
 
                           {/* Indicadores de Puntos de Fotos (Bottom Right) */}
                           {totalImgs > 1 && (
-                            <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 z-10 bg-slate-950/60 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">
+                            <div className="absolute bottom-3 right-3 flex items-center gap-1 z-10 bg-slate-950/65 backdrop-blur-md px-2 py-1 rounded-full border border-white/15 shadow-sm">
                               {stay.imagenes.slice(0, 5).map((_, idx) => (
                                 <span
                                   key={idx}
                                   className={`h-1.5 rounded-full transition-all ${
-                                    curImgIdx === idx ? "w-3 bg-white" : "w-1.5 bg-white/50"
+                                    curImgIdx === idx ? "w-3 bg-amber-400" : "w-1.5 bg-white/60"
                                   }`}
                                 />
                               ))}
                             </div>
                           )}
 
-                          {/* Precio por noche (Bottom Left) */}
-                          <div className="absolute bottom-2.5 left-2.5 bg-slate-950/85 backdrop-blur-md px-2.5 py-1 rounded-xl text-white border border-white/10 shadow-lg z-10">
-                            <span className="text-base font-black text-white">${stay.precioNoche}</span>
-                            <span className="text-[11px] text-slate-300 font-medium"> USD/noche</span>
+                          {/* Precio por noche con Glassmorphism Boutique (Bottom Left) */}
+                          <div className="absolute bottom-3 left-3 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-2xl text-white border border-white/15 shadow-xl z-10 flex items-baseline gap-1">
+                            <span className="text-xs text-amber-400 font-extrabold">$</span>
+                            <span className="text-base font-black text-white font-mono tracking-tight">{stay.precioNoche}</span>
+                            <span className="text-[10px] text-slate-300 font-medium">USD/noche</span>
                           </div>
                         </div>
 
                         {/* Información de la Tarjeta */}
-                        <div className="p-4 flex-1 flex flex-col justify-between">
-                          <div>
-                            {/* Categoría y Sector + Calificación */}
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="text-[11px] font-bold text-amber-600 uppercase tracking-wider truncate max-w-[65%]">
-                                {stay.sector} · {stay.tipo}
-                              </span>
-                              <span className="inline-flex items-center gap-1 text-xs font-black text-slate-900 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+                          <div className="space-y-2">
+                            {/* Sector, Tipo y Calificación */}
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-1 text-[11px] font-extrabold text-amber-600 uppercase tracking-wider truncate max-w-[65%]">
+                                <MapPin size={12} className="text-amber-500 shrink-0" />
+                                <span className="truncate">{stay.sector} • {stay.tipo}</span>
+                              </div>
+                              <div className="inline-flex items-center gap-1 text-xs font-black text-slate-900 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/25 shrink-0">
                                 <Star size={11} className="fill-amber-400 text-amber-500" />
                                 <span>{stats.rating.toFixed(2)}</span>
-                              </span>
+                                <span className="text-[10px] text-slate-400 font-normal">({stats.reviewsCount})</span>
+                              </div>
                             </div>
 
                             {/* Título de la Residencia */}
-                            <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-amber-600 transition-colors line-clamp-1 mb-1.5">
+                            <h3 className="font-black text-slate-900 text-sm sm:text-base leading-snug group-hover:text-amber-600 transition-colors line-clamp-1">
                               {stay.titulo}
                             </h3>
 
                             {/* Capacidad y Distribución */}
-                            <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mb-2">
-                              <span>{stay.camas} cama{stay.camas > 1 ? "s" : ""}</span>
-                              <span>•</span>
-                              <span>{stay.banos} baño{stay.banos > 1 ? "s" : ""}</span>
-                              <span>•</span>
-                              <span>{stay.maxHuespedes} huéspedes</span>
+                            <div className="flex items-center gap-2.5 text-xs text-slate-600 font-medium">
+                              <span className="inline-flex items-center gap-1 text-[11px]">
+                                <Bed size={13} className="text-slate-400" /> {stay.camas} cama{stay.camas > 1 ? "s" : ""}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="inline-flex items-center gap-1 text-[11px]">
+                                <Bath size={13} className="text-slate-400" /> {stay.banos} baño{stay.banos > 1 ? "s" : ""}
+                              </span>
+                              <span className="text-slate-300">•</span>
+                              <span className="inline-flex items-center gap-1 text-[11px]">
+                                <Users size={13} className="text-slate-400" /> {stay.maxHuespedes} huésp.
+                              </span>
                             </div>
 
                             {/* Badge de Seguridad y Autonomía */}
-                            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/60 mb-2.5">
+                            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200/70 w-fit">
                               <Key size={12} className="text-emerald-600 shrink-0" />
-                              <span className="truncate">Llegada autónoma 24/7 (Smart Lock)</span>
+                              <span>Llegada autónoma 24/7 (Smart Lock)</span>
                             </div>
 
                             {/* Desglose de Estadía */}
-                            <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-2.5 my-1 flex items-center justify-between text-xs">
+                            <div className="bg-gradient-to-r from-slate-50 to-amber-50/40 border border-slate-200/80 rounded-2xl p-2.5 sm:p-3 flex items-center justify-between text-xs">
                               <div>
-                                <span className="text-[10px] text-slate-500 block">Total por {totalNoches} noche(s):</span>
-                                <span className="font-black text-slate-900 text-sm">${granTotal} USD</span>
+                                <span className="text-[10px] text-slate-500 font-medium block">
+                                  Total por {totalNoches} noche{totalNoches > 1 ? "s" : ""}:
+                                </span>
+                                <div className="flex items-baseline gap-1 mt-0.5">
+                                  <span className="font-black text-slate-950 text-sm sm:text-base font-mono tracking-tight">${granTotal}</span>
+                                  <span className="text-[10px] text-slate-500 font-bold uppercase">USD</span>
+                                  <span className="text-[9px] text-emerald-700 font-bold bg-emerald-100/80 px-1.5 py-0.2 rounded ml-1">IVA inc.</span>
+                                </div>
                               </div>
-                              <span className="text-[10px] text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200 font-medium">
-                                +${stay.tarifaLimpieza} limp.
-                              </span>
+                              <div className="text-right">
+                                <span className="text-[10px] text-slate-400 block font-medium">Limpieza</span>
+                                <span className="text-[11px] font-bold text-slate-700 bg-white px-2 py-0.5 rounded-lg border border-slate-200/80 shadow-2xs inline-block mt-0.5 font-mono">
+                                  +${stay.tarifaLimpieza} USD
+                                </span>
+                              </div>
                             </div>
                           </div>
 
                           {/* Acciones de la Tarjeta */}
-                          <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mt-2">
+                          <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1944,7 +1965,7 @@ export default function AirbnbPage() {
                                 setSelectedStay(stay)
                                 setActivePhotoIdx(0)
                               }}
-                              className="flex-1 py-2 px-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all text-center cursor-pointer active:scale-98"
+                              className="flex-1 py-2.5 px-3 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all text-center cursor-pointer active:scale-95 border border-slate-200/60"
                             >
                               Detalles
                             </button>
@@ -1955,9 +1976,10 @@ export default function AirbnbPage() {
                                 e.stopPropagation()
                                 handleStartBooking(stay)
                               }}
-                              className="flex-1 py-2 px-3 text-xs font-bold text-slate-950 bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 rounded-xl transition-all shadow-md shadow-amber-500/15 flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+                              className="flex-1 py-2.5 px-3 text-xs font-black text-slate-950 bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 rounded-xl transition-all shadow-md shadow-amber-500/20 hover:shadow-amber-500/35 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 border border-amber-300/40"
                             >
-                              <Calendar size={13} /> Reservar
+                              <Calendar size={13} className="text-slate-950" />
+                              <span>Reservar</span>
                             </button>
                           </div>
                         </div>
