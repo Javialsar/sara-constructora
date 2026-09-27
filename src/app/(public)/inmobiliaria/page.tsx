@@ -339,13 +339,13 @@ export default function InmobiliariaPage() {
           {/* Logo y Marca SARA Inmobiliaria */}
           <div className="flex items-center gap-6">
             <Link href="/inmobiliaria" className="flex items-center gap-3 group">
-              <div className="relative w-10 h-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-emerald-400/40 shrink-0">
+              <div className="relative w-10 h-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
                 <img src={logoInmobiliaria} alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 rounded-md shadow-xs font-black">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 rounded-md shadow-xs font-black">
                     INMOBILIARIA
                   </span>
                 </div>
@@ -380,7 +380,7 @@ export default function InmobiliariaPage() {
             <button
               type="button"
               onClick={() => setIsConsignarOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 text-xs font-black shadow-lg shadow-emerald-950/20 transition-all cursor-pointer border border-emerald-300/40 active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
               title="Consigna tu inmueble para venta o arrendamiento"
             >
               <Building2 size={15} />
@@ -396,7 +396,7 @@ export default function InmobiliariaPage() {
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
               title="Asesoría Inmobiliaria Directa"
             >
-              <Phone size={13} className="text-emerald-400" />
+              <Phone size={13} className="text-amber-400" />
               <span className="hidden md:inline">+593 98 180 4023</span>
               <span className="md:hidden">WhatsApp</span>
             </a>
@@ -408,36 +408,37 @@ export default function InmobiliariaPage() {
       {/* 1. HERO SECTION: DIVISIÓN CORPORATIVA & RESIDENCIAL          */}
       {/* ============================================================ */}
       <section className="relative pt-12 pb-24 lg:pb-28 overflow-hidden bg-slate-950">
-        {/* Fondo Arquitectónico Corporativo de Alta Resolución */}
+        {/* Fondo Arquitectónico Residencial Cálido y Exclusivo */}
         <div 
-          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105 filter brightness-[0.92] contrast-[1.05]"
+          className="absolute inset-0 z-0 bg-cover bg-center transition-all duration-1000 scale-105 filter brightness-[0.88] contrast-[1.05]"
           style={{ 
-            backgroundImage: `url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=2560&q=85')` 
+            backgroundImage: `url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=2560&q=85')` 
           }}
         />
 
-        {/* Gradientes y Filtros de Iluminación Ejecutiva Equilibrados */}
+        {/* Gradientes y Filtros de Iluminación de Lujo Equilibrados */}
         <div className="absolute inset-0 z-10 bg-slate-950/30" />
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/80 via-slate-950/45 to-slate-950/20" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950/80 via-slate-950/50 to-slate-950/25" />
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950/90 via-transparent to-slate-950/40" />
-        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(16,185,129,0.15)_0%,_transparent_60%)] pointer-events-none" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_left,_rgba(245,158,11,0.18)_0%,_transparent_60%)] pointer-events-none" />
+        <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_top_right,_rgba(217,119,6,0.14)_0%,_transparent_55%)] pointer-events-none" />
 
         <div className="w-full max-w-[1760px] relative z-20 mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
             {/* Columna Principal: Mensaje de Autoridad y Respaldo Técnico */}
-            <div className="lg:col-span-8 space-y-6">
-              {/* Eyebrow Corporativo */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-emerald-300 text-xs font-bold shadow-lg">
-                <Sparkles size={14} className="text-emerald-400 animate-pulse" />
+            <div className="lg:col-span-7 space-y-6">
+              {/* Eyebrow Corporativo Cálido */}
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold shadow-lg">
+                <Sparkles size={14} className="text-amber-400 animate-pulse" />
                 <span className="tracking-widest uppercase text-[11px]">SARA INMOBILIARIA · DIVISIÓN CORPORATIVA & RESIDENCIAL</span>
               </div>
 
-              {/* Titular Ejecutivo y de Alto Impacto */}
+              {/* Titular Ejecutivo y de Alto Impacto con Degradado Dorado Cálido */}
               <div className="space-y-2">
                 <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white leading-[1.08] tracking-tight drop-shadow-2xl">
                   Patrimonio sólido.<br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-amber-200">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400">
                     Inversión con Respaldo Constructivo.
                   </span>
                 </h1>
@@ -451,10 +452,10 @@ export default function InmobiliariaPage() {
               {/* Indicadores de Confianza Empresarial */}
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-white border border-slate-700/70 backdrop-blur-md shadow-sm">
-                  <Building2 size={13} className="text-emerald-400" />
+                  <Building2 size={13} className="text-amber-400" />
                   <span>Respaldo Directo SARA Constructora</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-emerald-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-amber-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
                   <ShieldCheck size={13} className="text-emerald-400" />
                   <span>Seguridad Jurídica & Títulos Claros</span>
                 </span>
@@ -463,43 +464,58 @@ export default function InmobiliariaPage() {
                   <span>Crédito VIP (4.99%) & Biess Aprobado</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 text-teal-300 border border-slate-700/70 backdrop-blur-md shadow-sm">
-                  <Award size={13} className="text-teal-400" />
+                  <Award size={13} className="text-amber-400" />
                   <span>Plusvalía Técnica Proyectada</span>
                 </span>
               </div>
             </div>
 
-            {/* Columna Secundaria: Tarjeta Corporativa de Consignaciones para Propietarios / Inversionistas */}
-            <div className="hidden lg:block lg:col-span-4">
-              <div className="relative rounded-3xl p-6 bg-gradient-to-b from-white/12 via-white/6 to-white/2 backdrop-blur-2xl border border-white/20 shadow-2xl text-white overflow-hidden group">
-                <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/30 transition-colors" />
-                
-                <div className="flex items-center gap-3 mb-3.5">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shadow-inner">
-                    <Briefcase size={20} />
+            {/* Columna Secundaria: Logotipo Oficial 3D y Tarjeta de Consignaciones (Presentación como en SARA Constructora) */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
+              {/* Halo de iluminación ambiental 3D cálido */}
+              <div className="absolute top-1/4 w-80 h-80 bg-gradient-to-tr from-amber-500/35 via-orange-500/25 to-yellow-300/30 rounded-full blur-3xl pointer-events-none transform -translate-y-8" />
+
+              {/* Logotipo Oficial 3D en Presentación de Alto Impacto */}
+              <div className="relative z-10 w-full max-w-[440px] flex items-center justify-center py-2 group cursor-pointer">
+                <img
+                  src={logoInmobiliaria}
+                  alt="SARA Inmobiliaria 3D"
+                  className="w-full max-h-[300px] sm:max-h-[350px] lg:max-h-[390px] object-contain drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] filter brightness-105 group-hover:scale-105 group-hover:-translate-y-2 transition-all duration-700 ease-out"
+                />
+              </div>
+
+              {/* Tarjeta Corporativa de Consignaciones para Propietarios / Inversionistas */}
+              <div className="w-full max-w-[430px] relative z-20 mt-2">
+                <div className="relative rounded-2xl p-5 bg-gradient-to-b from-white/14 via-white/8 to-white/4 backdrop-blur-2xl border border-white/20 shadow-2xl text-white overflow-hidden group">
+                  <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/35 transition-colors" />
+                  
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner shrink-0">
+                      <Briefcase size={18} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                        División de Consignaciones
+                      </span>
+                      <h3 className="text-sm sm:text-base font-extrabold text-white">
+                        ¿Deseas vender o rentar?
+                      </h3>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 block">
-                      División de Consignaciones
-                    </span>
-                    <h3 className="text-base font-extrabold text-white">
-                      ¿Deseas vender o rentar?
-                    </h3>
-                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                    Tasación técnica pericial, posicionamiento digital multicanal y compradores calificados con respaldo fiduciario y legal directo de SARA.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsConsignarOpen(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer border border-amber-200/40 active:scale-[0.98]"
+                  >
+                    <Building2 size={15} />
+                    <span>Consignar mi Inmueble</span>
+                  </button>
                 </div>
-
-                <p className="text-xs text-slate-300 leading-relaxed mb-4">
-                  Tasación técnica pericial, posicionamiento digital multicanal y compradores calificados con respaldo fiduciario y legal directo de SARA.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => setIsConsignarOpen(true)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer border border-emerald-200/40 active:scale-[0.98]"
-                >
-                  <Building2 size={15} />
-                  <span>Consignar mi Inmueble</span>
-                </button>
               </div>
             </div>
 
@@ -521,7 +537,7 @@ export default function InmobiliariaPage() {
                 onClick={() => setModalidadTab("venta")}
                 className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
                   modalidadTab === "venta"
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -532,7 +548,7 @@ export default function InmobiliariaPage() {
                 onClick={() => setModalidadTab("arriendo")}
                 className={`px-4 py-2 rounded-lg text-xs md:text-sm font-black transition-all cursor-pointer ${
                   modalidadTab === "arriendo"
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -543,7 +559,7 @@ export default function InmobiliariaPage() {
                 onClick={() => setModalidadTab("terrenos")}
                 className={`px-3.5 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
                   modalidadTab === "terrenos"
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md"
                     : "text-slate-600 hover:text-slate-900"
                 }`}
               >
@@ -554,7 +570,7 @@ export default function InmobiliariaPage() {
                 onClick={() => setModalidadTab("todos")}
                 className={`px-3 py-2 rounded-lg text-xs md:text-sm font-bold transition-all cursor-pointer ${
                   modalidadTab === "todos"
-                    ? "bg-emerald-600 text-white shadow-sm"
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md"
                     : "text-slate-500 hover:text-slate-900"
                 }`}
               >
@@ -563,7 +579,7 @@ export default function InmobiliariaPage() {
             </div>
 
             <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <ShieldCheck size={15} className="text-emerald-500" />
+              <ShieldCheck size={15} className="text-amber-500" />
               <span>Propiedades con verificación técnica y jurídica</span>
             </div>
           </div>
@@ -660,7 +676,7 @@ export default function InmobiliariaPage() {
             <div className="sm:col-span-2 lg:col-span-2">
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 active:scale-[0.98] text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all cursor-pointer h-[44px]"
+                className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-[0.98] text-slate-950 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer h-[44px]"
               >
                 <Search size={16} className="stroke-[2.5]" />
                 <span>Buscar Inmueble</span>

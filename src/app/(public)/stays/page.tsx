@@ -1353,7 +1353,7 @@ export default function AirbnbPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
             {/* Columna Principal: Mensaje de Marca y Filosofía */}
-            <div className="lg:col-span-8 space-y-6">
+            <div className="lg:col-span-7 space-y-6">
               {/* Eyebrow de Prestigio */}
               <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs font-bold shadow-lg">
                 <Sparkles size={14} className="text-amber-400 animate-pulse" />
@@ -1396,37 +1396,52 @@ export default function AirbnbPage() {
               </div>
             </div>
 
-            {/* Columna Secundaria: Tarjeta Exclusiva para Propietarios / Anfitriones */}
-            <div className="hidden lg:block lg:col-span-4">
-              <div className="relative rounded-3xl p-6 bg-gradient-to-b from-white/12 via-white/6 to-white/2 backdrop-blur-2xl border border-white/20 shadow-2xl text-white overflow-hidden group">
-                <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/30 transition-colors" />
-                
-                <div className="flex items-center gap-3 mb-3.5">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner">
-                    <Building size={20} />
+            {/* Columna Secundaria: Logotipo Oficial 3D y Tarjeta de Anfitriones (Presentación como en SARA Constructora) */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
+              {/* Halo de iluminación ambiental 3D cálido */}
+              <div className="absolute top-1/4 w-80 h-80 bg-gradient-to-tr from-amber-500/35 via-orange-500/25 to-yellow-300/30 rounded-full blur-3xl pointer-events-none transform -translate-y-8" />
+
+              {/* Logotipo Oficial 3D en Presentación de Alto Impacto */}
+              <div className="relative z-10 w-full max-w-[440px] flex items-center justify-center py-2 group cursor-pointer">
+                <img
+                  src={logoStays}
+                  alt="SARA Stays 3D"
+                  className="w-full max-h-[300px] sm:max-h-[350px] lg:max-h-[390px] object-contain drop-shadow-[0_20px_45px_rgba(0,0,0,0.85)] filter brightness-105 group-hover:scale-105 group-hover:-translate-y-2 transition-all duration-700 ease-out"
+                />
+              </div>
+
+              {/* Tarjeta Exclusiva para Propietarios / Anfitriones */}
+              <div className="w-full max-w-[430px] relative z-20 mt-2">
+                <div className="relative rounded-2xl p-5 bg-gradient-to-b from-white/14 via-white/8 to-white/4 backdrop-blur-2xl border border-white/20 shadow-2xl text-white overflow-hidden group">
+                  <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/35 transition-colors" />
+                  
+                  <div className="flex items-center gap-3 mb-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-300 shadow-inner shrink-0">
+                      <Building size={18} />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
+                        Red de Anfitriones
+                      </span>
+                      <h3 className="text-sm sm:text-base font-extrabold text-white">
+                        ¿Tienes una propiedad?
+                      </h3>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">
-                      Red de Anfitriones
-                    </span>
-                    <h3 className="text-base font-extrabold text-white">
-                      ¿Tienes una propiedad?
-                    </h3>
-                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                    Convierte tu suite, casa o villa en una fuente de ingresos con el respaldo de SARA. Gestión integral de reservas, cerraduras inteligentes y huéspedes calificados.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateModal}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer border border-amber-200/40 active:scale-[0.98]"
+                  >
+                    <PlusCircle size={15} />
+                    <span>Publicar mi Alojamiento</span>
+                  </button>
                 </div>
-
-                <p className="text-xs text-slate-300 leading-relaxed mb-4">
-                  Convierte tu suite, casa o villa en una fuente de ingresos con el respaldo de SARA. Gestión integral de reservas, cerraduras inteligentes y huéspedes calificados.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={handleOpenCreateModal}
-                  className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-200/40 active:scale-[0.98]"
-                >
-                  <PlusCircle size={15} />
-                  <span>Publicar mi Alojamiento</span>
-                </button>
               </div>
             </div>
 
