@@ -32,9 +32,23 @@ import {
   Check,
   ChevronDown,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Settings,
+  Percent,
+  Sliders,
+  Save,
+  Info,
+  Award,
+  HelpCircle,
+  Briefcase
 } from "lucide-react"
 import { exportarAExcel, exportarAPDF } from "@/lib/services/exportReports"
+import { 
+  getInmobiliariaConfig, 
+  saveInmobiliariaConfig, 
+  InmobiliariaConfigCompleta, 
+  DEFAULT_INMOBILIARIA_CONFIG 
+} from "@/lib/services/inmobiliariaPlanesService"
 
 export interface InmuebleAdmin {
   id: string
@@ -245,6 +259,122 @@ export default function AdminInmobiliariaPage() {
   const [filtroTipo, setFiltroTipo] = useState<string>("todos")
   const [filtroModalidad, setFiltroModalidad] = useState<string>("todos")
   const [filtroPago, setFiltroPago] = useState<string>("todos")
+
+  // Viñetas / Pestañas de Gestión: "inmuebles" | "planes"
+  const [activeTab, setActiveTab] = useState<"inmuebles" | "planes">("inmuebles")
+
+  // Configuración de Planes de Promoción & Comisiones SARA Inmobiliaria
+  const [planesConfig, setPlanesConfig] = useState<InmobiliariaConfigCompleta>(DEFAULT_INMOBILIARIA_CONFIG)
+  const [isSavingPlanes, setIsSavingPlanes] = useState(false)
+  const [planesSaveSuccess, setPlanesSaveSuccess] = useState(false)
+  const [simuladorPrecioVenta, setSimuladorPrecioVenta] = useState<number>(180000)
+
+  // Cargar configuración de planes desde API / Supabase
+  React.useEffect(() => {
+    getInmobiliariaConfig().then(setPlanesConfig)
+    const handleSync = (e: any) => {
+      if (e.detail) setPlanesConfig(e.detail)
+    }
+    window.addEventListener("sara_inmobiliaria_config_updated", handleSync)
+    return () => window.removeEventListener("sara_inmobiliaria_config_updated", handleSync)
+  }, [])
+
+  // Guardar configuración de planes en base de datos
+  const handleGuardarPlanes = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    setIsSavingPlanes(true)
+    try {
+      const res = await saveInmobiliariaConfig(planesConfig)
+      if (res.success) {
+        setPlanesSaveSuccess(true)
+        setTimeout(() => setPlanesSaveSuccess(false), 3500)
+      } else {
+        alert("Aviso al guardar: " + (res.error || "No se pudo sincronizar en base de datos"))
+      }
+    } catch (err: any) {
+      alert("Error al guardar: " + err.message)
+    } finally {
+      setIsSavingPlanes(false)
+    }
+  }
+
+  // Modificar campo de plan
+  const updatePlanField = (planKey: "basico" | "destacado" | "premium", field: string, value: any) => {
+    setPlanesConfig(prev => ({
+      ...prev,
+      planes: {
+        ...prev.planes,
+        [planKey]: {
+          ...prev.planes[planKey],
+          [field]: value
+        }
+      }
+    }))
+  }
+
+  // Modificar beneficio específico de un plan
+  const updatePlanBeneficio = (planKey: "basico" | "destacado" | "premium", index: number, value: string) => {
+    setPlanesConfig(prev => {
+      const newBeneficios = [...prev.planes[planKey].beneficios]
+      newBeneficios[index] = value
+      return {
+        ...prev,
+        planes: {
+          ...prev.planes,
+          [planKey]: {
+            ...prev.planes[planKey],
+            beneficios: newBeneficios
+          }
+        }
+      }
+    })
+  }
+
+  // Agregar beneficio a un plan
+  const handleAddBeneficio = (planKey: "basico" | "destacado" | "premium") => {
+    setPlanesConfig(prev => ({
+      ...prev,
+      planes: {
+        ...prev.planes,
+        [planKey]: {
+          ...prev.planes[planKey],
+          beneficios: [...prev.planes[planKey].beneficios, "Nuevo beneficio publicitario"]
+        }
+      }
+    }))
+  }
+
+  // Eliminar beneficio de un plan
+  const handleRemoveBeneficio = (planKey: "basico" | "destacado" | "premium", index: number) => {
+    setPlanesConfig(prev => ({
+      ...prev,
+      planes: {
+        ...prev.planes,
+        [planKey]: {
+          ...prev.planes[planKey],
+          beneficios: prev.planes[planKey].beneficios.filter((_, i) => i !== index)
+        }
+      }
+    }))
+  }
+
+  // Modificar campo de comisiones
+  const updateComisionField = (field: string, value: any) => {
+    setPlanesConfig(prev => ({
+      ...prev,
+      comisiones: {
+        ...prev.comisiones,
+        [field]: value
+      }
+    }))
+  }
+
+  // Restablecer valores predeterminados
+  const handleResetPlanesDefaults = () => {
+    if (confirm("¿Estás seguro de restablecer los planes y comisiones a sus valores recomendados por defecto?")) {
+      setPlanesConfig(DEFAULT_INMOBILIARIA_CONFIG)
+    }
+  }
 
   // Modal para Nuevo/Editar Inmueble
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -630,96 +760,148 @@ export default function AdminInmobiliariaPage() {
         </div>
       </div>
 
-      {/* KPI Cards: Métricas Financieras de Promoción SARA */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Recaudación Total */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-emerald-500 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Total Recaudado en Promociones</p>
-            <h3 className="text-2xl font-black text-gray-900 mt-1">${stats.totalRecaudadoAcumulado.toLocaleString()}</h3>
-            <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-              <TrendingUp size={14} /> Facturación cobrada por planes
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <DollarSign size={24} />
-          </div>
-        </div>
+      {/* PESTAÑAS / VIÑETAS DE GESTIÓN */}
+      <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 pt-2 rounded-2xl shadow-xs">
+        <button
+          type="button"
+          onClick={() => setActiveTab("inmuebles")}
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-sm transition-all cursor-pointer ${
+            activeTab === "inmuebles"
+              ? "border-brand-sage text-brand-sage bg-brand-sage/5 rounded-t-xl"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <Building2 size={17} />
+          <span>Portafolio de Inmuebles & Cobros</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-mono">
+            {inmuebles.length}
+          </span>
+        </button>
 
-        {/* Facturación Mensual Proyectada */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-500 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Ingresos Mensuales Activos</p>
-            <h3 className="text-2xl font-black text-blue-900 mt-1">${stats.facturacionMensualProyectada.toLocaleString()} <span className="text-xs font-normal text-gray-400">/ mes</span></h3>
-            <p className="text-xs text-blue-600 font-semibold mt-1">
-              {stats.alDia} propietarios al día
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-            <Receipt size={24} />
-          </div>
-        </div>
-
-        {/* Inmuebles Activos */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-brand-sage flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Inmuebles en Catálogo</p>
-            <h3 className="text-2xl font-black text-gray-900 mt-1">{stats.activos} <span className="text-xs font-normal text-gray-400">de {stats.totalInmuebles}</span></h3>
-            <p className="text-xs text-brand-sage font-semibold mt-1">
-              {stats.totalInmuebles - stats.activos} pausados por falta de pago
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-brand-sage/10 text-brand-sage flex items-center justify-center">
-            <Home size={24} />
-          </div>
-        </div>
-
-        {/* Cobros Pendientes y Vencidos */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-amber-500 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Cobros por Vencer / Vencidos</p>
-            <h3 className="text-2xl font-black text-amber-600 mt-1">{stats.porVencer + stats.vencidos}</h3>
-            <p className="text-xs text-red-500 font-semibold mt-1">
-              {stats.vencidos} vencidos ({stats.porVencer} en alerta)
-            </p>
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-            <AlertTriangle size={24} />
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab("planes")}
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-sm transition-all cursor-pointer ${
+            activeTab === "planes"
+              ? "border-amber-500 text-amber-700 bg-amber-500/10 rounded-t-xl"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <Settings size={17} />
+          <span>Configuración de Planes & Comisiones SARA</span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black">
+            Comisiones & Pauta
+          </span>
+        </button>
       </div>
 
-      {/* Banner Informativo de Tarifas de Promoción SARA */}
-      <div className="bg-gradient-to-r from-brand-dark to-slate-800 text-white rounded-xl p-5 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Sparkles className="text-yellow-400" size={20} />
-            <h4 className="font-bold text-base text-yellow-300">Modelo de Cobro por Promoción Inmobiliaria SARA</h4>
-          </div>
-          <p className="text-xs text-gray-300 max-w-3xl">
-            SARA monetiza cobrando una cuota fija de pauta mensual a los propietarios para mantener sus propiedades visibles con prioridad y campañas digitales, más una comisión de éxito del 3% al 4% al concretar la venta:
-          </p>
-        </div>
+      {/* ========================================================= */}
+      {/* VIÑETA 1: PORTAFOLIO DE INMUEBLES & COBROS DE PROMOCIÓN   */}
+      {/* ========================================================= */}
+      {activeTab === "inmuebles" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* KPI Cards: Métricas Financieras de Promoción SARA */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Recaudación Total */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-emerald-500 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Total Recaudado en Promociones</p>
+                <h3 className="text-2xl font-black text-gray-900 mt-1">${stats.totalRecaudadoAcumulado.toLocaleString()}</h3>
+                <p className="text-xs text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                  <TrendingUp size={14} /> Facturación cobrada por planes
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <DollarSign size={24} />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto shrink-0 text-center">
-          <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
-            <p className="text-[10px] text-gray-300 uppercase font-semibold">Plan Básico</p>
-            <p className="text-base font-extrabold text-white">$35 <span className="text-[10px] font-normal text-gray-300">/mes</span></p>
+            {/* Facturación Mensual Proyectada */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-500 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Ingresos Mensuales Activos</p>
+                <h3 className="text-2xl font-black text-blue-900 mt-1">${stats.facturacionMensualProyectada.toLocaleString()} <span className="text-xs font-normal text-gray-400">/ mes</span></h3>
+                <p className="text-xs text-blue-600 font-semibold mt-1">
+                  {stats.alDia} propietarios al día
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Receipt size={24} />
+              </div>
+            </div>
+
+            {/* Inmuebles Activos */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-brand-sage flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Inmuebles en Catálogo</p>
+                <h3 className="text-2xl font-black text-gray-900 mt-1">{stats.activos} <span className="text-xs font-normal text-gray-400">de {stats.totalInmuebles}</span></h3>
+                <p className="text-xs text-brand-sage font-semibold mt-1">
+                  {stats.totalInmuebles - stats.activos} pausados por falta de pago
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-brand-sage/10 text-brand-sage flex items-center justify-center">
+                <Home size={24} />
+              </div>
+            </div>
+
+            {/* Cobros Pendientes y Vencidos */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-amber-500 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Cobros por Vencer / Vencidos</p>
+                <h3 className="text-2xl font-black text-amber-600 mt-1">{stats.porVencer + stats.vencidos}</h3>
+                <p className="text-xs text-red-500 font-semibold mt-1">
+                  {stats.vencidos} vencidos ({stats.porVencer} en alerta)
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <AlertTriangle size={24} />
+              </div>
+            </div>
           </div>
-          <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
-            <p className="text-[10px] text-yellow-300 uppercase font-semibold">Plan Destacado</p>
-            <p className="text-base font-extrabold text-white">$65 <span className="text-[10px] font-normal text-gray-300">/mes</span></p>
+
+          {/* Banner Informativo de Tarifas de Promoción SARA (Valores Reactivos & Enlace a Configuración) */}
+          <div className="bg-gradient-to-r from-brand-dark to-slate-800 text-white rounded-xl p-5 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-yellow-400" size={20} />
+                <h4 className="font-bold text-base text-yellow-300">Modelo de Cobro por Promoción Inmobiliaria SARA</h4>
+              </div>
+              <p className="text-xs text-gray-300 max-w-3xl">
+                SARA monetiza cobrando una cuota fija de pauta mensual a los propietarios para mantener sus propiedades visibles con prioridad y campañas digitales, más una comisión de éxito del {planesConfig.comisiones.comisionVentaMin}% al {planesConfig.comisiones.comisionVentaMax}% al concretar la venta:
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto shrink-0 text-center">
+                <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
+                  <p className="text-[10px] text-gray-300 uppercase font-semibold">{planesConfig.planes.basico.nombre}</p>
+                  <p className="text-base font-extrabold text-white">${planesConfig.planes.basico.precioMensual} <span className="text-[10px] font-normal text-gray-300">/mes</span></p>
+                </div>
+                <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
+                  <p className="text-[10px] text-yellow-300 uppercase font-semibold">{planesConfig.planes.destacado.nombre}</p>
+                  <p className="text-base font-extrabold text-white">${planesConfig.planes.destacado.precioMensual} <span className="text-[10px] font-normal text-gray-300">/mes</span></p>
+                </div>
+                <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
+                  <p className="text-[10px] text-emerald-300 uppercase font-semibold">{planesConfig.planes.premium.nombre}</p>
+                  <p className="text-base font-extrabold text-white">${planesConfig.planes.premium.precioMensual} <span className="text-[10px] font-normal text-gray-300">/mes</span></p>
+                </div>
+                <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
+                  <p className="text-[10px] text-indigo-300 uppercase font-semibold">Comisión Éxito</p>
+                  <p className="text-base font-extrabold text-white">{planesConfig.comisiones.comisionVentaMin}% - {planesConfig.comisiones.comisionVentaMax}%</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("planes")}
+                className="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
+                title="Configurar Tarifas y Comisiones"
+              >
+                <Settings size={14} />
+                <span>Configurar Tarifas</span>
+              </button>
+            </div>
           </div>
-          <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
-            <p className="text-[10px] text-emerald-300 uppercase font-semibold">Plan Premium</p>
-            <p className="text-base font-extrabold text-white">$120 <span className="text-[10px] font-normal text-gray-300">/mes</span></p>
-          </div>
-          <div className="bg-white/10 px-3 py-2 rounded-lg border border-white/10">
-            <p className="text-[10px] text-indigo-300 uppercase font-semibold">Comisión Éxito</p>
-            <p className="text-base font-extrabold text-white">3% - 4%</p>
-          </div>
-        </div>
-      </div>
 
       {/* Barra de Filtros y Búsqueda */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-3">
@@ -1025,6 +1207,881 @@ export default function AdminInmobiliariaPage() {
           </table>
         </div>
       </div>
+    </div>
+  )}
+
+  {/* ========================================================= */}
+  {/* VIÑETA 2: CONFIGURACIÓN DE PLANES & COMISIONES SARA       */}
+  {/* ========================================================= */}
+  {activeTab === "planes" && (
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header de la Viñeta con Acciones Rápidas */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-slate text-white p-6 md:p-8 rounded-2xl shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 -mt-10 -mr-10 w-72 h-72 bg-brand-gold/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-brand-gold/20 text-brand-gold rounded-xl border border-brand-gold/30">
+                <Sliders size={26} />
+              </span>
+              <div>
+                <span className="text-brand-gold text-xs font-bold tracking-wider uppercase">Políticas Comerciales & Honorarios</span>
+                <h3 className="text-2xl font-black text-white">Configuración de Planes & Comisiones SARA</h3>
+              </div>
+            </div>
+            <p className="text-gray-300 text-sm mt-3 max-w-3xl leading-relaxed">
+              Define los valores oficiales que se aplican a los propietarios por el servicio de difusión, fotografía y pauta digital, así como los porcentajes de honorarios por éxito en compraventa, alquiler y comisiones compartidas con la red de corredores aliados.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={handleResetPlanesDefaults}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-gray-300 hover:text-white rounded-xl text-sm font-semibold transition-all border border-slate-700 cursor-pointer"
+            >
+              <RefreshCw size={16} />
+              <span>Restablecer Defecto</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isSavingPlanes}
+              onClick={() => handleGuardarPlanes()}
+              className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-sm transition-all shadow-lg hover:shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+            >
+              {isSavingPlanes ? (
+                <>
+                  <RefreshCw size={17} className="animate-spin" />
+                  <span>Guardando...</span>
+                </>
+              ) : (
+                <>
+                  <Save size={17} />
+                  <span>Guardar Cambios</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Notificación de Guardado Exitoso */}
+        {planesSaveSuccess && (
+          <div className="mt-4 p-3 bg-emerald-500/20 border border-emerald-400/40 rounded-xl text-emerald-300 text-sm flex items-center gap-2.5 animate-fadeIn">
+            <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+            <span><strong>¡Configuración guardada!</strong> Los nuevos planes y porcentajes de comisión fueron actualizados en la base de datos de SARA Inmobiliaria.</span>
+          </div>
+        )}
+      </div>
+
+      {/* ======================================================= */}
+      {/* SECCIÓN 1: PLANES DE PROMOCIÓN (COBRO MENSUAL A PROPIETARIOS) */}
+      {/* ======================================================= */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 pb-2 border-b border-gray-200">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles size={20} className="text-amber-600" />
+              <h4 className="text-lg font-bold text-gray-800">1. Planes de Promoción y Difusión Publicitaria</h4>
+            </div>
+            <p className="text-gray-500 text-xs mt-0.5">
+              Cuotas periódicas facturadas a los propietarios para costear pauta en Meta Ads, fotografía, video drone y posicionamiento preferencial.
+            </p>
+          </div>
+          <span className="text-xs px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full font-semibold">
+            Cobro Mensual / 30 Días
+          </span>
+        </div>
+
+        {/* Grid de 3 Planes */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Plan Básico */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-gray-200 hover:border-gray-300 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-bold uppercase rounded-full">
+                  Plan Estándar
+                </span>
+                <span className="text-xs text-gray-400 font-medium">Básico</span>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Nombre Comercial del Plan</label>
+                  <input
+                    type="text"
+                    value={planesConfig.planes.basico.nombre}
+                    onChange={(e) => updatePlanField("basico", "nombre", e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 focus:bg-white focus:ring-2 focus:ring-brand-sage outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Tarifa Mensual ($ USD)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-gray-400 font-bold text-sm">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={planesConfig.planes.basico.precioMensual}
+                        onChange={(e) => updatePlanField("basico", "precioMensual", Number(e.target.value))}
+                        className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-lg font-black text-gray-900 focus:bg-white focus:ring-2 focus:ring-brand-sage outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 mb-1">Vigencia (Días)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={planesConfig.planes.basico.diasDuracion}
+                        onChange={(e) => updatePlanField("basico", "diasDuracion", Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-lg font-black text-gray-900 focus:bg-white focus:ring-2 focus:ring-brand-sage outline-hidden text-right"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Descripción Breve</label>
+                  <textarea
+                    rows={2}
+                    value={planesConfig.planes.basico.descripcion}
+                    onChange={(e) => updatePlanField("basico", "descripcion", e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:bg-white focus:ring-2 focus:ring-brand-sage outline-hidden"
+                  />
+                </div>
+
+                {/* Lista de Beneficios */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-600">Beneficios Incluidos</label>
+                    <button
+                      type="button"
+                      onClick={() => handleAddBeneficio("basico")}
+                      className="text-[11px] font-bold text-brand-sage hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Agregar
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {planesConfig.planes.basico.beneficios.map((ben, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 shrink-0" />
+                        <input
+                          type="text"
+                          value={ben}
+                          onChange={(e) => updatePlanBeneficio("basico", idx, e.target.value)}
+                          className="flex-1 px-2.5 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:bg-white focus:ring-1 focus:ring-brand-sage outline-hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBeneficio("basico", idx)}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded cursor-pointer"
+                          title="Eliminar beneficio"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+              <span>Costo por día: <strong>${(planesConfig.planes.basico.precioMensual / (planesConfig.planes.basico.diasDuracion || 30)).toFixed(2)}</strong></span>
+              <span className="font-semibold text-gray-600">Recomendado para arriendos</span>
+            </div>
+          </div>
+
+          {/* Plan Destacado */}
+          <div className="bg-amber-50/40 rounded-2xl p-6 shadow-md border-2 border-amber-400 hover:border-amber-500 transition-all flex flex-col justify-between relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="px-4 py-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-[11px] font-black uppercase tracking-wider rounded-full shadow-md">
+                ★ Más Popular / Recomendado
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-4 mt-2">
+                <span className="px-3 py-1 bg-amber-100 text-amber-900 text-xs font-bold uppercase rounded-full">
+                  Prioridad Catálogo
+                </span>
+                <span className="text-xs text-amber-700 font-bold">Destacado</span>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-amber-950 mb-1">Nombre Comercial del Plan</label>
+                  <input
+                    type="text"
+                    value={planesConfig.planes.destacado.nombre}
+                    onChange={(e) => updatePlanField("destacado", "nombre", e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-sm font-bold text-amber-950 focus:ring-2 focus:ring-amber-500 outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-amber-950 mb-1">Tarifa Mensual ($ USD)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-amber-700 font-bold text-sm">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={planesConfig.planes.destacado.precioMensual}
+                        onChange={(e) => updatePlanField("destacado", "precioMensual", Number(e.target.value))}
+                        className="w-full pl-7 pr-3 py-2 bg-white border border-amber-300 rounded-xl text-lg font-black text-amber-900 focus:ring-2 focus:ring-amber-500 outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-amber-950 mb-1">Vigencia (Días)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={planesConfig.planes.destacado.diasDuracion}
+                        onChange={(e) => updatePlanField("destacado", "diasDuracion", Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-lg font-black text-amber-900 focus:ring-2 focus:ring-amber-500 outline-hidden text-right"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-amber-950 mb-1">Descripción Breve</label>
+                  <textarea
+                    rows={2}
+                    value={planesConfig.planes.destacado.descripcion}
+                    onChange={(e) => updatePlanField("destacado", "descripcion", e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs text-amber-900 focus:ring-2 focus:ring-amber-500 outline-hidden"
+                  />
+                </div>
+
+                {/* Lista de Beneficios */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-amber-950">Beneficios Incluidos</label>
+                    <button
+                      type="button"
+                      onClick={() => handleAddBeneficio("destacado")}
+                      className="text-[11px] font-bold text-amber-700 hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Agregar
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {planesConfig.planes.destacado.beneficios.map((ben, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                        <input
+                          type="text"
+                          value={ben}
+                          onChange={(e) => updatePlanBeneficio("destacado", idx, e.target.value)}
+                          className="flex-1 px-2.5 py-1 text-xs bg-white border border-amber-200 rounded-lg text-amber-950 focus:ring-1 focus:ring-amber-500 outline-hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBeneficio("destacado", idx)}
+                          className="p-1 text-amber-600 hover:text-red-500 rounded cursor-pointer"
+                          title="Eliminar beneficio"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-amber-200 flex items-center justify-between text-xs text-amber-800">
+              <span>Costo por día: <strong>${(planesConfig.planes.destacado.precioMensual / (planesConfig.planes.destacado.diasDuracion || 30)).toFixed(2)}</strong></span>
+              <span className="font-bold text-amber-900">Incluye pauta en redes</span>
+            </div>
+          </div>
+
+          {/* Plan Premium */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-emerald-300 hover:border-emerald-400 transition-all flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold uppercase rounded-full">
+                  VIP & Showcase Portada
+                </span>
+                <span className="text-xs text-emerald-600 font-bold">Premium</span>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Nombre Comercial del Plan</label>
+                  <input
+                    type="text"
+                    value={planesConfig.planes.premium.nombre}
+                    onChange={(e) => updatePlanField("premium", "nombre", e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Tarifa Mensual ($ USD)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-emerald-700 font-bold text-sm">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={planesConfig.planes.premium.precioMensual}
+                        onChange={(e) => updatePlanField("premium", "precioMensual", Number(e.target.value))}
+                        className="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-lg font-black text-emerald-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Vigencia (Días)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={planesConfig.planes.premium.diasDuracion}
+                        onChange={(e) => updatePlanField("premium", "diasDuracion", Number(e.target.value))}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-lg font-black text-gray-900 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden text-right"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Descripción Breve</label>
+                  <textarea
+                    rows={2}
+                    value={planesConfig.planes.premium.descripcion}
+                    onChange={(e) => updatePlanField("premium", "descripcion", e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                  />
+                </div>
+
+                {/* Lista de Beneficios */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-700">Beneficios Incluidos</label>
+                    <button
+                      type="button"
+                      onClick={() => handleAddBeneficio("premium")}
+                      className="text-[11px] font-bold text-emerald-600 hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Agregar
+                    </button>
+                  </div>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {planesConfig.planes.premium.beneficios.map((ben, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        <input
+                          type="text"
+                          value={ben}
+                          onChange={(e) => updatePlanBeneficio("premium", idx, e.target.value)}
+                          className="flex-1 px-2.5 py-1 text-xs bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:bg-white focus:ring-1 focus:ring-emerald-500 outline-hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBeneficio("premium", idx)}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded cursor-pointer"
+                          title="Eliminar beneficio"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+              <span>Costo por día: <strong>${(planesConfig.planes.premium.precioMensual / (planesConfig.planes.premium.diasDuracion || 30)).toFixed(2)}</strong></span>
+              <span className="font-bold text-emerald-700">Video Drone 4K + Pauta Google</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================================= */}
+      {/* SECCIÓN 2: ESQUEMA DE COMISIONES SARA INMOBILIARIA      */}
+      {/* ======================================================= */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 pb-2 border-b border-gray-200">
+          <div>
+            <div className="flex items-center gap-2">
+              <Percent size={20} className="text-brand-sage" />
+              <h4 className="text-lg font-bold text-gray-800">2. Porcentajes de Comisión SARA Inmobiliaria (Éxito al Cierre)</h4>
+            </div>
+            <p className="text-gray-500 text-xs mt-0.5">
+              Honorarios de intermediación devengados en el momento de la firma de escritura de compraventa o contrato de arrendamiento.
+            </p>
+          </div>
+          <span className="text-xs px-3 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full font-semibold">
+            Honorarios por Cierre Exitoso
+          </span>
+        </div>
+
+        {/* 3 Columnas de Comisiones */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Card A: Comisiones por Venta */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                <Building2 size={22} />
+              </div>
+              <div>
+                <h5 className="font-bold text-gray-900 text-base">Comisión por Venta</h5>
+                <span className="text-xs text-gray-500">Porcentaje sobre valor de escritura</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Comisión Mínima (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="15"
+                      step="0.5"
+                      value={planesConfig.comisiones.comisionVentaMin}
+                      onChange={(e) => updateComisionField("comisionVentaMin", Number(e.target.value))}
+                      className="w-full pr-8 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+                    />
+                    <span className="absolute right-3 top-2.5 text-gray-400 font-bold text-xs">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Comisión Máxima (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="15"
+                      step="0.5"
+                      value={planesConfig.comisiones.comisionVentaMax}
+                      onChange={(e) => updateComisionField("comisionVentaMax", Number(e.target.value))}
+                      className="w-full pr-8 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+                    />
+                    <span className="absolute right-3 top-2.5 text-gray-400 font-bold text-xs">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Sugerida Estándar (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="15"
+                      step="0.5"
+                      value={planesConfig.comisiones.comisionVentaDefault}
+                      onChange={(e) => updateComisionField("comisionVentaDefault", Number(e.target.value))}
+                      className="w-full pr-8 pl-3 py-2 bg-blue-50/50 border border-blue-200 rounded-xl text-base font-black text-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+                    />
+                    <span className="absolute right-3 top-2.5 text-blue-500 font-bold text-xs">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Exclusiva SARA (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="15"
+                      step="0.5"
+                      value={planesConfig.comisiones.comisionVentaExclusiva}
+                      onChange={(e) => updateComisionField("comisionVentaExclusiva", Number(e.target.value))}
+                      className="w-full pr-8 pl-3 py-2 bg-emerald-50/50 border border-emerald-200 rounded-xl text-base font-black text-emerald-700 focus:bg-white focus:ring-2 focus:ring-emerald-500 outline-hidden"
+                    />
+                    <span className="absolute right-3 top-2.5 text-emerald-500 font-bold text-xs">%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Vigencia Contrato Corretaje (Días)</label>
+                <input
+                  type="number"
+                  min="30"
+                  step="30"
+                  value={planesConfig.comisiones.diasVigenciaContrato}
+                  onChange={(e) => updateComisionField("diasVigenciaContrato", Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">Típicamente 180 días (6 meses de exclusividad)</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Política de Cobro por Venta</label>
+                <textarea
+                  rows={2}
+                  value={planesConfig.comisiones.descripcionVenta}
+                  onChange={(e) => updateComisionField("descripcionVenta", e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card B: Comisiones por Arriendo */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+              <div className="p-2.5 bg-purple-50 text-purple-600 rounded-xl">
+                <Home size={22} />
+              </div>
+              <div>
+                <h5 className="font-bold text-gray-900 text-base">Comisión por Arriendo</h5>
+                <span className="text-xs text-gray-500">Colocación & Administración mensual</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Comisión Primer Mes (% del Canon)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="10"
+                    max="150"
+                    step="10"
+                    value={planesConfig.comisiones.porcentajePrimerMes}
+                    onChange={(e) => updateComisionField("porcentajePrimerMes", Number(e.target.value))}
+                    className="w-full pr-8 pl-3 py-2 bg-purple-50/50 border border-purple-200 rounded-xl text-base font-black text-purple-700 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-hidden"
+                  />
+                  <span className="absolute right-3 top-2.5 text-purple-500 font-bold text-xs">%</span>
+                </div>
+                <span className="text-[11px] text-gray-400 mt-1 block">Estándar ecuatoriano: 100% (1 canon de arriendo)</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Gestión Mensual de Cobranza (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    step="1"
+                    value={planesConfig.comisiones.comisionArriendoPorcentaje}
+                    onChange={(e) => updateComisionField("comisionArriendoPorcentaje", Number(e.target.value))}
+                    className="w-full pr-8 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-hidden"
+                  />
+                  <span className="absolute right-3 top-2.5 text-gray-400 font-bold text-xs">%</span>
+                </div>
+                <span className="text-[11px] text-gray-400 mt-1 block">Aplica si SARA administra pagos y mantenimiento (8% - 10%)</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">IVA sobre Honorarios (%)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="25"
+                    step="1"
+                    value={planesConfig.comisiones.ivaComisionPorcentaje}
+                    onChange={(e) => updateComisionField("ivaComisionPorcentaje", Number(e.target.value))}
+                    className="w-full pr-8 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base font-bold text-gray-900 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-hidden"
+                  />
+                  <span className="absolute right-3 top-2.5 text-gray-400 font-bold text-xs">%</span>
+                </div>
+                <span className="text-[11px] text-gray-400 mt-1 block">Tarifa SRI vigente en Ecuador: 15%</span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-1">Política de Cobro por Arriendo</label>
+                <textarea
+                  rows={2}
+                  value={planesConfig.comisiones.descripcionArriendo}
+                  onChange={(e) => updateComisionField("descripcionArriendo", e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 focus:bg-white focus:ring-2 focus:ring-purple-500 outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Card C: Alianzas Compartidas */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
+                <Briefcase size={22} />
+              </div>
+              <div>
+                <h5 className="font-bold text-gray-900 text-base">Alianzas de Red Inmobiliaria</h5>
+                <span className="text-xs text-gray-500">Comisión compartida (Co-Brokering)</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200/60 text-xs text-amber-900">
+                <div className="flex items-center gap-2 font-bold mb-1">
+                  <Award size={16} className="text-amber-600" />
+                  <span>Esquema de Alianza 50% / 50%</span>
+                </div>
+                <p className="leading-relaxed">
+                  Cuando otra inmobiliaria o corredor matriculado aporta el cliente comprador o arrendatario calificado, los honorarios totales se distribuyen equitativamente:
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Participación SARA (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      step="1"
+                      value={planesConfig.comisiones.porcentajeCompartidoSara}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        updateComisionField("porcentajeCompartidoSara", val)
+                        updateComisionField("porcentajeCompartidoExterno", 100 - val)
+                      }}
+                      className="w-full pr-8 pl-3 py-2 bg-amber-50/40 border border-amber-300 rounded-xl text-base font-black text-amber-800 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-hidden"
+                    />
+                    <span className="absolute right-3 top-2.5 text-amber-600 font-bold text-xs">%</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1">Corredor Aliado (%)</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="1"
+                      max="99"
+                      step="1"
+                      value={planesConfig.comisiones.porcentajeCompartidoExterno}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        updateComisionField("porcentajeCompartidoExterno", val)
+                        updateComisionField("porcentajeCompartidoSara", 100 - val)
+                      }}
+                      className="w-full pr-8 pl-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base font-black text-gray-700 focus:bg-white focus:ring-2 focus:ring-gray-500 outline-hidden"
+                    />
+                    <span className="absolute right-3 top-2.5 text-gray-400 font-bold text-xs">%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra Visual de Distribución */}
+              <div>
+                <div className="flex justify-between text-xs font-bold text-gray-600 mb-1.5">
+                  <span className="text-amber-700">SARA: {planesConfig.comisiones.porcentajeCompartidoSara}%</span>
+                  <span className="text-slate-600">Aliado: {planesConfig.comisiones.porcentajeCompartidoExterno}%</span>
+                </div>
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden flex">
+                  <div 
+                    className="bg-amber-500 h-full transition-all duration-300" 
+                    style={{ width: `${planesConfig.comisiones.porcentajeCompartidoSara}%` }} 
+                  />
+                  <div 
+                    className="bg-slate-400 h-full transition-all duration-300" 
+                    style={{ width: `${planesConfig.comisiones.porcentajeCompartidoExterno}%` }} 
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600">
+                <span className="font-bold text-gray-800">Nota Legal:</span> Se suscribe Hoja de Visita y Acuerdo de Comisión Compartida previo a la presentación de la oferta económica.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ======================================================= */}
+      {/* SECCIÓN 3: SIMULADOR INTERACTIVO DE COMISIONES EN VIVO   */}
+      {/* ======================================================= */}
+      <div className="bg-slate-900 text-white rounded-2xl p-6 md:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
+        <div className="absolute right-0 bottom-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 space-y-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                  <TrendingUp size={22} />
+                </span>
+                <h4 className="text-xl font-bold text-white">Simulador Financiero de Honorarios & Rendimiento SARA</h4>
+              </div>
+              <p className="text-slate-400 text-xs mt-1">
+                Calcula al instante los ingresos proyectados para SARA Inmobiliaria según el precio de venta acordado y los planes de promoción aplicados.
+              </p>
+            </div>
+
+            {/* Input de Precio Simulado */}
+            <div className="w-full md:w-auto">
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">Precio de Venta del Inmueble ($ USD)</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-2.5 text-slate-400 font-black text-base">$</span>
+                <input
+                  type="number"
+                  step="5000"
+                  min="10000"
+                  value={simuladorPrecioVenta}
+                  onChange={(e) => setSimuladorPrecioVenta(Number(e.target.value))}
+                  className="w-full md:w-56 pl-8 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white font-black text-lg focus:ring-2 focus:ring-amber-500 outline-hidden"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Botones de Precios Rápidos */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-slate-400 font-semibold mr-1">Valores Rápidos:</span>
+            {[65000, 110000, 160000, 220000, 350000, 500000].map((monto) => (
+              <button
+                key={monto}
+                type="button"
+                onClick={() => setSimuladorPrecioVenta(monto)}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  simuladorPrecioVenta === monto
+                    ? "bg-amber-500 text-slate-950 shadow-md"
+                    : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                ${monto.toLocaleString()}
+              </button>
+            ))}
+          </div>
+
+          {/* 4 Cards de Escenarios Simulados */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Escenario 1: Comisión Estándar */}
+            <div className="bg-slate-800/90 rounded-xl p-5 border border-slate-700/80">
+              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+                <span>Comisión Estándar</span>
+                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded-full font-bold">
+                  {planesConfig.comisiones.comisionVentaDefault}%
+                </span>
+              </div>
+              <div className="text-2xl font-black text-white">
+                ${((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaDefault) / 100).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-700">
+                + IVA ({planesConfig.comisiones.ivaComisionPorcentaje}%): <strong>${((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaDefault * planesConfig.comisiones.ivaComisionPorcentaje) / 10000).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+            </div>
+
+            {/* Escenario 2: Comisión Exclusiva */}
+            <div className="bg-slate-800/90 rounded-xl p-5 border border-emerald-500/40 relative">
+              <div className="flex items-center justify-between text-xs text-emerald-400 mb-2 font-bold">
+                <span>Comisión Exclusiva</span>
+                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-bold">
+                  {planesConfig.comisiones.comisionVentaExclusiva}%
+                </span>
+              </div>
+              <div className="text-2xl font-black text-emerald-400">
+                ${((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaExclusiva) / 100).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-700">
+                Margen adicional: <strong>+${(((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaExclusiva) / 100) - ((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaDefault) / 100)).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+            </div>
+
+            {/* Escenario 3: Alianza Compartida 50/50 */}
+            <div className="bg-slate-800/90 rounded-xl p-5 border border-slate-700/80">
+              <div className="flex items-center justify-between text-xs text-amber-400 mb-2 font-bold">
+                <span>Alianza Colegas</span>
+                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded-full font-bold">
+                  {planesConfig.comisiones.porcentajeCompartidoSara}% SARA
+                </span>
+              </div>
+              <div className="text-2xl font-black text-amber-300">
+                ${((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaDefault * (planesConfig.comisiones.porcentajeCompartidoSara / 100)) / 100).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-700">
+                Aliado recibe idéntico: <strong>${((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaDefault * (planesConfig.comisiones.porcentajeCompartidoExterno / 100)) / 100).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+              </div>
+            </div>
+
+            {/* Escenario 4: Modelo Total SARA (Pauta + Comisión de Venta) */}
+            <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 rounded-xl p-5 border border-amber-400/50">
+              <div className="flex items-center justify-between text-xs text-amber-300 mb-2 font-black uppercase">
+                <span>Total Ciclo Completo</span>
+                <span className="px-2 py-0.5 bg-amber-400 text-slate-950 rounded-full font-black text-[10px]">
+                  Pauta + Venta
+                </span>
+              </div>
+              <div className="text-2xl font-black text-amber-400">
+                ${((simuladorPrecioVenta * planesConfig.comisiones.comisionVentaDefault) / 100 + (planesConfig.planes.destacado.precioMensual * 3)).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <div className="text-[11px] text-slate-300 mt-2 pt-2 border-t border-slate-700">
+                Incluye 3 meses Plan Destacado: <strong>+${planesConfig.planes.destacado.precioMensual * 3}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra Inferior de Acción y Guardado */}
+      <div className="sticky bottom-4 z-40 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+            <Info size={20} />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-gray-800 block">Guardar Configuración en Sistema</span>
+            <span className="text-[11px] text-gray-500">
+              {planesConfig.actualizadoEn ? `Última sincronización: ${new Date(planesConfig.actualizadoEn).toLocaleString('es-EC')}` : "Cambios sin sincronizar"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <button
+            type="button"
+            onClick={handleResetPlanesDefaults}
+            className="px-4 py-2 text-xs font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+          >
+            Restablecer Defecto
+          </button>
+
+          <button
+            type="button"
+            disabled={isSavingPlanes}
+            onClick={() => handleGuardarPlanes()}
+            className="flex items-center gap-2 px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white font-bold rounded-xl text-sm transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
+          >
+            {isSavingPlanes ? (
+              <>
+                <RefreshCw size={17} className="animate-spin" />
+                <span>Guardando en Base de Datos...</span>
+              </>
+            ) : (
+              <>
+                <Save size={17} />
+                <span>Guardar Configuración de Planes</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 
       {/* ========================================================= */}
       {/* MODAL: REGISTRAR COBRO / RENOVAR PLAN DE PROMOCIÓN SARA */}
