@@ -1379,9 +1379,14 @@ export default function RegistrarAlojamientoModal({
                 {/* Tarifas Base */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-amber-50/60 p-4 rounded-xl border border-amber-200">
                   <div>
-                    <label className="block text-xs font-bold text-amber-950 mb-1">
-                      Tarifa por Noche ($ USD) <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-amber-950">
+                        Tarifa por Noche ($ USD) <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md">
+                        Valor incluido impuestos (IVA)
+                      </span>
+                    </div>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-500 text-xs">$</span>
                       <input
@@ -1396,9 +1401,14 @@ export default function RegistrarAlojamientoModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-amber-950 mb-1">
-                      Tarifa de Limpieza ($ USD) <span className="text-rose-500">*</span>
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-amber-950">
+                        Tarifa de Limpieza ($ USD) <span className="text-rose-500">*</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md">
+                        Valor incluido impuestos (IVA)
+                      </span>
+                    </div>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-gray-500 text-xs">$</span>
                       <input
@@ -1518,15 +1528,23 @@ export default function RegistrarAlojamientoModal({
               const totalReservaSim = subtotalNochesSim + pLimpieza
               const anticipoCobradoSim = totalReservaSim * (politicas.porcentajeAnticipo / 100)
               const saldoCheckInSim = totalReservaSim - anticipoCobradoSim
+
+              // Cálculo financiero con IVA incluido (Normativa SRI Ecuador)
+              // Base Imponible = Total Reserva / (1 + IVA%)
+              const baseSinIvaSim = totalReservaSim / (1 + (politicas.ivaPorcentaje / 100))
+              const gastosAdmIvaSim = totalReservaSim - baseSinIvaSim
               const comisionSaraSim = totalReservaSim * (formAlojamiento.porcentajeComision / 100)
-              const gastosAdmIvaSim = comisionSaraSim * (politicas.ivaPorcentaje / 100)
-              const totalRetencionesSim = comisionSaraSim + gastosAdmIvaSim
-              const netoAnfitrionSim = totalReservaSim - totalRetencionesSim
+              // Valor a transferir al Anfitrión = Total Reserva Bruta - Comisión SARA - Gastos Administrativos
+              const netoAnfitrionSim = totalReservaSim - comisionSaraSim - gastosAdmIvaSim
 
               // Compensaciones al anfitrión (50% de la penalización)
-              const compHostMas10 = totalReservaSim * (politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100) / 100)
-              const compHost2a10 = totalReservaSim * (politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100) / 100)
-              const compHost24h = totalReservaSim * (politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100) / 100)
+              const pctHostMas10 = (politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100))
+              const pctHost2a10 = (politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100))
+              const pctHost24h = (politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100))
+
+              const compHostMas10 = totalReservaSim * (pctHostMas10 / 100)
+              const compHost2a10 = totalReservaSim * (pctHost2a10 / 100)
+              const compHost24h = totalReservaSim * (pctHost24h / 100)
 
               return (
                 <div className="space-y-6 animate-fadeIn">
@@ -1718,12 +1736,12 @@ export default function RegistrarAlojamientoModal({
 
                         <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
                           <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                            <span>Compensación Anfitrión (50%):</span>
-                            <span className="font-black">{(politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100)).toFixed(1)}% total</span>
+                            <span>Compensación Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100)).toFixed(1)}% total (50% penalización)</span>
                           </div>
                           <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
-                            <span>SARA Gestión (50%):</span>
-                            <span className="font-semibold">{(politicas.penalizacionMas10Dias * 0.5).toFixed(1)}% total</span>
+                            <span>SARA Gestión:</span>
+                            <span className="font-semibold">{(politicas.penalizacionMas10Dias * 0.5).toFixed(1)}% total (50% penalización)</span>
                           </div>
                           <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
                             <span>Reembolso al Huésped:</span>
@@ -1751,12 +1769,12 @@ export default function RegistrarAlojamientoModal({
 
                         <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
                           <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                            <span>Compensación Anfitrión (50%):</span>
-                            <span className="font-black">{(politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100)).toFixed(1)}% total</span>
+                            <span>Compensación Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100)).toFixed(1)}% total (50% penalización)</span>
                           </div>
                           <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
-                            <span>SARA Gestión (50%):</span>
-                            <span className="font-semibold">{(politicas.penalizacion2a10Dias * 0.5).toFixed(1)}% total</span>
+                            <span>SARA Gestión:</span>
+                            <span className="font-semibold">{(politicas.penalizacion2a10Dias * 0.5).toFixed(1)}% total (50% penalización)</span>
                           </div>
                           <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
                             <span>Reembolso al Huésped:</span>
@@ -1784,12 +1802,12 @@ export default function RegistrarAlojamientoModal({
 
                         <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
                           <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                            <span>Compensación Anfitrión (50%):</span>
-                            <span className="font-black">{(politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100)).toFixed(1)}% total</span>
+                            <span>Compensación Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100)).toFixed(1)}% total (50% penalización)</span>
                           </div>
                           <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
-                            <span>SARA Gestión (50%):</span>
-                            <span className="font-semibold">{(politicas.penalizacion24Horas * 0.5).toFixed(1)}% total</span>
+                            <span>SARA Gestión:</span>
+                            <span className="font-semibold">{(politicas.penalizacion24Horas * 0.5).toFixed(1)}% total (50% penalización)</span>
                           </div>
                           <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
                             <span>Reembolso al Huésped:</span>
@@ -1846,7 +1864,7 @@ export default function RegistrarAlojamientoModal({
                       {/* Desglose de Operación */}
                       <div className="space-y-2.5 text-xs">
                         <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
-                          <span className="text-slate-400">Tarifa por Noche:</span>
+                          <span className="text-slate-400">Tarifa por Noche (IVA inc.):</span>
                           <span className="font-mono font-bold text-white">${pNoche.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
@@ -1854,36 +1872,45 @@ export default function RegistrarAlojamientoModal({
                           <span className="font-mono font-bold text-white">${subtotalNochesSim.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
-                          <span className="text-slate-400">Tarifa de Limpieza:</span>
+                          <span className="text-slate-400">Tarifa de Limpieza (IVA inc.):</span>
                           <span className="font-mono font-bold text-white">+${pLimpieza.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 border-b border-slate-800 font-bold">
-                          <span className="text-white">Total Reserva Bruta del Huésped:</span>
+                          <span className="text-white">Total Reserva Bruta del Huésped (con IVA):</span>
                           <span className="font-mono font-black text-amber-400 text-sm">${totalReservaSim.toFixed(2)} USD</span>
                         </div>
-                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80 text-[11px] text-slate-400">
+                        <div className="flex items-center justify-between py-1 border-b border-slate-800/80 text-[11px] text-slate-400">
+                          <span>Base Imponible neta (sin IVA):</span>
+                          <span className="font-mono text-slate-300">${baseSinIvaSim.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1 border-b border-slate-800/80 text-[11px] text-slate-400">
                           <span>• Anticipo cobrado hoy a SARA ({politicas.porcentajeAnticipo}%):</span>
                           <span className="font-mono">${anticipoCobradoSim.toFixed(2)} USD</span>
                         </div>
-                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80 text-[11px] text-slate-400">
+                        <div className="flex items-center justify-between py-1 border-b border-slate-800/80 text-[11px] text-slate-400">
                           <span>• Saldo que abona el huésped al Check-in ({100 - politicas.porcentajeAnticipo}%):</span>
                           <span className="font-mono">${saldoCheckInSim.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 text-rose-300 text-[11px]">
-                          <span>- Comisión SARA Stays (15%):</span>
+                          <span>- Comisión SARA Stays ({formAlojamiento.porcentajeComision}%):</span>
                           <span className="font-mono font-bold">-${comisionSaraSim.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 text-amber-300 text-[11px]">
-                          <span>- Gastos Adm. / Factura SRI (IVA {politicas.ivaPorcentaje}% s/comisión):</span>
+                          <span>- Gastos Adm. / Factura SRI (IVA {politicas.ivaPorcentaje}% extraído del total):</span>
                           <span className="font-mono font-bold">-${gastosAdmIvaSim.toFixed(2)} USD</span>
                         </div>
                       </div>
 
                       {/* Recuadro de Valor Neto Final */}
                       <div className="bg-slate-950/70 p-6 rounded-3xl border border-emerald-500/30 text-center space-y-4">
-                        <span className="text-[11px] uppercase tracking-wider font-extrabold text-emerald-400 block">
-                          Neto a Transferir a Tu Cuenta o QR (Post Check-in)
-                        </span>
+                        <div>
+                          <span className="text-[11px] uppercase tracking-wider font-extrabold text-emerald-400 block">
+                            Valor a Transferir al Anfitrión (Post Check-in)
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            (Total Reserva Bruta - Comisión SARA - Gastos Administrativos)
+                          </span>
+                        </div>
                         <div className="text-4xl sm:text-5xl font-black font-mono text-emerald-400 tracking-tight">
                           ${netoAnfitrionSim.toFixed(2)} <span className="text-lg font-bold text-emerald-200">USD</span>
                         </div>
@@ -1894,15 +1921,15 @@ export default function RegistrarAlojamientoModal({
                         <div className="pt-3 border-t border-slate-800 text-[11px] text-left space-y-1">
                           <span className="font-bold text-amber-300 block">Indemnización si el huésped cancela la reserva:</span>
                           <div className="flex justify-between text-slate-300">
-                            <span>Con {">"} 10 días (recibes el 50% de retención):</span>
+                            <span>Con &gt; 10 días ({pctHostMas10.toFixed(1)}% total - 50% de retención):</span>
                             <strong className="text-emerald-400 font-mono">+${compHostMas10.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>De 2 a 10 días (recibes el 50% de retención):</span>
+                            <span>De 2 a 10 días ({pctHost2a10.toFixed(1)}% total - 50% de retención):</span>
                             <strong className="text-emerald-400 font-mono">+${compHost2a10.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>Con {"<"} 24 horas (recibes el 50% de retención):</span>
+                            <span>Con &lt; 24 horas ({pctHost24h.toFixed(1)}% total - 50% de retención):</span>
                             <strong className="text-emerald-400 font-mono">+${compHost24h.toFixed(2)} USD</strong>
                           </div>
                         </div>

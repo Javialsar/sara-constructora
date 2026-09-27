@@ -2558,18 +2558,24 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           </div>
                         </div>
 
-                        {/* % Asignado al Anfitrión */}
+                        {/* % Asignado al Anfitrión (50% de la penalización) */}
                         <div className="text-right">
-                          <label className="text-[10px] font-bold text-emerald-700 uppercase block mb-0.5">Al Anfitrión</label>
+                          <label className="text-[10px] font-bold text-emerald-700 uppercase block mb-0.5" title="Equivale al 50% de la penalización del 10%">
+                            Al Anfitrión (50%)
+                          </label>
                           <div className="relative w-28">
                             <input
                               type="number"
                               min="0"
                               max="100"
-                              step="5"
+                              step="0.5"
                               required
-                              value={politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50}
-                              onChange={(e) => setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacionMas10Dias: Number(e.target.value) })}
+                              value={Number(((politicasStays.penalizacionMas10Dias * (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)) / 100).toFixed(1))}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 0
+                                const share = politicasStays.penalizacionMas10Dias > 0 ? (val / politicasStays.penalizacionMas10Dias) * 100 : 50
+                                setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacionMas10Dias: share })
+                              }}
                               className="w-full pl-2 pr-7 py-1.5 bg-white border border-emerald-400 rounded-lg text-xs font-black text-emerald-900 text-right focus:ring-2 focus:ring-emerald-500 outline-none shadow-xs"
                             />
                             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-xs">%</span>
@@ -2585,14 +2591,14 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           Retención: <strong>{politicasStays.penalizacionMas10Dias}%</strong>
                         </span>
                         <span className="text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded font-bold border border-emerald-200">
-                          🏠 Anfitrión ({politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50}%): {((politicasStays.penalizacionMas10Dias * (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)) / 100).toFixed(1)}% del total
+                          🏠 Anfitrión (50%): {((politicasStays.penalizacionMas10Dias * (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)) / 100).toFixed(1)}% del total
                         </span>
                         <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
-                          🏢 SARA ({100 - (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)}%): {((politicasStays.penalizacionMas10Dias * (100 - (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50))) / 100).toFixed(1)}% del total
+                          🏢 SARA (50%): {((politicasStays.penalizacionMas10Dias * (100 - (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50))) / 100).toFixed(1)}% del total
                         </span>
                       </div>
                       <span className="text-emerald-700 font-extrabold">
-                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}%
+                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}% del anticipo ({100 - politicasStays.penalizacionMas10Dias}% total)
                       </span>
                     </div>
                   </div>
@@ -2628,18 +2634,24 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           </div>
                         </div>
 
-                        {/* % Asignado al Anfitrión */}
+                        {/* % Asignado al Anfitrión (50% de la penalización) */}
                         <div className="text-right">
-                          <label className="text-[10px] font-bold text-amber-800 uppercase block mb-0.5">Al Anfitrión</label>
+                          <label className="text-[10px] font-bold text-amber-800 uppercase block mb-0.5" title="Equivale al 50% de la penalización del 15%">
+                            Al Anfitrión (50%)
+                          </label>
                           <div className="relative w-28">
                             <input
                               type="number"
                               min="0"
                               max="100"
-                              step="5"
+                              step="0.5"
                               required
-                              value={politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50}
-                              onChange={(e) => setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacion2a10Dias: Number(e.target.value) })}
+                              value={Number(((politicasStays.penalizacion2a10Dias * (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)) / 100).toFixed(1))}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 0
+                                const share = politicasStays.penalizacion2a10Dias > 0 ? (val / politicasStays.penalizacion2a10Dias) * 100 : 50
+                                setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacion2a10Dias: share })
+                              }}
                               className="w-full pl-2 pr-7 py-1.5 bg-white border border-amber-400 rounded-lg text-xs font-black text-amber-900 text-right focus:ring-2 focus:ring-amber-500 outline-none shadow-xs"
                             />
                             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-700 font-bold text-xs">%</span>
@@ -2655,14 +2667,14 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           Retención: <strong>{politicasStays.penalizacion2a10Dias}%</strong>
                         </span>
                         <span className="text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded font-bold border border-amber-200">
-                          🏠 Anfitrión ({politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50}%): {((politicasStays.penalizacion2a10Dias * (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)) / 100).toFixed(1)}% del total
+                          🏠 Anfitrión (50%): {((politicasStays.penalizacion2a10Dias * (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)) / 100).toFixed(1)}% del total
                         </span>
                         <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
-                          🏢 SARA ({100 - (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)}%): {((politicasStays.penalizacion2a10Dias * (100 - (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50))) / 100).toFixed(1)}% del total
+                          🏢 SARA (50%): {((politicasStays.penalizacion2a10Dias * (100 - (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50))) / 100).toFixed(1)}% del total
                         </span>
                       </div>
                       <span className="text-amber-800 font-extrabold">
-                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}%
+                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}% del anticipo ({100 - politicasStays.penalizacion2a10Dias}% total)
                       </span>
                     </div>
                   </div>
@@ -2698,18 +2710,24 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           </div>
                         </div>
 
-                        {/* % Asignado al Anfitrión */}
+                        {/* % Asignado al Anfitrión (50% de la penalización) */}
                         <div className="text-right">
-                          <label className="text-[10px] font-bold text-rose-800 uppercase block mb-0.5">Al Anfitrión</label>
+                          <label className="text-[10px] font-bold text-rose-800 uppercase block mb-0.5" title="Equivale al 50% de la penalización del 20%">
+                            Al Anfitrión (50%)
+                          </label>
                           <div className="relative w-28">
                             <input
                               type="number"
                               min="0"
                               max="100"
-                              step="5"
+                              step="0.5"
                               required
-                              value={politicasStays.anfitrionSharePenalizacion24Horas ?? 50}
-                              onChange={(e) => setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacion24Horas: Number(e.target.value) })}
+                              value={Number(((politicasStays.penalizacion24Horas * (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)) / 100).toFixed(1))}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 0
+                                const share = politicasStays.penalizacion24Horas > 0 ? (val / politicasStays.penalizacion24Horas) * 100 : 50
+                                setPoliticasStays({ ...politicasStays, anfitrionSharePenalizacion24Horas: share })
+                              }}
                               className="w-full pl-2 pr-7 py-1.5 bg-white border border-rose-400 rounded-lg text-xs font-black text-rose-900 text-right focus:ring-2 focus:ring-rose-500 outline-none shadow-xs"
                             />
                             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-rose-700 font-bold text-xs">%</span>
@@ -2725,14 +2743,14 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           Retención: <strong>{politicasStays.penalizacion24Horas}%</strong>
                         </span>
                         <span className="text-rose-900 bg-rose-100/80 px-2 py-0.5 rounded font-bold border border-rose-200">
-                          🏠 Anfitrión ({politicasStays.anfitrionSharePenalizacion24Horas ?? 50}%): {((politicasStays.penalizacion24Horas * (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)) / 100).toFixed(1)}% del total
+                          🏠 Anfitrión (50%): {((politicasStays.penalizacion24Horas * (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)) / 100).toFixed(1)}% del total
                         </span>
                         <span className="text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-medium border border-slate-200">
-                          🏢 SARA ({100 - (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)}%): {((politicasStays.penalizacion24Horas * (100 - (politicasStays.anfitrionSharePenalizacion24Horas ?? 50))) / 100).toFixed(1)}% del total
+                          🏢 SARA (50%): {((politicasStays.penalizacion24Horas * (100 - (politicasStays.anfitrionSharePenalizacion24Horas ?? 50))) / 100).toFixed(1)}% del total
                         </span>
                       </div>
                       <span className="text-rose-700 font-extrabold">
-                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}%
+                        ✓ Reembolso al Huésped: {Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}% del anticipo ({100 - politicasStays.penalizacion24Horas}% total)
                       </span>
                     </div>
                   </div>
@@ -2925,41 +2943,57 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                 </div>
 
                 {/* Desglose de Liquidación SARA al Anfitrión tras el Check-in */}
-                <div className="p-3.5 bg-gradient-to-br from-slate-950 to-slate-900 rounded-xl border border-amber-500/30 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-amber-400 font-bold border-b border-white/10 pb-1.5">
-                    <span className="flex items-center gap-1.5">
-                      <Receipt size={14} />
-                      <span>Liquidación al Anfitrión (Post Check-in)</span>
-                    </span>
-                    <span className="text-[10px] text-emerald-400 font-bold">100% Fondos en SARA</span>
-                  </div>
+                {(() => {
+                  const baseSinIva = simuladorMonto / (1 + (politicasStays.ivaPorcentaje / 100))
+                  const gastosAdmIva = simuladorMonto - baseSinIva
+                  const comisionSara = simuladorMonto * 0.15
+                  const netoAnfitrion = simuladorMonto - comisionSara - gastosAdmIva
 
-                  <div className="space-y-1 text-[11px] text-gray-300">
-                    <div className="flex justify-between">
-                      <span>Total cobrado al huésped en SARA:</span>
-                      <strong className="text-white">${simuladorMonto.toFixed(2)} USD</strong>
-                    </div>
-                    <div className="flex justify-between text-rose-300">
-                      <span>• Retención Comisión SARA (15%):</span>
-                      <span>-${(simuladorMonto * 0.15).toFixed(2)} USD</span>
-                    </div>
-                    <div className="flex justify-between text-amber-300">
-                      <span>• Gastos Adm. / IVA ({politicasStays.ivaPorcentaje}% sobre comisión):</span>
-                      <span>-${((simuladorMonto * 0.15) * (politicasStays.ivaPorcentaje / 100)).toFixed(2)} USD</span>
-                    </div>
-                    <div className="flex justify-between text-gray-400 pt-0.5 border-t border-white/5">
-                      <span>Total retenido por SARA:</span>
-                      <strong className="text-rose-400">-${((simuladorMonto * 0.15) + ((simuladorMonto * 0.15) * (politicasStays.ivaPorcentaje / 100))).toFixed(2)} USD</strong>
-                    </div>
-                  </div>
+                  return (
+                    <div className="p-3.5 bg-gradient-to-br from-slate-950 to-slate-900 rounded-xl border border-amber-500/30 space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-amber-400 font-bold border-b border-white/10 pb-1.5">
+                        <span className="flex items-center gap-1.5">
+                          <Receipt size={14} />
+                          <span>Liquidación al Anfitrión (Post Check-in)</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-400 font-bold">100% Fondos en SARA</span>
+                      </div>
 
-                  <div className="flex items-center justify-between text-xs pt-1.5 border-t border-amber-500/30 bg-emerald-500/10 p-2 rounded-lg">
-                    <span className="text-emerald-300 font-bold">Neto a Transferir al Dueño:</span>
-                    <strong className="text-base text-emerald-400 font-black">
-                      ${(simuladorMonto - ((simuladorMonto * 0.15) + ((simuladorMonto * 0.15) * (politicasStays.ivaPorcentaje / 100)))).toFixed(2)} USD
-                    </strong>
-                  </div>
-                </div>
+                      <div className="space-y-1 text-[11px] text-gray-300">
+                        <div className="flex justify-between">
+                          <span>Total Reserva Bruta del Huésped (con IVA):</span>
+                          <strong className="text-white">${simuladorMonto.toFixed(2)} USD</strong>
+                        </div>
+                        <div className="flex justify-between text-slate-400">
+                          <span>Base Imponible neta (sin IVA):</span>
+                          <span className="font-mono text-slate-300">${baseSinIva.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex justify-between text-rose-300">
+                          <span>• Retención Comisión SARA (15%):</span>
+                          <span>-${comisionSara.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex justify-between text-amber-300">
+                          <span>• Gastos Adm. (IVA SRI {politicasStays.ivaPorcentaje}% extraído del total):</span>
+                          <span>-${gastosAdmIva.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex justify-between text-gray-400 pt-0.5 border-t border-white/5">
+                          <span>Total retenido por SARA:</span>
+                          <strong className="text-rose-400">-${(comisionSara + gastosAdmIva).toFixed(2)} USD</strong>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1.5 border-t border-amber-500/30 bg-emerald-500/10 p-2 rounded-lg">
+                        <div>
+                          <span className="text-emerald-300 font-bold block">Valor a Transferir al Anfitrión:</span>
+                          <span className="text-[9px] text-emerald-200/70 block">(Total Reserva Bruta - Comisión SARA - Gastos Administrativos)</span>
+                        </div>
+                        <strong className="text-base text-emerald-400 font-black">
+                          ${netoAnfitrion.toFixed(2)} USD
+                        </strong>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {/* Tabla de Resultados Simulados en los 3 Casos */}
                 <div className="space-y-2 pt-1 text-xs">
@@ -2971,6 +3005,8 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   {(() => {
                     const penMonto = simuladorMonto * (politicasStays.penalizacionMas10Dias / 100)
                     const hostShare = politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50
+                    const hostPctTotal = (politicasStays.penalizacionMas10Dias * (hostShare / 100)).toFixed(1)
+                    const saraPctTotal = (politicasStays.penalizacionMas10Dias * ((100 - hostShare) / 100)).toFixed(1)
                     const hostMonto = penMonto * (hostShare / 100)
                     const saraMonto = penMonto * ((100 - hostShare) / 100)
                     const reembolso = simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias) / 100)
@@ -2991,11 +3027,11 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         {/* Reparto Anfitrión y SARA */}
                         <div className="bg-black/40 p-2 rounded-lg space-y-1 text-[10px] border border-white/5">
                           <div className="flex justify-between text-emerald-300 font-medium">
-                            <span>🏠 Compensación Anfitrión ({hostShare}%):</span>
+                            <span>🏠 Compensación Anfitrión ({hostPctTotal}% del total - 50% de retención):</span>
                             <strong className="font-bold">+${hostMonto.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>🏢 Retención Operativa SARA ({100 - hostShare}%):</span>
+                            <span>🏢 Retención Operativa SARA ({saraPctTotal}% del total - 50% de retención):</span>
                             <span>+${saraMonto.toFixed(2)} USD</span>
                           </div>
                         </div>
@@ -3014,6 +3050,8 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   {(() => {
                     const penMonto = simuladorMonto * (politicasStays.penalizacion2a10Dias / 100)
                     const hostShare = politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50
+                    const hostPctTotal = (politicasStays.penalizacion2a10Dias * (hostShare / 100)).toFixed(1)
+                    const saraPctTotal = (politicasStays.penalizacion2a10Dias * ((100 - hostShare) / 100)).toFixed(1)
                     const hostMonto = penMonto * (hostShare / 100)
                     const saraMonto = penMonto * ((100 - hostShare) / 100)
                     const reembolso = simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias) / 100)
@@ -3034,11 +3072,11 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         {/* Reparto Anfitrión y SARA */}
                         <div className="bg-black/40 p-2 rounded-lg space-y-1 text-[10px] border border-white/5">
                           <div className="flex justify-between text-amber-300 font-medium">
-                            <span>🏠 Compensación Anfitrión ({hostShare}%):</span>
+                            <span>🏠 Compensación Anfitrión ({hostPctTotal}% del total - 50% de retención):</span>
                             <strong className="font-bold">+${hostMonto.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>🏢 Retención Operativa SARA ({100 - hostShare}%):</span>
+                            <span>🏢 Retención Operativa SARA ({saraPctTotal}% del total - 50% de retención):</span>
                             <span>+${saraMonto.toFixed(2)} USD</span>
                           </div>
                         </div>
@@ -3057,6 +3095,8 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   {(() => {
                     const penMonto = simuladorMonto * (politicasStays.penalizacion24Horas / 100)
                     const hostShare = politicasStays.anfitrionSharePenalizacion24Horas ?? 50
+                    const hostPctTotal = (politicasStays.penalizacion24Horas * (hostShare / 100)).toFixed(1)
+                    const saraPctTotal = (politicasStays.penalizacion24Horas * ((100 - hostShare) / 100)).toFixed(1)
                     const hostMonto = penMonto * (hostShare / 100)
                     const saraMonto = penMonto * ((100 - hostShare) / 100)
                     const reembolso = simuladorMonto * (Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas) / 100)
@@ -3077,11 +3117,11 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                         {/* Reparto Anfitrión y SARA */}
                         <div className="bg-black/40 p-2 rounded-lg space-y-1 text-[10px] border border-white/5">
                           <div className="flex justify-between text-rose-300 font-medium">
-                            <span>🏠 Compensación Anfitrión ({hostShare}%):</span>
+                            <span>🏠 Compensación Anfitrión ({hostPctTotal}% del total - 50% de retención):</span>
                             <strong className="font-bold">+${hostMonto.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>🏢 Retención Operativa SARA ({100 - hostShare}%):</span>
+                            <span>🏢 Retención Operativa SARA ({saraPctTotal}% del total - 50% de retención):</span>
                             <span>+${saraMonto.toFixed(2)} USD</span>
                           </div>
                         </div>
@@ -3102,15 +3142,19 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   <button
                     type="button"
                     onClick={() => {
+                      const host10Pct = ((politicasStays.penalizacionMas10Dias * (politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50)) / 100).toFixed(1)
+                      const host2a10Pct = ((politicasStays.penalizacion2a10Dias * (politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50)) / 100).toFixed(1)
+                      const host24hPct = ((politicasStays.penalizacion24Horas * (politicasStays.anfitrionSharePenalizacion24Horas ?? 50)) / 100).toFixed(1)
+
                       const msg = `*POLÍTICAS DE RESERVA, CANCELACIÓN & COMPENSACIÓN AL ANFITRIÓN - SARA STAYS*\n\n` +
                         `✅ *Anticipo para Confirmar:* ${politicasStays.porcentajeAnticipo}% del valor de la estadía.\n` +
                         `💵 *Saldo restante:* Se liquida al Check-in directamente a cuenta SARA.\n\n` +
                         `📋 *Escala de Cancelación, Reembolso y Compensación al Anfitrión:*\n` +
-                        `• *Más de 10 días:* Penalización ${politicasStays.penalizacionMas10Dias}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}% | Anfitrión recibe: ${politicasStays.anfitrionSharePenalizacionMas10Dias ?? 50}% de la penalización).\n` +
-                        `• *De 2 a 10 días:* Penalización ${politicasStays.penalizacion2a10Dias}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}% | Anfitrión recibe: ${politicasStays.anfitrionSharePenalizacion2a10Dias ?? 50}% de la penalización).\n` +
-                        `• *24 horas o menos:* Penalización ${politicasStays.penalizacion24Horas}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}% | Anfitrión recibe: ${politicasStays.anfitrionSharePenalizacion24Horas ?? 50}% de la penalización).\n\n` +
+                        `• *Más de 10 días:* Penalización ${politicasStays.penalizacionMas10Dias}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacionMas10Dias)}% | Anfitrión recibe: ${host10Pct}% de la reserva [50% de retención]).\n` +
+                        `• *De 2 a 10 días:* Penalización ${politicasStays.penalizacion2a10Dias}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion2a10Dias)}% | Anfitrión recibe: ${host2a10Pct}% de la reserva [50% de retención]).\n` +
+                        `• *24 horas o menos:* Penalización ${politicasStays.penalizacion24Horas}% (Devolución Huésped: ${Math.max(0, politicasStays.porcentajeAnticipo - politicasStays.penalizacion24Horas)}% | Anfitrión recibe: ${host24hPct}% de la reserva [50% de retención]).\n\n` +
                         `⏱️ *Plazo de Devolución:* ${politicasStays.diasReembolso} mediante ${politicasStays.metodoDevolucion}.\n` +
-                        `🏛️ *IVA / Gastos Adm. sobre Comisión:* ${politicasStays.ivaPorcentaje}%.`
+                        `🏛️ *IVA / Facturación SRI:* ${politicasStays.ivaPorcentaje}% extraído del total bruto.`
 
                       navigator.clipboard.writeText(msg)
                       alert("¡Texto de políticas copiado al portapapeles! Listo para enviar por WhatsApp o correo.")
