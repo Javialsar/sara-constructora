@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS alojamientos_airbnb (
   anfitrion_numero_cuenta text DEFAULT '',
   anfitrion_titular text DEFAULT '',
   anfitrion_cuenta_bancaria text DEFAULT '',
+  anfitrion_qr_cuenta text DEFAULT '',
   
   -- Viñeta 5: Modelo de Monetización y Comisión SARA
   monetizacion_modelo text DEFAULT 'comision_reserva' CHECK (monetizacion_modelo IN ('comision_reserva', 'gestion_completa', 'membresia_fija')),

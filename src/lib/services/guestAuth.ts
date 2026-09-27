@@ -10,6 +10,7 @@ export interface GuestProfile {
   ciudad?: string
   ciudadPais?: string
   avatarUrl?: string
+  qrCuenta?: string
   fechaRegistro?: string
 }
 

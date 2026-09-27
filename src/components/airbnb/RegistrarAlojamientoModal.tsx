@@ -23,10 +23,18 @@ import {
   Bath,
   Sparkles,
   AlertCircle,
-  Loader2
+  Loader2,
+  QrCode,
+  ShieldCheck,
+  Scale,
+  Receipt,
+  Percent,
+  BadgeInfo,
+  HelpCircle
 } from "lucide-react"
 import AirbnbCoordinatePickerWrapper from "@/components/ui/AirbnbCoordinatePickerWrapper"
 import { GuestProfile } from "@/lib/services/guestAuth"
+import { getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
 
 export const AMENIDADES_DISPONIBLES = [
   { id: "vista_rio", label: "Vista al Río", icon: "🌊" },
@@ -87,9 +95,12 @@ export default function RegistrarAlojamientoModal({
   activeGuest,
   existingCount
 }: RegistrarAlojamientoModalProps) {
-  const [modalTab, setModalTab] = useState<"general" | "multimedia" | "anfitrion" | "caracteristicas">("general")
+  const [modalTab, setModalTab] = useState<"general" | "multimedia" | "anfitrion" | "caracteristicas" | "politicas">("general")
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
+  const [politicas, setPoliticas] = useState<StaysPolicies>(DEFAULT_STAYS_POLICIES)
+  const [isUploadingQr, setIsUploadingQr] = useState(false)
+  const [nochesSimuladas, setNochesSimuladas] = useState(3)
 
   // Código secuencial SARA-ALJ-0X
   const nextSeq = Math.max(existingCount + 1, 5)
@@ -141,16 +152,33 @@ export default function RegistrarAlojamientoModal({
     anfitrionTipoCuenta: "Ahorros",
     anfitrionNumeroCuenta: "2201984532",
     anfitrionTitular: activeGuest ? `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() : "Patricio Carrasco",
+    anfitrionQrCuenta: activeGuest?.qrCuenta || "",
     modeloMonetizacion: "comision_reserva",
     porcentajeComision: 15,
     cuotaFijaMensual: 45
   })
+
+  // Validación: el título es el primer campo indispensable para desbloquear el flujo
+  const isTituloValido = Boolean(formAlojamiento.titulo && formAlojamiento.titulo.trim().length > 0)
+
+  // Control estricto de cambio de pestañas: no se puede saltar sin ingresar al menos el título
+  const handleTabClick = (tabId: "general" | "multimedia" | "anfitrion" | "caracteristicas" | "politicas") => {
+    if (tabId !== "general" && !isTituloValido) {
+      setErrorMessage("Por favor ingresa primero el título del anuncio para habilitar y navegar a las siguientes pestañas.")
+      return
+    }
+    setErrorMessage("")
+    setModalTab(tabId)
+  }
 
   // Limpiar y resetear el formulario cada vez que se abre el modal para crear nuevo alojamiento
   useEffect(() => {
     if (isOpen) {
       setModalTab("general")
       setErrorMessage("")
+      getStaysPolicies().then(p => {
+        if (p) setPoliticas(p)
+      })
       setFormAlojamiento(prev => ({
         ...prev,
         codigo: generatedCode,
@@ -162,7 +190,8 @@ export default function RegistrarAlojamientoModal({
         anfitrionTelefono: activeGuest?.telefono || prev.anfitrionTelefono,
         anfitrionEmail: activeGuest?.email || prev.anfitrionEmail,
         anfitrionCedulaRuc: activeGuest?.cedula || prev.anfitrionCedulaRuc,
-        anfitrionTitular: activeGuest ? `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() : prev.anfitrionTitular
+        anfitrionTitular: activeGuest ? `${activeGuest.nombre} ${activeGuest.apellido || ""}`.trim() : prev.anfitrionTitular,
+        anfitrionQrCuenta: activeGuest?.qrCuenta || prev.anfitrionQrCuenta || ""
       }))
     }
   }, [isOpen, generatedCode, activeGuest])
@@ -220,6 +249,61 @@ export default function RegistrarAlojamientoModal({
         }))
       }
     }
+    reader.readAsDataURL(file)
+    e.target.value = ""
+  }
+
+  // Subir imagen del Código QR de la cuenta bancaria del anfitrión
+  const handleDeviceQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      alert("Por favor selecciona un archivo de imagen válido (.png, .jpg, .webp)")
+      return
+    }
+
+    setIsUploadingQr(true)
+    try {
+      const fileExt = file.name.split(".").pop() || "png"
+      const fileName = `qr-${formAlojamiento.codigo || "cta"}-${Date.now()}.${fileExt}`
+      const filePath = `alojamientos/qr/${fileName}`
+
+      const { createClient } = await import("@/lib/supabase/client")
+      const supabase = createClient()
+      const { error: uploadErr } = await supabase.storage
+        .from("sara-assets")
+        .upload(filePath, file, { upsert: true })
+
+      if (!uploadErr) {
+        const { data: { publicUrl } } = supabase.storage
+          .from("sara-assets")
+          .getPublicUrl(filePath)
+
+        setFormAlojamiento(prev => ({
+          ...prev,
+          anfitrionQrCuenta: publicUrl
+        }))
+        setIsUploadingQr(false)
+        return
+      }
+    } catch (err) {
+      console.warn("Aviso subiendo QR a Supabase Storage, aplicando fallback base64:", err)
+    }
+
+    // Fallback seguro a Base64
+    const reader = new FileReader()
+    reader.onload = (uploadEvent) => {
+      const base64Data = uploadEvent.target?.result as string
+      if (base64Data) {
+        setFormAlojamiento(prev => ({
+          ...prev,
+          anfitrionQrCuenta: base64Data
+        }))
+      }
+      setIsUploadingQr(false)
+    }
+    reader.onerror = () => setIsUploadingQr(false)
     reader.readAsDataURL(file)
     e.target.value = ""
   }
@@ -345,7 +429,8 @@ export default function RegistrarAlojamientoModal({
           tipoCuenta: formAlojamiento.anfitrionTipoCuenta,
           numeroCuenta: formAlojamiento.anfitrionNumeroCuenta,
           titular: formAlojamiento.anfitrionTitular,
-          cuentaBancaria: formattedCuenta
+          cuentaBancaria: formattedCuenta,
+          qrCuenta: formAlojamiento.anfitrionQrCuenta
         },
         monetizacion: {
           modelo: formAlojamiento.modeloMonetizacion,
@@ -444,13 +529,13 @@ export default function RegistrarAlojamientoModal({
         </div>
 
         {/* Stepper / Barra de Pasos Organizada */}
-        <div className="px-6 sm:px-10 py-3 bg-white border-b border-slate-200 shrink-0 shadow-xs">
-          <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+        <div className="px-4 sm:px-10 py-3 bg-white border-b border-slate-200 shrink-0 shadow-xs">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
             {/* Paso 1 */}
             <button
               type="button"
-              onClick={() => setModalTab("general")}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              onClick={() => handleTabClick("general")}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
                 modalTab === "general"
                   ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
                   : "text-slate-600 hover:bg-slate-100"
@@ -462,17 +547,21 @@ export default function RegistrarAlojamientoModal({
               <span>Ubicación & Mapa</span>
             </button>
 
-            <div className="h-px w-6 bg-slate-200 hidden md:block" />
+            <div className="h-px w-4 sm:w-6 bg-slate-200 hidden md:block" />
 
             {/* Paso 2 */}
             <button
               type="button"
-              onClick={() => setModalTab("multimedia")}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              disabled={!isTituloValido}
+              onClick={() => handleTabClick("multimedia")}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 modalTab === "multimedia"
-                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20 cursor-pointer"
+                  : isTituloValido
+                  ? "text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-400 opacity-50 cursor-not-allowed"
               }`}
+              title={!isTituloValido ? "Ingresa el título del anuncio para desbloquear" : "Fotos & Video"}
             >
               <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
                 modalTab === "multimedia" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
@@ -485,35 +574,48 @@ export default function RegistrarAlojamientoModal({
               </span>
             </button>
 
-            <div className="h-px w-6 bg-slate-200 hidden md:block" />
+            <div className="h-px w-4 sm:w-6 bg-slate-200 hidden md:block" />
 
             {/* Paso 3 */}
             <button
               type="button"
-              onClick={() => setModalTab("anfitrion")}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              disabled={!isTituloValido}
+              onClick={() => handleTabClick("anfitrion")}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 modalTab === "anfitrion"
-                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20 cursor-pointer"
+                  : isTituloValido
+                  ? "text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-400 opacity-50 cursor-not-allowed"
               }`}
+              title={!isTituloValido ? "Ingresa el título del anuncio para desbloquear" : "Anfitrión & Banco"}
             >
               <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
                 modalTab === "anfitrion" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
               }`}>3</span>
               <span>Anfitrión & Banco</span>
+              {formAlojamiento.anfitrionQrCuenta && (
+                <span className="text-[9px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-700 rounded-full font-bold">
+                  QR ✓
+                </span>
+              )}
             </button>
 
-            <div className="h-px w-6 bg-slate-200 hidden md:block" />
+            <div className="h-px w-4 sm:w-6 bg-slate-200 hidden md:block" />
 
             {/* Paso 4 */}
             <button
               type="button"
-              onClick={() => setModalTab("caracteristicas")}
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              disabled={!isTituloValido}
+              onClick={() => handleTabClick("caracteristicas")}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                 modalTab === "caracteristicas"
-                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20"
-                  : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/20 cursor-pointer"
+                  : isTituloValido
+                  ? "text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  : "text-slate-400 opacity-50 cursor-not-allowed"
               }`}
+              title={!isTituloValido ? "Ingresa el título del anuncio para desbloquear" : "Checklist & Tarifas"}
             >
               <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
                 modalTab === "caracteristicas" ? "bg-amber-400 text-slate-950" : "bg-slate-200 text-slate-700"
@@ -523,6 +625,31 @@ export default function RegistrarAlojamientoModal({
                 modalTab === "caracteristicas" ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"
               }`}>
                 {formAlojamiento.amenidades.length}
+              </span>
+            </button>
+
+            <div className="h-px w-4 sm:w-6 bg-slate-200 hidden md:block" />
+
+            {/* Paso 5: Políticas, Comisiones & SRI */}
+            <button
+              type="button"
+              disabled={!isTituloValido}
+              onClick={() => handleTabClick("politicas")}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                modalTab === "politicas"
+                  ? "bg-gradient-to-r from-slate-900 to-amber-950 text-white shadow-md ring-2 ring-amber-500/30 cursor-pointer"
+                  : isTituloValido
+                  ? "text-amber-800 bg-amber-50/60 hover:bg-amber-100/70 border border-amber-200/60 cursor-pointer"
+                  : "text-slate-400 opacity-50 cursor-not-allowed"
+              }`}
+              title={!isTituloValido ? "Ingresa el título del anuncio para desbloquear" : "Políticas, Comisiones & Cancelaciones"}
+            >
+              <span className={`w-5 h-5 rounded-full text-[11px] flex items-center justify-center font-black ${
+                modalTab === "politicas" ? "bg-amber-400 text-slate-950" : "bg-amber-200 text-amber-900"
+              }`}>5</span>
+              <span>Políticas & SRI</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-extrabold bg-amber-400/20 text-amber-700">
+                50% Host
               </span>
             </button>
           </div>
@@ -771,23 +898,6 @@ export default function RegistrarAlojamientoModal({
                     </button>
                   </div>
 
-                  {/* Accesos rápidos */}
-                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Ejemplos Rápidos:
-                    </span>
-                    {FOTO_PRESETS.map((p) => (
-                      <button
-                        key={p.name}
-                        type="button"
-                        onClick={() => handleAddFoto(p.url)}
-                        className="text-[11px] bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 px-2 py-0.5 rounded transition-colors cursor-pointer"
-                      >
-                        + {p.name}
-                      </button>
-                    ))}
-                  </div>
-
                   {/* Grilla de Fotos Cargadas */}
                   {formAlojamiento.imagenes.length === 0 ? (
                     <div className="text-center py-10 px-4 text-gray-400 border-2 border-dashed border-gray-300 rounded-2xl bg-white space-y-3">
@@ -796,7 +906,7 @@ export default function RegistrarAlojamientoModal({
                       </div>
                       <div>
                         <p className="text-xs font-bold text-gray-700">Esta sección se encuentra limpia y lista para tus fotos</p>
-                        <p className="text-[11px] text-gray-400 mt-0.5">Sube fotografías reales de tu inmueble desde tu dispositivo, ingresa un enlace o usa un ejemplo rápido</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">Sube fotografías reales de tu inmueble desde tu dispositivo o ingresa un enlace web de alta resolución</p>
                       </div>
                       <div className="flex items-center justify-center gap-2 pt-1">
                         <label className="cursor-pointer px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
@@ -1078,6 +1188,110 @@ export default function RegistrarAlojamientoModal({
                     </span>
                   </div>
                 </div>
+
+                {/* 3. Código QR de Cuenta Bancaria / DeUna / Transferencias Rápidas */}
+                <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200/90 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-amber-500/20 text-amber-800 rounded-lg">
+                        <QrCode size={18} />
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                          <span>3. Código QR de Cuenta Bancaria (DeUna / Banco Pichincha / Guayaquil / Produbanco)</span>
+                        </h5>
+                        <p className="text-[11px] text-amber-800/80">
+                          Sube el código QR oficial de tu cuenta o monedero para agilizar el depósito automático de tus liquidaciones netas.
+                        </p>
+                      </div>
+                    </div>
+
+                    {formAlojamiento.anfitrionQrCuenta && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full border border-emerald-300 shadow-2xs">
+                        <Check size={11} strokeWidth={3} /> QR Vinculado
+                      </span>
+                    )}
+                  </div>
+
+                  {formAlojamiento.anfitrionQrCuenta ? (
+                    <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl border border-amber-200 shadow-2xs">
+                      <div className="relative group w-32 h-32 sm:w-36 sm:h-36 bg-slate-50 rounded-xl overflow-hidden border-2 border-amber-400/80 shadow-inner flex items-center justify-center shrink-0">
+                        <img
+                          src={formAlojamiento.anfitrionQrCuenta}
+                          alt="QR Bancario"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      </div>
+
+                      <div className="space-y-2 text-center sm:text-left flex-1">
+                        <div className="text-xs font-extrabold text-slate-800 flex items-center justify-center sm:justify-start gap-1.5">
+                          <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                          <span>Código QR activo para transferencias bancarias directas</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          La administración de SARA utilizará este código QR para transferir tus valores netos tras el check-in del huésped (descontando comisión e IVA/SRI) de forma rápida y sin demoras.
+                        </p>
+                        <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+                          <label className="cursor-pointer px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs">
+                            <Upload size={13} />
+                            <span>Cambiar QR</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleDeviceQrUpload}
+                              className="hidden"
+                              disabled={isUploadingQr}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setFormAlojamiento(prev => ({ ...prev, anfitrionQrCuenta: "" }))}
+                            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 border border-rose-200 cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white border-2 border-dashed border-amber-300 rounded-xl p-5 text-center space-y-2.5">
+                      <div className="w-11 h-11 mx-auto rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+                        <QrCode size={22} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">
+                          Sube el Código QR de tu Cuenta Bancaria o Billetera Móvil
+                        </p>
+                        <p className="text-[11px] text-slate-500 max-w-md mx-auto mt-0.5 leading-relaxed">
+                          Admite imágenes o capturas de pantalla de códigos QR de Banco Pichincha, DeUna, Banco Guayaquil, Produbanco, JEP u otra entidad bancaria autorizada.
+                        </p>
+                      </div>
+                      <div className="pt-1">
+                        <label className="inline-flex cursor-pointer px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] text-slate-950 rounded-xl text-xs font-black transition-all items-center gap-2 shadow-sm">
+                          {isUploadingQr ? (
+                            <>
+                              <Loader2 size={14} className="animate-spin" />
+                              <span>Subiendo QR...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload size={14} />
+                              <span>Seleccionar Imagen del QR</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleDeviceQrUpload}
+                            className="hidden"
+                            disabled={isUploadingQr}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1293,6 +1507,411 @@ export default function RegistrarAlojamientoModal({
                 </div>
               </div>
             )}
+
+            {/* ========================================================= */}
+            {/* VIÑETA 5: POLÍTICAS, COMISIONES, RETENCIONES SRI & CANC. */}
+            {/* ========================================================= */}
+            {modalTab === "politicas" && (() => {
+              const pNoche = Number(formAlojamiento.precioNoche) || 50
+              const pLimpieza = Number(formAlojamiento.tarifaLimpieza) || 15
+              const subtotalNochesSim = pNoche * nochesSimuladas
+              const totalReservaSim = subtotalNochesSim + pLimpieza
+              const anticipoCobradoSim = totalReservaSim * (politicas.porcentajeAnticipo / 100)
+              const saldoCheckInSim = totalReservaSim - anticipoCobradoSim
+              const comisionSaraSim = totalReservaSim * (formAlojamiento.porcentajeComision / 100)
+              const gastosAdmIvaSim = comisionSaraSim * (politicas.ivaPorcentaje / 100)
+              const totalRetencionesSim = comisionSaraSim + gastosAdmIvaSim
+              const netoAnfitrionSim = totalReservaSim - totalRetencionesSim
+
+              // Compensaciones al anfitrión (50% de la penalización)
+              const compHostMas10 = totalReservaSim * (politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100) / 100)
+              const compHost2a10 = totalReservaSim * (politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100) / 100)
+              const compHost24h = totalReservaSim * (politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100) / 100)
+
+              return (
+                <div className="space-y-6 animate-fadeIn">
+                  {/* Banner de Cabecera */}
+                  <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 rounded-3xl p-6 sm:p-8 text-white shadow-md border border-amber-500/20 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-400/30 shrink-0">
+                          <ShieldCheck size={26} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <h4 className="text-base sm:text-lg font-black tracking-tight text-white">
+                              Políticas Oficiales, Comisiones SARA Stays & Facturación SRI
+                            </h4>
+                            <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-400/30">
+                              SRI Legal • 50% Anfitrión
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                            Transparencia financiera garantizada: SARA Constructora & Hospitality gestiona el cobro centralizado, asume la facturación electrónica formal para el SRI y transfiere tu liquidación neta inmediatamente tras el check-in.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-right shrink-0">
+                        <span className="text-[10px] text-amber-300 font-bold block uppercase tracking-wider">Anticipo al Reservar</span>
+                        <strong className="text-lg font-black text-white">{politicas.porcentajeAnticipo}%</strong>
+                        <span className="text-[10px] text-slate-300 block">Saldo al Check-in: {100 - politicas.porcentajeAnticipo}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila 1: Comisiones y Facturación SRI */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Tarjeta 1: Comisión de la Empresa y Facturación Electrónica */}
+                    <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-amber-50 text-amber-700 rounded-xl">
+                            <Receipt size={18} />
+                          </div>
+                          <div>
+                            <h5 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                              Comisión de Plataforma & Gastos Administrativos
+                            </h5>
+                            <span className="text-[11px] text-slate-500">Valores deducibles aplicados a cada reserva confirmada</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md">
+                          15% SARA
+                        </span>
+                      </div>
+
+                      <div className="space-y-3 text-xs">
+                        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5">
+                          <div className="flex items-center justify-between font-bold text-slate-800">
+                            <span className="flex items-center gap-1.5">
+                              <Percent size={13} className="text-amber-600" />
+                              <span>Comisión SARA Stays (15%)</span>
+                            </span>
+                            <span className="text-amber-700 font-black">15.00%</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Cubre la gestión multicanal, marketing digital, motor de reservas en tiempo real, soporte al huésped 24/7 y garantía de cobro seguro mediante pasarela bancaria.
+                          </p>
+                        </div>
+
+                        <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/90 space-y-1.5">
+                          <div className="flex items-center justify-between font-bold text-amber-950">
+                            <span className="flex items-center gap-1.5">
+                              <Receipt size={13} className="text-amber-700" />
+                              <span>Gastos Administrativos & Facturación Electrónica SRI</span>
+                            </span>
+                            <span className="text-amber-900 font-black">{politicas.ivaPorcentaje}% IVA</span>
+                          </div>
+                          <p className="text-[11px] text-amber-900/80 leading-relaxed">
+                            <strong>La empresa SARA se encarga de emitir la facturación electrónica con autorización directa del SRI al huésped</strong>. Se aplica el porcentaje de IVA de ley ({politicas.ivaPorcentaje}% general o la tarifa reducida en feriados turísticos oficiales decretados por el Gobierno) y las retenciones tributarias correspondientes.
+                          </p>
+                          <span className="inline-block text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md mt-1">
+                            ✓ Te libera de trámites burocráticos de facturación con el huésped
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta 2: Flujo de Pagos & Liquidación al Check-in */}
+                    <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-blue-50 text-blue-700 rounded-xl">
+                            <Landmark size={18} />
+                          </div>
+                          <div>
+                            <h5 className="text-xs sm:text-sm font-extrabold text-slate-900">
+                              Flujo de Pago y Transferencia al Anfitrión
+                            </h5>
+                            <span className="text-[11px] text-slate-500">Garantía de cobro y liquidación sin esperas</span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">
+                          Post Check-in
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Paso 1 */}
+                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                          <span className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            1
+                          </span>
+                          <div className="text-xs">
+                            <strong className="text-slate-900 block font-bold">Reserva con Anticipo ({politicas.porcentajeAnticipo}%)</strong>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                              El huésped cancela el {politicas.porcentajeAnticipo}% a la cuenta central de SARA para confirmar y asegurar las fechas en el calendario.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Paso 2 */}
+                        <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/70">
+                          <span className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            2
+                          </span>
+                          <div className="text-xs">
+                            <strong className="text-slate-900 block font-bold">Check-in y Saldo del {100 - politicas.porcentajeAnticipo}%</strong>
+                            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                              Al ingresar al alojamiento, el huésped cancela la diferencia restante ({100 - politicas.porcentajeAnticipo}%) para completar el 100% de la estadía.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Paso 3 */}
+                        <div className="flex items-start gap-3 p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200">
+                          <span className="w-6 h-6 rounded-full bg-emerald-600 text-white font-black text-xs flex items-center justify-center shrink-0 mt-0.5">
+                            3
+                          </span>
+                          <div className="text-xs">
+                            <strong className="text-emerald-950 block font-bold">Transferencia Inmediata al Anfitrión (Cuenta / QR)</strong>
+                            <p className="text-[11px] text-emerald-900/80 mt-0.5 leading-relaxed">
+                              Una vez validado el Check-in, <strong>SARA transfiere el valor neto directamente a tu cuenta bancaria o código QR registrado</strong>, restando únicamente la comisión y los gastos administrativos/IVA de ley.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Escala Oficial de Cancelaciones y Devoluciones (50% Anfitrión) */}
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5">
+                    <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-amber-500/10 text-amber-700 rounded-xl border border-amber-200">
+                          <Scale size={20} />
+                        </div>
+                        <div>
+                          <h5 className="text-sm font-black text-slate-900">
+                            Escala de Penalizaciones por Cancelación & Participación del Anfitrión
+                          </h5>
+                          <p className="text-xs text-slate-500">
+                            En toda cancelación por parte del huésped, <strong>el anfitrión recibe el {politicas.anfitrionSharePenalizacionMas10Dias}% de la penalización retenida</strong> como indemnización por bloqueo de fechas.
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-200">
+                        {politicas.anfitrionSharePenalizacionMas10Dias}% para el Anfitrión
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Escala 1: > 10 Días */}
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
+                            <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                              Penalización {politicas.penalizacionMas10Dias}%
+                            </span>
+                          </div>
+                          <h6 className="text-sm font-extrabold text-slate-900 pt-1">
+                            Cancelación con MÁS de 10 días
+                          </h6>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Permite volver a comercializar las fechas con tiempo oportuno en la plataforma.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
+                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
+                            <span>Compensación Anfitrión (50%):</span>
+                            <span className="font-black">{(politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100)).toFixed(1)}% total</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
+                            <span>SARA Gestión (50%):</span>
+                            <span className="font-semibold">{(politicas.penalizacionMas10Dias * 0.5).toFixed(1)}% total</span>
+                          </div>
+                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                            <span>Reembolso al Huésped:</span>
+                            <span className="font-bold">{100 - politicas.penalizacionMas10Dias}% de la reserva</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Escala 2: 2 a 10 Días */}
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
+                            <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                              Penalización {politicas.penalizacion2a10Dias}%
+                            </span>
+                          </div>
+                          <h6 className="text-sm font-extrabold text-slate-900 pt-1">
+                            Cancelación de 2 a 10 días ({">"} 48h)
+                          </h6>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Ventana intermedia con impacto medio en la ocupación del anfitrión.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
+                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
+                            <span>Compensación Anfitrión (50%):</span>
+                            <span className="font-black">{(politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100)).toFixed(1)}% total</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
+                            <span>SARA Gestión (50%):</span>
+                            <span className="font-semibold">{(politicas.penalizacion2a10Dias * 0.5).toFixed(1)}% total</span>
+                          </div>
+                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                            <span>Reembolso al Huésped:</span>
+                            <span className="font-bold">{100 - politicas.penalizacion2a10Dias}% de la reserva</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Escala 3: < 24 Horas */}
+                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
+                            <span className="text-xs font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                              Penalización {politicas.penalizacion24Horas}%
+                            </span>
+                          </div>
+                          <h6 className="text-sm font-extrabold text-slate-900 pt-1">
+                            Cancelación con MENOS de 24 horas
+                          </h6>
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Cancelación tardía o no-show con máxima protección económica para el propietario.
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
+                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
+                            <span>Compensación Anfitrión (50%):</span>
+                            <span className="font-black">{(politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100)).toFixed(1)}% total</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
+                            <span>SARA Gestión (50%):</span>
+                            <span className="font-semibold">{(politicas.penalizacion24Horas * 0.5).toFixed(1)}% total</span>
+                          </div>
+                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
+                            <span>Reembolso al Huésped:</span>
+                            <span className="font-bold">{100 - politicas.penalizacion24Horas}% de la reserva</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-slate-100">
+                      <span>Plazo oficial de reembolso y liquidación: <strong className="text-slate-700 font-bold">{politicas.diasReembolso}</strong></span>
+                      <span>Método: <strong className="text-slate-700 font-bold">{politicas.metodoDevolucion}</strong></span>
+                    </div>
+                  </div>
+
+                  {/* Fila 3: Simulador Financiero en Tiempo Real para este Alojamiento */}
+                  <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950 text-white rounded-3xl p-6 sm:p-8 border border-amber-500/20 shadow-lg space-y-6">
+                    <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-slate-800">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 bg-amber-400 text-slate-950 rounded-xl font-black">
+                          <DollarSign size={20} />
+                        </div>
+                        <div>
+                          <h5 className="text-base font-black text-white">
+                            Simulador Financiero en Tiempo Real para Tu Alojamiento
+                          </h5>
+                          <p className="text-xs text-slate-300">
+                            Cálculo dinámico basado en tu tarifa configurada de ${formAlojamiento.precioNoche} USD/noche y limpieza de ${formAlojamiento.tarifaLimpieza} USD.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Selector de Noches */}
+                      <div className="flex items-center gap-1.5 bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700">
+                        <span className="text-[10px] text-slate-400 font-bold px-2">Noches:</span>
+                        {[1, 2, 3, 5, 7].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => setNochesSimuladas(n)}
+                            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              nochesSimuladas === n
+                                ? "bg-amber-400 text-slate-950 font-black shadow-sm"
+                                : "text-slate-300 hover:text-white hover:bg-slate-700/60"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                      {/* Desglose de Operación */}
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
+                          <span className="text-slate-400">Tarifa por Noche:</span>
+                          <span className="font-mono font-bold text-white">${pNoche.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
+                          <span className="text-slate-400">Total Noches ({nochesSimuladas} noches):</span>
+                          <span className="font-mono font-bold text-white">${subtotalNochesSim.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
+                          <span className="text-slate-400">Tarifa de Limpieza:</span>
+                          <span className="font-mono font-bold text-white">+${pLimpieza.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800 font-bold">
+                          <span className="text-white">Total Reserva Bruta del Huésped:</span>
+                          <span className="font-mono font-black text-amber-400 text-sm">${totalReservaSim.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80 text-[11px] text-slate-400">
+                          <span>• Anticipo cobrado hoy a SARA ({politicas.porcentajeAnticipo}%):</span>
+                          <span className="font-mono">${anticipoCobradoSim.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-b border-slate-800/80 text-[11px] text-slate-400">
+                          <span>• Saldo que abona el huésped al Check-in ({100 - politicas.porcentajeAnticipo}%):</span>
+                          <span className="font-mono">${saldoCheckInSim.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 text-rose-300 text-[11px]">
+                          <span>- Comisión SARA Stays (15%):</span>
+                          <span className="font-mono font-bold">-${comisionSaraSim.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 text-amber-300 text-[11px]">
+                          <span>- Gastos Adm. / Factura SRI (IVA {politicas.ivaPorcentaje}% s/comisión):</span>
+                          <span className="font-mono font-bold">-${gastosAdmIvaSim.toFixed(2)} USD</span>
+                        </div>
+                      </div>
+
+                      {/* Recuadro de Valor Neto Final */}
+                      <div className="bg-slate-950/70 p-6 rounded-3xl border border-emerald-500/30 text-center space-y-4">
+                        <span className="text-[11px] uppercase tracking-wider font-extrabold text-emerald-400 block">
+                          Neto a Transferir a Tu Cuenta o QR (Post Check-in)
+                        </span>
+                        <div className="text-4xl sm:text-5xl font-black font-mono text-emerald-400 tracking-tight">
+                          ${netoAnfitrionSim.toFixed(2)} <span className="text-lg font-bold text-emerald-200">USD</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed max-w-sm mx-auto">
+                          Depositado íntegramente a tu cuenta de <strong className="text-white">{formAlojamiento.anfitrionBanco}</strong> {formAlojamiento.anfitrionQrCuenta ? "o mediante tu código QR registrado" : ""} inmediatamente tras verificar el check-in.
+                        </p>
+
+                        <div className="pt-3 border-t border-slate-800 text-[11px] text-left space-y-1">
+                          <span className="font-bold text-amber-300 block">Indemnización si el huésped cancela la reserva:</span>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Con {">"} 10 días (recibes el 50% de retención):</span>
+                            <strong className="text-emerald-400 font-mono">+${compHostMas10.toFixed(2)} USD</strong>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>De 2 a 10 días (recibes el 50% de retención):</span>
+                            <strong className="text-emerald-400 font-mono">+${compHost2a10.toFixed(2)} USD</strong>
+                          </div>
+                          <div className="flex justify-between text-slate-300">
+                            <span>Con {"<"} 24 horas (recibes el 50% de retención):</span>
+                            <strong className="text-emerald-400 font-mono">+${compHost24h.toFixed(2)} USD</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
             </div>
           </div>
 
@@ -1310,10 +1929,18 @@ export default function RegistrarAlojamientoModal({
             <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-500">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
               <span>
-                Paso {modalTab === "general" ? "1" : modalTab === "multimedia" ? "2" : modalTab === "anfitrion" ? "3" : "4"} de 4:
+                Paso {modalTab === "general" ? "1" : modalTab === "multimedia" ? "2" : modalTab === "anfitrion" ? "3" : modalTab === "caracteristicas" ? "4" : "5"} de 5:
                 {" "}
                 <strong className="text-slate-800">
-                  {modalTab === "general" ? "Ubicación & Mapa" : modalTab === "multimedia" ? "Fotos & Video" : modalTab === "anfitrion" ? "Anfitrión & Liquidaciones" : "Tarifas & Amenidades"}
+                  {modalTab === "general"
+                    ? "Ubicación & Mapa"
+                    : modalTab === "multimedia"
+                    ? "Fotos & Video"
+                    : modalTab === "anfitrion"
+                    ? "Anfitrión & Cuenta Bancaria"
+                    : modalTab === "caracteristicas"
+                    ? "Checklist & Tarifas"
+                    : "Políticas, Comisiones & Devoluciones"}
                 </strong>
               </span>
             </div>
@@ -1323,7 +1950,8 @@ export default function RegistrarAlojamientoModal({
                 <button
                   type="button"
                   onClick={() => {
-                    if (modalTab === "caracteristicas") setModalTab("anfitrion")
+                    if (modalTab === "politicas") setModalTab("caracteristicas")
+                    else if (modalTab === "caracteristicas") setModalTab("anfitrion")
                     else if (modalTab === "anfitrion") setModalTab("multimedia")
                     else if (modalTab === "multimedia") setModalTab("general")
                   }}
@@ -1334,15 +1962,32 @@ export default function RegistrarAlojamientoModal({
                 </button>
               )}
 
-              {modalTab !== "caracteristicas" && (
+              {modalTab !== "politicas" && (
                 <button
                   type="button"
+                  disabled={modalTab === "general" && !isTituloValido}
                   onClick={() => {
-                    if (modalTab === "general") setModalTab("multimedia")
-                    else if (modalTab === "multimedia") setModalTab("anfitrion")
-                    else if (modalTab === "anfitrion") setModalTab("caracteristicas")
+                    if (modalTab === "general") {
+                      if (!isTituloValido) {
+                        setErrorMessage("Por favor ingresa primero el título del anuncio para continuar.")
+                        return
+                      }
+                      setErrorMessage("")
+                      setModalTab("multimedia")
+                    } else if (modalTab === "multimedia") {
+                      setModalTab("anfitrion")
+                    } else if (modalTab === "anfitrion") {
+                      setModalTab("caracteristicas")
+                    } else if (modalTab === "caracteristicas") {
+                      setModalTab("politicas")
+                    }
                   }}
-                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-black shadow-md transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-1.5 ${
+                    modalTab === "general" && !isTituloValido
+                      ? "bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none opacity-60 select-none"
+                      : "bg-slate-900 hover:bg-slate-800 text-white shadow-md cursor-pointer active:scale-95"
+                  }`}
+                  title={modalTab === "general" && !isTituloValido ? "Debes ingresar al menos el título del anuncio para habilitar este botón" : "Siguiente"}
                 >
                   <span>Siguiente</span>
                   <ChevronRight size={16} />

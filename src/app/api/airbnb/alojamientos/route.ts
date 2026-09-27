@@ -33,51 +33,58 @@ export async function GET() {
     }
 
     // Mapear campos de la BD a la interfaz del frontend
-    const mapped = (data || []).map((row: any) => ({
-      id: row.id,
-      codigo: row.codigo,
-      titulo: row.titulo,
-      tipo: row.tipo,
-      alcance: row.alcance,
-      pais: row.pais,
-      bandera: row.bandera,
-      ciudad: row.ciudad,
-      sector: row.sector,
-      lat: Number(row.lat) || -2.9001,
-      lng: Number(row.lng) || -79.0059,
-      precioNoche: Number(row.precio_noche) || 50,
-      tarifaLimpieza: Number(row.tarifa_limpieza) || 15,
-      rating: Number(row.rating) || 5.0,
-      isSuperhost: Boolean(row.is_superhost),
-      maxHuespedes: Number(row.max_huespedes) || 2,
-      habitaciones: Number(row.habitaciones) || 1,
-      banos: Number(row.banos) || 1,
-      camas: Number(row.camas) || 1,
-      imagenUrl: row.imagen_url,
-      imagenes: Array.isArray(row.imagenes) && row.imagenes.length > 0 ? row.imagenes : [row.imagen_url],
-      videoUrl: row.video_url || "",
-      amenidades: Array.isArray(row.amenidades) ? row.amenidades : [],
-      descripcion: row.descripcion || "",
-      reglas: Array.isArray(row.reglas) ? row.reglas : [],
-      publicado: Boolean(row.publicado),
-      anfitrion: {
-        nombre: row.anfitrion_nombre,
-        telefono: row.anfitrion_telefono,
-        email: row.anfitrion_email || "",
-        cedulaRuc: row.anfitrion_cedula_ruc || "",
-        banco: row.anfitrion_banco || "Banco Pichincha",
-        tipoCuenta: row.anfitrion_tipo_cuenta || "Ahorros",
-        numeroCuenta: row.anfitrion_numero_cuenta || "",
-        titular: row.anfitrion_titular || row.anfitrion_nombre,
-        cuentaBancaria: row.anfitrion_cuenta_bancaria || `${row.anfitrion_banco || "Banco"} ${row.anfitrion_tipo_cuenta || "Ahorros"} ${row.anfitrion_numero_cuenta || ""}`
-      },
-      monetizacion: {
-        modelo: row.monetizacion_modelo || "comision_reserva",
-        porcentajeComision: Number(row.monetizacion_porcentaje_comision) || 15,
-        cuotaFijaMensual: Number(row.monetizacion_cuota_fija_mensual) || 45,
-        totalComisionesGeneradas: Number(row.monetizacion_total_comisiones) || 0
+    const mapped = (data || []).map((row: any) => {
+      const qrMatch = row.anfitrion_cuenta_bancaria?.match(/\[QR:(.*?)\]/)
+      const qrCuenta = row.anfitrion_qr_cuenta || (qrMatch ? qrMatch[1] : "")
+      const cleanCuentaBancaria = (row.anfitrion_cuenta_bancaria || "").replace(/\[QR:.*?\]/, "").trim()
+
+      return {
+        id: row.id,
+        codigo: row.codigo,
+        titulo: row.titulo,
+        tipo: row.tipo,
+        alcance: row.alcance,
+        pais: row.pais,
+        bandera: row.bandera,
+        ciudad: row.ciudad,
+        sector: row.sector,
+        lat: Number(row.lat) || -2.9001,
+        lng: Number(row.lng) || -79.0059,
+        precioNoche: Number(row.precio_noche) || 50,
+        tarifaLimpieza: Number(row.tarifa_limpieza) || 15,
+        rating: Number(row.rating) || 5.0,
+        isSuperhost: Boolean(row.is_superhost),
+        maxHuespedes: Number(row.max_huespedes) || 2,
+        habitaciones: Number(row.habitaciones) || 1,
+        banos: Number(row.banos) || 1,
+        camas: Number(row.camas) || 1,
+        imagenUrl: row.imagen_url,
+        imagenes: Array.isArray(row.imagenes) && row.imagenes.length > 0 ? row.imagenes : [row.imagen_url],
+        videoUrl: row.video_url || "",
+        amenidades: Array.isArray(row.amenidades) ? row.amenidades : [],
+        descripcion: row.descripcion || "",
+        reglas: Array.isArray(row.reglas) ? row.reglas : [],
+        publicado: Boolean(row.publicado),
+        anfitrion: {
+          nombre: row.anfitrion_nombre,
+          telefono: row.anfitrion_telefono,
+          email: row.anfitrion_email || "",
+          cedulaRuc: row.anfitrion_cedula_ruc || "",
+          banco: row.anfitrion_banco || "Banco Pichincha",
+          tipoCuenta: row.anfitrion_tipo_cuenta || "Ahorros",
+          numeroCuenta: row.anfitrion_numero_cuenta || "",
+          titular: row.anfitrion_titular || row.anfitrion_nombre,
+          cuentaBancaria: cleanCuentaBancaria || `${row.anfitrion_banco || "Banco"} ${row.anfitrion_tipo_cuenta || "Ahorros"} ${row.anfitrion_numero_cuenta || ""}`,
+          qrCuenta: qrCuenta
+        },
+        monetizacion: {
+          modelo: row.monetizacion_modelo || "comision_reserva",
+          porcentajeComision: Number(row.monetizacion_porcentaje_comision) || 15,
+          cuotaFijaMensual: Number(row.monetizacion_cuota_fija_mensual) || 45,
+          totalComisionesGeneradas: Number(row.monetizacion_total_comisiones) || 0
+        }
       }
-    }))
+    })
 
     return NextResponse.json({ alojamientos: mapped, count: mapped.length, origen: "database" })
   } catch (err: any) {
@@ -128,7 +135,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Código y título son obligatorios" }, { status: 400 })
     }
 
-    const payload = {
+    const qrCuenta = anfitrion?.qrCuenta || anfitrion?.imagenQr || anfitrion?.qr || ""
+    const rawCuenta = anfitrion?.cuentaBancaria || `${anfitrion?.banco || "Banco"} ${anfitrion?.tipoCuenta || "Ahorros"} ${anfitrion?.numeroCuenta || ""}`
+    const formattedCuenta = qrCuenta ? `${rawCuenta} [QR:${qrCuenta}]` : rawCuenta
+
+    const payload: any = {
       codigo,
       titulo,
       tipo: tipo || "suite",
@@ -161,7 +172,8 @@ export async function POST(request: Request) {
       anfitrion_tipo_cuenta: anfitrion?.tipoCuenta || "Ahorros",
       anfitrion_numero_cuenta: anfitrion?.numeroCuenta || "",
       anfitrion_titular: anfitrion?.titular || anfitrion?.nombre || "",
-      anfitrion_cuenta_bancaria: anfitrion?.cuentaBancaria || `${anfitrion?.banco || "Banco"} ${anfitrion?.tipoCuenta || "Ahorros"} ${anfitrion?.numeroCuenta || ""}`,
+      anfitrion_cuenta_bancaria: formattedCuenta,
+      anfitrion_qr_cuenta: qrCuenta,
       monetizacion_modelo: monetizacion?.modelo || "comision_reserva",
       monetizacion_porcentaje_comision: Number(monetizacion?.porcentajeComision) || 15,
       monetizacion_cuota_fija_mensual: Number(monetizacion?.cuotaFijaMensual) || 45,
@@ -169,17 +181,28 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from("alojamientos_airbnb")
-      .upsert(payload, { onConflict: "codigo" })
-      .select()
+      let { data, error } = await supabase
+        .from("alojamientos_airbnb")
+        .upsert(payload, { onConflict: "codigo" })
+        .select()
 
-    if (error) {
-      console.error("Error guardando alojamiento en Supabase:", error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
+      // Si la columna anfitrion_qr_cuenta no ha sido creada en la base de datos de Supabase, reintentar sin ella
+      if (error && error.message?.includes("anfitrion_qr_cuenta")) {
+        delete payload.anfitrion_qr_cuenta
+        const retry = await supabase
+          .from("alojamientos_airbnb")
+          .upsert(payload, { onConflict: "codigo" })
+          .select()
+        data = retry.data
+        error = retry.error
+      }
 
-    return NextResponse.json({ success: true, alojamiento: data?.[0] })
+      if (error) {
+        console.error("Error guardando alojamiento en Supabase:", error)
+        return NextResponse.json({ error: error.message }, { status: 400 })
+      }
+
+      return NextResponse.json({ success: true, alojamiento: data?.[0] })
   } catch (err: any) {
     console.error("Error en POST /api/airbnb/alojamientos:", err)
     return NextResponse.json({ error: err.message }, { status: 500 })
