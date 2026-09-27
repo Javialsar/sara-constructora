@@ -1,6 +1,7 @@
 "use client"
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
+import { getLogosEmpresa } from "@/lib/services/logosService"
 import { 
   Building2, 
   Search, 
@@ -239,6 +240,17 @@ export default function InmobiliariaPage() {
   const [isConsignarOpen, setIsConsignarOpen] = useState(false)
   const [consignarEnviado, setConsignarEnviado] = useState(false)
 
+  // Logotipo dinámico de SARA Inmobiliaria
+  const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/sara-inmobiliaria.png")
+
+  useEffect(() => {
+    getLogosEmpresa().then(logos => {
+      if (logos?.inmobiliaria) {
+        setLogoInmobiliaria(logos.inmobiliaria)
+      }
+    })
+  }, [])
+
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     const targetSection = document.getElementById("catalogo-propiedades")
@@ -328,7 +340,7 @@ export default function InmobiliariaPage() {
           <div className="flex items-center gap-6">
             <Link href="/inmobiliaria" className="flex items-center gap-3 group">
               <div className="relative w-10 h-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-emerald-400/40 shrink-0">
-                <img src="/logo-3d-white.png" alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
+                <img src={logoInmobiliaria} alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -1210,7 +1222,7 @@ export default function InmobiliariaPage() {
         <div className="w-full max-w-[1760px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-brand-dark border border-brand-sage/40 p-1 flex items-center justify-center">
-              <img src="/logo-3d-white.png" alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
+              <img src={logoInmobiliaria} alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="font-black text-white text-sm tracking-wide">SARA INMOBILIARIA</span>

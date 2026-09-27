@@ -60,6 +60,7 @@ import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
 import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
 import { getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
 import { getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
+import { getLogosEmpresa } from "@/lib/services/logosService"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
 
 export interface ResenaHuesped {
@@ -576,6 +577,17 @@ export default function AirbnbPage() {
   // Sesión del Huésped Autenticado
   const [activeGuest, setActiveGuest] = useState<GuestProfile | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false)
+
+  // Logotipo dinámico de SARA Stays
+  const [logoStays, setLogoStays] = useState<string>("/sara-stays.png")
+
+  useEffect(() => {
+    getLogosEmpresa().then(logos => {
+      if (logos?.stays) {
+        setLogoStays(logos.stays)
+      }
+    })
+  }, [])
 
   useEffect(() => {
     setActiveGuest(getGuestSession())
@@ -1220,7 +1232,7 @@ export default function AirbnbPage() {
           <div className="flex items-center gap-6">
             <Link href="/stays" className="flex items-center gap-3 group">
               <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
-                <img src="/logo-sara-airbnb.png" alt="SARA Stays" className="w-full h-full object-contain" />
+                <img src={logoStays} alt="SARA Stays" className="w-full h-full object-contain" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -3254,7 +3266,7 @@ export default function AirbnbPage() {
       <footer className="bg-slate-950 border-t border-slate-800 text-gray-400 py-12 px-4 sm:px-8 mt-20">
         <div className="w-full max-w-[1760px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
-            <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-8 h-8 rounded-lg object-contain bg-white p-0.5" />
+            <img src={logoStays} alt="SARA Stays" className="w-8 h-8 rounded-lg object-contain bg-white p-0.5" />
             <div>
               <span className="font-black text-white text-sm tracking-wide">SARA STAYS</span>
               <p className="text-xs text-gray-500">Hospédate · Red Global de Alojamientos, Suites & Hospedaje Inteligente</p>

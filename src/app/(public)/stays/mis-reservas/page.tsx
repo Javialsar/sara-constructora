@@ -37,6 +37,7 @@ import {
   Phone
 } from "lucide-react"
 import { getGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
+import { getLogosEmpresa } from "@/lib/services/logosService"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
 
 interface ReservaHuesped {
@@ -141,6 +142,15 @@ export default function MisReservasPage() {
   const router = useRouter()
   const [guest, setGuest] = useState<GuestProfile | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [logoStays, setLogoStays] = useState<string>("/sara-stays.png")
+
+  useEffect(() => {
+    getLogosEmpresa().then(logos => {
+      if (logos?.stays) {
+        setLogoStays(logos.stays)
+      }
+    })
+  }, [])
 
   // Viñeta Principal: "reservas" (Como Huésped) vs "alojamientos" (Como Anfitrión / Propietario)
   const [mainPortalTab, setMainPortalTab] = useState<"reservas" | "alojamientos">("reservas")
@@ -845,7 +855,7 @@ export default function MisReservasPage() {
           {/* Logo y Marca SARA Airbnb */}
           <Link href="/stays" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
-              <img src="/logo-sara-airbnb.png" alt="SARA Airbnb" className="w-full h-full object-contain" />
+              <img src={logoStays} alt="SARA Stays" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-2">

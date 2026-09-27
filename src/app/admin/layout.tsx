@@ -33,7 +33,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [logo, setLogo] = useState("/images/logo-sara.png")
+  const [logo, setLogo] = useState("/logo-hero.png")
   const [userName, setUserName] = useState("Administrador")
   const [userInitials, setUserInitials] = useState("A")
   

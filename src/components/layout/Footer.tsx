@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 export default async function Footer() {
   const supabase = await createClient()
   const { data: config } = await supabase.from('configuracion_empresa').select('*').limit(1).single()
-  const logo = config?.logo_url || "/images/logo-sara-transparent.png"
+  const logo = config?.logo_url || "/logo-hero.png"
   const direccion = config?.direccion || "Quito - Cuenca - Loja"
   const email = config?.email_contacto || "sara.constructora593@gmail.com"
   const telefono = config?.telefono_principal || "098 180 4023"

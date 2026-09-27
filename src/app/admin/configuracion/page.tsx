@@ -1,8 +1,9 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard } from "lucide-react"
+import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard, Sparkles, RefreshCw, Home, Compass } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getCuentasBancarias, saveCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
+import { getLogosEmpresa, saveLogosEmpresa, LogosEmpresa, DEFAULT_LOGOS_EMPRESA } from "@/lib/services/logosService"
 
 interface MiembroEquipo {
   id: string
@@ -34,8 +35,20 @@ export default function ConfiguracionPage() {
 
   const [equipo, setEquipo] = useState<MiembroEquipo[]>([])
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [uploadingLogo, setUploadingLogo] = useState(false)
+  
+  // Logotipos para las 3 líneas de servicio de Grupo SARA
+  const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA)
+  const [logoFiles, setLogoFiles] = useState<{
+    constructora: File | null
+    inmobiliaria: File | null
+    stays: File | null
+  }>({
+    constructora: null,
+    inmobiliaria: null,
+    stays: null
+  })
+  const [uploadingLogoKey, setUploadingLogoKey] = useState<string | null>(null)
+
   const [currentTheme, setCurrentTheme] = useState<string>('')
 
   useEffect(() => {
@@ -70,6 +83,10 @@ export default function ConfiguracionPage() {
     }
     const ctas = await getCuentasBancarias()
     setCuentasBancarias(ctas)
+
+    const logosData = await getLogosEmpresa()
+    setLogos(logosData)
+
     setLoading(false)
   }
 
@@ -154,50 +171,57 @@ export default function ConfiguracionPage() {
 
   const handleSave = async () => {
     setSaving(true)
-    let finalLogoUrl = formData.logo_url;
+    let finalLogos: LogosEmpresa = { ...logos }
+    const logoKeys: (keyof LogosEmpresa)[] = ['constructora', 'inmobiliaria', 'stays']
 
-    if (logoFile) {
-      setUploadingLogo(true)
-      const fileExt = logoFile.name.split('.').pop()
-      const fileName = `logo-${Date.now()}.${fileExt}`
-      const filePath = `identidad/${fileName}`
+    for (const key of logoKeys) {
+      const file = logoFiles[key]
+      if (file) {
+        setUploadingLogoKey(key)
+        const fileExt = file.name.split('.').pop()
+        const fileName = `logo-${key}-${Date.now()}.${fileExt}`
+        const filePath = `identidad/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('sara-assets')
-        .upload(filePath, logoFile)
+        const { error: uploadError } = await supabase.storage
+          .from('sara-assets')
+          .upload(filePath, file, { upsert: true })
 
-      if (uploadError) {
-        alert("Error subiendo el logo: " + uploadError.message)
-        setUploadingLogo(false)
-        setSaving(false)
-        return
+        if (uploadError) {
+          alert(`Error subiendo el logo de ${key}: ` + uploadError.message)
+        } else {
+          const { data: { publicUrl } } = supabase.storage
+            .from('sara-assets')
+            .getPublicUrl(filePath)
+          finalLogos[key] = publicUrl
+        }
       }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('sara-assets')
-        .getPublicUrl(filePath)
-      
-      finalLogoUrl = publicUrl
-      setUploadingLogo(false)
-      setFormData(prev => ({ ...prev, logo_url: publicUrl }))
     }
 
+    setUploadingLogoKey(null)
+    setLogos(finalLogos)
+    setLogoFiles({ constructora: null, inmobiliaria: null, stays: null })
+
+    // 1. Guardar logos de las 3 marcas en Supabase (parametros_globales y configuracion_empresa)
+    const logosSaved = await saveLogosEmpresa(finalLogos)
+
+    // 2. Guardar datos generales de empresa y equipo directivo
     const { error } = await supabase
       .from('configuracion_empresa')
       .update({
         ...formData,
-        logo_url: finalLogoUrl,
+        logo_url: finalLogos.constructora,
         equipo_directivo: equipo
       })
       .eq('id', configId)
 
+    // 3. Guardar cuentas bancarias
     const bankSaved = await saveCuentasBancarias(cuentasBancarias)
 
     setSaving(false)
-    if (error || !bankSaved) {
-      alert("Error al guardar: " + (error?.message || "No se pudieron guardar las cuentas bancarias."))
+    if (error || !bankSaved || !logosSaved) {
+      alert("Aviso al guardar: " + (error?.message || "Algunos cambios no se guardaron correctamente. Por favor verifica la conexión."))
     } else {
-      alert("Configuración y cuentas bancarias guardadas exitosamente.")
+      alert("¡Configuración general, cuentas bancarias y logotipos de las 3 marcas actualizados con éxito!")
     }
   }
 
@@ -226,46 +250,258 @@ export default function ConfiguracionPage() {
         </button>
       </div>
 
+      {/* ============================================================ */}
+      {/* SECCIÓN IDENTIDAD VISUAL: LAS 3 LÍNEAS DE SERVICIO DE GRUPO SARA */}
+      {/* ============================================================ */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
-        <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-          <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
-            <Camera size={20} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage shrink-0">
+              <Camera size={20} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Identidad Visual & Logotipos Multi-Marca</h2>
+              <p className="text-xs text-gray-500">Configura y actualiza el logotipo correspondiente para cada una de las 3 líneas de negocio del Grupo SARA.</p>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-gray-800">Identidad Visual</h2>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
+            <Sparkles size={12} className="text-emerald-500" />
+            3 Marcas Sincronizadas
+          </span>
         </div>
-        <div className="flex items-center gap-8">
-          {/* Preview del logo actual */}
-          <div className="w-48 h-32 bg-brand-dark rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300 relative overflow-hidden">
-            {logoFile ? (
-              <img src={URL.createObjectURL(logoFile)} alt="Nuevo Logo" className="max-w-full max-h-full object-contain p-2" />
-            ) : formData.logo_url ? (
-              <img src={formData.logo_url} alt="Logo Actual" className="max-w-full max-h-full object-contain p-2" />
-            ) : (
-              <span className="text-gray-400 text-sm">Sin Logo</span>
-            )}
-            {uploadingLogo && (
-              <div className="absolute inset-0 bg-brand-dark/80 flex items-center justify-center">
-                <Loader2 className="animate-spin text-brand-sage" size={24} />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* 1. SARA CONSTRUCTORA */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-brand-sage/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-brand-dark text-brand-sage uppercase">
+                  <Building size={12} /> Constructora
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">Portal Principal</span>
               </div>
-            )}
+              <h3 className="font-bold text-gray-900 text-base">SARA Constructora</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo matriz usado en el Header general, Footer, Servicios, Obras y Panel Admin.
+              </p>
+            </div>
+
+            {/* Preview Box */}
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "constructora" && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                  <Loader2 className="animate-spin text-brand-sage" size={26} />
+                </div>
+              )}
+              {logoFiles.constructora ? (
+                <img
+                  src={URL.createObjectURL(logoFiles.constructora)}
+                  alt="Nuevo Logo Constructora"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : logos.constructora ? (
+                <img
+                  src={logos.constructora}
+                  alt="Logo SARA Constructora"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : (
+                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Subir nuevo logotipo (PNG transparente)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0]
+                      setLogoFiles(prev => ({ ...prev, constructora: file }))
+                    }
+                  }}
+                  className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-brand-sage/20 file:text-brand-dark hover:file:bg-brand-sage/30 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoFiles(prev => ({ ...prev, constructora: null }))
+                    setLogos(prev => ({ ...prev, constructora: "/logo-hero.png" }))
+                  }}
+                  className="text-gray-500 hover:text-brand-dark flex items-center gap-1 transition-colors font-medium cursor-pointer"
+                  title="Restablecer al logo predeterminado de constructora"
+                >
+                  <RefreshCw size={11} /> Logo Original
+                </button>
+                <span className="text-emerald-700 font-medium truncate max-w-[140px]" title={logos.constructora}>
+                  {logoFiles.constructora ? "Archivo seleccionado" : logos.constructora.split('/').pop()}
+                </span>
+              </div>
+            </div>
           </div>
-          
-          <div className="flex-1">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Logotipo de la Empresa</label>
-            <p className="text-xs text-gray-500 mb-4">Sube el logotipo oficial (formato PNG con fondo transparente recomendado). Se actualizará en toda la plataforma (Menús, Footer, Hero, etc).</p>
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={(e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                  setLogoFile(e.target.files[0])
-                }
-              }}
-              className="w-full max-w-sm border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-sage/10 file:text-brand-dark hover:file:bg-brand-sage/20 cursor-pointer"
-            />
-          </div></div>
 
+          {/* 2. SARA INMOBILIARIA */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-400 uppercase">
+                  <Home size={12} /> Inmobiliaria
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">Portal Inmobiliario</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Inmobiliaria</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo para la división de Bienes Raíces: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/inmobiliaria</code>, pie de página y catálogo de propiedades.
+              </p>
+            </div>
 
+            {/* Preview Box */}
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "inmobiliaria" && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                  <Loader2 className="animate-spin text-emerald-400" size={26} />
+                </div>
+              )}
+              {logoFiles.inmobiliaria ? (
+                <img
+                  src={URL.createObjectURL(logoFiles.inmobiliaria)}
+                  alt="Nuevo Logo Inmobiliaria"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : logos.inmobiliaria ? (
+                <img
+                  src={logos.inmobiliaria}
+                  alt="Logo SARA Inmobiliaria"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : (
+                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Subir nuevo logotipo (PNG transparente)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0]
+                      setLogoFiles(prev => ({ ...prev, inmobiliaria: file }))
+                    }
+                  }}
+                  className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/20 file:text-emerald-900 hover:file:bg-emerald-500/30 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoFiles(prev => ({ ...prev, inmobiliaria: null }))
+                    setLogos(prev => ({ ...prev, inmobiliaria: "/sara-inmobiliaria.png" }))
+                  }}
+                  className="text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors font-medium cursor-pointer"
+                  title="Restablecer al logo predeterminado de inmobiliaria"
+                >
+                  <RefreshCw size={11} /> Logo Original
+                </button>
+                <span className="text-emerald-700 font-medium truncate max-w-[140px]" title={logos.inmobiliaria}>
+                  {logoFiles.inmobiliaria ? "Archivo seleccionado" : logos.inmobiliaria.split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. SARA STAYS */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-950 text-amber-400 uppercase">
+                  <Compass size={12} /> Stays
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">Portal Alojamientos</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Stays</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo para la división de Alojamientos: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/stays</code>, login de huéspedes, vouchers y confirmaciones.
+              </p>
+            </div>
+
+            {/* Preview Box */}
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "stays" && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                  <Loader2 className="animate-spin text-amber-400" size={26} />
+                </div>
+              )}
+              {logoFiles.stays ? (
+                <img
+                  src={URL.createObjectURL(logoFiles.stays)}
+                  alt="Nuevo Logo Stays"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : logos.stays ? (
+                <img
+                  src={logos.stays}
+                  alt="Logo SARA Stays"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : (
+                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Subir nuevo logotipo (PNG transparente)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0]
+                      setLogoFiles(prev => ({ ...prev, stays: file }))
+                    }
+                  }}
+                  className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/20 file:text-amber-900 hover:file:bg-amber-500/30 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoFiles(prev => ({ ...prev, stays: null }))
+                    setLogos(prev => ({ ...prev, stays: "/sara-stays.png" }))
+                  }}
+                  className="text-gray-500 hover:text-amber-700 flex items-center gap-1 transition-colors font-medium cursor-pointer"
+                  title="Restablecer al logo predeterminado de stays"
+                >
+                  <RefreshCw size={11} /> Logo Original
+                </button>
+                <span className="text-amber-700 font-medium truncate max-w-[140px]" title={logos.stays}>
+                  {logoFiles.stays ? "Archivo seleccionado" : logos.stays.split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

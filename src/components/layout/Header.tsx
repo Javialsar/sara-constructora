@@ -19,10 +19,12 @@ const navLinks = [
   { name: "Contacto", href: "/contacto" },
 ]
 
+import { getLogosEmpresa } from "@/lib/services/logosService"
+
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [logo, setLogo] = useState("/images/logo-sara.png")
+  const [logo, setLogo] = useState("/logo-hero.png")
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,14 +35,11 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    const fetchLogo = async () => {
-      const supabase = createClient()
-      const { data } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
-      if (data?.logo_url) {
-        setLogo(data.logo_url)
+    getLogosEmpresa().then(logos => {
+      if (logos?.constructora) {
+        setLogo(logos.constructora)
       }
-    }
-    fetchLogo()
+    })
   }, [])
 
   return (

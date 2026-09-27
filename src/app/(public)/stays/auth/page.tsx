@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { setGuestSession, getGuestSession } from "@/lib/services/guestAuth"
+import { getLogosEmpresa } from "@/lib/services/logosService"
 
 interface ReturnContext {
   redirect: string
@@ -37,6 +38,15 @@ export default function AirbnbAuthPage() {
 
   // Pantalla de carga con logotipo 3D giratorio al ingresar
   const [showRotatingSplash, setShowRotatingSplash] = useState(true)
+  const [logoStays, setLogoStays] = useState<string>("/sara-stays.png")
+
+  useEffect(() => {
+    getLogosEmpresa().then(logos => {
+      if (logos?.stays) {
+        setLogoStays(logos.stays)
+      }
+    })
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -428,7 +438,7 @@ export default function AirbnbAuthPage() {
             {/* Logo en contenedor premium con sombra */}
             <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/95 p-2 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] border border-white/20 shrink-0 flex items-center justify-center">
               <img
-                src="/logo-sara-airbnb.png"
+                src={logoStays}
                 alt="Logo SARA Stays"
                 className="w-full h-full object-contain"
               />
