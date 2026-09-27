@@ -1543,16 +1543,15 @@ export default function RegistrarAlojamientoModal({
               // Valor a transferir al Anfitrión = Total Reserva Bruta - Comisión SARA - Gastos Administrativos
               const netoAnfitrionSim = totalReservaSim - comisionSaraSim - gastosAdmIvaSim
 
-              // Compensaciones al anfitrión (50% de la penalización)
               const pctHostMas10 = (politicas.penalizacionMas10Dias * ((politicas.anfitrionSharePenalizacionMas10Dias ?? 50) / 100))
               const pctHost5a10 = (politicas.penalizacion5a10Dias * ((politicas.anfitrionSharePenalizacion5a10Dias ?? 50) / 100))
               const pctHost2a5 = (politicas.penalizacion2a5Dias * ((politicas.anfitrionSharePenalizacion2a5Dias ?? 50) / 100))
               const pctHost24h = (politicas.penalizacion24Horas * ((politicas.anfitrionSharePenalizacion24Horas ?? 50) / 100))
-
-              const compHostMas10 = totalReservaSim * (pctHostMas10 / 100)
-              const compHost5a10 = totalReservaSim * (pctHost5a10 / 100)
-              const compHost2a5 = totalReservaSim * (pctHost2a5 / 100)
-              const compHost24h = totalReservaSim * (pctHost24h / 100)
+              // Compensaciones al anfitrión (calculadas sobre el Anticipo efectivamente cobrado al reservar)
+              const compHostMas10 = anticipoCobradoSim * (pctHostMas10 / 100)
+              const compHost5a10 = anticipoCobradoSim * (pctHost5a10 / 100)
+              const compHost2a5 = anticipoCobradoSim * (pctHost2a5 / 100)
+              const compHost24h = anticipoCobradoSim * (pctHost24h / 100)
 
               return (
                 <div className="space-y-6 animate-fadeIn">
@@ -1960,7 +1959,7 @@ export default function RegistrarAlojamientoModal({
                         </p>
 
                         <div className="pt-3 border-t border-slate-800 text-[11px] text-left space-y-1">
-                          <span className="font-bold text-amber-300 block">Indemnización si el huésped cancela la reserva:</span>
+                          <span className="font-bold text-amber-300 block">Indemnización si el huésped cancela (sobre el anticipo cobrado de ${anticipoCobradoSim.toFixed(2)} USD):</span>
                           <div className="flex justify-between text-slate-300">
                             <span>a) Con &gt; 10 días ({pctHostMas10.toFixed(1)}% al anfitrión):</span>
                             <strong className="text-emerald-400 font-mono">+${compHostMas10.toFixed(2)} USD</strong>
