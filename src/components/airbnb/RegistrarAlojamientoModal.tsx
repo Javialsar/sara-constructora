@@ -1539,12 +1539,14 @@ export default function RegistrarAlojamientoModal({
               const netoAnfitrionSim = totalReservaSim - comisionSaraSim - gastosAdmIvaSim
 
               // Compensaciones al anfitrión (50% de la penalización)
-              const pctHostMas10 = (politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100))
-              const pctHost2a10 = (politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100))
-              const pctHost24h = (politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100))
+              const pctHostMas10 = (politicas.penalizacionMas10Dias * ((politicas.anfitrionSharePenalizacionMas10Dias ?? 50) / 100))
+              const pctHost5a10 = (politicas.penalizacion5a10Dias * ((politicas.anfitrionSharePenalizacion5a10Dias ?? 50) / 100))
+              const pctHost2a5 = (politicas.penalizacion2a5Dias * ((politicas.anfitrionSharePenalizacion2a5Dias ?? 50) / 100))
+              const pctHost24h = (politicas.penalizacion24Horas * ((politicas.anfitrionSharePenalizacion24Horas ?? 50) / 100))
 
               const compHostMas10 = totalReservaSim * (pctHostMas10 / 100)
-              const compHost2a10 = totalReservaSim * (pctHost2a10 / 100)
+              const compHost5a10 = totalReservaSim * (pctHost5a10 / 100)
+              const compHost2a5 = totalReservaSim * (pctHost2a5 / 100)
               const compHost24h = totalReservaSim * (pctHost24h / 100)
 
               return (
@@ -1717,102 +1719,135 @@ export default function RegistrarAlojamientoModal({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Escala 1: > 10 Días */}
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
+                      {/* Escala a: > 10 Días */}
+                      <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex flex-col justify-between space-y-2.5">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
-                            <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
+                            <span className="text-[11px] font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
                               Penalización {politicas.penalizacionMas10Dias}%
                             </span>
                           </div>
-                          <h6 className="text-sm font-extrabold text-slate-900 pt-1">
-                            Cancelación con MÁS de 10 días
+                          <h6 className="text-xs font-extrabold text-slate-900 pt-0.5">
+                            a) MÁS de 10 días
                           </h6>
-                          <p className="text-[11px] text-slate-500 leading-relaxed">
-                            Permite volver a comercializar las fechas con tiempo oportuno en la plataforma.
+                          <p className="text-[10px] text-slate-500 leading-relaxed">
+                            Permite volver a comercializar las fechas con tiempo oportuno.
                           </p>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
-                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                            <span>Compensación Anfitrión:</span>
-                            <span className="font-black">{(politicas.penalizacionMas10Dias * (politicas.anfitrionSharePenalizacionMas10Dias / 100)).toFixed(1)}% total (50% penalización)</span>
+                        <div className="space-y-1.5 pt-2 border-t border-slate-200 text-[11px]">
+                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2 py-1 rounded-lg border border-emerald-200 text-[10px]">
+                            <span>Comp. Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacionMas10Dias * ((politicas.anfitrionSharePenalizacionMas10Dias ?? 50) / 100)).toFixed(1)}% (50% ret.)</span>
                           </div>
-                          <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
+                          <div className="flex items-center justify-between text-slate-600 px-1 text-[10px]">
                             <span>SARA Gestión:</span>
-                            <span className="font-semibold">{(politicas.penalizacionMas10Dias * 0.5).toFixed(1)}% total (50% penalización)</span>
+                            <span className="font-semibold">{(politicas.penalizacionMas10Dias * 0.5).toFixed(1)}% (50% ret.)</span>
                           </div>
-                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
-                            <span>Reembolso al Huésped:</span>
-                            <span className="font-bold">{100 - politicas.penalizacionMas10Dias}% de la reserva</span>
+                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-semibold">
+                            <span>Reembolso:</span>
+                            <span className="font-bold">{Math.max(0, 100 - politicas.penalizacionMas10Dias)}%</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Escala 2: 2 a 10 Días */}
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                      {/* Escala b: 5 a 10 Días */}
+                      <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex flex-col justify-between space-y-2.5">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
-                            <span className="text-xs font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                              Penalización {politicas.penalizacion2a10Dias}%
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
+                            <span className="text-[11px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                              Penalización {politicas.penalizacion5a10Dias}%
                             </span>
                           </div>
-                          <h6 className="text-sm font-extrabold text-slate-900 pt-1">
-                            Cancelación de 2 a 10 días ({">"} 48h)
+                          <h6 className="text-xs font-extrabold text-slate-900 pt-0.5">
+                            b) De 5 a 10 días
                           </h6>
-                          <p className="text-[11px] text-slate-500 leading-relaxed">
-                            Ventana intermedia con impacto medio en la ocupación del anfitrión.
+                          <p className="text-[10px] text-slate-500 leading-relaxed">
+                            Ventana intermedia con impacto moderado en la agenda del anfitrión.
                           </p>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
-                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                            <span>Compensación Anfitrión:</span>
-                            <span className="font-black">{(politicas.penalizacion2a10Dias * (politicas.anfitrionSharePenalizacion2a10Dias / 100)).toFixed(1)}% total (50% penalización)</span>
+                        <div className="space-y-1.5 pt-2 border-t border-slate-200 text-[11px]">
+                          <div className="flex items-center justify-between font-bold bg-amber-50 text-amber-900 px-2 py-1 rounded-lg border border-amber-200 text-[10px]">
+                            <span>Comp. Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacion5a10Dias * ((politicas.anfitrionSharePenalizacion5a10Dias ?? 50) / 100)).toFixed(1)}% (50% ret.)</span>
                           </div>
-                          <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
+                          <div className="flex items-center justify-between text-slate-600 px-1 text-[10px]">
                             <span>SARA Gestión:</span>
-                            <span className="font-semibold">{(politicas.penalizacion2a10Dias * 0.5).toFixed(1)}% total (50% penalización)</span>
+                            <span className="font-semibold">{(politicas.penalizacion5a10Dias * 0.5).toFixed(1)}% (50% ret.)</span>
                           </div>
-                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
-                            <span>Reembolso al Huésped:</span>
-                            <span className="font-bold">{100 - politicas.penalizacion2a10Dias}% de la reserva</span>
+                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-semibold">
+                            <span>Reembolso:</span>
+                            <span className="font-bold">{Math.max(0, 100 - politicas.penalizacion5a10Dias)}%</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Escala 3: < 24 Horas */}
-                      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 flex flex-col justify-between space-y-3">
+                      {/* Escala c: 2 a 5 Días */}
+                      <div className="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 flex flex-col justify-between space-y-2.5">
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
-                            <span className="text-xs font-black text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Anticipación</span>
+                            <span className="text-[11px] font-black text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                              Penalización {politicas.penalizacion2a5Dias}%
+                            </span>
+                          </div>
+                          <h6 className="text-xs font-extrabold text-slate-900 pt-0.5">
+                            c) De 2 a 5 días
+                          </h6>
+                          <p className="text-[10px] text-slate-500 leading-relaxed">
+                            Aviso previo corto con alta dificultad para reubicar la estancia.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5 pt-2 border-t border-slate-200 text-[11px]">
+                          <div className="flex items-center justify-between font-bold bg-orange-50 text-orange-900 px-2 py-1 rounded-lg border border-orange-200 text-[10px]">
+                            <span>Comp. Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacion2a5Dias * ((politicas.anfitrionSharePenalizacion2a5Dias ?? 50) / 100)).toFixed(1)}% (50% ret.)</span>
+                          </div>
+                          <div className="flex items-center justify-between text-slate-600 px-1 text-[10px]">
+                            <span>SARA Gestión:</span>
+                            <span className="font-semibold">{(politicas.penalizacion2a5Dias * 0.5).toFixed(1)}% (50% ret.)</span>
+                          </div>
+                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[10px] font-semibold">
+                            <span>Reembolso:</span>
+                            <span className="font-bold">{Math.max(0, 100 - politicas.penalizacion2a5Dias)}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Escala d: Dentro de 24 Horas (Sin Devolución) */}
+                      <div className="bg-rose-50/70 rounded-2xl p-3.5 border border-rose-200 flex flex-col justify-between space-y-2.5">
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Última Hora</span>
+                            <span className="text-[11px] font-black text-rose-700 bg-rose-200 px-2 py-0.5 rounded-full">
                               Penalización {politicas.penalizacion24Horas}%
                             </span>
                           </div>
-                          <h6 className="text-sm font-extrabold text-slate-900 pt-1">
-                            Cancelación con MENOS de 24 horas
+                          <h6 className="text-xs font-extrabold text-rose-950 pt-0.5">
+                            d) Dentro de las 24 horas
                           </h6>
-                          <p className="text-[11px] text-slate-500 leading-relaxed">
-                            Cancelación tardía o no-show con máxima protección económica para el propietario.
+                          <p className="text-[10px] text-rose-700 font-semibold leading-relaxed">
+                            Cancelación in extremis: fechas bloqueadas sin reocupación posible.
                           </p>
                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-slate-200 text-xs">
-                          <div className="flex items-center justify-between font-bold bg-emerald-50 text-emerald-900 px-2.5 py-1.5 rounded-xl border border-emerald-200">
-                            <span>Compensación Anfitrión:</span>
-                            <span className="font-black">{(politicas.penalizacion24Horas * (politicas.anfitrionSharePenalizacion24Horas / 100)).toFixed(1)}% total (50% penalización)</span>
+                        <div className="space-y-1.5 pt-2 border-t border-rose-200 text-[11px]">
+                          <div className="flex items-center justify-between font-bold bg-rose-100 text-rose-900 px-2 py-1 rounded-lg border border-rose-300 text-[10px]">
+                            <span>Comp. Anfitrión:</span>
+                            <span className="font-black">{(politicas.penalizacion24Horas * ((politicas.anfitrionSharePenalizacion24Horas ?? 50) / 100)).toFixed(1)}% (50% ret.)</span>
                           </div>
-                          <div className="flex items-center justify-between text-slate-600 px-2 py-0.5 text-[11px]">
+                          <div className="flex items-center justify-between text-slate-600 px-1 text-[10px]">
                             <span>SARA Gestión:</span>
-                            <span className="font-semibold">{(politicas.penalizacion24Horas * 0.5).toFixed(1)}% total (50% penalización)</span>
+                            <span className="font-semibold">{(politicas.penalizacion24Horas * 0.5).toFixed(1)}% (50% ret.)</span>
                           </div>
-                          <div className="flex items-center justify-between text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg text-[11px] font-semibold">
-                            <span>Reembolso al Huésped:</span>
-                            <span className="font-bold">{100 - politicas.penalizacion24Horas}% de la reserva</span>
+                          <div className="flex items-center justify-between text-rose-700 bg-white px-2 py-0.5 rounded text-[10px] font-extrabold border border-rose-200">
+                            <span>Reembolso:</span>
+                            <span className="font-black text-rose-700">0% (Sin devolución)</span>
                           </div>
                         </div>
                       </div>
@@ -1922,15 +1957,19 @@ export default function RegistrarAlojamientoModal({
                         <div className="pt-3 border-t border-slate-800 text-[11px] text-left space-y-1">
                           <span className="font-bold text-amber-300 block">Indemnización si el huésped cancela la reserva:</span>
                           <div className="flex justify-between text-slate-300">
-                            <span>Con &gt; 10 días ({pctHostMas10.toFixed(1)}% total - 50% de retención):</span>
+                            <span>a) Con &gt; 10 días ({pctHostMas10.toFixed(1)}% total - 50% ret.):</span>
                             <strong className="text-emerald-400 font-mono">+${compHostMas10.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>De 2 a 10 días ({pctHost2a10.toFixed(1)}% total - 50% de retención):</span>
-                            <strong className="text-emerald-400 font-mono">+${compHost2a10.toFixed(2)} USD</strong>
+                            <span>b) De 5 a 10 días ({pctHost5a10.toFixed(1)}% total - 50% ret.):</span>
+                            <strong className="text-emerald-400 font-mono">+${compHost5a10.toFixed(2)} USD</strong>
                           </div>
                           <div className="flex justify-between text-slate-300">
-                            <span>Con &lt; 24 horas ({pctHost24h.toFixed(1)}% total - 50% de retención):</span>
+                            <span>c) De 2 a 5 días ({pctHost2a5.toFixed(1)}% total - 50% ret.):</span>
+                            <strong className="text-emerald-400 font-mono">+${compHost2a5.toFixed(2)} USD</strong>
+                          </div>
+                          <div className="flex justify-between text-rose-300 font-medium">
+                            <span>d) Dentro de 24h ({pctHost24h.toFixed(1)}% total - Sin devolución huésped):</span>
                             <strong className="text-emerald-400 font-mono">+${compHost24h.toFixed(2)} USD</strong>
                           </div>
                         </div>

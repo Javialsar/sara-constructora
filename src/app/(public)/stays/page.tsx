@@ -1048,9 +1048,10 @@ export default function AirbnbPage() {
       `• Tarifa de Limpieza = $${stay.tarifaLimpieza} USD\n` +
       `• *TOTAL:* $${granTotal} USD (${guestData.metodoPago === 'transferencia' ? 'Transferencia Bancaria' : guestData.metodoPago === 'tarjeta' ? 'Tarjeta Cifrada' : `Anticipo Flexible (${politicas.porcentajeAnticipo}%)`})\n` +
       `\n📋 *POLÍTICA DE CANCELACIÓN Y REEMBOLSO:*\n` +
-      `• Más de 10 días: Penalización ${politicas.penalizacionMas10Dias}% (Devolución ${Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias)}% del total)\n` +
-      `• De 2 a 10 días: Penalización ${politicas.penalizacion2a10Dias}% (Devolución ${Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias)}% del total)\n` +
-      `• 24 horas o menos: Penalización ${politicas.penalizacion24Horas}% (Devolución ${Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas)}% del total)\n` +
+      `• a) Más de 10 días: Penalización ${politicas.penalizacionMas10Dias}% (Devolución ${Math.max(0, 100 - politicas.penalizacionMas10Dias)}% del total)\n` +
+      `• b) De 5 a 10 días: Penalización ${politicas.penalizacion5a10Dias}% (Devolución ${Math.max(0, 100 - politicas.penalizacion5a10Dias)}% del total)\n` +
+      `• c) De 2 a 5 días: Penalización ${politicas.penalizacion2a5Dias}% (Devolución ${Math.max(0, 100 - politicas.penalizacion2a5Dias)}% del total)\n` +
+      `• d) Dentro de las 24 horas: Penalización ${politicas.penalizacion24Horas}% (¡Sin devolución de reserva - 0% de reembolso!)\n` +
       `• Reembolsos en ${politicas.diasReembolso} mediante ${politicas.metodoDevolucion}\n` +
       bankDetailText +
       `\n📍 *Ubicación:* ${stay.sector}, ${stay.ciudad}.\n` +
@@ -2979,14 +2980,17 @@ export default function AirbnbPage() {
                   {/* Política Oficial de Cancelación y Reembolso Transparente - SIEMPRE VISIBLE */}
                   {(() => {
                     const totalEstadia = (bookingStay.precioNoche * totalNoches) + bookingStay.tarifaLimpieza
-                    const ret10 = Math.round(totalEstadia * (politicas.penalizacionMas10Dias / 100))
-                    const dev10 = Math.round(totalEstadia * (Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias) / 100))
+                    const retMas10 = Math.round(totalEstadia * (politicas.penalizacionMas10Dias / 100))
+                    const devMas10 = Math.round(totalEstadia * (Math.max(0, 100 - politicas.penalizacionMas10Dias) / 100))
                     
-                    const ret2a10 = Math.round(totalEstadia * (politicas.penalizacion2a10Dias / 100))
-                    const dev2a10 = Math.round(totalEstadia * (Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias) / 100))
+                    const ret5a10 = Math.round(totalEstadia * (politicas.penalizacion5a10Dias / 100))
+                    const dev5a10 = Math.round(totalEstadia * (Math.max(0, 100 - politicas.penalizacion5a10Dias) / 100))
+                    
+                    const ret2a5 = Math.round(totalEstadia * (politicas.penalizacion2a5Dias / 100))
+                    const dev2a5 = Math.round(totalEstadia * (Math.max(0, 100 - politicas.penalizacion2a5Dias) / 100))
                     
                     const ret24h = Math.round(totalEstadia * (politicas.penalizacion24Horas / 100))
-                    const dev24h = Math.round(totalEstadia * (Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas) / 100))
+                    const dev24h = Math.round(totalEstadia * (Math.max(0, 100 - politicas.penalizacion24Horas) / 100))
 
                     return (
                       <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white border border-slate-800 space-y-3 text-xs shadow-lg">
@@ -3004,66 +3008,87 @@ export default function AirbnbPage() {
                           Aseguras tus fechas con el <strong>{politicas.porcentajeAnticipo}% de anticipo</strong> (o pago total). Si necesitas cancelar tu reservación, se aplican los siguientes porcentajes de penalización sobre el total de tu estancia (${totalEstadia.toLocaleString()} USD) y te reembolsamos la diferencia restante:
                         </p>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-[11px]">
-                          {/* Más de 10 días */}
-                          <div className="bg-white/5 p-3 rounded-xl border border-emerald-500/20 space-y-1.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-1 text-[11px]">
+                          {/* a) Más de 10 días */}
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-emerald-500/20 space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white">📅 Más de 10 días</span>
-                              <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/40">
-                                Penalización {politicas.penalizacionMas10Dias}%
+                              <span className="font-bold text-white text-[10px]">📅 a) &gt; 10 días</span>
+                              <span className="text-[9px] font-bold text-emerald-300 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-500/40">
+                                {politicas.penalizacionMas10Dias}%
                               </span>
                             </div>
                             <p className="text-[10px] text-gray-400">
-                              Retención: -${ret10} USD
+                              Retención: -${retMas10} USD
                             </p>
                             <div className="pt-1 border-t border-white/10 space-y-0.5">
-                              <span className="text-emerald-400 font-extrabold block text-xs">
-                                ✓ Devolución: {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias)}% del total
+                              <span className="text-emerald-400 font-extrabold block text-[11px]">
+                                ✓ Reembolso: {Math.max(0, 100 - politicas.penalizacionMas10Dias)}%
                               </span>
-                              <span className="text-[10px] text-gray-300 block">
-                                (${dev10} USD reembolsable)
+                              <span className="text-[9px] text-gray-300 block">
+                                (${devMas10} USD devuelto)
                               </span>
                             </div>
                           </div>
 
-                          {/* De 2 a 10 días */}
-                          <div className="bg-white/5 p-3 rounded-xl border border-amber-500/20 space-y-1.5">
+                          {/* b) De 5 a 10 días */}
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-amber-500/20 space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white">⏱️ De 2 a 10 días</span>
-                              <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-500/40">
-                                Penalización {politicas.penalizacion2a10Dias}%
+                              <span className="font-bold text-white text-[10px]">⏱️ b) 5 a 10 días</span>
+                              <span className="text-[9px] font-bold text-amber-300 bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40">
+                                {politicas.penalizacion5a10Dias}%
                               </span>
                             </div>
                             <p className="text-[10px] text-gray-400">
-                              Retención: -${ret2a10} USD
+                              Retención: -${ret5a10} USD
                             </p>
                             <div className="pt-1 border-t border-white/10 space-y-0.5">
-                              <span className="text-amber-400 font-extrabold block text-xs">
-                                ✓ Devolución: {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias)}% del total
+                              <span className="text-amber-400 font-extrabold block text-[11px]">
+                                ✓ Reembolso: {Math.max(0, 100 - politicas.penalizacion5a10Dias)}%
                               </span>
-                              <span className="text-[10px] text-gray-300 block">
-                                (${dev2a10} USD reembolsable)
+                              <span className="text-[9px] text-gray-300 block">
+                                (${dev5a10} USD devuelto)
                               </span>
                             </div>
                           </div>
 
-                          {/* 24 Horas o menos */}
-                          <div className="bg-white/5 p-3 rounded-xl border border-rose-500/20 space-y-1.5">
+                          {/* c) De 2 a 5 días */}
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-orange-500/20 space-y-1">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-white">🚨 24h o menos</span>
-                              <span className="text-[10px] font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-500/40">
-                                Penalización {politicas.penalizacion24Horas}%
+                              <span className="font-bold text-white text-[10px]">⏳ c) 2 a 5 días</span>
+                              <span className="text-[9px] font-bold text-orange-300 bg-orange-950/80 px-1.5 py-0.5 rounded border border-orange-500/40">
+                                {politicas.penalizacion2a5Dias}%
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-gray-400">
+                              Retención: -${ret2a5} USD
+                            </p>
+                            <div className="pt-1 border-t border-white/10 space-y-0.5">
+                              <span className="text-orange-400 font-extrabold block text-[11px]">
+                                ✓ Reembolso: {Math.max(0, 100 - politicas.penalizacion2a5Dias)}%
+                              </span>
+                              <span className="text-[9px] text-gray-300 block">
+                                (${dev2a5} USD devuelto)
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* d) Dentro de 24 Horas (Sin Devolución) */}
+                          <div className="bg-white/5 p-2.5 rounded-xl border border-rose-500/20 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-white text-[10px]">🚨 d) &lt; 24h</span>
+                              <span className="text-[9px] font-bold text-rose-300 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-500/40">
+                                {politicas.penalizacion24Horas}%
                               </span>
                             </div>
                             <p className="text-[10px] text-gray-400">
                               Retención: -${ret24h} USD
                             </p>
                             <div className="pt-1 border-t border-white/10 space-y-0.5">
-                              <span className="text-rose-300 font-extrabold block text-xs">
-                                ✓ Devolución: {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas)}% del total
+                              <span className="text-rose-400 font-extrabold block text-[11px]">
+                                ❌ Sin devolución
                               </span>
-                              <span className="text-[10px] text-gray-300 block">
-                                (${dev24h} USD reembolsable)
+                              <span className="text-[9px] text-rose-300 block">
+                                ($0 USD reembolsable)
                               </span>
                             </div>
                           </div>
@@ -3211,9 +3236,10 @@ export default function AirbnbPage() {
                         </div>
                         <p className="text-[11px] text-gray-300 leading-snug">
                           Reserva garantizada con anticipo del <strong>{politicas.porcentajeAnticipo}%</strong>. En caso de cancelación voluntaria:
-                          <br />• <strong>Más de 10 días:</strong> Penalización {politicas.penalizacionMas10Dias}% (Devolución del {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacionMas10Dias)}% del total).
-                          <br />• <strong>De 2 a 10 días:</strong> Penalización {politicas.penalizacion2a10Dias}% (Devolución del {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion2a10Dias)}% del total).
-                          <br />• <strong>24 horas o menos:</strong> Penalización {politicas.penalizacion24Horas}% (Devolución del {Math.max(0, politicas.porcentajeAnticipo - politicas.penalizacion24Horas)}% del total).
+                          <br />• <strong>a) Más de 10 días:</strong> Penalización {politicas.penalizacionMas10Dias}% (Devolución del {Math.max(0, 100 - politicas.penalizacionMas10Dias)}% del total).
+                          <br />• <strong>b) De 5 a 10 días:</strong> Penalización {politicas.penalizacion5a10Dias}% (Devolución del {Math.max(0, 100 - politicas.penalizacion5a10Dias)}% del total).
+                          <br />• <strong>c) De 2 a 5 días:</strong> Penalización {politicas.penalizacion2a5Dias}% (Devolución del {Math.max(0, 100 - politicas.penalizacion2a5Dias)}% del total).
+                          <br />• <strong>d) Dentro de las 24 horas:</strong> Penalización {politicas.penalizacion24Horas}% (¡No existe devolución de la reserva - 0% de reembolso!).
                           <br />• Reembolsos liquidados en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}.
                         </p>
                       </div>

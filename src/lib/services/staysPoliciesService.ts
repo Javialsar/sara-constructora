@@ -1,15 +1,28 @@
 import { createClient } from "@/lib/supabase/client"
 
 export interface StaysPolicies {
-  porcentajeAnticipo: number // Default 30% (o configurable ej. 40%)
-  penalizacionMas10Dias: number // Default 10%
-  penalizacion2a10Dias: number // Default 15% (o 20%)
-  penalizacion24Horas: number // Default 20% (o 25%)
-  
-  // Porcentaje de la penalización que se le entrega al anfitrión como compensación:
-  anfitrionSharePenalizacionMas10Dias: number // Default 50%
-  anfitrionSharePenalizacion2a10Dias: number // Default 50%
-  anfitrionSharePenalizacion24Horas: number // Default 50%
+  porcentajeAnticipo: number // Default 45% (o configurable ej. 30%, 40%)
+
+  // 4 Escalas de Penalización:
+  // a) Más de 10 días
+  penalizacionMas10Dias: number
+  anfitrionSharePenalizacionMas10Dias: number
+
+  // b) De 5 a 10 días
+  penalizacion5a10Dias: number
+  anfitrionSharePenalizacion5a10Dias: number
+
+  // c) De 2 a 5 días
+  penalizacion2a5Dias: number
+  anfitrionSharePenalizacion2a5Dias: number
+
+  // d) Dentro de las 24 horas (sin devolución: 100% de penalización / 0% reembolso)
+  penalizacion24Horas: number
+  anfitrionSharePenalizacion24Horas: number
+
+  // Compatibilidad hacia atrás
+  penalizacion2a10Dias?: number
+  anfitrionSharePenalizacion2a10Dias?: number
 
   diasReembolso: string // Default "48 a 72 horas laborables"
   metodoDevolucion: string // Default "Transferencia bancaria directa a la cuenta del huésped o reverso de tarjeta"
@@ -20,11 +33,13 @@ export interface StaysPolicies {
 
 export const DEFAULT_STAYS_POLICIES: StaysPolicies = {
   porcentajeAnticipo: 45, // Según configuración establecida en Base de Datos
-  penalizacionMas10Dias: 10,
-  penalizacion2a10Dias: 15,
-  penalizacion24Horas: 20,
+  penalizacionMas10Dias: 30,
   anfitrionSharePenalizacionMas10Dias: 50,
-  anfitrionSharePenalizacion2a10Dias: 50,
+  penalizacion5a10Dias: 50,
+  anfitrionSharePenalizacion5a10Dias: 50,
+  penalizacion2a5Dias: 70,
+  anfitrionSharePenalizacion2a5Dias: 50,
+  penalizacion24Horas: 100, // Sin devolución: 100% retención
   anfitrionSharePenalizacion24Horas: 50,
   diasReembolso: "48 a 72 horas laborables",
   metodoDevolucion: "Transferencia bancaria directa a la cuenta del huésped o reverso de tarjeta.",
@@ -44,7 +59,11 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
         if (json?.policies && typeof json.policies.porcentajeAnticipo === "number") {
           const merged: StaysPolicies = {
             ...DEFAULT_STAYS_POLICIES,
-            ...json.policies
+            ...json.policies,
+            penalizacion5a10Dias: typeof json.policies.penalizacion5a10Dias === "number" ? json.policies.penalizacion5a10Dias : (json.policies.penalizacion2a10Dias ?? DEFAULT_STAYS_POLICIES.penalizacion5a10Dias),
+            penalizacion2a5Dias: typeof json.policies.penalizacion2a5Dias === "number" ? json.policies.penalizacion2a5Dias : DEFAULT_STAYS_POLICIES.penalizacion2a5Dias,
+            anfitrionSharePenalizacion5a10Dias: typeof json.policies.anfitrionSharePenalizacion5a10Dias === "number" ? json.policies.anfitrionSharePenalizacion5a10Dias : (json.policies.anfitrionSharePenalizacion2a10Dias ?? 50),
+            anfitrionSharePenalizacion2a5Dias: typeof json.policies.anfitrionSharePenalizacion2a5Dias === "number" ? json.policies.anfitrionSharePenalizacion2a5Dias : 50,
           }
           localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
           return merged
@@ -62,7 +81,11 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
         if (parsed && typeof parsed.porcentajeAnticipo === "number") {
           return {
             ...DEFAULT_STAYS_POLICIES,
-            ...parsed
+            ...parsed,
+            penalizacion5a10Dias: typeof parsed.penalizacion5a10Dias === "number" ? parsed.penalizacion5a10Dias : (parsed.penalizacion2a10Dias ?? DEFAULT_STAYS_POLICIES.penalizacion5a10Dias),
+            penalizacion2a5Dias: typeof parsed.penalizacion2a5Dias === "number" ? parsed.penalizacion2a5Dias : DEFAULT_STAYS_POLICIES.penalizacion2a5Dias,
+            anfitrionSharePenalizacion5a10Dias: typeof parsed.anfitrionSharePenalizacion5a10Dias === "number" ? parsed.anfitrionSharePenalizacion5a10Dias : 50,
+            anfitrionSharePenalizacion2a5Dias: typeof parsed.anfitrionSharePenalizacion2a5Dias === "number" ? parsed.anfitrionSharePenalizacion2a5Dias : 50,
           }
         }
       }
@@ -83,9 +106,14 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
         .single()
 
       if (!error && data?.indirectos_default?.politicas_stays) {
+        const p = data.indirectos_default.politicas_stays
         return {
           ...DEFAULT_STAYS_POLICIES,
-          ...data.indirectos_default.politicas_stays
+          ...p,
+          penalizacion5a10Dias: typeof p.penalizacion5a10Dias === "number" ? p.penalizacion5a10Dias : (p.penalizacion2a10Dias ?? DEFAULT_STAYS_POLICIES.penalizacion5a10Dias),
+          penalizacion2a5Dias: typeof p.penalizacion2a5Dias === "number" ? p.penalizacion2a5Dias : DEFAULT_STAYS_POLICIES.penalizacion2a5Dias,
+          anfitrionSharePenalizacion5a10Dias: typeof p.anfitrionSharePenalizacion5a10Dias === "number" ? p.anfitrionSharePenalizacion5a10Dias : 50,
+          anfitrionSharePenalizacion2a5Dias: typeof p.anfitrionSharePenalizacion2a5Dias === "number" ? p.anfitrionSharePenalizacion2a5Dias : 50,
         }
       }
     }
@@ -101,10 +129,12 @@ export async function saveStaysPolicies(policies: StaysPolicies): Promise<boolea
     ...policies,
     porcentajeAnticipo: Number(policies.porcentajeAnticipo) || DEFAULT_STAYS_POLICIES.porcentajeAnticipo,
     penalizacionMas10Dias: Number(policies.penalizacionMas10Dias) || 0,
-    penalizacion2a10Dias: Number(policies.penalizacion2a10Dias) || 0,
+    penalizacion5a10Dias: Number(policies.penalizacion5a10Dias) || 0,
+    penalizacion2a5Dias: Number(policies.penalizacion2a5Dias) || 0,
     penalizacion24Horas: Number(policies.penalizacion24Horas) || 0,
     anfitrionSharePenalizacionMas10Dias: typeof policies.anfitrionSharePenalizacionMas10Dias === "number" ? policies.anfitrionSharePenalizacionMas10Dias : 50,
-    anfitrionSharePenalizacion2a10Dias: typeof policies.anfitrionSharePenalizacion2a10Dias === "number" ? policies.anfitrionSharePenalizacion2a10Dias : 50,
+    anfitrionSharePenalizacion5a10Dias: typeof policies.anfitrionSharePenalizacion5a10Dias === "number" ? policies.anfitrionSharePenalizacion5a10Dias : 50,
+    anfitrionSharePenalizacion2a5Dias: typeof policies.anfitrionSharePenalizacion2a5Dias === "number" ? policies.anfitrionSharePenalizacion2a5Dias : 50,
     anfitrionSharePenalizacion24Horas: typeof policies.anfitrionSharePenalizacion24Horas === "number" ? policies.anfitrionSharePenalizacion24Horas : 50,
     ivaPorcentaje: Number(policies.ivaPorcentaje) || DEFAULT_STAYS_POLICIES.ivaPorcentaje,
     actualizadoEn: new Date().toISOString()
