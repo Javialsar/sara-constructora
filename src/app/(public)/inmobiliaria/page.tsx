@@ -58,8 +58,10 @@ export interface Inmueble {
   aptoBiess: boolean
   destacada: boolean
   imagenes: string[]
+  videos?: string[]
   descripcion: string
   amenidades: string[]
+  coordenadas?: { lat: number; lng: number }
 }
 
 const INMUEBLES_DATA: Inmueble[] = [
@@ -87,7 +89,8 @@ const INMUEBLES_DATA: Inmueble[] = [
       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
     ],
     descripcion: "Espectacular residencia de diseño contemporáneo construida con estándares antisísmicos de primera. Cuenta con amplias áreas sociales de doble altura, cocina abierta tipo isla con cuarzo, master suite con jacuzzi y walk-in closet, además de un porche BBQ conectado al jardín posterior.",
-    amenidades: ["Seguridad 24/7", "Área BBQ", "Cisterna y Bomba", "Gas Centralizado", "Jardín Amplio", "Acabados Importados", "Cámaras de Vigilancia"]
+    amenidades: ["Seguridad 24/7", "Área BBQ", "Cisterna y Bomba", "Gas Centralizado", "Jardín Amplio", "Acabados Importados", "Cámaras de Vigilancia"],
+    coordenadas: { lat: -2.8752, lng: -78.9654 }
   },
   {
     id: "inm-2",
@@ -114,7 +117,8 @@ const INMUEBLES_DATA: Inmueble[] = [
       "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80"
     ],
     descripcion: "Hermoso departamento en piso alto con vista frontal inigualable hacia el río y ciclovía. Edificio inteligente con ascensor de última generación, generador eléctrico total y áreas comunales de lujo.",
-    amenidades: ["Ascensor", "Generador Eléctrico 100%", "Balcón con Vista al Río", "Bodega Privada", "Cerradura Digital", "Gimnasio Comunal"]
+    amenidades: ["Ascensor", "Generador Eléctrico 100%", "Balcón con Vista al Río", "Bodega Privada", "Cerradura Digital", "Gimnasio Comunal"],
+    coordenadas: { lat: -2.9025, lng: -79.0062 }
   },
   {
     id: "inm-3",
@@ -139,7 +143,8 @@ const INMUEBLES_DATA: Inmueble[] = [
       "https://images.unsplash.com/photo-1523741543316-beb7fc7023d8?auto=format&fit=crop&w=1200&q=80"
     ],
     descripcion: "Lote residencial con topografía perfectamente plana y todos los servicios básicos soterrados: agua potable, alcantarillado, luz y fibra óptica. Incluye anteproyecto arquitectónico prediseñado por SARA Constructora.",
-    amenidades: ["Topografía Plana", "Obras Básicas Completas", "Vía Asfaltada", "Escrituras Inmediatas", "Sinergia Construcción SARA"]
+    amenidades: ["Topografía Plana", "Obras Básicas Completas", "Vía Asfaltada", "Escrituras Inmediatas", "Sinergia Construcción SARA"],
+    coordenadas: { lat: -2.8592, lng: -78.9687 }
   },
   {
     id: "inm-4",
@@ -165,7 +170,8 @@ const INMUEBLES_DATA: Inmueble[] = [
       "https://images.unsplash.com/photo-1502005229762-ae1b46000282?auto=format&fit=crop&w=1200&q=80"
     ],
     descripcion: "Suite moderna completamente amoblada y equipada para ejecutivos o parejas sin hijos. Cama King, televisión 4K, lavasecadora, cocina con inducción, vajilla completa e internet de alta velocidad incluido.",
-    amenidades: ["Totalmente Amoblada", "Internet Fibra Óptica", "Lavasecadora", "Edificio con Guardia", "Parqueadero Cubierto"]
+    amenidades: ["Totalmente Amoblada", "Internet Fibra Óptica", "Lavasecadora", "Edificio con Guardia", "Parqueadero Cubierto"],
+    coordenadas: { lat: -2.9095, lng: -79.0041 }
   },
   {
     id: "inm-5",
@@ -190,7 +196,8 @@ const INMUEBLES_DATA: Inmueble[] = [
       "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
     ],
     descripcion: "El refugio campestre soñado con clima subtropical privilegiado todo el año. Casa estilo rústico moderno con piscina sinfín temperada por paneles solares, pérgola BBQ para eventos y árboles frutales en producción.",
-    amenidades: ["Piscina Temperada", "Clima Cálido", "Pérgola BBQ", "Árboles Frutales", "Cisterna 15.000 Lts", "Riego Tecnificado"]
+    amenidades: ["Piscina Temperada", "Clima Cálido", "Pérgola BBQ", "Árboles Frutales", "Cisterna 15.000 Lts", "Riego Tecnificado"],
+    coordenadas: { lat: -3.2750, lng: -79.3160 }
   },
   {
     id: "inm-6",
@@ -211,11 +218,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     aptoBiess: false,
     destacada: false,
     imagenes: [
-      "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80"
+      "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1200&q=80"
     ],
-    descripcion: "Local comercial a pie de calle con excelente visibilidad peatonal y vehicular. Vidrieras templadas, piso de porcelanato de alto tráfico, conexiones trifásicas y espacio para letrero corporativo luminoso.",
-    amenidades: ["Ubicación AAA", "Vidriera Frontal", "Luz Trifásica", "Parqueo de Clientes", "2 Medios Baños"]
+    descripcion: "Local comercial a pie de calle con excelente visibilidad peatonal y vehicular en una de las avenidas más concurridas de Cuenca. Vidrieras templadas, piso de porcelanato de alto tráfico, conexiones trifásicas y espacio para letrero corporativo luminoso.",
+    amenidades: ["Ubicación AAA", "Vidriera Frontal", "Luz Trifásica", "Parqueo de Clientes", "2 Medios Baños"],
+    coordenadas: { lat: -2.9060, lng: -79.0125 }
   }
 ]
 
@@ -1307,6 +1315,78 @@ export default function InmobiliariaPage() {
                     >
                       <Phone size={14} /> Llamar al Asesor SARA
                     </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mapa de Geolocalización y Entorno (Imagen 2) */}
+              <div className="bg-slate-50/90 rounded-2xl p-5 border border-gray-200 mt-5 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
+                      <MapPin size={18} />
+                    </span>
+                    <div>
+                      <h4 className="font-extrabold text-gray-900 text-sm">Geolocalización & Entorno del Inmueble</h4>
+                      <p className="text-xs text-gray-500">{selectedInmueble.sector}, {selectedInmueble.ciudad} • {selectedInmueble.direccionAprox}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedInmueble.sector}, ${selectedInmueble.ciudad}, Ecuador`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-100 text-gray-800 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+                    >
+                      <Compass size={14} className="text-emerald-600" />
+                      <span>Abrir en Google Maps</span>
+                    </a>
+                    <a
+                      href={`https://waze.com/ul?q=${encodeURIComponent(`${selectedInmueble.sector}, ${selectedInmueble.ciudad}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all"
+                    >
+                      <span>Waze</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Mapa Interactivo Embebido OpenStreetMap */}
+                <div className="w-full h-64 sm:h-72 rounded-xl overflow-hidden border border-gray-200 relative shadow-inner bg-slate-200">
+                  <iframe
+                    title={`Mapa de ${selectedInmueble.titulo}`}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    scrolling="no"
+                    marginHeight={0}
+                    marginWidth={0}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${(selectedInmueble.coordenadas?.lng || -79.004) - 0.012}%2C${(selectedInmueble.coordenadas?.lat || -2.897) - 0.010}%2C${(selectedInmueble.coordenadas?.lng || -79.004) + 0.012}%2C${(selectedInmueble.coordenadas?.lat || -2.897) + 0.010}&layer=mapnik&marker=${selectedInmueble.coordenadas?.lat || -2.897}%2C${selectedInmueble.coordenadas?.lng || -79.004}`}
+                    className="w-full h-full"
+                  />
+                  <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 shadow-md border border-gray-200 flex items-center gap-1.5 pointer-events-none">
+                    <MapPin size={14} className="text-red-600 animate-bounce" />
+                    <span>Ubicación en {selectedInmueble.sector}, {selectedInmueble.ciudad}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3 pt-3 border-t border-gray-200/80 text-xs">
+                  <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-2xs">
+                    <span className="text-gray-400 block text-[10px] font-semibold uppercase">Ciudad</span>
+                    <strong className="text-gray-900 font-bold">{selectedInmueble.ciudad}</strong>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-2xs">
+                    <span className="text-gray-400 block text-[10px] font-semibold uppercase">Sector</span>
+                    <strong className="text-gray-900 font-bold">{selectedInmueble.sector}</strong>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-2xs">
+                    <span className="text-gray-400 block text-[10px] font-semibold uppercase">Vías de Acceso</span>
+                    <strong className="text-emerald-700 font-bold">Asfaltadas / Urbanas</strong>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-gray-100 shadow-2xs">
+                    <span className="text-gray-400 block text-[10px] font-semibold uppercase">Plusvalía</span>
+                    <strong className="text-emerald-800 font-bold">Zona Consolidada</strong>
                   </div>
                 </div>
               </div>

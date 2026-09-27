@@ -40,7 +40,19 @@ import {
   Info,
   Award,
   HelpCircle,
-  Briefcase
+  Briefcase,
+  QrCode,
+  Video,
+  Image as ImageIcon,
+  Star,
+  Upload,
+  Play,
+  ArrowLeft,
+  ArrowRight,
+  UserCheck,
+  Inbox,
+  Compass,
+  Users
 } from "lucide-react"
 import { exportarAExcel, exportarAPDF } from "@/lib/services/exportReports"
 import { 
@@ -49,6 +61,12 @@ import {
   InmobiliariaConfigCompleta, 
   DEFAULT_INMOBILIARIA_CONFIG 
 } from "@/lib/services/inmobiliariaPlanesService"
+import { 
+  getSolicitudesInmobiliaria, 
+  saveSolicitudesInmobiliaria, 
+  SolicitudInmobiliaria, 
+  SOLICITUDES_INICIALES 
+} from "@/lib/services/solicitudesInmobiliariaService"
 
 export interface InmuebleAdmin {
   id: string
@@ -59,17 +77,28 @@ export interface InmuebleAdmin {
   precio: number
   ciudad: string
   sector: string
+  direccion?: string
   areaM2: number
   habitaciones: number
   banos: number
   imagenUrl: string
+  galeriaImagenes?: string[]
+  videos?: string[]
+  coordenadas?: { lat: number; lng: number }
   publicado: boolean
   destacado: boolean
-  // Información del Propietario
+  // Información del Propietario & Bancaria
   propietario: {
     nombre: string
     telefono: string
     email: string
+    cuentaBancaria?: {
+      banco: string
+      tipoCuenta: "ahorros" | "corriente"
+      numeroCuenta: string
+      titularCedula: string
+      qrImageUrl?: string
+    }
   }
   // Monetización y Promoción SARA
   promocion: {
@@ -260,8 +289,32 @@ export default function AdminInmobiliariaPage() {
   const [filtroModalidad, setFiltroModalidad] = useState<string>("todos")
   const [filtroPago, setFiltroPago] = useState<string>("todos")
 
-  // Viñetas / Pestañas de Gestión: "inmuebles" | "planes"
-  const [activeTab, setActiveTab] = useState<"inmuebles" | "planes">("inmuebles")
+  // Viñetas / Pestañas de Gestión: "inmuebles" | "planes" | "solicitudes"
+  const [activeTab, setActiveTab] = useState<"inmuebles" | "planes" | "solicitudes">("inmuebles")
+
+  // Estado para Solicitudes de Clientes (Viñeta 3)
+  const [solicitudes, setSolicitudes] = useState<SolicitudInmobiliaria[]>([])
+  const [filtroEstadoSolicitud, setFiltroEstadoSolicitud] = useState<"todos" | "pendiente" | "atendida" | "confirmada">("todos")
+  const [searchSolicitud, setSearchSolicitud] = useState("")
+
+  // Sub-viñeta activa dentro del Modal de Publicar Inmueble (1 a 4)
+  const [modalSubTab, setModalSubTab] = useState<1 | 2 | 3 | 4>(1)
+
+  // Coordenadas predeterminadas por ciudad en Ecuador para auto-posicionamiento rápido
+  const CIUDADES_COORDINATES: Record<string, { lat: number; lng: number }> = {
+    "cuenca": { lat: -2.8974, lng: -79.0045 },
+    "loja": { lat: -3.9931, lng: -79.2042 },
+    "quito": { lat: -0.1807, lng: -78.4678 },
+    "guayaquil": { lat: -2.1894, lng: -79.8891 },
+    "santa isabel": { lat: -3.2750, lng: -79.3160 },
+    "yunguilla": { lat: -3.2750, lng: -79.3160 },
+    "gualaceo": { lat: -2.8906, lng: -78.7786 },
+    "paute": { lat: -2.7778, lng: -78.7594 },
+    "azogues": { lat: -2.7397, lng: -78.8474 },
+    "ambato": { lat: -1.2491, lng: -78.6168 },
+    "manta": { lat: -0.9677, lng: -80.7089 },
+    "machala": { lat: -3.2581, lng: -79.9551 }
+  }
 
   // Configuración de Planes de Promoción & Comisiones SARA Inmobiliaria
   const [planesConfig, setPlanesConfig] = useState<InmobiliariaConfigCompleta>(DEFAULT_INMOBILIARIA_CONFIG)
@@ -269,14 +322,23 @@ export default function AdminInmobiliariaPage() {
   const [planesSaveSuccess, setPlanesSaveSuccess] = useState(false)
   const [simuladorPrecioVenta, setSimuladorPrecioVenta] = useState<number>(180000)
 
-  // Cargar configuración de planes desde API / Supabase
+  // Cargar configuración de planes y solicitudes desde API / Supabase
   React.useEffect(() => {
     getInmobiliariaConfig().then(setPlanesConfig)
-    const handleSync = (e: any) => {
+    getSolicitudesInmobiliaria().then(setSolicitudes)
+
+    const handleSyncPlanes = (e: any) => {
       if (e.detail) setPlanesConfig(e.detail)
     }
-    window.addEventListener("sara_inmobiliaria_config_updated", handleSync)
-    return () => window.removeEventListener("sara_inmobiliaria_config_updated", handleSync)
+    const handleSyncSol = (e: any) => {
+      if (e.detail) setSolicitudes(e.detail)
+    }
+    window.addEventListener("sara_inmobiliaria_config_updated", handleSyncPlanes)
+    window.addEventListener("sara_inmobiliaria_solicitudes_updated", handleSyncSol)
+    return () => {
+      window.removeEventListener("sara_inmobiliaria_config_updated", handleSyncPlanes)
+      window.removeEventListener("sara_inmobiliaria_solicitudes_updated", handleSyncSol)
+    }
   }, [])
 
   // Guardar configuración de planes en base de datos
@@ -376,6 +438,40 @@ export default function AdminInmobiliariaPage() {
     }
   }
 
+  // Cambiar estado de solicitud cliente
+  const handleCambiarEstadoSolicitud = async (id: string, nuevoEstado: "pendiente" | "atendida" | "confirmada") => {
+    const updated = solicitudes.map(s => s.id === id ? { ...s, estado: nuevoEstado } : s)
+    setSolicitudes(updated)
+    await saveSolicitudesInmobiliaria(updated)
+  }
+
+  // Eliminar solicitud cliente
+  const handleDeleteSolicitud = async (id: string) => {
+    if (confirm("¿Estás seguro de eliminar esta solicitud de cliente?")) {
+      const updated = solicitudes.filter(s => s.id !== id)
+      setSolicitudes(updated)
+      await saveSolicitudesInmobiliaria(updated)
+    }
+  }
+
+  // Auto-posicionamiento en mapa al tipear ciudad
+  const handleCityChange = (city: string) => {
+    const norm = city.toLowerCase().trim()
+    const coord = CIUDADES_COORDINATES[norm]
+    if (coord) {
+      setFormInmueble(prev => ({
+        ...prev,
+        ciudad: city,
+        coordenadas: coord
+      }))
+    } else {
+      setFormInmueble(prev => ({
+        ...prev,
+        ciudad: city
+      }))
+    }
+  }
+
   // Modal para Nuevo/Editar Inmueble
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingInmueble, setEditingInmueble] = useState<InmuebleAdmin | null>(null)
@@ -387,7 +483,7 @@ export default function AdminInmobiliariaPage() {
   const [metodoPagoCobro, setMetodoPagoCobro] = useState<string>("Transferencia Banco Pichincha")
   const [montoCobradoInput, setMontoCobradoInput] = useState<number>(65)
 
-  // Form State para Inmueble
+  // Form State para Inmueble con todas las sub-viñetas
   const [formInmueble, setFormInmueble] = useState({
     codigo: "",
     titulo: "",
@@ -396,19 +492,164 @@ export default function AdminInmobiliariaPage() {
     precio: 150000,
     ciudad: "Cuenca",
     sector: "",
+    direccion: "",
     areaM2: 120,
     habitaciones: 3,
     banos: 2,
+    coordenadas: { lat: -2.8974, lng: -79.0045 },
     imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+    galeriaImagenes: [
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+      "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=600&q=80"
+    ] as string[],
+    videos: [] as string[],
+    nuevoVideoUrl: "",
     destacado: false,
     publicado: true,
     propietarioNombre: "",
-    propietarioTelefono: "+593",
+    propietarioTelefono: "+593 9",
     propietarioEmail: "",
+    cuentaBancaria: {
+      banco: "Banco Pichincha",
+      tipoCuenta: "ahorros" as "ahorros" | "corriente",
+      numeroCuenta: "",
+      titularCedula: "",
+      qrImageUrl: ""
+    },
     planPromocion: "destacado" as InmuebleAdmin["promocion"]["plan"],
     tarifaMensual: 65,
     porcentajeComision: 3
   })
+
+  // Subir QR Bancario (FileReader)
+  const handleUploadQR = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setFormInmueble(prev => ({
+            ...prev,
+            cuentaBancaria: {
+              ...prev.cuentaBancaria,
+              qrImageUrl: event.target!.result as string
+            }
+          }))
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Subir múltiples fotos a la galería
+  const handleUploadFotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            const url = event.target.result as string
+            setFormInmueble(prev => {
+              const list = [...(prev.galeriaImagenes || []), url]
+              return {
+                ...prev,
+                galeriaImagenes: list,
+                imagenUrl: prev.imagenUrl || url
+              }
+            })
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+  }
+
+  // Marcar una foto de la galería como portada
+  const handleSelectPortada = (url: string) => {
+    setFormInmueble(prev => ({
+      ...prev,
+      imagenUrl: url
+    }))
+  }
+
+  // Eliminar foto de la galería
+  const handleRemoveFoto = (index: number) => {
+    setFormInmueble(prev => {
+      const list = [...prev.galeriaImagenes]
+      const removed = list.splice(index, 1)[0]
+      return {
+        ...prev,
+        galeriaImagenes: list,
+        imagenUrl: prev.imagenUrl === removed ? (list[0] || "") : prev.imagenUrl
+      }
+    })
+  }
+
+  // Agregar video
+  const handleAddVideo = () => {
+    if (!formInmueble.nuevoVideoUrl.trim()) return
+    setFormInmueble(prev => ({
+      ...prev,
+      videos: [...(prev.videos || []), prev.nuevoVideoUrl.trim()],
+      nuevoVideoUrl: ""
+    }))
+  }
+
+  // Remover video
+  const handleRemoveVideo = (index: number) => {
+    setFormInmueble(prev => ({
+      ...prev,
+      videos: (prev.videos || []).filter((_, i) => i !== index)
+    }))
+  }
+
+  // Convertir solicitud de cliente a nuevo inmueble a publicar
+  const handleConvertirSolicitudAInmueble = (sol: SolicitudInmobiliaria) => {
+    setEditingInmueble(null)
+    setModalSubTab(1)
+    
+    const cityKey = sol.ciudad.toLowerCase().trim()
+    const coord = CIUDADES_COORDINATES[cityKey] || { lat: -2.8974, lng: -79.0045 }
+    
+    setFormInmueble({
+      codigo: `SARA-${sol.tipo.substring(0, 3).toUpperCase()}-${String(inmuebles.length + 1).padStart(2, '0')}`,
+      titulo: `${sol.tipo.charAt(0).toUpperCase() + sol.tipo.slice(1)} en ${sol.sector || sol.ciudad}`,
+      tipo: sol.tipo,
+      modalidad: sol.modalidad,
+      precio: sol.precioEstimado || 120000,
+      ciudad: sol.ciudad || "Cuenca",
+      sector: sol.sector || "",
+      direccion: "",
+      areaM2: 120,
+      habitaciones: sol.tipo === "terreno" ? 0 : 3,
+      banos: sol.tipo === "terreno" ? 0 : 2,
+      coordenadas: coord,
+      propietarioNombre: sol.clienteNombre,
+      propietarioTelefono: sol.clienteTelefono,
+      propietarioEmail: sol.clienteEmail || "",
+      cuentaBancaria: {
+        banco: "Banco Pichincha",
+        tipoCuenta: "ahorros",
+        numeroCuenta: "",
+        titularCedula: "",
+        qrImageUrl: ""
+      },
+      galeriaImagenes: [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80"
+      ],
+      imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+      videos: [],
+      nuevoVideoUrl: "",
+      planPromocion: "destacado",
+      tarifaMensual: planesConfig.planes.destacado.precioMensual || 65,
+      porcentajeComision: planesConfig.comisiones.comisionVentaDefault || 3,
+      destacado: true,
+      publicado: true
+    })
+    
+    setIsModalOpen(true)
+  }
 
   // Cálculos Financieros y Estadísticas en tiempo real
   const stats = useMemo(() => {
@@ -459,6 +700,7 @@ export default function AdminInmobiliariaPage() {
     const nextNum = inmuebles.length + 1
     const nextCode = `SARA-INM-0${nextNum}`
     setEditingInmueble(null)
+    setModalSubTab(1)
     setFormInmueble({
       codigo: nextCode,
       titulo: "",
@@ -467,18 +709,33 @@ export default function AdminInmobiliariaPage() {
       precio: 180000,
       ciudad: "Cuenca",
       sector: "Av. Solano",
+      direccion: "",
       areaM2: 180,
       habitaciones: 3,
       banos: 2.5,
+      coordenadas: { lat: -2.8974, lng: -79.0045 },
       imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+      galeriaImagenes: [
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+        "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=600&q=80"
+      ],
+      videos: [],
+      nuevoVideoUrl: "",
       destacado: true,
       publicado: true,
       propietarioNombre: "",
       propietarioTelefono: "+593 9",
       propietarioEmail: "",
+      cuentaBancaria: {
+        banco: "Banco Pichincha",
+        tipoCuenta: "ahorros",
+        numeroCuenta: "",
+        titularCedula: "",
+        qrImageUrl: ""
+      },
       planPromocion: "destacado",
-      tarifaMensual: 65,
-      porcentajeComision: 3
+      tarifaMensual: planesConfig.planes.destacado.precioMensual || 65,
+      porcentajeComision: planesConfig.comisiones.comisionVentaDefault || 3
     })
     setIsModalOpen(true)
   }
@@ -486,6 +743,7 @@ export default function AdminInmobiliariaPage() {
   // Abrir Modal de Edición
   const handleOpenEditModal = (inm: InmuebleAdmin) => {
     setEditingInmueble(inm)
+    setModalSubTab(1)
     setFormInmueble({
       codigo: inm.codigo,
       titulo: inm.titulo,
@@ -494,15 +752,27 @@ export default function AdminInmobiliariaPage() {
       precio: inm.precio,
       ciudad: inm.ciudad,
       sector: inm.sector,
+      direccion: inm.direccion || "",
       areaM2: inm.areaM2,
       habitaciones: inm.habitaciones,
       banos: inm.banos,
+      coordenadas: inm.coordenadas || { lat: -2.8974, lng: -79.0045 },
       imagenUrl: inm.imagenUrl,
+      galeriaImagenes: inm.galeriaImagenes || [inm.imagenUrl],
+      videos: inm.videos || [],
+      nuevoVideoUrl: "",
       destacado: inm.destacado,
       publicado: inm.publicado,
       propietarioNombre: inm.propietario.nombre,
       propietarioTelefono: inm.propietario.telefono,
       propietarioEmail: inm.propietario.email,
+      cuentaBancaria: {
+        banco: inm.propietario.cuentaBancaria?.banco || "Banco Pichincha",
+        tipoCuenta: (inm.propietario.cuentaBancaria?.tipoCuenta as any) || "ahorros",
+        numeroCuenta: inm.propietario.cuentaBancaria?.numeroCuenta || "",
+        titularCedula: inm.propietario.cuentaBancaria?.titularCedula || "",
+        qrImageUrl: inm.propietario.cuentaBancaria?.qrImageUrl || ""
+      },
       planPromocion: inm.promocion.plan,
       tarifaMensual: inm.promocion.tarifaMensual,
       porcentajeComision: inm.promocion.porcentajeComision || 3
@@ -534,16 +804,21 @@ export default function AdminInmobiliariaPage() {
             precio: formInmueble.precio,
             ciudad: formInmueble.ciudad,
             sector: formInmueble.sector,
+            direccion: formInmueble.direccion,
             areaM2: formInmueble.areaM2,
             habitaciones: formInmueble.habitaciones,
             banos: formInmueble.banos,
+            coordenadas: formInmueble.coordenadas,
             imagenUrl: formInmueble.imagenUrl,
+            galeriaImagenes: formInmueble.galeriaImagenes,
+            videos: formInmueble.videos,
             destacado: formInmueble.destacado,
             publicado: formInmueble.publicado,
             propietario: {
               nombre: formInmueble.propietarioNombre,
               telefono: formInmueble.propietarioTelefono,
-              email: formInmueble.propietarioEmail
+              email: formInmueble.propietarioEmail,
+              cuentaBancaria: formInmueble.cuentaBancaria
             },
             promocion: {
               ...item.promocion,
@@ -571,16 +846,21 @@ export default function AdminInmobiliariaPage() {
         precio: formInmueble.precio,
         ciudad: formInmueble.ciudad,
         sector: formInmueble.sector,
+        direccion: formInmueble.direccion,
         areaM2: formInmueble.areaM2,
         habitaciones: formInmueble.habitaciones,
         banos: formInmueble.banos,
+        coordenadas: formInmueble.coordenadas,
         imagenUrl: formInmueble.imagenUrl,
+        galeriaImagenes: formInmueble.galeriaImagenes,
+        videos: formInmueble.videos,
         destacado: formInmueble.destacado,
         publicado: formInmueble.publicado,
         propietario: {
           nombre: formInmueble.propietarioNombre,
           telefono: formInmueble.propietarioTelefono,
-          email: formInmueble.propietarioEmail
+          email: formInmueble.propietarioEmail,
+          cuentaBancaria: formInmueble.cuentaBancaria
         },
         promocion: {
           plan: formInmueble.planPromocion,
@@ -792,6 +1072,28 @@ export default function AdminInmobiliariaPage() {
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black">
             Comisiones & Pauta
           </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("solicitudes")}
+          className={`flex items-center gap-2 px-5 py-3 border-b-2 font-bold text-sm transition-all cursor-pointer ${
+            activeTab === "solicitudes"
+              ? "border-blue-600 text-blue-700 bg-blue-500/10 rounded-t-xl"
+              : "border-transparent text-gray-500 hover:text-gray-800"
+          }`}
+        >
+          <Inbox size={17} />
+          <span>Solicitudes Clientes</span>
+          {solicitudes.filter(s => s.estado === "pendiente").length > 0 ? (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-black animate-pulse">
+              {solicitudes.filter(s => s.estado === "pendiente").length} pendientes
+            </span>
+          ) : (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-mono">
+              {solicitudes.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -2083,6 +2385,348 @@ export default function AdminInmobiliariaPage() {
     </div>
   )}
 
+  {/* ========================================================= */}
+  {/* VIÑETA 3: SOLICITUDES DE CLIENTES (CAPTACIÓN INMOBILIARIA)*/}
+  {/* ========================================================= */}
+  {activeTab === "solicitudes" && (
+    <div className="space-y-6 animate-fadeIn">
+      {/* Header Banner de Solicitudes */}
+      <div className="bg-gradient-to-r from-blue-900 via-slate-900 to-slate-800 text-white p-6 md:p-8 rounded-2xl shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="p-2.5 bg-blue-500/20 text-blue-300 rounded-xl border border-blue-400/30">
+                <Inbox size={26} />
+              </span>
+              <div>
+                <span className="text-blue-400 text-xs font-bold tracking-wider uppercase">CRM & Captación de Inmuebles</span>
+                <h3 className="text-2xl font-black text-white">Historial de Solicitudes de Clientes</h3>
+              </div>
+            </div>
+            <p className="text-gray-300 text-sm mt-3 max-w-3xl leading-relaxed">
+              Supervisa y atiende a los propietarios interesados en publicar sus bienes inmuebles. Controla el estado comercial de cada contacto (Pendiente, Atendida o Confirmada) y convierte cualquier solicitud directamente en una propiedad oficial publicada en el portal.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={() => {
+                const nombre = prompt("Nombre completo del cliente interesado:")
+                if (!nombre) return
+                const telefono = prompt("Número de WhatsApp o teléfono del cliente:") || "+593 9"
+                const ciudad = prompt("Ciudad del inmueble:", "Cuenca") || "Cuenca"
+                const tipo = prompt("Tipo de inmueble (casa, departamento, terreno, quinta, suite, local):", "casa") || "casa"
+                const modalidad = prompt("Modalidad (venta o arriendo):", "venta") || "venta"
+                const precio = Number(prompt("Precio estimado ($ USD):", "150000")) || 150000
+
+                const nuevaSol: SolicitudInmobiliaria = {
+                  id: `sol-${Date.now()}`,
+                  fechaHora: new Date().toISOString(),
+                  clienteNombre: nombre,
+                  clienteTelefono: telefono,
+                  modalidad: modalidad as any,
+                  tipo: tipo as any,
+                  precioEstimado: precio,
+                  ciudad,
+                  sector: "Por definir",
+                  descripcion: "Registro manual tomado por asesor comercial SARA.",
+                  estado: "pendiente"
+                }
+
+                const updated = [nuevaSol, ...solicitudes]
+                setSolicitudes(updated)
+                saveSolicitudesInmobiliaria(updated)
+              }}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg cursor-pointer"
+            >
+              <Plus size={18} />
+              <span>Registrar Solicitud Manual</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards de Solicitudes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-600 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Total Solicitudes</p>
+            <h3 className="text-2xl font-black text-gray-900 mt-1">{solicitudes.length}</h3>
+            <p className="text-xs text-gray-400 mt-1">Registradas en el sistema</p>
+          </div>
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <Users size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-amber-500 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Pendientes de Contacto</p>
+            <h3 className="text-2xl font-black text-amber-600 mt-1">
+              {solicitudes.filter(s => s.estado === "pendiente").length}
+            </h3>
+            <p className="text-xs text-amber-700 font-semibold mt-1">Requieren atención pronta</p>
+          </div>
+          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+            <Clock size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-cyan-500 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Atendidas / En Gestión</p>
+            <h3 className="text-2xl font-black text-cyan-600 mt-1">
+              {solicitudes.filter(s => s.estado === "atendida").length}
+            </h3>
+            <p className="text-xs text-cyan-700 mt-1">En negociación de plan</p>
+          </div>
+          <div className="p-3 bg-cyan-50 text-cyan-600 rounded-xl">
+            <MessageCircle size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-emerald-500 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Confirmadas / Listas</p>
+            <h3 className="text-2xl font-black text-emerald-600 mt-1">
+              {solicitudes.filter(s => s.estado === "confirmada").length}
+            </h3>
+            <p className="text-xs text-emerald-700 font-semibold mt-1">Acuerdo aceptado</p>
+          </div>
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+            <CheckCircle2 size={24} />
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de Filtros y Búsqueda */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3.5 top-3 text-gray-400" size={17} />
+          <input
+            type="text"
+            placeholder="Buscar por cliente, teléfono, ciudad o sector..."
+            value={searchSolicitud}
+            onChange={(e) => setSearchSolicitud(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-hidden"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <span className="text-xs font-bold text-gray-500 mr-1">Filtrar por Estado:</span>
+          {(["todos", "pendiente", "atendida", "confirmada"] as const).map((est) => (
+            <button
+              key={est}
+              type="button"
+              onClick={() => setFiltroEstadoSolicitud(est)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                filtroEstadoSolicitud === est
+                  ? est === "pendiente"
+                    ? "bg-amber-500 text-white shadow-xs"
+                    : est === "atendida"
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : est === "confirmada"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-slate-900 text-white shadow-xs"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {est === "todos" ? "Todas" : est}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabla de Solicitudes */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-200 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
+                <th className="py-3 px-4">Fecha y Hora</th>
+                <th className="py-3 px-4">Cliente & Contacto</th>
+                <th className="py-3 px-4">Inmueble / Modalidad</th>
+                <th className="py-3 px-4">Precio Estimado</th>
+                <th className="py-3 px-4">Requerimiento / Nota</th>
+                <th className="py-3 px-4 text-center">Estado de Control</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {solicitudes
+                .filter(sol => {
+                  const matchSearch =
+                    sol.clienteNombre.toLowerCase().includes(searchSolicitud.toLowerCase()) ||
+                    sol.clienteTelefono.includes(searchSolicitud) ||
+                    sol.ciudad.toLowerCase().includes(searchSolicitud.toLowerCase()) ||
+                    sol.sector.toLowerCase().includes(searchSolicitud.toLowerCase())
+                  const matchEstado = filtroEstadoSolicitud === "todos" || sol.estado === filtroEstadoSolicitud
+                  return matchSearch && matchEstado
+                })
+                .map((sol) => {
+                  const phoneDigits = sol.clienteTelefono.replace(/[^0-9]/g, "")
+                  const waMsg = `Hola ${sol.clienteNombre}, le saludamos de SARA Inmobiliaria respecto a su solicitud para publicar su propiedad (${sol.tipo} en ${sol.ciudad}). ¿Le parece si coordinamos la información y fotos?`
+                  const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(waMsg)}`
+
+                  return (
+                    <tr key={sol.id} className="hover:bg-gray-50/80 transition-colors">
+                      {/* Fecha y Hora */}
+                      <td className="py-3 px-4 whitespace-nowrap text-gray-500 font-mono text-[11px]">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar size={13} className="text-gray-400" />
+                          <span>{new Date(sol.fechaHora).toLocaleDateString('es-EC')}</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 pl-4">
+                          {new Date(sol.fechaHora).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </td>
+
+                      {/* Cliente & Contacto */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-gray-900 text-xs">{sol.clienteNombre}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200"
+                            title="Conversar por WhatsApp"
+                          >
+                            <MessageCircle size={12} />
+                            <span>{sol.clienteTelefono}</span>
+                          </a>
+                        </div>
+                      </td>
+
+                      {/* Inmueble / Modalidad */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${
+                            sol.modalidad === "venta"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}>
+                            {sol.modalidad}
+                          </span>
+                          <span className="font-bold text-gray-800 capitalize">{sol.tipo}</span>
+                        </div>
+                        <div className="text-gray-500 text-[11px] mt-0.5 flex items-center gap-1">
+                          <MapPin size={11} className="text-gray-400" />
+                          <span>{sol.sector}, {sol.ciudad}</span>
+                        </div>
+                      </td>
+
+                      {/* Precio Estimado */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="text-sm font-black text-gray-900">
+                          ${sol.precioEstimado.toLocaleString()}
+                        </span>
+                        {sol.modalidad === "arriendo" && <span className="text-[10px] text-gray-500">/mes</span>}
+                      </td>
+
+                      {/* Requerimiento */}
+                      <td className="py-3 px-4 max-w-xs">
+                        <p className="text-gray-600 line-clamp-2 text-[11px] leading-relaxed">
+                          {sol.descripcion || "Sin comentarios adicionales"}
+                        </p>
+                      </td>
+
+                      {/* Control de Estado con Botones Rápidos */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <div className="inline-flex items-center p-1 bg-gray-100 rounded-xl border border-gray-200 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleCambiarEstadoSolicitud(sol.id, "pendiente")}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              sol.estado === "pendiente"
+                                ? "bg-amber-500 text-white shadow-xs font-black"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                            title="Marcar como Pendiente"
+                          >
+                            Pendiente
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleCambiarEstadoSolicitud(sol.id, "atendida")}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              sol.estado === "atendida"
+                                ? "bg-blue-600 text-white shadow-xs font-black"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                            title="Marcar como Atendida"
+                          >
+                            Atendida
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleCambiarEstadoSolicitud(sol.id, "confirmada")}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              sol.estado === "confirmada"
+                                ? "bg-emerald-600 text-white shadow-xs font-black"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                            title="Marcar como Confirmada"
+                          >
+                            Confirmada
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Botones de Acción */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleConvertirSolicitudAInmueble(sol)}
+                            className="px-3 py-1.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            title="Abrir formulario y publicar en catálogo"
+                          >
+                            <Building2 size={13} />
+                            <span>Publicar Inmueble</span>
+                          </button>
+
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Chat WhatsApp"
+                          >
+                            <MessageCircle size={16} />
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSolicitud(sol.id)}
+                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Eliminar solicitud"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+            </tbody>
+          </table>
+        </div>
+
+        {solicitudes.length === 0 && (
+          <div className="p-12 text-center text-gray-400">
+            <Inbox size={40} className="mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-semibold text-gray-600">No hay solicitudes registradas actualmente</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
       {/* ========================================================= */}
       {/* MODAL: REGISTRAR COBRO / RENOVAR PLAN DE PROMOCIÓN SARA */}
       {/* ========================================================= */}
@@ -2227,283 +2871,841 @@ export default function AdminInmobiliariaPage() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: PUBLICAR NUEVO / EDITAR INMUEBLE CON PLAN DE COBRO */}
+      {/* MODAL: PUBLICAR NUEVO / EDITAR INMUEBLE CON SUB-VIÑETAS   */}
       {/* ========================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-100 relative my-8">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full"
-            >
-              <X size={20} />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl border border-gray-100 relative my-6 max-h-[92vh] flex flex-col justify-between">
+            {/* Header del Modal */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+              >
+                <X size={20} />
+              </button>
 
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-5">
-              <div className="p-3 bg-brand-sage/10 text-brand-sage rounded-xl">
-                <Building2 size={24} />
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4">
+                <div className="p-3 bg-brand-sage/10 text-brand-sage rounded-2xl">
+                  <Building2 size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {editingInmueble ? "Editar Inmueble y Configuración" : "Publicar Inmueble & Configurar Cobro"}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Completa la ficha técnica en cada una de las 4 secciones antes de publicar en el portal público.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">
-                  {editingInmueble ? "Editar Inmueble y Plan de Cobro" : "Publicar Inmueble & Configurar Cobro"}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Registra los datos de la propiedad, la información del propietario y la tarifa publicitaria mensual de SARA.
-                </p>
+
+              {/* Sub-Pestañas / Viñetas del Modal */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-gray-100/80 rounded-2xl mb-5">
+                {[
+                  { id: 1, label: "1. Inmueble & Mapa", icon: MapPin },
+                  { id: 2, label: "2. Propietario & Banco", icon: Users },
+                  { id: 3, label: "3. Fotos & Videos", icon: ImageIcon },
+                  { id: 4, label: "4. Plan & Cobro", icon: Sparkles }
+                ].map((tab) => {
+                  const IconComponent = tab.icon
+                  const isActive = modalSubTab === tab.id
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setModalSubTab(tab.id as any)}
+                      className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-white text-slate-900 shadow-sm ring-1 ring-gray-200"
+                          : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
+                      }`}
+                    >
+                      <IconComponent size={14} className={isActive ? "text-brand-sage" : "text-gray-400"} />
+                      <span className="truncate">{tab.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
-            <form onSubmit={handleSaveInmueble} className="space-y-4">
-              {/* Sección 1: Datos de la Propiedad */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <Home size={14} className="text-brand-sage" />
-                  1. Datos del Inmueble
-                </h4>
+            {/* Contenido Dinámico de las Viñetas del Modal */}
+            <form onSubmit={handleSaveInmueble} className="flex-1 overflow-y-auto pr-1 space-y-4">
+              {/* =================================================== */}
+              {/* SUB-VIÑETA 1: DATOS DEL INMUEBLE & GEOLOCALIZACIÓN   */}
+              {/* =================================================== */}
+              {modalSubTab === 1 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                      <Home size={14} className="text-brand-sage" />
+                      Información Básica de la Propiedad
+                    </h4>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Código</label>
-                    <input
-                      type="text"
-                      required
-                      value={formInmueble.codigo}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, codigo: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-800"
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Código del Inmueble</label>
+                        <input
+                          type="text"
+                          required
+                          value={formInmueble.codigo}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, codigo: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-800"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Título de la Publicación</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Residencia Moderna con Piscina y Amplio Jardín"
+                          value={formInmueble.titulo}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, titulo: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo</label>
+                        <select
+                          value={formInmueble.tipo}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, tipo: e.target.value as any })}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        >
+                          <option value="casa">Casa</option>
+                          <option value="departamento">Departamento</option>
+                          <option value="terreno">Terreno</option>
+                          <option value="quinta">Quinta</option>
+                          <option value="suite">Suite</option>
+                          <option value="local">Local</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Modalidad</label>
+                        <select
+                          value={formInmueble.modalidad}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, modalidad: e.target.value as any })}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-brand-dark"
+                        >
+                          <option value="venta">Venta</option>
+                          <option value="arriendo">Arriendo</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Precio ($ USD)</label>
+                        <input
+                          type="number"
+                          required
+                          value={formInmueble.precio}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, precio: Number(e.target.value) })}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-black text-gray-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Área Total m²</label>
+                        <input
+                          type="number"
+                          required
+                          value={formInmueble.areaM2}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, areaM2: Number(e.target.value) })}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Habitaciones</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={formInmueble.habitaciones}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, habitaciones: Number(e.target.value) })}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Baños</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={formInmueble.banos}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, banos: Number(e.target.value) })}
+                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección Aproximada</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: Calle Las Retamas y Av. Solano"
+                          value={formInmueble.direccion}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, direccion: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Título de la Publicación</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej: Casa Moderna en Challuabamba con Jardín"
-                      value={formInmueble.titulo}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, titulo: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-800"
-                    />
+
+                  {/* Módulo de Geolocalización y Mapa con Auto-ubicación */}
+                  <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-emerald-700" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                          Geolocalización & Ubicación en Mapa
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                        Auto-centrado por Ciudad
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Ciudad</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Cuenca, Loja, Quito..."
+                          value={formInmueble.ciudad}
+                          onChange={(e) => handleCityChange(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <span className="text-[10px] text-emerald-700 mt-1 block">
+                          Al escribir la ciudad, el mapa se centrará automáticamente.
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Sector / Parroquia</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Challuabamba, Puertas del Sol, Ricaurte..."
+                          value={formInmueble.sector}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, sector: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Botones de Ciudades Rápidas */}
+                    <div>
+                      <span className="text-[11px] font-bold text-gray-600 block mb-1.5">Ubicaciones Rápidas:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["Cuenca", "Loja", "Quito", "Guayaquil", "Santa Isabel", "Gualaceo", "Paute"].map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => handleCityChange(c)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                              formInmueble.ciudad.toLowerCase() === c.toLowerCase()
+                                ? "bg-emerald-600 text-white shadow-xs"
+                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Inputs de Coordenadas Lat / Lng */}
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Latitud</label>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={formInmueble.coordenadas.lat}
+                          onChange={(e) => setFormInmueble({
+                            ...formInmueble,
+                            coordenadas: { ...formInmueble.coordenadas, lat: Number(e.target.value) }
+                          })}
+                          className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Longitud</label>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={formInmueble.coordenadas.lng}
+                          onChange={(e) => setFormInmueble({
+                            ...formInmueble,
+                            coordenadas: { ...formInmueble.coordenadas, lng: Number(e.target.value) }
+                          })}
+                          className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Vista Previa del Mapa Interactivo */}
+                    <div className="w-full h-56 rounded-xl overflow-hidden border border-emerald-300/80 relative shadow-inner bg-slate-100">
+                      <iframe
+                        title="Mapa de Selección"
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        scrolling="no"
+                        marginHeight={0}
+                        marginWidth={0}
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${formInmueble.coordenadas.lng - 0.012}%2C${formInmueble.coordenadas.lat - 0.010}%2C${formInmueble.coordenadas.lng + 0.012}%2C${formInmueble.coordenadas.lat + 0.010}&layer=mapnik&marker=${formInmueble.coordenadas.lat}%2C${formInmueble.coordenadas.lng}`}
+                        className="w-full h-full"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-gray-800 shadow-md border border-gray-200 flex items-center gap-1 pointer-events-none">
+                        <MapPin size={12} className="text-red-600" />
+                        <span>Punto centrado en {formInmueble.ciudad}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo</label>
-                    <select
-                      value={formInmueble.tipo}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, tipo: e.target.value as any })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs"
+              {/* =================================================== */}
+              {/* SUB-VIÑETA 2: DATOS DEL PROPIETARIO & CTA BANCARIA  */}
+              {/* =================================================== */}
+              {modalSubTab === 2 && (
+                <div className="space-y-4 animate-fadeIn">
+                  {/* Datos de Contacto */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                      <Users size={14} className="text-brand-sage" />
+                      Datos del Propietario
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre Completo</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ej: Ing. Carlos Vintimilla"
+                          value={formInmueble.propietarioNombre}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, propietarioNombre: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-800"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp / Teléfono</label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="+593 99 123 4567"
+                          value={formInmueble.propietarioTelefono}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, propietarioTelefono: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-mono font-bold"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Correo Electrónico</label>
+                        <input
+                          type="email"
+                          placeholder="propietario@email.com"
+                          value={formInmueble.propietarioEmail}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, propietarioEmail: e.target.value })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Datos Bancarios y QR de Transferencias */}
+                  <div className="bg-blue-50/40 p-4 rounded-2xl border border-blue-200/80 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <CreditCard size={16} className="text-blue-600" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-blue-950">
+                        Cuenta Bancaria del Propietario (Liquidaciones & Transferencias)
+                      </h4>
+                    </div>
+                    <p className="text-[11px] text-blue-800">
+                      Cuenta bancaria donde SARA transferirá el valor neto de la venta o los cánones de arrendamiento correspondientes al propietario.
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Entidad Bancaria / Cooperativa</label>
+                        <select
+                          value={formInmueble.cuentaBancaria.banco}
+                          onChange={(e) => setFormInmueble({
+                            ...formInmueble,
+                            cuentaBancaria: { ...formInmueble.cuentaBancaria, banco: e.target.value }
+                          })}
+                          className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-semibold"
+                        >
+                          <option value="Banco Pichincha">Banco Pichincha</option>
+                          <option value="Banco Guayaquil">Banco Guayaquil</option>
+                          <option value="Produbanco">Produbanco</option>
+                          <option value="Banco del Pacífico">Banco del Pacífico</option>
+                          <option value="Cooperativa JEP">Cooperativa JEP</option>
+                          <option value="Cooperativa Jardín Azuayo">Cooperativa Jardín Azuayo</option>
+                          <option value="Banco Bolivariano">Banco Bolivariano</option>
+                          <option value="Banco Internacional">Banco Internacional</option>
+                          <option value="Otro">Otro Banco / Cooperativa</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Cuenta</label>
+                        <select
+                          value={formInmueble.cuentaBancaria.tipoCuenta}
+                          onChange={(e) => setFormInmueble({
+                            ...formInmueble,
+                            cuentaBancaria: { ...formInmueble.cuentaBancaria, tipoCuenta: e.target.value as any }
+                          })}
+                          className="w-full px-3 py-2 bg-white border border-blue-300 rounded-xl text-xs font-semibold"
+                        >
+                          <option value="ahorros">Cuenta de Ahorros</option>
+                          <option value="corriente">Cuenta Corriente</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Número de Cuenta</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 2201984567"
+                          value={formInmueble.cuentaBancaria.numeroCuenta}
+                          onChange={(e) => setFormInmueble({
+                            ...formInmueble,
+                            cuentaBancaria: { ...formInmueble.cuentaBancaria, numeroCuenta: e.target.value }
+                          })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-mono font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Cédula / RUC del Titular</label>
+                        <input
+                          type="text"
+                          placeholder="Ej: 0102030405"
+                          value={formInmueble.cuentaBancaria.titularCedula}
+                          onChange={(e) => setFormInmueble({
+                            ...formInmueble,
+                            cuentaBancaria: { ...formInmueble.cuentaBancaria, titularCedula: e.target.value }
+                          })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Subida y Preview del Código QR Bancario */}
+                    <div className="pt-2 border-t border-blue-100">
+                      <label className="block text-xs font-bold text-blue-950 mb-1.5 flex items-center gap-1.5">
+                        <QrCode size={14} className="text-blue-600" />
+                        Código QR de la Cuenta Bancaria (DeUna / Banco)
+                      </label>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3.5 rounded-xl border border-blue-200">
+                        {formInmueble.cuentaBancaria.qrImageUrl ? (
+                          <div className="relative group shrink-0">
+                            <img
+                              src={formInmueble.cuentaBancaria.qrImageUrl}
+                              alt="QR Bancario"
+                              className="w-24 h-24 object-contain rounded-lg border border-gray-200 p-1 bg-white shadow-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setFormInmueble(prev => ({
+                                ...prev,
+                                cuentaBancaria: { ...prev.cuentaBancaria, qrImageUrl: "" }
+                              }))}
+                              className="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-md cursor-pointer"
+                              title="Eliminar QR"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 bg-gray-50 shrink-0">
+                            <QrCode size={28} />
+                            <span className="text-[9px] mt-1">Sin QR</span>
+                          </div>
+                        )}
+
+                        <div className="flex-1 space-y-2 text-xs">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                              Subir archivo de imagen del QR:
+                            </label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleUploadQR}
+                              className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] text-gray-400">O pegar URL directa de la imagen:</label>
+                            <input
+                              type="url"
+                              placeholder="https://ejemplo.com/qr-cuenta.png"
+                              value={formInmueble.cuentaBancaria.qrImageUrl}
+                              onChange={(e) => setFormInmueble(prev => ({
+                                ...prev,
+                                cuentaBancaria: { ...prev.cuentaBancaria, qrImageUrl: e.target.value }
+                              }))}
+                              className="w-full px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* =================================================== */}
+              {/* SUB-VIÑETA 3: FOTOS & VIDEOS DE LA PROPIEDAD         */}
+              {/* =================================================== */}
+              {modalSubTab === 3 && (
+                <div className="space-y-5 animate-fadeIn">
+                  {/* Subida y Gestión de Fotos */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon size={16} className="text-brand-sage" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800">
+                          Galería Fotográfica & Portada
+                        </h4>
+                      </div>
+                      <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                        Marca una foto como portada con la estrella ★
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-gray-200">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Subir Fotos desde tu Equipo</label>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleUploadFotos}
+                          className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand-sage/10 file:text-brand-sage hover:file:bg-brand-sage/20 cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">O agregar Foto por URL</label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="url"
+                            id="input-nueva-foto-url"
+                            placeholder="https://images.unsplash.com/..."
+                            className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById("input-nueva-foto-url") as HTMLInputElement
+                              if (el && el.value.trim()) {
+                                setFormInmueble(prev => ({
+                                  ...prev,
+                                  galeriaImagenes: [...prev.galeriaImagenes, el.value.trim()],
+                                  imagenUrl: prev.imagenUrl || el.value.trim()
+                                }))
+                                el.value = ""
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold cursor-pointer"
+                          >
+                            Agregar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Grilla de Fotos Cargadas */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                      {formInmueble.galeriaImagenes.map((img, idx) => {
+                        const isPortada = formInmueble.imagenUrl === img
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`relative rounded-xl overflow-hidden border-2 transition-all group bg-slate-900 ${
+                              isPortada ? "border-amber-400 ring-2 ring-amber-400/40 shadow-md" : "border-gray-200 hover:border-gray-400"
+                            }`}
+                          >
+                            <img
+                              src={img}
+                              alt={`Foto ${idx + 1}`}
+                              className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+
+                            {/* Badge de Portada */}
+                            {isPortada && (
+                              <div className="absolute top-2 left-2 bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-md shadow-md flex items-center gap-1">
+                                <Star size={11} className="fill-slate-950" />
+                                <span>PORTADA PRINCIPAL</span>
+                              </div>
+                            )}
+
+                            {/* Botones de Acción sobre la foto */}
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 flex items-center justify-between">
+                              {!isPortada && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectPortada(img)}
+                                  className="text-[10px] font-bold text-white bg-slate-800/90 hover:bg-amber-500 hover:text-slate-950 px-2 py-1 rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                                  title="Establecer como Portada"
+                                >
+                                  <Star size={11} /> Portada
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFoto(idx)}
+                                className="p-1 text-white hover:text-red-400 hover:bg-red-500/20 rounded-md transition-colors ml-auto cursor-pointer"
+                                title="Eliminar foto"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Subida y Gestión de Videos */}
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Video size={16} className="text-purple-600" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800">
+                        Videos Promocionales / Recorrido Virtual
+                      </h4>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Sube o enlaza videos de YouTube, Vimeo o MP4 para el reportaje audiovisual de la propiedad.
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=... o https://vimeo.com/..."
+                        value={formInmueble.nuevoVideoUrl}
+                        onChange={(e) => setFormInmueble({ ...formInmueble, nuevoVideoUrl: e.target.value })}
+                        className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddVideo}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus size={14} />
+                        <span>Agregar Video</span>
+                      </button>
+                    </div>
+
+                    {/* Lista de Videos Agregados */}
+                    {formInmueble.videos.length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        {formInmueble.videos.map((vid, vIdx) => (
+                          <div key={vIdx} className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-purple-200 text-xs">
+                            <div className="flex items-center gap-2 truncate">
+                              <Play size={14} className="text-purple-600 shrink-0" />
+                              <span className="font-semibold text-gray-800 truncate">{vid}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVideo(vIdx)}
+                              className="p-1 text-gray-400 hover:text-red-500 rounded cursor-pointer shrink-0 ml-2"
+                              title="Eliminar video"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* =================================================== */}
+              {/* SUB-VIÑETA 4: TIPO DE PLAN & COBRO DE MONETIZACIÓN   */}
+              {/* =================================================== */}
+              {modalSubTab === 4 && (
+                <div className="space-y-4 animate-fadeIn">
+                  <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-300 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-amber-700" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950">
+                        Selecciona el Plan de Promoción SARA
+                      </h4>
+                    </div>
+
+                    {/* 3 Planes en Tarjetas Seleccionables */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        {
+                          id: "basico",
+                          nombre: planesConfig.planes.basico.nombre,
+                          precio: planesConfig.planes.basico.precioMensual,
+                          desc: planesConfig.planes.basico.descripcion,
+                          badge: "Básico"
+                        },
+                        {
+                          id: "destacado",
+                          nombre: planesConfig.planes.destacado.nombre,
+                          precio: planesConfig.planes.destacado.precioMensual,
+                          desc: planesConfig.planes.destacado.descripcion,
+                          badge: "★ Recomendado"
+                        },
+                        {
+                          id: "premium",
+                          nombre: planesConfig.planes.premium.nombre,
+                          precio: planesConfig.planes.premium.precioMensual,
+                          desc: planesConfig.planes.premium.descripcion,
+                          badge: "VIP Exclusiva"
+                        }
+                      ].map((plan) => {
+                        const isSelected = formInmueble.planPromocion === plan.id
+
+                        return (
+                          <div
+                            key={plan.id}
+                            onClick={() => {
+                              setFormInmueble({
+                                ...formInmueble,
+                                planPromocion: plan.id as any,
+                                tarifaMensual: plan.precio,
+                                destacado: plan.id === "destacado" || plan.id === "premium"
+                              })
+                            }}
+                            className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                              isSelected
+                                ? "bg-white border-amber-500 shadow-md ring-2 ring-amber-400/40"
+                                : "bg-white/80 border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                  isSelected ? "bg-amber-100 text-amber-900" : "bg-gray-100 text-gray-600"
+                                }`}>
+                                  {plan.badge}
+                                </span>
+                                <input
+                                  type="radio"
+                                  name="modalPlanPromocion"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="text-amber-500 focus:ring-amber-500"
+                                />
+                              </div>
+                              <h5 className="font-bold text-gray-900 text-xs">{plan.nombre}</h5>
+                              <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{plan.desc}</p>
+                            </div>
+                            <div className="mt-3 pt-2 border-t border-gray-100 flex items-baseline gap-1">
+                              <span className="text-lg font-black text-amber-900">${plan.precio}</span>
+                              <span className="text-[10px] text-gray-500 font-semibold">/mes</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-xs font-bold text-amber-950 mb-1">
+                          Tarifa Mensual Cobrada ($ USD)
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          value={formInmueble.tarifaMensual}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, tarifaMensual: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-base font-black text-amber-950"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-amber-950 mb-1">
+                          % Comisión por Cierre de Venta
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={formInmueble.porcentajeComision}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, porcentajeComision: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-base font-bold text-gray-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formInmueble.destacado}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, destacado: e.target.checked })}
+                          className="rounded text-brand-sage focus:ring-brand-sage h-4 w-4"
+                        />
+                        <span className="text-xs font-bold text-gray-800">Inmueble Destacado (Insignia Dorada)</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formInmueble.publicado}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, publicado: e.target.checked })}
+                          className="rounded text-brand-sage focus:ring-brand-sage h-4 w-4"
+                        />
+                        <span className="text-xs font-bold text-gray-800">Publicado Inmediatamente en la Web</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Botones de Navegación y Envío */}
+              <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-2">
+                <div className="flex items-center gap-2">
+                  {modalSubTab > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setModalSubTab((modalSubTab - 1) as any)}
+                      className="px-4 py-2 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-700 transition-all cursor-pointer flex items-center gap-1.5"
                     >
-                      <option value="casa">Casa</option>
-                      <option value="departamento">Departamento</option>
-                      <option value="terreno">Terreno</option>
-                      <option value="quinta">Quinta</option>
-                      <option value="suite">Suite</option>
-                      <option value="local">Local</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Modalidad</label>
-                    <select
-                      value={formInmueble.modalidad}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, modalidad: e.target.value as any })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold"
+                      <ArrowLeft size={14} />
+                      <span>Anterior</span>
+                    </button>
+                  )}
+                  {modalSubTab < 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setModalSubTab((modalSubTab + 1) as any)}
+                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                     >
-                      <option value="venta">Venta</option>
-                      <option value="arriendo">Arriendo</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Precio ($ USD)</label>
-                    <input
-                      type="number"
-                      required
-                      value={formInmueble.precio}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, precio: Number(e.target.value) })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Área Total m²</label>
-                    <input
-                      type="number"
-                      required
-                      value={formInmueble.areaM2}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, areaM2: Number(e.target.value) })}
-                      className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
+                      <span>Siguiente Sección</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Ciudad</label>
-                    <input
-                      type="text"
-                      required
-                      value={formInmueble.ciudad}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, ciudad: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Sector</label>
-                    <input
-                      type="text"
-                      required
-                      value={formInmueble.sector}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, sector: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">URL Foto Principal</label>
-                    <input
-                      type="url"
-                      required
-                      value={formInmueble.imagenUrl}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, imagenUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Check size={16} />
+                    <span>{editingInmueble ? "Guardar Cambios" : "Publicar y Activar Cobro"}</span>
+                  </button>
                 </div>
-              </div>
-
-              {/* Sección 2: Datos del Propietario */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <Phone size={14} className="text-brand-sage" />
-                  2. Datos del Propietario / Contacto
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Nombre Completo</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej: Ing. Carlos Vintimilla"
-                      value={formInmueble.propietarioNombre}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, propietarioNombre: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">WhatsApp / Teléfono</label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="+593 99 123 4567"
-                      value={formInmueble.propietarioTelefono}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, propietarioTelefono: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      placeholder="propietario@email.com"
-                      value={formInmueble.propietarioEmail}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, propietarioEmail: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Sección 3: Configuración de Cobro y Promoción SARA */}
-              <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                  <DollarSign size={14} className="text-amber-700" />
-                  3. Plan de Promoción & Cobro SARA (Monetización)
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Plan Publicitario</label>
-                    <select
-                      value={formInmueble.planPromocion}
-                      onChange={(e) => {
-                        const plan = e.target.value as InmuebleAdmin["promocion"]["plan"]
-                        const tarifas = { basico: 35, destacado: 65, premium: 120, comision: 0 }
-                        setFormInmueble({
-                          ...formInmueble,
-                          planPromocion: plan,
-                          tarifaMensual: tarifas[plan],
-                          destacado: plan === "destacado" || plan === "premium"
-                        })
-                      }}
-                      className="w-full px-2.5 py-2 bg-white border border-amber-300 rounded-lg text-xs font-bold text-gray-800"
-                    >
-                      <option value="basico">Plan Básico ($35/mes)</option>
-                      <option value="destacado">Plan Destacado ($65/mes)</option>
-                      <option value="premium">Plan Premium Exclusiva ($120/mes)</option>
-                      <option value="comision">Solo Comisión por Éxito</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Tarifa Mensual ($ USD)</label>
-                    <input
-                      type="number"
-                      required
-                      value={formInmueble.tarifaMensual}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, tarifaMensual: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs font-extrabold text-amber-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">% Comisión por Cierre</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={formInmueble.porcentajeComision}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, porcentajeComision: Number(e.target.value) })}
-                      className="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs font-bold text-gray-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6 pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formInmueble.destacado}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, destacado: e.target.checked })}
-                      className="rounded text-brand-sage focus:ring-brand-sage h-4 w-4"
-                    />
-                    <span className="text-xs font-bold text-gray-800">Inmueble Destacado (Insignia Dorada)</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formInmueble.publicado}
-                      onChange={(e) => setFormInmueble({ ...formInmueble, publicado: e.target.checked })}
-                      className="rounded text-brand-sage focus:ring-brand-sage h-4 w-4"
-                    />
-                    <span className="text-xs font-bold text-gray-800">Publicado Inmediatamente en la Web</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Botones de Envío */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
-                >
-                  <Check size={16} />
-                  <span>{editingInmueble ? "Guardar Cambios" : "Publicar y Activar Cobro"}</span>
-                </button>
               </div>
             </form>
           </div>
