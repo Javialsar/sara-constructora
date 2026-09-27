@@ -19,7 +19,7 @@ export interface StaysPolicies {
 }
 
 export const DEFAULT_STAYS_POLICIES: StaysPolicies = {
-  porcentajeAnticipo: 30,
+  porcentajeAnticipo: 45, // Según configuración establecida en Base de Datos
   penalizacionMas10Dias: 10,
   penalizacion2a10Dias: 15,
   penalizacion24Horas: 20,
@@ -35,38 +35,26 @@ export const DEFAULT_STAYS_POLICIES: StaysPolicies = {
 const STORAGE_KEY = "sara_stays_policies_config"
 
 export async function getStaysPolicies(): Promise<StaysPolicies> {
-  // 1. Intentar desde Supabase (parametros_globales -> indirectos_default.politicas_stays)
-  try {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from("parametros_globales")
-      .select("indirectos_default")
-      .eq("id", 1)
-      .single()
-
-    if (!error && data?.indirectos_default?.politicas_stays) {
-      const dbPolicies = data.indirectos_default.politicas_stays
-      if (typeof dbPolicies.porcentajeAnticipo === "number") {
-        const merged: StaysPolicies = {
-          ...DEFAULT_STAYS_POLICIES,
-          ...dbPolicies,
-          ivaPorcentaje: typeof dbPolicies.ivaPorcentaje === "number" ? dbPolicies.ivaPorcentaje : DEFAULT_STAYS_POLICIES.ivaPorcentaje,
-          anfitrionSharePenalizacionMas10Dias: typeof dbPolicies.anfitrionSharePenalizacionMas10Dias === "number" ? dbPolicies.anfitrionSharePenalizacionMas10Dias : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacionMas10Dias,
-          anfitrionSharePenalizacion2a10Dias: typeof dbPolicies.anfitrionSharePenalizacion2a10Dias === "number" ? dbPolicies.anfitrionSharePenalizacion2a10Dias : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacion2a10Dias,
-          anfitrionSharePenalizacion24Horas: typeof dbPolicies.anfitrionSharePenalizacion24Horas === "number" ? dbPolicies.anfitrionSharePenalizacion24Horas : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacion24Horas,
-        }
-        if (typeof window !== "undefined") {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-        }
-        return merged
-      }
-    }
-  } catch (err) {
-    console.warn("Aviso consultando políticas de Supabase, evaluando fallback:", err)
-  }
-
-  // 2. Fallback a localStorage en cliente
+  // 1. Si estamos en el navegador, consultar la API (que lee de Supabase con permisos de administrador)
   if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/airbnb/politicas", { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        if (json?.policies && typeof json.policies.porcentajeAnticipo === "number") {
+          const merged: StaysPolicies = {
+            ...DEFAULT_STAYS_POLICIES,
+            ...json.policies
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+          return merged
+        }
+      }
+    } catch (err) {
+      console.warn("Aviso consultando /api/airbnb/politicas en cliente:", err)
+    }
+
+    // Fallback a localStorage en caso de falla de red
     try {
       const local = localStorage.getItem(STORAGE_KEY)
       if (local) {
@@ -74,15 +62,35 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
         if (parsed && typeof parsed.porcentajeAnticipo === "number") {
           return {
             ...DEFAULT_STAYS_POLICIES,
-            ...parsed,
-            ivaPorcentaje: typeof parsed.ivaPorcentaje === "number" ? parsed.ivaPorcentaje : DEFAULT_STAYS_POLICIES.ivaPorcentaje,
-            anfitrionSharePenalizacionMas10Dias: typeof parsed.anfitrionSharePenalizacionMas10Dias === "number" ? parsed.anfitrionSharePenalizacionMas10Dias : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacionMas10Dias,
-            anfitrionSharePenalizacion2a10Dias: typeof parsed.anfitrionSharePenalizacion2a10Dias === "number" ? parsed.anfitrionSharePenalizacion2a10Dias : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacion2a10Dias,
-            anfitrionSharePenalizacion24Horas: typeof parsed.anfitrionSharePenalizacion24Horas === "number" ? parsed.anfitrionSharePenalizacion24Horas : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacion24Horas,
+            ...parsed
           }
         }
       }
     } catch {}
+  }
+
+  // 2. Si estamos en servidor, intentar leer de Supabase
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (supabaseUrl && serviceRoleKey) {
+      const { createClient: createSupabaseClient } = await import("@supabase/supabase-js")
+      const admin = createSupabaseClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })
+      const { data, error } = await admin
+        .from("parametros_globales")
+        .select("indirectos_default")
+        .eq("id", 1)
+        .single()
+
+      if (!error && data?.indirectos_default?.politicas_stays) {
+        return {
+          ...DEFAULT_STAYS_POLICIES,
+          ...data.indirectos_default.politicas_stays
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Aviso en getStaysPolicies servidor:", err)
   }
 
   return DEFAULT_STAYS_POLICIES

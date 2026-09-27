@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
-import { getStaysPolicies, saveStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
+import { StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
 export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -19,10 +20,32 @@ function getSupabaseAdmin() {
 
 export async function GET() {
   try {
-    const policies = await getStaysPolicies()
-    return NextResponse.json({ success: true, policies })
+    const supabase = getSupabaseAdmin()
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("parametros_globales")
+        .select("indirectos_default")
+        .eq("id", 1)
+        .single()
+
+      if (!error && data?.indirectos_default?.politicas_stays) {
+        const dbPolicies = data.indirectos_default.politicas_stays
+        const merged: StaysPolicies = {
+          ...DEFAULT_STAYS_POLICIES,
+          ...dbPolicies,
+          porcentajeAnticipo: typeof dbPolicies.porcentajeAnticipo === "number" ? dbPolicies.porcentajeAnticipo : DEFAULT_STAYS_POLICIES.porcentajeAnticipo,
+          ivaPorcentaje: typeof dbPolicies.ivaPorcentaje === "number" ? dbPolicies.ivaPorcentaje : DEFAULT_STAYS_POLICIES.ivaPorcentaje,
+          anfitrionSharePenalizacionMas10Dias: typeof dbPolicies.anfitrionSharePenalizacionMas10Dias === "number" ? dbPolicies.anfitrionSharePenalizacionMas10Dias : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacionMas10Dias,
+          anfitrionSharePenalizacion2a10Dias: typeof dbPolicies.anfitrionSharePenalizacion2a10Dias === "number" ? dbPolicies.anfitrionSharePenalizacion2a10Dias : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacion2a10Dias,
+          anfitrionSharePenalizacion24Horas: typeof dbPolicies.anfitrionSharePenalizacion24Horas === "number" ? dbPolicies.anfitrionSharePenalizacion24Horas : DEFAULT_STAYS_POLICIES.anfitrionSharePenalizacion24Horas,
+        }
+        return NextResponse.json({ success: true, policies: merged, origin: "supabase" })
+      }
+    }
+
+    return NextResponse.json({ success: true, policies: DEFAULT_STAYS_POLICIES, origin: "default" })
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: error.message, policies: DEFAULT_STAYS_POLICIES }, { status: 500 })
   }
 }
 
@@ -78,9 +101,6 @@ export async function POST(req: Request) {
         console.warn("Error en Supabase via API route:", dbErr)
       }
     }
-
-    // Guardar también con el servicio local
-    await saveStaysPolicies(payload)
 
     return NextResponse.json({ success: true, saved: true, dbSaved, policies: payload })
   } catch (error: any) {
