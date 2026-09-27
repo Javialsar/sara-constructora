@@ -1711,16 +1711,16 @@ export default function RegistrarAlojamientoModal({
                         </div>
                         <div>
                           <h5 className="text-sm font-black text-slate-900">
-                            Escala de Penalizaciones por Cancelación & Participación del Anfitrión
+                            Escala de Penalizaciones por Cancelación & Reparto Oficial
                           </h5>
                           <p className="text-xs text-slate-500">
-                            En toda cancelación por parte del huésped, <strong>el anfitrión recibe el {politicas.anfitrionSharePenalizacionMas10Dias}% de la penalización retenida</strong> como indemnización por bloqueo de fechas.
+                            El porcentaje de la penalización se divide: el <strong>50% para la empresa SARA-STAYS</strong> y el otro <strong>50% para el anfitrión</strong>. La <strong>diferencia restante se devuelve íntegramente al huésped o cliente</strong> (salvo en cancelaciones dentro de las 24 horas, donde no existe devolución).
                           </p>
                         </div>
                       </div>
 
                       <span className="inline-flex items-center gap-1 text-[11px] font-mono font-bold bg-amber-100 text-amber-900 px-3 py-1 rounded-full border border-amber-200">
-                        {politicas.anfitrionSharePenalizacionMas10Dias}% para el Anfitrión
+                        50% Anfitrión / 50% SARA
                       </span>
                     </div>
 

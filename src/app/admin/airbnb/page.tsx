@@ -2533,6 +2533,14 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                   <span className="text-[10px] text-gray-400 font-medium">Sobre el total de la reserva</span>
                 </div>
 
+                {/* Banner Oficial de Distribución y Reembolso */}
+                <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-3 mb-3.5 text-xs text-amber-950 flex items-start gap-2.5">
+                  <ShieldCheck size={18} className="text-amber-700 shrink-0 mt-0.5" />
+                  <p className="leading-snug">
+                    <strong>Regla de Reparto Oficial:</strong> El porcentaje de la penalización se divide el <strong>50% para la empresa SARA-STAYS</strong> y el otro <strong>50% para el anfitrión</strong>; la <strong>diferencia restante se devuelve íntegramente al huésped o cliente</strong> (salvo en cancelaciones dentro de las 24 horas, donde no existe devolución).
+                  </p>
+                </div>
+
                 <div className="space-y-3.5">
                   {/* Escenario a: Más de 10 días */}
                   <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80 space-y-3">
@@ -3280,11 +3288,12 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                       const msg = `*POLÍTICAS DE RESERVA, CANCELACIÓN & COMPENSACIÓN AL ANFITRIÓN - SARA STAYS*\n\n` +
                         `✅ *Anticipo para Confirmar:* ${politicasStays.porcentajeAnticipo}% del valor de la estadía.\n` +
                         `💵 *Saldo restante:* Se liquida al Check-in directamente a cuenta SARA.\n\n` +
-                        `📋 *Escala Oficial de Cancelación, Reembolso y Compensación al Anfitrión:*\n` +
-                        `• *a) Más de 10 días:* Penalización ${politicasStays.penalizacionMas10Dias}% (Devolución Huésped: ${Math.max(0, 100 - politicasStays.penalizacionMas10Dias)}% | Anfitrión recibe: ${hostMas10Pct}% de la reserva [50% de retención]).\n` +
-                        `• *b) De 5 a 10 días:* Penalización ${politicasStays.penalizacion5a10Dias}% (Devolución Huésped: ${Math.max(0, 100 - politicasStays.penalizacion5a10Dias)}% | Anfitrión recibe: ${host5a10Pct}% de la reserva [50% de retención]).\n` +
-                        `• *c) De 2 a 5 días:* Penalización ${politicasStays.penalizacion2a5Dias}% (Devolución Huésped: ${Math.max(0, 100 - politicasStays.penalizacion2a5Dias)}% | Anfitrión recibe: ${host2a5Pct}% de la reserva [50% de retención]).\n` +
-                        `• *d) Dentro de las 24 horas:* Penalización ${politicasStays.penalizacion24Horas}% (¡NO EXISTE DEVOLUCIÓN DE LA RESERVA - 0% Reembolso! | Anfitrión recibe: ${host24hPct}% de la reserva [50% de retención]).\n\n` +
+                        `⚖️ *Regla Oficial de Cancelación:* El porcentaje de la penalización se divide el 50% para la empresa SARA-STAYS y el 50% para el anfitrión; la diferencia restante se devuelve al huésped o cliente.\n\n` +
+                        `📋 *Escala Oficial de Penalización, Reembolso y Compensación al Anfitrión:*\n` +
+                        `• *a) Más de 10 días:* Penalización ${politicasStays.penalizacionMas10Dias}% (Devolución Huésped: ${Math.max(0, 100 - politicasStays.penalizacionMas10Dias)}% | Anfitrión recibe: ${hostMas10Pct}% de la reserva [50% de la penalización]).\n` +
+                        `• *b) De 5 a 10 días:* Penalización ${politicasStays.penalizacion5a10Dias}% (Devolución Huésped: ${Math.max(0, 100 - politicasStays.penalizacion5a10Dias)}% | Anfitrión recibe: ${host5a10Pct}% de la reserva [50% de la penalización]).\n` +
+                        `• *c) De 2 a 5 días:* Penalización ${politicasStays.penalizacion2a5Dias}% (Devolución Huésped: ${Math.max(0, 100 - politicasStays.penalizacion2a5Dias)}% | Anfitrión recibe: ${host2a5Pct}% de la reserva [50% de la penalización]).\n` +
+                        `• *d) Dentro de las 24 horas:* Penalización ${politicasStays.penalizacion24Horas}% (¡NO EXISTE DEVOLUCIÓN DE LA RESERVA - 0% Reembolso! | Anfitrión recibe: ${host24hPct}% de la reserva [50% de la penalización]).\n\n` +
                         `⏱️ *Plazo de Devolución:* ${politicasStays.diasReembolso} mediante ${politicasStays.metodoDevolucion}.\n` +
                         `🏛️ *IVA / Facturación SRI:* ${politicasStays.ivaPorcentaje}% extraído del total bruto.`
 

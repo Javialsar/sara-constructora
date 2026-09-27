@@ -3095,7 +3095,7 @@ export default function AirbnbPage() {
                         </div>
 
                         <p className="text-[10px] text-gray-400 italic pt-1 border-t border-white/10">
-                          * Los reembolsos se transfieren en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}. El porcentaje retenido se destina en un {politicas.anfitrionSharePenalizacionMas10Dias ?? 50}% como compensación directa al anfitrión por las fechas reservadas y el remanente a gastos operativos de SARA.
+                          * Regla Oficial: El porcentaje de la penalización se divide el 50% para la empresa SARA-STAYS y el 50% para el anfitrión; la diferencia restante se devuelve al huésped o cliente (salvo dentro de las 24 horas, donde no existe devolución). Reembolsos procesados en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}.
                         </p>
                       </div>
                     )
@@ -3240,6 +3240,7 @@ export default function AirbnbPage() {
                           <br />• <strong>b) De 5 a 10 días:</strong> Penalización {politicas.penalizacion5a10Dias}% (Devolución del {Math.max(0, 100 - politicas.penalizacion5a10Dias)}% del total).
                           <br />• <strong>c) De 2 a 5 días:</strong> Penalización {politicas.penalizacion2a5Dias}% (Devolución del {Math.max(0, 100 - politicas.penalizacion2a5Dias)}% del total).
                           <br />• <strong>d) Dentro de las 24 horas:</strong> Penalización {politicas.penalizacion24Horas}% (¡No existe devolución de la reserva - 0% de reembolso!).
+                          <br />• <em>Regla Oficial:</em> El porcentaje de la penalización retenida se divide el 50% para la empresa SARA-STAYS y el 50% para el anfitrión; la diferencia restante se devuelve al huésped o cliente.
                           <br />• Reembolsos liquidados en {politicas.diasReembolso} mediante {politicas.metodoDevolucion}.
                         </p>
                       </div>
