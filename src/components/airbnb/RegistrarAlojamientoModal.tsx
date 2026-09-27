@@ -1533,7 +1533,8 @@ export default function RegistrarAlojamientoModal({
               // Base Imponible = Total Reserva / (1 + IVA%)
               const baseSinIvaSim = totalReservaSim / (1 + (politicas.ivaPorcentaje / 100))
               const gastosAdmIvaSim = totalReservaSim - baseSinIvaSim
-              const comisionSaraSim = totalReservaSim * (formAlojamiento.porcentajeComision / 100)
+              // La comisión SARA se calcula sobre la BASE IMPONIBLE NETA
+              const comisionSaraSim = baseSinIvaSim * (formAlojamiento.porcentajeComision / 100)
               // Valor a transferir al Anfitrión = Total Reserva Bruta - Comisión SARA - Gastos Administrativos
               const netoAnfitrionSim = totalReservaSim - comisionSaraSim - gastosAdmIvaSim
 
@@ -1892,7 +1893,7 @@ export default function RegistrarAlojamientoModal({
                           <span className="font-mono">${saldoCheckInSim.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 text-rose-300 text-[11px]">
-                          <span>- Comisión SARA Stays ({formAlojamiento.porcentajeComision}%):</span>
+                          <span>- Comisión SARA Stays ({formAlojamiento.porcentajeComision}% s/base imponible neta):</span>
                           <span className="font-mono font-bold">-${comisionSaraSim.toFixed(2)} USD</span>
                         </div>
                         <div className="flex items-center justify-between py-1.5 text-amber-300 text-[11px]">

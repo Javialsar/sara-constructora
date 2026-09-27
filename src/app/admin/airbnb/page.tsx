@@ -1559,8 +1559,10 @@ export default function AdminAirbnbPage() {
 
     const subtotalNoches = formReserva.noches * formReserva.tarifaNoche
     const totalHuesped = subtotalNoches + formReserva.tarifaLimpieza
-    const comisionSara = (subtotalNoches * formReserva.porcentajeComisionSara) / 100
-    const netoAnfitrion = totalHuesped - comisionSara - formReserva.tarifaLimpieza // El anfitrión recibe el subtotal de noches menos la comisión de gestión
+    const baseSinIva = totalHuesped / (1 + (politicasStays.ivaPorcentaje / 100))
+    const comisionSara = (baseSinIva * formReserva.porcentajeComisionSara) / 100
+    const gastosAdmIva = totalHuesped - baseSinIva
+    const netoAnfitrion = totalHuesped - comisionSara - gastosAdmIva
 
     const nuevaReserva: ReservaAdmin = {
       id: `res-${Date.now()}`,
@@ -1612,8 +1614,10 @@ export default function AdminAirbnbPage() {
     const phoneWithCode = rawPhone.startsWith("593") ? rawPhone : `593${rawPhone.replace(/^0/, "")}`
 
     // Cálculo con retención de IVA / Gastos Administrativos
-    const ivaComision = Number(((r.comisionGanadaSara * politicasStays.ivaPorcentaje) / 100).toFixed(2))
-    const totalRetencionSara = Number((r.comisionGanadaSara + ivaComision).toFixed(2))
+    const baseSinIva = Number((r.totalHuesped / (1 + (politicasStays.ivaPorcentaje / 100))).toFixed(2))
+    const gastosAdmIva = Number((r.totalHuesped - baseSinIva).toFixed(2))
+    const comisionSara = Number(((baseSinIva * r.porcentajeComisionSara) / 100).toFixed(2))
+    const totalRetencionSara = Number((comisionSara + gastosAdmIva).toFixed(2))
     const netoConIva = Number((r.totalHuesped - totalRetencionSara).toFixed(2))
 
     const msg = `Estimado(a) ${r.anfitrionNombre}, le enviamos la liquidación de su alojamiento *${r.alojamientoTitulo}* (Reserva ${r.codigoReserva}):
@@ -1622,13 +1626,15 @@ export default function AdminAirbnbPage() {
 👤 Huésped: ${r.huespedNombre} (${r.huespedPais})
 💵 Subtotal Estancia: $${r.subtotalNoches}
 🧹 Tarifa Limpieza: $${r.tarifaLimpieza}
-📊 Total Recaudado en Cuenta SARA: $${r.totalHuesped} (100% cobrado)
+📊 Total Recaudado en Cuenta SARA: $${r.totalHuesped} (100% cobrado con IVA)
+🏷️ Base Imponible Neta: $${baseSinIva.toFixed(2)}
 
-🏢 Retención Comisión SARA (${r.porcentajeComisionSara}%): -$${r.comisionGanadaSara.toFixed(2)}
-🏛️ Retención IVA / Gastos Adm. (${politicasStays.ivaPorcentaje}%): -$${ivaComision.toFixed(2)}
+🏢 Retención Comisión SARA (${r.porcentajeComisionSara}% s/base neta): -$${comisionSara.toFixed(2)}
+🏛️ Retención IVA / Factura SRI (${politicasStays.ivaPorcentaje}% extraído): -$${gastosAdmIva.toFixed(2)}
 📦 Total Retenido por SARA: -$${totalRetencionSara.toFixed(2)}
 
 ✅ NETO A TRANSFERIR A SU CUENTA TRAS CHECK-IN: $${netoConIva.toFixed(2)}
+(Total Reserva Bruta - Comisión SARA - Gastos Administrativos)
 
 ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO CON ÉXITO TRAS CHECK-IN.*" : "⏳ *ESTADO: EN PROCESO DE TRANSFERENCIA TRAS CHECK-IN EFECTIVO DEL HUÉSPED.*"}
 ¡Gracias por confiar la administración y promoción de su alojamiento en SARA STAYS!`
@@ -2078,8 +2084,9 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
               <tbody className="divide-y divide-gray-100">
                 {reservasFiltradas.map((r) => {
                   const whatsappLink = getWhatsAppLiquidacionLink(r)
-                  const ivaComision = Number(((r.comisionGanadaSara * politicasStays.ivaPorcentaje) / 100).toFixed(2))
-                  const totalRetencion = Number((r.comisionGanadaSara + ivaComision).toFixed(2))
+                  const baseSinIva = Number((r.totalHuesped / (1 + (politicasStays.ivaPorcentaje / 100))).toFixed(2))
+                  const gastosAdmIva = Number((r.totalHuesped - baseSinIva).toFixed(2))
+                  const totalRetencion = Number((r.comisionGanadaSara + gastosAdmIva).toFixed(2))
                   const netoPostCheckIn = Number((r.totalHuesped - totalRetencion).toFixed(2))
 
                   return (
@@ -2149,8 +2156,8 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           -${totalRetencion.toFixed(2)}
                         </span>
                         <div className="text-[10px] text-gray-500 mt-1 space-y-0.5">
-                          <p>• Com. SARA ({r.porcentajeComisionSara}%): ${r.comisionGanadaSara.toFixed(2)}</p>
-                          <p>• Gastos/IVA ({politicasStays.ivaPorcentaje}%): ${ivaComision.toFixed(2)}</p>
+                          <p>• Com. SARA ({r.porcentajeComisionSara}% s/base): ${r.comisionGanadaSara.toFixed(2)}</p>
+                          <p>• Gastos/IVA ({politicasStays.ivaPorcentaje}%): ${gastosAdmIva.toFixed(2)}</p>
                         </div>
                       </td>
 
@@ -2946,7 +2953,7 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                 {(() => {
                   const baseSinIva = simuladorMonto / (1 + (politicasStays.ivaPorcentaje / 100))
                   const gastosAdmIva = simuladorMonto - baseSinIva
-                  const comisionSara = simuladorMonto * 0.15
+                  const comisionSara = baseSinIva * 0.15
                   const netoAnfitrion = simuladorMonto - comisionSara - gastosAdmIva
 
                   return (
@@ -2969,7 +2976,7 @@ ${r.estadoLiquidacion === "liquidado" ? "💰 *ESTADO: TRANSFERIDO Y LIQUIDADO C
                           <span className="font-mono text-slate-300">${baseSinIva.toFixed(2)} USD</span>
                         </div>
                         <div className="flex justify-between text-rose-300">
-                          <span>• Retención Comisión SARA (15%):</span>
+                          <span>• Retención Comisión SARA (15% s/base imponible neta):</span>
                           <span>-${comisionSara.toFixed(2)} USD</span>
                         </div>
                         <div className="flex justify-between text-amber-300">
