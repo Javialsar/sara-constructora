@@ -302,11 +302,55 @@ export default function InmobiliariaPage() {
   // Logotipo dinámico de SARA Inmobiliaria
   const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/sara-inmobiliaria.png")
 
+  // Lista de inmuebles reactiva sincronizada con la base de datos Supabase
+  const [inmueblesList, setInmueblesList] = useState<Inmueble[]>(INMUEBLES_DATA)
+
+  // Cargar propiedades activas publicadas desde la base de datos
+  useEffect(() => {
+    fetch("/api/inmobiliaria/inmuebles")
+      .then(res => res.json())
+      .then(data => {
+        if (data.inmuebles && Array.isArray(data.inmuebles) && data.inmuebles.length > 0) {
+          const mapped: Inmueble[] = data.inmuebles
+            .filter((item: any) => item.publicado)
+            .map((item: any) => ({
+              id: item.id,
+              codigo: item.codigo,
+              titulo: item.titulo,
+              tipo: item.tipo,
+              modalidad: item.modalidad,
+              precio: item.precio,
+              ciudad: item.ciudad,
+              sector: item.sector,
+              direccionAprox: item.direccion || item.sector,
+              areaTotalM2: item.areaM2 || 120,
+              areaConstruidaM2: item.areaConstruidaM2 || item.areaM2 || 100,
+              habitaciones: item.habitaciones || 0,
+              banos: item.banos || 0,
+              parqueaderos: item.parqueaderos || 1,
+              antiguedadAnios: item.antiguedad === "A estrenar" ? 0 : 2,
+              aptoBiess: true,
+              destacada: item.destacado || false,
+              imagenes: item.galeriaImagenes && item.galeriaImagenes.length > 0 ? item.galeriaImagenes : [item.imagenUrl],
+              videos: item.videos || [],
+              descripcion: item.descripcion || item.titulo,
+              amenidades: item.amenidades && item.amenidades.length > 0 ? item.amenidades : ["Seguridad 24/7"],
+              coordenadas: item.coordenadas || { lat: -2.8974, lng: -79.0045 },
+              propietario: item.propietario
+            }))
+          if (mapped.length > 0) {
+            setInmueblesList(mapped)
+          }
+        }
+      })
+      .catch(err => console.warn("Aviso: usando inmuebles locales mientras responde la BD:", err))
+  }, [])
+
   // Showcase Cinemático de Propiedades Destacadas (Rotación cada 2.8s)
   const propiedadesDestacadas = useMemo(() => {
-    const destacadas = INMUEBLES_DATA.filter(i => i.destacada)
-    return destacadas.length > 0 ? destacadas : INMUEBLES_DATA.slice(0, 5)
-  }, [])
+    const destacadas = inmueblesList.filter(i => i.destacada)
+    return destacadas.length > 0 ? destacadas : inmueblesList.slice(0, 5)
+  }, [inmueblesList])
   const [heroSlideIdx, setHeroSlideIdx] = useState(0)
   const [heroPaused, setHeroPaused] = useState(false)
 
@@ -336,7 +380,7 @@ export default function InmobiliariaPage() {
 
   // Filtrado reactivo de propiedades
   const filteredInmuebles = useMemo(() => {
-    return INMUEBLES_DATA.filter((item) => {
+    return inmueblesList.filter((item) => {
       // Filtro Modalidad (Compra / Alquiler / Terrenos / Todos)
       if (modalidadTab === "venta" && item.modalidad !== "venta") return false
       if (modalidadTab === "arriendo" && item.modalidad !== "arriendo") return false
@@ -904,7 +948,7 @@ export default function InmobiliariaPage() {
                   : "bg-slate-100 hover:bg-slate-200 text-slate-700"
               }`}
             >
-              ✨ Todos ({INMUEBLES_DATA.length})
+              ✨ Todos ({inmueblesList.length})
             </button>
 
             <button

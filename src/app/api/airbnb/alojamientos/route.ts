@@ -27,9 +27,24 @@ export async function GET() {
       .select("*")
       .order("created_at", { ascending: false })
 
-    if (error) {
-      console.warn("Tabla alojamientos_airbnb aún no creada en Supabase o error de lectura:", error.message)
-      return NextResponse.json({ alojamientos: [], error: error.message, origen: "error_o_no_creada" })
+    if (error || !data || data.length === 0) {
+      // Fallback a parametros_globales si hay error o tabla vacía
+      try {
+        const { data: globalParam } = await supabase
+          .from("parametros_globales")
+          .select("indirectos_default")
+          .limit(1)
+          .single()
+
+        if (globalParam?.indirectos_default?.alojamientos_airbnb && Array.isArray(globalParam.indirectos_default.alojamientos_airbnb) && globalParam.indirectos_default.alojamientos_airbnb.length > 0) {
+          return NextResponse.json({ alojamientos: globalParam.indirectos_default.alojamientos_airbnb, count: globalParam.indirectos_default.alojamientos_airbnb.length, origen: "database_backup" })
+        }
+      } catch (fallbackErr) {
+        console.warn("Fallback lectura alojamientos:", fallbackErr)
+      }
+      if (error) {
+        return NextResponse.json({ alojamientos: [], error: error.message, origen: "error_o_no_creada" })
+      }
     }
 
     // Mapear campos de la BD a la interfaz del frontend
@@ -197,6 +212,86 @@ export async function POST(request: Request) {
         error = retry.error
       }
 
+      // Sincronizar también en parametros_globales para respaldo total
+      try {
+        const { data: globalParam } = await supabase
+          .from("parametros_globales")
+          .select("id, indirectos_default")
+          .limit(1)
+          .single()
+
+        if (globalParam?.id) {
+          const indirectos = globalParam.indirectos_default || {}
+          const listaActual = Array.isArray(indirectos.alojamientos_airbnb) ? [...indirectos.alojamientos_airbnb] : []
+          const itemFrontend = {
+            id: data?.[0]?.id || payload.id || `stay-${Date.now()}`,
+            codigo: payload.codigo,
+            titulo: payload.titulo,
+            tipo: payload.tipo,
+            alcance: payload.alcance,
+            pais: payload.pais,
+            bandera: payload.bandera,
+            ciudad: payload.ciudad,
+            sector: payload.sector,
+            lat: payload.lat,
+            lng: payload.lng,
+            precioNoche: payload.precio_noche,
+            tarifaLimpieza: payload.tarifa_limpieza,
+            rating: 5.0,
+            isSuperhost: payload.is_superhost,
+            maxHuespedes: payload.max_huespedes,
+            habitaciones: payload.habitaciones,
+            banos: payload.banos,
+            camas: payload.camas,
+            imagenUrl: payload.imagen_url,
+            imagenes: payload.imagenes,
+            videoUrl: payload.video_url,
+            amenidades: payload.amenidades,
+            descripcion: payload.descripcion,
+            reglas: payload.reglas,
+            publicado: payload.publicado,
+            anfitrion: {
+              nombre: payload.anfitrion_nombre,
+              telefono: payload.anfitrion_telefono,
+              email: payload.anfitrion_email,
+              cedulaRuc: payload.anfitrion_cedula_ruc,
+              banco: payload.anfitrion_banco,
+              tipoCuenta: payload.anfitrion_tipo_cuenta,
+              numeroCuenta: payload.anfitrion_numero_cuenta,
+              titular: payload.anfitrion_titular,
+              cuentaBancaria: payload.anfitrion_cuenta_bancaria,
+              qrCuenta: payload.anfitrion_qr_cuenta
+            },
+            monetizacion: {
+              modelo: payload.monetizacion_modelo,
+              porcentajeComision: payload.monetizacion_porcentaje_comision,
+              cuotaFijaMensual: payload.monetizacion_cuota_fija_mensual,
+              totalComisionesGeneradas: 0
+            }
+          }
+
+          const existingIdx = listaActual.findIndex((x: any) => x.codigo === payload.codigo || x.id === itemFrontend.id)
+          if (existingIdx >= 0) {
+            listaActual[existingIdx] = itemFrontend
+          } else {
+            listaActual.unshift(itemFrontend)
+          }
+
+          await supabase
+            .from("parametros_globales")
+            .update({
+              indirectos_default: {
+                ...indirectos,
+                alojamientos_airbnb: listaActual
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", globalParam.id)
+        }
+      } catch (backupErr) {
+        console.warn("Aviso: No se pudo respaldar en parametros_globales:", backupErr)
+      }
+
       if (error) {
         console.error("Error guardando alojamiento en Supabase:", error)
         return NextResponse.json({ error: error.message }, { status: 400 })
@@ -233,6 +328,34 @@ export async function DELETE(request: Request) {
     }
 
     const { error } = await query
+
+    // Eliminar también del respaldo en parametros_globales
+    try {
+      const { data: globalParam } = await supabase
+        .from("parametros_globales")
+        .select("id, indirectos_default")
+        .limit(1)
+        .single()
+
+      if (globalParam?.id && globalParam.indirectos_default?.alojamientos_airbnb) {
+        const filtrada = globalParam.indirectos_default.alojamientos_airbnb.filter(
+          (x: any) => (id && x.id !== id) || (codigo && x.codigo !== codigo)
+        )
+        await supabase
+          .from("parametros_globales")
+          .update({
+            indirectos_default: {
+              ...globalParam.indirectos_default,
+              alojamientos_airbnb: filtrada
+            },
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", globalParam.id)
+      }
+    } catch (delBackupErr) {
+      console.warn("Aviso: Error borrando respaldo en parametros_globales:", delBackupErr)
+    }
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }

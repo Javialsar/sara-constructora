@@ -67,6 +67,11 @@ import {
   SolicitudInmobiliaria, 
   SOLICITUDES_INICIALES 
 } from "@/lib/services/solicitudesInmobiliariaService"
+import { 
+  getInmueblesFromDB, 
+  saveInmuebleToDB, 
+  deleteInmuebleFromDB 
+} from "@/lib/services/inmueblesService"
 
 export interface InmuebleAdmin {
   id: string
@@ -327,8 +332,13 @@ export default function AdminInmobiliariaPage() {
   const [planesSaveSuccess, setPlanesSaveSuccess] = useState(false)
   const [simuladorPrecioVenta, setSimuladorPrecioVenta] = useState<number>(180000)
 
-  // Cargar configuración de planes y solicitudes desde API / Supabase
+  // Cargar inmuebles, configuración de planes y solicitudes desde la Base de Datos Supabase
   React.useEffect(() => {
+    getInmueblesFromDB().then((data) => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setInmuebles(data)
+      }
+    })
     getInmobiliariaConfig().then(setPlanesConfig)
     getSolicitudesInmobiliaria().then(setSolicitudes)
 
@@ -842,49 +852,47 @@ export default function AdminInmobiliariaPage() {
 
     if (editingInmueble) {
       // Actualizar existente
-      setInmuebles(prev => prev.map(item => {
-        if (item.id === editingInmueble.id) {
-          return {
-            ...item,
-            codigo: formInmueble.codigo,
-            titulo: formInmueble.titulo,
-            tipo: formInmueble.tipo,
-            modalidad: formInmueble.modalidad,
-            precio: formInmueble.precio,
-            ciudad: formInmueble.ciudad,
-            sector: formInmueble.sector,
-            direccion: formInmueble.direccion,
-            areaM2: formInmueble.areaM2,
-            areaConstruidaM2: formInmueble.areaConstruidaM2,
-            habitaciones: formInmueble.habitaciones,
-            banos: formInmueble.banos,
-            parqueaderos: formInmueble.parqueaderos,
-            antiguedad: formInmueble.antiguedad,
-            descripcion: formInmueble.descripcion,
-            amenidades: formInmueble.amenidades,
-            coordenadas: formInmueble.coordenadas,
-            imagenUrl: formInmueble.imagenUrl,
-            galeriaImagenes: formInmueble.galeriaImagenes,
-            videos: formInmueble.videos,
-            destacado: formInmueble.destacado,
-            publicado: formInmueble.publicado,
-            propietario: {
-              nombre: formInmueble.propietarioNombre,
-              telefono: formInmueble.propietarioTelefono,
-              email: formInmueble.propietarioEmail,
-              cuentaBancaria: formInmueble.cuentaBancaria
-            },
-            promocion: {
-              ...item.promocion,
-              plan: formInmueble.planPromocion,
-              nombrePlan: nombrePlanMap[formInmueble.planPromocion],
-              tarifaMensual: formInmueble.tarifaMensual,
-              porcentajeComision: formInmueble.porcentajeComision
-            }
-          }
+      const itemActualizado: InmuebleAdmin = {
+        ...editingInmueble,
+        codigo: formInmueble.codigo,
+        titulo: formInmueble.titulo,
+        tipo: formInmueble.tipo,
+        modalidad: formInmueble.modalidad,
+        precio: formInmueble.precio,
+        ciudad: formInmueble.ciudad,
+        sector: formInmueble.sector,
+        direccion: formInmueble.direccion,
+        areaM2: formInmueble.areaM2,
+        areaConstruidaM2: formInmueble.areaConstruidaM2,
+        habitaciones: formInmueble.habitaciones,
+        banos: formInmueble.banos,
+        parqueaderos: formInmueble.parqueaderos,
+        antiguedad: formInmueble.antiguedad,
+        descripcion: formInmueble.descripcion,
+        amenidades: formInmueble.amenidades,
+        coordenadas: formInmueble.coordenadas,
+        imagenUrl: formInmueble.imagenUrl,
+        galeriaImagenes: formInmueble.galeriaImagenes,
+        videos: formInmueble.videos,
+        destacado: formInmueble.destacado,
+        publicado: formInmueble.publicado,
+        propietario: {
+          nombre: formInmueble.propietarioNombre,
+          telefono: formInmueble.propietarioTelefono,
+          email: formInmueble.propietarioEmail,
+          cuentaBancaria: formInmueble.cuentaBancaria
+        },
+        promocion: {
+          ...editingInmueble.promocion,
+          plan: formInmueble.planPromocion,
+          nombrePlan: nombrePlanMap[formInmueble.planPromocion],
+          tarifaMensual: formInmueble.tarifaMensual,
+          porcentajeComision: formInmueble.porcentajeComision
         }
-        return item
-      }))
+      }
+
+      setInmuebles(prev => prev.map(item => item.id === editingInmueble.id ? itemActualizado : item))
+      saveInmuebleToDB(itemActualizado)
     } else {
       // Crear nuevo
       const hoy = new Date()
@@ -935,6 +943,7 @@ export default function AdminInmobiliariaPage() {
         }
       }
       setInmuebles(prev => [nuevo, ...prev])
+      saveInmuebleToDB(nuevo)
     }
 
     setIsModalOpen(false)
@@ -944,17 +953,18 @@ export default function AdminInmobiliariaPage() {
   const handleDeleteInmueble = (id: string) => {
     if (confirm("¿Estás seguro de eliminar este inmueble y su registro de promoción publicitaria?")) {
       setInmuebles(prev => prev.filter(i => i.id !== id))
+      deleteInmuebleFromDB(id)
     }
   }
 
   // Toggle Publicado / Pausado (por ejemplo, suspensión por falta de pago)
   const handleTogglePublicado = (id: string) => {
-    setInmuebles(prev => prev.map(item => {
-      if (item.id === id) {
-        return { ...item, publicado: !item.publicado }
-      }
-      return item
-    }))
+    const target = inmuebles.find(i => i.id === id)
+    if (target) {
+      const updated: InmuebleAdmin = { ...target, publicado: !target.publicado }
+      setInmuebles(prev => prev.map(item => item.id === id ? updated : item))
+      saveInmuebleToDB(updated)
+    }
   }
 
   // Abrir Modal para Registrar Cobro de Cuota de Promoción
@@ -977,23 +987,21 @@ export default function AdminInmobiliariaPage() {
     nuevaFechaVencimiento.setDate(nuevaFechaVencimiento.getDate() + diasAdicionales)
     const fechaVencString = nuevaFechaVencimiento.toISOString().split("T")[0]
 
-    setInmuebles(prev => prev.map(item => {
-      if (item.id === selectedInmuebleForCobro.id) {
-        return {
-          ...item,
-          publicado: true, // Si estaba pausado, se reactiva de inmediato al pagar
-          promocion: {
-            ...item.promocion,
-            fechaVencimiento: fechaVencString,
-            estadoPago: "al_dia",
-            ultimoMontoPagado: montoCobradoInput,
-            metodoPago: metodoPagoCobro,
-            totalRecaudado: item.promocion.totalRecaudado + montoCobradoInput
-          }
-        }
+    const updated: InmuebleAdmin = {
+      ...selectedInmuebleForCobro,
+      publicado: true, // Si estaba pausado, se reactiva de inmediato al pagar
+      promocion: {
+        ...selectedInmuebleForCobro.promocion,
+        fechaVencimiento: fechaVencString,
+        estadoPago: "al_dia",
+        ultimoMontoPagado: montoCobradoInput,
+        metodoPago: metodoPagoCobro,
+        totalRecaudado: selectedInmuebleForCobro.promocion.totalRecaudado + montoCobradoInput
       }
-      return item
-    }))
+    }
+
+    setInmuebles(prev => prev.map(item => item.id === selectedInmuebleForCobro.id ? updated : item))
+    saveInmuebleToDB(updated)
 
     setIsCobroModalOpen(false)
     alert(`¡Cobro de $${montoCobradoInput} registrado con éxito! La promoción de "${selectedInmuebleForCobro.titulo}" ha sido extendida por ${mesesRenovacion} mes(es) hasta el ${fechaVencString}.`)

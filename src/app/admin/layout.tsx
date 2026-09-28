@@ -139,9 +139,14 @@ export default function AdminLayout({
       ]
     },
     {
-      title: "INMOBILIARIA & STAYS",
+      title: "GESTIÓN INMOBILIARIA",
       items: [
         { href: "/admin/inmobiliaria", label: "Gestión Inmobiliaria", icon: Building2 },
+      ]
+    },
+    {
+      title: "GESTIÓN STAYS (ALOJAMIENTOS)",
+      items: [
         { href: "/admin/airbnb", label: "Gestión Stays (Alojamientos)", icon: Sparkles },
       ]
     },
