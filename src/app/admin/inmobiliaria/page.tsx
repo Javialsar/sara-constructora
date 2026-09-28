@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useRef, useCallback, useEffect } from "react"
 import Link from "next/link"
 import { 
   Building2, 
@@ -308,7 +308,7 @@ export default function AdminInmobiliariaPage() {
   const [searchSolicitud, setSearchSolicitud] = useState("")
 
   // Sub-viñeta activa dentro del Modal de Publicar Inmueble (1 a 4)
-  const [modalSubTab, setModalSubTab] = useState<1 | 2 | 3 | 4>(1)
+  const [modalSubTab, setModalSubTab] = useState<1 | 2 | 3 | 4 | 5>(1)
 
   // Coordenadas predeterminadas por ciudad en Ecuador para auto-posicionamiento rápido
   const CIUDADES_COORDINATES: Record<string, { lat: number; lng: number }> = {
@@ -487,6 +487,39 @@ export default function AdminInmobiliariaPage() {
     }
   }
 
+  const geocodeTimer = useRef<NodeJS.Timeout | null>(null)
+
+  const geocodeAddress = useCallback(async (query: string) => {
+    if (!query.trim()) return
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+      const data = await response.json()
+      if (data && data.length > 0) {
+        setFormInmueble(prev => ({
+          ...prev,
+          coordenadas: {
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon)
+          }
+        }))
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error)
+    }
+  }, [])
+
+  const triggerGeocode = useCallback((city: string, sector: string, direccion: string) => {
+    if (geocodeTimer.current) {
+      clearTimeout(geocodeTimer.current)
+    }
+    const query = `${direccion} ${sector} ${city}`.trim()
+    if (query) {
+      geocodeTimer.current = setTimeout(() => {
+        geocodeAddress(query)
+      }, 500)
+    }
+  }, [geocodeAddress])
+
   // Modal para Nuevo/Editar Inmueble
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingInmueble, setEditingInmueble] = useState<InmuebleAdmin | null>(null)
@@ -539,7 +572,18 @@ export default function AdminInmobiliariaPage() {
     },
     planPromocion: "destacado" as InmuebleAdmin["promocion"]["plan"],
     tarifaMensual: 65,
-    porcentajeComision: 3
+    porcentajeComision: 3,
+    // Verificación de Legalidad
+    legalidad: {
+      escrituraPublica: '',
+      certificadoGravamenes: '',
+      pagoImpuestos: '',
+      cedulaPropietario: '',
+      observaciones: '',
+      estado: 'pendiente' as 'pendiente' | 'aprobado' | 'rechazado'
+    },
+    mesesContratados: 1,
+    descuentoPorcentaje: 0
   })
 
   // Funciones para agregar y remover amenidades dinámicamente
@@ -692,7 +736,17 @@ export default function AdminInmobiliariaPage() {
       tarifaMensual: planesConfig.planes.destacado.precioMensual || 65,
       porcentajeComision: planesConfig.comisiones.comisionVentaDefault || 3,
       destacado: true,
-      publicado: true
+      publicado: true,
+      legalidad: {
+        escrituraPublica: '',
+        certificadoGravamenes: '',
+        pagoImpuestos: '',
+        cedulaPropietario: '',
+        observaciones: '',
+        estado: 'pendiente' as 'pendiente' | 'aprobado' | 'rechazado'
+      },
+      mesesContratados: 1,
+      descuentoPorcentaje: 0
     })
     
     setIsModalOpen(true)
@@ -788,7 +842,17 @@ export default function AdminInmobiliariaPage() {
       },
       planPromocion: "destacado",
       tarifaMensual: planesConfig.planes.destacado.precioMensual || 65,
-      porcentajeComision: planesConfig.comisiones.comisionVentaDefault || 3
+      porcentajeComision: planesConfig.comisiones.comisionVentaDefault || 3,
+      legalidad: {
+        escrituraPublica: '',
+        certificadoGravamenes: '',
+        pagoImpuestos: '',
+        cedulaPropietario: '',
+        observaciones: '',
+        estado: 'pendiente' as 'pendiente' | 'aprobado' | 'rechazado'
+      },
+      mesesContratados: 1,
+      descuentoPorcentaje: 0
     })
     setIsModalOpen(true)
   }
@@ -834,7 +898,17 @@ export default function AdminInmobiliariaPage() {
       },
       planPromocion: inm.promocion.plan,
       tarifaMensual: inm.promocion.tarifaMensual,
-      porcentajeComision: inm.promocion.porcentajeComision || 3
+      porcentajeComision: inm.promocion.porcentajeComision || 3,
+      legalidad: {
+        escrituraPublica: '',
+        certificadoGravamenes: '',
+        pagoImpuestos: '',
+        cedulaPropietario: '',
+        observaciones: '',
+        estado: 'pendiente' as 'pendiente' | 'aprobado' | 'rechazado'
+      },
+      mesesContratados: 1,
+      descuentoPorcentaje: 0
     })
     setIsModalOpen(true)
   }
@@ -2969,12 +3043,13 @@ export default function AdminInmobiliariaPage() {
               </div>
 
               {/* Sub-Pestañas / Viñetas del Modal */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-gray-100/90 rounded-2xl max-w-4xl">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-gray-100/90 rounded-2xl max-w-4xl">
                 {[
                   { id: 1, label: "1. Inmueble & Mapa", icon: MapPin },
                   { id: 2, label: "2. Propietario & Banco", icon: Users },
                   { id: 3, label: "3. Fotos & Videos", icon: ImageIcon },
-                  { id: 4, label: "4. Plan & Cobro", icon: Sparkles }
+                  { id: 4, label: "4. Verificar Legalidad", icon: ShieldCheck },
+                  { id: 5, label: "5. Plan & Cobro", icon: Sparkles }
                 ].map((tab) => {
                   const IconComponent = tab.icon
                   const isActive = modalSubTab === tab.id
@@ -3287,7 +3362,10 @@ export default function AdminInmobiliariaPage() {
                             required
                             placeholder="Ej: Cuenca, Loja, Quito..."
                             value={formInmueble.ciudad}
-                            onChange={(e) => handleCityChange(e.target.value)}
+                            onChange={(e) => {
+                              handleCityChange(e.target.value)
+                              triggerGeocode(e.target.value, formInmueble.sector, formInmueble.direccion)
+                            }}
                             className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500"
                           />
                           <span className="text-[10px] text-emerald-700 mt-1 block">
@@ -3302,7 +3380,10 @@ export default function AdminInmobiliariaPage() {
                             required
                             placeholder="Ej: Challuabamba, Puertas del Sol, Ricaurte..."
                             value={formInmueble.sector}
-                            onChange={(e) => setFormInmueble({ ...formInmueble, sector: e.target.value })}
+                            onChange={(e) => {
+                              setFormInmueble({ ...formInmueble, sector: e.target.value })
+                              triggerGeocode(formInmueble.ciudad, e.target.value, formInmueble.direccion)
+                            }}
                             className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
                           />
                         </div>
@@ -3313,7 +3394,10 @@ export default function AdminInmobiliariaPage() {
                             type="text"
                             placeholder="Ej: Calle Las Retamas y Av. Solano"
                             value={formInmueble.direccion}
-                            onChange={(e) => setFormInmueble({ ...formInmueble, direccion: e.target.value })}
+                            onChange={(e) => {
+                              setFormInmueble({ ...formInmueble, direccion: e.target.value })
+                              triggerGeocode(formInmueble.ciudad, formInmueble.sector, e.target.value)
+                            }}
                             className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
                           />
                         </div>
@@ -3327,7 +3411,10 @@ export default function AdminInmobiliariaPage() {
                             <button
                               key={c}
                               type="button"
-                              onClick={() => handleCityChange(c)}
+                              onClick={() => {
+                                handleCityChange(c)
+                                triggerGeocode(c, formInmueble.sector, formInmueble.direccion)
+                              }}
                               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                                 formInmueble.ciudad.toLowerCase() === c.toLowerCase()
                                   ? "bg-emerald-600 text-white shadow-xs"
@@ -3754,9 +3841,166 @@ export default function AdminInmobiliariaPage() {
               )}
 
               {/* =================================================== */}
-              {/* SUB-VIÑETA 4: TIPO DE PLAN & COBRO DE MONETIZACIÓN   */}
+              {/* SUB-VIÑETA 4: VERIFICAR LEGALIDAD                    */}
               {/* =================================================== */}
               {modalSubTab === 4 && (
+                <div className="space-y-6 animate-fadeIn max-w-6xl mx-auto">
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                      <ShieldCheck size={15} className="text-brand-sage" />
+                      Verificar Legalidad del Inmueble
+                    </h4>
+                    
+                    <div className="p-3 bg-blue-50 text-blue-800 text-xs rounded-xl border border-blue-200 flex items-start gap-2">
+                      <Info size={16} className="shrink-0 mt-0.5" />
+                      <p>SARA Inmobiliaria verificará la documentación antes de activar la publicación. Esto protege tanto al propietario como a los potenciales compradores.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Documentos Generales */}
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-gray-700">Escritura Pública</label>
+                        <input
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                setFormInmueble(prev => ({ ...prev, legalidad: { ...prev.legalidad, escrituraPublica: evt.target?.result as string } }))
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full text-xs"
+                        />
+                        {formInmueble.legalidad.escrituraPublica && <span className="text-xs text-green-600 font-bold block">✓ Documento cargado</span>}
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-gray-700">Certificado de Gravámenes</label>
+                        <input
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                setFormInmueble(prev => ({ ...prev, legalidad: { ...prev.legalidad, certificadoGravamenes: evt.target?.result as string } }))
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full text-xs"
+                        />
+                        {formInmueble.legalidad.certificadoGravamenes && <span className="text-xs text-green-600 font-bold block">✓ Documento cargado</span>}
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-gray-700">Pago de Impuestos Prediales</label>
+                        <input
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                setFormInmueble(prev => ({ ...prev, legalidad: { ...prev.legalidad, pagoImpuestos: evt.target?.result as string } }))
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full text-xs"
+                        />
+                        {formInmueble.legalidad.pagoImpuestos && <span className="text-xs text-green-600 font-bold block">✓ Documento cargado</span>}
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="block text-xs font-bold text-gray-700">Cédula del Propietario</label>
+                        <input
+                          type="file"
+                          accept=".pdf,image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                setFormInmueble(prev => ({ ...prev, legalidad: { ...prev.legalidad, cedulaPropietario: evt.target?.result as string } }))
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="w-full text-xs"
+                        />
+                        {formInmueble.legalidad.cedulaPropietario && <span className="text-xs text-green-600 font-bold block">✓ Documento cargado</span>}
+                      </div>
+
+                      {formInmueble.tipo === 'terreno' && (
+                        <div className="space-y-3">
+                          <label className="block text-xs font-bold text-gray-700">Levantamiento Topográfico</label>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="w-full text-xs"
+                          />
+                        </div>
+                      )}
+
+                      {formInmueble.tipo === 'local' && (
+                        <div className="space-y-3">
+                          <label className="block text-xs font-bold text-gray-700">Permiso de Uso de Suelo</label>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="w-full text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-200">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Observaciones de Verificación</label>
+                      <textarea
+                        rows={3}
+                        value={formInmueble.legalidad.observaciones}
+                        onChange={(e) => setFormInmueble(prev => ({ ...prev, legalidad: { ...prev.legalidad, observaciones: e.target.value } }))}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs"
+                        placeholder="Ej: Falta firma en la página 3, o los linderos no coinciden..."
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-xs font-bold text-gray-700 mb-2">Estado de Revisión Legal</label>
+                      <div className="flex gap-3">
+                        {(['pendiente', 'aprobado', 'rechazado'] as const).map(estado => (
+                          <button
+                            key={estado}
+                            type="button"
+                            onClick={() => setFormInmueble(prev => ({ ...prev, legalidad: { ...prev.legalidad, estado } }))}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold capitalize border ${
+                              formInmueble.legalidad.estado === estado
+                                ? estado === 'aprobado' ? 'bg-green-100 text-green-800 border-green-300'
+                                : estado === 'rechazado' ? 'bg-red-100 text-red-800 border-red-300'
+                                : 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            {estado}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* =================================================== */}
+              {/* SUB-VIÑETA 5: TIPO DE PLAN & COBRO DE MONETIZACIÓN   */}
+              {/* =================================================== */}
+              {modalSubTab === 5 && (
                 <div className="space-y-4 animate-fadeIn">
                   <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-300 space-y-4">
                     <div className="flex items-center gap-2">
@@ -3837,7 +4081,88 @@ export default function AdminInmobiliariaPage() {
                       })}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {/* Detalle de Facturación */}
+                    <div className="bg-white p-4 rounded-2xl border border-amber-200 space-y-3 mt-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-2">
+                        <Receipt size={15} className="text-amber-700" />
+                        Detalle del Valor a Cancelar
+                      </h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Meses Contratados</label>
+                          <select
+                            value={formInmueble.mesesContratados}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, mesesContratados: Number(e.target.value) })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-900"
+                          >
+                            <option value={1}>1 mes</option>
+                            <option value={2}>2 meses</option>
+                            <option value={3}>3 meses</option>
+                            <option value={6}>6 meses</option>
+                            <option value={12}>12 meses (1 año)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Descuento (%)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="1"
+                            value={formInmueble.descuentoPorcentaje}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, descuentoPorcentaje: Math.min(100, Math.max(0, Number(e.target.value))) })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-900"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Desglose de Factura */}
+                      {(() => {
+                        const precioConIVA = formInmueble.tarifaMensual
+                        const subtotalSinIVA = +(precioConIVA / 1.15).toFixed(2)
+                        const iva15 = +(precioConIVA - subtotalSinIVA).toFixed(2)
+                        const subtotalMeses = +(precioConIVA * formInmueble.mesesContratados).toFixed(2)
+                        const descuentoValor = +(subtotalMeses * formInmueble.descuentoPorcentaje / 100).toFixed(2)
+                        const totalFinal = +(subtotalMeses - descuentoValor).toFixed(2)
+                        
+                        return (
+                          <div className="bg-slate-50 rounded-xl p-4 border border-gray-200 space-y-2 text-sm">
+                            <div className="flex justify-between text-gray-600">
+                              <span>Subtotal (sin IVA) x 1 mes:</span>
+                              <span className="font-bold">${subtotalSinIVA}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-600">
+                              <span>IVA 15%:</span>
+                              <span className="font-bold">${iva15}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-2">
+                              <span className="font-semibold">Precio c/IVA (1 mes):</span>
+                              <span className="font-black">${precioConIVA}</span>
+                            </div>
+                            {formInmueble.mesesContratados > 1 && (
+                              <div className="flex justify-between text-gray-700">
+                                <span>Subtotal x {formInmueble.mesesContratados} meses:</span>
+                                <span className="font-bold">${subtotalMeses}</span>
+                              </div>
+                            )}
+                            {formInmueble.descuentoPorcentaje > 0 && (
+                              <div className="flex justify-between text-green-700">
+                                <span>Descuento ({formInmueble.descuentoPorcentaje}%):</span>
+                                <span className="font-bold">-${descuentoValor}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between text-amber-950 border-t-2 border-amber-300 pt-3 mt-1">
+                              <span className="text-base font-black">TOTAL A CANCELAR:</span>
+                              <span className="text-xl font-black">${totalFinal}</span>
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4">
                       <div>
                         <label className="block text-xs font-bold text-amber-950 mb-1">
                           Tarifa Mensual Cobrada ($ USD)
@@ -3904,7 +4229,7 @@ export default function AdminInmobiliariaPage() {
                     <span>Anterior</span>
                   </button>
                 )}
-                {modalSubTab < 4 && (
+                {modalSubTab < 5 && (
                   <button
                     type="button"
                     onClick={() => setModalSubTab((modalSubTab + 1) as any)}
