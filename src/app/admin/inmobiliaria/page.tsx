@@ -726,10 +726,8 @@ export default function AdminInmobiliariaPage() {
         titularCedula: "",
         qrImageUrl: ""
       },
-      galeriaImagenes: [
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80"
-      ],
-      imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
+      galeriaImagenes: [],
+      imagenUrl: "",
       videos: [],
       nuevoVideoUrl: "",
       planPromocion: "destacado",
@@ -821,11 +819,8 @@ export default function AdminInmobiliariaPage() {
       amenidades: ["Seguridad 24/7", "Área BBQ", "Acabados de Primera"],
       nuevaAmenidadInput: "",
       coordenadas: { lat: -2.8974, lng: -79.0045 },
-      imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
-      galeriaImagenes: [
-        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
-        "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=600&q=80"
-      ],
+      imagenUrl: "",
+      galeriaImagenes: [],
       videos: [],
       nuevoVideoUrl: "",
       destacado: true,
@@ -3080,7 +3075,7 @@ export default function AdminInmobiliariaPage() {
                 {/* SUB-VIÑETA 1: DATOS DEL INMUEBLE & GEOLOCALIZACIÓN   */}
                 {/* =================================================== */}
                 {modalSubTab === 1 && (
-                  <div className="space-y-6 animate-fadeIn max-w-6xl mx-auto">
+                  <div className="space-y-6 animate-fadeIn">
                     {/* Tarjeta 1: Información Comercial Básica */}
                     <div className="bg-slate-50 p-5 rounded-2xl border border-gray-200 space-y-4">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
@@ -4018,21 +4013,24 @@ export default function AdminInmobiliariaPage() {
                           nombre: planesConfig.planes.basico.nombre,
                           precio: planesConfig.planes.basico.precioMensual,
                           desc: planesConfig.planes.basico.descripcion,
-                          badge: "Básico"
+                          badge: "Básico",
+                          beneficios: planesConfig.planes.basico.beneficios || []
                         },
                         {
                           id: "destacado",
                           nombre: planesConfig.planes.destacado.nombre,
                           precio: planesConfig.planes.destacado.precioMensual,
                           desc: planesConfig.planes.destacado.descripcion,
-                          badge: "★ Recomendado"
+                          badge: "★ Recomendado",
+                          beneficios: planesConfig.planes.destacado.beneficios || []
                         },
                         {
                           id: "premium",
                           nombre: planesConfig.planes.premium.nombre,
                           precio: planesConfig.planes.premium.precioMensual,
                           desc: planesConfig.planes.premium.descripcion,
-                          badge: "VIP Exclusiva"
+                          badge: "VIP Exclusiva",
+                          beneficios: planesConfig.planes.premium.beneficios || []
                         }
                       ].map((plan) => {
                         const isSelected = formInmueble.planPromocion === plan.id
@@ -4071,9 +4069,21 @@ export default function AdminInmobiliariaPage() {
                               </div>
                               <h5 className="font-bold text-gray-900 text-xs">{plan.nombre}</h5>
                               <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">{plan.desc}</p>
+
+                              {/* Características del Plan */}
+                              {plan.beneficios.length > 0 && (
+                                <ul className="mt-2 space-y-1 border-t border-gray-100 pt-2">
+                                  {plan.beneficios.map((b, idx) => (
+                                    <li key={idx} className="flex items-start gap-1.5 text-[10px] text-gray-600">
+                                      <CheckCircle2 size={11} className="text-emerald-500 shrink-0 mt-0.5" />
+                                      <span>{b}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
                             <div className="mt-3 pt-2 border-t border-gray-100 flex items-baseline gap-1">
-                              <span className="text-lg font-black text-amber-900">${plan.precio}</span>
+                              <span className="text-lg font-black text-amber-900">${plan.precio.toFixed(2)}</span>
                               <span className="text-[10px] text-gray-500 font-semibold">/mes</span>
                             </div>
                           </div>
@@ -4131,31 +4141,31 @@ export default function AdminInmobiliariaPage() {
                           <div className="bg-slate-50 rounded-xl p-4 border border-gray-200 space-y-2 text-sm">
                             <div className="flex justify-between text-gray-600">
                               <span>Subtotal (sin IVA) x 1 mes:</span>
-                              <span className="font-bold">${subtotalSinIVA}</span>
+                              <span className="font-bold">${subtotalSinIVA.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-gray-600">
                               <span>IVA 15%:</span>
-                              <span className="font-bold">${iva15}</span>
+                              <span className="font-bold">${iva15.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-2">
                               <span className="font-semibold">Precio c/IVA (1 mes):</span>
-                              <span className="font-black">${precioConIVA}</span>
+                              <span className="font-black">${precioConIVA.toFixed(2)}</span>
                             </div>
                             {formInmueble.mesesContratados > 1 && (
                               <div className="flex justify-between text-gray-700">
                                 <span>Subtotal x {formInmueble.mesesContratados} meses:</span>
-                                <span className="font-bold">${subtotalMeses}</span>
+                                <span className="font-bold">${subtotalMeses.toFixed(2)}</span>
                               </div>
                             )}
                             {formInmueble.descuentoPorcentaje > 0 && (
                               <div className="flex justify-between text-green-700">
                                 <span>Descuento ({formInmueble.descuentoPorcentaje}%):</span>
-                                <span className="font-bold">-${descuentoValor}</span>
+                                <span className="font-bold">-${descuentoValor.toFixed(2)}</span>
                               </div>
                             )}
                             <div className="flex justify-between text-amber-950 border-t-2 border-amber-300 pt-3 mt-1">
                               <span className="text-base font-black">TOTAL A CANCELAR:</span>
-                              <span className="text-xl font-black">${totalFinal}</span>
+                              <span className="text-xl font-black">${totalFinal.toFixed(2)}</span>
                             </div>
                           </div>
                         )

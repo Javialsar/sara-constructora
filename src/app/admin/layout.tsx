@@ -145,9 +145,9 @@ export default function AdminLayout({
       ]
     },
     {
-      title: "GESTIÓN STAYS (ALOJAMIENTOS)",
+      title: "GESTIÓN STAYS (HOSPÉDATE)",
       items: [
-        { href: "/admin/airbnb", label: "Gestión Stays (Alojamientos)", icon: Sparkles },
+        { href: "/admin/airbnb", label: "Gestión Stays (Hospédate)", icon: Sparkles },
       ]
     },
     {
