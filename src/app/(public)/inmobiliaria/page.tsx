@@ -33,6 +33,7 @@ import {
   Award,
   Briefcase,
   PlusCircle,
+  Plus,
   Star,
   Sliders
 } from "lucide-react"
@@ -495,17 +496,27 @@ export default function InmobiliariaPage() {
 
           {/* Acciones */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Botón Consignar Propiedad */}
-            <button
-              type="button"
-              onClick={() => setIsConsignarOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
-              title="Consigna tu inmueble para venta o arrendamiento"
+            {/* Botón Publicar Propiedad */}
+            <Link
+              href="/inmobiliaria/auth"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all border border-amber-300/40 active:scale-[0.98]"
+              title="Publica tu inmueble para venta o arrendamiento"
             >
-              <Building2 size={15} />
-              <span className="hidden sm:inline">Consignar Propiedad</span>
-              <span className="sm:hidden">+ Consignar</span>
-            </button>
+              <Plus size={15} />
+              <span className="hidden sm:inline">Publicar Propiedad</span>
+              <span className="sm:hidden">+ Publicar</span>
+            </Link>
+
+            {/* Botón Mi Portal */}
+            <Link
+              href="/inmobiliaria/mi-portal"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shadow-sm"
+              title="Mis Propiedades"
+            >
+              <Home size={13} className="text-emerald-400" />
+              <span className="hidden sm:inline">Mi Portal</span>
+              <span className="sm:hidden">Portal</span>
+            </Link>
 
             {/* Botón WhatsApp */}
             <a
@@ -750,14 +761,13 @@ export default function InmobiliariaPage() {
                     Tasación técnica pericial, posicionamiento digital multicanal y compradores calificados con respaldo fiduciario y legal directo de SARA.
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsConsignarOpen(true)}
-                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all cursor-pointer border border-amber-200/40 active:scale-[0.98]"
+                  <Link
+                    href="/inmobiliaria/auth"
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 transition-all border border-amber-200/40 active:scale-[0.98]"
                   >
                     <Building2 size={15} />
-                    <span>Consignar mi Inmueble</span>
-                  </button>
+                    <span>Publicar mi Inmueble</span>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -1707,7 +1717,8 @@ export default function InmobiliariaPage() {
           <div className="flex flex-wrap items-center gap-6 text-xs">
             <Link href="/stays" className="hover:text-white transition-colors">Portal SARA STAYS / Hospédate</Link>
             <Link href="/" className="hover:text-white transition-colors">Sara Constructora Principal</Link>
-            <button onClick={() => setIsConsignarOpen(true)} className="hover:text-emerald-400 transition-colors cursor-pointer">Consignar Propiedad</button>
+            <Link href="/inmobiliaria/auth" className="hover:text-emerald-400 transition-colors">Publicar Propiedad</Link>
+            <Link href="/inmobiliaria/mi-portal" className="hover:text-emerald-400 transition-colors">Mi Portal</Link>
             <a href="https://wa.me/593981804023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Asesoría Inmobiliaria: +593 98 180 4023</a>
           </div>
           <div className="text-xs text-gray-500">
