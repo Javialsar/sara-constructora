@@ -79,8 +79,13 @@ export interface InmuebleAdmin {
   sector: string
   direccion?: string
   areaM2: number
+  areaConstruidaM2?: number
   habitaciones: number
   banos: number
+  parqueaderos?: number
+  antiguedad?: string
+  descripcion?: string
+  amenidades?: string[]
   imagenUrl: string
   galeriaImagenes?: string[]
   videos?: string[]
@@ -494,8 +499,14 @@ export default function AdminInmobiliariaPage() {
     sector: "",
     direccion: "",
     areaM2: 120,
+    areaConstruidaM2: 100,
     habitaciones: 3,
     banos: 2,
+    parqueaderos: 1,
+    antiguedad: "A estrenar",
+    descripcion: "",
+    amenidades: ["Seguridad 24/7", "Área BBQ", "Acabados de Primera"],
+    nuevaAmenidadInput: "",
     coordenadas: { lat: -2.8974, lng: -79.0045 },
     imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
     galeriaImagenes: [
@@ -520,6 +531,26 @@ export default function AdminInmobiliariaPage() {
     tarifaMensual: 65,
     porcentajeComision: 3
   })
+
+  // Funciones para agregar y remover amenidades dinámicamente
+  const handleAddAmenidad = (tag?: string) => {
+    const valor = (tag || formInmueble.nuevaAmenidadInput).trim()
+    if (!valor) return
+    if (!formInmueble.amenidades.includes(valor)) {
+      setFormInmueble(prev => ({
+        ...prev,
+        amenidades: [...prev.amenidades, valor],
+        nuevaAmenidadInput: tag ? prev.nuevaAmenidadInput : ""
+      }))
+    }
+  }
+
+  const handleRemoveAmenidad = (tag: string) => {
+    setFormInmueble(prev => ({
+      ...prev,
+      amenidades: prev.amenidades.filter(a => a !== tag)
+    }))
+  }
 
   // Subir QR Bancario (FileReader)
   const handleUploadQR = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -622,8 +653,14 @@ export default function AdminInmobiliariaPage() {
       sector: sol.sector || "",
       direccion: "",
       areaM2: 120,
+      areaConstruidaM2: 100,
       habitaciones: sol.tipo === "terreno" ? 0 : 3,
       banos: sol.tipo === "terreno" ? 0 : 2,
+      parqueaderos: sol.tipo === "terreno" ? 0 : 1,
+      antiguedad: "A estrenar",
+      descripcion: `Propiedad captada mediante solicitud directa de ${sol.clienteNombre}. ${sol.modalidad === "venta" ? "Excelente oportunidad de inversión y plusvalía." : "Disponible para arriendo inmediato."}`,
+      amenidades: ["Seguridad 24/7", "Área BBQ", "Acabados de Primera"],
+      nuevaAmenidadInput: "",
       coordenadas: coord,
       propietarioNombre: sol.clienteNombre,
       propietarioTelefono: sol.clienteTelefono,
@@ -711,8 +748,14 @@ export default function AdminInmobiliariaPage() {
       sector: "Av. Solano",
       direccion: "",
       areaM2: 180,
+      areaConstruidaM2: 150,
       habitaciones: 3,
       banos: 2.5,
+      parqueaderos: 2,
+      antiguedad: "A estrenar",
+      descripcion: "",
+      amenidades: ["Seguridad 24/7", "Área BBQ", "Acabados de Primera"],
+      nuevaAmenidadInput: "",
       coordenadas: { lat: -2.8974, lng: -79.0045 },
       imagenUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80",
       galeriaImagenes: [
@@ -754,8 +797,14 @@ export default function AdminInmobiliariaPage() {
       sector: inm.sector,
       direccion: inm.direccion || "",
       areaM2: inm.areaM2,
+      areaConstruidaM2: inm.areaConstruidaM2 || inm.areaM2,
       habitaciones: inm.habitaciones,
       banos: inm.banos,
+      parqueaderos: inm.parqueaderos || 1,
+      antiguedad: inm.antiguedad || "A estrenar",
+      descripcion: inm.descripcion || "",
+      amenidades: inm.amenidades && inm.amenidades.length > 0 ? inm.amenidades : ["Seguridad 24/7", "Área BBQ", "Acabados de Primera"],
+      nuevaAmenidadInput: "",
       coordenadas: inm.coordenadas || { lat: -2.8974, lng: -79.0045 },
       imagenUrl: inm.imagenUrl,
       galeriaImagenes: inm.galeriaImagenes || [inm.imagenUrl],
@@ -806,8 +855,13 @@ export default function AdminInmobiliariaPage() {
             sector: formInmueble.sector,
             direccion: formInmueble.direccion,
             areaM2: formInmueble.areaM2,
+            areaConstruidaM2: formInmueble.areaConstruidaM2,
             habitaciones: formInmueble.habitaciones,
             banos: formInmueble.banos,
+            parqueaderos: formInmueble.parqueaderos,
+            antiguedad: formInmueble.antiguedad,
+            descripcion: formInmueble.descripcion,
+            amenidades: formInmueble.amenidades,
             coordenadas: formInmueble.coordenadas,
             imagenUrl: formInmueble.imagenUrl,
             galeriaImagenes: formInmueble.galeriaImagenes,
@@ -848,8 +902,13 @@ export default function AdminInmobiliariaPage() {
         sector: formInmueble.sector,
         direccion: formInmueble.direccion,
         areaM2: formInmueble.areaM2,
+        areaConstruidaM2: formInmueble.areaConstruidaM2,
         habitaciones: formInmueble.habitaciones,
         banos: formInmueble.banos,
+        parqueaderos: formInmueble.parqueaderos,
+        antiguedad: formInmueble.antiguedad,
+        descripcion: formInmueble.descripcion,
+        amenidades: formInmueble.amenidades,
         coordenadas: formInmueble.coordenadas,
         imagenUrl: formInmueble.imagenUrl,
         galeriaImagenes: formInmueble.galeriaImagenes,
@@ -2874,34 +2933,35 @@ export default function AdminInmobiliariaPage() {
       {/* MODAL: PUBLICAR NUEVO / EDITAR INMUEBLE CON SUB-VIÑETAS   */}
       {/* ========================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-7 shadow-2xl border border-gray-100 relative my-6 max-h-[92vh] flex flex-col justify-between">
-            {/* Header del Modal */}
-            <div>
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col animate-fadeIn overflow-hidden">
+          <div className="bg-white w-full h-full flex flex-col justify-between relative overflow-hidden">
+            {/* Header del Modal Fijo (Pantalla Completa) */}
+            <div className="px-6 sm:px-10 pt-5 pb-4 border-b border-gray-100 bg-white shrink-0 shadow-xs relative">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+                className="absolute top-5 right-6 sm:right-10 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+                title="Cerrar ventana"
               >
-                <X size={20} />
+                <X size={22} />
               </button>
 
-              <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4">
-                <div className="p-3 bg-brand-sage/10 text-brand-sage rounded-2xl">
-                  <Building2 size={24} />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-brand-sage/10 text-brand-sage rounded-2xl shrink-0">
+                  <Building2 size={26} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
                     {editingInmueble ? "Editar Inmueble y Configuración" : "Publicar Inmueble & Configurar Cobro"}
                   </h3>
-                  <p className="text-xs text-gray-500">
-                    Completa la ficha técnica en cada una de las 4 secciones antes de publicar en el portal público.
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Panel Integral de Gestión Inmobiliaria SARA: ficha técnica, datos bancarios, catálogo multimedia y monetización.
                   </p>
                 </div>
               </div>
 
               {/* Sub-Pestañas / Viñetas del Modal */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-gray-100/80 rounded-2xl mb-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-gray-100/90 rounded-2xl max-w-4xl">
                 {[
                   { id: 1, label: "1. Inmueble & Mapa", icon: MapPin },
                   { id: 2, label: "2. Propietario & Banco", icon: Users },
@@ -2916,13 +2976,13 @@ export default function AdminInmobiliariaPage() {
                       key={tab.id}
                       type="button"
                       onClick={() => setModalSubTab(tab.id as any)}
-                      className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                         isActive
                           ? "bg-white text-slate-900 shadow-sm ring-1 ring-gray-200"
                           : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
                       }`}
                     >
-                      <IconComponent size={14} className={isActive ? "text-brand-sage" : "text-gray-400"} />
+                      <IconComponent size={16} className={isActive ? "text-brand-sage" : "text-gray-400"} />
                       <span className="truncate">{tab.label}</span>
                     </button>
                   )
@@ -2930,242 +2990,399 @@ export default function AdminInmobiliariaPage() {
               </div>
             </div>
 
-            {/* Contenido Dinámico de las Viñetas del Modal */}
-            <form onSubmit={handleSaveInmueble} className="flex-1 overflow-y-auto pr-1 space-y-4">
-              {/* =================================================== */}
-              {/* SUB-VIÑETA 1: DATOS DEL INMUEBLE & GEOLOCALIZACIÓN   */}
-              {/* =================================================== */}
-              {modalSubTab === 1 && (
-                <div className="space-y-4 animate-fadeIn">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-gray-200 space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                      <Home size={14} className="text-brand-sage" />
-                      Información Básica de la Propiedad
-                    </h4>
+            {/* Formulario en Pantalla Completa */}
+            <form onSubmit={handleSaveInmueble} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 space-y-6">
+                {/* =================================================== */}
+                {/* SUB-VIÑETA 1: DATOS DEL INMUEBLE & GEOLOCALIZACIÓN   */}
+                {/* =================================================== */}
+                {modalSubTab === 1 && (
+                  <div className="space-y-6 animate-fadeIn max-w-6xl mx-auto">
+                    {/* Tarjeta 1: Información Comercial Básica */}
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                        <Home size={15} className="text-brand-sage" />
+                        Identificación y Precio del Inmueble
+                      </h4>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Código del Inmueble</label>
-                        <input
-                          type="text"
-                          required
-                          value={formInmueble.codigo}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, codigo: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-800"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Código del Inmueble</label>
+                          <input
+                            type="text"
+                            required
+                            value={formInmueble.codigo}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, codigo: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900"
+                          />
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Título de la Publicación</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ej: Casa de Lujo en Challuabamba con Jardín Privado y Vista Panorámica"
+                            value={formInmueble.titulo}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, titulo: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
+                          />
+                        </div>
                       </div>
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Título de la Publicación</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ej: Residencia Moderna con Piscina y Amplio Jardín"
-                          value={formInmueble.titulo}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, titulo: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-800"
-                        />
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Propiedad</label>
+                          <select
+                            value={formInmueble.tipo}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, tipo: e.target.value as any })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-semibold"
+                          >
+                            <option value="casa">Casa</option>
+                            <option value="departamento">Departamento</option>
+                            <option value="terreno">Terreno</option>
+                            <option value="quinta">Quinta</option>
+                            <option value="suite">Suite</option>
+                            <option value="local">Local Comercial</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Modalidad Comercial</label>
+                          <select
+                            value={formInmueble.modalidad}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, modalidad: e.target.value as any })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-brand-dark"
+                          >
+                            <option value="venta">Venta</option>
+                            <option value="arriendo">Arriendo</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Precio Solicitado ($ USD)</label>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            value={formInmueble.precio}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, precio: Number(e.target.value) })}
+                            className="w-full px-3 py-2 bg-white border border-emerald-400 rounded-xl text-xs font-black text-emerald-800"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Tipo</label>
-                        <select
-                          value={formInmueble.tipo}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, tipo: e.target.value as any })}
-                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
-                        >
-                          <option value="casa">Casa</option>
-                          <option value="departamento">Departamento</option>
-                          <option value="terreno">Terreno</option>
-                          <option value="quinta">Quinta</option>
-                          <option value="suite">Suite</option>
-                          <option value="local">Local</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Modalidad</label>
-                        <select
-                          value={formInmueble.modalidad}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, modalidad: e.target.value as any })}
-                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-brand-dark"
-                        >
-                          <option value="venta">Venta</option>
-                          <option value="arriendo">Arriendo</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Precio ($ USD)</label>
-                        <input
-                          type="number"
-                          required
-                          value={formInmueble.precio}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, precio: Number(e.target.value) })}
-                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs font-black text-gray-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Área Total m²</label>
-                        <input
-                          type="number"
-                          required
-                          value={formInmueble.areaM2}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, areaM2: Number(e.target.value) })}
-                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Habitaciones</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={formInmueble.habitaciones}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, habitaciones: Number(e.target.value) })}
-                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Baños</label>
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={formInmueble.banos}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, banos: Number(e.target.value) })}
-                          className="w-full px-2.5 py-2 bg-white border border-gray-300 rounded-xl text-xs"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs font-semibold text-gray-600 mb-1">Dirección Aproximada</label>
-                        <input
-                          type="text"
-                          placeholder="Ej: Calle Las Retamas y Av. Solano"
-                          value={formInmueble.direccion}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, direccion: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Módulo de Geolocalización y Mapa con Auto-ubicación */}
-                  <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200/80 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <MapPin size={16} className="text-emerald-700" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
-                          Geolocalización & Ubicación en Mapa
+                    {/* Tarjeta 2: Características Físicas y Dimensiones (Imágenes 2 y 3) */}
+                    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                          <Sliders size={15} className="text-brand-sage" />
+                          Características Físicas de la Ficha Técnica (m² tot, m² cub, baños, estac, hab, antigüedad)
                         </h4>
-                      </div>
-                      <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-                        Auto-centrado por Ciudad
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Ciudad</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ej: Cuenca, Loja, Quito..."
-                          value={formInmueble.ciudad}
-                          onChange={(e) => handleCityChange(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <span className="text-[10px] text-emerald-700 mt-1 block">
-                          Al escribir la ciudad, el mapa se centrará automáticamente.
+                        <span className="text-[11px] font-semibold text-brand-dark bg-brand-sage/15 px-2.5 py-0.5 rounded-full">
+                          Visualización en Barra Pública
                         </span>
                       </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700 mb-1">Sector / Parroquia</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ej: Challuabamba, Puertas del Sol, Ricaurte..."
-                          value={formInmueble.sector}
-                          onChange={(e) => setFormInmueble({ ...formInmueble, sector: e.target.value })}
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
-                        />
-                      </div>
-                    </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                        {/* 1. m² tot. */}
+                        <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-emerald-50/20 transition-all">
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                            m² tot. (Terreno)
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            value={formInmueble.areaM2}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, areaM2: Number(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900"
+                            placeholder="Ej: 520"
+                          />
+                        </div>
 
-                    {/* Botones de Ciudades Rápidas */}
-                    <div>
-                      <span className="text-[11px] font-bold text-gray-600 block mb-1.5">Ubicaciones Rápidas:</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {["Cuenca", "Loja", "Quito", "Guayaquil", "Santa Isabel", "Gualaceo", "Paute"].map((c) => (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => handleCityChange(c)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                              formInmueble.ciudad.toLowerCase() === c.toLowerCase()
-                                ? "bg-emerald-600 text-white shadow-xs"
-                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
-                            }`}
+                        {/* 2. m² cub. */}
+                        <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-emerald-50/20 transition-all">
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                            m² cub. (Construcción)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formInmueble.areaConstruidaM2}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, areaConstruidaM2: Number(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900"
+                            placeholder="Ej: 360"
+                          />
+                        </div>
+
+                        {/* 3. baños */}
+                        <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-emerald-50/20 transition-all">
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                            Baños
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.5"
+                            value={formInmueble.banos}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, banos: Number(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900"
+                            placeholder="Ej: 3.5"
+                          />
+                        </div>
+
+                        {/* 4. estac. */}
+                        <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-emerald-50/20 transition-all">
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                            estac. (Parqueaderos)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formInmueble.parqueaderos}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, parqueaderos: Number(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900"
+                            placeholder="Ej: 2"
+                          />
+                        </div>
+
+                        {/* 5. hab. */}
+                        <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-emerald-50/20 transition-all">
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                            hab. (Dormitorios)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={formInmueble.habitaciones}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, habitaciones: Number(e.target.value) })}
+                            className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900"
+                            placeholder="Ej: 4"
+                          />
+                        </div>
+
+                        {/* 6. antigüedad / estado */}
+                        <div className="p-3 bg-slate-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-emerald-50/20 transition-all">
+                          <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">
+                            Antigüedad / Estado
+                          </label>
+                          <select
+                            value={formInmueble.antiguedad}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, antiguedad: e.target.value })}
+                            className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-bold text-gray-900"
                           >
-                            {c}
+                            <option value="A estrenar">A estrenar</option>
+                            <option value="En planos / Preventa">En planos</option>
+                            <option value="1 año">1 año</option>
+                            <option value="2 a 4 años">2 a 4 años</option>
+                            <option value="5 a 10 años">5 a 10 años</option>
+                            <option value="Más de 10 años">Más de 10 años</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tarjeta 3: Descripción Detallada y Comodidades / Amenidades */}
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Descripción Detallada del Inmueble</label>
+                        <textarea
+                          rows={4}
+                          value={formInmueble.descripcion}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, descripcion: e.target.value })}
+                          placeholder="Describe la distribución, vistas, iluminación natural, acabados, entorno residencial y beneficios principales del inmueble..."
+                          className="w-full p-3 bg-white border border-gray-300 rounded-xl text-xs text-gray-800 focus:ring-2 focus:ring-brand-sage"
+                        />
+                      </div>
+
+                      {/* Selector de Amenidades / Comodidades */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-700">Comodidades y Acabados (Amenidades)</label>
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                          {formInmueble.amenidades.map((amenidad, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 text-gray-800 rounded-lg text-xs font-semibold shadow-2xs"
+                            >
+                              <CheckCircle2 size={12} className="text-brand-sage" />
+                              {amenidad}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveAmenidad(amenidad)}
+                                className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer"
+                              >
+                                <X size={12} />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Input para agregar nueva amenidad + botones rápidos */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Escribe una comodidad (Ej: Jacuzzi, Gas Centralizado, Ascensor...)"
+                            value={formInmueble.nuevaAmenidadInput}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, nuevaAmenidadInput: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault()
+                                handleAddAmenidad()
+                              }
+                            }}
+                            className="flex-1 px-3 py-1.5 bg-white border border-gray-300 rounded-xl text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddAmenidad()}
+                            className="px-4 py-1.5 bg-brand-sage text-white rounded-xl text-xs font-bold hover:bg-brand-sage/90 cursor-pointer"
+                          >
+                            + Agregar
                           </button>
-                        ))}
+                        </div>
+
+                        {/* Atajos de amenidades comunes */}
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className="text-[10px] text-gray-400 font-bold self-center mr-1">Sugerencias:</span>
+                          {["Seguridad 24/7", "Área BBQ", "Piscina", "Gas Centralizado", "Ascensor", "Cisterna y Bomba", "Jardín Amplio", "Generador Eléctrico", "Acabados Importados", "Gimnasio", "Balcón Panorámico", "Apto Biess"].map((sug) => (
+                            <button
+                              key={sug}
+                              type="button"
+                              onClick={() => handleAddAmenidad(sug)}
+                              className="px-2 py-0.5 bg-gray-200/70 hover:bg-gray-200 text-gray-700 rounded text-[11px] font-medium transition-colors cursor-pointer"
+                            >
+                              + {sug}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Inputs de Coordenadas Lat / Lng */}
-                    <div className="grid grid-cols-2 gap-3 pt-1">
-                      <div>
-                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Latitud</label>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          value={formInmueble.coordenadas.lat}
-                          onChange={(e) => setFormInmueble({
-                            ...formInmueble,
-                            coordenadas: { ...formInmueble.coordenadas, lat: Number(e.target.value) }
-                          })}
-                          className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono"
-                        />
+                    {/* Tarjeta 4: Geolocalización & Mapa con Auto-centrado */}
+                    <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-200/80 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <MapPin size={18} className="text-emerald-700" />
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                            Geolocalización & Ubicación en Mapa
+                          </h4>
+                        </div>
+                        <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                          Auto-centrado por Ciudad
+                        </span>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Longitud</label>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          value={formInmueble.coordenadas.lng}
-                          onChange={(e) => setFormInmueble({
-                            ...formInmueble,
-                            coordenadas: { ...formInmueble.coordenadas, lng: Number(e.target.value) }
-                          })}
-                          className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono"
-                        />
-                      </div>
-                    </div>
 
-                    {/* Vista Previa del Mapa Interactivo */}
-                    <div className="w-full h-56 rounded-xl overflow-hidden border border-emerald-300/80 relative shadow-inner bg-slate-100">
-                      <iframe
-                        title="Mapa de Selección"
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        scrolling="no"
-                        marginHeight={0}
-                        marginWidth={0}
-                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${formInmueble.coordenadas.lng - 0.012}%2C${formInmueble.coordenadas.lat - 0.010}%2C${formInmueble.coordenadas.lng + 0.012}%2C${formInmueble.coordenadas.lat + 0.010}&layer=mapnik&marker=${formInmueble.coordenadas.lat}%2C${formInmueble.coordenadas.lng}`}
-                        className="w-full h-full"
-                      />
-                      <div className="absolute bottom-2 left-2 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-gray-800 shadow-md border border-gray-200 flex items-center gap-1 pointer-events-none">
-                        <MapPin size={12} className="text-red-600" />
-                        <span>Punto centrado en {formInmueble.ciudad}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Ciudad</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ej: Cuenca, Loja, Quito..."
+                            value={formInmueble.ciudad}
+                            onChange={(e) => handleCityChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-emerald-700 mt-1 block">
+                            Al escribir la ciudad, el mapa se centrará automáticamente.
+                          </span>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Sector / Parroquia</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ej: Challuabamba, Puertas del Sol, Ricaurte..."
+                            value={formInmueble.sector}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, sector: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Dirección Aproximada</label>
+                          <input
+                            type="text"
+                            placeholder="Ej: Calle Las Retamas y Av. Solano"
+                            value={formInmueble.direccion}
+                            onChange={(e) => setFormInmueble({ ...formInmueble, direccion: e.target.value })}
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Botones de Ciudades Rápidas */}
+                      <div>
+                        <span className="text-[11px] font-bold text-gray-600 block mb-1.5">Ubicaciones Rápidas:</span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {["Cuenca", "Loja", "Quito", "Guayaquil", "Santa Isabel", "Gualaceo", "Paute"].map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => handleCityChange(c)}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                formInmueble.ciudad.toLowerCase() === c.toLowerCase()
+                                  ? "bg-emerald-600 text-white shadow-xs"
+                                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                              }`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Inputs de Coordenadas Lat / Lng */}
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-600 mb-1">Latitud</label>
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={formInmueble.coordenadas.lat}
+                            onChange={(e) => setFormInmueble({
+                              ...formInmueble,
+                              coordenadas: { ...formInmueble.coordenadas, lat: Number(e.target.value) }
+                            })}
+                            className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-600 mb-1">Longitud</label>
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={formInmueble.coordenadas.lng}
+                            onChange={(e) => setFormInmueble({
+                              ...formInmueble,
+                              coordenadas: { ...formInmueble.coordenadas, lng: Number(e.target.value) }
+                            })}
+                            className="w-full px-2.5 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Vista Previa del Mapa Interactivo */}
+                      <div className="w-full h-64 rounded-xl overflow-hidden border border-emerald-300/80 relative shadow-inner bg-slate-100">
+                        <iframe
+                          title="Mapa de Selección"
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          scrolling="no"
+                          marginHeight={0}
+                          marginWidth={0}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${formInmueble.coordenadas.lng - 0.012}%2C${formInmueble.coordenadas.lat - 0.010}%2C${formInmueble.coordenadas.lng + 0.012}%2C${formInmueble.coordenadas.lat + 0.010}&layer=mapnik&marker=${formInmueble.coordenadas.lat}%2C${formInmueble.coordenadas.lng}`}
+                          className="w-full h-full"
+                        />
+                        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 shadow-md border border-gray-200 flex items-center gap-1.5 pointer-events-none">
+                          <MapPin size={14} className="text-red-600" />
+                          <span>Punto geolocalizado en {formInmueble.ciudad} ({formInmueble.sector || "Sector Central"})</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* =================================================== */}
               {/* SUB-VIÑETA 2: DATOS DEL PROPIETARIO & CTA BANCARIA  */}
@@ -3664,53 +3881,54 @@ export default function AdminInmobiliariaPage() {
                   </div>
                 </div>
               )}
+            </div>
 
-              {/* Botones de Navegación y Envío */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-2">
-                <div className="flex items-center gap-2">
-                  {modalSubTab > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setModalSubTab((modalSubTab - 1) as any)}
-                      className="px-4 py-2 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-700 transition-all cursor-pointer flex items-center gap-1.5"
-                    >
-                      <ArrowLeft size={14} />
-                      <span>Anterior</span>
-                    </button>
-                  )}
-                  {modalSubTab < 4 && (
-                    <button
-                      type="button"
-                      onClick={() => setModalSubTab((modalSubTab + 1) as any)}
-                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>Siguiente Sección</span>
-                      <ArrowRight size={14} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
+            {/* Botones de Navegación y Envío Fijos al Pie */}
+            <div className="px-6 sm:px-10 py-4 bg-slate-50 border-t border-gray-200 shrink-0 flex items-center justify-between gap-3 shadow-inner">
+              <div className="flex items-center gap-2">
+                {modalSubTab > 1 && (
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 cursor-pointer"
+                    onClick={() => setModalSubTab((modalSubTab - 1) as any)}
+                    className="px-4 py-2 border border-gray-200 hover:bg-gray-100 rounded-xl text-xs font-bold text-gray-700 transition-all cursor-pointer flex items-center gap-1.5"
                   >
-                    Cancelar
+                    <ArrowLeft size={14} />
+                    <span>Anterior</span>
                   </button>
+                )}
+                {modalSubTab < 4 && (
                   <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                    type="button"
+                    onClick={() => setModalSubTab((modalSubTab + 1) as any)}
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
                   >
-                    <Check size={16} />
-                    <span>{editingInmueble ? "Guardar Cambios" : "Publicar y Activar Cobro"}</span>
+                    <span>Siguiente Sección</span>
+                    <ArrowRight size={14} />
                   </button>
-                </div>
+                )}
               </div>
-            </form>
-          </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 cursor-pointer transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-7 py-2.5 bg-brand-sage hover:bg-brand-sage/90 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Check size={16} />
+                  <span>{editingInmueble ? "Guardar Cambios" : "Publicar y Activar Cobro"}</span>
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
+    )}
     </div>
   )
 }

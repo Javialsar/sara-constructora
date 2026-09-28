@@ -33,7 +33,8 @@ import {
   Award,
   Briefcase,
   PlusCircle,
-  Star
+  Star,
+  Sliders
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -62,6 +63,11 @@ export interface Inmueble {
   descripcion: string
   amenidades: string[]
   coordenadas?: { lat: number; lng: number }
+  propietario?: {
+    nombre: string
+    telefono?: string
+    email?: string
+  }
 }
 
 const INMUEBLES_DATA: Inmueble[] = [
@@ -90,7 +96,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     ],
     descripcion: "Espectacular residencia de diseño contemporáneo construida con estándares antisísmicos de primera. Cuenta con amplias áreas sociales de doble altura, cocina abierta tipo isla con cuarzo, master suite con jacuzzi y walk-in closet, además de un porche BBQ conectado al jardín posterior.",
     amenidades: ["Seguridad 24/7", "Área BBQ", "Cisterna y Bomba", "Gas Centralizado", "Jardín Amplio", "Acabados Importados", "Cámaras de Vigilancia"],
-    coordenadas: { lat: -2.8752, lng: -78.9654 }
+    coordenadas: { lat: -2.8752, lng: -78.9654 },
+    propietario: {
+      nombre: "Ing. Carlos Vintimilla",
+      telefono: "+593981804023",
+      email: "carlos.vintimilla@constructora.ec"
+    }
   },
   {
     id: "inm-2",
@@ -118,7 +129,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     ],
     descripcion: "Hermoso departamento en piso alto con vista frontal inigualable hacia el río y ciclovía. Edificio inteligente con ascensor de última generación, generador eléctrico total y áreas comunales de lujo.",
     amenidades: ["Ascensor", "Generador Eléctrico 100%", "Balcón con Vista al Río", "Bodega Privada", "Cerradura Digital", "Gimnasio Comunal"],
-    coordenadas: { lat: -2.9025, lng: -79.0062 }
+    coordenadas: { lat: -2.9025, lng: -79.0062 },
+    propietario: {
+      nombre: "Dra. Mariana Cordero",
+      telefono: "+593992345678",
+      email: "mariana.cordero@medico.ec"
+    }
   },
   {
     id: "inm-3",
@@ -144,7 +160,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     ],
     descripcion: "Lote residencial con topografía perfectamente plana y todos los servicios básicos soterrados: agua potable, alcantarillado, luz y fibra óptica. Incluye anteproyecto arquitectónico prediseñado por SARA Constructora.",
     amenidades: ["Topografía Plana", "Obras Básicas Completas", "Vía Asfaltada", "Escrituras Inmediatas", "Sinergia Construcción SARA"],
-    coordenadas: { lat: -2.8592, lng: -78.9687 }
+    coordenadas: { lat: -2.8592, lng: -78.9687 },
+    propietario: {
+      nombre: "Arq. Marcelo Álvarez",
+      telefono: "+593984567890",
+      email: "marcelo.alvarez@diseno.ec"
+    }
   },
   {
     id: "inm-4",
@@ -171,7 +192,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     ],
     descripcion: "Suite moderna completamente amoblada y equipada para ejecutivos o parejas sin hijos. Cama King, televisión 4K, lavasecadora, cocina con inducción, vajilla completa e internet de alta velocidad incluido.",
     amenidades: ["Totalmente Amoblada", "Internet Fibra Óptica", "Lavasecadora", "Edificio con Guardia", "Parqueadero Cubierto"],
-    coordenadas: { lat: -2.9095, lng: -79.0041 }
+    coordenadas: { lat: -2.9095, lng: -79.0041 },
+    propietario: {
+      nombre: "Lic. Elena Carrión",
+      telefono: "+593995678901",
+      email: "elena.carrion@empresa.ec"
+    }
   },
   {
     id: "inm-5",
@@ -197,7 +223,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     ],
     descripcion: "El refugio campestre soñado con clima subtropical privilegiado todo el año. Casa estilo rústico moderno con piscina sinfín temperada por paneles solares, pérgola BBQ para eventos y árboles frutales en producción.",
     amenidades: ["Piscina Temperada", "Clima Cálido", "Pérgola BBQ", "Árboles Frutales", "Cisterna 15.000 Lts", "Riego Tecnificado"],
-    coordenadas: { lat: -3.2750, lng: -79.3160 }
+    coordenadas: { lat: -3.2750, lng: -79.3160 },
+    propietario: {
+      nombre: "Abg. Fernando Pesántez",
+      telefono: "+593991223344",
+      email: "fernando.pesantez@abogados.ec"
+    }
   },
   {
     id: "inm-6",
@@ -223,7 +254,12 @@ const INMUEBLES_DATA: Inmueble[] = [
     ],
     descripcion: "Local comercial a pie de calle con excelente visibilidad peatonal y vehicular en una de las avenidas más concurridas de Cuenca. Vidrieras templadas, piso de porcelanato de alto tráfico, conexiones trifásicas y espacio para letrero corporativo luminoso.",
     amenidades: ["Ubicación AAA", "Vidriera Frontal", "Luz Trifásica", "Parqueo de Clientes", "2 Medios Baños"],
-    coordenadas: { lat: -2.9060, lng: -79.0125 }
+    coordenadas: { lat: -2.9060, lng: -79.0125 },
+    propietario: {
+      nombre: "Ing. Roberto Ochoa",
+      telefono: "+593987654321",
+      email: "roberto.ochoa@retail.ec"
+    }
   }
 ]
 
@@ -239,6 +275,20 @@ export default function InmobiliariaPage() {
   // Modal de detalle
   const [selectedInmueble, setSelectedInmueble] = useState<Inmueble | null>(null)
   const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0)
+  const [mapHighlight, setMapHighlight] = useState<boolean>(false)
+
+  // Desplazamiento automático al mapa al hacer clic en fotos con resaltado y datos del propietario
+  const handlePhotoClick = (idx?: number) => {
+    if (typeof idx === "number") {
+      setActivePhotoIdx(idx)
+    }
+    const mapEl = document.getElementById("mapa-geolocalizacion")
+    if (mapEl) {
+      mapEl.scrollIntoView({ behavior: "smooth", block: "center" })
+      setMapHighlight(true)
+      setTimeout(() => setMapHighlight(false), 3500)
+    }
+  }
   
   // Calculadora Hipotecaria Estado
   const [calcEntradaPct, setCalcEntradaPct] = useState<number>(20)
@@ -1203,29 +1253,42 @@ export default function InmobiliariaPage() {
           <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-8 space-y-6 flex-1">
               {/* Galería Principal */}
               <div>
-                <div className="relative h-72 md:h-96 w-full rounded-2xl overflow-hidden bg-gray-900 mb-3 shadow-inner">
+                <div className="relative h-72 md:h-96 w-full rounded-2xl overflow-hidden bg-gray-900 mb-3 shadow-inner group">
                   <img 
                     src={selectedInmueble.imagenes[activePhotoIdx]} 
                     alt={selectedInmueble.titulo} 
-                    className="w-full h-full object-cover"
+                    onClick={() => handlePhotoClick(activePhotoIdx)}
+                    className="w-full h-full object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+                    title="Haz clic para ubicar en el mapa y ver datos del propietario"
                   />
+
+                  {/* Botón flotante para ubicar en el mapa */}
+                  <button
+                    type="button"
+                    onClick={() => handlePhotoClick(activePhotoIdx)}
+                    className="absolute top-3 left-3 bg-slate-900/80 hover:bg-emerald-600 text-white text-xs font-semibold px-3.5 py-1.5 rounded-full backdrop-blur-md transition-all flex items-center gap-1.5 shadow-lg cursor-pointer z-10"
+                  >
+                    <MapPin size={13} className="text-emerald-400 animate-pulse" />
+                    <span>Ubicar en Mapa & Propietario</span>
+                  </button>
+
                   {selectedInmueble.imagenes.length > 1 && (
                     <>
                       <button 
                         onClick={() => setActivePhotoIdx((prev) => (prev > 0 ? prev - 1 : selectedInmueble.imagenes.length - 1))}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 z-10"
                       >
                         <ChevronLeft size={20} />
                       </button>
                       <button 
                         onClick={() => setActivePhotoIdx((prev) => (prev < selectedInmueble.imagenes.length - 1 ? prev + 1 : 0))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 z-10"
                       >
                         <ChevronRight size={20} />
                       </button>
                     </>
                   )}
-                  <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">
+                  <div className="absolute bottom-3 right-3 bg-black/70 text-white text-[11px] font-bold px-2.5 py-1 rounded-full z-10">
                     {activePhotoIdx + 1} / {selectedInmueble.imagenes.length} fotos
                   </div>
                 </div>
@@ -1235,14 +1298,98 @@ export default function InmobiliariaPage() {
                   {selectedInmueble.imagenes.map((img, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setActivePhotoIdx(idx)}
-                      className={`relative w-20 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
-                        activePhotoIdx === idx ? 'border-brand-sage ring-2 ring-brand-sage/30' : 'border-transparent opacity-70 hover:opacity-100'
+                      onClick={() => handlePhotoClick(idx)}
+                      className={`relative w-20 h-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all cursor-pointer ${
+                        activePhotoIdx === idx ? 'border-brand-sage ring-2 ring-brand-sage/30 scale-105' : 'border-transparent opacity-70 hover:opacity-100'
                       }`}
+                      title="Haz clic para centrar en el mapa y ver propietario"
                     >
                       <img src={img} alt="Miniatura" className="w-full h-full object-cover" />
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Barra Horizontal de Características Físicas (Estilo Imagen 3) */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/90 shadow-xs">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                  <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders size={14} className="text-brand-sage" /> Características Principales del Inmueble
+                  </span>
+                  <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    Ficha Técnica Verificada
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                  {/* 1. m² tot. */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/90 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100/80 text-emerald-800 flex items-center justify-center shrink-0">
+                      <Maximize2 size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Área Terreno</span>
+                      <strong className="text-sm font-extrabold text-gray-900 truncate block">{selectedInmueble.areaTotalM2} m² tot.</strong>
+                    </div>
+                  </div>
+
+                  {/* 2. m² cub. */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/90 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100/80 text-blue-800 flex items-center justify-center shrink-0">
+                      <Home size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Área Cubierta</span>
+                      <strong className="text-sm font-extrabold text-gray-900 truncate block">
+                        {selectedInmueble.areaConstruidaM2 || selectedInmueble.areaTotalM2} m² cub.
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* 3. baños */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/90 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-100/80 text-cyan-800 flex items-center justify-center shrink-0">
+                      <Bath size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Baños</span>
+                      <strong className="text-sm font-extrabold text-gray-900 truncate block">{selectedInmueble.banos} baños</strong>
+                    </div>
+                  </div>
+
+                  {/* 4. estac. */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/90 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100/80 text-amber-800 flex items-center justify-center shrink-0">
+                      <Car size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Parqueaderos</span>
+                      <strong className="text-sm font-extrabold text-gray-900 truncate block">{selectedInmueble.parqueaderos || 1} estac.</strong>
+                    </div>
+                  </div>
+
+                  {/* 5. hab. */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/90 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100/80 text-purple-800 flex items-center justify-center shrink-0">
+                      <Bed size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Dormitorios</span>
+                      <strong className="text-sm font-extrabold text-gray-900 truncate block">{selectedInmueble.habitaciones} hab.</strong>
+                    </div>
+                  </div>
+
+                  {/* 6. antigüedad */}
+                  <div className="flex items-center gap-3 p-3 bg-slate-50/90 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/20 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-rose-100/80 text-rose-800 flex items-center justify-center shrink-0">
+                      <Calendar size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Antigüedad</span>
+                      <strong className="text-sm font-extrabold text-gray-900 truncate block">
+                        {selectedInmueble.antiguedadAnios === 0 ? "A estrenar" : `${selectedInmueble.antiguedadAnios} años`}
+                      </strong>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1320,7 +1467,12 @@ export default function InmobiliariaPage() {
               </div>
 
               {/* Mapa de Geolocalización y Entorno (Imagen 2) */}
-              <div className="bg-slate-50/90 rounded-2xl p-5 border border-gray-200 mt-5 shadow-xs">
+              <div 
+                id="mapa-geolocalizacion" 
+                className={`bg-slate-50/90 rounded-2xl p-5 border transition-all duration-500 mt-5 shadow-xs scroll-mt-24 ${
+                  mapHighlight ? "border-emerald-500 ring-4 ring-emerald-400/40 bg-emerald-50/40 scale-[1.01]" : "border-gray-200"
+                }`}
+              >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
                   <div className="flex items-center gap-2.5">
                     <span className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
@@ -1352,8 +1504,8 @@ export default function InmobiliariaPage() {
                   </div>
                 </div>
 
-                {/* Mapa Interactivo Embebido OpenStreetMap */}
-                <div className="w-full h-64 sm:h-72 rounded-xl overflow-hidden border border-gray-200 relative shadow-inner bg-slate-200">
+                {/* Mapa Interactivo Embebido OpenStreetMap con Pin y Nombre del Propietario */}
+                <div className="w-full h-72 sm:h-80 rounded-xl overflow-hidden border border-gray-200 relative shadow-inner bg-slate-200">
                   <iframe
                     title={`Mapa de ${selectedInmueble.titulo}`}
                     width="100%"
@@ -1365,9 +1517,51 @@ export default function InmobiliariaPage() {
                     src={`https://www.openstreetmap.org/export/embed.html?bbox=${(selectedInmueble.coordenadas?.lng || -79.004) - 0.012}%2C${(selectedInmueble.coordenadas?.lat || -2.897) - 0.010}%2C${(selectedInmueble.coordenadas?.lng || -79.004) + 0.012}%2C${(selectedInmueble.coordenadas?.lat || -2.897) + 0.010}&layer=mapnik&marker=${selectedInmueble.coordenadas?.lat || -2.897}%2C${selectedInmueble.coordenadas?.lng || -79.004}`}
                     className="w-full h-full"
                   />
-                  <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl text-xs font-bold text-slate-800 shadow-md border border-gray-200 flex items-center gap-1.5 pointer-events-none">
-                    <MapPin size={14} className="text-red-600 animate-bounce" />
-                    <span>Ubicación en {selectedInmueble.sector}, {selectedInmueble.ciudad}</span>
+
+                  {/* Pin Flotante Principal con Nombre del Propietario */}
+                  <div className={`absolute top-3 left-3 right-3 sm:right-auto sm:max-w-md bg-white/95 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border-2 transition-all duration-500 z-10 flex items-center gap-3 ${
+                    mapHighlight ? "border-emerald-500 ring-4 ring-emerald-400/30 scale-105" : "border-gray-200"
+                  }`}>
+                    <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                      <MapPin size={24} className="animate-bounce" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                          Propietario del Inmueble
+                        </span>
+                        {mapHighlight && (
+                          <span className="text-[10px] font-bold text-emerald-600 animate-pulse">¡Ubicado!</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-black text-gray-900 truncate mt-0.5">
+                        {selectedInmueble.propietario?.nombre || "Ing. Carlos Vintimilla"}
+                      </p>
+                      <p className="text-[11px] text-gray-500 truncate">
+                        {selectedInmueble.sector}, {selectedInmueble.ciudad} • {selectedInmueble.direccionAprox}
+                      </p>
+                    </div>
+                    {selectedInmueble.propietario?.telefono && (
+                      <a
+                        href={`https://wa.me/${selectedInmueble.propietario.telefono.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hola ${selectedInmueble.propietario.nombre}, le escribo por su propiedad "${selectedInmueble.titulo}" publicada en SARA Inmobiliaria.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs transition-colors shrink-0 flex items-center justify-center cursor-pointer"
+                        title="Contactar al Propietario por WhatsApp"
+                      >
+                        <MessageCircle size={15} />
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Badge en esquina inferior */}
+                  <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-xl text-xs font-bold text-slate-800 shadow-md border border-gray-200 flex items-center gap-2 pointer-events-none">
+                    <MapPin size={16} className="text-red-600 animate-pulse" />
+                    <div>
+                      <span className="text-[10px] font-bold text-gray-400 block uppercase">Propietario Registrado</span>
+                      <span className="text-xs font-bold text-gray-900">{selectedInmueble.propietario?.nombre || "Ing. Carlos Vintimilla"}</span>
+                      <span className="text-[11px] text-gray-500 block">{selectedInmueble.sector}, {selectedInmueble.ciudad}</span>
+                    </div>
                   </div>
                 </div>
 
