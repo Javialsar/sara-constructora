@@ -313,6 +313,12 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
       (finalInmueble as any).id = crypto.randomUUID();
     }
     
+    const payloadSize = JSON.stringify(finalInmueble).length;
+    if (payloadSize > 4 * 1024 * 1024) {
+      alert("Error: El peso total de las imágenes y documentos (" + (payloadSize / 1024 / 1024).toFixed(1) + " MB) excede el límite permitido (4 MB). Por favor elimina algunos archivos o sube PDFs más ligeros.");
+      setIsSubmitting(false);
+      return;
+    }
     await onSave(finalInmueble)
     setIsSubmitting(false)
   }
