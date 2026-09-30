@@ -181,7 +181,7 @@ export default function MiPortalInmobiliaria() {
         // Recargar datos
         window.location.reload()
       } else {
-        const errData = await res.json().catch(()=>({})); alert("Error al guardar el inmueble: " + (errData.error || res.statusText)); console.error("Error from API:", errData);
+        const text = await res.text(); let errData = {}; try { errData = JSON.parse(text); } catch(e) { errData = { error: text.substring(0, 100) }; } alert("Error HTTP " + res.status + " al guardar el inmueble:\n" + (errData.error || res.statusText)); console.error("Error from API:", errData);
       }
     } catch (err) {
       console.error(err)
