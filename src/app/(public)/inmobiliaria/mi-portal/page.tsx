@@ -42,6 +42,7 @@ import {
 } from "lucide-react"
 import { getOwnerSession, clearOwnerSession, OwnerProfile } from "@/lib/services/ownerAuth"
 import { getLogosEmpresa } from "@/lib/services/logosService"
+import PublicarInmuebleModal from "@/components/inmobiliaria/PublicarInmuebleModal"
 
 type InmuebleEstado = "en_verificacion" | "aprobado" | "publicado" | "rechazado"
 
@@ -131,6 +132,32 @@ export default function MiPortalInmobiliaria() {
       if (logos?.inmobiliaria) setLogoInmobiliaria(logos.inmobiliaria)
     })
   }, [])
+
+  // Modal de publicación
+  const [showPublishModal, setShowPublishModal] = useState(false)
+
+  const handleSaveNuevoInmueble = async (inmuebleData: any) => {
+    try {
+      // Llamada POST a la BD (simulada aquí, reemplazar con tu endpoint real si es necesario)
+      const res = await fetch("/api/inmobiliaria/inmuebles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inmueble: { ...inmuebleData, estado: "en_verificacion" } })
+      })
+
+      if (res.ok) {
+        alert("Inmueble enviado a verificación correctamente.")
+        setShowPublishModal(false)
+        // Recargar datos
+        window.location.reload()
+      } else {
+        alert("Error al guardar el inmueble.")
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Error de red al guardar el inmueble.")
+    }
+  }
 
   // Verificar sesión
   useEffect(() => {
@@ -430,7 +457,7 @@ export default function MiPortalInmobiliaria() {
 
               {/* CTA Publicar */}
               <button
-                onClick={() => alert("Próximamente: Formulario completo para publicar tu propiedad. SARA verificará la documentación legal antes de activar la publicación.")}
+                onClick={() => setShowPublishModal(true)}
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-300/40 active:scale-[0.98]"
               >
                 <Plus size={18} />
@@ -764,7 +791,7 @@ export default function MiPortalInmobiliaria() {
                       posicionarla en el catálogo y conectarte con compradores calificados.
                     </p>
                     <button
-                      onClick={() => alert("Próximamente: Formulario para publicar tu propiedad.")}
+                      onClick={() => setShowPublishModal(true)}
                       className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
                     >
                       <Plus size={18} />
@@ -895,6 +922,20 @@ export default function MiPortalInmobiliaria() {
           <span className="text-[10px] text-gray-600">&copy; {new Date().getFullYear()} SARA Constructora & Inmobiliaria</span>
         </div>
       </footer>
+
+      {owner && (
+        <PublicarInmuebleModal
+          isOpen={showPublishModal}
+          onClose={() => setShowPublishModal(false)}
+          onSave={handleSaveNuevoInmueble}
+          propietarioBase={{
+            nombre: `${owner.nombre} ${owner.apellido || ''}`.trim(),
+            email: owner.email,
+            telefono: owner.telefono || '',
+            cedula: owner.cedula || ''
+          }}
+        />
+      )}
     </div>
   )
 }

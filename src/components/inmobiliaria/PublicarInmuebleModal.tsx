@@ -1,0 +1,685 @@
+"use client"
+import React, { useState, useRef, useCallback } from "react"
+import {
+  Building2,
+  MapPin,
+  Users,
+  ImageIcon,
+  ShieldCheck,
+  Sparkles,
+  X,
+  Check,
+  Sliders,
+  UploadCloud,
+  FileText,
+  Home,
+  CheckCircle2,
+  Receipt,
+  Trash2,
+  Plus
+} from "lucide-react"
+
+interface PublicarInmuebleModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (inmueble: any) => Promise<void>
+  propietarioBase: {
+    nombre: string
+    email: string
+    telefono: string
+    cedula: string
+  }
+}
+
+export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propietarioBase }: PublicarInmuebleModalProps) {
+  const [modalSubTab, setModalSubTab] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [formInmueble, setFormInmueble] = useState({
+    codigo: "", // Se autogenera al guardar o puede dejarlo en blanco
+    titulo: "",
+    tipo: "casa",
+    modalidad: "venta",
+    precio: 150000,
+    ciudad: "Cuenca",
+    sector: "",
+    direccion: "",
+    areaM2: 120,
+    areaConstruidaM2: 100,
+    habitaciones: 3,
+    banos: 2,
+    parqueaderos: 1,
+    antiguedad: "A estrenar",
+    descripcion: "",
+    amenidades: ["Seguridad 24/7", "Área BBQ", "Acabados de Primera"],
+    nuevaAmenidadInput: "",
+    coordenadas: { lat: -2.8974, lng: -79.0045 },
+    imagenUrl: "",
+    galeriaImagenes: [] as string[],
+    propietarioNombre: propietarioBase.nombre || "",
+    propietarioTelefono: propietarioBase.telefono || "",
+    propietarioEmail: propietarioBase.email || "",
+    cuentaBancaria: {
+      banco: "Banco Pichincha",
+      tipoCuenta: "ahorros",
+      numeroCuenta: "",
+      titularCedula: propietarioBase.cedula || ""
+    },
+    planPromocion: "destacado",
+    tarifaMensual: 65,
+    porcentajeComision: 3,
+    legalidad: {
+      escrituraPublica: '',
+      certificadoGravamenes: '',
+      pagoImpuestos: '',
+      cedulaPropietario: '',
+      observaciones: '',
+      estado: 'pendiente'
+    },
+    mesesContratados: 1,
+    descuentoPorcentaje: 0
+  })
+
+  // Geocodificación Automática
+  const geocodeTimer = useRef<NodeJS.Timeout | null>(null)
+  
+  const geocodeAddress = useCallback(async (query: string) => {
+    if (!query.trim()) return
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+      const data = await response.json()
+      if (data && data.length > 0) {
+        setFormInmueble(prev => ({
+          ...prev,
+          coordenadas: {
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon)
+          }
+        }))
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error)
+    }
+  }, [])
+
+  const triggerGeocode = useCallback((city: string, sector: string, direccion: string) => {
+    if (geocodeTimer.current) {
+      clearTimeout(geocodeTimer.current)
+    }
+    const query = `${direccion} ${sector} ${city}`.trim()
+    if (query) {
+      geocodeTimer.current = setTimeout(() => {
+        geocodeAddress(query)
+      }, 500)
+    }
+  }, [geocodeAddress])
+
+  const handleCityChange = (val: string) => {
+    setFormInmueble(prev => {
+      const next = { ...prev, ciudad: val }
+      triggerGeocode(next.ciudad, next.sector, next.direccion)
+      return next
+    })
+  }
+  const handleSectorChange = (val: string) => {
+    setFormInmueble(prev => {
+      const next = { ...prev, sector: val }
+      triggerGeocode(next.ciudad, next.sector, next.direccion)
+      return next
+    })
+  }
+  const handleDireccionChange = (val: string) => {
+    setFormInmueble(prev => {
+      const next = { ...prev, direccion: val }
+      triggerGeocode(next.ciudad, next.sector, next.direccion)
+      return next
+    })
+  }
+
+  // Amenidades
+  const handleAddAmenidad = () => {
+    const valor = formInmueble.nuevaAmenidadInput.trim()
+    if (!valor) return
+    if (!formInmueble.amenidades.includes(valor)) {
+      setFormInmueble(prev => ({
+        ...prev,
+        amenidades: [...prev.amenidades, valor],
+        nuevaAmenidadInput: ""
+      }))
+    }
+  }
+
+  const handleRemoveAmenidad = (tag: string) => {
+    setFormInmueble(prev => ({
+      ...prev,
+      amenidades: prev.amenidades.filter(a => a !== tag)
+    }))
+  }
+
+  // Manejo de Imágenes (FileReader a Base64 - Simulado para simplificar en local)
+  const handleUploadFotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            const url = event.target.result as string
+            setFormInmueble(prev => {
+              const list = [...(prev.galeriaImagenes || []), url]
+              return {
+                ...prev,
+                galeriaImagenes: list,
+                imagenUrl: prev.imagenUrl || url
+              }
+            })
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+  }
+
+  const handleRemoveFoto = (index: number) => {
+    setFormInmueble(prev => {
+      const list = [...prev.galeriaImagenes]
+      const removed = list.splice(index, 1)[0]
+      return {
+        ...prev,
+        galeriaImagenes: list,
+        imagenUrl: prev.imagenUrl === removed ? (list[0] || "") : prev.imagenUrl
+      }
+    })
+  }
+
+  const handleSelectPortada = (url: string) => {
+    setFormInmueble(prev => ({ ...prev, imagenUrl: url }))
+  }
+
+  // Función para procesar archivos de legalidad (guardan solo el nombre o simulan subida por ahora)
+  const handleUploadLegalFile = (key: keyof typeof formInmueble.legalidad, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormInmueble(prev => ({
+        ...prev,
+        legalidad: {
+          ...prev.legalidad,
+          [key]: e.target.files![0].name
+        }
+      }))
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    
+    // Autogenerar código si no tiene
+    const finalInmueble = { ...formInmueble }
+    if (!finalInmueble.codigo) {
+      finalInmueble.codigo = `SARA-${finalInmueble.tipo.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 1000)}`
+    }
+    
+    await onSave(finalInmueble)
+    setIsSubmitting(false)
+  }
+
+  if (!isOpen) return null
+
+  // Cálculo de facturación para viñeta 5
+  const precioConIVA = formInmueble.tarifaMensual
+  const subtotalSinIVA = +(precioConIVA / 1.15).toFixed(2)
+  const iva15 = +(precioConIVA - subtotalSinIVA).toFixed(2)
+  const subtotalMeses = +(precioConIVA * formInmueble.mesesContratados).toFixed(2)
+  const descuentoValor = +(subtotalMeses * formInmueble.descuentoPorcentaje / 100).toFixed(2)
+  const totalFinal = +(subtotalMeses - descuentoValor).toFixed(2)
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col animate-fadeIn overflow-hidden">
+      <div className="bg-white w-full h-full flex flex-col justify-between relative overflow-hidden">
+        
+        {/* HEADER MODAL */}
+        <div className="px-6 sm:px-10 pt-5 pb-4 border-b border-gray-100 bg-white shrink-0 shadow-xs relative">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-5 right-6 sm:right-10 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+          >
+            <X size={22} />
+          </button>
+          
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-2xl shrink-0">
+              <Building2 size={26} />
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Publicar Inmueble & Configurar Cobro
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-500">
+                Sube la información de tu propiedad para que sea verificada y publicada en el catálogo de SARA.
+              </p>
+            </div>
+          </div>
+          
+          {/* TABS */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-gray-100/90 rounded-2xl max-w-4xl">
+            {[
+              { id: 1, label: "1. Inmueble & Mapa", icon: MapPin },
+              { id: 2, label: "2. Propietario & Banco", icon: Users },
+              { id: 3, label: "3. Fotos & Videos", icon: ImageIcon },
+              { id: 4, label: "4. Verificar Legalidad", icon: ShieldCheck },
+              { id: 5, label: "5. Plan & Cobro", icon: Sparkles }
+            ].map((tab) => {
+              const IconComponent = tab.icon
+              const isActive = modalSubTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setModalSubTab(tab.id as any)}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    isActive ? "bg-white text-slate-900 shadow-sm ring-1 ring-gray-200" : "text-gray-500 hover:text-gray-900 hover:bg-white/50"
+                  }`}
+                >
+                  <IconComponent size={16} className={isActive ? "text-emerald-500" : "text-gray-400"} />
+                  <span className="truncate">{tab.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* FORM CONTENT */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-10 py-6 space-y-6">
+            
+            {/* TAB 1: INMUEBLE Y MAPA */}
+            {modalSubTab === 1 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-slate-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                    <Home size={15} className="text-emerald-500" />
+                    Identificación y Precio del Inmueble
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Código (Opcional)</label>
+                      <input
+                        type="text"
+                        placeholder="Autogenerado"
+                        value={formInmueble.codigo}
+                        onChange={(e) => setFormInmueble({ ...formInmueble, codigo: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Título de la Publicación</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Ej: Casa de Lujo en Challuabamba con Jardín Privado y Vista Panorámica"
+                        value={formInmueble.titulo}
+                        onChange={(e) => setFormInmueble({ ...formInmueble, titulo: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-medium text-gray-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Propiedad</label>
+                      <select
+                        value={formInmueble.tipo}
+                        onChange={(e) => setFormInmueble({ ...formInmueble, tipo: e.target.value as any })}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-semibold"
+                      >
+                        <option value="casa">Casa</option>
+                        <option value="departamento">Departamento</option>
+                        <option value="terreno">Terreno</option>
+                        <option value="quinta">Quinta</option>
+                        <option value="suite">Suite</option>
+                        <option value="local">Local Comercial</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Modalidad Comercial</label>
+                      <select
+                        value={formInmueble.modalidad}
+                        onChange={(e) => setFormInmueble({ ...formInmueble, modalidad: e.target.value as any })}
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold"
+                      >
+                        <option value="venta">Venta</option>
+                        <option value="arriendo">Arriendo</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Precio Solicitado ($ USD)</label>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        value={formInmueble.precio}
+                        onChange={(e) => setFormInmueble({ ...formInmueble, precio: Number(e.target.value) })}
+                        className="w-full px-3 py-2 bg-white border border-emerald-400 rounded-xl text-xs font-black text-emerald-800"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                    <Sliders size={15} className="text-emerald-500" />
+                    Características Físicas de la Ficha Técnica
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-gray-200">
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">m² tot. (Terreno)</label>
+                      <input type="number" required min="0" value={formInmueble.areaM2} onChange={(e) => setFormInmueble({ ...formInmueble, areaM2: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900" />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-gray-200">
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">m² cub. (Const.)</label>
+                      <input type="number" min="0" value={formInmueble.areaConstruidaM2} onChange={(e) => setFormInmueble({ ...formInmueble, areaConstruidaM2: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900" />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-gray-200">
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">Baños</label>
+                      <input type="number" step="0.5" min="0" value={formInmueble.banos} onChange={(e) => setFormInmueble({ ...formInmueble, banos: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900" />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-gray-200">
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">Parqueaderos</label>
+                      <input type="number" min="0" value={formInmueble.parqueaderos} onChange={(e) => setFormInmueble({ ...formInmueble, parqueaderos: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900" />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-gray-200">
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">Habitaciones</label>
+                      <input type="number" min="0" value={formInmueble.habitaciones} onChange={(e) => setFormInmueble({ ...formInmueble, habitaciones: Number(e.target.value) })} className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900" />
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-gray-200">
+                      <label className="block text-[10px] font-extrabold uppercase text-gray-500 mb-1">Antigüedad</label>
+                      <select value={formInmueble.antiguedad} onChange={(e) => setFormInmueble({ ...formInmueble, antiguedad: e.target.value })} className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-black text-gray-900">
+                        <option value="A estrenar">A estrenar</option>
+                        <option value="En construcción">En construcción</option>
+                        <option value="1 a 5 años">1 a 5 años</option>
+                        <option value="5 a 10 años">5 a 10 años</option>
+                        <option value="Más de 10 años">Más de 10 años</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Descripción Detallada</label>
+                    <textarea rows={4} required value={formInmueble.descripcion} onChange={(e) => setFormInmueble({ ...formInmueble, descripcion: e.target.value })} className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs text-gray-900" />
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-gray-200 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                    <MapPin size={15} className="text-emerald-500" />
+                    Ubicación y Geolocalización
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Ciudad</label>
+                      <input type="text" required value={formInmueble.ciudad} onChange={(e) => handleCityChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-900" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Sector / Zona</label>
+                      <input type="text" value={formInmueble.sector} onChange={(e) => handleSectorChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Dirección Exacta</label>
+                      <input type="text" value={formInmueble.direccion} onChange={(e) => handleDireccionChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900" />
+                    </div>
+                  </div>
+                  <div className="h-48 bg-gray-200 rounded-xl overflow-hidden relative border border-gray-300">
+                    <img src={`https://static-maps.yandex.ru/1.x/?lang=es_ES&ll=${formInmueble.coordenadas.lng},${formInmueble.coordenadas.lat}&z=14&l=map&size=600,300&pt=${formInmueble.coordenadas.lng},${formInmueble.coordenadas.lat},pm2rdl`} alt="Mapa" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: PROPIETARIO Y BANCO */}
+            {modalSubTab === 2 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                    <Users size={15} className="text-emerald-500" />
+                    Datos del Propietario (Registrado)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Nombre Completo</label>
+                      <input type="text" readOnly value={formInmueble.propietarioNombre} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
+                      <input type="text" readOnly value={formInmueble.propietarioTelefono} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Correo Electrónico</label>
+                      <input type="email" readOnly value={formInmueble.propietarioEmail} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: FOTOS Y VIDEOS */}
+            {modalSubTab === 3 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                      <ImageIcon size={15} className="text-emerald-500" />
+                      Galería de Imágenes
+                    </h4>
+                    <label className="cursor-pointer bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+                      <UploadCloud size={14} /> Subir Fotos
+                      <input type="file" multiple accept="image/*" className="hidden" onChange={handleUploadFotos} />
+                    </label>
+                  </div>
+                  {formInmueble.galeriaImagenes.length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-2xl p-10 flex flex-col items-center justify-center text-center">
+                      <ImageIcon size={40} className="text-gray-300 mb-3" />
+                      <p className="text-sm font-bold text-gray-700">Sin imágenes</p>
+                      <p className="text-xs text-gray-500 mt-1">Sube al menos 1 imagen para la ficha técnica.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                      {formInmueble.galeriaImagenes.map((url, idx) => {
+                        const isPortada = url === formInmueble.imagenUrl
+                        return (
+                          <div key={idx} className={`relative aspect-square rounded-xl overflow-hidden group border-2 ${isPortada ? 'border-emerald-500' : 'border-gray-200'}`}>
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                              {!isPortada && (
+                                <button type="button" onClick={() => handleSelectPortada(url)} className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-600">
+                                  Hacer Portada
+                                </button>
+                              )}
+                              <button type="button" onClick={() => handleRemoveFoto(idx)} className="p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600">
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                            {isPortada && (
+                              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded uppercase">
+                                Portada
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: VERIFICAR LEGALIDAD */}
+            {modalSubTab === 4 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-200 space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-2">
+                    <ShieldCheck size={15} className="text-amber-600" />
+                    Verificar Legalidad del Inmueble
+                  </h4>
+                  <p className="text-sm text-gray-600">Sube los documentos legales para que SARA apruebe tu publicación. Estos documentos no serán públicos.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div className="bg-white p-4 rounded-xl border border-gray-200">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Escritura Pública</label>
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleUploadLegalFile("escrituraPublica", e)} className="w-full text-xs text-gray-600 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Certificado de Gravámenes (Actualizado)</label>
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleUploadLegalFile("certificadoGravamenes", e)} className="w-full text-xs text-gray-600 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Pago de Impuestos Prediales (Año Curso)</label>
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleUploadLegalFile("pagoImpuestos", e)} className="w-full text-xs text-gray-600 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                    </div>
+                    <div className="bg-white p-4 rounded-xl border border-gray-200">
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Cédula del Propietario</label>
+                      <input type="file" accept=".pdf,image/*" onChange={(e) => handleUploadLegalFile("cedulaPropietario", e)} className="w-full text-xs text-gray-600 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 5: PLAN Y COBRO */}
+            {modalSubTab === 5 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                    <Sparkles size={15} className="text-emerald-500" />
+                    Elige el Plan de Promoción SARA Inmobiliaria
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* PLANES - Simplificados para el Propietario */}
+                    {["basico", "destacado", "premium"].map((planStr) => {
+                      const plan = planStr as "basico" | "destacado" | "premium"
+                      const precios = { basico: 35, destacado: 65, premium: 120 }
+                      const titulos = { basico: "Básico", destacado: "Destacado", premium: "Premium" }
+                      const colores = { basico: "bg-gray-50 border-gray-200 hover:border-gray-400", destacado: "bg-emerald-50 border-emerald-300 hover:border-emerald-500", premium: "bg-amber-50 border-amber-300 hover:border-amber-500" }
+                      const isActive = formInmueble.planPromocion === plan
+                      
+                      return (
+                        <div
+                          key={plan}
+                          onClick={() => setFormInmueble({ ...formInmueble, planPromocion: plan, tarifaMensual: precios[plan] })}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all relative ${colores[plan]} ${isActive ? 'ring-2 ring-emerald-500 scale-[1.02]' : ''}`}
+                        >
+                          {isActive && <div className="absolute top-2 right-2"><CheckCircle2 size={18} className="text-emerald-600" /></div>}
+                          <h5 className="font-black text-gray-900 uppercase text-sm mb-1">{titulos[plan]}</h5>
+                          <p className="text-xl font-black text-gray-800 mb-2">${precios[plan]}<span className="text-xs text-gray-500 font-medium">/mes</span></p>
+                          <ul className="text-xs text-gray-600 space-y-1">
+                            <li className="flex items-center gap-1"><Check size={10} className="text-emerald-500"/> Publicación en catálogo</li>
+                            {plan === "destacado" && <li className="flex items-center gap-1"><Check size={10} className="text-emerald-500"/> Posicionamiento Top</li>}
+                            {plan === "premium" && <><li className="flex items-center gap-1"><Check size={10} className="text-emerald-500"/> Promoción en RRSS SARA</li><li className="flex items-center gap-1"><Check size={10} className="text-emerald-500"/> Fotos profesionales</li></>}
+                          </ul>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Detalle de Facturación */}
+                  <div className="mt-6 bg-slate-50 p-4 rounded-2xl border border-emerald-100 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-2">
+                      <Receipt size={15} className="text-emerald-600" />
+                      Detalle del Valor a Cancelar
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Meses Contratados</label>
+                        <select
+                          value={formInmueble.mesesContratados}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, mesesContratados: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-900"
+                        >
+                          <option value={1}>1 mes</option>
+                          <option value={3}>3 meses</option>
+                          <option value={6}>6 meses</option>
+                          <option value={12}>12 meses (1 año)</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-2 text-sm mt-3">
+                      <div className="flex justify-between text-gray-600">
+                        <span>Subtotal (sin IVA):</span>
+                        <span className="font-bold">${subtotalSinIVA}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-600">
+                        <span>IVA 15%:</span>
+                        <span className="font-bold">${iva15}</span>
+                      </div>
+                      <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-2">
+                        <span className="font-semibold">Precio c/IVA:</span>
+                        <span className="font-black">${precioConIVA}</span>
+                      </div>
+                      {formInmueble.mesesContratados > 1 && (
+                        <div className="flex justify-between text-gray-700">
+                          <span>Subtotal x {formInmueble.mesesContratados} meses:</span>
+                          <span className="font-bold">${subtotalMeses}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-emerald-950 border-t-2 border-emerald-200 pt-3 mt-1">
+                        <span className="text-base font-black">TOTAL A CANCELAR:</span>
+                        <span className="text-xl font-black">${totalFinal}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* FOOTER ACTIONS */}
+          <div className="px-6 sm:px-10 py-4 bg-white border-t border-gray-100 flex items-center justify-between shrink-0">
+            {modalSubTab > 1 ? (
+              <button
+                type="button"
+                onClick={() => setModalSubTab((prev) => (prev - 1) as any)}
+                className="px-5 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 transition-colors"
+              >
+                Anterior
+              </button>
+            ) : <div />}
+            
+            {modalSubTab < 5 ? (
+              <button
+                type="button"
+                onClick={() => setModalSubTab((prev) => (prev + 1) as any)}
+                className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 flex items-center gap-1.5 shadow-md transition-colors"
+              >
+                Siguiente Sección
+              </button>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-5 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-500/30 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <span>Enviando a revisión...</span>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      <span>Enviar a Verificación y Publicar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
