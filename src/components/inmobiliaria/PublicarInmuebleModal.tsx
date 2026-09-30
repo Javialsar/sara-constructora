@@ -1,3 +1,5 @@
+import { getInmobiliariaConfig, InmobiliariaConfigCompleta, DEFAULT_INMOBILIARIA_CONFIG } from "@/lib/services/inmobiliariaPlanesService"
+import dynamic from "next/dynamic"
 "use client"
 import React, { useState, useRef, useCallback } from "react"
 import {
@@ -31,6 +33,8 @@ interface PublicarInmuebleModalProps {
     cedula: string
   }
 }
+
+const DynamicModalMap = dynamic(() => import("@/components/inmobiliaria/ModalMap"), { ssr: false })
 
 export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propietarioBase }: PublicarInmuebleModalProps) {
   const [modalSubTab, setModalSubTab] = useState<1 | 2 | 3 | 4 | 5>(1)

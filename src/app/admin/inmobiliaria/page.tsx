@@ -336,7 +336,26 @@ export default function AdminInmobiliariaPage() {
   React.useEffect(() => {
     getInmueblesFromDB().then((data) => {
       if (data && Array.isArray(data) && data.length > 0) {
-        setInmuebles(data)
+                const inmueblesValidados = (data || []).map(inm => ({
+          ...inm,
+          promocion: inm.promocion || {
+            plan: 'basico',
+            nombrePlan: 'Plan Básico',
+            tarifaMensual: 0,
+            fechaInicio: new Date().toISOString().split('T')[0],
+            fechaVencimiento: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+            estadoPago: 'vencido',
+            ultimoMontoPagado: 0,
+            metodoPago: 'Pendiente',
+            totalRecaudado: 0
+          },
+          propietario: inm.propietario || {
+            nombre: 'Propietario Temporal',
+            email: 'temporal@example.com',
+            telefono: '0000000000'
+          }
+        }))
+        setInmuebles(inmueblesValidados)
       }
     })
     getInmobiliariaConfig().then(setPlanesConfig)
