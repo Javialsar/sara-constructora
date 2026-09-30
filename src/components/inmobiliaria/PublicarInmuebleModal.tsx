@@ -353,8 +353,8 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                         type="text"
                         placeholder="Autogenerado"
                         value={formInmueble.codigo}
-                        onChange={(e) => setFormInmueble({ ...formInmueble, codigo: e.target.value })}
-                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-900"
+                        readOnly={true}
+                        className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-xl text-xs font-bold text-gray-500 cursor-not-allowed"
                       />
                     </div>
                     <div className="sm:col-span-3">
@@ -472,18 +472,10 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                       <input type="text" value={formInmueble.direccion} onChange={(e) => handleDireccionChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900" />
                     </div>
                   </div>
-                  <div className="h-64 sm:h-72 bg-gray-200 rounded-xl overflow-hidden relative border border-gray-300">
-                    <iframe
-                      title="Mapa de Ubicación"
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      scrolling="no"
-                      marginHeight={0}
-                      marginWidth={0}
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${formInmueble.coordenadas.lng - 0.02}%2C${formInmueble.coordenadas.lat - 0.015}%2C${formInmueble.coordenadas.lng + 0.02}%2C${formInmueble.coordenadas.lat + 0.015}&layer=mapnik&marker=${formInmueble.coordenadas.lat}%2C${formInmueble.coordenadas.lng}`}
-                      className="w-full h-full"
-                    />
+                  <div className="h-64 sm:h-72 bg-gray-200 rounded-xl overflow-hidden relative border border-gray-300"
+                  >
+                    <div className="absolute bottom-2 left-2 z-[400] bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] text-gray-700 font-bold border border-gray-200 pointer-events-none">📍 Arrastra el marcador para precisar tu ubicación exacta</div>
+                    <DynamicModalMap lat={formInmueble.coordenadas.lat} lng={formInmueble.coordenadas.lng} onChange={(lat, lng) => setFormInmueble({ ...formInmueble, coordenadas: { lat, lng } })} />
                   </div>
                 </div>
               </div>
