@@ -754,15 +754,15 @@ export default function AdminInmobiliariaPage() {
   const stats = useMemo(() => {
     const totalInmuebles = inmuebles.length
     const activos = inmuebles.filter(i => i.publicado).length
-    const alDia = inmuebles.filter(i => i.promocion.estadoPago === "al_dia").length
-    const porVencer = inmuebles.filter(i => i.promocion.estadoPago === "por_vencer").length
-    const vencidos = inmuebles.filter(i => i.promocion.estadoPago === "vencido").length
+    const alDia = inmuebles.filter(i => (i.promocion && i.promocion.estadoPago === "al_dia")).length
+    const porVencer = inmuebles.filter(i => (i.promocion && i.promocion.estadoPago === "por_vencer")).length
+    const vencidos = inmuebles.filter(i => (i.promocion && i.promocion.estadoPago === "vencido")).length
 
     // Total recaudado acumulado por SARA
     const totalRecaudadoAcumulado = inmuebles.reduce((acc, curr) => acc + curr.promocion.totalRecaudado, 0)
     // Ingresos mensuales proyectados por los planes vigentes
     const facturacionMensualProyectada = inmuebles
-      .filter(i => i.publicado && i.promocion.estadoPago !== "vencido")
+      .filter(i => i.publicado && (i.promocion && i.promocion.estadoPago !== "vencido"))
       .reduce((acc, curr) => acc + curr.promocion.tarifaMensual, 0)
 
     return {
