@@ -1,5 +1,5 @@
-import { Percent } from "lucide-react"
 "use client"
+import { Percent } from "lucide-react"
 import { getInmobiliariaConfig, InmobiliariaConfigCompleta, DEFAULT_INMOBILIARIA_CONFIG } from "@/lib/services/inmobiliariaPlanesService"
 import dynamic from "next/dynamic"
 
