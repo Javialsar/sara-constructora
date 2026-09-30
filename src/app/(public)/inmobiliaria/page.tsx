@@ -97,6 +97,9 @@ const INMUEBLES_DATA: Inmueble[] = [
       "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
     ],
+    videos: [
+      "https://www.w3schools.com/html/mov_bbb.mp4"
+    ],
     descripcion: "Espectacular residencia de diseño contemporáneo construida con estándares antisísmicos de primera. Cuenta con amplias áreas sociales de doble altura, cocina abierta tipo isla con cuarzo, master suite con jacuzzi y walk-in closet, además de un porche BBQ conectado al jardín posterior.",
     amenidades: ["Seguridad 24/7", "Área BBQ", "Cisterna y Bomba", "Gas Centralizado", "Jardín Amplio", "Acabados Importados", "Cámaras de Vigilancia"],
     coordenadas: { lat: -2.8752, lng: -78.9654 },
@@ -1383,6 +1386,18 @@ export default function InmobiliariaPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Reproductor de Video si existe */}
+                {selectedInmueble.videos && selectedInmueble.videos.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <h5 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Building2 size={14} className="text-brand-sage" /> Video del Inmueble
+                    </h5>
+                    <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-md">
+                      <video src={selectedInmueble.videos[0]} className="w-full h-full" controls />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Barra Horizontal de Características Físicas (Estilo Imagen 3) */}

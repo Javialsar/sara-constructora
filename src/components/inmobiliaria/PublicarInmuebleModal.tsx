@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   Receipt,
   Trash2,
-  Plus
+  Plus,
+  Star
 } from "lucide-react"
 
 interface PublicarInmuebleModalProps {
@@ -56,14 +57,16 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
     coordenadas: { lat: -2.8974, lng: -79.0045 },
     imagenUrl: "",
     galeriaImagenes: [] as string[],
+    galeriaVideos: [] as string[],
     propietarioNombre: propietarioBase.nombre || "",
     propietarioTelefono: propietarioBase.telefono || "",
     propietarioEmail: propietarioBase.email || "",
     cuentaBancaria: {
-      banco: "Banco Pichincha",
+      banco: "",
       tipoCuenta: "ahorros",
       numeroCuenta: "",
-      titularCedula: propietarioBase.cedula || ""
+      titularCedula: propietarioBase.cedula || "",
+      qrCuenta: ""
     },
     planPromocion: "destacado",
     tarifaMensual: 65,
@@ -196,6 +199,43 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
     setFormInmueble(prev => ({ ...prev, imagenUrl: url }))
   }
 
+  const handleUploadQR = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setFormInmueble(prev => ({
+            ...prev,
+            cuentaBancaria: { ...prev.cuentaBancaria, qrCuenta: event.target!.result as string }
+          }))
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleUploadVideos = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        const url = URL.createObjectURL(file) // Para previsualización rápida
+        setFormInmueble(prev => ({
+          ...prev,
+          galeriaVideos: [...prev.galeriaVideos, url]
+        }))
+      })
+    }
+  }
+
+  const handleRemoveVideo = (index: number) => {
+    setFormInmueble(prev => {
+      const list = [...prev.galeriaVideos]
+      list.splice(index, 1)
+      return { ...prev, galeriaVideos: list }
+    })
+  }
+
   // Función para procesar archivos de legalidad (guardan solo el nombre o simulan subida por ahora)
   const handleUploadLegalFile = (key: keyof typeof formInmueble.legalidad, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -226,12 +266,12 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
   if (!isOpen) return null
 
   // Cálculo de facturación para viñeta 5
+  // El precio del plan YA incluye IVA.
   const precioConIVA = formInmueble.tarifaMensual
-  const subtotalSinIVA = +(precioConIVA / 1.15).toFixed(2)
-  const iva15 = +(precioConIVA - subtotalSinIVA).toFixed(2)
-  const subtotalMeses = +(precioConIVA * formInmueble.mesesContratados).toFixed(2)
-  const descuentoValor = +(subtotalMeses * formInmueble.descuentoPorcentaje / 100).toFixed(2)
-  const totalFinal = +(subtotalMeses - descuentoValor).toFixed(2)
+  const precioMensualDescontado = precioConIVA * (1 - (formInmueble.descuentoPorcentaje / 100))
+  const totalFinal = +(precioMensualDescontado * formInmueble.mesesContratados).toFixed(2)
+  const subtotalSinIVA = +(totalFinal / 1.15).toFixed(2)
+  const iva15 = +(totalFinal - subtotalSinIVA).toFixed(2)
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col animate-fadeIn overflow-hidden">
@@ -427,8 +467,18 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                       <input type="text" value={formInmueble.direccion} onChange={(e) => handleDireccionChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900" />
                     </div>
                   </div>
-                  <div className="h-48 bg-gray-200 rounded-xl overflow-hidden relative border border-gray-300">
-                    <img src={`https://static-maps.yandex.ru/1.x/?lang=es_ES&ll=${formInmueble.coordenadas.lng},${formInmueble.coordenadas.lat}&z=14&l=map&size=600,300&pt=${formInmueble.coordenadas.lng},${formInmueble.coordenadas.lat},pm2rdl`} alt="Mapa" className="w-full h-full object-cover" />
+                  <div className="h-64 sm:h-72 bg-gray-200 rounded-xl overflow-hidden relative border border-gray-300">
+                    <iframe
+                      title="Mapa de Ubicación"
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      scrolling="no"
+                      marginHeight={0}
+                      marginWidth={0}
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${formInmueble.coordenadas.lng - 0.02}%2C${formInmueble.coordenadas.lat - 0.015}%2C${formInmueble.coordenadas.lng + 0.02}%2C${formInmueble.coordenadas.lat + 0.015}&layer=mapnik&marker=${formInmueble.coordenadas.lat}%2C${formInmueble.coordenadas.lng}`}
+                      className="w-full h-full"
+                    />
                   </div>
                 </div>
               </div>
@@ -454,6 +504,71 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Correo Electrónico</label>
                       <input type="email" readOnly value={formInmueble.propietarioEmail} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                    <Building2 size={15} className="text-emerald-500" />
+                    Datos Bancarios para Recibir Pagos (Opcional)
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Banco / Institución</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ej. Banco Pichincha" 
+                        value={formInmueble.cuentaBancaria.banco} 
+                        onChange={(e) => setFormInmueble({ ...formInmueble, cuentaBancaria: { ...formInmueble.cuentaBancaria, banco: e.target.value } })} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Cuenta</label>
+                      <select 
+                        value={formInmueble.cuentaBancaria.tipoCuenta} 
+                        onChange={(e) => setFormInmueble({ ...formInmueble, cuentaBancaria: { ...formInmueble.cuentaBancaria, tipoCuenta: e.target.value as any } })} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900"
+                      >
+                        <option value="ahorros">Ahorros</option>
+                        <option value="corriente">Corriente</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Número de Cuenta</label>
+                      <input 
+                        type="text" 
+                        value={formInmueble.cuentaBancaria.numeroCuenta} 
+                        onChange={(e) => setFormInmueble({ ...formInmueble, cuentaBancaria: { ...formInmueble.cuentaBancaria, numeroCuenta: e.target.value } })} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900 font-medium" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Cédula / RUC</label>
+                      <input 
+                        type="text" 
+                        value={formInmueble.cuentaBancaria.titularCedula} 
+                        onChange={(e) => setFormInmueble({ ...formInmueble, cuentaBancaria: { ...formInmueble.cuentaBancaria, titularCedula: e.target.value } })} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs text-gray-900" 
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Código QR de la Cuenta (Opcional)</label>
+                    <div className="flex items-center gap-4">
+                      <label className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors border border-slate-300">
+                        <UploadCloud size={14} /> Subir Imagen QR
+                        <input type="file" accept="image/*" className="hidden" onChange={handleUploadQR} />
+                      </label>
+                      {formInmueble.cuentaBancaria.qrCuenta && (
+                        <div className="h-16 w-16 rounded border border-gray-200 overflow-hidden relative group">
+                          <img src={formInmueble.cuentaBancaria.qrCuenta} alt="QR" className="w-full h-full object-cover" />
+                          <button type="button" onClick={() => setFormInmueble(prev => ({ ...prev, cuentaBancaria: { ...prev.cuentaBancaria, qrCuenta: "" } }))} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -485,7 +600,7 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                       {formInmueble.galeriaImagenes.map((url, idx) => {
                         const isPortada = url === formInmueble.imagenUrl
                         return (
-                          <div key={idx} className={`relative aspect-square rounded-xl overflow-hidden group border-2 ${isPortada ? 'border-emerald-500' : 'border-gray-200'}`}>
+                          <div key={idx} className={`relative aspect-square rounded-xl overflow-hidden group border-2 ${isPortada ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)] ring-2 ring-emerald-500 scale-105' : 'border-gray-200'}`}>
                             <img src={url} alt="" className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                               {!isPortada && (
@@ -498,13 +613,44 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                               </button>
                             </div>
                             {isPortada && (
-                              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded uppercase">
-                                Portada
+                              <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-emerald-500 text-white text-[9px] font-black rounded uppercase flex items-center gap-1 shadow-md">
+                                <Star size={10} /> PORTADA
                               </div>
                             )}
                           </div>
                         )
                       })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Galería de Videos */}
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4 mt-6">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                      <Building2 size={15} className="text-blue-500" />
+                      Videos de la Propiedad
+                    </h4>
+                    <label className="cursor-pointer bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors">
+                      <UploadCloud size={14} /> Subir Videos
+                      <input type="file" multiple accept="video/*" className="hidden" onChange={handleUploadVideos} />
+                    </label>
+                  </div>
+                  {formInmueble.galeriaVideos.length === 0 ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+                      <p className="text-sm font-bold text-gray-700">Sin videos</p>
+                      <p className="text-xs text-gray-500 mt-1">Puedes agregar videos para hacer más atractiva tu publicación (opcional).</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {formInmueble.galeriaVideos.map((url, idx) => (
+                        <div key={idx} className="relative aspect-video rounded-xl overflow-hidden group border-2 border-gray-200">
+                          <video src={url} className="w-full h-full object-cover" controls />
+                          <button type="button" onClick={() => handleRemoveVideo(idx)} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -592,7 +738,7 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                         <select
                           value={formInmueble.mesesContratados}
                           onChange={(e) => setFormInmueble({ ...formInmueble, mesesContratados: Number(e.target.value) })}
-                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-900"
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                         >
                           <option value={1}>1 mes</option>
                           <option value={3}>3 meses</option>
@@ -600,30 +746,37 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
                           <option value={12}>12 meses (1 año)</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Descuento Especial (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={formInmueble.descuentoPorcentaje}
+                          onChange={(e) => setFormInmueble({ ...formInmueble, descuentoPorcentaje: Number(e.target.value) })}
+                          className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                        />
+                      </div>
                     </div>
                     
                     <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-2 text-sm mt-3">
                       <div className="flex justify-between text-gray-600">
                         <span>Subtotal (sin IVA):</span>
-                        <span className="font-bold">${subtotalSinIVA}</span>
+                        <span className="font-bold">${subtotalSinIVA.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-gray-600">
                         <span>IVA 15%:</span>
-                        <span className="font-bold">${iva15}</span>
+                        <span className="font-bold">${iva15.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-gray-700 border-t border-gray-200 pt-2">
-                        <span className="font-semibold">Precio c/IVA:</span>
-                        <span className="font-black">${precioConIVA}</span>
-                      </div>
-                      {formInmueble.mesesContratados > 1 && (
-                        <div className="flex justify-between text-gray-700">
-                          <span>Subtotal x {formInmueble.mesesContratados} meses:</span>
-                          <span className="font-bold">${subtotalMeses}</span>
+                      {formInmueble.descuentoPorcentaje > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Descuento aplicado ({formInmueble.descuentoPorcentaje}%):</span>
+                          <span className="font-bold">-${((precioConIVA * formInmueble.mesesContratados) * formInmueble.descuentoPorcentaje / 100).toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-emerald-950 border-t-2 border-emerald-200 pt-3 mt-1">
                         <span className="text-base font-black">TOTAL A CANCELAR:</span>
-                        <span className="text-xl font-black">${totalFinal}</span>
+                        <span className="text-xl font-black">${totalFinal.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

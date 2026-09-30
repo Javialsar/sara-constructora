@@ -23,6 +23,7 @@ import {
   User,
   Search,
   Loader2,
+  UploadCloud,
   FileText,
   MapPin,
   DollarSign,
@@ -840,14 +841,31 @@ export default function MiPortalInmobiliaria() {
                               </div>
                             </div>
 
-                            {/* Botón Ver Detalle */}
-                            <button
-                              onClick={() => { setDetalleInmueble(inm); setDetalleSubTab("info") }}
-                              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                            >
-                              <span>Ver Detalle</span>
-                              <ChevronRight size={14} />
-                            </button>
+                            {/* Botón Ver Detalle y Acciones Secundarias */}
+                            {inm.estado === "aprobado" ? (
+                              <div className="grid grid-cols-2 gap-2 mt-2">
+                                <button
+                                  onClick={() => alert("Próximamente: Modal de Pago y Subida de Comprobante")}
+                                  className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                                >
+                                  <UploadCloud size={14} /> Pagar Plan
+                                </button>
+                                <button
+                                  onClick={() => { setDetalleInmueble(inm); setDetalleSubTab("info") }}
+                                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                                >
+                                  Ver Detalle
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setDetalleInmueble(inm); setDetalleSubTab("info") }}
+                                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm mt-2"
+                              >
+                                <span>Ver Detalle</span>
+                                <ChevronRight size={14} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       )
