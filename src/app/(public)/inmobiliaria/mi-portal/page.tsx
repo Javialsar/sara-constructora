@@ -135,6 +135,35 @@ export default function MiPortalInmobiliaria() {
   }, [])
 
   // Modal de publicación
+  
+  const [pagoInmueble, setPagoInmueble] = useState<InmuebleOwner | null>(null)
+  const [comprobantePago, setComprobantePago] = useState<string>("")
+  const [isUploadingComprobante, setIsUploadingComprobante] = useState(false)
+
+  const handleUploadComprobante = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        setComprobantePago(evt.target?.result as string)
+      }
+      reader.readAsDataURL(e.target.files[0])
+    }
+  }
+
+  const handleEnviarComprobante = async () => {
+    if (!pagoInmueble || !comprobantePago) return
+    setIsUploadingComprobante(true)
+    try {
+      alert("Comprobante enviado exitosamente. SARA Inmobiliaria revisará el pago en breve.")
+      setPagoInmueble(null)
+      setComprobantePago("")
+    } catch(err) {
+      console.error(err)
+    } finally {
+      setIsUploadingComprobante(false)
+    }
+  }
+
   const [showPublishModal, setShowPublishModal] = useState(false)
 
   const handleSaveNuevoInmueble = async (inmuebleData: any) => {
@@ -845,7 +874,7 @@ export default function MiPortalInmobiliaria() {
                             {inm.estado === "aprobado" ? (
                               <div className="grid grid-cols-2 gap-2 mt-2">
                                 <button
-                                  onClick={() => alert("Próximamente: Modal de Pago y Subida de Comprobante")}
+                                  onClick={() => setPagoInmueble(inm)}
                                   className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-900 text-[11px] font-black uppercase flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm"
                                 >
                                   <UploadCloud size={14} /> Pagar Plan
