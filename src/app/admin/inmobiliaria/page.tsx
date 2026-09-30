@@ -759,11 +759,11 @@ export default function AdminInmobiliariaPage() {
     const vencidos = inmuebles.filter(i => (i.promocion && i.promocion.estadoPago === "vencido")).length
 
     // Total recaudado acumulado por SARA
-    const totalRecaudadoAcumulado = inmuebles.reduce((acc, curr) => acc + curr.promocion.totalRecaudado, 0)
+    const totalRecaudadoAcumulado = inmuebles.reduce((acc, curr) => acc + (curr.promocion?.totalRecaudado || 0), 0)
     // Ingresos mensuales proyectados por los planes vigentes
     const facturacionMensualProyectada = inmuebles
       .filter(i => i.publicado && (i.promocion && i.promocion.estadoPago !== "vencido"))
-      .reduce((acc, curr) => acc + curr.promocion.tarifaMensual, 0)
+      .reduce((acc, curr) => acc + (curr.promocion?.tarifaMensual || 0), 0)
 
     return {
       totalInmuebles,
@@ -1065,7 +1065,7 @@ export default function AdminInmobiliariaPage() {
         estadoPago: "al_dia",
         ultimoMontoPagado: montoCobradoInput,
         metodoPago: metodoPagoCobro,
-        totalRecaudado: selectedInmuebleForCobro.promocion.totalRecaudado + montoCobradoInput
+        totalRecaudado: (selectedInmuebleForCobro.promocion?.totalRecaudado || 0) + montoCobradoInput
       }
     }
 
@@ -2891,7 +2891,7 @@ export default function AdminInmobiliariaPage() {
               <div className="bg-slate-50 p-3.5 rounded-xl border border-gray-200 space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-gray-700">{selectedInmuebleForCobro.codigo}</span>
-                  <span className="text-gray-500">Vencimiento actual: {selectedInmuebleForCobro.promocion.fechaVencimiento}</span>
+                  <span className="text-gray-500">Vencimiento actual: {(selectedInmuebleForCobro.promocion?.fechaVencimiento || '')}</span>
                 </div>
                 <h4 className="font-bold text-gray-900 text-sm truncate">{selectedInmuebleForCobro.titulo}</h4>
                 <p className="text-xs text-gray-600">
@@ -2911,7 +2911,7 @@ export default function AdminInmobiliariaPage() {
                     { meses: 6, label: "6 Meses (Semestral)", factor: 5.2 }
                   ].map((p) => {
                     const isSelected = mesesRenovacion === p.meses
-                    const valorCalculado = Math.round(selectedInmuebleForCobro.promocion.tarifaMensual * p.factor)
+                    const valorCalculado = Math.round((selectedInmuebleForCobro.promocion?.tarifaMensual || 0) * p.factor)
 
                     return (
                       <button
