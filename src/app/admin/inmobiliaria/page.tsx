@@ -788,7 +788,7 @@ export default function AdminInmobiliariaPage() {
 
       const matchTipo = filtroTipo === "todos" || inm.tipo === filtroTipo
       const matchModalidad = filtroModalidad === "todos" || inm.modalidad === filtroModalidad
-      const matchPago = filtroPago === "todos" || (inm.promocion || {}).estadoPago === filtroPago
+      const matchPago = filtroPago === "todos" || (inm.promocion && inm.promocion.estadoPago === filtroPago)
 
       return matchSearch && matchTipo && matchModalidad && matchPago
     })
