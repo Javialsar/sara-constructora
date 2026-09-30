@@ -1,6 +1,7 @@
+"use client"
 import { getInmobiliariaConfig, InmobiliariaConfigCompleta, DEFAULT_INMOBILIARIA_CONFIG } from "@/lib/services/inmobiliariaPlanesService"
 import dynamic from "next/dynamic"
-"use client"
+
 import React, { useState, useRef, useCallback } from "react"
 import {
   Building2,
