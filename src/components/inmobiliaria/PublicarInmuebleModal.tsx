@@ -277,6 +277,9 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
     if (!finalInmueble.codigo) {
       finalInmueble.codigo = `SARA-${finalInmueble.tipo.substring(0, 3).toUpperCase()}-${Math.floor(Math.random() * 1000)}`
     }
+    if (!(finalInmueble as any).id) {
+      (finalInmueble as any).id = crypto.randomUUID();
+    }
     
     await onSave(finalInmueble)
     setIsSubmitting(false)
