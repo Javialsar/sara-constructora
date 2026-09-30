@@ -780,15 +780,15 @@ export default function AdminInmobiliariaPage() {
   const inmueblesFiltrados = useMemo(() => {
     return inmuebles.filter(inm => {
       const matchSearch = 
-        inm.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inm.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inm.ciudad.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inm.sector.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inm.propietario.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+        (inm.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inm.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inm.ciudad || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (inm.sector || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ((inm.propietario || {}).nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
 
       const matchTipo = filtroTipo === "todos" || inm.tipo === filtroTipo
       const matchModalidad = filtroModalidad === "todos" || inm.modalidad === filtroModalidad
-      const matchPago = filtroPago === "todos" || inm.promocion.estadoPago === filtroPago
+      const matchPago = filtroPago === "todos" || (inm.promocion || {}).estadoPago === filtroPago
 
       return matchSearch && matchTipo && matchModalidad && matchPago
     })
@@ -881,19 +881,19 @@ export default function AdminInmobiliariaPage() {
       nuevoVideoUrl: "",
       destacado: inm.destacado,
       publicado: inm.publicado,
-      propietarioNombre: inm.propietario.nombre,
-      propietarioTelefono: inm.propietario.telefono,
-      propietarioEmail: inm.propietario.email,
+      propietarioNombre: (inm.propietario || {}).nombre,
+      propietarioTelefono: (inm.propietario || {}).telefono,
+      propietarioEmail: (inm.propietario || {}).email,
       cuentaBancaria: {
-        banco: inm.propietario.cuentaBancaria?.banco || "Banco Pichincha",
-        tipoCuenta: (inm.propietario.cuentaBancaria?.tipoCuenta as any) || "ahorros",
-        numeroCuenta: inm.propietario.cuentaBancaria?.numeroCuenta || "",
-        titularCedula: inm.propietario.cuentaBancaria?.titularCedula || "",
-        qrImageUrl: inm.propietario.cuentaBancaria?.qrImageUrl || ""
+        banco: (inm.propietario || {}).cuentaBancaria?.banco || "Banco Pichincha",
+        tipoCuenta: ((inm.propietario || {}).cuentaBancaria?.tipoCuenta as any) || "ahorros",
+        numeroCuenta: (inm.propietario || {}).cuentaBancaria?.numeroCuenta || "",
+        titularCedula: (inm.propietario || {}).cuentaBancaria?.titularCedula || "",
+        qrImageUrl: (inm.propietario || {}).cuentaBancaria?.qrImageUrl || ""
       },
-      planPromocion: inm.promocion.plan,
-      tarifaMensual: inm.promocion.tarifaMensual,
-      porcentajeComision: inm.promocion.porcentajeComision || 3,
+      planPromocion: (inm.promocion || {}).plan,
+      tarifaMensual: (inm.promocion || {}).tarifaMensual,
+      porcentajeComision: (inm.promocion || {}).porcentajeComision || 3,
       legalidad: {
         escrituraPublica: '',
         certificadoGravamenes: '',
@@ -1040,7 +1040,7 @@ export default function AdminInmobiliariaPage() {
   const handleOpenCobroModal = (inm: InmuebleAdmin) => {
     setSelectedInmuebleForCobro(inm)
     setMesesRenovacion(1)
-    setMontoCobradoInput(inm.promocion.tarifaMensual)
+    setMontoCobradoInput((inm.promocion || {}).tarifaMensual)
     setMetodoPagoCobro("Transferencia Banco Pichincha")
     setIsCobroModalOpen(true)
   }
@@ -1078,16 +1078,16 @@ export default function AdminInmobiliariaPage() {
 
   // Generador de Enlace WhatsApp para Cobranza / Comprobante
   const getWhatsAppCobroLink = (inm: InmuebleAdmin) => {
-    const rawPhone = inm.propietario.telefono.replace(/[^0-9]/g, "")
+    const rawPhone = (inm.propietario || {}).telefono.replace(/[^0-9]/g, "")
     const phoneWithCode = rawPhone.startsWith("593") ? rawPhone : `593${rawPhone.replace(/^0/, "")}`
     
     let msg = ""
-    if (inm.promocion.estadoPago === "vencido") {
-      msg = `Estimado(a) ${inm.propietario.nombre}, le saludamos cordialmente desde SARA Constructora e Inmobiliaria. Le recordamos que la cuota de promoción y difusión de su propiedad *${inm.titulo}* (Cód. ${inm.codigo}) por valor de $${inm.promocion.tarifaMensual} ha vencido el ${inm.promocion.fechaVencimiento}. Para mantener activa la difusión en nuestro portal, campañas de redes sociales y catálogo de inversionistas, por favor facilítenos el comprobante de renovación. ¡Estamos atentos para servirle!`
-    } else if (inm.promocion.estadoPago === "por_vencer") {
-      msg = `Hola ${inm.propietario.nombre}, un cordial saludo de SARA Inmobiliaria. Le informamos que su plan de promoción activa para el inmueble *${inm.titulo}* está próximo a vencer el ${inm.promocion.fechaVencimiento}. El valor de renovación por 30 días es de $${inm.promocion.tarifaMensual}. ¿Desea mantenerlo destacado?`
+    if ((inm.promocion || {}).estadoPago === "vencido") {
+      msg = `Estimado(a) ${(inm.propietario || {}).nombre}, le saludamos cordialmente desde SARA Constructora e Inmobiliaria. Le recordamos que la cuota de promoción y difusión de su propiedad *${inm.titulo}* (Cód. ${inm.codigo}) por valor de $${(inm.promocion || {}).tarifaMensual} ha vencido el ${(inm.promocion || {}).fechaVencimiento}. Para mantener activa la difusión en nuestro portal, campañas de redes sociales y catálogo de inversionistas, por favor facilítenos el comprobante de renovación. ¡Estamos atentos para servirle!`
+    } else if ((inm.promocion || {}).estadoPago === "por_vencer") {
+      msg = `Hola ${(inm.propietario || {}).nombre}, un cordial saludo de SARA Inmobiliaria. Le informamos que su plan de promoción activa para el inmueble *${inm.titulo}* está próximo a vencer el ${(inm.promocion || {}).fechaVencimiento}. El valor de renovación por 30 días es de $${(inm.promocion || {}).tarifaMensual}. ¿Desea mantenerlo destacado?`
     } else {
-      msg = `Hola ${inm.propietario.nombre}, desde SARA Inmobiliaria le compartimos que su propiedad *${inm.titulo}* (Cód. ${inm.codigo}) se encuentra con promoción activa y al día hasta el ${inm.promocion.fechaVencimiento}. Hemos tenido excelente tráfico de clientes interesados en su sector.`
+      msg = `Hola ${(inm.propietario || {}).nombre}, desde SARA Inmobiliaria le compartimos que su propiedad *${inm.titulo}* (Cód. ${inm.codigo}) se encuentra con promoción activa y al día hasta el ${(inm.promocion || {}).fechaVencimiento}. Hemos tenido excelente tráfico de clientes interesados en su sector.`
     }
 
     return `https://wa.me/${phoneWithCode}?text=${encodeURIComponent(msg)}`
@@ -1098,21 +1098,21 @@ export default function AdminInmobiliariaPage() {
     const dataFormatted = inmueblesFiltrados.map(inm => ({
       "Código": inm.codigo,
       "Título de la Propiedad": inm.titulo,
-      "Tipo": inm.tipo.toUpperCase(),
-      "Modalidad": inm.modalidad.toUpperCase(),
+      "Tipo": (inm.tipo || '').toUpperCase(),
+      "Modalidad": (inm.modalidad || '').toUpperCase(),
       "Precio ($ USD)": inm.precio,
       "Ciudad": inm.ciudad,
       "Sector": inm.sector,
       "Área (m²)": inm.areaM2,
       "Habitaciones": inm.habitaciones,
       "Baños": inm.banos,
-      "Propietario": inm.propietario.nombre,
-      "Contacto Propietario": inm.propietario.telefono,
-      "Email Propietario": inm.propietario.email,
-      "Plan de Promoción": inm.promocion.nombrePlan,
-      "Cuota Mensual ($)": inm.promocion.tarifaMensual,
-      "Estado de Pago": inm.promocion.estadoPago === "al_dia" ? "Al Día" : inm.promocion.estadoPago === "por_vencer" ? "Por Vencer" : "Vencido",
-      "Total Recaudado ($)": inm.promocion.totalRecaudado,
+      "Propietario": (inm.propietario || {}).nombre,
+      "Contacto Propietario": (inm.propietario || {}).telefono,
+      "Email Propietario": (inm.propietario || {}).email,
+      "Plan de Promoción": (inm.promocion || {}).nombrePlan,
+      "Cuota Mensual ($)": (inm.promocion || {}).tarifaMensual,
+      "Estado de Pago": (inm.promocion || {}).estadoPago === "al_dia" ? "Al Día" : (inm.promocion || {}).estadoPago === "por_vencer" ? "Por Vencer" : "Vencido",
+      "Total Recaudado ($)": (inm.promocion || {}).totalRecaudado,
       "Publicado": inm.publicado ? "Sí" : "No"
     }))
     exportarAExcel(dataFormatted, "Reporte_Inventario_Inmobiliario_SARA", "Inmuebles SARA")
@@ -1124,12 +1124,12 @@ export default function AdminInmobiliariaPage() {
     const rows = inmueblesFiltrados.map(inm => [
       inm.codigo,
       inm.titulo.length > 25 ? inm.titulo.substring(0, 25) + "..." : inm.titulo,
-      `${inm.tipo.toUpperCase()} (${inm.modalidad.toUpperCase()})`,
-      `$${inm.precio.toLocaleString()}`,
+      `${(inm.tipo || '').toUpperCase()} (${(inm.modalidad || '').toUpperCase()})`,
+      `$${(inm.precio || 0).toLocaleString()}`,
       `${inm.ciudad} - ${inm.sector}`,
-      inm.propietario.nombre,
-      `$${inm.promocion.tarifaMensual}/mes`,
-      inm.promocion.estadoPago === "al_dia" ? "Al Día" : inm.promocion.estadoPago === "por_vencer" ? "Por Vencer" : "Vencido"
+      (inm.propietario || {}).nombre,
+      `$${(inm.promocion || {}).tarifaMensual}/mes`,
+      (inm.promocion || {}).estadoPago === "al_dia" ? "Al Día" : (inm.promocion || {}).estadoPago === "por_vencer" ? "Por Vencer" : "Vencido"
     ])
     exportarAPDF(
       "REPORTE DE INVENTARIO INMOBILIARIO & PROPIEDADES SARA",
@@ -1494,7 +1494,7 @@ export default function AdminInmobiliariaPage() {
                             </h4>
                             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                               <MapPin size={12} className="text-gray-400 shrink-0" />
-                              {inm.sector}, {inm.ciudad} • <strong className="text-brand-dark">${inm.precio.toLocaleString()}</strong>
+                              {inm.sector}, {inm.ciudad} • <strong className="text-brand-dark">${(inm.precio || 0).toLocaleString()}</strong>
                             </p>
                           </div>
                         </div>
@@ -1503,8 +1503,8 @@ export default function AdminInmobiliariaPage() {
                       {/* Propietario / Contacto */}
                       <td className="px-5 py-4">
                         <div>
-                          <p className="font-bold text-gray-900 text-sm">{inm.propietario.nombre}</p>
-                          <p className="text-xs text-gray-500">{inm.propietario.email}</p>
+                          <p className="font-bold text-gray-900 text-sm">{(inm.propietario || {}).nombre}</p>
+                          <p className="text-xs text-gray-500">{(inm.propietario || {}).email}</p>
                           <div className="flex items-center gap-2 mt-1.5">
                             <a
                               href={whatsappLink}
@@ -1514,7 +1514,7 @@ export default function AdminInmobiliariaPage() {
                               className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg border border-emerald-200 transition-colors"
                             >
                               <MessageCircle size={14} className="text-emerald-600" />
-                              <span>{inm.propietario.telefono}</span>
+                              <span>{(inm.propietario || {}).telefono}</span>
                             </a>
                           </div>
                         </div>
@@ -1524,21 +1524,21 @@ export default function AdminInmobiliariaPage() {
                       <td className="px-5 py-4">
                         <div>
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${
-                            inm.promocion.plan === "premium" 
+                            (inm.promocion || {}).plan === "premium" 
                               ? "bg-purple-100 text-purple-800 border border-purple-200"
-                              : inm.promocion.plan === "destacado"
+                              : (inm.promocion || {}).plan === "destacado"
                               ? "bg-blue-100 text-blue-800 border border-blue-200"
                               : "bg-gray-100 text-gray-800 border border-gray-200"
                           }`}>
                             <Tag size={12} />
-                            {inm.promocion.nombrePlan}
+                            {(inm.promocion || {}).nombrePlan}
                           </span>
                           <p className="text-xs text-gray-500 font-semibold mt-1">
-                            Tarifa: <strong className="text-gray-900">${inm.promocion.tarifaMensual}</strong> / mes
+                            Tarifa: <strong className="text-gray-900">${(inm.promocion || {}).tarifaMensual}</strong> / mes
                           </p>
-                          {inm.promocion.porcentajeComision && (
+                          {(inm.promocion || {}).porcentajeComision && (
                             <p className="text-[11px] text-gray-400">
-                              + {inm.promocion.porcentajeComision}% comisión cierre
+                              + {(inm.promocion || {}).porcentajeComision}% comisión cierre
                             </p>
                           )}
                         </div>
@@ -1546,26 +1546,26 @@ export default function AdminInmobiliariaPage() {
 
                       {/* Estado de Pago */}
                       <td className="px-5 py-4 text-center">
-                        {inm.promocion.estadoPago === "al_dia" && (
+                        {(inm.promocion || {}).estadoPago === "al_dia" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             <CheckCircle2 size={13} className="text-emerald-600" />
                             Al Día
                           </span>
                         )}
-                        {inm.promocion.estadoPago === "por_vencer" && (
+                        {(inm.promocion || {}).estadoPago === "por_vencer" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
                             <Clock size={13} className="text-amber-600" />
                             Por Vencer
                           </span>
                         )}
-                        {inm.promocion.estadoPago === "vencido" && (
+                        {(inm.promocion || {}).estadoPago === "vencido" && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
                             <AlertTriangle size={13} className="text-red-600" />
                             Cuota Vencida
                           </span>
                         )}
                         <p className="text-[10px] text-gray-400 mt-1">
-                          Total Pagado: ${inm.promocion.totalRecaudado}
+                          Total Pagado: ${(inm.promocion || {}).totalRecaudado}
                         </p>
                       </td>
 
@@ -1573,10 +1573,10 @@ export default function AdminInmobiliariaPage() {
                       <td className="px-5 py-4 text-xs font-medium">
                         <div className="flex items-center gap-1 text-gray-700">
                           <Calendar size={14} className="text-gray-400" />
-                          <span>{inm.promocion.fechaVencimiento}</span>
+                          <span>{(inm.promocion || {}).fechaVencimiento}</span>
                         </div>
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          Inicio: {inm.promocion.fechaInicio}
+                          Inicio: {(inm.promocion || {}).fechaInicio}
                         </p>
                       </td>
 

@@ -285,7 +285,21 @@ export async function POST(req: Request) {
       listaActual = body.inmuebles
     } else if (body.inmueble) {
       // Guardar o actualizar un inmueble específico
-      const target: InmuebleAdmin = body.inmueble
+      const target: any = body.inmueble;
+      if (!target.promocion) {
+        target.promocion = {
+          plan: target.planPromocion || 'basico',
+          nombrePlan: 'Plan ' + (target.planPromocion || 'basico'),
+          tarifaMensual: target.tarifaMensual || 0,
+          porcentajeComision: target.porcentajeComision || 0,
+          fechaInicio: new Date().toISOString().split('T')[0],
+          fechaVencimiento: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],
+          estadoPago: 'vencido',
+          ultimoMontoPagado: 0,
+          metodoPago: 'Pendiente',
+          totalRecaudado: 0
+        };
+      }
       const idx = listaActual.findIndex(item => item.id === target.id || item.codigo === target.codigo)
       if (idx >= 0) {
         listaActual[idx] = { ...listaActual[idx], ...target }
