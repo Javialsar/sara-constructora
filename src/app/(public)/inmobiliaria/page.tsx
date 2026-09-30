@@ -35,7 +35,9 @@ import {
   PlusCircle,
   Plus,
   Star,
-  Sliders
+  Sliders,
+  HelpCircle,
+  Send
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
@@ -277,6 +279,25 @@ export default function InmobiliariaPage() {
   const [selectedInmueble, setSelectedInmueble] = useState<Inmueble | null>(null)
   const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0)
   const [mapHighlight, setMapHighlight] = useState<boolean>(false)
+  
+  const [preguntaTexto, setPreguntaTexto] = useState("")
+  const [preguntasInmueble, setPreguntasInmueble] = useState<any[]>([
+    { id: 'p1', autor: "Usuario Interesado", fecha: new Date(Date.now() - 86400000).toISOString(), texto: "¿El precio es negociable?", respuesta: null }
+  ])
+
+  const handleEnviarPregunta = () => {
+    if (!preguntaTexto.trim() || !selectedInmueble) return
+    const nuevaPregunta = {
+      id: Date.now().toString(),
+      autor: "Usuario",
+      fecha: new Date().toISOString(),
+      texto: preguntaTexto,
+      respuesta: null
+    }
+    setPreguntasInmueble([nuevaPregunta, ...preguntasInmueble])
+    setPreguntaTexto("")
+    alert("Pregunta enviada. El propietario recibirá una notificación por WhatsApp o Email.")
+  }
 
   // Desplazamiento automático al mapa al hacer clic en fotos con resaltado y datos del propietario
   const handlePhotoClick = (idx?: number) => {
@@ -1518,6 +1539,78 @@ export default function InmobiliariaPage() {
                     </a>
                   </div>
                 </div>
+              </div>
+
+              {/* ========================================= */}
+              {/* SECCIÓN PREGUNTAS AL PROPIETARIO (Q&A)    */}
+              {/* ========================================= */}
+              <div className="bg-white rounded-2xl p-5 border border-gray-200 mt-5 shadow-xs">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="p-2 bg-emerald-50 text-brand-sage rounded-xl">
+                    <HelpCircle size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-gray-900 text-sm">¿Tienes alguna inquietud?</h4>
+                    <p className="text-xs text-gray-500">Pregúntale al propietario directamente o revisa las consultas anteriores.</p>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 border border-gray-100 rounded-xl p-4 mb-5">
+                  <textarea
+                    rows={3}
+                    placeholder="Escribe tu pregunta sobre el inmueble aquí..."
+                    value={preguntaTexto}
+                    onChange={(e) => setPreguntaTexto(e.target.value)}
+                    className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-none transition-all"
+                  />
+                  <div className="flex justify-end mt-2">
+                    <button
+                      onClick={handleEnviarPregunta}
+                      disabled={!preguntaTexto.trim()}
+                      className="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:bg-gray-300 disabled:text-gray-500 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>Enviar Pregunta</span>
+                      <Send size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {preguntasInmueble.length > 0 && (
+                  <div className="space-y-4 pt-1">
+                    <h5 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-100 pb-2">
+                      Últimas Consultas
+                    </h5>
+                    {preguntasInmueble.map((p) => (
+                      <div key={p.id} className="bg-white rounded-xl p-3 border border-gray-100 hover:border-gray-200 transition-colors shadow-2xs">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <span className="font-bold text-gray-900 text-xs">{p.autor}</span>
+                          <span className="text-[10px] text-gray-400">
+                            {new Date(p.fecha).toLocaleDateString("es-EC", { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 italic mb-2">"{p.texto}"</p>
+                        
+                        {p.respuesta ? (
+                          <div className="ml-4 pl-3 border-l-2 border-emerald-200 bg-emerald-50/50 p-2 rounded-r-lg">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <ShieldCheck size={12} className="text-emerald-600" />
+                              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                                Propietario / Asesor
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-800">{p.respuesta}</p>
+                          </div>
+                        ) : (
+                          <div className="ml-4 pl-3 border-l-2 border-amber-200">
+                            <span className="text-[10px] text-amber-600 font-semibold italic flex items-center gap-1">
+                              <MessageCircle size={10} /> Esperando respuesta del propietario...
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Mapa de Geolocalización y Entorno (Imagen 2) */}
