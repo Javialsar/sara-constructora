@@ -1465,7 +1465,7 @@ export default function AdminInmobiliariaPage() {
                 <th className="px-5 py-3.5">Inmueble / Código</th>
                 <th className="px-5 py-3.5">Propietario / Contacto</th>
                 <th className="px-5 py-3.5">Plan de Promoción</th>
-                <th className="px-5 py-3.5 text-center">Estado de Pago</th>
+                <th className="px-5 py-3.5 text-center">Verificación & Pago</th>
                 <th className="px-5 py-3.5">Vencimiento</th>
                 <th className="px-5 py-3.5 text-center">Publicación</th>
                 <th className="px-5 py-3.5 text-right">Acciones de Cobro</th>
