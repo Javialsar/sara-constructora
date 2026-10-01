@@ -3932,7 +3932,7 @@ export default function AdminInmobiliariaPage() {
                               onClick={() => {
                                 setFormInmueble(prev => ({ 
                                   ...prev, 
-                                  estado: estado === 'aprobado' ? 'aprobado' : prev.estado,
+                                  // Removed invalid estado property update
                                   legalidad: { ...prev.legalidad, estado } 
                                 }))
                               }}
@@ -3953,7 +3953,7 @@ export default function AdminInmobiliariaPage() {
                       <div className="flex-1 w-full">
                         <label className="block text-xs font-bold text-gray-700 mb-2">2. Notificar al Cliente</label>
                         <a
-                          href={`https://wa.me/${formInmueble.propietario?.telefono?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(`Hola ${formInmueble.propietario?.nombre || 'Propietario'},\n\nHemos finalizado la revisión legal de tu inmueble *"${formInmueble.titulo}"* (Cód: ${formInmueble.codigo}).\n\n*Estado:* ${formInmueble.legalidad?.estado === 'aprobado' ? '✅ APROBADO' : formInmueble.legalidad?.estado === 'rechazado' ? '❌ RECHAZADO' : '⏳ PENDIENTE'}\n${formInmueble.legalidad?.observaciones ? `*Observaciones:* ${formInmueble.legalidad.observaciones}\n\n` : ''}${formInmueble.legalidad?.estado === 'aprobado' ? `*Siguiente paso:* Ya puedes ingresar a SARA Portal, ir a "Mis Propiedades", presionar el botón amarillo "Pagar Plan" y subir tu comprobante de depósito por el valor de $${((formInmueble.promocion?.tarifaMensual || 0) * (formInmueble.mesesContratados || 1) * (1 - (formInmueble.descuentoPorcentaje || 0)/100) * 1.15).toFixed(2)} para activar la publicación oficial.\n\nIngresa aquí: https://sara-constructora.vercel.app/inmobiliaria/mi-portal` : 'Por favor revisa las observaciones.'}\n\nAtte. Equipo SARA Inmobiliaria`)}`}
+                          href={`https://wa.me/${formInmueble.propietarioTelefono?.replace(/[^0-9]/g, '') || ''}?text=${encodeURIComponent(`Hola ${formInmueble.propietarioNombre || 'Propietario'},\n\nHemos finalizado la revisión legal de tu inmueble *"${formInmueble.titulo}"* (Cód: ${formInmueble.codigo}).\n\n*Estado:* ${formInmueble.legalidad?.estado === 'aprobado' ? '✅ APROBADO' : formInmueble.legalidad?.estado === 'rechazado' ? '❌ RECHAZADO' : '⏳ PENDIENTE'}\n${formInmueble.legalidad?.observaciones ? `*Observaciones:* ${formInmueble.legalidad.observaciones}\n\n` : ''}${formInmueble.legalidad?.estado === 'aprobado' ? `*Siguiente paso:* Ya puedes ingresar a SARA Portal, ir a "Mis Propiedades", presionar el botón amarillo "Pagar Plan" y subir tu comprobante de depósito por el valor de $${((formInmueble.tarifaMensual || 0) * (formInmueble.mesesContratados || 1) * (1 - (formInmueble.descuentoPorcentaje || 0)/100) * 1.15).toFixed(2)} para activar la publicación oficial.\n\nIngresa aquí: https://sara-constructora.vercel.app/inmobiliaria/mi-portal` : 'Por favor revisa las observaciones.'}\n\nAtte. Equipo SARA Inmobiliaria`)}`}
                           target="_blank"
                           rel="noreferrer"
                           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all h-9"

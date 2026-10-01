@@ -1,15 +1,30 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/components/inmobiliaria/PublicarInmuebleModal.tsx', 'utf8');
+let content = fs.readFileSync('src/app/admin/inmobiliaria/page.tsx', 'utf8');
 
-if (!content.includes('Percent,')) {
-  content = content.replace('import {\n  MapPin,', 'import {\n  Percent,\n  MapPin,');
-}
-
-// Fix types
 content = content.replace(
-  '{cfgPlan.beneficios.map((ben, bidx) => (',
-  '{cfgPlan.beneficios.map((ben: string, bidx: number) => ('
+  "estado: estado === 'aprobado' ? 'aprobado' : prev.estado,",
+  "// Removed invalid estado property update"
 );
 
-fs.writeFileSync('src/components/inmobiliaria/PublicarInmuebleModal.tsx', content);
-console.log('Fixed types and percent import');
+content = content.replace(
+  /formInmueble\.propietario\?\.telefono/g,
+  'formInmueble.propietarioTelefono'
+);
+
+content = content.replace(
+  /formInmueble\.propietario\?\.nombre/g,
+  'formInmueble.propietarioNombre'
+);
+
+content = content.replace(
+  /formInmueble\.promocion\?\.tarifaMensual/g,
+  'formInmueble.tarifaMensual'
+);
+
+content = content.replace(
+  /formInmueble\.estado/g,
+  '(formInmueble as any).estado'
+);
+
+fs.writeFileSync('src/app/admin/inmobiliaria/page.tsx', content);
+console.log('Fixed types in formInmueble!');
