@@ -70,73 +70,93 @@ export default function PlanesPage() {
         <p className="text-slate-500 max-w-2xl mx-auto">Potencia tus análisis de precios unitarios y presupuestos. Cambia de plan o cancela cuando quieras.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto mt-12 px-4">
         {planes.map((plan) => {
-          // Simplificamos la detección del plan activo usando el precio por ahora o ID
+          // Lógica corregida para el plan actual (temporal basado en el nombre hasta conectar Stripe IDs dinámicos)
           const isCurrentPlan = 
             (plan.precio === 0 && currentPlan === 'gratis') || 
-            (plan.precio > 0 && currentPlan === 'pro');
+            (plan.precio > 0 && currentPlan === 'pro' && plan.nombre.toLowerCase().includes('profesional'));
             
-          const isFree = plan.precio === 0;
+          const isRecommended = plan.es_recomendado;
 
           return (
-            <div key={plan.id} className={`${isFree ? 'bg-white border-2 border-slate-100 shadow-sm' : 'bg-slate-900 border-2 border-slate-800 shadow-2xl shadow-blue-900/20'} rounded-3xl p-8 transition-all relative ${isCurrentPlan ? (isFree ? 'border-blue-500 shadow-xl' : 'border-blue-500') : ''}`}>
+            <div key={plan.id} className={`
+              rounded-3xl p-6 transition-all relative flex flex-col h-full
+              ${isRecommended 
+                ? 'bg-slate-900 border-2 border-slate-800 shadow-2xl shadow-blue-900/20 transform md:-translate-y-2' 
+                : 'bg-white border-2 border-slate-100 shadow-sm hover:border-blue-200 hover:shadow-md'
+              }
+              ${isCurrentPlan && isRecommended ? 'border-blue-500 shadow-xl' : ''}
+              ${isCurrentPlan && !isRecommended ? 'border-blue-500 shadow-xl bg-blue-50/30' : ''}
+            `}>
               {isCurrentPlan && (
-                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold tracking-wide z-10">
+                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-wide z-10 whitespace-nowrap">
                   TU PLAN ACTUAL
                 </span>
               )}
-              {!isCurrentPlan && plan.es_recomendado && (
-                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase z-10">
+              {!isCurrentPlan && isRecommended && (
+                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase z-10 whitespace-nowrap shadow-lg shadow-blue-500/30">
                   RECOMENDADO
                 </span>
               )}
-              <h3 className={`text-2xl font-bold ${isFree ? 'text-slate-900' : 'text-white'}`}>{plan.nombre}</h3>
-              <p className={`mt-2 text-sm ${isFree ? 'text-slate-500' : 'text-slate-400'}`}>{plan.descripcion}</p>
+              
+              <h3 className={`text-xl font-bold ${isRecommended ? 'text-white' : 'text-slate-900'}`}>{plan.nombre}</h3>
+              <p className={`mt-2 text-xs h-8 ${isRecommended ? 'text-slate-400' : 'text-slate-500'}`}>{plan.descripcion}</p>
+              
               <div className="my-6">
-                <span className={`text-5xl font-black ${isFree ? 'text-slate-900' : 'text-white'}`}>${plan.precio}</span>
-                <span className={`font-medium ${isFree ? 'text-slate-500' : 'text-slate-400'}`}>/{plan.frecuencia}</span>
+                <span className={`text-4xl font-black ${isRecommended ? 'text-white' : 'text-slate-900'}`}>${plan.precio}</span>
+                <span className={`font-medium text-sm ${isRecommended ? 'text-slate-400' : 'text-slate-500'}`}>/{plan.frecuencia}</span>
               </div>
               
-              <ul className="space-y-4 mb-8">
+              <ul className="space-y-3 mb-8 flex-1">
                 {(plan.beneficios || []).map((ben: string, i: number) => (
-                  <li key={i} className={`flex gap-3 text-sm ${isFree ? 'text-slate-700' : 'text-slate-200'}`}>
-                    <Check className={isFree ? 'text-blue-500' : 'text-blue-400'} size={20} /> <span>{ben}</span>
+                  <li key={i} className={`flex gap-3 text-xs leading-relaxed ${isRecommended ? 'text-slate-200' : 'text-slate-600'}`}>
+                    <Check className={`shrink-0 ${isRecommended ? 'text-blue-400' : 'text-blue-500'}`} size={16} /> <span>{ben}</span>
                   </li>
                 ))}
               </ul>
 
-              {isCurrentPlan ? (
-                 <button disabled className={`w-full py-3 px-6 rounded-xl font-bold transition-all cursor-not-allowed ${isFree ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-slate-400'}`}>
-                  Plan Activo
-                 </button>
-              ) : isFree ? (
-                 <button className="w-full py-3 px-6 rounded-xl font-bold transition-all bg-blue-50 text-blue-600 hover:bg-blue-100">
-                  Seleccionar
-                 </button>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-xs text-center text-slate-400 uppercase tracking-widest font-bold">Métodos de Pago</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => handleSubscribe('stripe', plan.id)}
-                      disabled={isProcessing}
-                      className="flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl transition-all font-semibold text-xs"
-                    >
-                      <CreditCard size={20} />
-                      <span>Tarjeta</span>
-                    </button>
-                    <button 
-                      onClick={() => handleSubscribe('transferencia', plan.id)}
-                      disabled={isProcessing}
-                      className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-xl transition-all font-semibold text-xs border border-slate-700 hover:border-slate-600"
-                    >
-                      <Building size={20} />
-                      <span>Transferencia</span>
-                    </button>
+              <div className="mt-auto">
+                {isCurrentPlan ? (
+                   <button disabled className={`w-full py-2.5 px-6 rounded-xl text-sm font-bold transition-all cursor-not-allowed ${isRecommended ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-400'}`}>
+                    Plan Activo
+                   </button>
+                ) : plan.precio === 0 ? (
+                   <button className={`w-full py-2.5 px-6 rounded-xl text-sm font-bold transition-all ${isRecommended ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
+                    Seleccionar
+                   </button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-[10px] text-center text-slate-400 uppercase tracking-widest font-bold">Métodos de Pago</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={() => handleSubscribe('stripe', plan.id)}
+                        disabled={isProcessing}
+                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all font-semibold text-[11px] ${
+                          isRecommended 
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                            : 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700'
+                        }`}
+                      >
+                        <CreditCard size={18} />
+                        <span>Tarjeta</span>
+                      </button>
+                      <button 
+                        onClick={() => handleSubscribe('transferencia', plan.id)}
+                        disabled={isProcessing}
+                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all font-semibold text-[11px] border ${
+                          isRecommended 
+                            ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700 hover:border-slate-600' 
+                            : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <Building size={18} />
+                        <span>Transferir</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )
         })}
