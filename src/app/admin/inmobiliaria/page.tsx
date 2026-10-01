@@ -916,12 +916,12 @@ export default function AdminInmobiliariaPage() {
       tarifaMensual: (inm.promocion || {}).tarifaMensual,
       porcentajeComision: (inm.promocion || {}).porcentajeComision || 3,
       legalidad: {
-        escrituraPublica: '',
-        certificadoGravamenes: '',
-        pagoImpuestos: '',
-        cedulaPropietario: '',
-        observaciones: '',
-        estado: 'pendiente' as 'pendiente' | 'aprobado' | 'rechazado'
+        escrituraPublica: inm.legalidad?.escrituraPublica || '',
+        certificadoGravamenes: inm.legalidad?.certificadoGravamenes || '',
+        pagoImpuestos: inm.legalidad?.pagoImpuestos || '',
+        cedulaPropietario: inm.legalidad?.cedulaPropietario || '',
+        observaciones: inm.legalidad?.observaciones || '',
+        estado: (inm.legalidad?.estado || 'pendiente') as 'pendiente' | 'aprobado' | 'rechazado'
       },
       mesesContratados: 1,
       descuentoPorcentaje: 0

@@ -223,7 +223,7 @@ export default function MiPortalInmobiliaria() {
             direccion: item.direccion || "",
             imagenUrl: item.imagenUrl || item.imagen_url || "",
             galeriaImagenes: item.galeriaImagenes || item.galeria_imagenes || [],
-            estado: item.estado || item.estado_verificacion || (item.publicado ? "publicado" : "en_verificacion"),
+            estado: item.estado || (item.legalidad?.estado) || item.estado_verificacion || (item.publicado ? "publicado" : "en_verificacion"),
             fechaCreacion: item.created_at || new Date().toISOString(),
             vistas: item.vistas || Math.floor(Math.random() * 80),
             consultas: item.consultas || Math.floor(Math.random() * 8),
