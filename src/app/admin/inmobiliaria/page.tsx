@@ -351,6 +351,8 @@ export default function AdminInmobiliariaPage() {
             metodoPago: 'Pendiente',
             totalRecaudado: 0
           },
+        mesesContratados: formInmueble.mesesContratados,
+        descuentoPorcentaje: formInmueble.descuentoPorcentaje,
           propietario: inm.propietario || {
             nombre: 'Propietario Temporal',
             email: 'temporal@example.com',
@@ -912,9 +914,9 @@ export default function AdminInmobiliariaPage() {
         titularCedula: (inm.propietario || {}).cuentaBancaria?.titularCedula || "",
         qrImageUrl: (inm.propietario || {}).cuentaBancaria?.qrImageUrl || ""
       },
-      planPromocion: (inm.promocion || {}).plan,
-      tarifaMensual: (inm.promocion || {}).tarifaMensual,
-      porcentajeComision: (inm.promocion || {}).porcentajeComision || 3,
+      planPromocion: (inm.promocion || {}).plan || (inm as any).planPromocion || "basico",
+      tarifaMensual: (inm.promocion || {}).tarifaMensual !== undefined ? (inm.promocion || {}).tarifaMensual : ((inm as any).tarifaMensual || 0),
+      porcentajeComision: (inm.promocion || {}).porcentajeComision || (inm as any).porcentajeComision || 3,
       legalidad: {
         escrituraPublica: inm.legalidad?.escrituraPublica || '',
         certificadoGravamenes: inm.legalidad?.certificadoGravamenes || '',
@@ -923,8 +925,8 @@ export default function AdminInmobiliariaPage() {
         observaciones: inm.legalidad?.observaciones || '',
         estado: (inm.legalidad?.estado || 'pendiente') as 'pendiente' | 'aprobado' | 'rechazado'
       },
-      mesesContratados: 1,
-      descuentoPorcentaje: 0
+      mesesContratados: (inm as any).mesesContratados || 1,
+      descuentoPorcentaje: (inm as any).descuentoPorcentaje || 0
     })
     setIsModalOpen(true)
   }
@@ -980,7 +982,9 @@ export default function AdminInmobiliariaPage() {
           nombrePlan: nombrePlanMap[formInmueble.planPromocion],
           tarifaMensual: formInmueble.tarifaMensual,
           porcentajeComision: formInmueble.porcentajeComision
-        }
+        },
+        mesesContratados: formInmueble.mesesContratados,
+        descuentoPorcentaje: formInmueble.descuentoPorcentaje
       }
 
       setInmuebles(prev => prev.map(item => item.id === editingInmueble.id ? itemActualizado : item))

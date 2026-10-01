@@ -86,6 +86,9 @@ interface InmuebleOwner {
   parqueaderos: number
   descripcion: string
   planPromocion: string
+  promocion?: any
+  mesesContratados?: number
+  descuentoPorcentaje?: number
   preguntas: PreguntaCliente[]
   historial: HistorialEvento[]
 }
@@ -254,6 +257,9 @@ export default function MiPortalInmobiliaria() {
             parqueaderos: item.parqueaderos || 0,
             descripcion: item.descripcion || "",
             planPromocion: item.planPromocion || item.plan_promocion || "basico",
+            promocion: item.promocion,
+            mesesContratados: item.mesesContratados,
+            descuentoPorcentaje: item.descuentoPorcentaje,
             preguntas: item.preguntas || [],
             historial: item.historial || [
               { id: "h1", tipo: "registro", descripcion: "Propiedad registrada en el sistema", fecha: item.created_at || new Date().toISOString() }
