@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Calculator, ArrowRight, Loader2, HardHat, Mail, Lock, User as UserIcon } from "lucide-react"
+import { Calculator, ArrowRight, Loader2, HardHat, Mail, Lock, User as UserIcon, Phone, Eye, EyeOff } from "lucide-react"
 
 export default function SaaSLogin() {
   const router = useRouter()
@@ -17,6 +17,12 @@ export default function SaaSLogin() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
+  const [phone, setPhone] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  // UI States
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,12 +38,20 @@ export default function SaaSLogin() {
         if (error) throw error
         router.push('/dashboard')
       } else {
+        if (password !== confirmPassword) {
+            throw new Error("Las contraseñas no coinciden")
+        }
+        if (password.length < 6) {
+            throw new Error("La contraseña debe tener al menos 6 caracteres")
+        }
+        
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
+              phone: phone,
               role: 'profesional' // Rol específico para el SaaS
             }
           }
@@ -85,7 +99,7 @@ export default function SaaSLogin() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-1.5">
                 <label className="text-sm font-bold text-slate-700">Nombre Completo</label>
@@ -100,6 +114,25 @@ export default function SaaSLogin() {
                     onChange={(e) => setFullName(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
                     placeholder="Juan Pérez"
+                  />
+                </div>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Número de Contacto</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone size={18} className="text-slate-400" />
+                  </div>
+                  <input 
+                    type="tel" 
+                    required 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                    placeholder="+593 99 999 9999"
                   />
                 </div>
               </div>
@@ -132,15 +165,48 @@ export default function SaaSLogin() {
                   <Lock size={18} className="text-slate-400" />
                 </div>
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"}
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                  className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
                   placeholder="••••••••"
                 />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
+
+            {!isLogin && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Confirmar Contraseña</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock size={18} className="text-slate-400" />
+                  </div>
+                  <input 
+                    type={showConfirmPassword ? "text" : "password"}
+                    required 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                    placeholder="••••••••"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <button 
               type="submit" 
@@ -156,7 +222,7 @@ export default function SaaSLogin() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-8 font-medium">
+          <p className="text-center text-sm text-slate-500 mt-6 font-medium">
             {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}{" "}
             <button onClick={() => { setIsLogin(!isLogin); setError(""); }} className="text-blue-600 font-bold hover:underline">
               {isLogin ? "Regístrate gratis" : "Inicia Sesión"}
