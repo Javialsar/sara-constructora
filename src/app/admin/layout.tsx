@@ -23,7 +23,7 @@ import {
   Key,
   Building2,
   Sparkles,
-  CreditCard
+  CreditCard, DollarSign
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -131,6 +131,7 @@ export default function AdminLayout({
         { href: "/admin/apus/rubros", label: "Rubros", icon: Calculator },
         { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
         { href: "/admin/apus/planes", label: "Planes de Suscripción", icon: CreditCard },
+        { href: "/admin/pagos", label: "Aprobación de Pagos", icon: DollarSign },
       ]
     },
     {
@@ -179,6 +180,7 @@ export default function AdminLayout({
                     i.href !== '/admin/parametros' &&
                     i.href !== '/admin/apus/insumos' &&
                     i.href !== '/admin/apus/rubros' &&
+                    i.href !== '/admin/pagos' &&
                     i.href !== '/admin/cotizador'
                 )
             }
