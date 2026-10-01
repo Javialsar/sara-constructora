@@ -72,10 +72,11 @@ export default function PlanesPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto mt-12 px-4">
         {planes.map((plan) => {
-          // Lógica corregida para el plan actual (temporal basado en el nombre hasta conectar Stripe IDs dinámicos)
+          // Lógica corregida: el Webhook ahora guarda el UUID del plan, por lo que currentPlan puede ser un UUID o 'gratis'
           const isCurrentPlan = 
-            (plan.precio === 0 && currentPlan === 'gratis') || 
-            (plan.precio > 0 && currentPlan === 'pro' && plan.nombre.toLowerCase().includes('profesional'));
+            currentPlan === plan.id || 
+            (currentPlan === 'gratis' && plan.precio === 0) ||
+            (currentPlan === 'pro' && plan.nombre.toLowerCase().includes('profesional')); // Fallback para suscripciones viejas
             
           const isRecommended = plan.es_recomendado;
 

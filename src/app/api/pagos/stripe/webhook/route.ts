@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import Stripe from "stripe"
-import { createClient } from "@supabase/supabase-js" // Usamos el admin client porque es un webhook en background
+import { createClient } from "@supabase/supabase-js"
 
 export async function POST(req: Request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
@@ -32,8 +32,8 @@ export async function POST(req: Request) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
 
-      // 1. Obtener la orden de pago
-      const { data: orden } = await supabaseAdmin.from('ordenes_pago').select('user_id, monto').eq('id', ordenId).single()
+      // 1. Obtener la orden de pago, ahora necesitamos referencia_id que es el planId
+      const { data: orden } = await supabaseAdmin.from('ordenes_pago').select('user_id, monto, referencia_id').eq('id', ordenId).single()
       
       if (orden) {
         // 2. Marcar la orden como completada
@@ -49,7 +49,6 @@ export async function POST(req: Request) {
         })
 
         // 4. Activar o renovar la Suscripción SaaS
-        // Calculamos +30 días
         const hoy = new Date()
         const mesSiguiente = new Date(hoy)
         mesSiguiente.setDate(mesSiguiente.getDate() + 30)
@@ -58,7 +57,7 @@ export async function POST(req: Request) {
 
         if (subExistente) {
             await supabaseAdmin.from('suscripciones_saas').update({
-                plan_id: 'pro',
+                plan_id: orden.referencia_id, // Usamos el ID de la base de datos
                 estado: 'activa',
                 ultima_orden_id: ordenId,
                 fecha_fin: mesSiguiente.toISOString()
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
         } else {
             await supabaseAdmin.from('suscripciones_saas').insert({
                 user_id: orden.user_id,
-                plan_id: 'pro',
+                plan_id: orden.referencia_id, // Usamos el ID de la base de datos
                 estado: 'activa',
                 ultima_orden_id: ordenId,
                 fecha_inicio: hoy.toISOString(),

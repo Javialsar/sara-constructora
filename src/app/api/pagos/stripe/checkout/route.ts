@@ -18,20 +18,32 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { planId, returnUrl } = body
 
-    if (planId !== 'pro') {
+    // 1. Fetch dynamic plan details from DB
+    const { data: plan, error: planError } = await supabase
+      .from('planes_suscripcion')
+      .select('*')
+      .eq('id', planId)
+      .single()
+
+    if (planError || !plan) {
       return NextResponse.json({ error: "Plan inválido" }, { status: 400 })
     }
 
-    const price = 15.00; // Precio mensual
+    if (plan.precio <= 0) {
+      return NextResponse.json({ error: "No se puede pagar un plan gratuito" }, { status: 400 })
+    }
 
-    // 1. Crear Orden de Pago en Supabase
+    const price = plan.precio;
+    const interval = plan.frecuencia === 'año' ? 'year' : 'month';
+
+    // 2. Crear Orden de Pago en Supabase
     const { data: orden, error: ordenError } = await supabase
       .from('ordenes_pago')
       .insert({
         user_id: user.id,
         modulo: 'saas',
-        referencia_id: planId,
-        concepto: 'Suscripción Mensual SaaS APU Pro',
+        referencia_id: planId, // Ahora es el UUID real del plan
+        concepto: `Suscripción SaaS APU - Plan ${plan.nombre}`,
         monto: price,
         estado: 'pendiente'
       })
@@ -43,22 +55,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Error interno BD" }, { status: 500 })
     }
 
-    // 2. Crear sesión de Stripe
+    // 3. Crear sesión de Stripe dinámica
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer_email: user.email,
-      client_reference_id: orden.id, // Conectamos Stripe con Supabase a través del ID de orden
+      client_reference_id: orden.id,
       line_items: [
         {
           price_data: {
             currency: "usd",
             product_data: {
-              name: "SaaS APU Constructora - Plan Pro",
-              description: "Acceso completo a Presupuestos Reales, Cotizador y Exportaciones.",
+              name: `SaaS APU Constructora - ${plan.nombre}`,
+              description: plan.descripcion || "Suscripción al sistema APU.",
             },
-            unit_amount: price * 100, // En centavos
+            unit_amount: Math.round(price * 100), // Stripe expects cents
             recurring: {
-              interval: "month",
+              interval: interval,
             },
           },
           quantity: 1,
