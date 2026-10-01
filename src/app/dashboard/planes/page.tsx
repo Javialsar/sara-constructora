@@ -26,11 +26,35 @@ export default function PlanesPage() {
     setPaymentMethod(metodo)
     setIsProcessing(true)
     
-    // Aquí integraremos el Checkout real de Stripe o el formulario de subida de transferencia
-    setTimeout(() => {
-      alert(`Has seleccionado pagar mediante: ${metodo}. En el siguiente paso implementaremos el Checkout.`);
-      setIsProcessing(false)
-    }, 1500)
+    if (metodo === "stripe") {
+      try {
+        const res = await fetch("/api/pagos/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: "pro",
+            returnUrl: window.location.href,
+          }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url; // Redirigir al Checkout de Stripe
+        } else {
+          alert("Error iniciando Stripe: " + data.error);
+          setIsProcessing(false);
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Error de conexión");
+        setIsProcessing(false);
+      }
+    } else {
+      // Transferencia Manual UI (Próximo paso)
+      setTimeout(() => {
+        alert("En el siguiente paso implementaremos el modal para subir el comprobante de transferencia.");
+        setIsProcessing(false)
+      }, 1500)
+    }
   }
 
   if (loading) {
