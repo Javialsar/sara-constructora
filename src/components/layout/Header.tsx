@@ -13,6 +13,7 @@ const navLinks = [
   { name: "Proyectos", href: "/proyectos" },
   { name: "Inmobiliaria", href: "/inmobiliaria", isFeatured: true },
   { name: "Stays", href: "/stays", isFeatured: true },
+  { name: "APU", href: "/dashboard", isFeatured: true },
   { name: "Noticias", href: "/noticias" },
   { name: "FAQ", href: "/#faq" },
   { name: "Clientes", href: "/clientes" },
