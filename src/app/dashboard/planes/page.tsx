@@ -5,24 +5,27 @@ import { createClient } from "@/lib/supabase/client"
 
 export default function PlanesPage() {
   const [currentPlan, setCurrentPlan] = useState("gratis")
+  const [planes, setPlanes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "transferencia" | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   
   useEffect(() => {
-    const fetchPlan = async () => {
+    const fetchData = async () => {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data } = await supabase.from('suscripciones_saas').select('plan_id').eq('user_id', user.id).single()
         if (data?.plan_id) setCurrentPlan(data.plan_id)
       }
+      const { data: planesData } = await supabase.from('planes_suscripcion').select('*').order('orden', { ascending: true })
+      if (planesData) setPlanes(planesData)
       setLoading(false)
     }
-    fetchPlan()
+    fetchData()
   }, [])
 
-  const handleSubscribe = async (metodo: "stripe" | "transferencia") => {
+  const handleSubscribe = async (metodo: "stripe" | "transferencia", planId: string) => {
     setPaymentMethod(metodo)
     setIsProcessing(true)
     
@@ -32,13 +35,13 @@ export default function PlanesPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            planId: "pro",
-            returnUrl: window.location.href,
+            planId: planId,
+            returnUrl: window.location.href.split('?')[0],
           }),
         });
         const data = await res.json();
         if (data.url) {
-          window.location.href = data.url; // Redirigir al Checkout de Stripe
+          window.location.href = data.url; 
         } else {
           alert("Error iniciando Stripe: " + data.error);
           setIsProcessing(false);
@@ -49,7 +52,6 @@ export default function PlanesPage() {
         setIsProcessing(false);
       }
     } else {
-      // Transferencia Manual UI (Próximo paso)
       setTimeout(() => {
         alert("En el siguiente paso implementaremos el modal para subir el comprobante de transferencia.");
         setIsProcessing(false)
@@ -69,101 +71,76 @@ export default function PlanesPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto mt-12">
-        {/* PLAN GRATIS */}
-        <div className={`bg-white rounded-3xl p-8 border-2 transition-all ${currentPlan === 'gratis' ? 'border-blue-500 shadow-xl relative' : 'border-slate-100 shadow-sm'}`}>
-          {currentPlan === 'gratis' && (
-            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold tracking-wide">
-              TU PLAN ACTUAL
-            </span>
-          )}
-          <h3 className="text-2xl font-bold text-slate-900">Básico</h3>
-          <p className="text-slate-500 mt-2 text-sm">Perfecto para explorar la plataforma.</p>
-          <div className="my-6">
-            <span className="text-5xl font-black text-slate-900">$0</span>
-            <span className="text-slate-500 font-medium">/mes</span>
-          </div>
-          
-          <ul className="space-y-4 mb-8">
-            <li className="flex gap-3 text-slate-700 text-sm"><Check className="text-blue-500 shrink-0" size={20} /> <span>Acceso a la base de insumos global.</span></li>
-            <li className="flex gap-3 text-slate-700 text-sm"><Check className="text-blue-500 shrink-0" size={20} /> <span>1 Proyecto (Cotización Rápida).</span></li>
-            <li className="flex gap-3 text-slate-700 text-sm"><Check className="text-blue-500 shrink-0" size={20} /> <span>Límite de 15 APUs personalizados.</span></li>
-            <li className="flex gap-3 text-slate-400 text-sm"><XIcon /> <span>Exportación a PDF y Excel.</span></li>
-            <li className="flex gap-3 text-slate-400 text-sm"><XIcon /> <span>Presupuestos Reales detallados.</span></li>
-          </ul>
+        {planes.map((plan) => {
+          // Simplificamos la detección del plan activo usando el precio por ahora o ID
+          const isCurrentPlan = 
+            (plan.precio === 0 && currentPlan === 'gratis') || 
+            (plan.precio > 0 && currentPlan === 'pro');
+            
+          const isFree = plan.precio === 0;
 
-          <button 
-            disabled={currentPlan === 'gratis'}
-            className="w-full py-3 px-6 rounded-xl font-bold transition-all bg-slate-100 text-slate-400 cursor-not-allowed"
-          >
-            {currentPlan === 'gratis' ? 'Plan Activo' : 'Seleccionar'}
-          </button>
-        </div>
-
-        {/* PLAN PRO */}
-        <div className={`bg-slate-900 rounded-3xl p-8 border-2 transition-all relative ${currentPlan === 'pro' ? 'border-blue-500 shadow-xl' : 'border-slate-800 shadow-2xl shadow-blue-900/20'}`}>
-          {currentPlan === 'pro' && (
-            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold tracking-wide">
-              TU PLAN ACTUAL
-            </span>
-          )}
-          {!currentPlan || currentPlan === 'gratis' && (
-            <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase">
-              RECOMENDADO
-            </span>
-          )}
-          <h3 className="text-2xl font-bold text-white">Profesional</h3>
-          <p className="text-slate-400 mt-2 text-sm">Todo lo que necesitas para presupuestar sin límites.</p>
-          <div className="my-6">
-            <span className="text-5xl font-black text-white">$15</span>
-            <span className="text-slate-400 font-medium">/mes</span>
-          </div>
-          
-          <ul className="space-y-4 mb-8">
-            <li className="flex gap-3 text-slate-200 text-sm"><Check className="text-blue-400 shrink-0" size={20} /> <span>Proyectos y Cotizaciones ilimitadas.</span></li>
-            <li className="flex gap-3 text-slate-200 text-sm"><Check className="text-blue-400 shrink-0" size={20} /> <span>APUs y Rubros personalizados infinitos.</span></li>
-            <li className="flex gap-3 text-slate-200 text-sm"><Check className="text-blue-400 shrink-0" size={20} /> <span>Módulo de Presupuestos Reales completo.</span></li>
-            <li className="flex gap-3 text-slate-200 text-sm"><Check className="text-blue-400 shrink-0" size={20} /> <span>Exportación nativa a Excel (.xlsm) y PDF.</span></li>
-            <li className="flex gap-3 text-slate-200 text-sm"><Check className="text-blue-400 shrink-0" size={20} /> <span>Actualización de precios de mercado.</span></li>
-          </ul>
-
-          {currentPlan === 'pro' ? (
-             <button disabled className="w-full py-3 px-6 rounded-xl font-bold transition-all bg-slate-800 text-slate-400 cursor-not-allowed">
-              Plan Activo
-             </button>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-xs text-center text-slate-400 uppercase tracking-widest font-bold">Métodos de Pago</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button 
-                  onClick={() => handleSubscribe('stripe')}
-                  disabled={isProcessing}
-                  className="flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl transition-all font-semibold text-xs"
-                >
-                  <CreditCard size={20} />
-                  <span>Tarjeta</span>
-                </button>
-                <button 
-                  onClick={() => handleSubscribe('transferencia')}
-                  disabled={isProcessing}
-                  className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-xl transition-all font-semibold text-xs border border-slate-700 hover:border-slate-600"
-                >
-                  <Building size={20} />
-                  <span>Transferencia</span>
-                </button>
+          return (
+            <div key={plan.id} className={`${isFree ? 'bg-white border-2 border-slate-100 shadow-sm' : 'bg-slate-900 border-2 border-slate-800 shadow-2xl shadow-blue-900/20'} rounded-3xl p-8 transition-all relative ${isCurrentPlan ? (isFree ? 'border-blue-500 shadow-xl' : 'border-blue-500') : ''}`}>
+              {isCurrentPlan && (
+                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-sm font-bold tracking-wide z-10">
+                  TU PLAN ACTUAL
+                </span>
+              )}
+              {!isCurrentPlan && plan.es_recomendado && (
+                <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold tracking-widest uppercase z-10">
+                  RECOMENDADO
+                </span>
+              )}
+              <h3 className={`text-2xl font-bold ${isFree ? 'text-slate-900' : 'text-white'}`}>{plan.nombre}</h3>
+              <p className={`mt-2 text-sm ${isFree ? 'text-slate-500' : 'text-slate-400'}`}>{plan.descripcion}</p>
+              <div className="my-6">
+                <span className={`text-5xl font-black ${isFree ? 'text-slate-900' : 'text-white'}`}>${plan.precio}</span>
+                <span className={`font-medium ${isFree ? 'text-slate-500' : 'text-slate-400'}`}>/{plan.frecuencia}</span>
               </div>
+              
+              <ul className="space-y-4 mb-8">
+                {(plan.beneficios || []).map((ben: string, i: number) => (
+                  <li key={i} className={`flex gap-3 text-sm ${isFree ? 'text-slate-700' : 'text-slate-200'}`}>
+                    <Check className={isFree ? 'text-blue-500' : 'text-blue-400'} size={20} /> <span>{ben}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {isCurrentPlan ? (
+                 <button disabled className={`w-full py-3 px-6 rounded-xl font-bold transition-all cursor-not-allowed ${isFree ? 'bg-slate-100 text-slate-400' : 'bg-slate-800 text-slate-400'}`}>
+                  Plan Activo
+                 </button>
+              ) : isFree ? (
+                 <button className="w-full py-3 px-6 rounded-xl font-bold transition-all bg-blue-50 text-blue-600 hover:bg-blue-100">
+                  Seleccionar
+                 </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-center text-slate-400 uppercase tracking-widest font-bold">Métodos de Pago</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => handleSubscribe('stripe', plan.id)}
+                      disabled={isProcessing}
+                      className="flex flex-col items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl transition-all font-semibold text-xs"
+                    >
+                      <CreditCard size={20} />
+                      <span>Tarjeta</span>
+                    </button>
+                    <button 
+                      onClick={() => handleSubscribe('transferencia', plan.id)}
+                      disabled={isProcessing}
+                      className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white p-3 rounded-xl transition-all font-semibold text-xs border border-slate-700 hover:border-slate-600"
+                    >
+                      <Building size={20} />
+                      <span>Transferencia</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          )
+        })}
       </div>
     </div>
-  )
-}
-
-function XIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18"></line>
-      <line x1="6" y1="6" x2="18" y2="18"></line>
-    </svg>
   )
 }

@@ -22,7 +22,8 @@ import {
   History,
   Key,
   Building2,
-  Sparkles
+  Sparkles,
+  CreditCard
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -129,6 +130,7 @@ export default function AdminLayout({
         { href: "/admin/apus/insumos", label: "Catálogo de Insumos", icon: FileText },
         { href: "/admin/apus/rubros", label: "Rubros", icon: Calculator },
         { href: "/admin/presupuestos_reales", label: "Presupuestos Reales", icon: Calculator },
+        { href: "/admin/apus/planes", label: "Planes de Suscripción", icon: CreditCard },
       ]
     },
     {
