@@ -9,6 +9,7 @@ export interface CuentaBancariaEmpresa {
   beneficiario: string
   correoComprobantes?: string
   activa?: boolean
+  qrUrl?: string
 }
 
 export const DEFAULT_CUENTAS_BANCARIAS: CuentaBancariaEmpresa[] = [

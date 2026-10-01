@@ -42,6 +42,7 @@ export async function GET() {
         constructora: dbLogos.constructora || configData?.logo_url || DEFAULT_LOGOS_EMPRESA.constructora,
         inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
         stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
+        apu: dbLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
       }
 
       return NextResponse.json({ success: true, logos: merged, origin: "supabase" })
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
       constructora: body.constructora?.trim() || currentLogos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
       inmobiliaria: body.inmobiliaria?.trim() || currentLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
       stays: body.stays?.trim() || currentLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
+      apu: body.apu?.trim() || currentLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
     }
 
     // 2. Guardar en parametros_globales (indirectos_default.logos_servicios)

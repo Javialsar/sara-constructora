@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { Calculator, ArrowRight, Loader2, HardHat, Mail, Lock, User as UserIcon, Phone, Eye, EyeOff } from "lucide-react"
+import { Calculator, ArrowRight, Loader2, ArrowLeft, HardHat, Mail, Lock, User as UserIcon, Phone, Eye, EyeOff } from "lucide-react"
 
 export default function SaaSLogin() {
   const router = useRouter()
@@ -70,7 +71,12 @@ export default function SaaSLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
-      <div className="w-full max-w-[1000px] bg-white rounded-3xl shadow-2xl flex overflow-hidden min-h-[600px]">
+      <div className="w-full max-w-[1000px] bg-white rounded-3xl shadow-2xl flex overflow-hidden min-h-[600px] relative">
+        {/* Boton Volver */}
+        <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors z-20">
+          <ArrowLeft size={16} />
+          Volver al Inicio
+        </Link>
         
         {/* Lado del Formulario */}
         <div className="w-full lg:w-1/2 p-8 sm:p-12 flex flex-col justify-center relative">

@@ -4,12 +4,14 @@ export interface LogosEmpresa {
   constructora: string
   inmobiliaria: string
   stays: string
+  apu: string
 }
 
 export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
   constructora: "/logo-hero.png",
   inmobiliaria: "/sara-inmobiliaria.png",
   stays: "/sara-stays.png",
+  apu: "/logo-hero.png",
 }
 
 export async function getLogosEmpresa(): Promise<LogosEmpresa> {
@@ -23,6 +25,7 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
             constructora: json.logos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
             inmobiliaria: json.logos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
             stays: json.logos.stays || DEFAULT_LOGOS_EMPRESA.stays,
+            apu: json.logos.apu || DEFAULT_LOGOS_EMPRESA.apu,
           }
         }
       }
@@ -46,6 +49,7 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
         constructora: dbLogos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
         inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
         stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
+        apu: dbLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
       }
     }
 

@@ -42,10 +42,12 @@ export default function ConfiguracionPage() {
     constructora: File | null
     inmobiliaria: File | null
     stays: File | null
+    apu: File | null
   }>({
     constructora: null,
     inmobiliaria: null,
-    stays: null
+    stays: null,
+    apu: null
   })
   const [uploadingLogoKey, setUploadingLogoKey] = useState<string | null>(null)
 
@@ -172,7 +174,7 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     let finalLogos: LogosEmpresa = { ...logos }
-    const logoKeys: (keyof LogosEmpresa)[] = ['constructora', 'inmobiliaria', 'stays']
+    const logoKeys: (keyof LogosEmpresa)[] = ['constructora', 'inmobiliaria', 'stays', 'apu']
 
     for (const key of logoKeys) {
       const file = logoFiles[key]
@@ -199,7 +201,7 @@ export default function ConfiguracionPage() {
 
     setUploadingLogoKey(null)
     setLogos(finalLogos)
-    setLogoFiles({ constructora: null, inmobiliaria: null, stays: null })
+    setLogoFiles({ constructora: null, inmobiliaria: null, stays: null, apu: null })
 
     // 1. Guardar logos de las 3 marcas en Supabase (parametros_globales y configuracion_empresa)
     const logosSaved = await saveLogosEmpresa(finalLogos)
@@ -261,16 +263,16 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">Identidad Visual & Logotipos Multi-Marca</h2>
-              <p className="text-xs text-gray-500">Configura y actualiza el logotipo correspondiente para cada una de las 3 líneas de negocio del Grupo SARA.</p>
+              <p className="text-xs text-gray-500">Configura y actualiza el logotipo correspondiente para cada una de las 4 líneas de negocio del Grupo SARA.</p>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
             <Sparkles size={12} className="text-emerald-500" />
-            3 Marcas Sincronizadas
+            4 Marcas Sincronizadas
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {/* 1. SARA CONSTRUCTORA */}
           <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-brand-sage/50 transition-all flex flex-col justify-between space-y-4">
             <div>
@@ -501,6 +503,83 @@ export default function ConfiguracionPage() {
               </div>
             </div>
           </div>
+        
+            {/* 4. SARA APUS */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-950 text-amber-400 uppercase">
+                  <Compass size={12} /> Stays
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">Portal APUs</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SaaS APU</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo para la plataforma SaaS: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/dashboard</code>, login de huéspedes, vouchers y confirmaciones.
+              </p>
+            </div>
+
+            {/* Preview Box */}
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "apu" && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                  <Loader2 className="animate-spin text-amber-400" size={26} />
+                </div>
+              )}
+              {logoFiles.apu ? (
+                <img
+                  src={URL.createObjectURL(logoFiles.apu)}
+                  alt="Nuevo Logo Stays"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : logos.apu ? (
+                <img
+                  src={logos.apu}
+                  alt="Logo SaaS APU"
+                  className="max-w-full max-h-full object-contain filter drop-shadow"
+                />
+              ) : (
+                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Subir nuevo logotipo (PNG transparente)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0]
+                      setLogoFiles(prev => ({ ...prev, apu: file }))
+                    }
+                  }}
+                  className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-500/20 file:text-blue-900 hover:file:bg-blue-500/30 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoFiles(prev => ({ ...prev, apu: null }))
+                    setLogos(prev => ({ ...prev, apu: "/logo-hero.png" }))
+                  }}
+                  className="text-gray-500 hover:text-blue-700 flex items-center gap-1 transition-colors font-medium cursor-pointer"
+                  title="Restablecer al logo predeterminado de apu"
+                >
+                  <RefreshCw size={11} /> Logo Original
+                </button>
+                <span className="text-blue-700 font-medium truncate max-w-[140px]" title={logos.apu}>
+                  {logoFiles.apu ? "Archivo seleccionado" : logos.apu.split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -587,7 +666,7 @@ export default function ConfiguracionPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             {equipo.map((miembro, index) => (
               <div key={miembro.id} className="border border-gray-200 rounded-xl p-4 bg-gray-50 relative group">
                 <button 
@@ -684,7 +763,7 @@ export default function ConfiguracionPage() {
             <div>
               <h2 className="text-xl font-bold text-gray-800">Cuentas Bancarias para Cobros & Reservas</h2>
               <p className="text-xs text-gray-500">
-                Configura los datos de las cuentas bancarias que los clientes visualizarán para transferencias al reservar en <strong>Airbnb</strong> o comprar en <strong>Inmobiliaria</strong>.
+                Configura los datos de las cuentas bancarias que los clientes visualizarán para transferencias al reservar en <strong>Airbnb</strong>, comprar en <strong>Inmobiliaria</strong> o suscribirse a <strong>SaaS APU</strong>.
               </p>
             </div>
           </div>
@@ -790,6 +869,18 @@ export default function ConfiguracionPage() {
                     className="w-full text-xs font-medium p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
+                  {/* Código QR */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">URL de Código QR de Pago</label>
+                    <input
+                      type="text"
+                      value={cta.qrUrl || ""}
+                      placeholder="https://.../qr.jpg"
+                      onChange={(e) => handleCuentaChange(cta.id, "qrUrl", e.target.value)}
+                      className="w-full text-xs font-bold p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
               </div>
             </div>
           ))}
