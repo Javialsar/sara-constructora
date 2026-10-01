@@ -72,7 +72,7 @@ export default function DashboardLayout({
         setUserInitials(name.substring(0, 2).toUpperCase())
       } else {
         // Redirigir al login si no hay sesión
-        router.push("/admin/login")
+        router.push("/login")
       }
     }
     fetchData()
