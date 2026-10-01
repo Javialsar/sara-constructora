@@ -61,6 +61,7 @@ export interface Inmueble {
   antiguedadAnios: number
   aptoBiess: boolean
   destacada: boolean
+  plan?: string
   imagenes: string[]
   videos?: string[]
   descripcion: string
@@ -326,6 +327,8 @@ export default function InmobiliariaPage() {
 
   // Logotipo dinámico de SARA Inmobiliaria
   const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/sara-inmobiliaria.png")
+  // Paginación
+  const [visibleCount, setVisibleCount] = useState<number>(12)
 
   // Lista de inmuebles reactiva sincronizada con la base de datos Supabase
   const [inmueblesList, setInmueblesList] = useState<Inmueble[]>(INMUEBLES_DATA)
@@ -356,6 +359,7 @@ export default function InmobiliariaPage() {
               antiguedadAnios: item.antiguedad === "A estrenar" ? 0 : 2,
               aptoBiess: true,
               destacada: item.destacado || false,
+              plan: item.promocion?.plan || item.planPromocion || "basico",
               imagenes: item.imagenes && item.imagenes.length > 0 ? item.imagenes : (item.galeriaImagenes && item.galeriaImagenes.length > 0 ? item.galeriaImagenes : [item.imagenUrl || 'https://via.placeholder.com/600x400?text=SARA+Inmobiliaria']),
               videos: item.videos || [],
               descripcion: item.descripcion || item.titulo,
@@ -405,7 +409,7 @@ export default function InmobiliariaPage() {
 
   // Filtrado reactivo de propiedades
   const filteredInmuebles = useMemo(() => {
-    return inmueblesList.filter((item) => {
+    const filtered = inmueblesList.filter((item) => {
       // Filtro Modalidad (Compra / Alquiler / Terrenos / Todos)
       if (modalidadTab === "venta" && item.modalidad !== "venta") return false
       if (modalidadTab === "arriendo" && item.modalidad !== "arriendo") return false
@@ -1087,7 +1091,7 @@ export default function InmobiliariaPage() {
 
         {/* Grid de Propiedades con Diseño 3D de Alta Gama */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-          {filteredInmuebles.map((inm) => (
+          {filteredInmuebles.slice(0, visibleCount).map((inm) => (
             <div 
               key={inm.id}
               onClick={() => {
