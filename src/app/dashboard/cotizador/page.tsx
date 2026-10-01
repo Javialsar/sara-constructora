@@ -1,11 +1,11 @@
-﻿"use client"
+"use client"
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client"
 import { Settings, Calculator, Save, FileText, CheckCircle2, Download, UserPlus, X } from "lucide-react"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
-import { createClientAccount } from "../clientes/actions"
+import { createClientAccount } from "@/app/admin/clientes/actions"
 
 export default function CotizadorPage() {
   const supabase = createClient();
