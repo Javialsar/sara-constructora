@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { Calculator, Box, Layers, ArrowRight } from "lucide-react"
+import { Calculator, Box, Layers, ArrowRight, FileSpreadsheet } from "lucide-react"
 
 export default function DashboardPage() {
   return (
@@ -10,13 +10,24 @@ export default function DashboardPage() {
         <p className="text-gray-500 mt-2">Crea cotizaciones y análisis de precios unitarios con nuestra base de datos actualizada.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Link href="/dashboard/presupuestos_reales" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group">
+          <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <FileSpreadsheet size={24} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Presupuestos Reales</h3>
+          <p className="text-gray-500 text-sm mb-4">Crea presupuestos detallados por rubros, calcula indirectos (AIU) y exporta.</p>
+          <div className="flex items-center text-purple-600 font-medium text-sm">
+            Gestionar <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
         <Link href="/dashboard/cotizador" className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group">
           <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
             <Calculator size={24} />
           </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Crear Presupuesto</h3>
-          <p className="text-gray-500 text-sm mb-4">Inicia un nuevo presupuesto desde cero o utilizando rubros existentes.</p>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Cotizador Rápido</h3>
+          <p className="text-gray-500 text-sm mb-4">Proyección paramétrica para estimar costos rápidos sin detallar rubros.</p>
           <div className="flex items-center text-blue-600 font-medium text-sm">
             Comenzar <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
           </div>
@@ -38,7 +49,7 @@ export default function DashboardPage() {
             <Box size={24} />
           </div>
           <h3 className="text-xl font-bold text-gray-800 mb-2">Mis Insumos</h3>
-          <p className="text-gray-500 text-sm mb-4">Revisa y actualiza los precios de materiales, equipos y mano de obra.</p>
+          <p className="text-gray-500 text-sm mb-4">Revisa y actualiza precios de materiales, equipos y mano de obra.</p>
           <div className="flex items-center text-emerald-600 font-medium text-sm">
             Ver insumos <ArrowRight size={16} className="ml-1 group-hover:translate-x-1 transition-transform" />
           </div>

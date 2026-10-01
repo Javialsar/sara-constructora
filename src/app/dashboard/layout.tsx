@@ -33,7 +33,8 @@ export default function DashboardLayout({
     {
       title: "APU Y PRESUPUESTOS",
       items: [
-        { href: "/dashboard/cotizador", label: "Crear Presupuesto", icon: Calculator },
+        { href: "/dashboard/cotizador", label: "Cotizador Automático", icon: Calculator },
+        { href: "/dashboard/presupuestos_reales", label: "Presupuestos Reales", icon: FileSpreadsheet },
         { href: "/dashboard/apus/rubros", label: "Mis Rubros (Recetas)", icon: Layers },
         { href: "/dashboard/apus/insumos", label: "Mis Insumos", icon: Box },
       ]
