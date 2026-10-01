@@ -1,0 +1,76 @@
+                  <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Check size={11} /> Copiado</span>
+                                    ) : (
+                                      <span className="flex items-center gap-0.5"><Copy size={11} /> Copiar</span>
+                                    )}
+                                  </button>
+                                </div>
+                                {cta.cedulaRuc && (
+                                  <div className="flex items-center justify-between">
+                                    <span>RUC/CI: <strong>{cta.cedulaRuc}</strong></span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyText(cta.cedulaRuc, `${cta.id}_ci`)}
+                                      className="text-emerald-700 hover:text-emerald-800 font-sans text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {copiedField === `${cta.id}_ci` ? (
+                                        <span className="text-emerald-600 font-bold flex items-center gap-0.5"><Check size={11} /> Copiado</span>
+                                      ) : (
+                                        <span className="flex items-center gap-0.5"><Copy size={11} /> Copiar</span>
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                                {cta.beneficiario && (
+                                  <p className="text-[10px] text-gray-600 pt-0.5 font-sans">
+                                    Titular: <strong>{cta.beneficiario}</strong>
+                                  </p>
+                                )}
+                              </div>
+
+                              {cta.correoComprobantes && (
+                                <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-gray-100">
+                                  <span className="truncate">Email: {cta.correoComprobantes}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyText(cta.correoComprobantes!, `${cta.id}_mail`)}
+                                    className="text-gray-500 hover:text-gray-800 text-[10px] font-bold ml-1 cursor-pointer"
+                                  >
+                                    {copiedField === `${cta.id}_mail` ? "✓ Copiado" : "Copiar"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-white p-3 rounded-xl border border-gray-200 space-y-1 font-mono text-[11px] text-gray-700">
+                          <p><strong>Beneficiario:</strong> SARA CONSTRUCTORA CIA. LTDA.</p>
+                          <p><strong>RUC:</strong> 0190458923001</p>
+                          <p><strong>Banco Pichincha:</strong> Cta. Corriente No. 2100239485</p>
+                          <p><strong>Banco de Guayaquil:</strong> Cta. Corriente No. 0014892301</p>
+                          <p><strong>Correo para comprobantes:</strong> pagos@saraconstructora.com</p>
+                        </div>
+                      )}
+
+                      <p className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                        <Info size={13} className="text-amber-500 shrink-0" />
+                        Al emitir tu reserva, tus fechas quedan inmediatamente aseguradas en el sistema. Puedes enviar el comprobante de transferencia al WhatsApp de atención al cliente.
+                      </p>
+                    </div>
+                  )}
+
+                  {guestData.metodoPago === "tarjeta" && (
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-3 text-xs">
+                      <div className="flex items-center justify-between font-bold text-gray-800">
+                        <span className="flex items-center gap-1.5">
+                          <Lock size={15} className="text-emerald-600" /> Pasarela Segura Cifrada SSL 256 bits
+                        </span>
+                        <span className="text-[10px] text-gray-400">Visa / Mastercard / Amex</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-500 uppercase block mb-0.5">Número de Tarjeta</label>
+                          <input
+                            type="text"
+                            value={guestData.numeroTarjeta}
+                            onChange={(e) => setGuestData(

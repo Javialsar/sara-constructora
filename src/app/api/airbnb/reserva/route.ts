@@ -25,7 +25,8 @@ export async function POST(request: Request) {
       fechas,
       totales,
       metodoPago,
-      peticionesEspeciales
+      peticionesEspeciales,
+      comprobanteUrl
     } = body
 
     if (!codigoReserva || !huesped?.nombre || !huesped?.email || !huesped?.telefono) {
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       },
       metodo_pago: metodoPago || "transferencia",
       peticiones_especiales: peticionesEspeciales || "",
+      comprobante_url: comprobanteUrl || null,
       estado_reserva: "confirmada_pendiente_verificacion",
       fecha_creacion: new Date().toISOString()
     }
