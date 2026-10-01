@@ -38,6 +38,12 @@ export default function DashboardLayout({
         { href: "/dashboard/apus/rubros", label: "Mis Rubros (Recetas)", icon: Layers },
         { href: "/dashboard/apus/insumos", label: "Mis Insumos", icon: Box },
       ]
+    },
+    {
+      title: "CUENTA",
+      items: [
+        { href: "/dashboard/planes", label: "Mi Plan / Suscripción", icon: Settings },
+      ]
     }
   ]
 
