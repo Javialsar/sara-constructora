@@ -3,7 +3,7 @@ import Stripe from "stripe"
 import { createClient } from "@/lib/supabase/server"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia", // Version actual o compatible de Stripe
+  apiVersion: "2026-09-30.endive", // Version actual o compatible de Stripe
 })
 
 export async function POST(req: Request) {
@@ -45,7 +45,6 @@ export async function POST(req: Request) {
 
     // 2. Crear sesión de Stripe
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "subscription",
       customer_email: user.email,
       client_reference_id: orden.id, // Conectamos Stripe con Supabase a través del ID de orden

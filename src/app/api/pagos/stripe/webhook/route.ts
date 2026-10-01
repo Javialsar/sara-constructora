@@ -3,7 +3,7 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js" // Usamos el admin client porque es un webhook en background
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia",
+  apiVersion: "2026-09-30.endive",
 })
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
