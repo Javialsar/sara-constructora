@@ -19,7 +19,8 @@ import {
   UserPlus,
   Key,
   Home,
-  Check
+  Check,
+  Loader2
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { setGuestSession, getGuestSession } from "@/lib/services/guestAuth"
@@ -338,11 +339,9 @@ export default function AirbnbAuthPage() {
     : returnContext.redirect || "/stays"
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-white relative flex items-center justify-center p-3 sm:p-6 py-8 md:py-12 overflow-x-hidden selection:bg-brand-sage selection:text-white">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans relative">
       
-      {/* ============================================================ */}
-      {/* SPLASH SCREEN CON LOGOTIPO GIRATORIO 3D AL ENTRAR           */}
-      {/* ============================================================ */}
+      {/* SPLASH SCREEN CON LOGOTIPO GIRATORIO 3D AL ENTRAR */}
       <AnimatePresence>
         {showRotatingSplash && (
           <motion.div
@@ -352,7 +351,6 @@ export default function AirbnbAuthPage() {
             className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center"
             style={{ perspective: 1200 }}
           >
-            {/* Logotipo en rotación continua 360° */}
             <motion.div
               animate={{ rotateY: 360 }}
               transition={{ 
@@ -367,440 +365,319 @@ export default function AirbnbAuthPage() {
               <img
                 src="/images/logo-3d-blanco.png"
                 alt="SARA Stays Logo 3D Giratorio"
-                className="w-full h-full object-contain drop-shadow-[0_20px_35px_rgba(16,185,129,0.3)]"
+                className="w-full h-full object-contain drop-shadow-[0_20px_35px_rgba(20,184,166,0.3)]"
                 style={{ backfaceVisibility: "visible" }}
               />
             </motion.div>
 
-            {/* Barra de progreso de carga */}
             <div className="w-48 h-1 bg-slate-800 rounded-full relative overflow-hidden mb-4">
               <motion.div 
                 initial={{ x: "-100%" }}
                 animate={{ x: "100%" }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-                className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-brand-sage to-amber-400"
+                className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-teal-400 to-teal-600"
               />
             </div>
 
-            <span className="text-xs uppercase tracking-[0.3em] font-extrabold text-amber-400">
+            <span className="text-xs uppercase tracking-[0.3em] font-extrabold text-teal-400">
               SARA STAYS · HOSPEDAJE
             </span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ============================================================ */}
-      {/* FONDOS AMBIENTALES Y LUCES 3D DINÁMICAS                      */}
-      {/* ============================================================ */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-emerald-600/10 blur-[130px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-amber-500/10 blur-[140px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[70vw] rounded-full bg-slate-900/60 blur-[160px]" />
-        <div 
-          className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
-          style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-            backgroundSize: "32px 32px"
-          }}
-        />
-      </div>
+      <div className="w-full max-w-[1000px] bg-white rounded-3xl shadow-2xl flex overflow-hidden min-h-[600px] relative z-10">
+        
+        {/* Lado del Formulario */}
+        <div className="w-full lg:w-1/2 p-8 sm:p-12 flex flex-col justify-center relative">
+          
+          <Link
+            href={backTarget}
+            className="inline-flex items-center gap-2 mb-6 text-sm text-slate-500 hover:text-slate-900 transition-colors group absolute top-8 left-8"
+          >
+            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+            <span>Volver a Hospedajes</span>
+          </Link>
 
-      {/* ============================================================ */}
-      {/* TARJETA PRINCIPAL 3D DE AUTENTICACIÓN (SIN BANNERS)          */}
-      {/* ============================================================ */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative z-10 w-full max-w-xl bg-slate-900/85 backdrop-blur-2xl rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] border border-white/10 overflow-hidden"
-      >
-        {/* Borde sutil superior brillante */}
-        <div className="h-1 w-full bg-gradient-to-r from-emerald-500 via-amber-400 to-emerald-500" />
-
-        {/* 1. Cabecera Corporativa SARA Stays */}
-        <div className="p-5 sm:p-7 pb-4 bg-gradient-to-b from-slate-950/80 to-transparent border-b border-white/5">
-          <div className="flex items-center justify-between mb-4">
-            <Link
-              href={backTarget}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-bold transition-colors group cursor-pointer"
-            >
-              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-              <span>Volver a Hospedajes</span>
-            </Link>
-
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/25 flex items-center gap-1">
-              <Sparkles size={11} className="text-amber-400" />
-              <span>SARA Stays</span>
-            </span>
+          <div className="mt-8 mb-4 flex items-center gap-3">
+             <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border border-slate-200">
+                <img
+                  src={logoStays}
+                  alt="Logo SARA Stays"
+                  className="w-8 h-8 object-contain"
+                />
+             </div>
+             <div>
+               <h1 className="text-2xl font-bold text-slate-900 leading-tight">Portal del Huésped</h1>
+               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Gestión y Reservas</p>
+             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Logo en contenedor premium con sombra */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/95 p-2 shadow-[0_10px_25px_-5px_rgba(16,185,129,0.3)] border border-white/20 shrink-0 flex items-center justify-center">
-              <img
-                src={logoStays}
-                alt="Logo SARA Stays"
-                className="w-full h-full object-contain"
-              />
-            </div>
-
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                <span>Portal del Huésped</span>
-              </h1>
-              <p className="text-xs text-slate-400 mt-0.5 leading-snug">
-                Accede para gestionar tus reservas, llaves digitales y tarifas directas.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 2. Chip de Referencia Contextual (Si viene de reservar o crear propiedad) */}
-        <div className="px-5 sm:px-7 pt-4">
           {returnContext.action === "reservar" && (
-            <motion.div 
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent border border-amber-400/30 flex items-start gap-3 text-left"
-            >
-              <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+            <div className="mb-4 p-3.5 rounded-2xl bg-teal-50 border border-teal-100 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
                 <Sparkles size={16} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>Continuando con tu Reserva</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="text-xs font-bold text-teal-700 uppercase tracking-wider">
+                  Continuando con tu Reserva
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5 leading-snug">
+                <p className="text-xs text-teal-600/80 mt-0.5">
                   {returnContext.stayTitle ? (
                     <>Estás a un paso de reservar <strong>{returnContext.stayTitle}</strong>. </>
                   ) : returnContext.stayId ? (
                     <>Estás a un paso de reservar el hospedaje <strong>#{returnContext.stayId}</strong>. </>
                   ) : null}
-                  Inicia sesión o crea tu cuenta para asegurar tus fechas al instante.
+                  Inicia sesión o crea tu cuenta.
                 </p>
               </div>
-            </motion.div>
+            </div>
           )}
 
           {returnContext.action === "crear_alojamiento" && (
-            <motion.div 
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent border border-emerald-400/30 flex items-start gap-3 text-left"
-            >
-              <div className="w-8 h-8 rounded-xl bg-emerald-400/20 text-emerald-300 flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+            <div className="mb-4 p-3.5 rounded-2xl bg-teal-50 border border-teal-100 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center shrink-0">
                 <Home size={16} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>Publicar tu Alojamiento</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="text-xs font-bold text-teal-700 uppercase tracking-wider">
+                  Publicar tu Alojamiento
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5 leading-snug">
-                  Inicia sesión o regístrate para publicar tu propiedad y recibir huéspedes en SARA Stays.
+                <p className="text-xs text-teal-600/80 mt-0.5">
+                  Inicia sesión o regístrate para publicar tu propiedad.
                 </p>
               </div>
-            </motion.div>
+            </div>
           )}
-        </div>
 
-        {/* 3. Selector de Pestañas Interactivas (Tabs con animación fluida) */}
-        <div className="px-5 sm:px-7 pt-4">
-          <div className="relative p-1 rounded-2xl bg-slate-950/60 border border-white/5 flex gap-1">
+          <div className="flex bg-slate-100 rounded-2xl p-1 mb-6 mt-2">
             <button
               type="button"
-              onClick={() => { setActiveTab("login"); setError(""); }}
-              className={`relative z-10 flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              onClick={() => { setActiveTab("login"); setError(""); setSuccessMsg("") }}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                 activeTab === "login"
-                  ? "text-slate-950 shadow-md"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              {activeTab === "login" && (
-                <motion.div
-                  layoutId="activeTabBadge"
-                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-xl"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <Key size={14} />
-                <span>Iniciar Sesión</span>
-              </span>
+              Iniciar Sesión
             </button>
-
             <button
               type="button"
-              onClick={() => { setActiveTab("registro"); setError(""); }}
-              className={`relative z-10 flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              onClick={() => { setActiveTab("registro"); setError(""); setSuccessMsg("") }}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
                 activeTab === "registro"
-                  ? "text-slate-950 shadow-md"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              {activeTab === "registro" && (
-                <motion.div
-                  layoutId="activeTabBadge"
-                  className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-xl"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center gap-1.5">
-                <UserPlus size={14} />
-                <span>Crear Cuenta Nueva</span>
-              </span>
+              Crear Cuenta
             </button>
           </div>
-        </div>
 
-        {/* 4. Formulario Dinámico */}
-        <div className="p-5 sm:p-7 space-y-4">
-          {/* Mensajes de Alerta */}
           {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold flex items-center gap-2"
-            >
-              <span className="text-base">⚠️</span>
-              <span>{error}</span>
-            </motion.div>
+            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100 flex gap-2 items-center">
+              <span>⚠️</span>
+              {error}
+            </div>
           )}
-
           {successMsg && (
-            <motion.div 
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-2"
-            >
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <span>{successMsg}</span>
-            </motion.div>
+            <div className="bg-teal-50 text-teal-600 p-4 rounded-xl text-sm font-medium mb-6 border border-teal-100 flex gap-2 items-center">
+              <CheckCircle2 size={16} />
+              {successMsg}
+            </div>
           )}
 
-          {/* ======================================================== */}
-          {/* FORMULARIO 1: INICIAR SESIÓN */}
-          {/* ======================================================== */}
           {activeTab === "login" && (
-            <motion.form 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25 }}
-              onSubmit={handleLogin} 
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                  Correo Electrónico
-                </label>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Correo Electrónico</label>
                 <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail size={18} className="text-slate-400" />
+                  </div>
                   <input
                     type="email"
                     required
-                    placeholder="tu.correo@ejemplo.com"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-950/70 border border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                    placeholder="tu@correo.com"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                   />
                 </div>
               </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
-                    Contraseña
-                  </label>
-                  <span className="text-[11px] text-slate-400 hover:text-amber-400 transition-colors cursor-pointer">
-                    ¿Olvidaste tu clave?
-                  </span>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Contraseña</label>
                 <div className="relative">
-                  <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock size={18} className="text-slate-400" />
+                  </div>
                   <input
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full pl-10 pr-11 py-3 bg-slate-950/70 border border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer transition-colors p-1"
-                    title={showPassword ? "Ocultar" : "Mostrar"}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
               </div>
-
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-2xl text-xs sm:text-sm font-extrabold shadow-[0_10px_25px_-5px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-600/30 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <span>{isLoading ? "Ingresando a tu cuenta..." : "Ingresar a Mi Cuenta"}</span>
-                <ArrowRight size={16} />
+                {isLoading ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <>
+                    <span>Ingresar a Mi Cuenta</span>
+                    <ArrowRight size={18} />
+                  </>
+                )}
               </button>
 
-              {/* Acceso Rápido VIP para pruebas */}
               <div className="pt-2 text-center">
                 <button
                   type="button"
                   onClick={handleQuickDemoAccess}
-                  className="group text-xs text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-2 cursor-pointer bg-amber-400/10 hover:bg-amber-400/20 px-4 py-2 rounded-2xl border border-amber-400/30 transition-all shadow-xs"
+                  className="group text-xs text-amber-600 hover:text-amber-700 font-bold inline-flex items-center gap-2 cursor-pointer bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-2xl border border-amber-200 transition-all shadow-xs"
                 >
-                  <Sparkles size={14} className="text-amber-400 group-hover:rotate-12 transition-transform" />
+                  <Sparkles size={14} className="text-amber-500 group-hover:rotate-12 transition-transform" />
                   <span>Acceso Rápido VIP (Alexandra Malacatus)</span>
                 </button>
               </div>
-            </motion.form>
+            </form>
           )}
 
-          {/* ======================================================== */}
-          {/* FORMULARIO 2: CREAR CUENTA NUEVA */}
-          {/* ======================================================== */}
           {activeTab === "registro" && (
-            <motion.form 
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25 }}
-              onSubmit={handleRegister} 
-              className="space-y-3"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Nombres <span className="text-rose-400">*</span>
-                  </label>
+            <form onSubmit={handleRegister} className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700">Nombres *</label>
                   <div className="relative">
-                    <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <User size={18} className="text-slate-400" />
+                    </div>
                     <input
                       type="text"
                       required
-                      placeholder="Ej: Alexandra"
                       value={regForm.nombre}
                       onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                      placeholder="Ej: Alexandra"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Apellidos
-                  </label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700">Apellidos</label>
                   <input
                     type="text"
-                    placeholder="Ej: Malacatus"
                     value={regForm.apellido}
                     onChange={(e) => setRegForm({ ...regForm, apellido: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                    placeholder="Ej: Malacatus"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Cédula / Pasaporte <span className="text-rose-400">*</span>
-                  </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700">Cédula / Pasaporte *</label>
                   <div className="relative">
-                    <CreditCard size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <CreditCard size={18} className="text-slate-400" />
+                    </div>
                     <input
                       type="text"
                       required
-                      placeholder="1103711592"
                       value={regForm.cedula}
                       onChange={(e) => setRegForm({ ...regForm, cedula: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-mono font-bold text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                      placeholder="1103711592"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    WhatsApp <span className="text-rose-400">*</span>
-                  </label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700">WhatsApp *</label>
                   <div className="relative">
-                    <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Phone size={18} className="text-slate-400" />
+                    </div>
                     <input
                       type="tel"
                       required
-                      placeholder="+593 981804023"
                       value={regForm.telefono}
                       onChange={(e) => setRegForm({ ...regForm, telefono: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                      placeholder="+593 981804023"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                     />
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Correo Electrónico <span className="text-rose-400">*</span>
-                </label>
+              <div className="space-y-1.5">
+                <label className="text-sm font-bold text-slate-700">Correo Electrónico *</label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail size={18} className="text-slate-400" />
+                  </div>
                   <input
                     type="email"
                     required
-                    placeholder="huesped@ejemplo.com"
                     value={regForm.email}
                     onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                    placeholder="huesped@ejemplo.com"
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Contraseña <span className="text-rose-400">*</span>
-                  </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700">Contraseña *</label>
                   <div className="relative">
                     <input
                       type={showRegPassword ? "text" : "password"}
                       required
-                      placeholder="Mínimo 6 carácteres"
                       value={regForm.password}
                       onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
-                      className="w-full pl-3 pr-9 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                      placeholder="Mínimo 6 carácteres"
+                      className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                     />
                     <button
                       type="button"
                       onClick={() => setShowRegPassword(!showRegPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
-                      title={showRegPassword ? "Ocultar" : "Mostrar"}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
-                      {showRegPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Confirmar Contraseña <span className="text-rose-400">*</span>
-                  </label>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700">Confirmar Contraseña *</label>
                   <div className="relative">
                     <input
                       type={showRegConfirmPassword ? "text" : "password"}
                       required
-                      placeholder="Repite tu contraseña"
                       value={regForm.confirmPassword}
                       onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
-                      className="w-full pl-3 pr-9 py-2.5 bg-slate-950/70 border border-slate-700/80 rounded-xl text-xs font-medium text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+                      placeholder="Repite tu contraseña"
+                      className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all outline-none text-slate-700"
                     />
                     <button
                       type="button"
                       onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
-                      title={showRegConfirmPassword ? "Ocultar" : "Mostrar"}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                     >
-                      {showRegConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      {showRegConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
@@ -809,35 +686,77 @@ export default function AirbnbAuthPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 rounded-2xl text-xs sm:text-sm font-extrabold shadow-[0_10px_25px_-5px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2 hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-teal-600/30 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <span>{isLoading ? "Creando tu cuenta..." : "Crear Cuenta de Huésped SARA"}</span>
-                <CheckCircle2 size={16} />
+                {isLoading ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <>
+                    <span>Crear Cuenta de Huésped</span>
+                    <CheckCircle2 size={18} />
+                  </>
+                )}
               </button>
-            </motion.form>
+            </form>
           )}
 
-          {/* 5. Micro-Badges de Confianza e Interacción */}
-          <div className="pt-3 border-t border-white/5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-400">
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
-              <Check size={12} className="text-emerald-400 shrink-0" />
+          {/* Micro-Badges de Confianza */}
+          <div className="pt-4 mt-6 border-t border-slate-100 flex flex-wrap justify-center gap-3 text-xs text-slate-500 font-medium">
+            <div className="flex items-center gap-1.5">
+              <Check size={14} className="text-teal-500" />
               <span>Smart Lock 24/7</span>
             </div>
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
-              <Check size={12} className="text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <Check size={14} className="text-teal-500" />
               <span>Tarifa Directa</span>
             </div>
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
-              <Check size={12} className="text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-1.5">
+              <Check size={14} className="text-teal-500" />
               <span>Confirmación ⚡</span>
             </div>
-            <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white/[0.03]">
-              <ShieldCheck size={12} className="text-emerald-400 shrink-0" />
-              <span>SSL 256-bit</span>
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-teal-500" />
+              <span>Seguridad SSL</span>
             </div>
           </div>
         </div>
-      </motion.div>
+
+        {/* Lado Informativo / Visual */}
+        <div className="hidden lg:flex w-1/2 bg-slate-900 p-12 flex-col justify-between relative overflow-hidden">
+          {/* Fondo decorativo */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-600/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-teal-600/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
+          
+          <div className="relative z-10 h-full flex flex-col justify-center">
+            <h3 className="text-3xl font-black text-white mb-6 leading-tight">
+              Vive la experiencia SARA Stays
+            </h3>
+            
+            <p className="text-slate-300 text-sm mb-8 leading-relaxed">
+              Descubre lugares increíbles para hospedarte con la comodidad, diseño y tecnología que mereces.
+            </p>
+
+            <ul className="space-y-6">
+              {[
+                { icon: Sparkles, title: "Diseño Exclusivo", desc: "Espacios pensados para tu máximo confort" },
+                { icon: Key, title: "Llave Digital", desc: "Accede sin contacto con tu celular" },
+                { icon: ShieldCheck, title: "Seguridad 24/7", desc: "Soporte y monitoreo continuo" }
+              ].map((item, i) => (
+                <li key={i} className="flex gap-4">
+                  <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 border border-white/5">
+                    <item.icon className="text-teal-400" />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <h4 className="text-white font-bold">{item.title}</h4>
+                    <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+      </div>
     </div>
   )
 }
