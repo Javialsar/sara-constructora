@@ -147,7 +147,7 @@ export default function ProveedoresPage() {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto min-h-screen bg-gray-50/50">
+    <div className="p-6 md:p-10 w-full min-h-screen bg-gray-50/50">
       <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-black text-gray-800 flex items-center gap-3">
@@ -195,6 +195,7 @@ export default function ProveedoresPage() {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200">
                 <tr>
+                  <th className="px-6 py-4 w-24">Logo</th>
                   <th className="px-6 py-4">Razón Social</th>
                   <th className="px-6 py-4">RUC / NIT</th>
                   <th className="px-6 py-4">Contacto</th>
@@ -206,6 +207,17 @@ export default function ProveedoresPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredProveedores.map((prov) => (
                   <tr key={prov.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-4 px-6">
+                      {prov.logo_url ? (
+                        <div className="h-12 w-24 flex items-center justify-start">
+                          <img src={prov.logo_url} alt="Logo" className="max-w-full max-h-full object-contain mix-blend-multiply" />
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
+                          <Building2 size={20} />
+                        </div>
+                      )}
+                    </td>
                     <td className="py-4 px-6">
                       <div className="font-bold text-slate-800">{prov.razon_social}</div>
                       {prov.sitio_web && (
