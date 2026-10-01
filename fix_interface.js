@@ -1,7 +1,17 @@
 const fs = require('fs');
 let content = fs.readFileSync('src/app/admin/inmobiliaria/page.tsx', 'utf8');
 
-// Replace using regex to ignore \r
-content = content.replace(/destacado:\s*boolean\s*\/\/\s*Información del Propietario & Bancaria/, `destacado: boolean\n  estado?: 'en_verificacion' | 'aprobado' | 'rechazado' | 'publicado'\n  legalidad?: any\n  // Información del Propietario & Bancaria`);
+const regex = /totalRecaudado:\s*number\s*\n\s*\}/g;
 
-fs.writeFileSync('src/app/admin/inmobiliaria/page.tsx', content);
+const rep = `totalRecaudado: number
+  }
+  mesesContratados?: number
+  descuentoPorcentaje?: number`;
+
+if (regex.test(content)) {
+  content = content.replace(regex, rep);
+  fs.writeFileSync('src/app/admin/inmobiliaria/page.tsx', content);
+  console.log('Fixed interface!');
+} else {
+  console.log('Regex failed');
+}

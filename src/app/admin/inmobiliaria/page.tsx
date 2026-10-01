@@ -125,6 +125,8 @@ export interface InmuebleAdmin {
     metodoPago: string
     totalRecaudado: number
   }
+  mesesContratados?: number
+  descuentoPorcentaje?: number
 }
 
 const INMUEBLES_INICIALES: InmuebleAdmin[] = [
