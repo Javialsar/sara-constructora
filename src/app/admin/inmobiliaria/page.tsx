@@ -550,7 +550,8 @@ export default function AdminInmobiliariaPage() {
   const [editingInmueble, setEditingInmueble] = useState<InmuebleAdmin | null>(null)
 
   // Modal para Registrar Cobro / Renovar Plan de Promoción
-  const [isCobroModalOpen, setIsCobroModalOpen] = useState(false)
+  const [isCobroModalOpen, setIsCobroModalOpen] = useState(false);
+  const [pagoAValidar, setPagoAValidar] = useState<InmuebleAdmin | null>(null)
   const [selectedInmuebleForCobro, setSelectedInmuebleForCobro] = useState<InmuebleAdmin | null>(null)
   const [mesesRenovacion, setMesesRenovacion] = useState<number>(1)
   const [metodoPagoCobro, setMetodoPagoCobro] = useState<string>("Transferencia Banco Pichincha")
@@ -1666,15 +1667,26 @@ export default function AdminInmobiliariaPage() {
                       {/* Acciones */}
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Botón Cobrar / Renovar */}
-                          <button
-                            onClick={() => handleOpenCobroModal(inm)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-sage hover:bg-brand-sage/90 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
-                            title="Registrar cobro de mensualidad o renovar promoción"
-                          >
-                            <CreditCard size={14} />
-                            <span>Cobrar / Renovar</span>
-                          </button>
+                          {/* Botón Cobrar / Renovar / Validar Pago */}
+                          {(inm.promocion || {}).estadoPago === 'pendiente' ? (
+                            <button
+                              onClick={() => setPagoAValidar(inm)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold rounded-lg shadow-sm transition-all animate-pulse"
+                              title="Validar comprobante enviado por el cliente"
+                            >
+                              <Receipt size={14} />
+                              <span>Validar Pago</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenCobroModal(inm)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-brand-sage hover:bg-brand-sage/90 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
+                              title="Registrar cobro de mensualidad o renovar promoción"
+                            >
+                              <CreditCard size={14} />
+                              <span>Cobrar / Renovar</span>
+                            </button>
+                          )}
 
                           {/* Botón Editar */}
                           <button
