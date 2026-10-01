@@ -972,6 +972,8 @@ export default function AdminInmobiliariaPage() {
           email: formInmueble.propietarioEmail,
           cuentaBancaria: formInmueble.cuentaBancaria
         },
+        estado: formInmueble.legalidad?.estado === 'aprobado' ? 'aprobado' : formInmueble.legalidad?.estado === 'rechazado' ? 'rechazado' : 'en_verificacion',
+        legalidad: formInmueble.legalidad,
         promocion: {
           ...editingInmueble.promocion,
           plan: formInmueble.planPromocion,
@@ -1019,6 +1021,8 @@ export default function AdminInmobiliariaPage() {
           email: formInmueble.propietarioEmail,
           cuentaBancaria: formInmueble.cuentaBancaria
         },
+        estado: formInmueble.legalidad?.estado === 'aprobado' ? 'aprobado' : formInmueble.legalidad?.estado === 'rechazado' ? 'rechazado' : 'en_verificacion',
+        legalidad: formInmueble.legalidad,
         promocion: {
           plan: formInmueble.planPromocion,
           nombrePlan: nombrePlanMap[formInmueble.planPromocion],
