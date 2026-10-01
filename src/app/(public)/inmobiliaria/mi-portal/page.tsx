@@ -203,8 +203,15 @@ export default function MiPortalInmobiliaria() {
       try {
         const res = await fetch(`/api/inmobiliaria/inmuebles?propietarioEmail=${encodeURIComponent(session!.email)}`)
         if (res.ok) {
-          const data = await res.json()
-          const mapped: InmuebleOwner[] = (data || []).map((item: any) => ({
+          const jsonData = await res.json()
+          const lista = jsonData.inmuebles || (Array.isArray(jsonData) ? jsonData : [])
+          
+          const misInmuebles = lista.filter((item: any) => {
+            const email = item.propietarioEmail || (item.propietario && item.propietario.email);
+            return email && email.toLowerCase() === session!.email.toLowerCase();
+          })
+          
+          const mapped: InmuebleOwner[] = misInmuebles.map((item: any) => ({
             id: item.id || item.codigo,
             codigo: item.codigo || "",
             titulo: item.titulo || "Sin título",
