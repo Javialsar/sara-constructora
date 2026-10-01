@@ -3,7 +3,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { 
   Calculator,
-  Briefcase,
+  Briefcase, Users,
   Wrench,
   ChevronDown,
   ChevronRight,
@@ -37,6 +37,14 @@ export default function DashboardLayout({
         { href: "/dashboard/presupuestos_reales", label: "Presupuestos Reales", icon: FileSpreadsheet },
         { href: "/dashboard/apus/rubros", label: "Mis Rubros (Recetas)", icon: Layers },
         { href: "/dashboard/apus/insumos", label: "Mis Insumos", icon: Box },
+      ]
+    },
+    {
+      title: "DIRECTORIO Y RECURSOS",
+      items: [
+        { href: "/dashboard/directorio/clientes", label: "Mis Clientes (CRM)", icon: Users },
+        { href: "/dashboard/directorio/proveedores", label: "Mis Proveedores", icon: Briefcase },
+        { href: "/dashboard/directorio/trabajadores", label: "Mi Personal de Obra", icon: Wrench }
       ]
     },
     {
