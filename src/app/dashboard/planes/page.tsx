@@ -123,8 +123,8 @@ export default function PlanesPage() {
                     Plan Activo
                    </button>
                 ) : plan.precio === 0 ? (
-                   <button className={`w-full py-2.5 px-6 rounded-xl text-sm font-bold transition-all ${isRecommended ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
-                    Seleccionar
+                   <button className="w-full py-2.5 px-6 rounded-xl text-sm font-bold transition-all border-2 border-blue-600 text-blue-600 hover:bg-blue-50">
+                    Bajar a Gratuito
                    </button>
                 ) : (
                   <div className="space-y-2">
@@ -133,11 +133,11 @@ export default function PlanesPage() {
                       <button 
                         onClick={() => handleSubscribe('stripe', plan.id)}
                         disabled={isProcessing}
-                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all font-semibold text-[11px] ${
+                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all font-bold text-[11px] ${
                           isRecommended 
                             ? 'bg-blue-600 hover:bg-blue-500 text-white' 
-                            : 'bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700'
-                        }`}
+                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                        } ${isProcessing ? 'opacity-50' : ''}`}
                       >
                         <CreditCard size={18} />
                         <span>Tarjeta</span>
@@ -145,11 +145,11 @@ export default function PlanesPage() {
                       <button 
                         onClick={() => handleSubscribe('transferencia', plan.id)}
                         disabled={isProcessing}
-                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all font-semibold text-[11px] border ${
+                        className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl transition-all font-bold text-[11px] border-2 ${
                           isRecommended 
-                            ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700 hover:border-slate-600' 
+                            ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700' 
                             : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 hover:border-slate-300'
-                        }`}
+                        } ${isProcessing ? 'opacity-50' : ''}`}
                       >
                         <Building size={18} />
                         <span>Transferir</span>
