@@ -563,6 +563,7 @@ export default function AdminInmobiliariaPage() {
     const itemActualizado = {
       ...pagoAValidar,
       publicado: true,
+      estado: 'publicado' as const,
       promocion: {
         ...(pagoAValidar.promocion || {}),
         estadoPago: 'al_dia' as const,
@@ -4379,10 +4380,11 @@ export default function AdminInmobiliariaPage() {
                     {pagoAValidar.promocion.comprobanteUrl.startsWith('data:image') || pagoAValidar.promocion.comprobanteUrl.match(/\.(jpeg|jpg|gif|png)$/i) ? (
                       <img src={pagoAValidar.promocion.comprobanteUrl} alt="Comprobante" className="max-w-full max-h-80 object-contain rounded-lg shadow-sm" />
                     ) : (
-                      <a href={pagoAValidar.promocion.comprobanteUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2 p-8 text-blue-600 hover:text-blue-800">
-                        <FileText size={48} />
-                        <span className="font-bold text-sm">Ver Documento PDF / Archivo</span>
-                      </a>
+                      <iframe 
+                        src={pagoAValidar.promocion.comprobanteUrl} 
+                        className="w-full h-96 rounded-lg shadow-sm border-0" 
+                        title="Comprobante"
+                      />
                     )}
                   </div>
                 ) : (

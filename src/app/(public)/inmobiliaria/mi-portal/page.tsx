@@ -1052,7 +1052,11 @@ export default function MiPortalInmobiliaria() {
                   {comprobantePago ? (
                     <div className="space-y-3 w-full">
                       <div className="h-32 w-full bg-slate-100 rounded-lg overflow-hidden relative">
-                        <img src={comprobantePago} alt="Comprobante" className="w-full h-full object-contain" />
+                        {comprobantePago.startsWith('data:image') || comprobantePago.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                          <img src={comprobantePago} alt="Comprobante" className="w-full h-full object-contain" />
+                        ) : (
+                          <iframe src={comprobantePago} className="w-full h-full border-0 object-contain" title="Comprobante" />
+                        )}
                       </div>
                       <button onClick={() => setComprobantePago('')} className="text-xs text-red-600 font-bold hover:underline relative z-10">Cambiar archivo</button>
                     </div>
