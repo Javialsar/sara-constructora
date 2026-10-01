@@ -224,7 +224,7 @@ export default function MiPortalInmobiliaria() {
     async function loadData() {
       setIsLoading(true)
       try {
-        const res = await fetch(`/api/inmobiliaria/inmuebles?propietarioEmail=${encodeURIComponent(session!.email)}`)
+        const res = await fetch(`/api/inmobiliaria/inmuebles?propietarioEmail=${encodeURIComponent(session!.email)}&t=${Date.now()}`, { cache: "no-store" })
         if (res.ok) {
           const jsonData = await res.json()
           const lista = jsonData.inmuebles || (Array.isArray(jsonData) ? jsonData : [])

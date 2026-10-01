@@ -332,7 +332,7 @@ export default function InmobiliariaPage() {
 
   // Cargar propiedades activas publicadas desde la base de datos
   useEffect(() => {
-    fetch("/api/inmobiliaria/inmuebles")
+    fetch("/api/inmobiliaria/inmuebles?t=" + Date.now(), { cache: "no-store" })
       .then(res => res.json())
       .then(data => {
         if (data.inmuebles && Array.isArray(data.inmuebles) && data.inmuebles.length > 0) {
@@ -356,7 +356,7 @@ export default function InmobiliariaPage() {
               antiguedadAnios: item.antiguedad === "A estrenar" ? 0 : 2,
               aptoBiess: true,
               destacada: item.destacado || false,
-              imagenes: item.galeriaImagenes && item.galeriaImagenes.length > 0 ? item.galeriaImagenes : [item.imagenUrl],
+              imagenes: item.imagenes && item.imagenes.length > 0 ? item.imagenes : (item.galeriaImagenes && item.galeriaImagenes.length > 0 ? item.galeriaImagenes : [item.imagenUrl || 'https://via.placeholder.com/600x400?text=SARA+Inmobiliaria']),
               videos: item.videos || [],
               descripcion: item.descripcion || item.titulo,
               amenidades: item.amenidades && item.amenidades.length > 0 ? item.amenidades : ["Seguridad 24/7"],

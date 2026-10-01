@@ -1,19 +1,8 @@
 const fs = require('fs');
-let content = fs.readFileSync('src/app/(public)/inmobiliaria/mi-portal/page.tsx', 'utf8');
+let content = fs.readFileSync('src/app/(public)/inmobiliaria/page.tsx', 'utf8');
 
-const targetStr = `planPromocion: item.planPromocion || item.plan_promocion || "basico",`;
-const repStr = `planPromocion: item.planPromocion || item.plan_promocion || "basico",
-            promocion: item.promocion,
-            mesesContratados: item.mesesContratados,
-            descuentoPorcentaje: item.descuentoPorcentaje,`;
-content = content.replace(targetStr, repStr);
+const regex = /imagenes: item\.galeriaImagenes && item\.galeriaImagenes\.length > 0 \? item\.galeriaImagenes : \[item\.imagenUrl\],/g;
+const rep = `imagenes: item.imagenes && item.imagenes.length > 0 ? item.imagenes : (item.galeriaImagenes && item.galeriaImagenes.length > 0 ? item.galeriaImagenes : [item.imagenUrl || 'https://via.placeholder.com/600x400?text=SARA+Inmobiliaria']),`;
 
-const targetType = `planPromocion: string`;
-const repType = `planPromocion: string
-  promocion?: any
-  mesesContratados?: number
-  descuentoPorcentaje?: number`;
-content = content.replace(targetType, repType);
-
-fs.writeFileSync('src/app/(public)/inmobiliaria/mi-portal/page.tsx', content);
-console.log('Success mapping fields!');
+content = content.replace(regex, rep);
+fs.writeFileSync('src/app/(public)/inmobiliaria/page.tsx', content);
