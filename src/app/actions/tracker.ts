@@ -12,7 +12,7 @@ export async function pingSession() {
     // Only track authenticated users
     if (!authData.user) return { success: false }
 
-    const hdrs = headers()
+    const hdrs = await headers()
     const ip = hdrs.get('x-forwarded-for')?.split(',')[0] || hdrs.get('x-real-ip') || 'Desconocida'
     const country = hdrs.get('x-vercel-ip-country') || 'Desconocido'
     const city = hdrs.get('x-vercel-ip-city') || 'Desconocido'
