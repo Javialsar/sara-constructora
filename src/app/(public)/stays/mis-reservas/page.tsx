@@ -1,4 +1,5 @@
 "use client"
+import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -22,7 +23,7 @@ import {
   ExternalLink, 
   ChevronRight, 
   ChevronLeft,
-  ShieldCheck, 
+  Shield, ShieldCheck, 
   DollarSign, 
   TrendingUp, 
   PlusCircle, 
@@ -153,7 +154,7 @@ export default function MisReservasPage() {
   }, [])
 
   // Viñeta Principal: "reservas" (Como Huésped) vs "alojamientos" (Como Anfitrión / Propietario)
-  const [mainPortalTab, setMainPortalTab] = useState<"reservas" | "alojamientos">("reservas")
+  const [mainPortalTab, setMainPortalTab] = useState<"reservas" | "alojamientos" | "seguridad">("reservas")
 
   // Estado Viñeta 1: Reservas Realizadas
   const [reservas, setReservas] = useState<ReservaHuesped[]>([])
@@ -1228,13 +1229,23 @@ export default function MisReservasPage() {
               }`}
             >
               <Building size={16} className={mainPortalTab === "alojamientos" ? "text-white" : "text-orange-500"} />
-              <span>2. Mis Alojamientos & Ganancias</span>
+              <span>2. Mis Alojamientos</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                 mainPortalTab === "alojamientos" ? "bg-white/20 text-white" : "bg-orange-100 text-orange-700"
               }`}>
                 {misAlojamientos.length}
-              </span>
-            </button>
+                </span>              </button>
+              <button
+                onClick={() => setMainPortalTab("seguridad")}
+                className={`px-4 sm:px-6 py-3 rounded-xl text-xs sm:text-sm font-extrabold flex items-center gap-2 transition-all cursor-pointer ${
+                  mainPortalTab === "seguridad"
+                    ? "bg-slate-900 text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:text-gray-900 hover:bg-gray-200"
+                }`}
+              >
+                <Shield size={16} className={mainPortalTab === "seguridad" ? "text-emerald-400" : ""} />
+                <span className="hidden sm:inline">3. Seguridad</span>
+              </button>
           </div>
 
           {/* Filtros Contextuales */}
@@ -1498,6 +1509,7 @@ export default function MisReservasPage() {
         {/* ========================================================== */}
         {/* 2.D CONTENIDO: MIS ALOJAMIENTOS & GANANCIAS (ANFITRIÓN)    */}
         {/* ========================================================== */}
+        {mainPortalTab === "seguridad" && <SecurityPanel />}
         {mainPortalTab === "alojamientos" && (
           <div className="space-y-6 animate-fadeIn">
             {misAlojamientos.length === 0 ? (

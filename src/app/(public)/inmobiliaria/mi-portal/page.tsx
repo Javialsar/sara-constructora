@@ -1,7 +1,8 @@
 "use client"
+import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
+import { Shield, getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import {
@@ -113,7 +114,7 @@ export default function MiPortalInmobiliaria() {
   const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/logo-hero.png")
 
   // Tabs principales
-  const [mainTab, setMainTab] = useState<"propiedades" | "historial">("propiedades")
+  const [mainTab, setMainTab] = useState<"propiedades" | "historial" | "seguridad">("propiedades")
 
   // Datos sincronizados con la BD
   const [inmuebles, setInmuebles] = useState<InmuebleOwner[]>([])
@@ -948,6 +949,7 @@ export default function MiPortalInmobiliaria() {
             {/* ============================== */}
             {/* TAB: ACTIVIDAD / HISTORIAL     */}
             {/* ============================== */}
+            {mainTab === "seguridad" && <SecurityPanel />}
             {mainTab === "historial" && (
               <div className="space-y-5">
                 <h2 className="text-lg font-black text-gray-900">Actividad Reciente</h2>
