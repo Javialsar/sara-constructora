@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Plus, Search, Edit, Trash2, Building2, Loader2, X, Briefcase, BookOpen } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Building2, Loader2, X, Briefcase, BookOpen, Upload } from "lucide-react";
 
 const supabase = createClient();
 
@@ -36,6 +36,8 @@ export default function ProveedoresPage() {
     handleSubmit,
     reset,
     setError,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<ProveedorFormValues>({
     resolver: zodResolver(proveedorSchema),
@@ -47,8 +49,11 @@ export default function ProveedoresPage() {
       telefono: "",
       email: "",
       sitio_web: "",
+      logo_url: "",
     },
   });
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // 3. React Query: Fetching
   const { data: proveedores = [], isLoading } = useQuery({
@@ -109,10 +114,33 @@ export default function ProveedoresPage() {
     (p.contacto_vendedor && p.contacto_vendedor.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo_${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage
+        .from('sara-assets')
+        .upload(`proveedores/${fileName}`, file, { cacheControl: '3600', upsert: false });
+      
+      if (error) throw error;
+      
+      const { data } = supabase.storage.from('sara-assets').getPublicUrl(`proveedores/${fileName}`);
+      setValue('logo_url', data.publicUrl);
+    } catch (err: any) {
+      alert("Error subiendo logotipo: " + err.message);
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const openNewModal = () => {
     setEditingId(null);
     reset({
-      razon_social: "", ruc: "", dias_credito: 0, contacto_vendedor: "", telefono: "", email: "", sitio_web: ""
+      razon_social: "", ruc: "", dias_credito: 0, contacto_vendedor: "", telefono: "", email: "", sitio_web: "", logo_url: ""
     });
     setIsModalOpen(true);
   };
@@ -127,6 +155,7 @@ export default function ProveedoresPage() {
       telefono: prov.telefono || "",
       email: prov.email || "",
       sitio_web: prov.sitio_web || "",
+      logo_url: prov.logo_url || "",
     });
     setIsModalOpen(true);
   };
@@ -274,6 +303,26 @@ export default function ProveedoresPage() {
             
             <form onSubmit={handleSubmit(onSubmit)} className="p-6">
               <div className="grid grid-cols-2 gap-5 mb-8">
+                <div className="col-span-2 flex items-center gap-4 mb-2">
+                  <div className="h-16 w-24 bg-white border border-gray-200 rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1 shrink-0">
+                    {watch("logo_url") ? (
+                      <Image src={watch("logo_url")!} alt="Logo" width={96} height={64} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized />
+                    ) : (
+                      <Building2 size={24} className="text-gray-300" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Logotipo de la Empresa</label>
+                    <div className="relative">
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={uploadingLogo} />
+                      <button type="button" className="px-4 py-2 bg-white border border-gray-200 text-xs font-bold text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm">
+                        {uploadingLogo ? <Loader2 size={14} className="animate-spin text-brand-sage" /> : <Upload size={14} className="text-slate-500" />}
+                        {uploadingLogo ? "Subiendo..." : "Subir Logotipo"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="col-span-2">
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Razón Social <span className="text-red-500">*</span></label>
                   <input 
