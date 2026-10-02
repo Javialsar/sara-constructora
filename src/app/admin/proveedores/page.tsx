@@ -20,6 +20,7 @@ const proveedorSchema = z.object({
   telefono: z.string().optional(),
   email: z.union([z.literal(""), z.string().email("Correo inválido")]).optional(),
   sitio_web: z.union([z.literal(""), z.string().url("URL inválida")]).optional(),
+  logo_url: z.string().optional(),
 });
 
 type ProveedorFormValues = z.infer<typeof proveedorSchema>;
