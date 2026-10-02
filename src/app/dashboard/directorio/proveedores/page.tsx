@@ -304,7 +304,7 @@ export default function ProveedoresPage() {
                       <td className="py-4 px-6">
                         {prov.logo_url ? (
                           <div className="h-12 w-24 flex items-center justify-start">
-                            <Image src={prov.logo_url} alt="Logo" width={96} height={48} className="object-contain mix-blend-multiply" unoptimized={true} />
+                            <Image src={prov.logo_url} alt="Logo" width={96} height={48} className="h-10 w-auto max-w-[100px] object-contain mix-blend-multiply" unoptimized={true} />
                           </div>
                         ) : (
                           <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
@@ -370,7 +370,7 @@ export default function ProveedoresPage() {
                   <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col items-center text-center">
                     {p.logo_url ? (
                       <div className="h-20 w-full mb-4 flex items-center justify-center p-2">
-                        <Image src={p.logo_url} alt="Logo" width={96} height={96} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized={true} />
+                        <Image src={p.logo_url} alt="Logo" width={96} height={96} className="h-12 w-auto max-w-[100px] object-contain mix-blend-multiply" unoptimized={true} />
                       </div>
                     ) : (
                       <div className="h-20 w-20 mb-4 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
@@ -417,7 +417,7 @@ export default function ProveedoresPage() {
                 <div className="col-span-2 flex items-center gap-4 mb-2">
                   <div className="h-16 w-24 bg-white border border-gray-200 rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1 shrink-0">
                     {watch("logo_url") ? (
-                      <Image src={watch("logo_url")!} alt="Logo" width={96} height={64} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized />
+                      <Image src={watch("logo_url")!} alt="Logo" width={96} height={64} className="h-12 w-auto max-w-[100px] object-contain mix-blend-multiply" unoptimized />
                     ) : (
                       <Building2 size={24} className="text-gray-300" />
                     )}
