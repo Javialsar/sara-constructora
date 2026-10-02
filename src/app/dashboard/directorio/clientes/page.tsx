@@ -190,7 +190,7 @@ export default function AdminClientes() {
                         <button 
                           onClick={async () => {
                             if (window.confirm("¿Estás seguro de que deseas eliminar este cliente? Se eliminarán todos sus datos y no podrá acceder al portal. Si tiene proyectos activos, primero debes eliminarlos.")) {
-                              const { error } = await supabase.from('clientes').delete().eq(\'id\', c.id).eq(\'user_id\', (await supabase.auth.getUser()).data.user?.id)
+                              const { error } = await supabase.from('clientes').delete().eq('id', c.id).eq('user_id', (await supabase.auth.getUser()).data.user?.id)
                               if (error) {
                                 alert("Error al eliminar cliente: " + error.message)
                               } else {
@@ -403,7 +403,7 @@ export default function AdminClientes() {
                 nombre: formData.nombre,
                 apellido: formData.apellido,
                 telefono: formData.telefono
-              }).eq(\'id\', editId).eq(\'user_id\', (await supabase.auth.getUser()).data.user?.id)
+              }).eq('id', editId).eq('user_id', (await supabase.auth.getUser()).data.user?.id)
 
               setIsSubmitting(false)
               if (!error) {
