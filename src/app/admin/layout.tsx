@@ -24,7 +24,7 @@ import {
   Building2,
   Sparkles,
   CreditCard, DollarSign
-} from "lucide-react"
+, ShieldAlert, Trash2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -164,7 +164,9 @@ export default function AdminLayout({
     {
       title: "AUDITORÍA",
       items: [
-        { href: "/admin/historial", label: "Historial", icon: History },
+        { href: "/admin/auditoria", label: "Ojo de Dios", icon: ShieldAlert },
+          { href: "/admin/papelera", label: "Papelera", icon: Trash2 },
+          { href: "/admin/historial", label: "Historial", icon: History },
         { href: "/admin/accesos", label: "Accesos", icon: Key },
       ]
     }
