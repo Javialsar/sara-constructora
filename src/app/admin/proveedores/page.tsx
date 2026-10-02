@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -210,7 +211,7 @@ export default function ProveedoresPage() {
                     <td className="py-4 px-6">
                       {prov.logo_url ? (
                         <div className="h-12 w-24 flex items-center justify-start">
-                          <img src={prov.logo_url} alt="Logo" className="max-w-full max-h-full object-contain mix-blend-multiply" />
+                          <Image src={prov.logo_url} alt="Logo" width={96} height={48} className="object-contain mix-blend-multiply" unoptimized={true} />
                         </div>
                       ) : (
                         <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">

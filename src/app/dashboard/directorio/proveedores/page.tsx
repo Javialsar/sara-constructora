@@ -1,5 +1,6 @@
 "use client"
 import React, { useState, useEffect } from "react"
+import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { Building2, Search, Plus, Globe, CheckCircle2, Loader2, Link as LinkIcon, Trash2, Edit, X } from "lucide-react"
 
@@ -155,7 +156,7 @@ export default function MisProveedores() {
                     <div className="flex items-start justify-between mb-4">
                       {p.logo_url ? (
                         <div className="w-16 h-16 bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center justify-center shrink-0">
-                          <img src={p.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
+                          <Image src={p.logo_url} alt="Logo" width={96} height={96} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized={true} />
                         </div>
                       ) : (
                         <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
@@ -194,7 +195,7 @@ export default function MisProveedores() {
                     <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col items-center text-center">
                       {p.logo_url ? (
                         <div className="h-20 w-full mb-4 flex items-center justify-center p-2">
-                          <img src={p.logo_url} alt="Logo" className="max-w-full max-h-full object-contain mix-blend-multiply" />
+                          <Image src={p.logo_url} alt="Logo" width={96} height={96} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized={true} />
                         </div>
                       ) : (
                         <div className="h-20 w-20 mb-4 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
