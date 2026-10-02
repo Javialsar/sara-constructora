@@ -1,5 +1,5 @@
-import { Shield } from 'lucide-react';
 "use client"
+import { Shield } from 'lucide-react';
 import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
