@@ -7,7 +7,7 @@ import {
   Wrench,
   ChevronDown,
   ChevronRight,
-  Settings,
+  Settings, ShieldAlert,
   LogOut,
   Menu,
   Box,
@@ -51,6 +51,7 @@ export default function DashboardLayout({
       title: "CUENTA",
       items: [
         { href: "/dashboard/planes", label: "Mi Plan / Suscripción", icon: Settings },
+          { href: "/dashboard/perfil", label: "Seguridad y Accesos", icon: ShieldAlert },
       ]
     }
   ]
