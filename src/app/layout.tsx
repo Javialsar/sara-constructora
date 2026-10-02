@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import Providers from "@/lib/providers";
+import SessionTracker from "@/components/SessionTracker";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="es" className={montserrat.variable}>
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
         <Providers>
+          <SessionTracker />
           {children}
         </Providers>
       </body>
