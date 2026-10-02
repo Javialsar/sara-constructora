@@ -1297,7 +1297,7 @@ export default function AirbnbPage() {
                 href="/inmobiliaria" 
                 className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
               >
-                <Calculator size={14} className="text-emerald-400" />
+                <Building size={14} className="text-emerald-400" />
                 <span>Portal Inmobiliario</span>
               </Link>
               <Link 
@@ -3543,6 +3543,7 @@ export default function AirbnbPage() {
             <Link href="/inmobiliaria" className="hover:text-white transition-colors">Portal Inmobiliario</Link>
             <Link href="/stays/mis-reservas" className="hover:text-white transition-colors">Mis Reservas & Anfitrión</Link>
             <Link href="/" className="hover:text-white transition-colors">Sara Constructora</Link>
+              <Link href="/login" className="hover:text-blue-400 transition-colors font-bold text-blue-400">SARA APU</Link>
             <a href="https://wa.me/593981804023" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">Soporte WhatsApp: +593 98 180 4023</a>
           </div>
           <div className="text-xs text-gray-500">
