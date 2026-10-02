@@ -1,45 +1,140 @@
-"use client"
-import React, { useState, useEffect } from "react"
-import Image from "next/image"
-import { createClient } from "@/lib/supabase/client"
-import { Building2, Search, Plus, Globe, CheckCircle2, Loader2, Link as LinkIcon, Trash2, Edit, X } from "lucide-react"
+"use client";
 
-export default function MisProveedores() {
-  const [tab, setTab] = useState<'mis-proveedores' | 'catalogo'>('mis-proveedores')
-  const [misProveedores, setMisProveedores] = useState<any[]>([])
-  const [catalogoGlobal, setCatalogoGlobal] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Plus, Search, Edit, Trash2, Building2, Loader2, X, Briefcase, BookOpen, Upload, Globe, CheckCircle2 } from "lucide-react";
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({ id: "", razon_social: "", ruc: "", direccion: "", telefono: "", sitio_web: "" })
-  const [isEditing, setIsEditing] = useState(false)
+const supabase = createClient();
 
-  const supabase = createClient()
+const proveedorSchema = z.object({
+  razon_social: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
+  ruc: z.string().optional(),
+  dias_credito: z.number().min(0, "No puede ser negativo").optional(),
+  contacto_vendedor: z.string().optional(),
+  telefono: z.string().optional(),
+  email: z.union([z.literal(""), z.string().email("Correo inválido")]).optional(),
+  sitio_web: z.union([z.literal(""), z.string().url("URL inválida")]).optional(),
+  logo_url: z.string().optional(),
+});
 
-  const fetchData = async () => {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      // Mis proveedores
-      const { data: mis } = await supabase.from("proveedores").select("*").eq("user_id", user.id).order('razon_social', { ascending: true })
-      if (mis) setMisProveedores(mis)
+type ProveedorFormValues = z.infer<typeof proveedorSchema>;
 
-      // Catalogo Global
-      const { data: global } = await supabase.from("proveedores").select("*").is("user_id", null).order('razon_social', { ascending: true })
-      if (global) setCatalogoGlobal(global)
-    }
-    setLoading(false)
-  }
+export default function ProveedoresPage() {
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState<'mis-proveedores' | 'catalogo'>('mis-proveedores');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+  }, []);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<ProveedorFormValues>({
+    resolver: zodResolver(proveedorSchema),
+    defaultValues: {
+      razon_social: "",
+      ruc: "",
+      dias_credito: 0,
+      contacto_vendedor: "",
+      telefono: "",
+      email: "",
+      sitio_web: "",
+      logo_url: "",
+    },
+  });
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const { data: misProveedores = [], isLoading: loadingMis } = useQuery({
+    queryKey: ["proveedores", "mis", currentUserId],
+    enabled: !!currentUserId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proveedores")
+        .select("*")
+        .eq("user_id", currentUserId)
+        .order("razon_social", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: globalProveedores = [], isLoading: loadingGlobal } = useQuery({
+    queryKey: ["proveedores", "global"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proveedores")
+        .select("*")
+        .is("user_id", null)
+        .order("razon_social", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (values: ProveedorFormValues) => {
+      if (!currentUserId) throw new Error("No user logged in");
+      
+      const query = supabase.from("proveedores")
+        .select("id")
+        .ilike("razon_social", values.razon_social)
+        .eq("user_id", currentUserId);
+        
+      if (editingId) query.neq("id", editingId);
+      const { data: existing } = await query;
+      
+      if (existing && existing.length > 0) {
+        throw new Error("Ya tienes un proveedor con este nombre exacto.");
+      }
+
+      if (editingId) {
+        const { error } = await supabase.from("proveedores").update(values).eq("id", editingId).eq("user_id", currentUserId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("proveedores").insert([{ ...values, user_id: currentUserId, estado: true }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proveedores", "mis"] });
+      closeModal();
+    },
+    onError: (err: Error) => {
+      setError("razon_social", { type: "manual", message: err.message });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("proveedores").delete().eq("id", id).eq("user_id", currentUserId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proveedores", "mis"] });
+    }
+  });
 
   const handleAddFromGlobal = async (prov: any) => {
     if (confirm(`¿Agregar ${prov.razon_social} a tus proveedores?`)) {
-      const { data: { user } } = await supabase.auth.getUser()
+      if (!currentUserId) return;
       const { error } = await supabase.from("proveedores").insert({
         razon_social: prov.razon_social,
         ruc: prov.ruc,
@@ -49,217 +144,379 @@ export default function MisProveedores() {
         sitio_web: prov.sitio_web,
         logo_url: prov.logo_url,
         estado: true,
-        user_id: user?.id
-      })
+        user_id: currentUserId
+      });
       if (!error) {
-        alert("¡Proveedor agregado exitosamente a tu lista!")
-        setTab('mis-proveedores')
-        fetchData()
+        alert("¡Proveedor agregado exitosamente a tu lista!");
+        queryClient.invalidateQueries({ queryKey: ["proveedores", "mis"] });
+        setTab('mis-proveedores');
       } else {
-        alert("Error al agregar: " + error.message)
+        alert("Error al agregar: " + error.message);
       }
     }
-  }
+  };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este proveedor de tu lista?")) {
-      await supabase.from("proveedores").delete().eq("id", id)
-      fetchData()
-    }
-  }
+  const filteredMis = misProveedores.filter((p: any) =>
+    p.razon_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.ruc && p.ruc.includes(searchTerm)) ||
+    (p.contacto_vendedor && p.contacto_vendedor.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-  const openCreate = () => {
-    setFormData({ id: "", razon_social: "", ruc: "", direccion: "", telefono: "", sitio_web: "" })
-    setIsEditing(false)
-    setIsModalOpen(true)
-  }
+  const filteredGlobal = globalProveedores.filter((p: any) => 
+    p.razon_social?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const openEdit = (p: any) => {
-    setFormData({ id: p.id, razon_social: p.razon_social, ruc: p.ruc || "", direccion: p.direccion || "", telefono: p.telefono || "", sitio_web: p.sitio_web || "" })
-    setIsEditing(true)
-    setIsModalOpen(true)
-  }
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (isEditing) {
-      const { error } = await supabase.from("proveedores").update({
-        razon_social: formData.razon_social,
-        ruc: formData.ruc,
-        direccion: formData.direccion,
-        telefono: formData.telefono,
-        sitio_web: formData.sitio_web
-      }).eq("id", formData.id)
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo_${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage
+        .from('sara-assets')
+        .upload(`proveedores/${fileName}`, file, { cacheControl: '3600', upsert: false });
       
-      if (!error) { setIsModalOpen(false); fetchData(); }
-    } else {
-      const { error } = await supabase.from("proveedores").insert({
-        razon_social: formData.razon_social,
-        ruc: formData.ruc,
-        direccion: formData.direccion,
-        telefono: formData.telefono,
-        sitio_web: formData.sitio_web,
-        user_id: user?.id,
-        estado: true
-      })
+      if (error) throw error;
       
-      if (!error) { setIsModalOpen(false); fetchData(); }
+      const { data } = supabase.storage.from('sara-assets').getPublicUrl(`proveedores/${fileName}`);
+      setValue('logo_url', data.publicUrl);
+    } catch (err: any) {
+      alert("Error subiendo logotipo: " + err.message);
+    } finally {
+      setUploadingLogo(false);
     }
-    setIsSubmitting(false)
-  }
+  };
 
-  const filteredGlobal = catalogoGlobal.filter(p => p.razon_social?.toLowerCase().includes(searchTerm.toLowerCase()))
+  const openNewModal = () => {
+    setEditingId(null);
+    reset({
+      razon_social: "", ruc: "", dias_credito: 0, contacto_vendedor: "", telefono: "", email: "", sitio_web: "", logo_url: ""
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (prov: any) => {
+    setEditingId(prov.id);
+    reset({
+      razon_social: prov.razon_social,
+      ruc: prov.ruc || "",
+      dias_credito: prov.dias_credito || 0,
+      contacto_vendedor: prov.contacto_vendedor || "",
+      telefono: prov.telefono || "",
+      email: prov.email || "",
+      sitio_web: prov.sitio_web || "",
+      logo_url: prov.logo_url || "",
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (window.confirm("¿Está seguro que desea eliminar este proveedor?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    reset();
+  };
+
+  const onSubmit = (data: ProveedorFormValues) => {
+    saveMutation.mutate(data);
+  };
 
   return (
-    <div className="p-4 sm:p-8 w-full w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="p-6 md:p-10 w-full min-h-screen bg-gray-50/50">
+      <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Building2 className="text-emerald-500" />
+          <h1 className="text-3xl font-black text-gray-800 flex items-center gap-3">
+            <Building2 className="text-brand-sage" size={32} />
             Directorio de Proveedores
           </h1>
-          <p className="text-slate-500 mt-1">Gestiona tus proveedores o importa desde el catálogo global.</p>
+          <p className="text-gray-500 mt-1 text-sm font-medium">
+            Gestiona tus proveedores o importa desde el catálogo global.
+          </p>
         </div>
-        <button onClick={openCreate} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
-          <Plus size={20} /> Nuevo Proveedor
+        <button
+          onClick={openNewModal}
+          className="bg-brand-sage text-white font-semibold py-2.5 px-6 rounded-xl hover:shadow-md hover:bg-brand-dark transition-all flex items-center gap-2 h-fit"
+        >
+          <Plus size={18} />
+          Nuevo Proveedor
         </button>
       </div>
 
       <div className="flex bg-slate-100 p-1 rounded-xl mb-6 max-w-md">
-        <button onClick={() => setTab('mis-proveedores')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${tab === 'mis-proveedores' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setTab('mis-proveedores')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${tab === 'mis-proveedores' ? 'bg-white text-brand-sage shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           Mis Proveedores ({misProveedores.length})
         </button>
-        <button onClick={() => setTab('catalogo')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${tab === 'catalogo' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+        <button onClick={() => setTab('catalogo')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${tab === 'catalogo' ? 'bg-white text-brand-sage shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <Globe size={16} /> Catálogo Global
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-500" size={40} /></div>
-      ) : (
-        <>
-          {tab === 'mis-proveedores' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {misProveedores.length === 0 ? (
-                <div className="col-span-full bg-white rounded-2xl p-8 text-center border border-slate-200">
-                  <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><Building2 className="text-slate-400" size={24} /></div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-2">No tienes proveedores</h3>
-                  <p className="text-slate-500 mb-6">Puedes crear uno nuevo o importar desde el catálogo global.</p>
-                  <button onClick={() => setTab('catalogo')} className="text-emerald-600 font-bold hover:underline">Explorar Catálogo</button>
-                </div>
-              ) : (
-                misProveedores.map(p => (
-                  <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col">
-                    <div className="flex items-start justify-between mb-4">
-                      {p.logo_url ? (
-                        <div className="w-16 h-16 bg-slate-50 rounded-lg p-2 border border-slate-100 flex items-center justify-center shrink-0">
-                          <Image src={p.logo_url} alt="Logo" width={96} height={96} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized={true} />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
-                          <Building2 size={24} />
-                        </div>
-                      )}
-                      <div className="flex gap-1">
-                        <button onClick={() => openEdit(p)} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"><Edit size={16} /></button>
-                        <button onClick={() => handleDelete(p.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={16} /></button>
-                      </div>
-                    </div>
-                    <h3 className="font-bold text-slate-900 line-clamp-2 min-h-[48px]">{p.razon_social}</h3>
-                    <div className="mt-auto pt-4 space-y-2 text-sm text-slate-500">
-                      {p.telefono && <p>📞 {p.telefono}</p>}
-                      {p.sitio_web && <a href={p.sitio_web} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-emerald-600 hover:underline"><LinkIcon size={14} /> {new URL(p.sitio_web).hostname.replace('www.','')}</a>}
-                    </div>
-                  </div>
-                ))
-              )}
+      {tab === 'mis-proveedores' && (
+        <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-900/5 overflow-hidden">
+          <div className="p-5 border-b border-gray-100 bg-gray-50/80">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Buscar por empresa, RUC o contacto..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-sage/20 focus:border-brand-sage outline-none transition-all shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          )}
+          </div>
 
-          {tab === 'catalogo' && (
-            <div className="space-y-6">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input type="text" placeholder="Buscar en catálogo oficial..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500" />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredGlobal.map(p => {
-                  // Verificar si ya lo tiene agregado
-                  const yaAgregado = misProveedores.some(mi => mi.razon_social === p.razon_social)
-                  
-                  return (
-                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col items-center text-center">
-                      {p.logo_url ? (
-                        <div className="h-20 w-full mb-4 flex items-center justify-center p-2">
-                          <Image src={p.logo_url} alt="Logo" width={96} height={96} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized={true} />
-                        </div>
-                      ) : (
-                        <div className="h-20 w-20 mb-4 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
-                          <Building2 size={32} />
-                        </div>
-                      )}
-                      <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-2 min-h-[40px]">{p.razon_social}</h4>
-                      <p className="text-[10px] text-slate-400 mb-4 uppercase tracking-wider">{p.sitio_web ? new URL(p.sitio_web).hostname.replace('www.','') : 'PROVEEDOR OFICIAL'}</p>
-                      
-                      <div className="mt-auto w-full">
-                        {yaAgregado ? (
-                          <div className="w-full py-2.5 bg-slate-50 text-emerald-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1">
-                            <CheckCircle2 size={14} /> Ya en tu lista
+          {loadingMis ? (
+            <div className="p-12 flex justify-center text-gray-400">
+              <Loader2 className="animate-spin" size={32} />
+            </div>
+          ) : filteredMis.length === 0 ? (
+            <div className="p-12 text-center text-gray-500">
+              <Building2 className="mx-auto text-gray-300 mb-3" size={48} />
+              <p className="text-lg font-medium">No tienes proveedores</p>
+              <p className="text-sm mt-2">Puedes crear uno nuevo o importar desde el catálogo global.</p>
+              <button onClick={() => setTab('catalogo')} className="text-brand-sage font-bold hover:underline mt-4">Explorar Catálogo</button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 w-24">Logo</th>
+                    <th className="px-6 py-4">Razón Social</th>
+                    <th className="px-6 py-4">RUC / NIT</th>
+                    <th className="px-6 py-4">Contacto</th>
+                    <th className="px-6 py-4">Teléfono / Correo</th>
+                    <th className="px-6 py-4 text-center">Crédito</th>
+                    <th className="px-6 py-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredMis.map((prov: any) => (
+                    <tr key={prov.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="py-4 px-6">
+                        {prov.logo_url ? (
+                          <div className="h-12 w-24 flex items-center justify-start">
+                            <Image src={prov.logo_url} alt="Logo" width={96} height={48} className="object-contain mix-blend-multiply" unoptimized={true} />
                           </div>
                         ) : (
-                          <button onClick={() => handleAddFromGlobal(p)} className="w-full py-2.5 border border-slate-200 hover:border-emerald-500 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 text-xs font-bold rounded-xl transition-all">
-                            + Añadir a mis proveedores
-                          </button>
+                          <div className="h-10 w-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
+                            <Building2 size={20} />
+                          </div>
                         )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="font-bold text-slate-800">{prov.razon_social}</div>
+                        {prov.sitio_web && (
+                          <a href={prov.sitio_web} target="_blank" rel="noreferrer" className="text-xs text-blue-500 hover:underline">
+                            {prov.sitio_web.replace('https://', '')}
+                          </a>
+                        )}
+                      </td>
+                      <td className="py-4 px-6 text-slate-600 font-mono text-xs">{prov.ruc || "-"}</td>
+                      <td className="py-4 px-6 text-slate-600 font-medium">{prov.contacto_vendedor || "-"}</td>
+                      <td className="py-4 px-6 text-slate-600">
+                        <div>{prov.telefono || "-"}</div>
+                        <div className="text-[11px] text-slate-400">{prov.email}</div>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${prov.dias_credito > 0 ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/20' : 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/20'}`}>
+                          {prov.dias_credito > 0 ? `${prov.dias_credito} días` : 'Contado'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleEdit(prov)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all" title="Editar">
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(prov.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Eliminar">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* Modal Custom */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
-              <h3 className="font-black text-slate-900">{isEditing ? 'Editar Proveedor' : 'Nuevo Proveedor'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={20} /></button>
+      {tab === 'catalogo' && (
+        <div className="space-y-6">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input type="text" placeholder="Buscar en catálogo oficial..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-sage" />
+          </div>
+          
+          {loadingGlobal ? (
+             <div className="p-12 flex justify-center text-gray-400">
+               <Loader2 className="animate-spin" size={32} />
+             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredGlobal.map((p: any) => {
+                const yaAgregado = misProveedores.some((mi: any) => mi.razon_social === p.razon_social)
+                
+                return (
+                  <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col items-center text-center">
+                    {p.logo_url ? (
+                      <div className="h-20 w-full mb-4 flex items-center justify-center p-2">
+                        <Image src={p.logo_url} alt="Logo" width={96} height={96} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized={true} />
+                      </div>
+                    ) : (
+                      <div className="h-20 w-20 mb-4 bg-slate-50 rounded-full flex items-center justify-center text-slate-300">
+                        <Building2 size={32} />
+                      </div>
+                    )}
+                    <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-2 min-h-[40px]">{p.razon_social}</h4>
+                    <p className="text-[10px] text-slate-400 mb-4 uppercase tracking-wider">{p.sitio_web ? new URL(p.sitio_web).hostname.replace('www.','') : 'PROVEEDOR OFICIAL'}</p>
+                    
+                    <div className="mt-auto w-full">
+                      {yaAgregado ? (
+                        <div className="w-full py-2.5 bg-slate-50 text-brand-sage text-xs font-bold rounded-xl flex items-center justify-center gap-1">
+                          <CheckCircle2 size={14} /> Ya en tu lista
+                        </div>
+                      ) : (
+                        <button onClick={() => handleAddFromGlobal(p)} className="w-full py-2.5 border border-slate-200 hover:border-brand-sage text-slate-600 hover:text-brand-dark hover:bg-brand-sage/10 text-xs font-bold rounded-xl transition-all">
+                          + Añadir a mis proveedores
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Razón Social *</label>
-                <input required type="text" value={formData.razon_social} onChange={e => setFormData({...formData, razon_social: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">RUC</label>
-                  <input type="text" value={formData.ruc} onChange={e => setFormData({...formData, ruc: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" />
+          )}
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                <Briefcase className="text-brand-sage" size={20} />
+                {editingId ? "Editar Proveedor" : "Registrar Proveedor"}
+              </h2>
+              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-xl transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+              <div className="grid grid-cols-2 gap-5 mb-8">
+                <div className="col-span-2 flex items-center gap-4 mb-2">
+                  <div className="h-16 w-24 bg-white border border-gray-200 rounded-xl flex items-center justify-center overflow-hidden shadow-sm p-1 shrink-0">
+                    {watch("logo_url") ? (
+                      <Image src={watch("logo_url")!} alt="Logo" width={96} height={64} className="max-w-full max-h-full object-contain mix-blend-multiply" unoptimized />
+                    ) : (
+                      <Building2 size={24} className="text-gray-300" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Logotipo de la Empresa</label>
+                    <div className="relative">
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" disabled={uploadingLogo} />
+                      <button type="button" className="px-4 py-2 bg-white border border-gray-200 text-xs font-bold text-slate-700 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2 shadow-sm">
+                        {uploadingLogo ? <Loader2 size={14} className="animate-spin text-brand-sage" /> : <Upload size={14} className="text-slate-500" />}
+                        {uploadingLogo ? "Subiendo..." : "Subir Logotipo"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Razón Social <span className="text-red-500">*</span></label>
+                  <input 
+                    {...register("razon_social")}
+                    placeholder="Ej. Materiales El Constructor"
+                    className={`w-full border ${errors.razon_social ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
+                  />
+                  {errors.razon_social && <p className="text-red-500 text-xs mt-1 font-medium">{errors.razon_social.message as string}</p>}
+                </div>
+                
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
-                  <input type="text" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" />
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">RUC / NIT</label>
+                  <input 
+                    {...register("ruc")}
+                    placeholder="0999999999001"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-sage outline-none transition-all shadow-sm"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Días de Crédito (0 = Contado)</label>
+                  <input 
+                    type="number"
+                    {...register("dias_credito", { valueAsNumber: true })}
+                    className={`w-full border ${errors.dias_credito ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
+                  />
+                  {errors.dias_credito && <p className="text-red-500 text-xs mt-1 font-medium">{errors.dias_credito.message as string}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Contacto Comercial</label>
+                  <input 
+                    {...register("contacto_vendedor")}
+                    placeholder="Nombre del vendedor"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-sage outline-none transition-all shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Teléfono</label>
+                  <input 
+                    {...register("telefono")}
+                    placeholder="099 999 9999"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-brand-sage outline-none transition-all shadow-sm"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Correo Electrónico</label>
+                  <input 
+                    {...register("email")}
+                    placeholder="ventas@empresa.com"
+                    className={`w-full border ${errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
+                  />
+                  {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email.message as string}</p>}
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Dirección Web (Opcional)</label>
+                  <input 
+                    {...register("sitio_web")}
+                    placeholder="https://www.empresa.com"
+                    className={`w-full border ${errors.sitio_web ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-brand-sage'} rounded-xl px-4 py-2.5 focus:ring-2 outline-none transition-all shadow-sm`}
+                  />
+                  {errors.sitio_web && <p className="text-red-500 text-xs mt-1 font-medium">{errors.sitio_web.message as string}</p>}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
-                <input type="text" value={formData.direccion} onChange={e => setFormData({...formData, direccion: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Sitio Web</label>
-                <input type="url" value={formData.sitio_web} onChange={e => setFormData({...formData, sitio_web: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" placeholder="https://" />
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50">
-                  {isSubmitting ? 'Guardando...' : 'Guardar Proveedor'}
+              
+              <div className="flex justify-end gap-3 pt-5 border-t border-gray-100">
+                <button 
+                  type="button"
+                  onClick={closeModal}
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={isSubmitting || saveMutation.isPending}
+                  className="px-5 py-2.5 bg-brand-sage text-white font-semibold rounded-xl hover:opacity-90 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                >
+                  {(isSubmitting || saveMutation.isPending) && <Loader2 size={16} className="animate-spin" />}
+                  {(isSubmitting || saveMutation.isPending) ? "Guardando..." : "Guardar Proveedor"}
                 </button>
               </div>
             </form>
@@ -267,5 +524,5 @@ export default function MisProveedores() {
         </div>
       )}
     </div>
-  )
+  );
 }

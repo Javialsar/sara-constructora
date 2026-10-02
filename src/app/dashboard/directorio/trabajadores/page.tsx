@@ -1,173 +1,362 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
+import { Wrench, Plus, Search, X, Loader2, Edit, Trash2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { HardHat, Phone, Edit, Trash2, X, Plus, Loader2 } from "lucide-react"
+import salariosData from "@/lib/salariosData.json"
+
+type Trabajador = {
+  id: string
+  nombre_completo: string
+  cedula: string
+  telefono: string
+  categoria_ocupacional: string
+  jornal_real: number
+  costo_horario: number
+  estado: boolean
+}
 
 export default function MisTrabajadores() {
-  const [trabajadores, setTrabajadores] = useState<any[]>([])
+  const [trabajadores, setTrabajadores] = useState<Trabajador[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
   
-  const [formData, setFormData] = useState({ id: "", nombre_completo: "", tipo_obrero: "", tarifa_hora: 0, telefono: "" })
-  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState({
+    nombre_completo: "",
+    cedula: "",
+    telefono: "",
+    categoria_ocupacional: "",
+    jornal_real: 0,
+    costo_horario: 0
+  })
 
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  
   const supabase = createClient()
-
-  const fetchTrabajadores = async () => {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data } = await supabase.from("trabajadores").select("*").eq("user_id", user.id).order('created_at', { ascending: false })
-      if (data) setTrabajadores(data)
-    }
-    setLoading(false)
-  }
 
   useEffect(() => {
     fetchTrabajadores()
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  const fetchTrabajadores = async () => {
+    setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    
-    if (isEditing) {
-      const { error } = await supabase.from("trabajadores").update({
-        nombre_completo: formData.nombre_completo,
-        tipo_obrero: formData.tipo_obrero,
-        tarifa_hora: formData.tarifa_hora,
-        telefono: formData.telefono
-      }).eq("id", formData.id)
-      
-      if (error) alert("Error: " + error.message)
-      else { setIsModalOpen(false); fetchTrabajadores(); }
-    } else {
-      const { error } = await supabase.from("trabajadores").insert({
-        nombre_completo: formData.nombre_completo,
-        tipo_obrero: formData.tipo_obrero,
-        tarifa_hora: formData.tarifa_hora,
-        telefono: formData.telefono,
-        user_id: user?.id,
-        estado: 'activo'
-      })
-      
-      if (error) alert("Error: " + error.message)
-      else { setIsModalOpen(false); fetchTrabajadores(); }
+    if (user) {
+      const { data, error } = await supabase
+        .from('trabajadores')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        
+      if (!error && data) {
+        setTrabajadores(data)
+      }
     }
-    setIsSubmitting(false)
+    setLoading(false)
+  }
+
+  const closeModal = () => {
+    setIsModalOpen(false)
+    setEditingId(null)
+    setFormData({ nombre_completo: "", cedula: "", telefono: "", categoria_ocupacional: "", jornal_real: 0, costo_horario: 0 })
+  }
+
+  const handleEdit = (trab: Trabajador) => {
+    setFormData({
+      nombre_completo: trab.nombre_completo,
+      cedula: trab.cedula || "",
+      telefono: trab.telefono || "",
+      categoria_ocupacional: trab.categoria_ocupacional || "",
+      jornal_real: trab.jornal_real || 0,
+      costo_horario: trab.costo_horario || 0
+    })
+    setEditingId(trab.id)
+    setIsModalOpen(true)
   }
 
   const handleDelete = async (id: string) => {
-    if (confirm("¿Estás seguro de eliminar este obrero?")) {
-      await supabase.from("trabajadores").delete().eq("id", id)
+    if (!confirm("¿Estás seguro de que deseas eliminar este trabajador?")) return
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { error } = await supabase
+      .from('trabajadores')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+      
+    if (!error) {
       fetchTrabajadores()
+    } else {
+      alert("Error al eliminar el trabajador")
     }
   }
 
-  const openEdit = (c: any) => {
-    setFormData({ id: c.id, nombre_completo: c.nombre_completo, tipo_obrero: c.tipo_obrero || "", tarifa_hora: c.tarifa_hora || 0, telefono: c.telefono || "" })
-    setIsEditing(true)
-    setIsModalOpen(true)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setSaving(false)
+      return
+    }
+    
+    if (editingId) {
+      const { error } = await supabase
+        .from('trabajadores')
+        .update({ ...formData, user_id: user.id })
+        .eq('id', editingId)
+        .eq('user_id', user.id)
+        
+      setSaving(false)
+      if (!error) {
+        closeModal()
+        fetchTrabajadores()
+      } else {
+        alert("Error al actualizar el trabajador.")
+        console.error(error)
+      }
+    } else {
+      const { error } = await supabase
+        .from('trabajadores')
+        .insert([{ ...formData, user_id: user.id }])
+
+      setSaving(false)
+      if (!error) {
+        closeModal()
+        fetchTrabajadores()
+      } else {
+        alert("Error al guardar el trabajador. Asegúrate de tener conexión a la base de datos.")
+        console.error(error)
+      }
+    }
   }
 
-  const openCreate = () => {
-    setFormData({ id: "", nombre_completo: "", tipo_obrero: "", tarifa_hora: 0, telefono: "" })
-    setIsEditing(false)
-    setIsModalOpen(true)
-  }
+  const filteredTrabajadores = trabajadores.filter(t => 
+    t.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (t.cedula && t.cedula.includes(searchTerm)) ||
+    (t.categoria_ocupacional && t.categoria_ocupacional.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
 
   return (
-    <div className="p-4 sm:p-8 w-full w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div className="p-4 sm:p-8 w-full space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <HardHat className="text-emerald-500" />
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Wrench className="text-brand-sage" />
             Mano de Obra
           </h1>
-          <p className="text-slate-500 mt-1">Gestiona tus maestros de obra, peones y ayudantes.</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Catálogo de trabajadores, maestros y operarios para el cálculo de APUs.
+          </p>
         </div>
-        <button onClick={openCreate} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
-          <Plus size={20} /> Nuevo Obrero
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-brand-sage text-brand-dark px-4 py-2 rounded-lg font-medium flex items-center gap-2 hover:bg-opacity-90 transition-all shadow-sm"
+          >
+            <Plus size={18} />
+            Registrar Personal
+          </button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-emerald-500" size={40} /></div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Main Card */}
+      <div className="bg-white p-6 rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage">
+        <div className="flex justify-between items-center mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre, cédula o categoría..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-sage w-full sm:w-80"
+            />
+          </div>
+        </div>
+        
+        {/* Table */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="animate-spin text-brand-sage" size={32} />
+          </div>
+        ) : trabajadores.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <Wrench size={48} className="mx-auto mb-3 opacity-20" />
+            <p>El directorio de personal está vacío.</p>
+            <p className="text-sm mt-1">Haz clic en "Registrar Personal" para comenzar.</p>
+          </div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-bold">
-                  <th className="p-4">Obrero</th>
-                  <th className="p-4">Tipo</th>
-                  <th className="p-4">Tarifa / Hr</th>
-                  <th className="p-4">Contacto</th>
-                  <th className="p-4 text-right">Acciones</th>
+            <table className="w-full text-left border-collapse divide-y divide-gray-200">
+              <thead className="bg-slate-100 text-slate-700 border-b border-gray-200 uppercase text-xs">
+                <tr className="border-b border-gray-200 text-sm text-gray-500">
+                  <th className="py-3 px-4 font-semibold">Nombre Completo</th>
+                  <th className="py-3 px-4 font-semibold">Cédula</th>
+                  <th className="py-3 px-4 font-semibold">Categoría Ocupacional</th>
+                  <th className="py-3 px-4 font-semibold text-right">Jornal Real</th>
+                  <th className="py-3 px-4 font-semibold text-right">Costo Horario</th>
+                  <th className="py-3 px-4 font-semibold text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {trabajadores.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-slate-500">No tienes mano de obra registrada.</td></tr>
-                ) : trabajadores.map(t => (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4 font-bold text-slate-900">{t.nombre_completo}</td>
-                    <td className="p-4 text-sm text-slate-600 capitalize">{t.tipo_obrero}</td>
-                    <td className="p-4 font-bold text-emerald-600">${t.tarifa_hora.toFixed(2)}</td>
-                    <td className="p-4 text-sm text-slate-600">
-                      {t.telefono && <span className="flex items-center gap-2"><Phone size={14} className="text-slate-400" /> {t.telefono}</span>}
+              <tbody>
+                {filteredTrabajadores.map(trab => (
+                  <tr key={trab.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td className="py-3 px-4 font-medium text-gray-800">
+                      <div>{trab.nombre_completo}</div>
+                      <div className="text-xs text-gray-400">{trab.telefono}</div>
                     </td>
-                    <td className="p-4 text-right space-x-2">
-                      <button onClick={() => openEdit(t)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><Edit size={18} /></button>
-                      <button onClick={() => handleDelete(t.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={18} /></button>
+                    <td className="py-3 px-4 text-gray-600">{trab.cedula || "-"}</td>
+                    <td className="py-3 px-4 text-gray-600">
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium border border-gray-200">
+                        {trab.categoria_ocupacional}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-800 font-medium text-right">${Number(trab.jornal_real).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-gray-800 font-medium text-right">${Number(trab.costo_horario).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right">
+                      <button onClick={() => handleEdit(trab)} className="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Editar">
+                        <Edit size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(trab.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Eliminar">
+                        <Trash2 size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
-              <h3 className="font-black text-slate-900">{isEditing ? 'Editar Obrero' : 'Nuevo Obrero'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Wrench className="text-brand-sage" size={20} />
+                {editingId ? "Editar Trabajador" : "Registrar Nuevo Trabajador"}
+              </h2>
+              <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={24} />
+              </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre Completo *</label>
-                <input required type="text" value={formData.nombre_completo} onChange={e => setFormData({...formData, nombre_completo: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tipo de Obrero</label>
-                  <select value={formData.tipo_obrero} onChange={e => setFormData({...formData, tipo_obrero: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm bg-white">
-                    <option value="">Seleccionar...</option>
-                    <option value="Maestro">Maestro</option>
-                    <option value="Albañil">Albañil</option>
-                    <option value="Ayudante">Ayudante</option>
-                    <option value="Peón">Peón</option>
-                    <option value="Especialista">Especialista</option>
-                  </select>
+            
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo <span className="text-red-500">*</span></label>
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Ej. Juan Pérez"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.nombre_completo}
+                    onChange={e => setFormData({...formData, nombre_completo: e.target.value})}
+                  />
                 </div>
+                
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tarifa por Hora ($)</label>
-                  <input required type="number" step="0.01" value={formData.tarifa_hora} onChange={e => setFormData({...formData, tarifa_hora: parseFloat(e.target.value)})} className="w-full border-slate-300 rounded-lg text-sm" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cédula de Identidad</label>
+                  <input 
+                    type="text" 
+                    placeholder="0999999999"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.cedula}
+                    onChange={e => setFormData({...formData, cedula: e.target.value})}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                  <input 
+                    type="text" 
+                    placeholder="099 999 9999"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                    value={formData.telefono}
+                    onChange={e => setFormData({...formData, telefono: e.target.value})}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoría Ocupacional <span className="text-red-500">*</span></label>
+                  <input 
+                      required
+                      type="text" 
+                      list="categorias-list"
+                      placeholder="Ej. Albañil, Ayudante, Maestro de Obra..."
+                      className="w-full border-2 border-brand-sage rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none bg-brand-sage/5"
+                      value={formData.categoria_ocupacional}
+                      onChange={e => {
+                        const val = e.target.value;
+                        const found = salariosData.find(s => s.actividad === val);
+                        if (found) {
+                          setFormData({...formData, categoria_ocupacional: val, jornal_real: found.jornal, costo_horario: found.hora});
+                        } else {
+                          setFormData({...formData, categoria_ocupacional: val});
+                        }
+                      }}
+                    />
+                    <datalist id="categorias-list">
+                      {salariosData.map(s => <option key={s.actividad} value={s.actividad} />)}
+                    </datalist>
+                  <p className="text-xs text-gray-500 mt-1">Utilice las categorías oficiales de CAMICON si aplica.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Jornal Real ($/día)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      placeholder="35.15"
+                      className="w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                      value={formData.jornal_real || ''}
+                      onChange={e => setFormData({...formData, jornal_real: parseFloat(e.target.value) || 0})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Costo Horario ($/hora)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      placeholder="4.39"
+                      className="w-full pl-8 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage transition-all outline-none"
+                      value={formData.costo_horario || ''}
+                      onChange={e => setFormData({...formData, costo_horario: parseFloat(e.target.value) || 0})}
+                    />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Teléfono</label>
-                <input type="text" value={formData.telefono} onChange={e => setFormData({...formData, telefono: e.target.value})} className="w-full border-slate-300 rounded-lg text-sm" />
-              </div>
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 text-sm font-bold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-50">
-                  {isSubmitting ? 'Guardando...' : 'Guardar Obrero'}
+              
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button 
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-brand-dark text-white font-medium rounded-lg hover:bg-opacity-90 transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {saving && <Loader2 size={16} className="animate-spin" />}
+                  {saving ? "Guardando..." : "Guardar Trabajador"}
                 </button>
               </div>
             </form>
