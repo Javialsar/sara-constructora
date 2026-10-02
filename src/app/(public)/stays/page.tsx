@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { 
+import { Calculator, 
   Sparkles, 
   Search, 
   MapPin, 
@@ -56,13 +56,13 @@ import {
   UploadCloud,
   Loader2
 } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { Calculator, useRouter, useSearchParams } from "next/navigation"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
-import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
-import { getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
-import { getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
-import { getLogosEmpresa } from "@/lib/services/logosService"
+import { Calculator, getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
+import { Calculator, getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
+import { Calculator, getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
+import { Calculator, getLogosEmpresa } from "@/lib/services/logosService"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
 
 export interface ResenaHuesped {
@@ -1306,6 +1306,13 @@ export default function AirbnbPage() {
                 <Home size={13} />
                 <span>Sara Constructora</span>
               </Link>
+                <Link
+                  href="/login"
+                  className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
+                >
+                  <Calculator size={14} className="text-blue-400" />
+                  <span>SARA APU</span>
+                </Link>
             </nav>
           </div>
 
