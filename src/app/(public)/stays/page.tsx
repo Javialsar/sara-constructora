@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { Calculator, 
+import { Calculator,  
   Sparkles, 
   Search, 
   MapPin, 
@@ -55,14 +55,14 @@ import { Calculator,
   Camera,
   UploadCloud,
   Loader2
-} from "lucide-react"
-import { Calculator, useRouter, useSearchParams } from "next/navigation"
+ } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
-import { Calculator, getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
-import { Calculator, getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
-import { Calculator, getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
-import { Calculator, getLogosEmpresa } from "@/lib/services/logosService"
+import { getCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
+import { getGuestSession, setGuestSession, clearGuestSession, GuestProfile } from "@/lib/services/guestAuth"
+import { getStaysPolicies, StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
+import { getLogosEmpresa } from "@/lib/services/logosService"
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal"
 
 export interface ResenaHuesped {

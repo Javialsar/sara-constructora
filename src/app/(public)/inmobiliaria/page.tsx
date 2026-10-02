@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { getLogosEmpresa } from "@/lib/services/logosService"
-import { 
+import { Calculator,  
   Building2, 
   Search, 
   MapPin, 
@@ -38,7 +38,7 @@ import {
   Sliders,
   HelpCircle,
   Send
-} from "lucide-react"
+ } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
 // Tipos para el modelo inmobiliario
