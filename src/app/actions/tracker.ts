@@ -1,12 +1,12 @@
 "use server"
 
 import { headers } from "next/headers"
-import { createClient } from "@supabase/supabase-js"
-import { getSupabaseServerClient } from "@/lib/supabase/server"
+import { createClient as createSupabaseAdmin } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/server"
 
 export async function pingSession() {
   try {
-    const supabaseUser = await getSupabaseServerClient()
+    const supabaseUser = await createClient()
     const { data: authData } = await supabaseUser.auth.getUser()
     
     // Only track authenticated users
@@ -29,7 +29,7 @@ export async function pingSession() {
     else if (ua.includes('Safari')) navegador = 'Safari'
     else if (ua.includes('Edge')) navegador = 'Edge'
 
-    const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const supabaseAdmin = createSupabaseAdmin(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
     // Check if an active session exists for this user in the last hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
