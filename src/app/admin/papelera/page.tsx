@@ -55,8 +55,11 @@ export default function PapeleraPage() {
     } else if (tablaActual === "trabajadores") {
       titulo = reg.nombre_completo
       subtitulo = reg.identificacion || reg.especialidad || 'Sin especialidad'
-    } else if (tablaActual === "proyectos" || tablaActual === "presupuestos_reales") {
+    } else if (tablaActual === "proyectos") {
       titulo = reg.nombre || reg.titulo || 'Sin nombre'
+      subtitulo = `ID: ${reg.id.split('-')[0]}`
+    } else if (tablaActual === "presupuestos_reales") {
+      titulo = reg.nombre_proyecto || 'Presupuesto sin nombre'
       subtitulo = `ID: ${reg.id.split('-')[0]}`
     }
 
