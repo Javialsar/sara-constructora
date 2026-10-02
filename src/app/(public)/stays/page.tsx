@@ -1,7 +1,62 @@
 "use client"
 import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { ArrowRight, Bath, BedDouble, Bell, Briefcase, Building, Calculator, Calendar, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Compass, Eye, Filter, Home, Key, MapPin, MessageCircle, MessageSquare, Phone, Plus, Search, Settings, Shield, ShieldCheck, Square, Star, TrendingUp, Users, UserPlus, X } from 'lucide-react'
+import { 
+  Calculator,
+  Sparkles, 
+  Search, 
+  MapPin, 
+  Star, 
+  Users, 
+  Bed, 
+  Bath, 
+  Wifi, 
+  Key, 
+  Coffee, 
+  Tv, 
+  Car, 
+  Calendar, 
+  ShieldCheck, 
+  MessageCircle, 
+  Heart, 
+  Share2, 
+  ChevronLeft, 
+  ChevronRight, 
+  X, 
+  ArrowRight, 
+  Check, 
+  Building,
+  Home,
+  Palmtree,
+  Laptop,
+  CheckCircle2,
+  DollarSign,
+  Globe,
+  Compass,
+  Map as MapIcon,
+  LayoutGrid,
+  Columns,
+  CreditCard,
+  Lock,
+  Printer,
+  Download,
+  User,
+  Mail,
+  Phone,
+  FileText,
+  BadgeCheck,
+  Receipt,
+  MessageSquareQuote,
+  ThumbsUp,
+  Copy,
+  ChevronDown,
+  Info,
+  PlusCircle,
+  LogOut,
+  Camera,
+  UploadCloud,
+  Loader2
+} from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import AirbnbMapWrapper from "@/components/ui/AirbnbMapWrapper"
 import AirbnbDateRangePicker from "@/components/ui/AirbnbDateRangePicker"
@@ -1242,7 +1297,7 @@ export default function AirbnbPage() {
                 href="/inmobiliaria" 
                 className="px-3 py-1.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
               >
-                <Building size={14} className="text-emerald-400" />
+                <Calculator size={14} className="text-emerald-400" />
                 <span>Portal Inmobiliario</span>
               </Link>
               <Link 

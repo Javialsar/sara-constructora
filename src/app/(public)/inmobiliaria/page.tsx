@@ -2,7 +2,43 @@
 import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { getLogosEmpresa } from "@/lib/services/logosService"
-import { ArrowRight, Bath, BedDouble, Bell, Briefcase, Building, Building2, Calculator, Calendar, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Compass, Eye, Filter, Home, Key, MapPin, MessageCircle, MessageSquare, Phone, Plus, Search, Settings, Shield, ShieldCheck, Square, Star, TrendingUp, Users, UserPlus, X } from 'lucide-react'
+import { 
+  Building2, 
+  Search, 
+  MapPin, 
+  Bed, 
+  Bath, 
+  Maximize2, 
+  Car, 
+  Phone, 
+  MessageCircle, 
+  Calculator, 
+  CheckCircle2, 
+  Compass, 
+  ArrowRight, 
+  Filter, 
+  X, 
+  Eye, 
+  Tag, 
+  Layers, 
+  Home, 
+  Calendar, 
+  Share2, 
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  HardHat,
+  Sparkles,
+  Award,
+  Briefcase,
+  PlusCircle,
+  Plus,
+  Star,
+  Sliders,
+  HelpCircle,
+  Send
+} from "lucide-react"
 import { Button } from "@/components/ui/Button"
 
 // Tipos para el modelo inmobiliario
