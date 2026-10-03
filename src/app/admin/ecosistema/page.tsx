@@ -82,8 +82,8 @@ export default function EcosistemaDashboard() {
                   <Building2 size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">SARA Constructora</h2>
-                  <p className="text-xs font-semibold text-blue-600 tracking-wider uppercase">SaaS APU</p>
+                  <h2 className="text-lg font-bold text-gray-900">SARA-APU</h2>
+                  <p className="text-xs font-semibold text-blue-600 tracking-wider uppercase">SARA Constructora</p>
                 </div>
               </div>
             </div>
