@@ -2,31 +2,9 @@
 import React, { useState, useEffect } from "react"
 import { Palette, UploadCloud, Save, CheckCircle2, Image as ImageIcon, Building, FileText, User, Phone, Mail, Globe, MapPin, Map } from "lucide-react"
 
-// Componente de Mapa importado dinámicamente para evitar errores SSR de Leaflet en Next.js
+// Importamos el componente mapa entero dinámicamente para evitar SSR
 import dynamic from 'next/dynamic'
-const MapContainer = dynamic(() => import('react-leaflet').then(mod => mod.MapContainer), { ssr: false })
-const TileLayer = dynamic(() => import('react-leaflet').then(mod => mod.TileLayer), { ssr: false })
-const Marker = dynamic(() => import('react-leaflet').then(mod => mod.Marker), { ssr: false })
-const useMapEvents = dynamic(() => import('react-leaflet').then(mod => mod.useMapEvents), { ssr: false })
-import 'leaflet/dist/leaflet.css'
-
-// Arreglo para los íconos de Leaflet en Next.js
-import L from 'leaflet'
-const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-
-function LocationMarker({ position, setPosition }: { position: [number, number], setPosition: (p: [number, number]) => void }) {
-  const map = useMapEvents({
-    click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng])
-    },
-  })
-  return position === null ? null : <Marker position={position} icon={DefaultIcon} />
-}
+const MapComponent = dynamic(() => import('@/components/MapComponent'), { ssr: false })
 
 export default function MarcaPage() {
   const [logoBase64, setLogoBase64] = useState<string | null>(null)
@@ -179,10 +157,7 @@ export default function MarcaPage() {
             <p className="text-sm text-slate-500 mb-4">Haz clic en el mapa para fijar el pin en la ubicación exacta de tu constructora.</p>
             <div className="w-full h-64 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 z-0 relative">
               {isClient && (
-                <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%', zIndex: 1 }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <LocationMarker position={position} setPosition={setPosition} />
-                </MapContainer>
+                <MapComponent position={position} setPosition={setPosition} />
               )}
             </div>
           </div>
