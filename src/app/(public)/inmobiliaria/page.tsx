@@ -545,7 +545,8 @@ export default function InmobiliariaPage() {
 
           {/* Acciones */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Botón Publicar Propiedad */}
+            <ThemeToggle />
+              {/* Botón Publicar Propiedad */}
             <Link
               href="/inmobiliaria/auth"
               className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black shadow-lg shadow-amber-500/20 transition-all border border-amber-300/40 active:scale-[0.98]"

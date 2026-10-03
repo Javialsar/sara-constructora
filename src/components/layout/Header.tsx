@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
+import ThemeToggle from "@/components/ThemeToggle"
 import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
