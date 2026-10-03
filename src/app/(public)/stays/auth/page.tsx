@@ -336,7 +336,7 @@ export default function AirbnbAuthPage() {
   // URL para el botón Volver
   const backTarget = returnContext.stayId && returnContext.action === "reservar"
     ? `/stays?stayId=${returnContext.stayId}&action=reservar`
-    : returnContext.redirect || "/stays"
+    : "/stays"
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans relative">
