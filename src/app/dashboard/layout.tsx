@@ -54,6 +54,7 @@ export default function DashboardLayout({
       title: "CUENTA",
       items: [
         { href: "/dashboard/planes", label: "Mi Plan / Suscripción", icon: Settings },
+        { href: "/dashboard/marca", label: "Marca y Reportes", icon: Palette },
           { href: "/dashboard/perfil", label: "Seguridad y Accesos", icon: ShieldAlert },
       ]
     }
