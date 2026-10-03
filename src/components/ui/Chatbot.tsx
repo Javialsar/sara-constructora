@@ -2,19 +2,15 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MessageSquare, X, Send, Bot, User, HardHat } from "lucide-react"
-import { useChat } from "@ai-sdk/react"
 
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
-  // Vercel AI SDK
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-    initialMessages: [
-      { id: '1', role: 'assistant', content: '¡Hola! Soy SARA-IA, la Asistente de Inteligencia Artificial del ecosistema. Si eres cliente puedo contarte sobre tus proyectos, si no, pregúntame lo que necesites.' }
-    ]
-  })
+  const [messages, setMessages] = useState<{id: string, role: 'user'|'assistant', content: string}[]>([
+    { id: '1', role: 'assistant', content: '¡Hola! Soy SARA-IA, la Asistente Oficial del Ecosistema. ¿En qué te puedo ayudar?' }
+  ])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -23,6 +19,31 @@ export default function Chatbot() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    const userMessage = { id: Date.now().toString(), role: 'user' as const, content: input.trim() }
+    setMessages(prev => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [...messages, userMessage] })
+      });
+      const data = await res.json();
+      
+      setMessages(prev => [...prev, { id: Date.now().toString() + 'bot', role: 'assistant', content: data.text }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now().toString() + 'err', role: 'assistant', content: "Lo siento, hubo un error conectando con el cerebro de SARA-IA." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <>
@@ -132,7 +153,7 @@ export default function Chatbot() {
                     placeholder="Pregúntale a SARA..."
                     className="flex-1 bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-950 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white rounded-full px-4 py-2.5 text-sm outline-none transition-all border dark:border-slate-700"
                     value={input}
-                    onChange={handleInputChange}
+                    onChange={(e) => setInput(e.target.value)}
                   />
                   <button 
                     type="submit"
@@ -144,7 +165,7 @@ export default function Chatbot() {
                 </form>
                 <div className="text-center mt-2 flex items-center justify-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span>
-                  <span className="text-[9px] text-slate-400 font-medium tracking-wide">MODELO: GPT-4o-Mini Integrado</span>
+                  <span className="text-[9px] text-slate-400 font-medium tracking-wide">MOTOR IA SARA</span>
                 </div>
               </div>
             </motion.div>
