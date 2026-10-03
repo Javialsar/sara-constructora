@@ -103,9 +103,10 @@ export default function AdminLayout({
   const allNavGroups = [
     {
       title: "PANEL PRINCIPAL",
-      items: [
-        { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-      ]
+        items: [
+          { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+          { href: "/admin/ecosistema", label: "Salud Ecosistema", icon: Activity },
+        ]
     },
     {
       title: "MIS PROYECTOS",
@@ -155,8 +156,9 @@ export default function AdminLayout({
     },
     {
       title: "PORTAL WEB",
-      items: [
-        { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
+        items: [
+          { href: "/admin/centro-notificaciones", label: "Difusión Global", icon: Send },
+          { href: "/admin/noticias", label: "Noticias", icon: Newspaper },
         { href: "/admin/faq", label: "Preguntas FAQ", icon: HelpCircle },
         { href: "/admin/testimonios", label: "Testimonios", icon: MessageSquareQuote },
       ]
