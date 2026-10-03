@@ -11,6 +11,42 @@ const getCompanyMembrete = () => {
   return membreteBase64;
 };
 
+
+const getCompanyProfile = () => {
+  if (typeof window !== 'undefined') {
+    const profileStr = localStorage.getItem('my_company_profile');
+    if (profileStr) {
+      try { return JSON.parse(profileStr).formData; } catch(e) {}
+    }
+  }
+  return null;
+};
+
+const addCompanyFooter = (doc: jsPDF) => {
+  const profile = getCompanyProfile();
+  if (!profile) return;
+  
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  for(let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    doc.setFont("helvetica", "normal");
+    
+    let footerParts = [];
+    if (profile.nombre_comercial) footerParts.push(profile.nombre_comercial);
+    if (profile.ruc) footerParts.push(`RUC: ${profile.ruc}`);
+    if (profile.direccion) footerParts.push(`Dir: ${profile.direccion.substring(0,50)}`);
+    if (profile.telefono) footerParts.push(`Tel: ${profile.telefono}`);
+    if (profile.email) footerParts.push(`Email: ${profile.email}`);
+    if (profile.website) footerParts.push(`Web: ${profile.website}`);
+    
+    if (footerParts.length > 0) {
+      doc.text(footerParts.join('  |  '), 14, doc.internal.pageSize.height - 10);
+    }
+  }
+};
+
 export const generatePresupuestoGeneralPDF = (options: any) => {
   try {
     const {

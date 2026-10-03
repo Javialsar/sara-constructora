@@ -47,7 +47,8 @@ export default function DashboardLayout({
       items: [
         { href: "/dashboard/directorio/clientes", label: "Mis Clientes (CRM)", icon: Users },
         { href: "/dashboard/directorio/proveedores", label: "Mis Proveedores", icon: Briefcase },
-        { href: "/dashboard/directorio/trabajadores", label: "Mi Personal de Obra", icon: Wrench }
+        { href: "/dashboard/directorio/trabajadores", label: "Mi Personal de Obra", icon: Wrench },
+        { href: "/dashboard/importador", label: "Importar Excel Masivo", icon: Database }
       ]
     },
     {
