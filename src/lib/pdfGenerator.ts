@@ -2,6 +2,15 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
 
+
+const getCompanyMembrete = () => {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('my_company_logo');
+    if (custom) return custom;
+  }
+  return membreteBase64;
+};
+
 export const generatePresupuestoGeneralPDF = (options: any) => {
   try {
     const {
@@ -22,7 +31,7 @@ export const generatePresupuestoGeneralPDF = (options: any) => {
 
     const doc = new jsPDF();
     
-    doc.addImage(membreteBase64, 'PNG', 50, 5, 110, 40)
+    doc.addImage(getCompanyMembrete(), 'PNG', 50, 5, 110, 40)
     
     doc.setFontSize(18); doc.setFont("helvetica", "bold"); doc.text("PRESUPUESTO DE OBRA", 14, 55)
     doc.setFontSize(10); doc.setFont("helvetica", "bold")
@@ -119,7 +128,7 @@ export const generateAPUsPDF = (options: any) => {
         if (!isFirstPage) {
           doc.addPage();
         }
-        doc.addImage(membreteBase64, 'PNG', 50, 10, 110, 40)
+        doc.addImage(getCompanyMembrete(), 'PNG', 50, 10, 110, 40)
         doc.setFontSize(16); doc.setFont("helvetica", "bold"); 
         doc.text("ANÁLISIS DE PRECIOS UNITARIOS (APUS)", 14, 60)
         startY = 75;
@@ -206,7 +215,7 @@ export const generateExplosionPDF = (options: any) => {
     }
 
     const doc = new jsPDF();
-    doc.addImage(membreteBase64, 'PNG', 50, 5, 110, 40)
+    doc.addImage(getCompanyMembrete(), 'PNG', 50, 5, 110, 40)
     
     doc.setFontSize(18); doc.setFont("helvetica", "bold"); 
     doc.text(options.title || "EXPLOSIÓN DE INSUMOS", 14, 55)

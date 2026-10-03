@@ -10,7 +10,7 @@ import {
   Wrench,
   ChevronDown,
   ChevronRight,
-  Settings, ShieldAlert,
+  Settings, ShieldAlert, Palette,
   LogOut,
   Menu,
   Box,
