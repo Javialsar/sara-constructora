@@ -1,5 +1,7 @@
 // @ts-nocheck
 "use client"
+import BimImporterModal from "./components/BimImporterModal"
+import { Cuboid } from "lucide-react"
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -111,6 +113,7 @@ export default function PresupuestosRealesPage() {
 
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
+  const [isBimModalOpen, setIsBimModalOpen] = useState(false)
   const [newPresupuestoData, setNewPresupuestoData] = useState({
     nombre_proyecto: '',
     porcentaje_admin: 10.0,
@@ -2131,7 +2134,14 @@ export default function PresupuestosRealesPage() {
     <div className="p-6 md:p-10 bg-gray-50/50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between mb-8 gap-4">
         <div><h1 className="text-3xl font-black text-brand-dark">Presupuestos APU Reales</h1><p className="text-gray-500">Crea presupuestos detallados por rubros, cantidades de obra y costos indirectos (AIU).</p></div>
-        {userRole === 'admin' && <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:opacity-90 transition-all flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>}
+        {userRole === 'admin' && (
+            <div className="flex gap-3">
+              <button onClick={() => setIsBimModalOpen(true)} className="bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:bg-blue-700 transition-all flex items-center gap-2">
+                <Cuboid size={20} /> Importación BIM
+              </button>
+              <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:opacity-90 transition-all flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>
+            </div>
+          )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-900/5 mb-6 overflow-hidden">
@@ -2546,6 +2556,18 @@ export default function PresupuestosRealesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* MODAL BIM */}
+      {isBimModalOpen && (
+        <BimImporterModal 
+          onClose={() => setIsBimModalOpen(false)}
+          onImport={(data) => {
+            alert(`SARA procesará estos ${data.length} registros y creará un Presupuesto automáticamente. (Fase 2 de Desarrollo)`);
+            setIsBimModalOpen(false);
+            setIsNewModalOpen(true);
+          }}
+        />
       )}
     </div>
   )
