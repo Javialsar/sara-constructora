@@ -24,7 +24,7 @@ import {
   Building2,
   Sparkles,
   CreditCard, DollarSign
-, ShieldAlert, Trash2 } from "lucide-react"
+, ShieldAlert, Trash2 } , Activity, Bell  from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -340,7 +340,11 @@ export default function AdminLayout({
             </button>
             <h2 className="text-lg md:text-xl font-bold text-gray-800">Panel de Control</h2>
           </div>
-          <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4">
+            <button className="relative p-2 text-gray-500 hover:text-brand-dark transition-colors">
+              <Bell size={20} />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            </button>
             <div className="text-sm text-gray-500 font-medium">
               Hola, {userName !== "Administrador" ? userName : ""} <span className="text-xs ml-1 px-2 py-1 bg-gray-100 rounded text-brand-dark font-bold border border-gray-200">{userRole}</span>
             </div>
