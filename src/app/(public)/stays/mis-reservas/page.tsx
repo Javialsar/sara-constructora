@@ -959,7 +959,6 @@ export default function MisReservasPage() {
             {/* -------------------------------------------------------- */}
             <div className="flex-1 space-y-4">
               <div className="flex items-center gap-4">
-          <GlobalNotificationsBell destinatarioTipo="cliente_stays" destinatarioId={guest?.cedula || undefined} />
                 <div className="w-16 h-16 rounded-2xl bg-brand-sage/20 border border-brand-sage/40 text-brand-sage flex items-center justify-center font-bold text-2xl shadow-lg shrink-0">
                   <User size={32} />
                 </div>
