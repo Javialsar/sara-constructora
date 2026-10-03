@@ -344,7 +344,8 @@ export default function AdminLayout({
             <h2 className="text-lg md:text-xl font-bold text-gray-800">Panel de Control</h2>
           </div>
                     <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-500 hover:text-brand-dark transition-colors">
+            <ThemeToggle />
+              <button className="relative p-2 text-gray-500 hover:text-brand-dark transition-colors">
               <Bell size={20} />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             </button>
