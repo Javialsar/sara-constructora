@@ -90,11 +90,16 @@ export default function PresupuestosRealesPage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
       setIsNewModalOpen(false);
       openEditor(data);
       resetNewForm();
+
+      if (bimDataToProcess && bimDataToProcess.length > 0) {
+          await processBimData(data.id, bimDataToProcess);
+          setBimDataToProcess(null);
+      }
     }
   });
 
@@ -114,6 +119,7 @@ export default function PresupuestosRealesPage() {
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   const [isBimModalOpen, setIsBimModalOpen] = useState(false)
+  const [bimDataToProcess, setBimDataToProcess] = useState<any[] | null>(null)
   const [newPresupuestoData, setNewPresupuestoData] = useState({
     nombre_proyecto: '',
     porcentaje_admin: 10.0,
@@ -2563,7 +2569,7 @@ export default function PresupuestosRealesPage() {
         <BimImporterModal 
           onClose={() => setIsBimModalOpen(false)}
           onImport={(data) => {
-            alert(`SARA procesará estos ${data.length} registros y creará un Presupuesto automáticamente. (Fase 2 de Desarrollo)`);
+            setBimDataToProcess(data);
             setIsBimModalOpen(false);
             setIsNewModalOpen(true);
           }}
