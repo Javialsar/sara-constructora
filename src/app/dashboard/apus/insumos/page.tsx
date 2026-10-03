@@ -915,7 +915,7 @@ export default function InsumosPage() {
 
           <div className="p-2 border-t border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
             <span className="text-xs text-gray-500">
-              Mostrando {insumos.length === 0 ? 0 : 1} a {Math.min(startIndex + itemsPerPage, insumos.length)} de {insumos.length} registros
+              Mostrando {insumos.length === 0 ? 0 : 1} a {Math.min(0 + itemsPerPage, insumos.length)} de {insumos.length} registros
             </span>
             <div className="flex items-center gap-1">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1 rounded text-gray-500 hover:bg-gray-200 disabled:opacity-50 transition-colors">‹</button>

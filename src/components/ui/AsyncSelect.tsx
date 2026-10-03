@@ -3,25 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, X } from "lucide-react";
 
-export default function AsyncSelect({
-  table,
-  selectFields,
-  searchColumns,
-  displayFormat,
-  value,
-  onChange,
-  placeholder = "Buscar...",
-  className = "",
-  disabled = false,
-  error = false,
-  extraFilter = null
-}) {
+export default function AsyncSelect(props: any) { const {} = props; {
   const supabase = createClient();
   const [search, setSearch] = useState('');
-  const [options, setOptions] = useState([]);
+  const [options, setOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef(null);
+  const wrapperRef = useRef<any>(null);
 
   // Inicializar valor de búsqueda si cambia el item seleccionado desde afuera
   useEffect(() => {
