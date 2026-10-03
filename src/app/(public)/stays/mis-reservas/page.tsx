@@ -1,4 +1,5 @@
 "use client"
+import GlobalNotificationsBell from "@/components/GlobalNotificationsBell"
 import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
