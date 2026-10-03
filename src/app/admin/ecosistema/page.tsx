@@ -70,7 +70,7 @@ export default function EcosistemaDashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Constructora / APU Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
