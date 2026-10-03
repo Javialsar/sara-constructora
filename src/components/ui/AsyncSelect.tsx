@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, X } from "lucide-react";
 
-export default function AsyncSelect(props: any) { const {} = props; {
+export default function AsyncSelect(props: any) {
+  const { table, selectFields, searchColumns, displayFormat, value, onChange, extraFilter, className = '', placeholder, disabled, error } = props;
   const supabase = createClient();
   const [search, setSearch] = useState('');
   const [options, setOptions] = useState<any[]>([]);
@@ -21,7 +22,7 @@ export default function AsyncSelect(props: any) { const {} = props; {
   }, [value]);
 
   useEffect(() => {
-    function handleClickOutside(event) {
+    function handleClickOutside(event: any) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setIsOpen(false);
       }
@@ -46,7 +47,7 @@ export default function AsyncSelect(props: any) { const {} = props; {
       let query = supabase.from(table).select(selectFields).limit(30);
       
       if (searchColumns.length > 0) {
-        const orQuery = searchColumns.map(col => `${col}.ilike.%${search}%`).join(',');
+        const orQuery = searchColumns.map((col: any) => `${col}.ilike.%${search}%`).join(',');
         query = query.or(orQuery);
       }
 
@@ -54,7 +55,7 @@ export default function AsyncSelect(props: any) { const {} = props; {
          query = query.filter(extraFilter.column, extraFilter.operator, extraFilter.value);
       }
 
-      const { data } = await query;
+      const { data } = await (query as any);
       if (data) setOptions(data);
       setLoading(false);
     }, 350);
