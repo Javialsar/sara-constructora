@@ -587,7 +587,7 @@ export default function CotizadorPage() {
                     table="clientes"
                     selectFields="id, nombre, apellido, email"
                     searchColumns={['nombre', 'apellido', 'email']}
-                    displayFormat={(c) => c ? `${c.nombre} ${c.apellido}` : ''}
+                    displayFormat={(c: any) => c ? `${c.nombre} ${c.apellido}` : ''}
                     value={selectedClienteId ? { id: selectedClienteId, nombre: cotizacion.nombreCliente?.split(' ')[0] || '', apellido: cotizacion.nombreCliente?.split(' ').slice(1).join(' ') || '' } : null}
                     onChange={(selectedClient: any) => {
                       if (selectedClient) {

@@ -1080,7 +1080,7 @@ const renderInsumoRow = (item: any) => (
           </div>
 
           <div className="p-2 border-t border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-2 shrink-0">
-            <span className="text-xs text-gray-500">Mostrando {filteredRubros.length === 0 ? 0 : startIndex + 1} a {Math.min(startIndex + itemsPerPage, filteredRubros.length)} de {filteredRubros.length} registros</span>
+            <span className="text-xs text-gray-500">Mostrando {rubros.length === 0 ? 0 : 1} a {Math.min(startIndex + itemsPerPage, rubros.length)} de {rubros.length} registros</span>
             <div className="flex items-center gap-1">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1 rounded text-gray-500 hover:bg-gray-200 disabled:opacity-50 transition-colors"><ChevronLeft size={16} /></button>
               {getPageNumbers().map(num => (
