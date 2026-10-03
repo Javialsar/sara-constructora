@@ -23,6 +23,31 @@ export default function MarcaPage() {
     direccion: ""
   })
 
+
+  const [isSearchingMap, setIsSearchingMap] = useState(false)
+
+  // Geocoding effect
+  useEffect(() => {
+    if (!formData.direccion || formData.direccion.length < 4) return;
+    
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearchingMap(true)
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.direccion)}&limit=1`);
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)])
+        }
+      } catch (err) {
+        console.error("Geocoding error", err)
+      } finally {
+        setIsSearchingMap(false)
+      }
+    }, 1500) // 1.5 second debounce
+
+    return () => clearTimeout(delayDebounceFn)
+  }, [formData.direccion])
+
   useEffect(() => {
     setIsClient(true)
     const savedLogo = localStorage.getItem("my_company_logo")
@@ -152,7 +177,7 @@ export default function MarcaPage() {
 
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 md:p-8">
              <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-              <Map size={20} className="text-indigo-500"/> Geolocalización de Oficinas
+              <Map size={20} className="text-indigo-500"/> Geolocalización de Oficinas {isSearchingMap && <span className="text-xs font-normal text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full animate-pulse">Buscando...</span>}
             </h2>
             <p className="text-sm text-slate-500 mb-4">Haz clic en el mapa para fijar el pin en la ubicación exacta de tu constructora.</p>
             <div className="w-full h-64 bg-slate-100 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 z-0 relative">

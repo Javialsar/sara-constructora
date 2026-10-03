@@ -1,6 +1,6 @@
 "use client"
-import React from "react"
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import React, { useEffect } from "react"
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
@@ -12,11 +12,21 @@ const DefaultIcon = L.icon({
 });
 
 function LocationMarker({ position, setPosition }: { position: [number, number], setPosition: (p: [number, number]) => void }) {
-  const map = useMapEvents({
+  const map = useMap()
+  
+  // Update map view when position changes externally
+  useEffect(() => {
+    if (position) {
+      map.flyTo(position, map.getZoom())
+    }
+  }, [position, map])
+
+  useMapEvents({
     click(e: any) {
       setPosition([e.latlng.lat, e.latlng.lng])
     },
   })
+  
   return position === null ? null : <Marker position={position} icon={DefaultIcon} />
 }
 
