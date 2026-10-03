@@ -202,21 +202,46 @@ export default function RubrosPage() {
 
   const supabase = createClient()
   
-  const { data: rubros = [], isLoading: loading } = useQuery({
-    queryKey: ['rubros'],
-    queryFn: async () => {
-      const { data } = await supabase.from('rubros').select('*').order('created_at', { ascending: false });
-      return data || [];
-    }
-  });
   const [searchTerm, setSearchTerm] = useState("")
   const [searchCategoryTerm, setSearchCategoryTerm] = useState("")
-  
-  
   
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  const { data: rubrosData, isLoading: loading } = useQuery({
+    queryKey: ['rubros', currentPage, searchTerm, selectedFamilia, selectedSubfamilia],
+    queryFn: async () => {
+      let query = supabase.from('rubros').select('*', { count: 'exact' });
+
+      if (searchTerm) {
+        query = query.or(`nombre.ilike.%${searchTerm}%,codigo.ilike.%${searchTerm}%`);
+      }
+
+      if (selectedSubfamilia) {
+        query = query.eq('subfamilia_id', selectedSubfamilia);
+      } else if (selectedFamilia) {
+        const valid = subfamilias.filter((sf:any) => sf.familia_id === selectedFamilia).map((sf:any)=>sf.id);
+        if (valid.length > 0) {
+          query = query.in('subfamilia_id', valid);
+        } else {
+          query = query.eq('subfamilia_id', 'none');
+        }
+      }
+
+      query = query.order('created_at', { ascending: false });
+
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
+    }
+  });
+
+  const rubros = rubrosData?.data || [];
+  const totalItems = rubrosData?.count || 0;
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   
   const createMutation = useMutation({
@@ -404,16 +429,30 @@ export default function RubrosPage() {
 
   
 
-  let filteredRubros = rubros.filter(r => r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || (r.codigo && r.codigo.toLowerCase().includes(searchTerm.toLowerCase())))
-  
-  const subfsPorFamilia = (fid: string) => subfamilias.filter(sf => sf.familia_id === fid)
-  if (selectedSubfamilia) { filteredRubros = filteredRubros.filter(r => r.subfamilia_id === selectedSubfamilia) }
-  else if (selectedFamilia) { const valid = subfsPorFamilia(selectedFamilia).map(sf=>sf.id); filteredRubros = filteredRubros.filter(r => valid.includes(r.subfamilia_id)) }
+  const subfsPorFamilia = (fid: string) => subfamilias.filter((sf:any) => sf.familia_id === fid)
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const paginatedRubros = rubros;
 
-
-  const totalPages = Math.max(1, Math.ceil(filteredRubros.length / itemsPerPage))
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedRubros = filteredRubros.slice(startIndex, startIndex + itemsPerPage)
+  const fetchFilteredForExport = async () => {
+    let allData: any[] = [];
+    const step = 1000;
+    const reqs = [];
+    for (let i = 0; i < totalItems; i += step) {
+      let query = supabase.from('rubros').select('*');
+      if (searchTerm) query = query.or(`nombre.ilike.%${searchTerm}%,codigo.ilike.%${searchTerm}%`);
+      if (selectedSubfamilia) query = query.eq('subfamilia_id', selectedSubfamilia);
+      else if (selectedFamilia) {
+        const valid = subfamilias.filter((sf:any) => sf.familia_id === selectedFamilia).map((sf:any)=>sf.id);
+        if (valid.length > 0) query = query.in('subfamilia_id', valid);
+        else query = query.eq('subfamilia_id', 'none');
+      }
+      query = query.order('created_at', { ascending: false });
+      reqs.push(query.range(i, i + step - 1));
+    }
+    const results = await Promise.all(reqs);
+    for (const { data } of results) if (data) allData = allData.concat(data);
+    return allData;
+  }
 
   const getPageNumbers = () => {
     const pages = []; const max = 5;
@@ -486,16 +525,17 @@ const renderInsumoRow = (item: any) => (
 
   // Exportar Excel: Resumen General + Recetas Detalladas (APU)
   const exportToExcel = async () => {
-    if (filteredRubros.length === 0) {
+    if (totalItems === 0) {
       alert("No hay rubros para exportar con los filtros seleccionados.");
       return;
     }
     setIsExporting(true);
     try {
-      const recipesMap = await fetchAllRecipesForRubros(filteredRubros);
+      const dataToExport = await fetchFilteredForExport();
+      const recipesMap = await fetchAllRecipesForRubros(dataToExport);
 
       const nombreGrupo = selectedFamilia 
-        ? (familias.find(f => f.id === selectedFamilia)?.nombre || "Grupo Seleccionado")
+        ? (familias.find((f:any) => f.id === selectedFamilia)?.nombre || "Grupo Seleccionado")
         : "Todos los Grupos";
 
       // 1. HOJA DE RESUMEN GENERAL
@@ -505,12 +545,12 @@ const renderInsumoRow = (item: any) => (
         ["REPORTE: CATÁLOGO GENERAL DE RUBROS (RESUMEN)"],
         [`Grupo: ${nombreGrupo.toUpperCase()}`],
         [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
-        [`Total de Rubros: ${filteredRubros.length}`],
+        [`Total de Rubros: ${dataToExport.length}`],
         [],
         ["Nº", "CÓDIGO", "NOMBRE DEL RUBRO", "GRUPO", "UNIDAD", "COSTO DIRECTO ($)"]
       ];
 
-      const dataResumen = filteredRubros.map((r: any, idx: number) => {
+      const dataResumen = dataToExport.map((r: any, idx: number) => {
         const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
         const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
         return [
@@ -529,11 +569,11 @@ const renderInsumoRow = (item: any) => (
         ["ANÁLISIS DE PRECIOS UNITARIOS DETALLADO (RECETAS POR RUBRO)"],
         [`Grupo: ${nombreGrupo.toUpperCase()}`],
         [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
-        [`Total de Rubros Analizados: ${filteredRubros.length}`],
+        [`Total de Rubros Analizados: ${dataToExport.length}`],
         []
       ];
 
-      filteredRubros.forEach((r: any) => {
+      dataToExport.forEach((r: any) => {
         const items = recipesMap[r.id] || [];
 
         const materiales: any[] = [];
@@ -626,13 +666,14 @@ const renderInsumoRow = (item: any) => (
 
   // Exportar PDF: Resumen General + Recetas Detalladas (APU)
   const exportToPDF = async () => {
-    if (filteredRubros.length === 0) {
+    if (totalItems === 0) {
       alert("No hay rubros para exportar con los filtros seleccionados.");
       return;
     }
     setIsExporting(true);
     try {
-      const recipesMap = await fetchAllRecipesForRubros(filteredRubros);
+      const dataToExport = await fetchFilteredForExport();
+      const recipesMap = await fetchAllRecipesForRubros(dataToExport);
       const doc = new jsPDF('landscape');
       const pageWidth = doc.internal.pageSize.getWidth();
       const nombreGrupo = selectedFamilia 
@@ -650,11 +691,11 @@ const renderInsumoRow = (item: any) => (
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Filtro / Grupo: ${nombreGrupo} | Emisión: ${new Date().toLocaleString()} | SARA Constructora`, 14, 51);
-      doc.text(`Total de Rubros: ${filteredRubros.length}`, 14, 56);
+      doc.text(`Total de Rubros: ${dataToExport.length}`, 14, 56);
 
       // 1. TABLA RESUMEN GENERAL
       const tableColumn = ["Nº", "Código", "Nombre del Rubro", "Grupo", "Unidad", "Costo Directo ($)"];
-      const tableRows = filteredRubros.map((r: any, idx: number) => {
+      const tableRows = dataToExport.map((r: any, idx: number) => {
         const sf = subfamilias.find((s: any) => s.id === r.subfamilia_id);
         const fam = sf ? familias.find((f: any) => f.id === sf.familia_id) : null;
         return [
@@ -680,7 +721,7 @@ const renderInsumoRow = (item: any) => (
       doc.addPage();
       let currentY = 15;
 
-      filteredRubros.forEach((r: any) => {
+      dataToExport.forEach((r: any) => {
         const items = recipesMap[r.id] || [];
 
         const materiales: any[] = [];
@@ -950,7 +991,7 @@ const renderInsumoRow = (item: any) => (
             <button onClick={() => { setSelectedFamilia(null); setSelectedSubfamilia(null) }}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex justify-between items-center ${!selectedFamilia ? 'bg-brand-sage text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               <span className="flex items-center gap-2"><Box size={15} /> Todos</span>
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${!selectedFamilia ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{rubros.length}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${!selectedFamilia ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{totalItems}</span>
             </button>
             {familias.filter(f => f.nombre.toLowerCase().includes(searchCategoryTerm.toLowerCase()) || subfsPorFamilia(f.id).some(sf => sf.nombre.toLowerCase().includes(searchCategoryTerm.toLowerCase()))).map(fam => {
               const subs = subfsPorFamilia(fam.id)

@@ -322,21 +322,7 @@ type InsumoFormValues = z.infer<typeof insumoSchema>;
 export default function InsumosPage() {
   const supabase = createClient();
   const queryClient = useQueryClient();
-  const { data: insumos = [], isLoading: loading } = useQuery({
-    queryKey: ['insumos'],
-    queryFn: async () => {
-      const data = await fetchAll('insumos', 'nombre');
-      return data || [];
-    }
-  });
-
-  const [familias, setFamilias] = useState<Familia[]>([])
-  const [subfamilias, setSubfamilias] = useState<Subfamilia[]>([])
-  const [proveedores, setProveedores] = useState<Proveedor[]>([])
-  const [insumoProvMap, setInsumoProvMap] = useState<Record<string, string[]>>({})
-
-  // Vista activa
-  const [vista, setVista] = useState<'catalogo' | 'grupos'>('catalogo')
+  const [totalInsumos, setTotalInsumos] = useState(0);
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState("")
@@ -348,6 +334,63 @@ export default function InsumosPage() {
   // Paginación
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  const { data: insumosData, isLoading: loading } = useQuery({
+    queryKey: ['insumos', currentPage, searchTerm, selectedFamilia, selectedSubfamilia],
+    queryFn: async () => {
+      let query = supabase.from('insumos').select('*', { count: 'exact' });
+
+      if (searchTerm) {
+        query = query.or(`nombre.ilike.%${searchTerm}%,codigo.ilike.%${searchTerm}%`);
+      }
+      
+      if (selectedSubfamilia) {
+        query = query.eq('subfamilia_id', selectedSubfamilia);
+      } else if (selectedFamilia) {
+        const sfIds = subfamilias.filter(sf => sf.familia_id === selectedFamilia).map(sf => sf.id);
+        if (sfIds.length > 0) {
+          query = query.in('subfamilia_id', sfIds);
+        } else {
+          query = query.eq('subfamilia_id', 'none');
+        }
+      }
+
+      query = query.order('nombre', { ascending: true });
+      
+      const from = (currentPage - 1) * itemsPerPage;
+      const to = from + itemsPerPage - 1;
+      query = query.range(from, to);
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+      
+      return { data: data || [], count: count || 0 };
+    }
+  });
+
+  const insumos = insumosData?.data || [];
+  const totalItems = insumosData?.count || 0;
+
+  const { data: insumosCountsData } = useQuery({
+    queryKey: ['insumosCounts'],
+    queryFn: async () => {
+      const { data } = await supabase.from('insumos').select('subfamilia_id');
+      const counts: Record<string, number> = {};
+      (data || []).forEach(i => {
+        if (i.subfamilia_id) counts[i.subfamilia_id] = (counts[i.subfamilia_id] || 0) + 1;
+      });
+      return { counts, total: data?.length || 0 };
+    }
+  });
+
+  const [familias, setFamilias] = useState<Familia[]>([])
+  const [subfamilias, setSubfamilias] = useState<Subfamilia[]>([])
+  const [proveedores, setProveedores] = useState<Proveedor[]>([])
+  const [insumoProvMap, setInsumoProvMap] = useState<Record<string, string[]>>({})
+
+  // Vista activa
+  const [vista, setVista] = useState<'catalogo' | 'grupos'>('catalogo')
+  const [isExporting, setIsExporting] = useState(false);
 
   // Modal insumo
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -520,20 +563,8 @@ export default function InsumosPage() {
     setSelectedFamilia(familiaId); setSelectedSubfamilia(selectedSubfamilia === id ? null : id)
   }
 
-  let filteredInsumos = insumos.filter(i => {
-    const matchSearch = i.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (i.codigo && i.codigo.toLowerCase().includes(searchTerm.toLowerCase()))
-    if (selectedSubfamilia) return matchSearch && i.subfamilia_id === selectedSubfamilia
-    if (selectedFamilia) {
-      const sfIds = subfamilias.filter(sf => sf.familia_id === selectedFamilia).map(sf => sf.id)
-      return matchSearch && sfIds.includes(i.subfamilia_id || '')
-    }
-    return matchSearch
-  })
-
-  const totalPages = Math.max(1, Math.ceil(filteredInsumos.length / itemsPerPage))
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const paginatedInsumos = filteredInsumos.slice(startIndex, startIndex + itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const paginatedInsumos = insumos;
 
   const getPageNumbers = () => {
     const pages = []; const max = 5
@@ -627,78 +658,112 @@ export default function InsumosPage() {
     )
   }
 
+  const fetchFilteredForExport = async () => {
+    let allData: any[] = [];
+    const step = 1000;
+    const reqs = [];
+    for (let i = 0; i < totalItems; i += step) {
+      let query = supabase.from('insumos').select('*');
+      if (searchTerm) query = query.or(`nombre.ilike.%${searchTerm}%,codigo.ilike.%${searchTerm}%`);
+      if (selectedSubfamilia) query = query.eq('subfamilia_id', selectedSubfamilia);
+      else if (selectedFamilia) {
+        const sfIds = subfamilias.filter(sf => sf.familia_id === selectedFamilia).map(sf => sf.id);
+        if (sfIds.length > 0) query = query.in('subfamilia_id', sfIds);
+        else query = query.eq('subfamilia_id', 'none');
+      }
+      query = query.order('nombre', { ascending: true });
+      reqs.push(query.range(i, i + step - 1));
+    }
+    
+    const results = await Promise.all(reqs);
+    for (const { data } of results) if (data) allData = allData.concat(data);
+    return allData;
+  }
+
   // Exportar Excel con Encabezado Institucional
-  const exportToExcel = () => {
-    const headerRows = [
-      ["SARA CONSTRUCTORA S.A."],
-      ["SISTEMA INTEGRADO DE CONTROL OPERATIVO - MÓDULO APU-SARA"],
-      ["REPORTE: CATÁLOGO DE INSUMOS (MATERIALES, MANO DE OBRA, EQUIPOS)"],
-      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
-      [`Total de Registros: ${filteredInsumos.length}`],
-      [],
-      ["Nº", "CÓDIGO", "NOMBRE DEL INSUMO", "TIPO", "SUBGRUPO", "UNIDAD", "PRECIO REF. SIN IVA ($)"]
-    ];
-
-    const dataRows = filteredInsumos.map((i, idx) => {
-      const sf = subfamilias.find(s => s.id === i.subfamilia_id);
-      return [
-        idx + 1,
-        i.codigo || "",
-        i.nombre,
-        i.tipo.toUpperCase(),
-        sf ? sf.nombre : "",
-        i.unidad,
-        Number(i.precio_sin_iva)
+  const exportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      const dataToExport = await fetchFilteredForExport();
+      const headerRows = [
+        ["SARA CONSTRUCTORA S.A."],
+        ["SISTEMA INTEGRADO DE CONTROL OPERATIVO - MÓDULO APU-SARA"],
+        ["REPORTE: CATÁLOGO DE INSUMOS (MATERIALES, MANO DE OBRA, EQUIPOS)"],
+        [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
+        [`Total de Registros: ${dataToExport.length}`],
+        [],
+        ["Nº", "CÓDIGO", "NOMBRE DEL INSUMO", "TIPO", "SUBGRUPO", "UNIDAD", "PRECIO REF. SIN IVA ($)"]
       ];
-    });
 
-    const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Insumos");
-    XLSX.writeFile(wb, "Catalogo_Insumos.xlsx");
+      const dataRows = dataToExport.map((i, idx) => {
+        const sf = subfamilias.find(s => s.id === i.subfamilia_id);
+        return [
+          idx + 1,
+          i.codigo || "",
+          i.nombre,
+          i.tipo.toUpperCase(),
+          sf ? sf.nombre : "",
+          i.unidad,
+          Number(i.precio_sin_iva)
+        ];
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Insumos");
+      XLSX.writeFile(wb, "Catalogo_Insumos.xlsx");
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   // Exportar PDF con Membrete Institucional
-  const exportToPDF = () => {
-    const doc = new jsPDF('landscape');
-    const pageWidth = doc.internal.pageSize.getWidth();
+  const exportToPDF = async () => {
+    setIsExporting(true);
+    try {
+      const dataToExport = await fetchFilteredForExport();
+      const doc = new jsPDF('landscape');
+      const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Membrete Oficial centrado
-    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+      // Membrete Oficial centrado
+      doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
 
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("CATÁLOGO MAESTRO DE INSUMOS", 14, 45);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("CATÁLOGO MAESTRO DE INSUMOS", 14, 45);
 
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
-    doc.text(`Total de registros: ${filteredInsumos.length}`, 14, 56);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Fecha y Hora de Emisión: ${new Date().toLocaleString()} | Sistema SARA Constructora`, 14, 51);
+      doc.text(`Total de registros: ${dataToExport.length}`, 14, 56);
 
-    const tableColumn = ["Nº", "Código", "Nombre del Insumo", "Tipo", "Subgrupo", "Unidad", "Precio Ref. ($)"];
-    const tableRows = filteredInsumos.map((i, idx) => {
-      const sf = subfamilias.find(s => s.id === i.subfamilia_id);
-      return [
-        idx + 1,
-        i.codigo || "—",
-        i.nombre,
-        i.tipo.toUpperCase(),
-        sf ? sf.nombre : "—",
-        i.unidad,
-        `$${Number(i.precio_sin_iva).toFixed(4)}`
-      ];
-    });
+      const tableColumn = ["Nº", "Código", "Nombre del Insumo", "Tipo", "Subgrupo", "Unidad", "Precio Ref. ($)"];
+      const tableRows = dataToExport.map((i, idx) => {
+        const sf = subfamilias.find(s => s.id === i.subfamilia_id);
+        return [
+          idx + 1,
+          i.codigo || "—",
+          i.nombre,
+          i.tipo.toUpperCase(),
+          sf ? sf.nombre : "—",
+          i.unidad,
+          `$${Number(i.precio_sin_iva).toFixed(4)}`
+        ];
+      });
 
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 61,
-      theme: 'grid',
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [0, 71, 63] } // Brand dark / sage
-    });
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 61,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [0, 71, 63] } // Brand dark / sage
+      });
 
-    doc.save("Catalogo_Insumos.pdf");
+      doc.save("Catalogo_Insumos.pdf");
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   // ---- RENDER VISTA CATÁLOGO ----
@@ -713,11 +778,11 @@ export default function InsumosPage() {
           <p className="text-gray-500 text-sm mt-0.5">Gestión centralizada de Materiales, Equipos y Recursos.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={exportToExcel} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a Excel">
-            <FileSpreadsheet size={16} /> Excel
+          <button onClick={exportToExcel} disabled={isExporting} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm disabled:opacity-50" title="Exportar a Excel">
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />} Excel
           </button>
-          <button onClick={exportToPDF} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm" title="Exportar a PDF">
-            <Download size={16} /> PDF
+          <button onClick={exportToPDF} disabled={isExporting} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm disabled:opacity-50" title="Exportar a PDF">
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} PDF
           </button>
           <button onClick={() => setVista('grupos')} className="border border-gray-300 text-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-white transition-colors text-sm flex items-center gap-2 shadow-sm">
             <Layers size={15} /> Grupos
@@ -741,7 +806,7 @@ export default function InsumosPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex justify-between items-center
                 ${!selectedFamilia ? 'bg-brand-sage text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
               <span className="flex items-center gap-2"><Box size={15} /> Todos</span>
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${!selectedFamilia ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{insumos.length}</span>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${!selectedFamilia ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{insumosCountsData?.total || 0}</span>
             </button>
             {familias.map(fam => {
               const subs = subfsPorFamilia(fam.id)

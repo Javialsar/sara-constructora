@@ -41,6 +41,7 @@ import {
   Send
 } from "lucide-react"
 import { Button } from "@/components/ui/Button"
+import { submitSolicitudInmobiliaria } from "@/app/actions/leads"
 
 // Tipos para el modelo inmobiliario
 export interface Inmueble {
@@ -286,22 +287,41 @@ export default function InmobiliariaPage() {
   const [mapHighlight, setMapHighlight] = useState<boolean>(false)
   
   const [preguntaTexto, setPreguntaTexto] = useState("")
+  const [isSubmittingPregunta, setIsSubmittingPregunta] = useState(false)
   const [preguntasInmueble, setPreguntasInmueble] = useState<any[]>([
     { id: 'p1', autor: "Usuario Interesado", fecha: new Date(Date.now() - 86400000).toISOString(), texto: "¿El precio es negociable?", respuesta: null }
   ])
 
-  const handleEnviarPregunta = () => {
+  const handleEnviarPregunta = async () => {
     if (!preguntaTexto.trim() || !selectedInmueble) return
-    const nuevaPregunta = {
-      id: Date.now().toString(),
-      autor: "Usuario",
-      fecha: new Date().toISOString(),
-      texto: preguntaTexto,
-      respuesta: null
+    setIsSubmittingPregunta(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('texto', preguntaTexto)
+      formData.append('inmueble_id', selectedInmueble.id)
+      
+      const result = await submitSolicitudInmobiliaria(formData)
+      
+      if (result.error) {
+        alert(result.error)
+      } else {
+        const nuevaPregunta = {
+          id: Date.now().toString(),
+          autor: "Usuario",
+          fecha: new Date().toISOString(),
+          texto: preguntaTexto,
+          respuesta: null
+        }
+        setPreguntasInmueble([nuevaPregunta, ...preguntasInmueble])
+        setPreguntaTexto("")
+        alert("Pregunta enviada. El propietario recibirá una notificación por WhatsApp o Email.")
+      }
+    } catch (error) {
+      alert("Ocurrió un error al enviar la pregunta.")
+    } finally {
+      setIsSubmittingPregunta(false)
     }
-    setPreguntasInmueble([nuevaPregunta, ...preguntasInmueble])
-    setPreguntaTexto("")
-    alert("Pregunta enviada. El propietario recibirá una notificación por WhatsApp o Email.")
   }
 
   // Desplazamiento automático al mapa al hacer clic en fotos con resaltado y datos del propietario
@@ -1623,11 +1643,11 @@ export default function InmobiliariaPage() {
                   <div className="flex justify-end mt-2">
                     <button
                       onClick={handleEnviarPregunta}
-                      disabled={!preguntaTexto.trim()}
+                      disabled={!preguntaTexto.trim() || isSubmittingPregunta}
                       className="px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 disabled:bg-gray-300 disabled:text-gray-500 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-2 cursor-pointer"
                     >
-                      <span>Enviar Pregunta</span>
-                      <Send size={14} />
+                      <span>{isSubmittingPregunta ? "Enviando..." : "Enviar Pregunta"}</span>
+                      {!isSubmittingPregunta && <Send size={14} />}
                     </button>
                   </div>
                 </div>

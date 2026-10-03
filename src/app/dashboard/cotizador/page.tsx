@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/client"
 import { Settings, Calculator, Save, FileText, CheckCircle2, Download, UserPlus, X } from "lucide-react"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import { membreteBase64 } from "@/lib/membreteBase64"
 import { createClientAccount } from "@/app/admin/clientes/actions"
+import AsyncSelect from "@/components/ui/AsyncSelect"
 
 export default function CotizadorPage() {
   const supabase = createClient();
@@ -80,14 +83,6 @@ export default function CotizadorPage() {
     }
   });
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ['clientes'],
-    queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('*').order('created_at', { ascending: false });
-      return data || [];
-    }
-  });
-
   const { data: historialCotizaciones = [] } = useQuery({
     queryKey: ['historial_cotizaciones'],
     queryFn: async () => {
@@ -155,9 +150,96 @@ export default function CotizadorPage() {
   const pdfRef = useRef<HTMLDivElement>(null)
   
   const handleExportPDF = () => {
-    // Usamos el diálogo de impresión nativo del navegador,
-    // que tiene soporte perfecto para CSS y permite "Guardar como PDF".
-    window.print();
+    const doc = new jsPDF('portrait');
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Membrete Oficial centrado
+    doc.addImage(membreteBase64, 'PNG', (pageWidth - 110) / 2, 5, 110, 32);
+
+    // Título Principal
+    doc.setFontSize(15);
+    doc.setFont("helvetica", "bold");
+    doc.text("COTIZACIÓN ESTIMADA DE PROYECTO", pageWidth / 2, 45, { align: 'center' });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Cliente: ${cotizacion.nombreCliente || "No especificado"}`, 14, 55);
+    doc.text(`Proyecto: ${cotizacion.nombreProyecto || "No especificado"}`, 14, 61);
+    doc.text(`Área de Construcción: ${cotizacion.areaConstruccion} m²`, 14, 67);
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 14, 73);
+
+    // Tabla de Parámetros del Proyecto
+    const projectParams = [
+      [{ content: 'CONDICIONANTES DEL SITIO Y ESTRUCTURA', colSpan: 2, styles: { fillColor: [230, 230, 230], fontStyle: 'bold' } }],
+      ["Topografía", cotizacion.pendiente],
+      ["Tipo de Suelo", cotizacion.suelo],
+      ["Accesibilidad", cotizacion.accesibilidad],
+      ["Niveles / Pisos", cotizacion.pisos],
+      ["Sistema Estructural", cotizacion.estructura],
+      [{ content: 'ARQUITECTURA Y DISTRIBUCIÓN', colSpan: 2, styles: { fillColor: [230, 230, 230], fontStyle: 'bold' } }],
+      ["Acabados", cotizacion.acabados],
+      ["Cuartos Master", cotizacion.cuartosMaster.toString()],
+      ["Cuartos Normales", cotizacion.cuartosNormales.toString()],
+      ["Baños Completos", cotizacion.banosCompletos.toString()],
+      ["Medios Baños", cotizacion.mediosBanos.toString()],
+      ["Cocina", cotizacion.cocina],
+      ["Lavandería", cotizacion.lavanderia ? "Sí" : "No"],
+      [{ content: 'OBRAS EXTERIORES Y EQUIPAMIENTO', colSpan: 2, styles: { fillColor: [230, 230, 230], fontStyle: 'bold' } }],
+      ["Cerramiento Perimetral (m)", cotizacion.cerramientoMl.toString()],
+      ["Garaje / Estacionamiento", cotizacion.garaje],
+      ["Climatización", cotizacion.climatizacion],
+      ["Cisterna Subt. y Bomba", cotizacion.cisterna ? "Sí" : "No"],
+      ["Piscina", cotizacion.piscina ? "Sí" : "No"],
+    ];
+
+    autoTable(doc, {
+      startY: 80,
+      head: [["Parámetro", "Valor Seleccionado"]],
+      body: projectParams as any,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 71, 63] },
+      styles: { fontSize: 9 }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 10;
+
+    if (!resultados) {
+      doc.save(`Cotizacion_${cotizacion.nombreCliente || 'Proyecto'}.pdf`);
+      return;
+    }
+    
+    if (currentY > 200) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    // Tabla de Costos
+    const costsData = [
+      [{ content: 'MÓDULO 1: CONSULTORÍA Y DISEÑO', colSpan: 2, styles: { fillColor: [230, 230, 230], fontStyle: 'bold' } }],
+      ["Diseño Arquitectónico", `$${resultados.honorariosArq.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Diseño Estructural", `$${resultados.honorariosEst.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Estudio de Suelos (Geotecnia)", `$${resultados.honorariosGeotecnia.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Diseño Eléctrico", `$${resultados.honorariosElec.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Diseño Hidrosanitario", `$${resultados.honorariosHidro.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Levantamiento Topográfico", `$${resultados.honorariosTop.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      [{ content: 'TOTAL CONSULTORÍA', styles: { fontStyle: 'bold' } }, { content: `$${resultados.totalHonorarios.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
+      [{ content: 'MÓDULO 2: EJECUCIÓN DE OBRA', colSpan: 2, styles: { fillColor: [230, 230, 230], fontStyle: 'bold' } }],
+      ["Costo Base de Construcción", `$${resultados.desgloseObra.base.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      ["Costo Extras y Equipamiento", `$${resultados.desgloseObra.extras.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
+      [{ content: 'TOTAL OBRA', styles: { fontStyle: 'bold' } }, { content: `$${resultados.costoObra.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
+      [{ content: 'GRAN TOTAL ESTIMADO', styles: { fillColor: [0, 71, 63], textColor: [255, 255, 255], fontStyle: 'bold' } }, { content: `$${(resultados.totalHonorarios + resultados.costoObra).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, styles: { fillColor: [0, 71, 63], textColor: [255, 255, 255], fontStyle: 'bold' } }]
+    ];
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [["Descripción", "Costo Estimado"]],
+      body: costsData as any,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 71, 63] },
+      styles: { fontSize: 9 }
+    });
+
+    doc.save(`Cotizacion_${cotizacion.nombreCliente || 'Proyecto'}.pdf`);
   }
 
   
@@ -501,24 +583,24 @@ export default function CotizadorPage() {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Seleccionar Cliente</label>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <select 
-                    value={selectedClienteId} 
-                    onChange={e => {
-                      setSelectedClienteId(e.target.value)
-                      const selectedClient = clientes.find(c => c.id === e.target.value)
+                  <AsyncSelect
+                    table="clientes"
+                    selectFields="id, nombre, apellido, email"
+                    searchColumns={['nombre', 'apellido', 'email']}
+                    displayFormat={(c) => c ? `${c.nombre} ${c.apellido}` : ''}
+                    value={selectedClienteId ? { id: selectedClienteId, nombre: cotizacion.nombreCliente?.split(' ')[0] || '', apellido: cotizacion.nombreCliente?.split(' ').slice(1).join(' ') || '' } : null}
+                    onChange={(selectedClient: any) => {
                       if (selectedClient) {
+                        setSelectedClienteId(selectedClient.id)
                         setCotizacion({...cotizacion, nombreCliente: `${selectedClient.nombre} ${selectedClient.apellido}`})
                       } else {
+                        setSelectedClienteId("")
                         setCotizacion({...cotizacion, nombreCliente: ''})
                       }
-                    }} 
-                    className="flex-1 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-sage bg-white min-w-0"
-                  >
-                    <option value="">-- Seleccionar o crear nuevo --</option>
-                    {clientes.map(c => (
-                      <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
-                    ))}
-                  </select>
+                    }}
+                    placeholder="-- Buscar cliente... --"
+                    className="flex-1 min-w-0"
+                  />
                   <button 
                     onClick={() => setIsCreateModalOpen(true)}
                     className="shrink-0 bg-brand-sage text-brand-dark px-4 py-2 rounded-lg hover:brightness-105 font-bold flex items-center justify-center gap-2"

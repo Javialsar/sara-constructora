@@ -1,6 +1,7 @@
 // @ts-nocheck
 "use client"
 import BimImporterModal from "./components/BimImporterModal"
+import RecipeModal from "./components/RecipeModal"
 import { Cuboid } from "lucide-react"
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,27 +15,11 @@ import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } 
 import { generatePresupuestoGeneralExcel, generateExplosionExcel } from "@/lib/excelGenerator"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
+import AsyncSelect from "@/components/ui/AsyncSelect"
 
 
-const defaultFormulas = {
-  dmob1: "$smob * $pmob1 / 100",
-  cmob: "$smob + $dmob1",
-  dmaq1: "$cmob * $pmaq1 / 100",
-  cmaq: "$smaq + $dmaq1",
-  dmat1: "$smat * $pmat1 / 100",
-  cmat: "$smat + $dmat1",
-  cdir: "$cmat + $cmob + $cmaq",
-  sggen: "$cdir * $ggen / 100",
-  sgas1: "$cdir * $pgas1 / 100",
-  sgas2: "$cdir * $pgas2 / 100",
-  sgas3: "$cdir * $pgas3 / 100",
-  cgas: "$sggen + $sgas1 + $sgas2 + $sgas3",
-  cnet: "$cdir + $sggen + $sgas1 + $sgas2 + $sgas3",
-  simp: "$cdir * $pimp / 100",
-  cimp: "$cdir + $simp",
-  sutil: "$cdir * $util / 100",
-  granTotal: "$cnet + $sutil + $simp"
-};
+import { defaultFormulas, calcularTotalesPresupuesto } from "@/lib/calculadoras/presupuestos";
+
 
 const presupuestoSchema = z.object({
   nombre_proyecto: z.string().min(2, "Seleccione un proyecto"),
@@ -68,23 +53,10 @@ export default function PresupuestosRealesPage() {
     }
   });
 
-  const { data: proyectosCRM = [] } = useQuery({
-    queryKey: ['proyectosCRM'],
-    queryFn: async () => {
-      const { data } = await supabase.from('proyectos').select('id, nombre, cliente_id, cliente:clientes(id, nombre, apellido, email)').order('created_at', { ascending: false });
-      return data || [];
-    }
-  });
+  const proyectosCRM: any[] = [];
+  const clientesCRM: any[] = [];
 
-  const { data: clientesCRM = [] } = useQuery({
-    queryKey: ['clientesCRM'],
-    queryFn: async () => {
-      const { data } = await supabase.from('clientes').select('id, nombre, apellido, email').order('nombre', { ascending: true });
-      return data || [];
-    }
-  });
-
-  const createMutation = useMutation({
+const createMutation = useMutation({
     mutationFn: async (values: PresupuestoFormValues) => {
       const { data, error } = await supabase.from('presupuestos_reales').insert([values]).select('*, cliente:clientes(id, nombre, apellido, email)').single();
       if (error) throw error;
@@ -103,7 +75,7 @@ export default function PresupuestosRealesPage() {
     }
   });
 
-  const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<PresupuestoFormValues>({
+  const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, setValue: setNewValue, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<PresupuestoFormValues>({
     resolver: zodResolver(presupuestoSchema),
     defaultValues: { nombre_proyecto: '', porcentaje_admin: 10.0, porcentaje_imprevistos: 5.0, porcentaje_utilidad: 10.0, estado: 'borrador' }
   });
@@ -656,93 +628,12 @@ export default function PresupuestosRealesPage() {
   }
 
   const calcTotales = () => {
-    let smaq = 0;
-    let smob = 0;
-    let smat = 0;
-
-    let sumaSubtotales = 0; presupuestoRubros.forEach(pr => sumaSubtotales += Number(pr.subtotal || 0));
-    presupuestoRubros.forEach(pr => {
-      const q = Number(pr.cantidad_obra || 0);
-      const items = rubrosRecipes[pr.id] || [];
-      items.forEach(item => {
-        const ism = Array.isArray(item.insumo) ? item.insumo[0] : item.insumo;
-        if (!ism) return;
-        const cost = Number(item.cantidad) * Number(item.precio_sin_iva_snapshot) * q;
-        if (ism.tipo === 'material') smat += cost;
-        else if (ism.tipo === 'mano_de_obra') smob += cost;
-        else if (ism.tipo === 'equipo' || ism.tipo === 'herramienta_menor') smaq += cost;
-      });
+    return calcularTotalesPresupuesto({
+      presupuestoRubros,
+      rubrosRecipes,
+      currentPresupuesto,
+      indForm
     });
-
-
-    if (smat === 0 && smob === 0 && smaq === 0 && sumaSubtotales > 0) {
-      // Fallback: si las recetas internas fallan o no existen en este presupuesto antiguo, se traslada todo el costo directo a materiales para no romper las matematicas
-      smat = sumaSubtotales;
-    }
-
-    const ind = { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(currentPresupuesto?.indirectos_config || {}), ...(indForm || {}) };
-    const f = ind.formulas || defaultFormulas;
-
-    const evalFormula = (formulaStr, varsObj) => {
-      try {
-        let s = String(formulaStr || '');
-        // Sort keys by length descending to prevent partial replacements (e.g. replacing $cmat before $cmat1 if they existed)
-        const sortedKeys = Object.keys(varsObj).sort((a, b) => b.length - a.length);
-        for (const k of sortedKeys) {
-          s = s.split('$' + k).join(varsObj[k]);
-        }
-        s = s.replace(/[^0-9+\-*/().]/g, '');
-        if (!s) return 0;
-        return new Function('return ' + s)() || 0;
-      } catch (e) {
-        return 0;
-      }
-    };
-
-    let vars = {
-       smob, smaq, smat,
-       pmob1: Number(ind.pmob1)||0, pmaq1: Number(ind.pmaq1)||0, pmat1: Number(ind.pmat1)||0,
-       ggen: Number(ind.ggen)||0, pgas1: Number(ind.pgas1)||0, pgas2: Number(ind.pgas2)||0, pgas3: Number(ind.pgas3)||0,
-       pimp: Number(ind.pimp)||0, util: Number(ind.util)||0
-    };
-
-    const dmob1 = evalFormula(f.dmob1, vars); vars.dmob1 = dmob1;
-    const cmob = evalFormula(f.cmob, vars); vars.cmob = cmob;
-
-    const dmaq1 = evalFormula(f.dmaq1, vars); vars.dmaq1 = dmaq1;
-    const cmaq = evalFormula(f.cmaq, vars); vars.cmaq = cmaq;
-
-    const dmat1 = evalFormula(f.dmat1, vars); vars.dmat1 = dmat1;
-    const cmat = evalFormula(f.cmat, vars); vars.cmat = cmat;
-
-    const costoDirectoTotal = evalFormula(f.cdir, vars); vars.cdir = costoDirectoTotal;
-
-    const sggen = evalFormula(f.sggen, vars); vars.sggen = sggen;
-    const sgas1 = evalFormula(f.sgas1, vars); vars.sgas1 = sgas1;
-    const sgas2 = evalFormula(f.sgas2, vars); vars.sgas2 = sgas2;
-    const sgas3 = evalFormula(f.sgas3, vars); vars.sgas3 = sgas3;
-
-    const totalGastosGenerales = evalFormula(f.cgas, vars); vars.cgas = totalGastosGenerales;
-    const cnet = evalFormula(f.cnet, vars); vars.cnet = cnet;
-
-    const simp = evalFormula(f.simp, vars); vars.simp = simp;
-    const cimp = evalFormula(f.cimp, vars); vars.cimp = cimp;
-    const sutil = evalFormula(f.sutil, vars); vars.sutil = sutil;
-
-    const granTotal = evalFormula(f.granTotal, vars); vars.granTotal = granTotal;
-
-    // Resumen variables para UI
-    const a = totalGastosGenerales;
-    const i = simp;
-    const u = sutil;
-    return { 
-      costoDirectoTotal, a, i, u, granTotal, 
-      smaq, smob, smat, 
-      dmaq1, dmob1, dmat1, 
-      cmaq, cmob, cmat, 
-      sggen, sgas1, sgas2, sgas3, 
-      totalGastosGenerales, cnet, simp, sutil
-    }
   }
 
   const savePresupuesto = async () => {
@@ -2034,103 +1925,22 @@ export default function PresupuestosRealesPage() {
         />
         
         {/* Modal Editar Receta del Proyecto */}
-                {isRecipeModalOpen && currentRecipeRubro && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-gray-50 rounded-2xl w-full max-w-6xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
-              <div className="p-6 border-b bg-white flex justify-between items-start">
-                <div>
-                  <h3 className="text-2xl font-black text-brand-dark flex items-center gap-2">
-                    <Edit3 className="text-brand-sage" size={24}/> {currentRecipeRubro.codigo_rubro} - {currentRecipeRubro.nombre_rubro}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">Estás modificando la receta (APU) <strong>solo para este proyecto</strong>.</p>
-                </div>
-                <button onClick={() => { setIsRecipeModalOpen(false); fetchPresupuestoRubros(currentPresupuesto.id); }} className="text-gray-400 hover:text-red-500 p-2"><X size={24}/></button>
-              </div>
-              
-              <div className="flex flex-col lg:flex-row grow overflow-hidden p-6 gap-6">
-                <div className="lg:w-2/3 bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden flex flex-col">
-                  <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-                    <h4 className="font-bold text-gray-800">Receta / Insumos del Rubro</h4>
-                  </div>
-                  <div className="overflow-y-auto grow p-0">
-                    <table className="w-full text-sm text-left divide-y divide-gray-200">
-                      <thead className="bg-slate-100 text-slate-700 border-b border-gray-200">
-                        <tr><th className="p-3">Insumo</th><th className="p-3 text-right">Cant/Rendimiento</th><th className="p-3 text-right">Costo U.</th><th className="p-3 text-right">Total</th><th className="p-3"></th></tr>
-                      </thead>
-                      <tbody>
-                        {renderGroupedInsumos(rubrosRecipes[currentRecipeRubro.id], true)}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="lg:w-1/3 flex flex-col gap-6 overflow-y-auto">
-                  {/* Resumen Card */}
-                  <div className="bg-brand-dark rounded-xl shadow-lg p-6 text-white shrink-0">
-                    <h2 className="text-xl font-bold mb-4 text-brand-sage border-b border-white/10 pb-2">Precio Unitario</h2>
-                    
-                    <div className="space-y-3 mb-6">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">Total Materiales</span>
-                        <span className="font-mono">
-                          ${rubrosRecipes[currentRecipeRubro.id]?.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'material').reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">Total Mano Obra</span>
-                        <span className="font-mono">
-                          ${rubrosRecipes[currentRecipeRubro.id]?.filter(r => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra').reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">Total Equipos (+ Herr.)</span>
-                        <span className="font-mono">
-                          ${rubrosRecipes[currentRecipeRubro.id]?.filter(r => ['equipo', 'herramienta_menor'].includes((Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo)).reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-white/10 pt-4 flex justify-between items-end">
-                      <span className="text-sm font-bold text-gray-300">Costo Directo<br/>Total</span>
-                      <span className="text-3xl font-black text-brand-sage">
-                        ${rubrosRecipes[currentRecipeRubro.id]?.reduce((acc, curr) => acc + (curr.cantidad * curr.precio_sin_iva_snapshot), 0).toFixed(2) || '0.00'}
-                      </span>
-                    </div>
-                  </div>
-                    <button 
-                      onClick={handleSyncRecipeToMaster}
-                      className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors shadow-lg"
-                    >
-                      <Save size={18} /> Sincronizar al Banco Maestro
-                    </button>
-
-                  {/* Búsqueda Card */}
-                  {userRole === 'admin' && (
-                  <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-4 shrink-0 flex flex-col h-96">
-                    <h4 className="font-bold mb-4 text-brand-dark">Agregar Insumo a la Receta</h4>
-                    <input type="text" placeholder="Buscar catálogo maestro..." value={insumoSearch} onChange={e => setInsumoSearch(e.target.value)} className="w-full border p-2 rounded mb-4 shadow-sm" />
-                    <div className="space-y-2 relative grow overflow-y-auto">
-                        {searchingInsumos && <div className="absolute inset-0 bg-white/80 flex justify-center pt-4 z-10"><Loader2 className="animate-spin text-brand-sage" /></div>}
-                        {allInsumos.map(ins => (
-                          <div key={ins.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm flex justify-between items-center shadow-sm hover:border-brand-sage transition-colors">
-                            <div>
-                              <div className="font-bold text-gray-800 leading-tight">{ins.nombre}</div>
-                              <div className="text-[10px] text-gray-400 font-mono mt-0.5">{ins.codigo}</div>
-                              <div className="text-xs text-brand-dark font-medium mt-1">${Number(ins.precio_sin_iva).toFixed(4)} / {ins.unidad}</div>
-                            </div>
-                            <button onClick={() => handleAddInsumoToRecipe(ins)} className="bg-brand-sage text-white p-2 rounded transition-colors hover:bg-brand-dark shadow-sm"><Plus size={16}/></button>
-                          </div>
-                        ))}
-                        {allInsumos.length === 0 && insumoSearch.length >= 2 && !searchingInsumos && (
-                          <div className="text-center py-4 text-gray-400 text-sm">No se encontraron insumos.</div>
-                        )}
-                      </div>
-                  </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+        {isRecipeModalOpen && (
+          <RecipeModal
+            currentRecipeRubro={currentRecipeRubro}
+            setIsRecipeModalOpen={setIsRecipeModalOpen}
+            fetchPresupuestoRubros={fetchPresupuestoRubros}
+            currentPresupuestoId={currentPresupuesto?.id}
+            rubrosRecipes={rubrosRecipes}
+            renderGroupedInsumos={renderGroupedInsumos}
+            handleSyncRecipeToMaster={handleSyncRecipeToMaster}
+            userRole={userRole}
+            insumoSearch={insumoSearch}
+            setInsumoSearch={setInsumoSearch}
+            searchingInsumos={searchingInsumos}
+            allInsumos={allInsumos}
+            handleAddInsumoToRecipe={handleAddInsumoToRecipe}
+          />
         )}
       </div>
     )
@@ -2254,10 +2064,16 @@ export default function PresupuestosRealesPage() {
             <form onSubmit={handleNewSubmit(submitNewPresupuesto)} className="p-6 space-y-4">
                 <div>
                   <label className="block text-xs font-bold mb-1">Proyecto</label>
-                  <select {...registerNew("nombre_proyecto")} className={`w-full border rounded p-2 ${newErrors.nombre_proyecto ? 'border-red-500' : ''}`}>
-                    <option value="" disabled>-- Seleccione --</option>
-                    {proyectosCRM.map((p: any) => <option key={p.id} value={p.nombre}>{p.nombre} {p.cliente ? `(${p.cliente.nombre} ${p.cliente.apellido})` : ''}</option>)}
-                  </select>
+                  <AsyncSelect
+    table="proyectos"
+    selectFields="id, nombre, cliente_id, cliente:clientes(id, nombre, apellido, email)"
+    searchColumns={['nombre']}
+    displayFormat={(p) => p ? `${p.nombre} ${p.cliente ? `(${p.cliente.nombre} ${p.cliente.apellido})` : ''}` : ''}
+    value={null}
+    onChange={(p) => setNewValue("nombre_proyecto", p ? p.nombre : "")}
+    placeholder="-- Buscar proyecto... --"
+    className={`w-full ${newErrors.nombre_proyecto ? 'border-red-500' : ''}`}
+  />
                   {newErrors.nombre_proyecto && <p className="text-red-500 text-xs">{newErrors.nombre_proyecto.message}</p>}
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -2346,18 +2162,25 @@ export default function PresupuestosRealesPage() {
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Seleccionar Proyecto de "MIS PROYECTOS"
                   </label>
-                  <select
-                    value={cloneProyectoCrmId}
-                    onChange={(e) => handleSelectCrmProjectForClone(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
-                  >
-                    <option value="">-- Selecciona un proyecto existente --</option>
-                    {proyectosCRM.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} {p.cliente ? `(Cliente: ${p.cliente.nombre} ${p.cliente.apellido})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <AsyncSelect
+    table="proyectos"
+    selectFields="id, nombre, cliente_id, cliente:clientes(id, nombre, apellido, email)"
+    searchColumns={['nombre']}
+    displayFormat={(p) => p ? `${p.nombre} ${p.cliente ? `(${p.cliente.nombre} ${p.cliente.apellido})` : ''}` : ''}
+    value={cloneProyectoCrmId ? { id: cloneProyectoCrmId, nombre: cloneNombreProyecto } : null}
+    onChange={(p) => {
+      if (p) {
+        setCloneProyectoCrmId(p.id);
+        setCloneNombreProyecto(p.nombre);
+        if (p.cliente_id) setCloneClienteId(p.cliente_id);
+      } else {
+        setCloneProyectoCrmId('');
+        setCloneNombreProyecto(cloneSource.nombre_proyecto + ' (Copia)');
+      }
+    }}
+    placeholder="-- Buscar proyecto... --"
+    className="w-full min-w-0"
+  />
                   <p className="text-[11px] text-gray-400 mt-1">
                     Al seleccionar un proyecto, se asignará su nombre y su cliente automáticamente.
                   </p>
@@ -2382,18 +2205,22 @@ export default function PresupuestosRealesPage() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   Cliente Asignado
                 </label>
-                <select
-                  value={cloneClienteId}
-                  onChange={(e) => setCloneClienteId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
-                >
-                  <option value="">-- Sin cliente asignado (o definir luego) --</option>
-                  {clientesCRM.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre} {c.apellido} {c.email ? `(${c.email})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <AsyncSelect
+    table="clientes"
+    selectFields="id, nombre, apellido, email"
+    searchColumns={['nombre', 'apellido', 'email']}
+    displayFormat={(c) => c ? `${c.nombre} ${c.apellido}` : ''}
+    value={cloneClienteId ? { id: cloneClienteId, nombre: 'Cliente', apellido: 'Asignado' } : null}
+    onChange={(c) => {
+      if (c) {
+        setCloneClienteId(c.id);
+      } else {
+        setCloneClienteId('');
+      }
+    }}
+    placeholder="-- Buscar cliente... --"
+    className="w-full min-w-0"
+  />
                 <p className="text-[11px] text-gray-400 mt-1">
                   Puedes cambiar el cliente libremente o asignarlo más adelante.
                 </p>
@@ -2485,18 +2312,25 @@ export default function PresupuestosRealesPage() {
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Seleccionar de "MIS PROYECTOS"
                   </label>
-                  <select
-                    value={metaProyectoCrmId}
-                    onChange={(e) => handleSelectCrmProjectForMeta(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
-                  >
-                    <option value="">-- Selecciona un proyecto existente --</option>
-                    {proyectosCRM.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} {p.cliente ? `(Cliente: ${p.cliente.nombre} ${p.cliente.apellido})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <AsyncSelect
+    table="proyectos"
+    selectFields="id, nombre, cliente_id, cliente:clientes(id, nombre, apellido, email)"
+    searchColumns={['nombre']}
+    displayFormat={(p) => p ? `${p.nombre} ${p.cliente ? `(${p.cliente.nombre} ${p.cliente.apellido})` : ''}` : ''}
+    value={metaProyectoCrmId ? { id: metaProyectoCrmId, nombre: metaNombreProyecto } : null}
+    onChange={(p) => {
+      if (p) {
+        setMetaProyectoCrmId(p.id);
+        setMetaNombreProyecto(p.nombre);
+        if (p.cliente_id) setMetaClienteId(p.cliente_id);
+      } else {
+        setMetaProyectoCrmId('');
+        setMetaNombreProyecto('');
+      }
+    }}
+    placeholder="-- Buscar proyecto... --"
+    className="w-full min-w-0"
+  />
                 </div>
               ) : (
                 <div>
@@ -2518,18 +2352,22 @@ export default function PresupuestosRealesPage() {
                 <label className="block text-xs font-bold text-gray-700 mb-1">
                   Cliente Asignado
                 </label>
-                <select
-                  value={metaClienteId}
-                  onChange={(e) => setMetaClienteId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-xl p-2.5 text-sm bg-white focus:ring-2 focus:ring-brand-sage focus:outline-none"
-                >
-                  <option value="">-- Sin cliente asignado --</option>
-                  {clientesCRM.map((c: any) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre} {c.apellido} {c.email ? `(${c.email})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <AsyncSelect
+    table="clientes"
+    selectFields="id, nombre, apellido, email"
+    searchColumns={['nombre', 'apellido', 'email']}
+    displayFormat={(c) => c ? `${c.nombre} ${c.apellido}` : ''}
+    value={metaClienteId ? { id: metaClienteId, nombre: 'Cliente', apellido: 'Asignado' } : null}
+    onChange={(c) => {
+      if (c) {
+        setMetaClienteId(c.id);
+      } else {
+        setMetaClienteId('');
+      }
+    }}
+    placeholder="-- Buscar cliente... --"
+    className="w-full min-w-0"
+  />
               </div>
 
               {/* Footer acciones */}
