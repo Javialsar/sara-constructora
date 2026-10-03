@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Building2, Home, Compass, Users, Activity, BarChart3, TrendingUp, RefreshCw } from 'lucide-react'
