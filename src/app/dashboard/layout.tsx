@@ -183,6 +183,7 @@ export default function DashboardLayout({
             <div className="text-sm text-gray-500 font-medium">
               Hola, {userName} <span className="text-xs ml-1 px-2 py-1 bg-blue-100 rounded text-blue-800 font-bold border border-blue-200">Pro Plan</span>
             </div>
+            <GlobalNotificationsBell destinatarioTipo="cliente_apu" />
             <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">
               {userInitials}
             </div>

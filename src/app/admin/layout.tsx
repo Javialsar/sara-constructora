@@ -24,7 +24,7 @@ import {
   Building2,
   Sparkles,
   CreditCard, DollarSign
-, ShieldAlert, Trash2 , Activity, Bell } from "lucide-react"
+, ShieldAlert, Trash2 , Activity, Bell } , Send } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 
