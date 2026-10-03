@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link"
 import GlobalNotificationsBell from "@/components/GlobalNotificationsBell"
+import Chatbot from "@/components/ui/Chatbot"
 import ThemeToggle from "@/components/ThemeToggle"
 import { usePathname, useRouter } from "next/navigation"
 import { 
@@ -195,6 +196,7 @@ export default function DashboardLayout({
         <div className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">
           {children}
         </div>
+        <Chatbot />
       </main>
     </div>
   )
