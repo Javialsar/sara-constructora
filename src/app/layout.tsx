@@ -3,6 +3,7 @@ import { Montserrat } from "next/font/google";
 import "./globals.css";
 import Providers from "@/lib/providers";
 import SessionTracker from "@/components/SessionTracker";
+import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -21,8 +22,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "SARA Constructora | Arquitectura e Ingeniería",
   description: "Diseñamos ideas. Construimos futuro. Especialistas en proyectos de ingeniería civil y diseño arquitectónico.",
-  manifest: "/manifest.json",
+  manifest: "/manifests/constructora",
   keywords: "SARA Constructora, Constructora Cariamanga, Constructora en Cariamanga, Constructora Loja, Arquitectura Cariamanga, Arquitectos Cariamanga, Ingeniería Civil Cariamanga, Ingeniería Civil Loja",
+  appleWebApp: { capable: true, title: "SARA", statusBarStyle: "default" },
 };
 
 export default function RootLayout({
@@ -35,6 +37,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
                 <Providers>
           <SessionTracker />
+          <RegisterServiceWorker />
           {children}
         </Providers>
       </body>

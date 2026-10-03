@@ -1,6 +1,13 @@
-import { Metadata } from "next"
+import { Metadata, Viewport } from "next"
+import { manifestPath, PWA_APPS } from "@/lib/pwa/apps"
+
+export const viewport: Viewport = {
+  themeColor: PWA_APPS.inmobiliaria.themeColor,
+}
 
 export const metadata: Metadata = {
+  manifest: manifestPath("inmobiliaria"),
+  appleWebApp: { capable: true, title: "SARA Inmobiliaria", statusBarStyle: "black-translucent" },
   title: "SARA Inmobiliaria | Venta y Arriendo de Propiedades en Cuenca",
   description: "Encuentra casas, departamentos, terrenos y locales en Cuenca y el Austro con SARA Inmobiliaria. Inversión con respaldo constructivo, seguridad jurídica, y asesoría para Crédito VIP y Biess.",
   openGraph: {
