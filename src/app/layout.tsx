@@ -1,7 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
-import PwaRegister from "@/components/PwaRegister"
 import Providers from "@/lib/providers";
 import SessionTracker from "@/components/SessionTracker";
 
@@ -10,6 +9,14 @@ const montserrat = Montserrat({
   subsets: ["latin"],
   display: "swap",
 });
+
+
+export const viewport: Viewport = {
+  themeColor: '#1e3a8a',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "SARA Constructora | Arquitectura e Ingeniería",
@@ -26,8 +33,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={montserrat.variable}>
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
-        <PwaRegister />
-        <Providers>
+                <Providers>
           <SessionTracker />
           {children}
         </Providers>
