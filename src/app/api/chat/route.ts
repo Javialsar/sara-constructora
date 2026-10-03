@@ -1,14 +1,13 @@
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 
 // Evitar cacheo
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
-  const supabase = createRouteHandlerClient({ cookies });
+  const supabase = await createClient();
   
   // 1. Intentar identificar al usuario para darle contexto personalizado
   const { data: { session } } = await supabase.auth.getSession();
