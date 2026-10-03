@@ -1,5 +1,6 @@
 "use client"
 import Link from "next/link"
+import GlobalNotificationsBell from "@/components/GlobalNotificationsBell"
 import { usePathname, useRouter } from "next/navigation"
 import { 
   Calculator,
