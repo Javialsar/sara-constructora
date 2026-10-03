@@ -25,6 +25,7 @@ import {
   Sparkles,
   CreditCard, DollarSign
 , ShieldAlert, Trash2 , Activity, Bell , Send } from "lucide-react"
+import ThemeToggle from "@/components/ThemeToggle"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 

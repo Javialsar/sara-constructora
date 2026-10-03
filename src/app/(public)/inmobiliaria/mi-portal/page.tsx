@@ -1,5 +1,6 @@
 "use client"
 import GlobalNotificationsBell from "@/components/GlobalNotificationsBell"
+import ThemeToggle from "@/components/ThemeToggle"
 import { Shield } from 'lucide-react';
 import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"

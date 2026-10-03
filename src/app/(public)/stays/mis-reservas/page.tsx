@@ -1,5 +1,6 @@
 "use client"
 import GlobalNotificationsBell from "@/components/GlobalNotificationsBell"
+import ThemeToggle from "@/components/ThemeToggle"
 import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
