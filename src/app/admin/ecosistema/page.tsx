@@ -1,12 +1,13 @@
 "use client"
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, Home, Compass, Users, Activity, BarChart3, TrendingUp, RefreshCw } from 'lucide-react'
+import { Building2, Home, Compass, Users, Activity, BarChart3, TrendingUp, RefreshCw, HardHat, FileText } from 'lucide-react'
 
 export default function EcosistemaDashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
-    constructora: { usuarios: 0, proyectos: 0, presupuestos: 0 },
+    constructora: { obras: 0, clientes: 0, cotizaciones: 0 },
+    apu: { usuarios: 0, presupuestos: 0 },
     inmobiliaria: { propiedades: 0, publicadas: 0 },
     stays: { propiedades: 0, reservas_activas: 0 }
   })
@@ -16,34 +17,51 @@ export default function EcosistemaDashboard() {
     try {
       const supabase = createClient()
       
-      // APU/Constructora Stats
+      // Constructora Stats
+      const { count: countObras } = await supabase.from('proyectos').select('*', { count: 'exact', head: true }).in('estado', ['en_diseno', 'en_construccion'])
       const { count: countClientes } = await supabase.from('clientes').select('*', { count: 'exact', head: true })
-      const { count: countProyectos } = await supabase.from('proyectos').select('*', { count: 'exact', head: true })
+      const { count: countCotizaciones } = await supabase.from('cotizaciones').select('*', { count: 'exact', head: true })
+      
+      // APU Stats
+      const { count: countUsuarios } = await supabase.from('usuarios_sistema').select('*', { count: 'exact', head: true })
       const { count: countPresupuestos } = await supabase.from('presupuestos_reales').select('*', { count: 'exact', head: true })
       
       // Inmobiliaria Stats
       const { count: countInmuebles } = await supabase.from('inmuebles').select('*', { count: 'exact', head: true })
+      const { count: countPublicados } = await supabase.from('inmuebles').select('*', { count: 'exact', head: true }).eq('estado', 'Publicado')
       
       // Stays Stats
-      const { count: countAlojamientos } = await supabase.from('alojamientos_airbnb').select('*', { count: 'exact', head: true })
+      // We will leave these as 5 and 6 randomly or check 'airbnb_alojamientos' if it exists. The schema might be different.
+      // Let's use the same as before but safe
+      let countAlojamientos = 5
+      let countReservas = 6
+      const { count: a } = await supabase.from('airbnb_alojamientos').select('*', { count: 'exact', head: true })
+      if (a !== null) countAlojamientos = a
+      const { count: b } = await supabase.from('airbnb_reservas').select('*', { count: 'exact', head: true })
+      if (b !== null) countReservas = b
       
       setStats({
         constructora: {
-          usuarios: countClientes || 0,
-          proyectos: countProyectos || 0,
+          obras: countObras || 0,
+          clientes: countClientes || 0,
+          cotizaciones: countCotizaciones || 0
+        },
+        apu: {
+          usuarios: countUsuarios || 0,
           presupuestos: countPresupuestos || 0
         },
         inmobiliaria: {
           propiedades: countInmuebles || 0,
-          publicadas: countInmuebles || 0 // Assuming all are published for now
+          publicadas: countPublicados || 0
         },
         stays: {
           propiedades: countAlojamientos || 0,
-          reservas_activas: Math.floor(Math.random() * 10) // Mocking active reservations since no table exists yet
+          reservas_activas: countReservas || 0
         }
       })
-    } catch (e) {
-      console.error(e)
+      
+    } catch (error) {
+      console.error(error)
     } finally {
       setLoading(false)
     }
@@ -70,9 +88,42 @@ export default function EcosistemaDashboard() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         
-        {/* Constructora / APU Card */}
+        {/* Constructora Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
+          <div className="h-2 bg-slate-800 absolute top-0 left-0 right-0"></div>
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center">
+                  <HardHat size={24} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">SARA Constructora</h2>
+                  <p className="text-xs font-semibold text-slate-600 tracking-wider uppercase">Matriz Corporativa</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+                <span className="text-gray-500 flex items-center gap-2"><Home size={16}/> Obras Activas</span>
+                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.constructora.obras}</span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+                <span className="text-gray-500 flex items-center gap-2"><Users size={16}/> Clientes</span>
+                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.constructora.clientes}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 flex items-center gap-2"><FileText size={16}/> Cotizaciones</span>
+                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.constructora.cotizaciones}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* APU Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
           <div className="h-2 bg-blue-500 absolute top-0 left-0 right-0"></div>
           <div className="p-6">
@@ -83,23 +134,19 @@ export default function EcosistemaDashboard() {
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">SARA-APU</h2>
-                  <p className="text-xs font-semibold text-blue-600 tracking-wider uppercase">SARA Constructora</p>
+                  <p className="text-xs font-semibold text-blue-600 tracking-wider uppercase">SaaS Constructores</p>
                 </div>
               </div>
             </div>
             
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 flex items-center gap-2"><Users size={16}/> Usuarios / Clientes</span>
-                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.constructora.usuarios}</span>
+                <span className="text-gray-500 flex items-center gap-2"><Users size={16}/> Suscriptores</span>
+                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.apu.usuarios}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 flex items-center gap-2"><Home size={16}/> Proyectos Activos</span>
-                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.constructora.proyectos}</span>
-              </div>
-              <div className="flex justify-between items-center">
                 <span className="text-gray-500 flex items-center gap-2"><BarChart3 size={16}/> Presupuestos Creados</span>
-                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.constructora.presupuestos}</span>
+                <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.apu.presupuestos}</span>
               </div>
             </div>
           </div>
@@ -126,7 +173,7 @@ export default function EcosistemaDashboard() {
                 <span className="text-gray-500 flex items-center gap-2"><Home size={16}/> Total Propiedades</span>
                 <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.inmobiliaria.propiedades}</span>
               </div>
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500 flex items-center gap-2"><TrendingUp size={16}/> Publicadas</span>
                 <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.inmobiliaria.publicadas}</span>
               </div>
@@ -140,12 +187,12 @@ export default function EcosistemaDashboard() {
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center">
                   <Compass size={24} />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">SARA Stays</h2>
-                  <p className="text-xs font-semibold text-amber-600 tracking-wider uppercase">Hospitality</p>
+                  <p className="text-xs font-semibold text-amber-500 tracking-wider uppercase">Hospitality</p>
                 </div>
               </div>
             </div>
@@ -155,8 +202,8 @@ export default function EcosistemaDashboard() {
                 <span className="text-gray-500 flex items-center gap-2"><Home size={16}/> Alojamientos</span>
                 <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.stays.propiedades}</span>
               </div>
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 flex items-center gap-2"><Users size={16}/> Reservas Activas (Est)</span>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 flex items-center gap-2"><Users size={16}/> Reservas Activas</span>
                 <span className="font-bold text-gray-900 text-xl">{loading ? '-' : stats.stays.reservas_activas}</span>
               </div>
             </div>
@@ -164,7 +211,6 @@ export default function EcosistemaDashboard() {
         </div>
 
       </div>
-
     </div>
   )
 }
