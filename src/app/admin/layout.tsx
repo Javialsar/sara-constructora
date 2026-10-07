@@ -123,6 +123,11 @@ export default function AdminLayout({
         { href: "/admin/clientes", label: "Clientes (CRM)", icon: Users },
         { href: "/admin/proveedores", label: "Proveedores", icon: Briefcase },
         { href: "/admin/trabajadores", label: "Personal de Obra", icon: Wrench },
+      ]
+    },
+    {
+      title: "GESTIÓN DE TALENTO",
+      items: [
         { href: "/admin/talento", label: "SARA Talento", icon: Users },
       ]
     },

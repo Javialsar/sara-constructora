@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { MapPin, FileText, History, Crown, UploadCloud, Building2, Calendar, CheckCircle, ShieldCheck } from 'lucide-react';
+import { MapPin, FileText, History, Crown, UploadCloud, Building2, Calendar, CheckCircle, ShieldCheck, Camera } from 'lucide-react';
 import Link from 'next/link';
 import PaymentGatewayModal from '@/components/sara/PaymentGatewayModal';
 
@@ -62,6 +62,25 @@ export default function MiPerfilTalento() {
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
                 <div className="p-8 border-b border-slate-100">
                   <h3 className="text-lg font-bold mb-6 text-blue-900 border-b pb-2">Información de Contacto y Perfil</h3>
+                  
+                  {/* FOTO DE PERFIL */}
+                  <div className="flex flex-col md:flex-row items-center gap-6 mb-8 bg-slate-50 p-6 rounded-xl border border-slate-100">
+                    <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden relative group">
+                      <Camera className="w-8 h-8 text-slate-400 group-hover:opacity-0 transition-opacity" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                        <span className="text-white text-xs font-bold">Subir Foto</span>
+                      </div>
+                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Fotografía del Profesional</h4>
+                      <p className="text-sm text-slate-500 mb-2">Sube una foto clara de tu rostro. Esto aumenta un 40% tus posibilidades de contratación.</p>
+                      <button className="text-sm bg-white border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-50 font-medium">
+                        Seleccionar Archivo
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Nombres</label>
@@ -125,10 +144,21 @@ export default function MiPerfilTalento() {
                 </div>
 
                 {/* Mapa Interactivo Simulado */}
-                <div className="w-full md:w-1/2 bg-slate-100 relative min-h-[400px]">
-                  <div className="absolute inset-0 bg-[url('https://maps.wikimedia.org/osm-intl/14/4612/8256.png')] bg-cover bg-center opacity-80 mix-blend-multiply"></div>
+                <div className="w-full md:w-1/2 bg-blue-50 relative min-h-[400px]">
+                  {/* Usamos un iframe real de OpenStreetMap para que se vea perfectamente el mapa */}
+                  <iframe 
+                    width="100%" 
+                    height="100%" 
+                    frameBorder="0" 
+                    scrolling="no" 
+                    marginHeight={0} 
+                    marginWidth={0} 
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=-80.0,-2.2,-78.0,0.5&amp;layer=mapnik" 
+                    style={{ border: 0, filter: 'contrast(1.1) opacity(0.8)' }}
+                  ></iframe>
+
                   {ciudad && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center animate-in zoom-in duration-300">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center animate-in zoom-in duration-300 pointer-events-none">
                       <div className="bg-blue-600 text-white p-2 rounded-full shadow-lg shadow-blue-500/50 mb-1 animate-bounce">
                         <MapPin className="w-8 h-8" />
                       </div>
@@ -138,8 +168,8 @@ export default function MiPerfilTalento() {
                     </div>
                   )}
                   {!ciudad && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <p className="bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-slate-500 font-medium text-sm shadow-sm border border-slate-200">
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <p className="bg-white/95 backdrop-blur px-4 py-2 rounded-lg text-slate-700 font-bold text-sm shadow-xl border border-slate-200">
                         Ingresa tu ciudad para fijar el pin en el mapa.
                       </p>
                     </div>
