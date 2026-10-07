@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { MapPin, FileText, History, Crown, UploadCloud, Building2, Calendar, CheckCircle } from 'lucide-react';
+import { MapPin, FileText, History, Crown, UploadCloud, Building2, Calendar, CheckCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import PaymentGatewayModal from '@/components/sara/PaymentGatewayModal';
 
