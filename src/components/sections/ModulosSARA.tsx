@@ -8,28 +8,28 @@ export default function ModulosSARA() {
       title: 'SARA Fintech & Escrow',
       description: 'Panel financiero de retenciones, anticipos y pago a proveedores.',
       icon: <ShieldCheck className="w-10 h-10 text-emerald-500 mb-4" />,
-      href: '/dashboard/financiero',
+      href: '/modulos/financiero',
       color: 'bg-emerald-50 border-emerald-100 hover:border-emerald-300'
     },
     {
       title: 'Red de Fletes (Tipo Uber)',
       description: 'Gestión logística y asignación de transporte pesado.',
       icon: <Truck className="w-10 h-10 text-blue-500 mb-4" />,
-      href: '/dashboard/fletes',
+      href: '/modulos/fletes',
       color: 'bg-blue-50 border-blue-100 hover:border-blue-300'
     },
     {
       title: 'SARA Talento',
       description: 'Job matching de ingenieros, arquitectos y maestros de obra.',
       icon: <Users className="w-10 h-10 text-amber-500 mb-4" />,
-      href: '/dashboard/talento',
+      href: '/modulos/talento',
       color: 'bg-amber-50 border-amber-100 hover:border-amber-300'
     },
     {
       title: 'Gemelo Digital & Compras',
       description: 'Importador de cronogramas para predicción de stock.',
       icon: <FileSpreadsheet className="w-10 h-10 text-purple-500 mb-4" />,
-      href: '/dashboard/importador',
+      href: '/modulos/importador',
       color: 'bg-purple-50 border-purple-100 hover:border-purple-300'
     }
   ];
