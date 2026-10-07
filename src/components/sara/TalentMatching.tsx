@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { MapPin, Star, Award, Search, UserPlus, Navigation } from 'lucide-react';
+import { MapPin, Star, Award, Search, UserPlus, Navigation, Crown } from 'lucide-react';
+import Link from 'next/link';
 
 interface Talent {
   id: string;
@@ -12,48 +13,52 @@ interface Talent {
   rating: number;
   experienceYears: number;
   locationName: string;
+  plan: 'VIP' | 'Estandar' | 'Basico';
 }
 
 export default function TalentMatching() {
   const [searchRole, setSearchRole] = useState('');
   
-  // Simulador de Coordenadas de la Obra del Constructor (Ej. Quito, Carolina)
   const constructorLocation = "Quito (Sector La Carolina)";
 
   const [talents, setTalents] = useState<Talent[]>([
     {
       id: '1', name: 'Ing. Ana Gómez', role: 'Ingeniera Civil', hourlyRate: 35,
       certifications: ['Gestión de Proyectos PMP', 'AutoCAD Civil 3D'],
-      distanceKm: 2.5, rating: 4.9, experienceYears: 12, locationName: 'Quito, Iñaquito'
+      distanceKm: 2.5, rating: 4.9, experienceYears: 12, locationName: 'Quito, Iñaquito', plan: 'VIP'
     },
     {
-      id: '2', name: 'Ing. Luis Fernando Silva', role: 'Ingeniero Civil', hourlyRate: 28,
-      certifications: ['Cálculo Estructural ETABS'],
-      distanceKm: 8.1, rating: 4.6, experienceYears: 5, locationName: 'Quito, Cumbayá'
-    },
-    {
-      id: '3', name: 'Mstr. Juan Pérez', role: 'Maestro Mayor de Obra', hourlyRate: 15,
-      certifications: ['Trabajo en Alturas', 'Lectura de Planos'],
-      distanceKm: 1.2, rating: 5.0, experienceYears: 20, locationName: 'Quito, La Magdalena'
-    },
-    {
-      id: '4', name: 'Arq. Ricardo Sánchez', role: 'Arquitecto', hourlyRate: 30,
+      id: '2', name: 'Arq. Ricardo Sánchez', role: 'Arquitecto', hourlyRate: 30,
       certifications: ['Revit BIM', 'Diseño Interior'],
-      distanceKm: 15.0, rating: 4.2, experienceYears: 8, locationName: 'Quito, Mitad del Mundo'
+      distanceKm: 15.0, rating: 4.8, experienceYears: 8, locationName: 'Quito, Mitad del Mundo', plan: 'VIP'
+    },
+    {
+      id: '3', name: 'Ing. Luis Fernando Silva', role: 'Ingeniero Civil', hourlyRate: 28,
+      certifications: ['Cálculo Estructural ETABS'],
+      distanceKm: 8.1, rating: 4.6, experienceYears: 5, locationName: 'Quito, Cumbayá', plan: 'Estandar'
+    },
+    {
+      id: '4', name: 'Mstr. Juan Pérez', role: 'Maestro Mayor de Obra', hourlyRate: 15,
+      certifications: ['Trabajo en Alturas', 'Lectura de Planos'],
+      distanceKm: 1.2, rating: 5.0, experienceYears: 20, locationName: 'Quito, La Magdalena', plan: 'Basico'
     }
   ]);
 
+  const planWeight = { 'VIP': 3, 'Estandar': 2, 'Basico': 1 };
+
   // LÓGICA DE MATCHING Y RANKING:
   // 1. Filtrar por búsqueda
-  // 2. Ordenar por: (A) Rating/Calificación descendente, (B) Experiencia, (C) Distancia
+  // 2. Ordenar por: (A) Plan (VIP primero), (B) Rating, (C) Experiencia, (D) Distancia
   const filteredAndSortedTalents = talents
     .filter(t => t.role.toLowerCase().includes(searchRole.toLowerCase()) || t.name.toLowerCase().includes(searchRole.toLowerCase()))
     .sort((a, b) => {
-      // Prioridad 1: Valoración de la comunidad (Rating)
+      // Prioridad 1: Plan de Visibilidad (Monetización)
+      if (planWeight[b.plan] !== planWeight[a.plan]) return planWeight[b.plan] - planWeight[a.plan];
+      // Prioridad 2: Valoración de la comunidad
       if (b.rating !== a.rating) return b.rating - a.rating;
-      // Prioridad 2: Años de Experiencia
+      // Prioridad 3: Años de Experiencia
       if (b.experienceYears !== a.experienceYears) return b.experienceYears - a.experienceYears;
-      // Prioridad 3: Cercanía geográfica
+      // Prioridad 4: Cercanía geográfica
       return a.distanceKm - b.distanceKm;
     });
 
@@ -68,10 +73,12 @@ export default function TalentMatching() {
               Ubicación de tu obra: <strong className="ml-1 text-slate-700">{constructorLocation}</strong>
             </p>
           </div>
-          <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
-            <UserPlus className="w-5 h-5 mr-2" />
-            Registro de Profesionales
-          </button>
+          <Link href="/modulos/talento/registro">
+            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+              <UserPlus className="w-5 h-5 mr-2" />
+              Registro de Profesionales
+            </button>
+          </Link>
         </header>
 
         {/* Buscador */}
@@ -86,11 +93,19 @@ export default function TalentMatching() {
           />
         </div>
 
-        {/* Grid de Candidatos (Rankeados por Algoritmo) */}
+        {/* Grid de Candidatos */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedTalents.map((talent) => (
-            <div key={talent.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-              <div className="p-6 flex-grow">
+            <div key={talent.id} className={`bg-white rounded-2xl border ${talent.plan === 'VIP' ? 'border-amber-400 shadow-amber-100' : 'border-slate-200'} shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow relative`}>
+              
+              {/* Badge VIP */}
+              {talent.plan === 'VIP' && (
+                <div className="absolute top-0 right-0 bg-amber-400 text-amber-900 text-xs font-bold px-3 py-1 rounded-bl-lg flex items-center">
+                  <Crown className="w-3 h-3 mr-1" /> Profesional Destacado
+                </div>
+              )}
+
+              <div className="p-6 flex-grow mt-2">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-slate-800">{talent.name}</h3>
@@ -139,12 +154,6 @@ export default function TalentMatching() {
               </div>
             </div>
           ))}
-
-          {filteredAndSortedTalents.length === 0 && (
-            <div className="col-span-full py-12 text-center text-slate-500">
-              No se encontraron profesionales cercanos para el rol especificado.
-            </div>
-          )}
         </div>
       </div>
     </div>
