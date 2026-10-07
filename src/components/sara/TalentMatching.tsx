@@ -73,7 +73,7 @@ export default function TalentMatching() {
               Ubicación de tu obra: <strong className="ml-1 text-slate-700">{constructorLocation}</strong>
             </p>
           </div>
-          <Link href="/modulos/talento/registro">
+          <Link href="/modulos/talento/auth">
             <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
               <UserPlus className="w-5 h-5 mr-2" />
               Registro de Profesionales
