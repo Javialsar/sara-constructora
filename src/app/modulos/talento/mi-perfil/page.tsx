@@ -59,10 +59,52 @@ export default function MiPerfilTalento() {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <h2 className="text-3xl font-bold mb-6">Datos Personales y Geolocalización</h2>
               
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                <div className="p-8 border-b border-slate-100">
+                  <h3 className="text-lg font-bold mb-6 text-blue-900 border-b pb-2">Información de Contacto y Perfil</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Nombres</label>
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500" placeholder="Ej. Juan Andrés" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Apellidos</label>
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500" placeholder="Ej. Pérez Silva" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
+                      <input type="email" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500 bg-slate-50" defaultValue="correo@ejemplo.com" readOnly />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Celular / WhatsApp</label>
+                      <input type="tel" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500" placeholder="098 765 4321" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Sexo / Género</label>
+                      <select className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500 bg-white">
+                        <option>Seleccione...</option>
+                        <option>Masculino</option>
+                        <option>Femenino</option>
+                        <option>Otro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Años de Experiencia Comprobada</label>
+                      <input type="number" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500" placeholder="Ej. 5" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Especialidad Principal (Rol)</label>
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500" placeholder="Ej. Ingeniero Civil, Topógrafo, Maestro Mayor" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
-                {/* Formulario */}
+                {/* Formulario Mapa */}
                 <div className="p-8 w-full md:w-1/2 border-r border-slate-100">
-                  <h3 className="text-lg font-bold mb-4">Ajuste de Coordenadas</h3>
+                  <h3 className="text-lg font-bold mb-4 text-blue-900 border-b pb-2">Ajuste de Coordenadas</h3>
+                  <p className="text-sm text-slate-500 mb-6">Ingresa tu dirección para que los constructores te encuentren en el radar.</p>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Provincia</label>
@@ -76,14 +118,14 @@ export default function MiPerfilTalento() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">Calle Principal y Secundaria</label>
                       <input value={calle} onChange={(e) => setCalle(e.target.value)} type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500" placeholder="Ej. Av. Amazonas y Naciones Unidas" />
                     </div>
-                    <button className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg mt-4 hover:bg-slate-800 transition-colors">
-                      Guardar Ubicación Exacta
+                    <button className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg mt-4 hover:bg-slate-800 transition-colors shadow-md">
+                      Guardar Perfil y Ubicación
                     </button>
                   </div>
                 </div>
 
                 {/* Mapa Interactivo Simulado */}
-                <div className="w-full md:w-1/2 bg-slate-100 relative min-h-[300px]">
+                <div className="w-full md:w-1/2 bg-slate-100 relative min-h-[400px]">
                   <div className="absolute inset-0 bg-[url('https://maps.wikimedia.org/osm-intl/14/4612/8256.png')] bg-cover bg-center opacity-80 mix-blend-multiply"></div>
                   {ciudad && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center animate-in zoom-in duration-300">
@@ -97,7 +139,7 @@ export default function MiPerfilTalento() {
                   )}
                   {!ciudad && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <p className="bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-slate-500 font-medium text-sm shadow-sm">
+                      <p className="bg-white/90 backdrop-blur px-4 py-2 rounded-lg text-slate-500 font-medium text-sm shadow-sm border border-slate-200">
                         Ingresa tu ciudad para fijar el pin en el mapa.
                       </p>
                     </div>
