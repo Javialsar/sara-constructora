@@ -10,6 +10,7 @@ interface Candidate {
   status: 'pending' | 'approved';
   paymentId: string;
   documents: { type: string, status: string }[];
+  rating?: number;
 }
 
 export default function AdminTalento() {
@@ -128,6 +129,30 @@ export default function AdminTalento() {
                   <h3 className="text-xl font-black text-slate-800">{selectedCandidate.name}</h3>
                   <p className="text-slate-600 font-medium">{selectedCandidate.role}</p>
                   <p className="text-sm text-slate-500 mt-1 flex items-center"><MapPin className="w-4 h-4 mr-1" /> Validando Ubicación GPS</p>
+                </div>
+                
+                {/* Asignador de Estrellas Admin */}
+                <div className="ml-auto flex flex-col items-end justify-center border-l border-slate-200 pl-6">
+                  <span className="text-xs font-bold text-slate-400 uppercase mb-1">Calificación Inicial (SARA Score)</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button 
+                        key={star}
+                        onClick={() => {
+                          setCandidates(candidates.map(c => c.id === selectedCandidate.id ? { ...c, rating: star } : c));
+                          setSelectedCandidate({ ...selectedCandidate, rating: star });
+                        }}
+                        className={`transition-colors ${
+                          (selectedCandidate.rating || 0) >= star 
+                            ? 'text-amber-400 hover:text-amber-500' 
+                            : 'text-slate-300 hover:text-amber-200'
+                        }`}
+                      >
+                        <svg className="w-8 h-8 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Estrellas de Confianza</p>
                 </div>
               </div>
 
