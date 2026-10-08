@@ -278,7 +278,7 @@ export default function Hero() {
               transition={{ duration: 0.45 }}
               className="space-y-3"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight drop-shadow-2xl max-w-3xl">
                 {currentSlide.title}
               </h1>
             </motion.div>
@@ -292,7 +292,7 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4 }}
-              className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg"
+              className="text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl leading-relaxed font-normal border-l-4 border-brand-sage pl-6 drop-shadow-lg"
             >
               {currentSlide.description}
             </motion.p>

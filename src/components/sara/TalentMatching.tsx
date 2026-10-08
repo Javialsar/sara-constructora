@@ -44,28 +44,39 @@ export default function TalentMatching() {
     }
   ]);
 
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [showAiRecommendations, setShowAiRecommendations] = useState(false);
+
   const planWeight = { 'VIP': 3, 'Estandar': 2, 'Basico': 1 };
 
   // LÓGICA DE MATCHING Y RANKING:
-  // 1. Filtrar por búsqueda
-  // 2. Ordenar por: (A) Plan (VIP primero), (B) Rating, (C) Experiencia, (D) Distancia
   const filteredAndSortedTalents = talents
-    .filter(t => t.role.toLowerCase().includes(searchRole.toLowerCase()) || t.name.toLowerCase().includes(searchRole.toLowerCase()))
+    .filter(t => {
+      // Si estamos en modo IA, filtramos por los roles recomendados
+      if (showAiRecommendations) {
+        return t.role.includes("Maestro") || t.role.includes("Arquitecto") || t.role.includes("Albañil");
+      }
+      return t.role.toLowerCase().includes(searchRole.toLowerCase()) || t.name.toLowerCase().includes(searchRole.toLowerCase());
+    })
     .sort((a, b) => {
-      // Prioridad 1: Plan de Visibilidad (Monetización)
       if (planWeight[b.plan] !== planWeight[a.plan]) return planWeight[b.plan] - planWeight[a.plan];
-      // Prioridad 2: Valoración de la comunidad
       if (b.rating !== a.rating) return b.rating - a.rating;
-      // Prioridad 3: Años de Experiencia
       if (b.experienceYears !== a.experienceYears) return b.experienceYears - a.experienceYears;
-      // Prioridad 4: Cercanía geográfica
       return a.distanceKm - b.distanceKm;
     });
 
+  const analyzeAPU = () => {
+    setIsAiProcessing(true);
+    setTimeout(() => {
+      setIsAiProcessing(false);
+      setShowAiRecommendations(true);
+    }, 2500);
+  }
+
   return (
     <div className="p-8 bg-slate-50 min-h-screen font-sans">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-8">
+      <div className="max-w-6xl mx-auto pt-16">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-800">SARA Talento - Radar Geográfico</h1>
             <p className="text-slate-500 mt-2 flex items-center">
@@ -73,13 +84,54 @@ export default function TalentMatching() {
               Ubicación de tu obra: <strong className="ml-1 text-slate-700">{constructorLocation}</strong>
             </p>
           </div>
-          <Link href="/modulos/talento/auth">
-            <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
-              <UserPlus className="w-5 h-5 mr-2" />
-              Registro de Profesionales
+          <div className="flex gap-4">
+            <button 
+              onClick={analyzeAPU}
+              disabled={isAiProcessing}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold flex items-center transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isAiProcessing ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+              ) : (
+                <Crown className="w-5 h-5 mr-2" />
+              )}
+              {isAiProcessing ? "Analizando tu APU..." : "Predecir Cuadrilla con IA"}
             </button>
-          </Link>
+            <Link href="/modulos/talento/auth">
+              <button className="bg-brand-sage hover:bg-brand-dark text-white px-4 py-2 rounded-lg font-medium flex items-center transition-colors">
+                <UserPlus className="w-5 h-5 mr-2" />
+                Registro Profesionales
+              </button>
+            </Link>
+          </div>
         </header>
+
+        {showAiRecommendations && (
+          <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 mb-8 animate-in fade-in zoom-in duration-500">
+            <h3 className="text-xl font-bold text-indigo-900 mb-2 flex items-center">
+              <Crown className="w-6 h-6 mr-2 text-indigo-600" />
+              Gemelo Digital: Proyección de Mano de Obra
+            </h3>
+            <p className="text-indigo-800/80 mb-4 text-sm">
+              SARA analizó tu último presupuesto importado (<strong>Presupuesto Residencia Cumbayá</strong>). 
+              Basado en los volúmenes de obra (<em>320m3 de Hormigón y 1200m2 de Mampostería</em>), necesitarás conformar la siguiente cuadrilla para terminar en el tiempo óptimo:
+            </p>
+            <div className="flex gap-4 flex-wrap">
+              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-indigo-100 font-bold text-slate-700 text-sm">
+                1x Residente de Obra / Arquitecto
+              </div>
+              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-indigo-100 font-bold text-slate-700 text-sm">
+                1x Maestro Mayor
+              </div>
+              <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-indigo-100 font-bold text-slate-700 text-sm">
+                5x Albañiles / Peones
+              </div>
+            </div>
+            <p className="mt-4 text-xs font-semibold text-indigo-600 uppercase tracking-wider">
+              Filtrando los mejores perfiles disponibles a menos de 10km de tu obra...
+            </p>
+          </div>
+        )}
 
         {/* Buscador */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-8 flex items-center">
@@ -109,7 +161,7 @@ export default function TalentMatching() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-slate-800">{talent.name}</h3>
-                    <p className="text-blue-600 font-semibold text-sm">{talent.role}</p>
+                    <p className="text-brand-sage font-black text-sm">{talent.role}</p>
                   </div>
                   <div className="flex items-center bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
                     <Star className="w-4 h-4 text-amber-500 fill-amber-500 mr-1" />
@@ -138,7 +190,7 @@ export default function TalentMatching() {
                   <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Certificaciones Verificadas</p>
                   <div className="flex flex-wrap gap-2">
                     {talent.certifications.map((cert, idx) => (
-                      <span key={idx} className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-md border border-blue-100">
+                      <span key={idx} className="bg-brand-sage/10 text-brand-sage font-bold text-xs px-2 py-1 rounded-md border border-brand-sage/20">
                         {cert}
                       </span>
                     ))}
@@ -148,8 +200,8 @@ export default function TalentMatching() {
 
               <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-between items-center">
                 <span className="text-lg font-bold text-slate-800">${talent.hourlyRate} <span className="text-sm font-normal text-slate-500">/ hora</span></span>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                  Solicitar Contratación
+                <button className="bg-brand-dark hover:bg-brand-sage text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                  Contratar (Escrow)
                 </button>
               </div>
             </div>

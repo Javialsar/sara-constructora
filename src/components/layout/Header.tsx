@@ -104,16 +104,16 @@ export default function Header() {
       {/* Mobile Nav Overlay */}
       <div
         className={cn(
-          "fixed inset-0 bg-white z-40 transition-transform duration-300 ease-in-out flex flex-col justify-center items-center lg:hidden",
+          "fixed inset-0 min-h-screen bg-white/95 backdrop-blur-md z-40 transition-transform duration-300 ease-in-out flex flex-col justify-center items-center lg:hidden",
           mobileMenuOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
-        <nav className="flex flex-col items-center space-y-6">
+        <nav className="flex flex-col items-center space-y-8 w-full px-6">
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className="text-2xl font-bold uppercase tracking-widest text-brand-dark hover:text-brand-sage transition-colors"
+              className="text-3xl font-extrabold uppercase tracking-widest text-brand-dark hover:text-brand-sage transition-all hover:scale-105"
               onClick={(e) => {
                 setMobileMenuOpen(false);
                 if (link.href.startsWith('/#')) {
@@ -131,9 +131,9 @@ export default function Header() {
               {link.name}
             </Link>
           ))}
-          <div className="pt-8">
-            <Link href="/constructora#cotizacion" onClick={() => setMobileMenuOpen(false)}>
-              <Button variant="primary" size="lg">
+          <div className="pt-10 w-full max-w-xs">
+            <Link href="/constructora#cotizacion" onClick={() => setMobileMenuOpen(false)} className="w-full">
+              <Button variant="primary" size="lg" className="w-full shadow-lg">
                 Solicitar Cotización
               </Button>
             </Link>
