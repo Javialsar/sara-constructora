@@ -91,6 +91,10 @@ export default function MarketplacePage() {
               <ShoppingCart size={20} />
               <span className="hidden sm:inline">Carrito (0)</span>
             </button>
+            <a href="/modulos/fletes" className="px-6 bg-amber-500 text-slate-900 rounded-xl font-bold flex items-center gap-2 hover:bg-amber-400 transition-colors">
+              <Truck size={20} />
+              <span className="hidden sm:inline">Coordinar Flete</span>
+            </a>
           </div>
 
           {/* Products */}
