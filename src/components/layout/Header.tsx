@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
 
-const navLinks = [
+const navLinks: { name: string; href: string; isFeatured?: boolean }[] = [
   { name: "Inicio", href: "/" },
   { name: "Nosotros", href: "/nosotros" },
   { name: "Servicios", href: "/servicios" },
