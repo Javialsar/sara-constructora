@@ -8,15 +8,22 @@ export default function ModulosSARA() {
       title: 'SARA Constructora',
       description: 'Gestión central de obras, presupuestos y control de proyectos.',
       icon: <HardHat className="w-10 h-10 text-brand-sage mb-4" />,
-      href: '/portal',
+      href: '/constructora',
       color: 'bg-brand-sage/10 border-brand-sage/20 hover:border-brand-sage/40'
     },
     {
-      title: 'SARA APU & Compras',
-      description: 'Gemelo digital, lectura de presupuestos y precios unitarios automáticos.',
+      title: 'SARA APU',
+      description: 'Gemelo digital y lectura automática de presupuestos en Excel/CSV.',
       icon: <FileSpreadsheet className="w-10 h-10 text-purple-500 mb-4" />,
       href: '/dashboard',
       color: 'bg-purple-50 border-purple-100 hover:border-purple-300'
+    },
+    {
+      title: 'SARA Compras (Marketplace)',
+      description: 'E-commerce B2B de materiales de construcción con precios en vivo.',
+      icon: <Truck className="w-10 h-10 text-cyan-500 mb-4" />,
+      href: '/modulos/compras',
+      color: 'bg-cyan-50 border-cyan-100 hover:border-cyan-300'
     },
     {
       title: 'SARA Inmobiliaria',
