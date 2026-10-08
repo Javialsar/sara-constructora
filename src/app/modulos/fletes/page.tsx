@@ -29,36 +29,6 @@ export default function SaraFletesEngine() {
   // --- ESTADOS TRANSPORTISTA ---
   const [counterOffer, setCounterOffer] = useState<string>('');
   
-  // Función: Constructor solicita camión
-  const handleRequestTruck = () => {
-    if(!origin || !destination) return alert("Ingresa origen y destino");
-    setIsCalculating(true);
-    
-    // Simulamos el algoritmo de costeo logístico (Ej: $2.50 base + $1.20 x Tonelada + factor distancia simulado)
-    setTimeout(() => {
-      const simulatedPrice = 15.00 + (weight * 2.50);
-      setActiveFreight({
-        id: 'FLT-' + Math.floor(Math.random() * 10000),
-        origin,
-        destination,
-        material,
-        weight,
-        referencePrice: simulatedPrice,
-        status: 'searching'
-      });
-      setIsCalculating(false);
-      // Auto-cambio a vista de transportista para la demo
-      setTimeout(() => setViewMode('driver'), 1500);
-    }, 2000);
-  };
-
-  // Función: Transportista acepta
-  const handleDriverAccept = () => {
-    if(activeFreight) {
-      setActiveFreight({ ...activeFreight, status: 'accepted' });
-    }
-  };
-
   // Función: Transportista negocia
   const handleDriverNegotiate = () => {
     if(activeFreight && counterOffer) {
@@ -67,6 +37,48 @@ export default function SaraFletesEngine() {
       setTimeout(() => {
         setActiveFreight(prev => prev ? { ...prev, referencePrice: parseFloat(counterOffer), status: 'accepted' } : null);
       }, 3000);
+    }
+  };
+
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+
+  // Función: Constructor solicita camión
+  const handleRequestTruck = () => {
+    if(!origin || !destination) return alert("Ingresa origen y destino");
+    setIsCalculating(true);
+    setAiAnalysis("SARA AI analizando tráfico, peso y clima en la ruta...");
+    
+    setTimeout(() => {
+      // Simulamos el algoritmo de costeo logístico con IA
+      const basePrice = 15.00 + (weight * 2.50);
+      const trafficPremium = basePrice * 0.15; // 15% recargo por tráfico
+      const finalPrice = basePrice + trafficPremium;
+      
+      setAiAnalysis(`IA determinó tarifa de $${finalPrice.toFixed(2)} (Incluye 15% recargo por alto tráfico actual en la zona)`);
+      
+      setActiveFreight({
+        id: 'FLT-' + Math.floor(Math.random() * 10000),
+        origin,
+        destination,
+        material,
+        weight,
+        referencePrice: finalPrice,
+        status: 'searching'
+      });
+      setIsCalculating(false);
+      
+      // Auto-cambio a vista de transportista para la demo
+      setTimeout(() => {
+         setViewMode('driver');
+         setAiAnalysis(null);
+      }, 3000);
+    }, 2000);
+  };
+
+  // Función: Transportista acepta
+  const handleDriverAccept = () => {
+    if(activeFreight) {
+      setActiveFreight({ ...activeFreight, status: 'accepted' });
     }
   };
 
@@ -251,13 +263,20 @@ export default function SaraFletesEngine() {
                   )}
                 </div>
               ) : (
-                <button 
-                  onClick={handleRequestTruck}
-                  disabled={isCalculating}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center mt-6"
-                >
-                  {isCalculating ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Calculando Tarifa...</> : 'Calcular Tarifa y Pedir Flete'}
-                </button>
+                <div className="mt-6">
+                  {aiAnalysis && (
+                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 font-medium animate-in fade-in slide-in-from-bottom-2">
+                      <span className="font-bold">SARA AI:</span> {aiAnalysis}
+                    </div>
+                  )}
+                  <button 
+                    onClick={handleRequestTruck}
+                    disabled={isCalculating}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center"
+                  >
+                    {isCalculating ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Procesando con IA...</> : 'Calcular Tarifa con IA y Pedir Flete'}
+                  </button>
+                </div>
               )}
 
             </div>
