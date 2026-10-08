@@ -132,6 +132,12 @@ export default function AdminLayout({
       ]
     },
     {
+      title: "GESTIÓN LOGÍSTICA (FLETES)",
+      items: [
+        { href: "/admin/fletes", label: "SARA Fletes (Transporte)", icon: Truck },
+      ]
+    },
+    {
       title: "MÓDULO APU-SARA",
       items: [
         { href: "/admin/parametros", label: "Parámetros Globales", icon: Settings },

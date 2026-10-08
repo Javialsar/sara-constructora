@@ -79,6 +79,24 @@ export default function SaraFletesEngine() {
           <h1 className="text-xl font-bold tracking-tight">SARA <span className="text-amber-500">Fletes</span></h1>
         </div>
         
+        {/* Filtros Geográficos Rápidos */}
+        <div className="hidden md:flex gap-2">
+          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
+             <option>Ecuador</option>
+             <option>Colombia</option>
+          </select>
+          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
+             <option>Pichincha</option>
+             <option>Guayas</option>
+             <option>Azuay</option>
+          </select>
+          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
+             <option>Todas las Volquetas</option>
+             <option>Camiones 5T</option>
+             <option>Mulas 20T</option>
+          </select>
+        </div>
+        
         {/* Toggle de Roles para la Demo */}
         <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-bold">
           <button 
@@ -95,7 +113,12 @@ export default function SaraFletesEngine() {
           </button>
         </div>
         
-        <Link href="/" className="text-slate-400 hover:text-white text-sm">Volver al Inicio</Link>
+        <div className="flex items-center gap-4">
+          <Link href="/modulos/fletes/auth" className="bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+            Soy Transportista (Login)
+          </Link>
+          <Link href="/" className="text-slate-400 hover:text-white text-sm">Inicio</Link>
+        </div>
       </header>
 
       {/* ÁREA PRINCIPAL SPLIT */}
