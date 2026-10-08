@@ -10,8 +10,6 @@ import { createClient } from "@/lib/supabase/client"
 const navLinks: { name: string; href: string; isFeatured?: boolean }[] = [
   { name: "Inicio", href: "/" },
   { name: "Nosotros", href: "/nosotros" },
-  { name: "Servicios", href: "/servicios" },
-  { name: "Proyectos", href: "/proyectos" },
   { name: "Noticias", href: "/noticias" },
   { name: "FAQ", href: "/#faq" },
   { name: "Clientes", href: "/clientes" },
