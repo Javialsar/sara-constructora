@@ -91,6 +91,12 @@ export default function SaraFletesEngine() {
              <option>Azuay</option>
           </select>
           <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
+             <option>Quito</option>
+             <option>Cariamanga</option>
+             <option>Loja</option>
+             <option>Guayaquil</option>
+          </select>
+          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
              <option>Todas las Volquetas</option>
              <option>Camiones 5T</option>
              <option>Mulas 20T</option>
@@ -125,7 +131,7 @@ export default function SaraFletesEngine() {
       <div className="flex-1 relative flex">
         
         {/* FONDO MAPA GLOBAL DINÁMICO */}
-        <div className="absolute inset-0 z-0 bg-slate-800">
+        <div className="absolute inset-0 z-0 bg-slate-800 overflow-hidden">
           <iframe 
             width="100%" 
             height="100%" 
@@ -134,6 +140,24 @@ export default function SaraFletesEngine() {
             src={`https://maps.google.com/maps?q=${encodeURIComponent(activeFreight ? `${activeFreight.origin} to ${activeFreight.destination} Ecuador` : 'Quito Ecuador')}&t=m&z=12&ie=UTF8&iwloc=&output=embed`}
             style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) contrast(85%) opacity(0.6)' }}
           ></iframe>
+          
+          {/* OVERLAY DE VEHÍCULOS CIRCULANDO EN TIEMPO REAL */}
+          {!activeFreight && (
+            <div className="absolute inset-0 pointer-events-none z-10">
+              <div className="absolute top-[30%] left-[40%] animate-bounce bg-amber-500 p-2 rounded-full shadow-lg shadow-amber-500/50">
+                <Truck className="w-5 h-5 text-slate-900" />
+                <span className="absolute -bottom-6 -left-4 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">PBA-1234 (Volqueta)</span>
+              </div>
+              <div className="absolute top-[60%] left-[55%] animate-pulse bg-amber-500 p-2 rounded-full shadow-lg shadow-amber-500/50" style={{ animationDuration: '3s' }}>
+                <Truck className="w-5 h-5 text-slate-900" />
+                <span className="absolute -bottom-6 -left-4 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">GCA-9876 (Camión 5T)</span>
+              </div>
+              <div className="absolute top-[45%] left-[25%] animate-bounce bg-emerald-500 p-2 rounded-full shadow-lg shadow-emerald-500/50" style={{ animationDelay: '1s' }}>
+                <Truck className="w-5 h-5 text-slate-900" />
+                <span className="absolute -bottom-6 -left-4 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">Disponible - VIP</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ---------------------------------------------------------------- */}

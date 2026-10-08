@@ -135,17 +135,38 @@ export default function MiPerfilFletes() {
                     </div>
                   </div>
                   
-                  <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                     <div>
-                       <h4 className="font-bold text-slate-800">Ubicación GPS Actual</h4>
-                       <p className="text-sm text-slate-500">Transmite tu posición para recibir viajes cercanos.</p>
+                  <div className="mt-8 pt-6 border-t border-slate-100">
+                     <div className="flex items-center justify-between mb-4">
+                       <div>
+                         <h4 className="font-bold text-slate-800">Ubicación GPS Actual</h4>
+                         <p className="text-sm text-slate-500">Transmite tu posición exacta para recibir viajes cercanos.</p>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <span className="relative flex h-3 w-3">
+                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                         </span>
+                         <span className="text-sm font-bold text-emerald-600">Conectado y Transmitiendo</span>
+                       </div>
                      </div>
-                     <div className="flex items-center gap-2">
-                       <span className="relative flex h-3 w-3">
-                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                         <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                       </span>
-                       <span className="text-sm font-bold text-emerald-600">Conectado (Quito, Sur)</span>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">País</label>
+                          <select className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 bg-slate-50">
+                            <option>Ecuador</option>
+                            <option>Colombia</option>
+                            <option>Perú</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Provincia / Departamento</label>
+                          <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Pichincha" defaultValue="Pichincha" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ciudad / Sector</label>
+                          <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Quito Sur" defaultValue="Quito Sur" />
+                        </div>
                      </div>
                   </div>
                 </div>
