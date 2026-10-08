@@ -1,289 +1,289 @@
-﻿í'íuísíeí ícílíiíeínítí'í;í
-íiímípíoírítí íRíeíaícítí,í í{í íuísíeíSítíaítíeí,í íuísíeíRíeífí í}í ífíríoímí í'íríeíaícítí'í;í
-íiímípíoírítí í{í íTíríuícíkí,í íMíaípíPíiíní,í íFíiílíeíTíeíxítí,í íHíiísítíoíríyí,í íWíaílílíeítí,í íCíaímíeíríaí,í íCíhíeívíríoíníRíiígíhítí,í íCíhíeícíkíCíiírícílíeí,í íNíaívíiígíaítíiíoíní,í íPíaícíkíaígíeí í}í ífíríoímí í'ílíuícíiídíeí-íríeíaícítí'í;í
-íiímípíoírítí íLíiíníkí ífíríoímí í'íníeíxítí/ílíiíníkí'í;í
-í
-íeíxípíoírítí ídíeífíaíuílítí ífíuínícítíiíoíní íMíiíPíeírífíiílíFílíeítíeísí(í)í í{í
-í í ícíoínísítí í[íaícítíiívíeíTíaíbí,í ísíeítíAícítíiívíeíTíaíbí]í í=í íuísíeíSítíaítíeí<í'ívíeíhíiícíuílíoí'í í|í í'ídíoícíuímíeínítíoísí'í í|í í'íbíiílílíeítíeíríaí'í í|í í'íhíiísítíoíríiíaílí'í>í(í'ívíeíhíiícíuílíoí'í)í;í
-í í ícíoínísítí í[ípíhíoítíoíPíríeívíiíeíwí,í ísíeítíPíhíoítíoíPíríeívíiíeíwí]í í=í íuísíeíSítíaítíeí<ísítíríiínígí í|í íníuílílí>í(íníuílílí)í;í
-í í ícíoínísítí ífíiílíeíIínípíuítíRíeífí í=í íuísíeíRíeífí<íHíTíMíLíIínípíuítíEílíeímíeínítí>í(íníuílílí)í;í
-í
-í í í/í/í íEísítíaídíoísí
-í í ícíoínísítí í[íbíaílíaínícíeí,í ísíeítíBíaílíaínícíeí]í í=í íuísíeíSítíaítíeí(í0í)í;í
-í í ícíoínísítí í[íríeícíhíaírígíeíAímíoíuínítí,í ísíeítíRíeícíhíaírígíeíAímíoíuínítí]í í=í íuísíeíSítíaítíeí(í2í0í)í;í
-í í ícíoínísítí í[ípílíaíní,í ísíeítíPílíaíní]í í=í íuísíeíSítíaítíeí<í'íVíIíPí'í í|í í'íEísítíaínídíaírí'í í|í í'íBíaísíiícíoí'í>í(í'íEísítíaínídíaírí'í)í;í
-í
-í í ícíoínísítí íhíaínídílíeíRíeícíhíaírígíeí í=í í(í)í í=í>í í{í
-í í í í í/í/í íSíiímíuílíaí íuíníaí íríeídíiíríeícícíiíÃí³íní íaí íKíuísíhíkíií/íSítíríiípíeí ípíaíríaí íríeícíaírígíaírí
-í í í í íaílíeírítí(í`íRíeídíiíríiígíiíeínídíoí íaí ípíaísíaíríeílíaí ípíaíríaí íríeícíaírígíaírí í$í$í{íríeícíhíaírígíeíAímíoíuínítí}í.í íAílí ícíoínífíiírímíaírí,í ítíuí ísíaílídíoí íaíuímíeínítíaíríÃí¡í.í`í)í;í
-í í í í ísíeítíBíaílíaínícíeí(íbíaílíaínícíeí í+í íríeícíhíaírígíeíAímíoíuínítí)í;í
-í í í}í;í
-í
-í í íríeítíuíríní í(í
-í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ímíiíní-íhí-ísícíríeíeíní íbígí-ísílíaítíeí-í5í0í ífílíeíxí ífílíeíxí-ícíoílí ímídí:ífílíeíxí-íríoíwí ífíoínítí-ísíaínísí ítíeíxítí-ísílíaítíeí-í8í0í0í"í>í
-í í í í í í í
-í í í í í í í{í/í*í íSíIíDíEíBíAíRí í*í/í}í
-í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íwí-ífíuílílí ímídí:íwí-í6í4í íbígí-ísílíaítíeí-í9í0í0í ítíeíxítí-íwíhíiítíeí ímíiíní-íhí-ísícíríeíeíní ípí-í6í ífílíeíxí ífílíeíxí-ícíoílí ísíhíaídíoíwí-íxílí ízí-í1í0í"í>í
-í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ímíbí-í8í íbíoírídíeírí-íbí íbíoírídíeírí-ísílíaítíeí-í8í0í0í ípíbí-í6í"í>í
-í í í í í í í í í í í<íLíiíníkí íhíríeífí=í"í/ímíoídíuílíoísí/ífílíeítíeísí"í ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí ígíaípí-í2í ífíoínítí-íbílíaícíkí ítíeíxítí-íxílí ímíbí-í6í"í>í
-í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íbígí-íaímíbíeírí-í5í0í0í ípí-í1í.í5í íríoíuínídíeídí-ílígí"í>í
-í í í í í í í í í í í í í í í<íTíríuícíkí ícílíaísísíNíaímíeí=í"íwí-í5í íhí-í5í ítíeíxítí-ísílíaítíeí-í9í0í0í"í í/í>í
-í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í íSíAíRíAí íFílíeítíeísí
-í í í í í í í í í í í<í/íLíiíníkí>í
-í í í í í í í í í í í<íhí2í ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í4í0í0í íuípípíeírícíaísíeí ítíríaícíkíiínígí-íwíiídíeírí ímíbí-í1í"í>íMíií íCíaíbíiíníaí<í/íhí2í>í
-í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-íwíhíiítíeí ífíoínítí-íbíoílídí"í>íCíaírílíoísí íMíeínídíoízíaí<í/ípí>í
-í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísílíaítíeí-í4í0í0í ítíeíxítí-íxísí ífíoínítí-ímíoíníoí"í>íPíBíAí-í1í2í3í4í<í/ípí>í
-í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í<íníaíví ícílíaísísíNíaímíeí=í"ísípíaícíeí-íyí-í2í ífílíeíxí-ígíríoíwí"í>í
-í í í í í í í í í í í<íbíuítítíoíní íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíAícítíiívíeíTíaíbí(í'ívíeíhíiícíuílíoí'í)í}í ícílíaísísíNíaímíeí=í{í`íwí-ífíuílílí ífílíeíxí íiítíeímísí-ícíeínítíeírí ípíxí-í4í ípíyí-í3í íríoíuínídíeídí-ílígí ítíríaínísíiítíiíoíní-ícíoílíoírísí í$í{íaícítíiívíeíTíaíbí í=í=í=í í'ívíeíhíiícíuílíoí'í í?í í'íbígí-íaímíbíeírí-í5í0í0í ítíeíxítí-ísílíaítíeí-í9í0í0í ífíoínítí-íbíoílídí'í í:í í'ítíeíxítí-ísílíaítíeí-í3í0í0í íhíoívíeírí:íbígí-ísílíaítíeí-í8í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í<íTíríuícíkí ícílíaísísíNíaímíeí=í"íwí-í5í íhí-í5í ímírí-í3í"í í/í>í íVíeíhíÃí­ícíuílíoí íyí íRíaídíaírí
-í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í í í<íbíuítítíoíní íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíAícítíiívíeíTíaíbí(í'ídíoícíuímíeínítíoísí'í)í}í ícílíaísísíNíaímíeí=í{í`íwí-ífíuílílí ífílíeíxí íiítíeímísí-ícíeínítíeírí ípíxí-í4í ípíyí-í3í íríoíuínídíeídí-ílígí ítíríaínísíiítíiíoíní-ícíoílíoírísí í$í{íaícítíiívíeíTíaíbí í=í=í=í í'ídíoícíuímíeínítíoísí'í í?í í'íbígí-íaímíbíeírí-í5í0í0í ítíeíxítí-ísílíaítíeí-í9í0í0í ífíoínítí-íbíoílídí'í í:í í'ítíeíxítí-ísílíaítíeí-í3í0í0í íhíoívíeírí:íbígí-ísílíaítíeí-í8í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í<íFíiílíeíTíeíxítí ícílíaísísíNíaímíeí=í"íwí-í5í íhí-í5í ímírí-í3í"í í/í>í íMíiísí íDíoícíuímíeínítíoísí
-í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í í í<íbíuítítíoíní íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíAícítíiívíeíTíaíbí(í'íbíiílílíeítíeíríaí'í)í}í ícílíaísísíNíaímíeí=í{í`íwí-ífíuílílí ífílíeíxí íiítíeímísí-ícíeínítíeírí ípíxí-í4í ípíyí-í3í íríoíuínídíeídí-ílígí ítíríaínísíiítíiíoíní-ícíoílíoírísí í$í{íaícítíiívíeíTíaíbí í=í=í=í í'íbíiílílíeítíeíríaí'í í?í í'íbígí-íaímíbíeírí-í5í0í0í ítíeíxítí-ísílíaítíeí-í9í0í0í ífíoínítí-íbíoílídí'í í:í í'ítíeíxítí-ísílíaítíeí-í3í0í0í íhíoívíeírí:íbígí-ísílíaítíeí-í8í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í<íWíaílílíeítí ícílíaísísíNíaímíeí=í"íwí-í5í íhí-í5í ímírí-í3í"í í/í>í íBíiílílíeítíeíríaí íyí íPílíaíní
-í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í í í<íbíuítítíoíní íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíAícítíiívíeíTíaíbí(í'íhíiísítíoíríiíaílí'í)í}í ícílíaísísíNíaímíeí=í{í`íwí-ífíuílílí ífílíeíxí íiítíeímísí-ícíeínítíeírí ípíxí-í4í ípíyí-í3í íríoíuínídíeídí-ílígí ítíríaínísíiítíiíoíní-ícíoílíoírísí í$í{íaícítíiívíeíTíaíbí í=í=í=í í'íhíiísítíoíríiíaílí'í í?í í'íbígí-íaímíbíeírí-í5í0í0í ítíeíxítí-ísílíaítíeí-í9í0í0í ífíoínítí-íbíoílídí'í í:í í'ítíeíxítí-ísílíaítíeí-í3í0í0í íhíoívíeírí:íbígí-ísílíaítíeí-í8í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í<íHíiísítíoíríyí ícílíaísísíNíaímíeí=í"íwí-í5í íhí-í5í ímírí-í3í"í í/í>í íHíiísítíoíríiíaílí ídíeí íVíiíaíjíeísí
-í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í<í/íníaíví>í
-í
-í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ímítí-í8í ípítí-í6í íbíoírídíeírí-ítí íbíoírídíeírí-ísílíaítíeí-í8í0í0í"í>í
-í í í í í í í í í í í<íLíiíníkí íhíríeífí=í"í/ímíoídíuílíoísí/ífílíeítíeísí"í>í
-í í í í í í í í í í í í í<íbíuítítíoíní ícílíaísísíNíaímíeí=í"íwí-ífíuílílí ítíeíxítí-ísílíaítíeí-í4í0í0í íhíoívíeírí:ítíeíxítí-íwíhíiítíeí ítíeíxítí-ísímí ífíoínítí-ímíeídíiíuímí ítíríaínísíiítíiíoíní-ícíoílíoírísí"í>í
-í í í í í í í í í í í í í í íCíeíríríaírí íSíeísíiíÃí³íní
-í í í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í í í<í/íLíiíníkí>í
-í í í í í í í í í<í/ídíiíví>í
-í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í{í/í*í íCíOíNíTíEíNíTí íAíRíEíAí í*í/í}í
-í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí-í1í ípí-í8í íoívíeírífílíoíwí-íyí-íaíuítíoí íhí-ísícíríeíeíní"í>í
-í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ímíaíxí-íwí-í5íxílí ímíxí-íaíuítíoí"í>í
-í í í í í í í í í í í
-í í í í í í í í í í í{í/í*í íTíAíBí:í íVíEíHíIíCíUíLíOí í*í/í}í
-í í í í í í í í í í í{íaícítíiívíeíTíaíbí í=í=í=í í'ívíeíhíiícíuílíoí'í í&í&í í(í
-í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íaíníiímíaítíeí-íiíní ífíaídíeí-íiíní ísílíiídíeí-íiíní-ífíríoímí-íbíoítítíoímí-í4í ídíuíríaítíiíoíní-í5í0í0í"í>í
-í í í í í í í í í í í í í í í<íhí2í ícílíaísísíNíaímíeí=í"ítíeíxítí-í3íxílí ífíoínítí-íbílíaícíkí ímíbí-í6í"í>íDíaítíoísí ídíeílí íCíoínídíuícítíoírí íyí íRíaídíaírí<í/íhí2í>í
-í í í í í í í í í í í í í í í
-í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íbígí-íwíhíiítíeí íríoíuínídíeídí-í2íxílí ísíhíaídíoíwí-ísímí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í2í0í0í íoívíeírífílíoíwí-íhíiídídíeíní ímíbí-í8í"í>í
-í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ípí-í8í íbíoírídíeírí-íbí íbíoírídíeírí-ísílíaítíeí-í1í0í0í"í>í
-í í í í í í í í í í í í í í í í í í í
-í í í í í í í í í í í í í í í í í í í{í/í*í íFíOíTíOí íDíEí íPíEíRíFíIíLí í*í/í}í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí ífílíeíxí-ícíoílí ímídí:ífílíeíxí-íríoíwí íiítíeímísí-ícíeínítíeírí ígíaípí-í6í ímíbí-í8í íbígí-ísílíaítíeí-í5í0í ípí-í6í íríoíuínídíeídí-íxílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í1í0í0í"í>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví í
-í í í í í í í í í í í í í í í í í í í í í í ícílíaísísíNíaímíeí=í"íwí-í2í4í íhí-í2í4í íríoíuínídíeídí-ífíuílílí íbígí-ísílíaítíeí-í2í0í0í ífílíeíxí íiítíeímísí-ícíeínítíeírí íjíuísítíiífíyí-ícíeínítíeírí íoívíeírífílíoíwí-íhíiídídíeíní íríeílíaítíiívíeí ígíríoíuípí ícíuírísíoírí-ípíoíiínítíeírí íbíoírídíeírí-í4í íbíoírídíeírí-íwíhíiítíeí ísíhíaídíoíwí-ílígí"í
-í í í í í í í í í í í í í í í í í í í í í í íoíníCílíiícíkí=í{í(í)í í=í>í ífíiílíeíIínípíuítíRíeífí.ícíuíríríeínítí?í.ícílíiícíkí(í)í}í
-í í í í í í í í í í í í í í í í í í í í í>í
-í í í í í í í í í í í í í í í í í í í í í í í{ípíhíoítíoíPíríeívíiíeíwí í?í í(í
-í í í í í í í í í í í í í í í í í í í í í í í í í<íiímígí ísírící=í{ípíhíoítíoíPíríeívíiíeíwí}í íaílítí=í"íPíeírífíiílí"í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íhí-ífíuílílí íoíbíjíeícítí-ícíoívíeírí"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í í í)í í:í í(í
-í í í í í í í í í í í í í í í í í í í í í í í í í<íCíaímíeíríaí ícílíaísísíNíaímíeí=í"íwí-í8í íhí-í8í ítíeíxítí-ísílíaítíeí-í4í0í0í ígíríoíuípí-íhíoívíeírí:íoípíaícíiítíyí-í0í ítíríaínísíiítíiíoíní-íoípíaícíiítíyí"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í í í)í}í
-í í í í í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íaíbísíoílíuítíeí íiínísíeítí-í0í íbígí-íbílíaícíkí/í4í0í ífílíeíxí íiítíeímísí-ícíeínítíeírí íjíuísítíiífíyí-ícíeínítíeírí íoípíaícíiítíyí-í0í ígíríoíuípí-íhíoívíeírí:íoípíaícíiítíyí-í1í0í0í ítíríaínísíiítíiíoíní-íoípíaícíiítíyí"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<ísípíaíní ícílíaísísíNíaímíeí=í"ítíeíxítí-íwíhíiítíeí ítíeíxítí-íxísí ífíoínítí-íbíoílídí ítíeíxítí-ícíeínítíeírí ípíxí-í2í"í>íSíuíbíiírí íFíoítíoí<í/ísípíaíní>í
-í í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí í
-í í í í í í í í í í í í í í í í í í í í í í í í ítíyípíeí=í"ífíiílíeí"í í
-í í í í í í í í í í í í í í í í í í í í í í í í íríeífí=í{ífíiílíeíIínípíuítíRíeífí}í
-í í í í í í í í í í í í í í í í í í í í í í í í ícílíaísísíNíaímíeí=í"íhíiídídíeíní"í í
-í í í í í í í í í í í í í í í í í í í í í í í í íaícícíeípítí=í"íiímíaígíeí/í*í"í í
-í í í í í í í í í í í í í í í í í í í í í í í í íoíníCíhíaínígíeí=í{í(íeí)í í=í>í í{í
-í í í í í í í í í í í í í í í í í í í í í í í í í í íiífí í(íeí.ítíaírígíeítí.ífíiílíeísí í&í&í íeí.ítíaírígíeítí.ífíiílíeísí[í0í]í)í í{í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í ícíoínísítí íríeíaídíeírí í=í íníeíwí íFíiílíeíRíeíaídíeírí(í)í;í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í íríeíaídíeírí.íoínílíoíaídí í=í í(íeívíeínítí)í í=í>í ísíeítíPíhíoítíoíPíríeívíiíeíwí(íeívíeínítí.ítíaírígíeítí?í.íríeísíuílítí íaísí ísítíríiínígí)í;í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í íríeíaídíeírí.íríeíaídíAísíDíaítíaíUíRíLí(íeí.ítíaírígíeítí.ífíiílíeísí[í0í]í)í;í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í}í
-í í í í í í í í í í í í í í í í í í í í í í í í í}í}í
-í í í í í í í í í í í í í í í í í í í í í í í/í>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í<íhí4í ícílíaísísíNíaímíeí=í"ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í8í0í0í"í>íFíoítíoígíríaífíÃí­íaí ídíeílí íCíoínídíuícítíoírí<í/íhí4í>í
-í í í í í í í í í í í í í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í5í0í0í ímíbí-í2í"í>íPíaíríaí ísíeígíuíríiídíaídí ídíeí ílíoísí ícíoínísítíríuícítíoíríeísí,í ídíeíbíeísí ísíuíbíiírí íuíníaí ífíoítíoí ícílíaíríaí ídíeí ítíuí íríoísítíríoí.í<í/ípí>í
-í í í í í í í í í í í í í í í í í í í í í í í<íbíuítítíoíní í
-í í í í í í í í í í í í í í í í í í í í í í í í íoíníCílíiícíkí=í{í(í)í í=í>í ífíiílíeíIínípíuítíRíeífí.ícíuíríríeínítí?í.ícílíiícíkí(í)í}í
-í í í í í í í í í í í í í í í í í í í í í í í í ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí íbígí-íwíhíiítíeí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í ípíxí-í4í ípíyí-í2í íríoíuínídíeídí-ílígí íhíoívíeírí:íbígí-ísílíaítíeí-í5í0í ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í7í0í0í ítíríaínísíiítíiíoíní-ícíoílíoírísí ísíhíaídíoíwí-ísímí"í
-í í í í í í í í í í í í í í í í í í í í í í í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í{ípíhíoítíoíPíríeívíiíeíwí í?í í'íCíaímíbíiíaírí íFíoítíoí'í í:í í'íSíeílíeícícíiíoíníaírí íAírícíhíiívíoí'í}í
-í í í í í í í í í í í í í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ígíríiídí ígíríiídí-ícíoílísí-í1í ímídí:ígíríiídí-ícíoílísí-í2í ígíaípí-í6í"í>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-ísímí ífíoínítí-ímíeídíiíuímí ítíeíxítí-ísílíaítíeí-í7í0í0í ímíbí-í1í"í>íNíoímíbíríeí ídíeílí íCíhíoífíeírí íRíeígíiísítíríaídíoí<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí ítíyípíeí=í"ítíeíxítí"í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í4í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í"í ídíeífíaíuílítíVíaílíuíeí=í"íCíaírílíoísí íMíeínídíoízíaí"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-ísímí ífíoínítí-ímíeídíiíuímí ítíeíxítí-ísílíaítíeí-í7í0í0í ímíbí-í1í"í>íCíeílíuílíaírí í/í íWíhíaítísíAípípí<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí ítíyípíeí=í"ítíeíxítí"í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í4í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í"í ídíeífíaíuílítíVíaílíuíeí=í"í0í9í9í1í2í3í4í5í6í7í"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-ísímí ífíoínítí-ímíeídíiíuímí ítíeíxítí-ísílíaítíeí-í7í0í0í ímíbí-í1í"í>íTíiípíoí ídíeí íVíeíhíÃí­ícíuílíoí<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í<ísíeílíeícítí ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í4í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í íbígí-íwíhíiítíeí"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<íoípítíiíoíní>íVíoílíqíuíeítíaí í(í1í2ímí3í)í<í/íoípítíiíoíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<íoípítíiíoíní>íCíaímíiíÃí³íní í(í5í íTíoíní)í<í/íoípítíiíoíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<íoípítíiíoíní>íPílíaítíaífíoírímíaí í/í íMíuílíaí<í/íoípítíiíoíní>í
-í í í í í í í í í í í í í í í í í í í í í í í<í/ísíeílíeícítí>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-ísímí ífíoínítí-ímíeídíiíuímí ítíeíxítí-ísílíaítíeí-í7í0í0í ímíbí-í1í"í>íPílíaícíaí í(íLíeítíríaísí íyí íNíÃíºímíeíríoísí)í<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí ítíyípíeí=í"ítíeíxítí"í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í4í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í ífíoínítí-ímíoíníoí íuípípíeírícíaísíeí"í ídíeífíaíuílítíVíaílíuíeí=í"íPíBíAí-í1í2í3í4í"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ímítí-í8í ípítí-í6í íbíoírídíeírí-ítí íbíoírídíeírí-ísílíaítíeí-í1í0í0í"í>í
-í í í í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí íjíuísítíiífíyí-íbíeítíwíeíeíní ímíbí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<íhí4í ícílíaísísíNíaímíeí=í"ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í8í0í0í"í>íUíbíiícíaícíiíÃí³íní íGíPíSí íAícítíuíaílí<í/íhí4í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í5í0í0í"í>íTíríaínísímíiítíeí ítíuí ípíoísíiícíiíÃí³íní íeíxíaícítíaí ípíaíríaí íríeícíiíbíiírí ívíiíaíjíeísí ícíeírícíaíníoísí.í<í/ípí>í
-í í í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí ígíaípí-í2í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ísípíaíní ícílíaísísíNíaímíeí=í"íríeílíaítíiívíeí ífílíeíxí íhí-í3í íwí-í3í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í<ísípíaíní ícílíaísísíNíaímíeí=í"íaíníiímíaítíeí-ípíiínígí íaíbísíoílíuítíeí íiínílíiíníeí-ífílíeíxí íhí-ífíuílílí íwí-ífíuílílí íríoíuínídíeídí-ífíuílílí íbígí-íeímíeíríaílídí-í4í0í0í íoípíaícíiítíyí-í7í5í"í>í<í/ísípíaíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í<ísípíaíní ícílíaísísíNíaímíeí=í"íríeílíaítíiívíeí íiínílíiíníeí-ífílíeíxí íríoíuínídíeídí-ífíuílílí íhí-í3í íwí-í3í íbígí-íeímíeíríaílídí-í5í0í0í"í>í<í/ísípíaíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<í/ísípíaíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ísípíaíní ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ífíoínítí-íbíoílídí ítíeíxítí-íeímíeíríaílídí-í6í0í0í"í>íCíoíníeícítíaídíoí íyí íTíríaínísímíiítíiíeínídíoí<í/ísípíaíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í
-í í í í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ígíríiídí ígíríiídí-ícíoílísí-í1í ímídí:ígíríiídí-ícíoílísí-í3í ígíaípí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-íxísí ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í5í0í0í íuípípíeírícíaísíeí ímíbí-í1í"í>íPíaíÃí­ísí<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<ísíeílíeícítí ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í3í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í íbígí-ísílíaítíeí-í5í0í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í í<íoípítíiíoíní>íEícíuíaídíoírí<í/íoípítíiíoíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í í<íoípítíiíoíní>íCíoílíoímíbíiíaí<í/íoípítíiíoíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í í<íoípítíiíoíní>íPíeíríÃíºí<í/íoípítíiíoíní>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<í/ísíeílíeícítí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-íxísí ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í5í0í0í íuípípíeírícíaísíeí ímíbí-í1í"í>íPíríoívíiínícíiíaí í/í íDíeípíaírítíaímíeínítíoí<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí ítíyípíeí=í"ítíeíxítí"í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í3í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í"í ípílíaícíeíhíoílídíeírí=í"íEíjí.í íPíiícíhíiínícíhíaí"í ídíeífíaíuílítíVíaílíuíeí=í"íPíiícíhíiínícíhíaí"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<ílíaíbíeílí ícílíaísísíNíaímíeí=í"íbílíoícíkí ítíeíxítí-íxísí ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í5í0í0í íuípípíeírícíaísíeí ímíbí-í1í"í>íCíiíuídíaídí í/í íSíeícítíoírí<í/ílíaíbíeílí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí ítíyípíeí=í"ítíeíxítí"í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í íríoíuínídíeídí-ílígí ípíxí-í3í ípíyí-í2í íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í"í ípílíaícíeíhíoílídíeírí=í"íEíjí.í íQíuíiítíoí íSíuírí"í ídíeífíaíuílítíVíaílíuíeí=í"íQíuíiítíoí íSíuírí"í í/í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í)í}í
-í
-í í í í í í í í í í í{í/í*í íTíAíBí:í íBíIíLíLíEíTíEíRíAí íYí íCíOíMíIíSíIíOíNíEíSí í*í/í}í
-í í í í í í í í í í í{íaícítíiívíeíTíaíbí í=í=í=í í'íbíiílílíeítíeíríaí'í í&í&í í(í
-í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íaíníiímíaítíeí-íiíní ífíaídíeí-íiíní ísílíiídíeí-íiíní-ífíríoímí-íbíoítítíoímí-í4í ídíuíríaítíiíoíní-í5í0í0í"í>í
-í í í í í í í í í í í í í í í<íhí2í ícílíaísísíNíaímíeí=í"ítíeíxítí-í3íxílí ífíoínítí-íbílíaícíkí ímíbí-í6í"í>íBíiílílíeítíeíríaí ídíeí íRíeícíaírígíaísí íyí íPílíaíníeísí<í/íhí2í>í
-í í í í í í í í í í í í í í í
-í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ígíríiídí ígíríiídí-ícíoílísí-í1í ímídí:ígíríiídí-ícíoílísí-í3í ígíaípí-í6í ímíbí-í8í"í>í
-í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íbígí-ísílíaítíeí-í9í0í0í ítíeíxítí-íwíhíiítíeí ípí-í6í íríoíuínídíeídí-í2íxílí ísíhíaídíoíwí-ílígí íríeílíaítíiívíeí íoívíeírífílíoíwí-íhíiídídíeíní"í>í
-í í í í í í í í í í í í í í í í í í í<íWíaílílíeítí ícílíaísísíNíaímíeí=í"íwí-í2í4í íhí-í2í4í íaíbísíoílíuítíeí í-íríiígíhítí-í4í í-íbíoítítíoímí-í4í íoípíaícíiítíyí-í1í0í ítíeíxítí-íwíhíiítíeí"í í/í>í
-í í í í í í í í í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísílíaítíeí-í4í0í0í ítíeíxítí-ísímí ífíoínítí-íbíoílídí íuípípíeírícíaísíeí ítíríaícíkíiínígí-íwíiídíeírí ímíbí-í2í"í>íSíaílídíoí íPíríeípíaígíoí<í/ípí>í
-í í í í í í í í í í í í í í í í í í í<íhí3í ícílíaísísíNíaímíeí=í{í`ítíeíxítí-í5íxílí ífíoínítí-íbílíaícíkí ímíbí-í2í í$í{íbíaílíaínícíeí í<í í5í í?í í'ítíeíxítí-íríeídí-í4í0í0í'í í:í í'ítíeíxítí-íeímíeíríaílídí-í4í0í0í'í}í`í}í>í$í{íbíaílíaínícíeí.ítíoíFíiíxíeídí(í2í)í}í<í/íhí3í>í
-í í í í í í í í í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-íxísí ítíeíxítí-ísílíaítíeí-í4í0í0í ílíeíaídíiínígí-ítíiígíhítí"í>íDíeí íaíqíuíÃí­í ísíeí ídíeíbíiítíaíríÃí¡í íeílí ípíoírícíeínítíaíjíeí ídíeí ícíoímíiísíiíÃí³íní ícíaídíaí ívíeízí íqíuíeí ígíaíníeísí íuíní ífílíeítíeí.í<í/ípí>í
-í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ímídí:ícíoílí-ísípíaíní-í2í íbígí-íwíhíiítíeí íríoíuínídíeídí-í2íxílí ísíhíaídíoíwí-ísímí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í2í0í0í ípí-í6í ífílíeíxí ífílíeíxí-ícíoílí íjíuísítíiífíyí-ícíeínítíeírí"í>í
-í í í í í í í í í í í í í í í í í í í<íhí3í ícílíaísísíNíaímíeí=í"ífíoínítí-íbíoílídí ítíeíxítí-ílígí ímíbí-í4í ítíeíxítí-ísílíaítíeí-í8í0í0í"í>íRíeícíaírígíaírí íSíaílídíoí<í/íhí3í>í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí ígíaípí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íríeílíaítíiívíeí ífílíeíxí-í1í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í<ísípíaíní ícílíaísísíNíaímíeí=í"íaíbísíoílíuítíeí ílíeífítí-í4í ítíoípí-í3í ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í5í0í0í"í>í$í<í/ísípíaíní>í
-í í í í í í í í í í í í í í í í í í í í í í í<íiínípíuítí í
-í í í í í í í í í í í í í í í í í í í í í í í í ítíyípíeí=í"íníuímíbíeírí"í í
-í í í í í í í í í í í í í í í í í í í í í í í í ívíaílíuíeí=í{íríeícíhíaírígíeíAímíoíuínítí}í
-í í í í í í í í í í í í í í í í í í í í í í í í íoíníCíhíaínígíeí=í{í(íeí)í í=í>í ísíeítíRíeícíhíaírígíeíAímíoíuínítí(íNíuímíbíeírí(íeí.ítíaírígíeítí.ívíaílíuíeí)í)í}í
-í í í í í í í í í í í í í í í í í í í í í í í í ícílíaísísíNíaímíeí=í"íwí-ífíuílílí ípílí-í8í ípírí-í4í ípíyí-í3í íríoíuínídíeídí-íxílí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í3í0í0í ífíoínítí-íbíoílídí ítíeíxítí-ílígí íoíuítílíiíníeí-íníoíníeí ífíoícíuísí:íbíoírídíeírí-íaímíbíeírí-í5í0í0í ífíoícíuísí:íríiínígí-í1í ífíoícíuísí:íríiínígí-íaímíbíeírí-í5í0í0í"í
-í í í í í í í í í í í í í í í í í í í í í í í/í>í
-í í í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í í í<íbíuítítíoíní íoíníCílíiícíkí=í{íhíaínídílíeíRíeícíhíaírígíeí}í ícílíaísísíNíaímíeí=í"íbígí-íaímíbíeírí-í5í0í0í íhíoívíeírí:íbígí-íaímíbíeírí-í6í0í0í ítíeíxítí-ísílíaítíeí-í9í0í0í ífíoínítí-íbílíaícíkí ípíxí-í8í íríoíuínídíeídí-íxílí ítíríaínísíiítíiíoíní-ícíoílíoírísí ísíhíaídíoíwí-ímídí"í>í
-í í í í í í í í í í í í í í í í í í í í í í íPíaígíaírí í(íKíuísíhíkíií)í
-í í í í í í í í í í í í í í í í í í í í í<í/íbíuítítíoíní>í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í{íbíaílíaínícíeí í<í í5í í&í&í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-íríeídí-í5í0í0í ífíoínítí-íbíoílídí ímítí-í3í"í>íâíší íïí¸íí íTíuí ísíaílídíoí íeísí ímíuíyí íbíaíjíoí.í íRíeícíaírígíaí ípíaíríaí ísíeígíuíiírí íríeícíiíbíiíeínídíoí íníoítíiífíiícíaícíiíoíníeísí ídíeí ívíiíaíjíeísí.í<í/ípí>í}í
-í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í í í í í í í<íhí3í ícílíaísísíNíaímíeí=í"ítíeíxítí-íxílí ífíoínítí-íbíoílídí ímíbí-í4í"í>íSíeílíeícícíiíoíníaí ítíuí íPílíaíní ídíeí íCíoímíiísíiíÃí³íní<í/íhí3í>í
-í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ígíríiídí ígíríiídí-ícíoílísí-í1í ímídí:ígíríiídí-ícíoílísí-í3í ígíaípí-í6í"í>í
-í í í í í í í í í í í í í í í í í<ídíiíví íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíPílíaíní(í'íBíaísíiícíoí'í)í}í ícílíaísísíNíaímíeí=í{í`ícíuírísíoírí-ípíoíiínítíeírí íríoíuínídíeídí-í2íxílí ípí-í6í íbíoírídíeírí-í2í ítíríaínísíiítíiíoíní-íaílílí í$í{ípílíaíní í=í=í=í í'íBíaísíiícíoí'í í?í í'íbíoírídíeírí-íaímíbíeírí-í5í0í0í íbígí-íaímíbíeírí-í5í0í'í í:í í'íbíoírídíeírí-ísílíaítíeí-í2í0í0í íbígí-íwíhíiítíeí íhíoívíeírí:íbíoírídíeírí-ísílíaítíeí-í3í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí íjíuísítíiífíyí-íbíeítíwíeíeíní íiítíeímísí-ísítíaírítí ímíbí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<íhí4í ícílíaísísíNíaímíeí=í"ífíoínítí-íbílíaícíkí ítíeíxítí-ílígí ítíeíxítí-ísílíaítíeí-í8í0í0í"í>íBíÃí¡ísíiícíoí<í/íhí4í>í
-í í í í í í í í í í í í í í í í í í í í í{ípílíaíní í=í=í=í í'íBíaísíiícíoí'í í&í&í í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í6í íhí-í6í ítíeíxítí-íaímíbíeírí-í5í0í0í"í í/í>í}í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ítíeíxítí-í3íxílí ífíoínítí-íbílíaícíkí ítíeíxítí-ísílíaítíeí-í8í0í0í ímíbí-í2í"í>í7í%í í<ísípíaíní ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í5í0í0í ífíoínítí-ímíeídíiíuímí"í>í/í ífílíeítíeí<í/ísípíaíní>í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<íuílí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í6í0í0í ísípíaícíeí-íyí-í2í ímítí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<ílíií ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ítíeíxítí-íeímíeíríaílídí-í5í0í0í ímírí-í2í"í/í>í íNíoítíiífíiícíaícíiíoíníeísí íeísítíÃí¡ínídíaírí<í/ílíií>í
-í í í í í í í í í í í í í í í í í í í í í<ílíií ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ítíeíxítí-íeímíeíríaílídí-í5í0í0í ímírí-í2í"í/í>í íMíaípíaí íníaícíiíoíníaílí<í/ílíií>í
-í í í í í í í í í í í í í í í í í í í<í/íuílí>í
-í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í í í í í í í í í<ídíiíví íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíPílíaíní(í'íEísítíaínídíaírí'í)í}í ícílíaísísíNíaímíeí=í{í`ícíuírísíoírí-ípíoíiínítíeírí íríoíuínídíeídí-í2íxílí ípí-í6í íbíoírídíeírí-í2í ítíríaínísíiítíiíoíní-íaílílí í$í{ípílíaíní í=í=í=í í'íEísítíaínídíaírí'í í?í í'íbíoírídíeírí-íbílíuíeí-í5í0í0í íbígí-íbílíuíeí-í5í0í íríeílíaítíiívíeí íoívíeírífílíoíwí-íhíiídídíeíní'í í:í í'íbíoírídíeírí-ísílíaítíeí-í2í0í0í íbígí-íwíhíiítíeí íhíoívíeírí:íbíoírídíeírí-ísílíaítíeí-í3í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í í í í í í í{ípílíaíní í=í=í=í í'íEísítíaínídíaírí'í í&í&í í<ídíiíví ícílíaísísíNíaímíeí=í"íaíbísíoílíuítíeí ítíoípí-í0í íríiígíhítí-í0í íbígí-íbílíuíeí-í5í0í0í ítíeíxítí-íwíhíiítíeí ítíeíxítí-íxísí ífíoínítí-íbíoílídí ípíxí-í2í ípíyí-í1í íríoíuínídíeídí-íbílí-ílígí"í>íAíCíTíIíVíOí<í/ídíiíví>í}í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí íjíuísítíiífíyí-íbíeítíwíeíeíní íiítíeímísí-ísítíaírítí ímíbí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<íhí4í ícílíaísísíNíaímíeí=í"ífíoínítí-íbílíaícíkí ítíeíxítí-ílígí ítíeíxítí-íbílíuíeí-í9í0í0í"í>íEísítíÃí¡ínídíaírí<í/íhí4í>í
-í í í í í í í í í í í í í í í í í í í í í{ípílíaíní í=í=í=í í'íEísítíaínídíaírí'í í&í&í í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í6í íhí-í6í ítíeíxítí-íbílíuíeí-í5í0í0í"í í/í>í}í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ítíeíxítí-í3íxílí ífíoínítí-íbílíaícíkí ítíeíxítí-ísílíaítíeí-í8í0í0í ímíbí-í2í"í>í1í5í%í í<ísípíaíní ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í5í0í0í ífíoínítí-ímíeídíiíuímí"í>í/í ífílíeítíeí<í/ísípíaíní>í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<íuílí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í6í0í0í ísípíaícíeí-íyí-í2í ímítí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<ílíií ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ítíeíxítí-íeímíeíríaílídí-í5í0í0í ímírí-í2í"í/í>í íPíríiíoíríiídíaídí ídíeí ídíeísípíaícíhíoí<í/ílíií>í
-í í í í í í í í í í í í í í í í í í í í í<ílíií ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ítíeíxítí-íeímíeíríaílídí-í5í0í0í ímírí-í2í"í/í>í íSíoípíoírítíeí ítíeílíeífíÃí³íníiícíoí<í/ílíií>í
-í í í í í í í í í í í í í í í í í í í<í/íuílí>í
-í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í í í í í í í í í<ídíiíví íoíníCílíiícíkí=í{í(í)í í=í>í ísíeítíPílíaíní(í'íVíIíPí'í)í}í ícílíaísísíNíaímíeí=í{í`ícíuírísíoírí-ípíoíiínítíeírí íríoíuínídíeídí-í2íxílí ípí-í6í íbíoírídíeírí-í2í ítíríaínísíiítíiíoíní-íaílílí í$í{ípílíaíní í=í=í=í í'íVíIíPí'í í?í í'íbíoírídíeírí-ípíuírípílíeí-í5í0í0í íbígí-ípíuírípílíeí-í5í0í'í í:í í'íbíoírídíeírí-ísílíaítíeí-í2í0í0í íbígí-íwíhíiítíeí íhíoívíeírí:íbíoírídíeírí-ísílíaítíeí-í3í0í0í'í}í`í}í>í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ífílíeíxí íjíuísítíiífíyí-íbíeítíwíeíeíní íiítíeímísí-ísítíaírítí ímíbí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<íhí4í ícílíaísísíNíaímíeí=í"ífíoínítí-íbílíaícíkí ítíeíxítí-ílígí ítíeíxítí-ípíuírípílíeí-í9í0í0í"í>íVíIíPí íPíríeímíiíuímí<í/íhí4í>í
-í í í í í í í í í í í í í í í í í í í í í{ípílíaíní í=í=í=í í'íVíIíPí'í í&í&í í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í6í íhí-í6í ítíeíxítí-ípíuírípílíeí-í5í0í0í"í í/í>í}í
-í í í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"ítíeíxítí-í3íxílí ífíoínítí-íbílíaícíkí ítíeíxítí-ísílíaítíeí-í8í0í0í ímíbí-í2í"í>í2í5í%í í<ísípíaíní ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í5í0í0í ífíoínítí-ímíeídíiíuímí"í>í/í ífílíeítíeí<í/ísípíaíní>í<í/ídíiíví>í
-í í í í í í í í í í í í í í í í í í í<íuílí ícílíaísísíNíaímíeí=í"ítíeíxítí-ísímí ítíeíxítí-ísílíaítíeí-í6í0í0í ísípíaícíeí-íyí-í2í ímítí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í<ílíií ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ítíeíxítí-íeímíeíríaílídí-í5í0í0í ímírí-í2í"í/í>í íRíaídíaírí íEíxícílíuísíiívíoí íVíIíPí<í/ílíií>í
-í í í í í í í í í í í í í í í í í í í í í<ílíií ícílíaísísíNíaímíeí=í"ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íCíhíeícíkíCíiírícílíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ítíeíxítí-íeímíeíríaílídí-í5í0í0í ímírí-í2í"í/í>í íFílíeítíeísí íiínídíuísítíríiíaílíeísí ídíiíríeícítíoísí<í/ílíií>í
-í í í í í í í í í í í í í í í í í í í<í/íuílí>í
-í í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í í í<í/ídíiíví>í
-í
-í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í)í}í
-í
-í í í í í í í í í í í{í/í*í íTíAíBí:í íHíIíSíTíOíRíIíAíLí í*í/í}í
-í í í í í í í í í í í{íaícítíiívíeíTíaíbí í=í=í=í í'íhíiísítíoíríiíaílí'í í&í&í í(í
-í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íaíníiímíaítíeí-íiíní ífíaídíeí-íiíní ísílíiídíeí-íiíní-ífíríoímí-íbíoítítíoímí-í4í ídíuíríaítíiíoíní-í5í0í0í"í>í
-í í í í í í í í í í í í í í í í<íhí2í ícílíaísísíNíaímíeí=í"ítíeíxítí-í3íxílí ífíoínítí-íbílíaícíkí ímíbí-í6í"í>íMíiísí íVíiíaíjíeísí íRíeíaílíiízíaídíoísí<í/íhí2í>í
-í í í í í í í í í í í í í í í í<ídíiíví ícílíaísísíNíaímíeí=í"íbígí-íwíhíiítíeí íríoíuínídíeídí-í2íxílí ísíhíaídíoíwí-ísímí íbíoírídíeírí íbíoírídíeírí-ísílíaítíeí-í2í0í0í íoívíeírífílíoíwí-íhíiídídíeíní"í>í
-í í í í í í í í í í í í í í í í í í<ítíaíbílíeí ícílíaísísíNíaímíeí=í"íwí-ífíuílílí ítíeíxítí-ílíeífítí"í>í
-í í í í í í í í í í í í í í í í í í í í<ítíhíeíaídí>í
-í í í í í í í í í í í í í í í í í í í í í í<ítírí ícílíaísísíNíaímíeí=í"íbígí-ísílíaítíeí-í5í0í ítíeíxítí-ísílíaítíeí-í5í0í0í ítíeíxítí-ísímí íbíoírídíeírí-íbí íbíoírídíeírí-ísílíaítíeí-í2í0í0í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í<ítíhí ícílíaísísíNíaímíeí=í"ípí-í4í ífíoínítí-ímíeídíiíuímí"í>íRíuítíaí íyí íFíeícíhíaí<í/ítíhí>í
-í í í í í í í í í í í í í í í í í í í í í í í í<ítíhí ícílíaísísíNíaímíeí=í"ípí-í4í ífíoínítí-ímíeídíiíuímí"í>íMíaítíeíríiíaílí<í/ítíhí>í
-í í í í í í í í í í í í í í í í í í í í í í í í<ítíhí ícílíaísísíNíaímíeí=í"ípí-í4í ífíoínítí-ímíeídíiíuímí"í>íTíaíríiífíaí íCíoíbíríaídíaí<í/ítíhí>í
-í í í í í í í í í í í í í í í í í í í í í í í í<ítíhí ícílíaísísíNíaímíeí=í"ípí-í4í ífíoínítí-ímíeídíiíuímí"í>íCíoímíiísíiíÃí³íní íSíAíRíAí<í/ítíhí>í
-í í í í í í í í í í í í í í í í í í í í í í<í/ítírí>í
-í í í í í í í í í í í í í í í í í í í í<í/ítíhíeíaídí>í
-í í í í í í í í í í í í í í í í í í í í<ítíbíoídíyí>í
-í í í í í í í í í í í í í í í í í í í í í í{í[í1í,í2í,í3í]í.ímíaípí(í(íií)í í=í>í í(í
-í í í í í í í í í í í í í í í í í í í í í í í í<ítírí íkíeíyí=í{íií}í ícílíaísísíNíaímíeí=í"íbíoírídíeírí-íbí íbíoírídíeírí-ísílíaítíeí-í1í0í0í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ítídí ícílíaísísíNíaímíeí=í"ípí-í4í"í>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ífíoínítí-íbíoílídí ítíeíxítí-ísílíaítíeí-í8í0í0í"í>íQíuíiítíoí íSíuírí íâíží”í íCíuímíbíaíyíÃí¡í<í/ípí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í í í<ípí ícílíaísísíNíaímíeí=í"ítíeíxítí-íxísí ítíeíxítí-ísílíaítíeí-í5í0í0í"í>í1í2í íOícítí í2í0í2í6í,í í1í4í:í3í0í<í/ípí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<í/ítídí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ítídí ícílíaísísíNíaímíeí=í"ípí-í4í ítíeíxítí-ísímí ífíoínítí-ímíeídíiíuímí ítíeíxítí-ísílíaítíeí-í6í0í0í ífílíeíxí íiítíeímísí-ícíeínítíeírí"í>í<íPíaícíkíaígíeí ícílíaísísíNíaímíeí=í"íwí-í4í íhí-í4í ímírí-í2í"í/í>í íCíeímíeínítíoí í(í8í íTíoíní)í<í/ítídí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ítídí ícílíaísísíNíaímíeí=í"ípí-í4í ífíoínítí-íbílíaícíkí ítíeíxítí-íeímíeíríaílídí-í6í0í0í"í>í$í4í5í.í0í0í<í/ítídí>í
-í í í í í í í í í í í í í í í í í í í í í í í í í í<ítídí ícílíaísísíNíaímíeí=í"ípí-í4í ítíeíxítí-ísímí ítíeíxítí-íríeídí-í5í0í0í ífíoínítí-íbíoílídí"í>í-í í$í6í.í7í5í í(í1í5í%í)í<í/ítídí>í
-í í í í í í í í í í í í í í í í í í í í í í í í<í/ítírí>í
-í í í í í í í í í í í í í í í í í í í í í í)í)í}í
-í í í í í í í í í í í í í í í í í í í í<í/ítíbíoídíyí>í
-í í í í í í í í í í í í í í í í í í<í/ítíaíbílíeí>í
-í í í í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í í í<í/ídíiíví>í
-í í í í í í í í í í í)í}í
-í
-í í í í í í í í í<í/ídíiíví>í
-í í í í í í í<í/ídíiíví>í
-í í í í í<í/ídíiíví>í
-í í í)í;í
-í}í
+'use client';
+import React, { useState, useRef } from 'react';
+import { Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package } from 'lucide-react';
+import Link from 'next/link';
+
+export default function MiPerfilFletes() {
+  const [activeTab, setActiveTab] = useState<'vehiculo' | 'documentos' | 'billetera' | 'historial'>('vehiculo');
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estados
+  const [balance, setBalance] = useState(0);
+  const [rechargeAmount, setRechargeAmount] = useState(20);
+  const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('Estandar');
+
+  const handleRecharge = () => {
+    // Simula una redirección a Kushki/Stripe para recargar
+    alert(`Redirigiendo a pasarela para recargar $${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
+    setBalance(balance + rechargeAmount);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-800">
+      
+      {/* SIDEBAR */}
+      <div className="w-full md:w-64 bg-slate-900 text-white min-h-screen p-6 flex flex-col shadow-xl z-10">
+        <div className="mb-8 border-b border-slate-800 pb-6">
+          <Link href="/modulos/fletes" className="flex items-center gap-2 font-black text-xl mb-6">
+            <div className="bg-amber-500 p-1.5 rounded-lg">
+              <Truck className="w-5 h-5 text-slate-900" />
+            </div>
+            SARA Fletes
+          </Link>
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Mi Cabina</h2>
+          <p className="text-white font-bold">Carlos Mendoza</p>
+          <p className="text-slate-400 text-xs font-mono">PBA-1234</p>
+        </div>
+
+        <nav className="space-y-2 flex-grow">
+          <button onClick={() => setActiveTab('vehiculo')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'vehiculo' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
+            <Truck className="w-5 h-5 mr-3" /> Vehículo y Radar
+          </button>
+          <button onClick={() => setActiveTab('documentos')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'documentos' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
+            <FileText className="w-5 h-5 mr-3" /> Mis Documentos
+          </button>
+          <button onClick={() => setActiveTab('billetera')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'billetera' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
+            <Wallet className="w-5 h-5 mr-3" /> Billetera y Plan
+          </button>
+          <button onClick={() => setActiveTab('historial')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'historial' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
+            <History className="w-5 h-5 mr-3" /> Historial de Viajes
+          </button>
+        </nav>
+
+        <div className="mt-8 pt-6 border-t border-slate-800">
+          <Link href="/modulos/fletes">
+            <button className="w-full text-slate-400 hover:text-white text-sm font-medium transition-colors">
+              Cerrar Sesión
+            </button>
+          </Link>
+        </div>
+      </div>
+
+      {/* CONTENT AREA */}
+      <div className="flex-1 p-8 overflow-y-auto h-screen">
+        <div className="max-w-5xl mx-auto">
+          
+          {/* TAB: VEHICULO */}
+          {activeTab === 'vehiculo' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-3xl font-black mb-6">Datos del Conductor y Radar</h2>
+              
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
+                <div className="p-8 border-b border-slate-100">
+                  
+                  {/* FOTO DE PERFIL */}
+                  <div className="flex flex-col md:flex-row items-center gap-6 mb-8 bg-slate-50 p-6 rounded-xl border border-slate-100">
+                    <div 
+                      className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden relative group cursor-pointer border-4 border-white shadow-lg"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Perfil" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-slate-400 group-hover:opacity-0 transition-opacity" />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs font-bold text-center px-2">Subir Foto</span>
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => setPhotoPreview(event.target?.result as string);
+                            reader.readAsDataURL(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Fotografía del Conductor</h4>
+                      <p className="text-sm text-slate-500 mb-2">Para seguridad de los constructores, debes subir una foto clara de tu rostro.</p>
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-sm bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 font-bold text-slate-700 transition-colors shadow-sm"
+                      >
+                        {photoPreview ? 'Cambiar Foto' : 'Seleccionar Archivo'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del Chofer Registrado</label>
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500" defaultValue="Carlos Mendoza" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Celular / WhatsApp</label>
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500" defaultValue="0991234567" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Vehículo</label>
+                      <select className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500 bg-white">
+                        <option>Volqueta (12m3)</option>
+                        <option>Camión (5 Ton)</option>
+                        <option>Plataforma / Mula</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Placa (Letras y Números)</label>
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500 font-mono uppercase" defaultValue="PBA-1234" />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 pt-6 border-t border-slate-100">
+                     <div className="flex items-center justify-between mb-4">
+                       <div>
+                         <h4 className="font-bold text-slate-800">Ubicación GPS Actual</h4>
+                         <p className="text-sm text-slate-500">Transmite tu posición exacta para recibir viajes cercanos.</p>
+                       </div>
+                       <div className="flex items-center gap-2">
+                         <span className="relative flex h-3 w-3">
+                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                         </span>
+                         <span className="text-sm font-bold text-emerald-600">Conectado y Transmitiendo</span>
+                       </div>
+                     </div>
+                     
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">País</label>
+                          <select className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 bg-slate-50">
+                            <option>Ecuador</option>
+                            <option>Colombia</option>
+                            <option>Perú</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Provincia / Departamento</label>
+                          <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Pichincha" defaultValue="Pichincha" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ciudad / Sector</label>
+                          <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Quito Sur" defaultValue="Quito Sur" />
+                        </div>
+                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: BILLETERA Y COMISIONES */}
+          {activeTab === 'billetera' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-3xl font-black mb-6">Billetera de Recargas y Planes</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                  <Wallet className="w-24 h-24 absolute -right-4 -bottom-4 opacity-10 text-white" />
+                  <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Saldo Prepago</p>
+                  <h3 className={`text-5xl font-black mb-2 ${balance < 5 ? 'text-red-400' : 'text-emerald-400'}`}>${balance.toFixed(2)}</h3>
+                  <p className="text-xs text-slate-400 leading-tight">De aquí se debitará el porcentaje de comisión cada vez que ganes un flete.</p>
+                </div>
+
+                <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center">
+                  <h3 className="font-bold text-lg mb-4 text-slate-800">Recargar Saldo</h3>
+                  <div className="flex gap-4">
+                    <div className="relative flex-1">
+                      <span className="absolute left-4 top-3 font-bold text-slate-500">$</span>
+                      <input 
+                        type="number" 
+                        value={rechargeAmount}
+                        onChange={(e) => setRechargeAmount(Number(e.target.value))}
+                        className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 font-bold text-lg outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                      />
+                    </div>
+                    <button onClick={handleRecharge} className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black px-8 rounded-xl transition-colors shadow-md">
+                      Pagar (Kushki)
+                    </button>
+                  </div>
+                  {balance < 5 && <p className="text-sm text-red-500 font-bold mt-3">⚠️ Tu saldo es muy bajo. Recarga para seguir recibiendo notificaciones de viajes.</p>}
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold mb-4">Selecciona tu Plan de Comisión</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div onClick={() => setPlan('Basico')} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === 'Basico' ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <h4 className="font-black text-lg text-slate-800">Básico</h4>
+                    {plan === 'Basico' && <CheckCircle className="w-6 h-6 text-amber-500" />}
+                  </div>
+                  <div className="text-3xl font-black text-slate-800 mb-2">7% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
+                  <ul className="text-sm text-slate-600 space-y-2 mt-4">
+                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Notificaciones estándar</li>
+                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Mapa nacional</li>
+                  </ul>
+                </div>
+
+                <div onClick={() => setPlan('Estandar')} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === 'Estandar' ? 'border-blue-500 bg-blue-50 relative overflow-hidden' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  {plan === 'Estandar' && <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">ACTIVO</div>}
+                  <div className="flex justify-between items-start mb-4">
+                    <h4 className="font-black text-lg text-blue-900">Estándar</h4>
+                    {plan === 'Estandar' && <CheckCircle className="w-6 h-6 text-blue-500" />}
+                  </div>
+                  <div className="text-3xl font-black text-slate-800 mb-2">15% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
+                  <ul className="text-sm text-slate-600 space-y-2 mt-4">
+                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Prioridad de despacho</li>
+                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Soporte telefónico</li>
+                  </ul>
+                </div>
+
+                <div onClick={() => setPlan('VIP')} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === 'VIP' ? 'border-purple-500 bg-purple-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <h4 className="font-black text-lg text-purple-900">VIP Premium</h4>
+                    {plan === 'VIP' && <CheckCircle className="w-6 h-6 text-purple-500" />}
+                  </div>
+                  <div className="text-3xl font-black text-slate-800 mb-2">25% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
+                  <ul className="text-sm text-slate-600 space-y-2 mt-4">
+                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Radar Exclusivo VIP</li>
+                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Fletes industriales directos</li>
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB: HISTORIAL */}
+          {activeTab === 'historial' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <h2 className="text-3xl font-black mb-6">Mis Viajes Realizados</h2>
+               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                 <table className="w-full text-left">
+                   <thead>
+                     <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                       <th className="p-4 font-medium">Ruta y Fecha</th>
+                       <th className="p-4 font-medium">Material</th>
+                       <th className="p-4 font-medium">Tarifa Cobrada</th>
+                       <th className="p-4 font-medium">Comisión SARA</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {[1,2,3].map((i) => (
+                       <tr key={i} className="border-b border-slate-100">
+                         <td className="p-4">
+                           <p className="font-bold text-slate-800">Quito Sur ➔ Cumbayá</p>
+                           <p className="text-xs text-slate-500">12 Oct 2026, 14:30</p>
+                         </td>
+                         <td className="p-4 text-sm font-medium text-slate-600 flex items-center"><Package className="w-4 h-4 mr-2"/> Cemento (8 Ton)</td>
+                         <td className="p-4 font-black text-emerald-600">$45.00</td>
+                         <td className="p-4 text-sm text-red-500 font-bold">- $6.75 (15%)</td>
+                       </tr>
+                     ))}
+                   </tbody>
+                 </table>
+               </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}

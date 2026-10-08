@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseAdmin()
     if (!supabase) {
-      return NextResponse.json({ success: false, error: "Conexión a base de datos no disponible" }, { status: 500 })
+      return NextResponse.json({ success: false, error: "ConexiÃ³n a base de datos no disponible" }, { status: 500 })
     }
 
     // 1. Leer estado actual de indirectos_default
@@ -126,3 +126,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
+

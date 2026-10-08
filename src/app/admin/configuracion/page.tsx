@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useState, useEffect } from "react"
 import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard, Sparkles, RefreshCw, Home, Compass } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -36,18 +36,26 @@ export default function ConfiguracionPage() {
   const [equipo, setEquipo] = useState<MiembroEquipo[]>([])
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
   
-  // Logotipos para las 3 líneas de servicio de Grupo SARA
+  // Logotipos para las 3 lÃ­neas de servicio de Grupo SARA
   const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA)
   const [logoFiles, setLogoFiles] = useState<{
     constructora: File | null
     inmobiliaria: File | null
     stays: File | null
     apu: File | null
+    compras: File | null
+    fletes: File | null
+    talento: File | null
+    fintech: File | null
   }>({
     constructora: null,
     inmobiliaria: null,
     stays: null,
-    apu: null
+    apu: null,
+    compras: null,
+    fletes: null,
+    talento: null,
+    fintech: null
   })
   const [uploadingLogoKey, setUploadingLogoKey] = useState<string | null>(null)
 
@@ -174,7 +182,7 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     let finalLogos: LogosEmpresa = { ...logos }
-    const logoKeys: (keyof LogosEmpresa)[] = ['constructora', 'inmobiliaria', 'stays', 'apu']
+    const logoKeys: (keyof LogosEmpresa)[] = ['constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech']
 
     for (const key of logoKeys) {
       const file = logoFiles[key]
@@ -201,7 +209,7 @@ export default function ConfiguracionPage() {
 
     setUploadingLogoKey(null)
     setLogos(finalLogos)
-    setLogoFiles({ constructora: null, inmobiliaria: null, stays: null, apu: null })
+    setLogoFiles({ constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null })
 
     // 1. Guardar logos de las 3 marcas en Supabase (parametros_globales y configuracion_empresa)
     const logosSaved = await saveLogosEmpresa(finalLogos)
@@ -221,9 +229,9 @@ export default function ConfiguracionPage() {
 
     setSaving(false)
     if (error || !bankSaved || !logosSaved) {
-      alert("Aviso al guardar: " + (error?.message || "Algunos cambios no se guardaron correctamente. Por favor verifica la conexión."))
+      alert("Aviso al guardar: " + (error?.message || "Algunos cambios no se guardaron correctamente. Por favor verifica la conexiÃ³n."))
     } else {
-      alert("¡Configuración general, cuentas bancarias y logotipos de las 3 marcas actualizados con éxito!")
+      alert("Â¡ConfiguraciÃ³n general, cuentas bancarias y logotipos de las 3 marcas actualizados con Ã©xito!")
     }
   }
 
@@ -239,8 +247,8 @@ export default function ConfiguracionPage() {
     <div className="max-w-5xl space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuración Pública</h1>
-          <p className="text-gray-500">Administra la información de contacto, redes sociales y el equipo directivo de la empresa.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">ConfiguraciÃ³n PÃºblica</h1>
+          <p className="text-gray-500">Administra la informaciÃ³n de contacto, redes sociales y el equipo directivo de la empresa.</p>
         </div>
         <button 
           onClick={handleSave}
@@ -253,7 +261,7 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* ============================================================ */}
-      {/* SECCIÓN IDENTIDAD VISUAL: LAS 3 LÍNEAS DE SERVICIO DE GRUPO SARA */}
+      {/* SECCIÃ“N IDENTIDAD VISUAL: LAS 3 LÃNEAS DE SERVICIO DE GRUPO SARA */}
       {/* ============================================================ */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
@@ -263,12 +271,12 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">Identidad Visual & Logotipos Multi-Marca</h2>
-              <p className="text-xs text-gray-500">Configura y actualiza el logotipo correspondiente para cada una de las 4 líneas de negocio del Grupo SARA.</p>
+              <p className="text-xs text-gray-500">Configura y actualiza el logotipo correspondiente para cada una de las 4 lÃ­neas de negocio del Grupo SARA.</p>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
             <Sparkles size={12} className="text-emerald-500" />
-            4 Marcas Sincronizadas
+            8 Módulos Sincronizados
           </span>
         </div>
 
@@ -361,7 +369,7 @@ export default function ConfiguracionPage() {
               </div>
               <h3 className="font-bold text-gray-900 text-base">SARA Inmobiliaria</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para la división de Bienes Raíces: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/inmobiliaria</code>, pie de página y catálogo de propiedades.
+                Logotipo para la divisiÃ³n de Bienes RaÃ­ces: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/inmobiliaria</code>, pie de pÃ¡gina y catÃ¡logo de propiedades.
               </p>
             </div>
 
@@ -438,7 +446,7 @@ export default function ConfiguracionPage() {
               </div>
               <h3 className="font-bold text-gray-900 text-base">SARA Stays</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para la división de Alojamientos: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/stays</code>, login de huéspedes, vouchers y confirmaciones.
+                Logotipo para la divisiÃ³n de Alojamientos: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/stays</code>, login de huÃ©spedes, vouchers y confirmaciones.
               </p>
             </div>
 
@@ -515,7 +523,7 @@ export default function ConfiguracionPage() {
               </div>
               <h3 className="font-bold text-gray-900 text-base">SaaS APU</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para la plataforma SaaS: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/dashboard</code>, login de huéspedes, vouchers y confirmaciones.
+                Logotipo para la plataforma SaaS: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/dashboard</code>, login de huÃ©spedes, vouchers y confirmaciones.
               </p>
             </div>
 
@@ -580,12 +588,165 @@ export default function ConfiguracionPage() {
               </div>
             </div>
           </div>
+
+          {/* 5. SARA COMPRAS */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-cyan-950 text-cyan-400 uppercase">
+                  <Compass size={12} /> Compras
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">Marketplace B2B</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Compras</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo para el Marketplace: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/modulos/compras</code>.
+              </p>
+            </div>
+
+            {/* Preview Box */}
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "compras" && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                  <Loader2 className="animate-spin text-amber-400" size={26} />
+                </div>
+              )}
+              {logoFiles.compras ? (
+                <img src={URL.createObjectURL(logoFiles.compras)} alt="Nuevo Logo Compras" className="max-w-full max-h-full object-contain filter drop-shadow" />
+              ) : logos.compras ? (
+                <img src={logos.compras} alt="Logo SARA Compras" className="max-w-full max-h-full object-contain filter drop-shadow" />
+              ) : (
+                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo (PNG transparente)</label>
+                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, compras: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-900 hover:file:bg-cyan-500/30 cursor-pointer" />
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, compras: null })); setLogos(prev => ({ ...prev, compras: "/logo-hero.png" })) }} className="text-gray-500 hover:text-cyan-700 flex items-center gap-1 transition-colors font-medium cursor-pointer" title="Restablecer">
+                  <RefreshCw size={11} /> Logo Original
+                </button>
+                <span className="text-cyan-700 font-medium truncate max-w-[140px]" title={logos.compras}>
+                  {logoFiles.compras ? "Archivo seleccionado" : (logos.compras || "").split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. SARA FLETES */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-950 text-amber-400 uppercase">
+                  <Compass size={12} /> Fletes
+                </span>
+                <span className="text-[11px] font-semibold text-gray-400">LogÃ­stica Pesada</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Fletes</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo para la red de transporte: <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/modulos/fletes</code>.
+              </p>
+            </div>
+            {/* Preview Box */}
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "fletes" && (
+                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10"><Loader2 className="animate-spin text-amber-400" size={26} /></div>
+              )}
+              {logoFiles.fletes ? (
+                <img src={URL.createObjectURL(logoFiles.fletes)} alt="Nuevo Logo Fletes" className="max-w-full max-h-full object-contain filter drop-shadow" />
+              ) : logos.fletes ? (
+                <img src={logos.fletes} alt="Logo SARA Fletes" className="max-w-full max-h-full object-contain filter drop-shadow" />
+              ) : (
+                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
+              )}
+            </div>
+            {/* Controls */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo</label>
+                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, fletes: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/20 file:text-amber-900 hover:file:bg-amber-500/30 cursor-pointer" />
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fletes: null })); setLogos(prev => ({ ...prev, fletes: "/logo-hero.png" })) }} className="text-gray-500 hover:text-amber-700 flex items-center gap-1 transition-colors font-medium">
+                  <RefreshCw size={11} /> Logo Original
+                </button>
+                <span className="text-amber-700 font-medium truncate max-w-[140px]" title={logos.fletes}>
+                  {logoFiles.fletes ? "Archivo seleccionado" : (logos.fletes || "").split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 7. SARA TALENTO */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-950 text-orange-400 uppercase"><Compass size={12} /> Talento</span>
+                <span className="text-[11px] font-semibold text-gray-400">RRHH y ContrataciÃ³n</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Talento</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo RRHH <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/modulos/talento</code>.
+              </p>
+            </div>
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "talento" && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10"><Loader2 className="animate-spin text-amber-400" size={26} /></div>}
+              {logoFiles.talento ? ( <img src={URL.createObjectURL(logoFiles.talento)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.talento ? ( <img src={logos.talento} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo</label>
+                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, talento: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-500/20 file:text-orange-900 hover:file:bg-orange-500/30 cursor-pointer" />
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, talento: null })); setLogos(prev => ({ ...prev, talento: "/logo-hero.png" })) }} className="text-gray-500 hover:text-orange-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
+                <span className="text-orange-700 font-medium truncate max-w-[140px]" title={logos.talento}>
+                  {logoFiles.talento ? "Archivo seleccionado" : (logos.talento || "").split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 8. SARA FINTECH */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-400 uppercase"><Compass size={12} /> Fintech</span>
+                <span className="text-[11px] font-semibold text-gray-400">Escrow & Pagos</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Fintech</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo Financiero <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/modulos/financiero</code>.
+              </p>
+            </div>
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "fintech" && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10"><Loader2 className="animate-spin text-amber-400" size={26} /></div>}
+              {logoFiles.fintech ? ( <img src={URL.createObjectURL(logoFiles.fintech)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.fintech ? ( <img src={logos.fintech} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo</label>
+                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, fintech: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/20 file:text-emerald-900 hover:file:bg-emerald-500/30 cursor-pointer" />
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fintech: null })); setLogos(prev => ({ ...prev, fintech: "/logo-hero.png" })) }} className="text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
+                <span className="text-emerald-700 font-medium truncate max-w-[140px]" title={logos.fintech}>
+                  {logoFiles.fintech ? "Archivo seleccionado" : (logos.fintech || "").split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* Información de Contacto */}
+        {/* InformaciÃ³n de Contacto */}
         <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
@@ -600,12 +761,12 @@ export default function ConfiguracionPage() {
               <input type="text" name="nombre_empresa" value={formData.nombre_empresa} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Email Público</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Email PÃºblico</label>
               <input type="email" name="email_contacto" value={formData.email_contacto} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><Phone size={14}/> Teléfono Fijo</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><Phone size={14}/> TelÃ©fono Fijo</label>
                 <input type="text" name="telefono_principal" value={formData.telefono_principal} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
               </div>
               <div>
@@ -614,7 +775,7 @@ export default function ConfiguracionPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><MapPin size={14}/> Dirección Física</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><MapPin size={14}/> DirecciÃ³n FÃ­sica</label>
               <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
             </div>
           </div>
@@ -662,7 +823,7 @@ export default function ConfiguracionPage() {
               onClick={addMiembro}
               className="flex items-center gap-2 text-sm font-bold text-brand-sage hover:text-brand-dark transition-colors"
             >
-              <Plus size={16} /> Añadir Miembro
+              <Plus size={16} /> AÃ±adir Miembro
             </button>
           </div>
 
@@ -719,7 +880,7 @@ export default function ConfiguracionPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Teléfono / WhatsApp</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">TelÃ©fono / WhatsApp</label>
                     <input 
                       type="text" 
                       value={miembro.telefono || ""} 
@@ -744,7 +905,7 @@ export default function ConfiguracionPage() {
             
             {equipo.length === 0 && (
               <div className="col-span-full py-12 text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-xl">
-                No hay miembros del equipo directivo registrados aún.
+                No hay miembros del equipo directivo registrados aÃºn.
               </div>
             )}
           </div>
@@ -752,7 +913,7 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* ============================================================ */}
-      {/* SECCIÓN: CUENTAS BANCARIAS DE LA EMPRESA (AIRBNB & RESERVAS) */}
+      {/* SECCIÃ“N: CUENTAS BANCARIAS DE LA EMPRESA (AIRBNB & RESERVAS) */}
       {/* ============================================================ */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-amber-500 p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
@@ -763,7 +924,7 @@ export default function ConfiguracionPage() {
             <div>
               <h2 className="text-xl font-bold text-gray-800">Cuentas Bancarias para Cobros & Reservas</h2>
               <p className="text-xs text-gray-500">
-                Configura los datos de las cuentas bancarias que los clientes visualizarán para transferencias al reservar en <strong>Airbnb</strong>, comprar en <strong>Inmobiliaria</strong> o suscribirse a <strong>SaaS APU</strong>.
+                Configura los datos de las cuentas bancarias que los clientes visualizarÃ¡n para transferencias al reservar en <strong>Airbnb</strong>, comprar en <strong>Inmobiliaria</strong> o suscribirse a <strong>SaaS APU</strong>.
               </p>
             </div>
           </div>
@@ -783,7 +944,7 @@ export default function ConfiguracionPage() {
             <div key={cta.id || index} className="p-4 rounded-xl border border-gray-200 bg-slate-50/70 space-y-3">
               <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                 <span className="text-xs font-black uppercase text-amber-800 flex items-center gap-1.5">
-                  <Building size={14} className="text-amber-600" /> Cuenta #{index + 1} — {cta.banco || "Nuevo Banco"}
+                  <Building size={14} className="text-amber-600" /> Cuenta #{index + 1} â€” {cta.banco || "Nuevo Banco"}
                 </span>
                 <button
                   type="button"
@@ -820,7 +981,7 @@ export default function ConfiguracionPage() {
                   </select>
                 </div>
 
-                {/* Número de Cuenta */}
+                {/* NÃºmero de Cuenta */}
                 <div>
                   <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Nro de Cta</label>
                   <input
@@ -832,9 +993,9 @@ export default function ConfiguracionPage() {
                   />
                 </div>
 
-                {/* Cédula o RUC */}
+                {/* CÃ©dula o RUC */}
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Cédula / RUC</label>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">CÃ©dula / RUC</label>
                   <input
                     type="text"
                     value={cta.cedulaRuc}
@@ -869,9 +1030,9 @@ export default function ConfiguracionPage() {
                     className="w-full text-xs font-medium p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
-                  {/* Código QR */}
+                  {/* CÃ³digo QR */}
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Código QR de Pago</label>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">CÃ³digo QR de Pago</label>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <input
@@ -919,7 +1080,7 @@ export default function ConfiguracionPage() {
           {cuentasBancarias.length === 0 && (
             <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
               <Building className="mx-auto text-gray-300 mb-2" size={32} />
-              <p className="text-sm font-bold text-gray-600">No hay cuentas bancarias registradas aún</p>
+              <p className="text-sm font-bold text-gray-600">No hay cuentas bancarias registradas aÃºn</p>
               <p className="text-xs text-gray-400 mt-1">Haz clic en "+ Agregar Cuenta Bancaria" para configurar los datos de cobro oficiales.</p>
             </div>
           )}
@@ -935,7 +1096,7 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-800">Apariencia y Tema (Administrador)</h2>
-              <p className="text-xs text-gray-500">Personaliza la paleta cromática de la suite administrativa de SARA Constructora</p>
+              <p className="text-xs text-gray-500">Personaliza la paleta cromÃ¡tica de la suite administrativa de SARA Constructora</p>
             </div>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -948,7 +1109,7 @@ export default function ConfiguracionPage() {
               id: '',
               name: 'Sara Sage',
               category: 'Corporativo Oficial',
-              desc: 'Verde esmeralda y bosque profundo característico de SARA',
+              desc: 'Verde esmeralda y bosque profundo caracterÃ­stico de SARA',
               c1: '#07130d',
               c2: '#3c7a52',
               c3: '#f4fbf6',
@@ -958,7 +1119,7 @@ export default function ConfiguracionPage() {
               id: 'theme-sunset',
               name: 'Zafiro & Naranja',
               category: 'Contraste Moderno',
-              desc: 'Azul zafiro ejecutivo combinado con naranja dinámico de alta visibilidad',
+              desc: 'Azul zafiro ejecutivo combinado con naranja dinÃ¡mico de alta visibilidad',
               c1: '#0f172a',
               c2: '#ea580c',
               c3: '#fff7ed',
@@ -967,8 +1128,8 @@ export default function ConfiguracionPage() {
             {
               id: 'theme-ocean',
               name: 'Constructor Ocean',
-              category: 'Técnico Marítimo',
-              desc: 'Tonos azul pizarra y cobalto brillante para ingeniería y planos',
+              category: 'TÃ©cnico MarÃ­timo',
+              desc: 'Tonos azul pizarra y cobalto brillante para ingenierÃ­a y planos',
               c1: '#1e293b',
               c2: '#3b82f6',
               c3: '#eff6ff',
@@ -976,9 +1137,9 @@ export default function ConfiguracionPage() {
             },
             {
               id: 'theme-nordic',
-              name: 'Nórdico Glaciar',
+              name: 'NÃ³rdico Glaciar',
               category: 'Glaciar Minimal',
-              desc: 'Aguamarina ártica y turquesa glaciar de balance cromático limpio',
+              desc: 'Aguamarina Ã¡rtica y turquesa glaciar de balance cromÃ¡tico limpio',
               c1: '#042f2e',
               c2: '#06b6d4',
               c3: '#ecfeff',
@@ -986,9 +1147,9 @@ export default function ConfiguracionPage() {
             },
             {
               id: 'theme-ruby',
-              name: 'Titanio & Rubí',
+              name: 'Titanio & RubÃ­',
               category: 'Lujo Vanguardista',
-              desc: 'Base zinc y carbón mate con acentos rubí neón de alto impacto',
+              desc: 'Base zinc y carbÃ³n mate con acentos rubÃ­ neÃ³n de alto impacto',
               c1: '#18181b',
               c2: '#e11d48',
               c3: '#fff1f2',
@@ -998,7 +1159,7 @@ export default function ConfiguracionPage() {
               id: 'theme-gold',
               name: 'Elegante Dark',
               category: 'Premium Dorado',
-              desc: 'Negro obsidian de máximo contraste con sutil oro metálico',
+              desc: 'Negro obsidian de mÃ¡ximo contraste con sutil oro metÃ¡lico',
               c1: '#171717',
               c2: '#d4af37',
               c3: '#fefce8',
@@ -1057,3 +1218,4 @@ export default function ConfiguracionPage() {
     </div>
   )
 }
+

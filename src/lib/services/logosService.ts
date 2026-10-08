@@ -5,6 +5,10 @@ export interface LogosEmpresa {
   inmobiliaria: string
   stays: string
   apu: string
+  compras: string
+  fletes: string
+  talento: string
+  fintech: string
 }
 
 export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
@@ -12,6 +16,10 @@ export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
   inmobiliaria: "/sara-inmobiliaria.png",
   stays: "/sara-stays.png",
   apu: "/logo-hero.png",
+  compras: "/logo-hero.png",
+  fletes: "/logo-hero.png",
+  talento: "/logo-hero.png",
+  fintech: "/logo-hero.png",
 }
 
 export async function getLogosEmpresa(): Promise<LogosEmpresa> {
@@ -26,6 +34,10 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
             inmobiliaria: json.logos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
             stays: json.logos.stays || DEFAULT_LOGOS_EMPRESA.stays,
             apu: json.logos.apu || DEFAULT_LOGOS_EMPRESA.apu,
+            compras: json.logos.compras || DEFAULT_LOGOS_EMPRESA.compras,
+            fletes: json.logos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
+            talento: json.logos.talento || DEFAULT_LOGOS_EMPRESA.talento,
+            fintech: json.logos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
           }
         }
       }
@@ -50,6 +62,10 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
         inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
         stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
         apu: dbLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
+        compras: dbLogos.compras || DEFAULT_LOGOS_EMPRESA.compras,
+        fletes: dbLogos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
+        talento: dbLogos.talento || DEFAULT_LOGOS_EMPRESA.talento,
+        fintech: dbLogos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
       }
     }
 
