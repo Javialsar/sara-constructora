@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "@/lib/providers";
 import SessionTracker from "@/components/SessionTracker";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
+import RealtimeProvider from "@/components/RealtimeProvider";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
@@ -35,10 +36,12 @@ export default function RootLayout({
   return (
     <html lang="es" className={montserrat.variable}>
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
-                <Providers>
-          <SessionTracker />
-          <RegisterServiceWorker />
-          {children}
+        <Providers>
+          <RealtimeProvider>
+            <SessionTracker />
+            <RegisterServiceWorker />
+            {children}
+          </RealtimeProvider>
         </Providers>
       </body>
     </html>
