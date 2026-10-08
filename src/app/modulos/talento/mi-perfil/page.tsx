@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { MapPin, FileText, History, Crown, UploadCloud, Building2, Calendar, CheckCircle, ShieldCheck, Camera } from 'lucide-react';
 import Link from 'next/link';
 import PaymentGatewayModal from '@/components/sara/PaymentGatewayModal';
+import { useRef } from 'react';
 
 export default function MiPerfilTalento() {
   const [activeTab, setActiveTab] = useState<'datos' | 'documentos' | 'planes' | 'historial'>('datos');
@@ -11,6 +12,10 @@ export default function MiPerfilTalento() {
   const [provincia, setProvincia] = useState('');
   const [ciudad, setCiudad] = useState('');
   const [calle, setCalle] = useState('');
+
+  // Estado para la foto
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados de Pago
   const [selectedPlan, setSelectedPlan] = useState<'Basico' | 'Estandar' | 'VIP'>('VIP');
@@ -65,18 +70,40 @@ export default function MiPerfilTalento() {
                   
                   {/* FOTO DE PERFIL */}
                   <div className="flex flex-col md:flex-row items-center gap-6 mb-8 bg-slate-50 p-6 rounded-xl border border-slate-100">
-                    <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden relative group">
-                      <Camera className="w-8 h-8 text-slate-400 group-hover:opacity-0 transition-opacity" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                        <span className="text-white text-xs font-bold">Subir Foto</span>
+                    <div 
+                      className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden relative group cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {photoPreview ? (
+                        <img src={photoPreview} alt="Perfil" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-slate-400 group-hover:opacity-0 transition-opacity" />
+                      )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-white text-xs font-bold text-center px-2">Cambiar Foto</span>
                       </div>
-                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" />
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => setPhotoPreview(event.target?.result as string);
+                            reader.readAsDataURL(e.target.files[0]);
+                          }
+                        }}
+                      />
                     </div>
                     <div>
                       <h4 className="font-bold text-slate-800">Fotografía del Profesional</h4>
                       <p className="text-sm text-slate-500 mb-2">Sube una foto clara de tu rostro. Esto aumenta un 40% tus posibilidades de contratación.</p>
-                      <button className="text-sm bg-white border border-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-50 font-medium">
-                        Seleccionar Archivo
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-sm bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 font-bold text-slate-700 transition-colors shadow-sm"
+                      >
+                        {photoPreview ? 'Cambiar Imagen' : 'Seleccionar Archivo'}
                       </button>
                     </div>
                   </div>
@@ -143,34 +170,23 @@ export default function MiPerfilTalento() {
                   </div>
                 </div>
 
-                {/* Mapa Interactivo Simulado */}
+                {/* Mapa Interactivo de Google Maps Embed Dinámico */}
                 <div className="w-full md:w-1/2 bg-blue-50 relative min-h-[400px]">
-                  {/* Usamos un iframe real de OpenStreetMap para que se vea perfectamente el mapa */}
-                  <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameBorder="0" 
-                    scrolling="no" 
-                    marginHeight={0} 
-                    marginWidth={0} 
-                    src="https://www.openstreetmap.org/export/embed.html?bbox=-80.0,-2.2,-78.0,0.5&amp;layer=mapnik" 
-                    style={{ border: 0, filter: 'contrast(1.1) opacity(0.8)' }}
-                  ></iframe>
-
-                  {ciudad && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center animate-in zoom-in duration-300 pointer-events-none">
-                      <div className="bg-blue-600 text-white p-2 rounded-full shadow-lg shadow-blue-500/50 mb-1 animate-bounce">
-                        <MapPin className="w-8 h-8" />
-                      </div>
-                      <div className="bg-slate-900 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                        Tu Radar: {calle || ciudad}
-                      </div>
-                    </div>
-                  )}
-                  {!ciudad && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <p className="bg-white/95 backdrop-blur px-4 py-2 rounded-lg text-slate-700 font-bold text-sm shadow-xl border border-slate-200">
-                        Ingresa tu ciudad para fijar el pin en el mapa.
+                  {ciudad || provincia ? (
+                    <iframe 
+                      width="100%" 
+                      height="100%" 
+                      frameBorder="0" 
+                      scrolling="no" 
+                      marginHeight={0} 
+                      marginWidth={0} 
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(`${calle} ${ciudad} ${provincia} Ecuador`)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                      style={{ border: 0 }}
+                    ></iframe>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="bg-white/95 backdrop-blur px-6 py-3 rounded-xl text-slate-700 font-bold text-sm shadow-lg border border-slate-200">
+                        Ingresa tu provincia o ciudad para ubicarte en el mapa
                       </p>
                     </div>
                   )}
