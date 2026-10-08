@@ -31,7 +31,7 @@ interface HeroSlide {
 }
 
 export default function HeroConstructora() {
-  const [logoUrl, setLogoUrl] = useState<string>('/logo-hero.png')
+  const [logoUrl, setLogoUrl] = useState<string>('/logo-grupo-sara.png')
   const [projectSlides, setProjectSlides] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)

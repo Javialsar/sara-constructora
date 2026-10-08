@@ -11,6 +11,7 @@ interface FreightRequest {
   weight: number; // toneladas
   referencePrice: number;
   status: 'searching' | 'negotiating' | 'accepted';
+  accessCode?: string;
 }
 
 export default function SaraFletesEngine() {
@@ -29,13 +30,15 @@ export default function SaraFletesEngine() {
   // --- ESTADOS TRANSPORTISTA ---
   const [counterOffer, setCounterOffer] = useState<string>('');
   
+  const generateAccessCode = () => Math.floor(1000 + Math.random() * 9000).toString();
+
   // Función: Transportista negocia
   const handleDriverNegotiate = () => {
     if(activeFreight && counterOffer) {
       setActiveFreight({ ...activeFreight, status: 'negotiating' });
       // Simulamos que el constructor acepta la contraoferta en 3 segundos
       setTimeout(() => {
-        setActiveFreight(prev => prev ? { ...prev, referencePrice: parseFloat(counterOffer), status: 'accepted' } : null);
+        setActiveFreight(prev => prev ? { ...prev, referencePrice: parseFloat(counterOffer), status: 'accepted', accessCode: generateAccessCode() } : null);
       }, 3000);
     }
   };
@@ -78,7 +81,7 @@ export default function SaraFletesEngine() {
   // Función: Transportista acepta
   const handleDriverAccept = () => {
     if(activeFreight) {
-      setActiveFreight({ ...activeFreight, status: 'accepted' });
+      setActiveFreight({ ...activeFreight, status: 'accepted', accessCode: generateAccessCode() });
     }
   };
 
@@ -113,6 +116,11 @@ export default function SaraFletesEngine() {
              <option>Camiones 5T</option>
              <option>Mulas 20T</option>
           </select>
+          <input 
+            type="text" 
+            placeholder="Dirección exacta..." 
+            className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300 placeholder:text-slate-500 w-48" 
+          />
         </div>
         
         {/* Toggle de Roles para la Demo */}
@@ -154,22 +162,49 @@ export default function SaraFletesEngine() {
           ></iframe>
           
           {/* OVERLAY DE VEHÍCULOS CIRCULANDO EN TIEMPO REAL */}
-          {!activeFreight && (
-            <div className="absolute inset-0 pointer-events-none z-10">
-              <div className="absolute top-[30%] left-[40%] animate-bounce bg-amber-500 p-2 rounded-full shadow-lg shadow-amber-500/50">
-                <Truck className="w-5 h-5 text-slate-900" />
-                <span className="absolute -bottom-6 -left-4 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">PBA-1234 (Volqueta)</span>
-              </div>
-              <div className="absolute top-[60%] left-[55%] animate-pulse bg-amber-500 p-2 rounded-full shadow-lg shadow-amber-500/50" style={{ animationDuration: '3s' }}>
-                <Truck className="w-5 h-5 text-slate-900" />
-                <span className="absolute -bottom-6 -left-4 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">GCA-9876 (Camión 5T)</span>
-              </div>
-              <div className="absolute top-[45%] left-[25%] animate-bounce bg-emerald-500 p-2 rounded-full shadow-lg shadow-emerald-500/50" style={{ animationDelay: '1s' }}>
-                <Truck className="w-5 h-5 text-slate-900" />
-                <span className="absolute -bottom-6 -left-4 bg-slate-900 text-white text-[10px] px-2 py-0.5 rounded font-bold whitespace-nowrap">Disponible - VIP</span>
-              </div>
+          <div className="absolute inset-0 z-10 pointer-events-none">
+            {/* Sincronización */}
+            <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              Sincronizando vehículos (Radio: 5-10km)
             </div>
-          )}
+
+            {(!activeFreight || activeFreight.status !== 'accepted') && (
+              <>
+                <div className="absolute top-[30%] left-[40%] animate-bounce bg-amber-500 p-2 rounded-full shadow-lg shadow-amber-500/50 pointer-events-auto group cursor-pointer hover:z-50">
+                  <Truck className="w-5 h-5 text-slate-900" />
+                  <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-3 py-1 rounded font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-amber-500">Juan Pérez</p>
+                    <p>PBA-1234 (Volqueta)</p>
+                  </div>
+                </div>
+                <div className="absolute top-[60%] left-[55%] animate-pulse bg-amber-500 p-2 rounded-full shadow-lg shadow-amber-500/50 pointer-events-auto group cursor-pointer hover:z-50" style={{ animationDuration: '3s' }}>
+                  <Truck className="w-5 h-5 text-slate-900" />
+                  <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-3 py-1 rounded font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-amber-500">Carlos Mina</p>
+                    <p>GCA-9876 (Camión 5T)</p>
+                  </div>
+                </div>
+                <div className="absolute top-[45%] left-[25%] animate-bounce bg-emerald-500 p-2 rounded-full shadow-lg shadow-emerald-500/50 pointer-events-auto group cursor-pointer hover:z-50" style={{ animationDelay: '1s' }}>
+                  <Truck className="w-5 h-5 text-slate-900" />
+                  <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs px-3 py-1 rounded font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-emerald-500">Luis Torres</p>
+                    <p>HBA-4421 (Mula 20T)</p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeFreight?.status === 'accepted' && (
+              <div className="absolute top-[45%] left-[45%] bg-emerald-500 p-3 rounded-full shadow-2xl shadow-emerald-500/50 pointer-events-auto group cursor-pointer z-50">
+                <Truck className="w-8 h-8 text-slate-900" />
+                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg font-bold whitespace-nowrap border border-emerald-500/30">
+                  <p className="text-emerald-500">Chofer Asignado: Juan Pérez</p>
+                  <p>Placa: PBA-1234</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ---------------------------------------------------------------- */}
@@ -258,6 +293,12 @@ export default function SaraFletesEngine() {
                       <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
                       <h3 className="font-bold text-emerald-900 text-lg">¡Flete Asignado!</h3>
                       <p className="text-emerald-700 text-sm">El camión está en camino por <strong>${activeFreight.referencePrice.toFixed(2)}</strong></p>
+                      
+                      <div className="mt-4 bg-white border-2 border-emerald-500 border-dashed rounded-lg p-3">
+                        <p className="text-xs text-slate-500 font-bold uppercase mb-1">Código de Acceso en Obra</p>
+                        <p className="text-3xl font-black text-emerald-600 tracking-widest">{activeFreight.accessCode}</p>
+                      </div>
+                      
                       <button onClick={() => setActiveFreight(null)} className="mt-4 text-xs font-bold text-emerald-800 underline">Nuevo Flete</button>
                     </>
                   )}
@@ -370,7 +411,14 @@ export default function SaraFletesEngine() {
                     </div>
                     <h2 className="text-2xl font-black text-slate-800 mb-2">¡Ruta Iniciada!</h2>
                     <p className="text-slate-600 font-medium">Dirígete al punto de carga.</p>
-                    <div className="mt-6 bg-slate-900 text-white font-bold p-4 rounded-xl">
+                    
+                    <div className="mt-4 bg-emerald-50 border-2 border-emerald-500 rounded-lg p-4">
+                      <p className="text-xs text-emerald-800 font-bold uppercase mb-1">Tu código para ingresar:</p>
+                      <p className="text-4xl font-black text-emerald-600 tracking-widest">{activeFreight.accessCode}</p>
+                      <p className="text-xs text-emerald-700 mt-2">Díctalo al llegar al sitio</p>
+                    </div>
+
+                    <div className="mt-4 bg-slate-900 text-white font-bold p-4 rounded-xl">
                       Tarifa Final: ${activeFreight.referencePrice.toFixed(2)}
                     </div>
                   </div>

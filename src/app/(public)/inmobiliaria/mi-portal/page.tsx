@@ -114,7 +114,7 @@ export default function MiPortalInmobiliaria() {
   const router = useRouter()
   const [owner, setOwner] = useState<OwnerProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/logo-hero.png")
+  const [logoInmobiliaria, setLogoInmobiliaria] = useState<string>("/logo-grupo-sara.png")
 
   // Tabs principales
   const [mainTab, setMainTab] = useState<"propiedades" | "historial" | "seguridad">("propiedades")

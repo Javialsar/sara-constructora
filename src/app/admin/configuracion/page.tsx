@@ -344,7 +344,7 @@ export default function ConfiguracionPage() {
                   type="button"
                   onClick={() => {
                     setLogoFiles(prev => ({ ...prev, constructora: null }))
-                    setLogos(prev => ({ ...prev, constructora: "/logo-hero.png" }))
+                    setLogos(prev => ({ ...prev, constructora: "/logo-grupo-sara.png" }))
                   }}
                   className="text-gray-500 hover:text-brand-dark flex items-center gap-1 transition-colors font-medium cursor-pointer"
                   title="Restablecer al logo predeterminado de constructora"
@@ -575,7 +575,7 @@ export default function ConfiguracionPage() {
                   type="button"
                   onClick={() => {
                     setLogoFiles(prev => ({ ...prev, apu: null }))
-                    setLogos(prev => ({ ...prev, apu: "/logo-hero.png" }))
+                    setLogos(prev => ({ ...prev, apu: "/logo-grupo-sara.png" }))
                   }}
                   className="text-gray-500 hover:text-blue-700 flex items-center gap-1 transition-colors font-medium cursor-pointer"
                   title="Restablecer al logo predeterminado de apu"
@@ -627,7 +627,7 @@ export default function ConfiguracionPage() {
                 <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, compras: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-900 hover:file:bg-cyan-500/30 cursor-pointer" />
               </div>
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, compras: null })); setLogos(prev => ({ ...prev, compras: "/logo-hero.png" })) }} className="text-gray-500 hover:text-cyan-700 flex items-center gap-1 transition-colors font-medium cursor-pointer" title="Restablecer">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, compras: null })); setLogos(prev => ({ ...prev, compras: "/logo-grupo-sara.png" })) }} className="text-gray-500 hover:text-cyan-700 flex items-center gap-1 transition-colors font-medium cursor-pointer" title="Restablecer">
                   <RefreshCw size={11} /> Logo Original
                 </button>
                 <span className="text-cyan-700 font-medium truncate max-w-[140px]" title={logos.compras}>
@@ -671,7 +671,7 @@ export default function ConfiguracionPage() {
                 <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, fletes: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/20 file:text-amber-900 hover:file:bg-amber-500/30 cursor-pointer" />
               </div>
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fletes: null })); setLogos(prev => ({ ...prev, fletes: "/logo-hero.png" })) }} className="text-gray-500 hover:text-amber-700 flex items-center gap-1 transition-colors font-medium">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fletes: null })); setLogos(prev => ({ ...prev, fletes: "/logo-grupo-sara.png" })) }} className="text-gray-500 hover:text-amber-700 flex items-center gap-1 transition-colors font-medium">
                   <RefreshCw size={11} /> Logo Original
                 </button>
                 <span className="text-amber-700 font-medium truncate max-w-[140px]" title={logos.fletes}>
@@ -703,7 +703,7 @@ export default function ConfiguracionPage() {
                 <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, talento: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-orange-500/20 file:text-orange-900 hover:file:bg-orange-500/30 cursor-pointer" />
               </div>
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, talento: null })); setLogos(prev => ({ ...prev, talento: "/logo-hero.png" })) }} className="text-gray-500 hover:text-orange-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, talento: null })); setLogos(prev => ({ ...prev, talento: "/logo-grupo-sara.png" })) }} className="text-gray-500 hover:text-orange-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
                 <span className="text-orange-700 font-medium truncate max-w-[140px]" title={logos.talento}>
                   {logoFiles.talento ? "Archivo seleccionado" : (logos.talento || "").split('/').pop()}
                 </span>
@@ -733,7 +733,7 @@ export default function ConfiguracionPage() {
                 <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, fintech: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/20 file:text-emerald-900 hover:file:bg-emerald-500/30 cursor-pointer" />
               </div>
               <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fintech: null })); setLogos(prev => ({ ...prev, fintech: "/logo-hero.png" })) }} className="text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fintech: null })); setLogos(prev => ({ ...prev, fintech: "/logo-grupo-sara.png" })) }} className="text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
                 <span className="text-emerald-700 font-medium truncate max-w-[140px]" title={logos.fintech}>
                   {logoFiles.fintech ? "Archivo seleccionado" : (logos.fintech || "").split('/').pop()}
                 </span>

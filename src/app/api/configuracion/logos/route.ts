@@ -43,6 +43,10 @@ export async function GET() {
         inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
         stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
         apu: dbLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
+        compras: dbLogos.compras || DEFAULT_LOGOS_EMPRESA.compras,
+        fletes: dbLogos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
+        talento: dbLogos.talento || DEFAULT_LOGOS_EMPRESA.talento,
+        fintech: dbLogos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
       }
 
       return NextResponse.json({ success: true, logos: merged, origin: "supabase" })
@@ -85,6 +89,10 @@ export async function POST(req: Request) {
       inmobiliaria: body.inmobiliaria?.trim() || currentLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
       stays: body.stays?.trim() || currentLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
       apu: body.apu?.trim() || currentLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
+      compras: body.compras?.trim() || currentLogos.compras || DEFAULT_LOGOS_EMPRESA.compras,
+      fletes: body.fletes?.trim() || currentLogos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
+      talento: body.talento?.trim() || currentLogos.talento || DEFAULT_LOGOS_EMPRESA.talento,
+      fintech: body.fintech?.trim() || currentLogos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
     }
 
     // 2. Guardar en parametros_globales (indirectos_default.logos_servicios)

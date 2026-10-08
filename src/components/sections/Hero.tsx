@@ -31,7 +31,7 @@ interface HeroSlide {
 }
 
 export default function Hero() {
-  const [logoUrl, setLogoUrl] = useState<string>('/logo-hero.png')
+  const [logoUrl, setLogoUrl] = useState<string>('/logo-grupo-sara.png')
   const [projectSlides, setProjectSlides] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -220,7 +220,7 @@ export default function Hero() {
             key={slide.id}
             className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1200ms] ease-in-out z-0 
               ${slide.isLogo 
-                ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat mix-blend-lighten' 
+                ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat' 
                 : 'bg-cover bg-center lg:bg-[position:center_center] bg-no-repeat'
               } 
               ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}

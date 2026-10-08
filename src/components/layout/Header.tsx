@@ -20,7 +20,7 @@ import { getLogosEmpresa } from "@/lib/services/logosService"
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [logo, setLogo] = useState("/logo-hero.png")
+  const [logo, setLogo] = useState("/logo-grupo-sara.png")
 
   useEffect(() => {
     const handleScroll = () => {
