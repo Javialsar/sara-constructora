@@ -93,17 +93,8 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* CTA & Mobile Menu Toggle */}
+        {/* Mobile Menu Toggle (Ahora sin los botones extra en Desktop) */}
         <div className="flex items-center gap-4">
-          <Link href="/portal" className="hidden md:flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-brand-black hover:text-brand-sage transition-colors">
-             Portal Clientes
-          </Link>
-          
-          <Button variant="primary" className="hidden md:inline-flex" asChild>
-            <Link href="/contacto">Solicitar Cotización</Link>
-          </Button>
-
-          {/* Mobile Menu Toggle */}
           <button
             className="lg:hidden relative z-50 p-2 text-brand-black"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
