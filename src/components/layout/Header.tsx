@@ -13,7 +13,6 @@ const navLinks: { name: string; href: string; isFeatured?: boolean }[] = [
   { name: "Noticias", href: "/noticias" },
   { name: "FAQ", href: "/#faq" },
   { name: "Clientes", href: "/clientes" },
-  { name: "Contacto", href: "/contacto" },
 ]
 
 import { getLogosEmpresa } from "@/lib/services/logosService"
@@ -91,7 +90,7 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Mobile Menu Toggle (Ahora sin los botones extra en Desktop) */}
+        {/* Mobile Menu Toggle */}
         <div className="flex items-center gap-4">
           <button
             className="lg:hidden relative z-50 p-2 text-brand-black"
@@ -133,9 +132,11 @@ export default function Header() {
             </Link>
           ))}
           <div className="pt-8">
-            <Button variant="primary" size="lg" onClick={() => setMobileMenuOpen(false)}>
-              Solicitar Cotización
-            </Button>
+            <Link href="/constructora#cotizacion" onClick={() => setMobileMenuOpen(false)}>
+              <Button variant="primary" size="lg">
+                Solicitar Cotización
+              </Button>
+            </Link>
           </div>
         </nav>
       </div>

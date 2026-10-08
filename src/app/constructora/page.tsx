@@ -1,8 +1,8 @@
 import ProyectosMarquesina from "@/components/sections/ProyectosMarquesina"
 import Trayectoria from "@/components/sections/Trayectoria"
 import ProcesoTimeline from "@/components/sections/ProcesoTimeline"
-import ModulosSARA from "@/components/sections/ModulosSARA" // Optionally keep this or not? The user wants Fintech here.
 import HeroConstructora from "@/components/sections/HeroConstructora"
+import ContactoSection from "@/components/sections/ContactoSection"
 
 export default function ConstructoraLanding() {
   return (
@@ -12,7 +12,7 @@ export default function ConstructoraLanding() {
         <a href="#servicios" className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-brand-sage transition-colors">Servicios</a>
         <a href="#proyectos" className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-brand-sage transition-colors">Proyectos</a>
         <a href="/portal/dashboard" className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-brand-sage transition-colors">Portal Clientes</a>
-        <a href="/contacto" className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-brand-sage transition-colors">Solicitar Cotización</a>
+        <a href="#cotizacion" className="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-brand-sage transition-colors">Solicitar Cotización</a>
         <a href="/modulos/financiero" className="text-xs font-bold uppercase tracking-wider text-emerald-600 hover:text-emerald-500 transition-colors">SARA Fintech (Escrow)</a>
       </nav>
 
@@ -27,6 +27,9 @@ export default function ConstructoraLanding() {
         <ProyectosMarquesina />
       </div>
       <ProcesoTimeline />
+      
+      {/* Formulario de Cotización y Contacto integrado */}
+      <ContactoSection />
     </div>
   )
 }

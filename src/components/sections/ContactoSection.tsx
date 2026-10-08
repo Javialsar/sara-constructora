@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/Button"
 import { MapPin, Phone, Mail, CheckCircle2, Clock, User } from "lucide-react"
-export default function ContactoPage() {
+export default function ContactoSection() {
   const supabase = createClient()
   const [formData, setFormData] = useState({
     nombre: "",
@@ -59,7 +59,7 @@ export default function ContactoPage() {
   }
 
   return (
-    <div className="pt-36 pb-16 min-h-screen relative overflow-hidden bg-gray-50">
+    <div id="cotizacion" className="py-20 relative overflow-hidden bg-gray-50 border-t border-gray-100">
       {/* Cuadrícula de fondo arquitectónica muy suave */}
       <div 
         className="absolute inset-0 pointer-events-none" 
