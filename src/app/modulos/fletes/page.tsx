@@ -9,6 +9,7 @@ interface FreightRequest {
   destination: string;
   material: string;
   weight: number; // toneladas
+  vehicleType: string;
   referencePrice: number;
   status: 'searching' | 'negotiating' | 'accepted';
   accessCode?: string;
@@ -25,6 +26,7 @@ export default function SaraFletesEngine() {
   const [destination, setDestination] = useState('');
   const [material, setMaterial] = useState('Cemento Holcim (Sacos)');
   const [weight, setWeight] = useState<number>(5); // 5 Toneladas base
+  const [vehicleType, setVehicleType] = useState('Todas las Volquetas');
   const [isCalculating, setIsCalculating] = useState(false);
 
   // --- ESTADOS TRANSPORTISTA ---
@@ -65,6 +67,7 @@ export default function SaraFletesEngine() {
         destination,
         material,
         weight,
+        vehicleType,
         referencePrice: finalPrice,
         status: 'searching'
       });
@@ -222,7 +225,15 @@ export default function SaraFletesEngine() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100">
+              <div className="mb-4">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tipo de Vehículo</label>
+                  <select value={vehicleType} onChange={e => setVehicleType(e.target.value)} className="w-full border border-slate-200 rounded-lg px-3 py-3 outline-none text-sm bg-slate-50">
+                    <option>Todas las Volquetas</option>
+                    <option>Camiones 5T</option>
+                    <option>Mulas 20T</option>
+                  </select>
+                </div>
+                <div className="pt-4 border-t border-slate-100">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Carga y Volumen</label>
                 <div className="flex gap-3 mb-4">
                   <div className="flex-1">
@@ -232,6 +243,7 @@ export default function SaraFletesEngine() {
                       <option>Varillas de Acero</option>
                       <option>Bloques / Ladrillos</option>
                       <option>Desalojo de Escombros</option>
+                        <option>Otros Materiales</option>
                     </select>
                   </div>
                   <div className="w-1/3 flex items-center bg-slate-50 border border-slate-200 rounded-lg px-3">
@@ -316,7 +328,7 @@ export default function SaraFletesEngine() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h2 className="text-xl font-black text-slate-800">¡Nuevo Viaje Cerca!</h2>
-                        <p className="text-sm font-bold text-amber-600 flex items-center"><Package className="w-4 h-4 mr-1"/> {activeFreight.weight} TON - {activeFreight.material}</p>
+                        <p className="text-sm font-bold text-amber-600 flex items-center"><Package className="w-4 h-4 mr-1"/> {activeFreight.vehicleType} | {activeFreight.weight} TON - {activeFreight.material}</p>
                       </div>
                       <div className="bg-emerald-100 text-emerald-800 font-black px-4 py-2 rounded-xl text-2xl shadow-inner">
                         ${activeFreight.referencePrice.toFixed(2)}
