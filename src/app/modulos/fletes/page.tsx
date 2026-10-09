@@ -70,11 +70,7 @@ export default function SaraFletesEngine() {
       });
       setIsCalculating(false);
       
-      // Auto-cambio a vista de transportista para la demo
-      setTimeout(() => {
-         setViewMode('driver');
-         setAiAnalysis(null);
-      }, 3000);
+      
     }, 2000);
   };
 
@@ -128,7 +124,10 @@ export default function SaraFletesEngine() {
             height="100%" 
             frameBorder="0" 
             scrolling="no" 
-            src={`https://maps.google.com/maps?q=${encodeURIComponent(activeFreight ? `${activeFreight.origin} to ${activeFreight.destination} Ecuador` : 'Quito Ecuador')}&t=m&z=12&ie=UTF8&iwloc=&output=embed`}
+            src={activeFreight 
+              ? `https://maps.google.com/maps?saddr=${encodeURIComponent(activeFreight.origin + ' Ecuador')}&daddr=${encodeURIComponent(activeFreight.destination + ' Ecuador')}&t=m&z=10&ie=UTF8&iwloc=&output=embed`
+              : `https://maps.google.com/maps?q=Ecuador&t=m&z=6&ie=UTF8&iwloc=&output=embed`
+            }
             style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) contrast(85%) opacity(0.6)' }}
           ></iframe>
           
