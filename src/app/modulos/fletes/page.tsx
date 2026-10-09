@@ -125,7 +125,7 @@ export default function SaraFletesEngine() {
             frameBorder="0" 
             scrolling="no" 
             src={activeFreight 
-              ? `https://maps.google.com/maps?saddr=${encodeURIComponent(activeFreight.origin + ' Ecuador')}&daddr=${encodeURIComponent(activeFreight.destination + ' Ecuador')}&t=m&z=10&ie=UTF8&iwloc=&output=embed`
+              ? `https://maps.google.com/maps?saddr=${encodeURIComponent(activeFreight.origin + ' Ecuador')}&daddr=${encodeURIComponent(activeFreight.destination + ' Ecuador')}&t=m&z=10&ie=UTF8&iwloc=&output=embed&gestureHandling=greedy&gestureHandling=greedy`
               : `https://maps.google.com/maps?q=Ecuador&t=m&z=6&ie=UTF8&iwloc=&output=embed`
             }
             style={{ border: 0, filter: 'invert(90%) hue-rotate(180deg) contrast(85%) opacity(0.6)' }}
