@@ -94,35 +94,6 @@ export default function SaraFletesEngine() {
           <h1 className="text-xl font-bold tracking-tight">SARA <span className="text-amber-500">Fletes</span></h1>
         </div>
         
-        {/* Filtros Geográficos Rápidos */}
-        <div className="hidden md:flex gap-2">
-          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
-             <option>Ecuador</option>
-             <option>Colombia</option>
-          </select>
-          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
-             <option>Pichincha</option>
-             <option>Guayas</option>
-             <option>Azuay</option>
-          </select>
-          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
-             <option>Quito</option>
-             <option>Cariamanga</option>
-             <option>Loja</option>
-             <option>Guayaquil</option>
-          </select>
-          <select className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300">
-             <option>Todas las Volquetas</option>
-             <option>Camiones 5T</option>
-             <option>Mulas 20T</option>
-          </select>
-          <input 
-            type="text" 
-            placeholder="Dirección exacta..." 
-            className="bg-slate-800 border-none text-sm rounded px-3 py-1.5 outline-none text-slate-300 placeholder:text-slate-500 w-48" 
-          />
-        </div>
-        
         {/* Toggle de Roles para la Demo */}
         <div className="bg-slate-800 p-1 rounded-lg flex text-sm font-bold">
           <button 
