@@ -1,8 +1,16 @@
-import os
-f = 'src/app/dashboard/directorio/clientes/page.tsx'
-with open(f, 'r', encoding='utf-8') as file:
-    c = file.read()
-c = c.replace("\\'", "'")
-with open(f, 'w', encoding='utf-8') as file:
-    file.write(c)
-print("Fixed syntax")
+with open('src/app/modulos/fletes/mi-perfil/page.tsx', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+content = content.replace(
+"""                </div>
+              </div>
+
+            {/* TAB: HISTORIAL */}""",
+"""                </div>
+              </div>
+            )}
+
+            {/* TAB: HISTORIAL */}""")
+
+with open('src/app/modulos/fletes/mi-perfil/page.tsx', 'w', encoding='utf-8') as f:
+    f.write(content)

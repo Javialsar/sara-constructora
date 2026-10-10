@@ -4,12 +4,19 @@ import React, { useState, useRef } from 'react';
 import { List, Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package, Download, CreditCard, QrCode, Building, UploadCloud, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { getFletesPlanes } from '@/lib/fletes-data';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function MiPerfilFletes() {
   const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
+  const [planesList, setPlanesList] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    getFletesPlanes().then(setPlanesList);
+  }, []);
+
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cedulaRef = useRef<HTMLInputElement>(null);
@@ -129,6 +136,16 @@ export default function MiPerfilFletes() {
           <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Mi Cabina</p>
           <p className="text-white font-bold">Carlos Mendoza</p>
           <p className="text-slate-400 text-xs font-mono">PBA-1234</p>
+{/* SALDO WIDGET */}
+            <div className="mt-4 bg-slate-900/50 border border-slate-700/50 p-4 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Saldo Disponible</p>
+                <p className="text-2xl font-black text-emerald-400">$119.00</p>
+              </div>
+              <div className="bg-slate-800 p-2 rounded-lg border border-slate-700">
+                <Wallet className="w-6 h-6 text-emerald-400" />
+              </div>
+            </div>
         </div>
 
         <nav className="space-y-2 flex-grow">
@@ -505,48 +522,27 @@ export default function MiPerfilFletes() {
 
               <h3 className="text-xl font-bold mb-4">Selecciona tu Plan de Comisi├│n</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div onClick={() => setPlan('Basico')} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === 'Basico' ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-black text-lg text-slate-800">B├ísico</h4>
-                    {plan === 'Basico' && <CheckCircle className="w-6 h-6 text-amber-500" />}
-                  </div>
-                  <div className="text-3xl font-black text-slate-800 mb-2">7% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
-                  <ul className="text-sm text-slate-600 space-y-2 mt-4">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Notificaciones est├índar</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Mapa nacional</li>
-                  </ul>
-                </div>
-
-                <div onClick={() => setPlan('Estandar')} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === 'Estandar' ? 'border-blue-500 bg-blue-50 relative overflow-hidden' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  {plan === 'Estandar' && <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg">ACTIVO</div>}
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-black text-lg text-blue-900">Est├índar</h4>
-                    {plan === 'Estandar' && <CheckCircle className="w-6 h-6 text-blue-500" />}
-                  </div>
-                  <div className="text-3xl font-black text-slate-800 mb-2">15% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
-                  <ul className="text-sm text-slate-600 space-y-2 mt-4">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Prioridad de despacho</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Soporte telef├│nico</li>
-                  </ul>
-                </div>
-
-                <div onClick={() => setPlan('VIP')} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === 'VIP' ? 'border-purple-500 bg-purple-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <h4 className="font-black text-lg text-purple-900">VIP Premium</h4>
-                    {plan === 'VIP' && <CheckCircle className="w-6 h-6 text-purple-500" />}
-                  </div>
-                  <div className="text-3xl font-black text-slate-800 mb-2">25% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
-                  <ul className="text-sm text-slate-600 space-y-2 mt-4">
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Radar Exclusivo VIP</li>
-                    <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Fletes industriales directos</li>
-                  </ul>
+                  {planesList.length > 0 ? planesList.map((p: any) => (
+                    <div key={p.id} onClick={() => setPlan(p.nombre)} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === p.nombre ? 'border-amber-500 bg-amber-50 relative overflow-hidden' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                      {plan === p.nombre && <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">ACTIVO</div>}
+                      <div className="flex justify-between items-start mb-4">
+                        <h4 className={`font-black text-lg ${plan === p.nombre ? 'text-amber-900' : 'text-slate-800'}`}>{p.nombre}</h4>
+                        {plan === p.nombre && <CheckCircle className="w-6 h-6 text-amber-500" />}
+                      </div>
+                      <div className="text-3xl font-black text-slate-800 mb-2">{p.comision}% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
+                      <ul className="text-sm text-slate-600 space-y-2 mt-4">
+                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Notificaciones estándar</li>
+                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Mapa nacional</li>
+                      </ul>
+                    </div>
+                  )) : (
+                    <div className="col-span-3 text-center text-slate-500 py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">Cargando planes de Supabase...</div>
+                  )}
                 </div>
               </div>
+            )}
 
-            </div>
-          )}
-
-          {/* TAB: HISTORIAL */}
+            {/* TAB: HISTORIAL */}
           {activeTab === 'historial' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                <div className="flex justify-between items-center mb-6">
