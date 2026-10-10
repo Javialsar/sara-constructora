@@ -8,6 +8,13 @@ export default function MiPerfilFletes() {
   const [activeTab, setActiveTab] = useState<'vehiculo' | 'documentos' | 'billetera' | 'historial'>('vehiculo');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cedulaRef = useRef<HTMLInputElement>(null);
+  const licenciaRef = useRef<HTMLInputElement>(null);
+  const matriculaRef = useRef<HTMLInputElement>(null);
+  
+  const [docCedula, setDocCedula] = useState(false);
+  const [docLicencia, setDocLicencia] = useState(false);
+  const [docMatricula, setDocMatricula] = useState(false);
 
   // Estados Billetera
   const [balance, setBalance] = useState(0);
@@ -20,7 +27,7 @@ export default function MiPerfilFletes() {
   const [driverCity, setDriverCity] = useState('Quito Sur');
 
   const handleRecharge = () => {
-    alert(`Redirigiendo a pasarela (Tarjetas, Transferencia, QR) para recargar $${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
+    alert(`Redirigiendo a pasarela (Tarjetas, Transferencia, QR) para recargar ${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
     setBalance(balance + rechargeAmount);
   };
 
@@ -213,8 +220,13 @@ export default function MiPerfilFletes() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente Validación</span>
-                    <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+                    {!docCedula && <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente</span>}
+                    <input type="file" ref={cedulaRef} className="hidden" onChange={(e) => { if(e.target.files && e.target.files[0]) setDocCedula(true); }} />
+  {docCedula ? (
+    <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Recibido</span>
+  ) : (
+    <button onClick={() => cedulaRef.current?.click()} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+  )}
                   </div>
                 </div>
 
@@ -228,8 +240,13 @@ export default function MiPerfilFletes() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente Validación</span>
-                    <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+                    {!docLicencia && <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente</span>}
+                    <input type="file" ref={licenciaRef} className="hidden" onChange={(e) => { if(e.target.files && e.target.files[0]) setDocLicencia(true); }} />
+  {docLicencia ? (
+    <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Recibido</span>
+  ) : (
+    <button onClick={() => licenciaRef.current?.click()} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+  )}
                   </div>
                 </div>
 
@@ -243,8 +260,13 @@ export default function MiPerfilFletes() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente Validación</span>
-                    <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+                    {!docMatricula && <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente</span>}
+                    <input type="file" ref={matriculaRef} className="hidden" onChange={(e) => { if(e.target.files && e.target.files[0]) setDocMatricula(true); }} />
+  {docMatricula ? (
+    <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Recibido</span>
+  ) : (
+    <button onClick={() => matriculaRef.current?.click()} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+  )}
                   </div>
                 </div>
 
@@ -262,7 +284,7 @@ export default function MiPerfilFletes() {
                   <Wallet className="w-24 h-24 absolute -right-4 -bottom-4 opacity-10 text-white" />
                   <div>
                     <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Saldo Prepago</p>
-                    <h3 className={`text-5xl font-black mb-2 ${balance < 5 ? 'text-red-400' : 'text-emerald-400'}`}>$${balance.toFixed(2)}</h3>
+                    <h3 className={`text-5xl font-black mb-2 ${balance < 5 ? 'text-red-400' : 'text-emerald-400'}`}>${balance.toFixed(2)}</h3>
                     <p className="text-xs text-slate-400 leading-tight">De aquí se debitará el porcentaje de comisión cada vez que ganes un flete.</p>
                   </div>
                   {balance < 5 && <div className="mt-4 bg-red-500/20 text-red-300 text-xs font-bold p-2 rounded border border-red-500/30">Saldo bajo. Recarga para recibir notificaciones.</div>}
@@ -353,10 +375,10 @@ export default function MiPerfilFletes() {
                <div className="flex justify-between items-center mb-6">
                  <h2 className="text-3xl font-black">Historial Detallado de Viajes</h2>
                  <div className="flex gap-2">
-                   <button className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
+                   <button onClick={() => { alert('Descargando reporte en formato Excel... El archivo ha sido guardado en sus descargas.'); }} className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
                      <Download className="w-4 h-4 mr-2" /> Excel
                    </button>
-                   <button className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
+                   <button onClick={() => { alert('Generando reporte PDF... El archivo ha sido guardado en sus descargas.'); }} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
                      <Download className="w-4 h-4 mr-2" /> PDF
                    </button>
                  </div>
@@ -387,9 +409,9 @@ export default function MiPerfilFletes() {
                            <td className="p-4 text-slate-500">{viaje.embarque}</td>
                            <td className="p-4 text-slate-500">{viaje.llegada}</td>
                            <td className="p-4 font-medium text-slate-600">{viaje.tiempo}</td>
-                           <td className="p-4 font-black text-slate-800">$${viaje.tarifa.toFixed(2)}</td>
-                           <td className="p-4 font-bold text-red-500">- $${viaje.comision.toFixed(2)}</td>
-                           <td className="p-4 font-black text-emerald-600">$${viaje.utilidad.toFixed(2)}</td>
+                           <td className="p-4 font-black text-slate-800">${viaje.tarifa.toFixed(2)}</td>
+                           <td className="p-4 font-bold text-red-500">- ${viaje.comision.toFixed(2)}</td>
+                           <td className="p-4 font-black text-emerald-600">${viaje.utilidad.toFixed(2)}</td>
                          </tr>
                        ))}
                      </tbody>
