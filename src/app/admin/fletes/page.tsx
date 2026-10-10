@@ -74,7 +74,7 @@ export default function AdminFletes() {
   ]);
 
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{type: string, url: string} | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{type: string, url: string, rechargeReq?: any} | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [rechargeAmount, setRechargeAmount] = useState<string>("20");
 
