@@ -15,6 +15,12 @@ export default function MiPerfilFletes() {
   const [docCedula, setDocCedula] = useState(false);
   const [docLicencia, setDocLicencia] = useState(false);
   const [docMatricula, setDocMatricula] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   // Estados Billetera
   const [balance, setBalance] = useState(0);
@@ -27,7 +33,7 @@ export default function MiPerfilFletes() {
   const [driverCity, setDriverCity] = useState('Quito Sur');
 
   const handleRecharge = () => {
-    alert(`Redirigiendo a pasarela (Tarjetas, Transferencia, QR) para recargar ${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
+    showToast(`Redirigiendo a pasarela (Tarjetas, Transferencia, QR) para recargar ${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
     setBalance(balance + rechargeAmount);
   };
 
@@ -375,10 +381,10 @@ export default function MiPerfilFletes() {
                <div className="flex justify-between items-center mb-6">
                  <h2 className="text-3xl font-black">Historial Detallado de Viajes</h2>
                  <div className="flex gap-2">
-                   <button onClick={() => { alert('Descargando reporte en formato Excel... El archivo ha sido guardado en sus descargas.'); }} className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
+                   <button onClick={() => { showToast('Descargando reporte en formato Excel...'); }} className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
                      <Download className="w-4 h-4 mr-2" /> Excel
                    </button>
-                   <button onClick={() => { alert('Generando reporte PDF... El archivo ha sido guardado en sus descargas.'); }} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
+                   <button onClick={() => { showToast('Generando reporte PDF...'); }} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
                      <Download className="w-4 h-4 mr-2" /> PDF
                    </button>
                  </div>
@@ -444,6 +450,14 @@ export default function MiPerfilFletes() {
 
         </div>
       </div>
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 z-50">
+          <CheckCircle className="w-5 h-5 text-emerald-400" />
+          <p className="font-bold">{toastMessage}</p>
+        </div>
+      )}
     </div>
   );
 }
