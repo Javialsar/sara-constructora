@@ -1,0 +1,1 @@
+export default function GlobalMap() { return <div>Map</div>; }

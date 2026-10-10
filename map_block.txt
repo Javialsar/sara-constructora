@@ -1,0 +1,18 @@
+{/* GEOREFERENCIA MAPA */}
+                     <div className="w-full h-64 rounded-xl border border-slate-200 overflow-hidden relative">
+                        <iframe 
+                          width="100%" 
+                          height="100%" 
+                          frameBorder="0" 
+                          scrolling="no" 
+                          src={`https://maps.google.com/maps?q=${encodeURIComponent(driverCountry + ' ' + driverProvince + ' ' + driverCity)}&t=m&z=13&output=embed`}
+                        ></iframe>
+                     </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          
