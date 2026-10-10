@@ -1,11 +1,11 @@
 
 'use client';
 import React, { useState, useRef } from 'react';
-import { Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package, Download, CreditCard, QrCode, Building, UploadCloud, Loader2 } from 'lucide-react';
+import { List, Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package, Download, CreditCard, QrCode, Building, UploadCloud, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MiPerfilFletes() {
-  const [activeTab, setActiveTab] = useState<'vehiculo' | 'documentos' | 'billetera' | 'historial'>('vehiculo');
+  const [activeTab, setActiveTab] = useState<'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('vehiculo');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cedulaRef = useRef<HTMLInputElement>(null);
@@ -65,8 +65,11 @@ export default function MiPerfilFletes() {
             <Wallet className="w-5 h-5 mr-3" /> Billetera y Plan
           </button>
           <button onClick={() => setActiveTab('historial')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'historial' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <History className="w-5 h-5 mr-3" /> Historial de Viajes
-          </button>
+            <List className="w-5 h-5 mr-3" /> Historial de Viajes
+            </button>
+            <button onClick={() => setActiveTab('recargas')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'recargas' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
+              <List className="w-5 h-5 mr-3" /> Historial de Recargas
+            </button>
         </nav>
 
         <div className="mt-8 pt-6 border-t border-slate-800">
@@ -450,6 +453,41 @@ export default function MiPerfilFletes() {
 
         </div>
       </div>
+
+      {activeTab === 'recargas' && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-black text-slate-800">Historial de Recargas de Billetera</h2>
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                    <th className="p-4">Fecha y Hora</th>
+                    <th className="p-4">Referencia / Comprobante</th>
+                    <th className="p-4">Estado</th>
+                    <th className="p-4 text-right">Valor Recargado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="p-4 text-slate-600">12 Oct 2026, 15:30</td>
+                    <td className="p-4 text-slate-500 text-sm font-mono flex items-center"><FileText className="w-4 h-4 mr-1 text-slate-400"/> TRX-99882211</td>
+                    <td className="p-4"><span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded">En Verificación</span></td>
+                    <td className="p-4 font-black text-emerald-600 text-right">+$50.00</td>
+                  </tr>
+                  <tr className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="p-4 text-slate-600">01 Oct 2026, 09:15</td>
+                    <td className="p-4 text-slate-500 text-sm font-mono flex items-center"><FileText className="w-4 h-4 mr-1 text-slate-400"/> TRX-11223344</td>
+                    <td className="p-4"><span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-1 rounded">Aprobado</span></td>
+                    <td className="p-4 font-black text-emerald-600 text-right">+$100.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       {/* TOAST NOTIFICATION */}
       {toastMessage && (
