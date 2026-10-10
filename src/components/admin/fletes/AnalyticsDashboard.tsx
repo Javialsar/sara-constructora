@@ -1,11 +1,11 @@
 import React from 'react';
 import { TrendingUp, Users, Wallet, Activity, Truck } from 'lucide-react';
 
-export default function AnalyticsDashboard() {
+export default function AnalyticsDíashboard() {
   return (
     <div className="bg-slate-900 text-white min-h-screen p-6 font-sans">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-emerald-400">Dashboard Analítico</h1>
+        <h1 className="text-3xl font-bold text-emerald-400">Díashboard Analítico</h1>
         <p className="text-slate-400 mt-2">Resumen de métricas de la plataforma SARA</p>
       </div>
 
