@@ -53,7 +53,7 @@ export default function MapLeaflet({ drivers }: { drivers: any[] }) {
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {drivers.map(driver => {
           let currentIcon = iconBasico;
