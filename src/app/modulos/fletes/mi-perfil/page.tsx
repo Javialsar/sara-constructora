@@ -514,7 +514,7 @@ export default function MiPerfilFletes() {
           </div>
         )}
 
-      {/* TOAST NOTIFICATION */}}
+      {/* TOAST NOTIFICATION */}
       {toastMessage && (
         <div className="fixed bottom-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 z-50">
           <CheckCircle className="w-5 h-5 text-emerald-400" />
