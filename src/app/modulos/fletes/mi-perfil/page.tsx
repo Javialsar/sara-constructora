@@ -1,6 +1,7 @@
+
 'use client';
 import React, { useState, useRef } from 'react';
-import { Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package } from 'lucide-react';
+import { Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package, Download, CreditCard, QrCode, Building, UploadCloud, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MiPerfilFletes() {
@@ -8,14 +9,18 @@ export default function MiPerfilFletes() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados
+  // Estados Billetera
   const [balance, setBalance] = useState(0);
   const [rechargeAmount, setRechargeAmount] = useState(20);
   const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('Estandar');
 
+  // Estados Ubicacion
+  const [driverCountry, setDriverCountry] = useState('Ecuador');
+  const [driverProvince, setDriverProvince] = useState('Pichincha');
+  const [driverCity, setDriverCity] = useState('Quito Sur');
+
   const handleRecharge = () => {
-    // Simula una redirección a Kushki/Stripe para recargar
-    alert(`Redirigiendo a pasarela para recargar $${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
+    alert(`Redirigiendo a pasarela (Tarjetas, Transferencia, QR) para recargar $${rechargeAmount}. Al confirmar, tu saldo aumentará.`);
     setBalance(balance + rechargeAmount);
   };
 
@@ -31,7 +36,7 @@ export default function MiPerfilFletes() {
             </div>
             SARA Fletes
           </Link>
-          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Mi Cabina</h2>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Mi Cabina</p>
           <p className="text-white font-bold">Carlos Mendoza</p>
           <p className="text-slate-400 text-xs font-mono">PBA-1234</p>
         </div>
@@ -62,7 +67,7 @@ export default function MiPerfilFletes() {
 
       {/* CONTENT AREA */}
       <div className="flex-1 p-8 overflow-y-auto h-screen">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           
           {/* TAB: VEHICULO */}
           {activeTab === 'vehiculo' && (
@@ -127,6 +132,7 @@ export default function MiPerfilFletes() {
                         <option>Volqueta (12m3)</option>
                         <option>Camión (5 Ton)</option>
                         <option>Plataforma / Mula</option>
+                        <option>Camionetas Doble Cabina</option>
                       </select>
                     </div>
                     <div>
@@ -139,7 +145,7 @@ export default function MiPerfilFletes() {
                      <div className="flex items-center justify-between mb-4">
                        <div>
                          <h4 className="font-bold text-slate-800">Ubicación GPS Actual</h4>
-                         <p className="text-sm text-slate-500">Transmite tu posición exacta para recibir viajes cercanos.</p>
+                         <p className="text-sm text-slate-500">Transmite tu posición exacta para recibir viajes cercanos y mejorar cobertura.</p>
                        </div>
                        <div className="flex items-center gap-2">
                          <span className="relative flex h-3 w-3">
@@ -150,10 +156,10 @@ export default function MiPerfilFletes() {
                        </div>
                      </div>
                      
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">País</label>
-                          <select className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 bg-slate-50">
+                          <select value={driverCountry} onChange={e => setDriverCountry(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 bg-slate-50">
                             <option>Ecuador</option>
                             <option>Colombia</option>
                             <option>Perú</option>
@@ -161,15 +167,87 @@ export default function MiPerfilFletes() {
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Provincia / Departamento</label>
-                          <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Pichincha" defaultValue="Pichincha" />
+                          <input type="text" value={driverProvince} onChange={e => setDriverProvince(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Pichincha" />
                         </div>
                         <div>
                           <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ciudad / Sector</label>
-                          <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Quito Sur" defaultValue="Quito Sur" />
+                          <input type="text" value={driverCity} onChange={e => setDriverCity(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Quito Sur" />
                         </div>
                      </div>
+
+                     {/* GEOREFERENCIA MAPA */}
+                     <div className="w-full h-64 rounded-xl border border-slate-200 overflow-hidden relative">
+                        <iframe 
+                          width="100%" 
+                          height="100%" 
+                          frameBorder="0" 
+                          scrolling="no" 
+                          src={`https://maps.google.com/maps?q=${encodeURIComponent(driverCountry + ' ' + driverProvince + ' ' + driverCity)}&t=m&z=13&output=embed`}
+                        ></iframe>
+                     </div>
+
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: DOCUMENTOS */}
+          {activeTab === 'documentos' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-3xl font-black mb-6">Validación de Documentos</h2>
+              
+              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl mb-6">
+                <p className="text-amber-800 text-sm font-bold">Importante: Para activar tu perfil y empezar a recibir notificaciones de fletes, debes subir copias legibles de tu cédula, licencia de conducir y matrícula del vehículo. Serán validados por el Administrador.</p>
+              </div>
+
+              <div className="space-y-6">
+                
+                {/* Cedula */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="bg-slate-100 p-3 rounded-xl"><FileText className="w-6 h-6 text-slate-600" /></div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Cédula de Identidad</h4>
+                      <p className="text-sm text-slate-500">Sube una foto o PDF de tu documento (ambos lados).</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente Validación</span>
+                    <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+                  </div>
+                </div>
+
+                {/* Licencia */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="bg-slate-100 p-3 rounded-xl"><FileText className="w-6 h-6 text-slate-600" /></div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Licencia de Conducir (Tipo C/E)</h4>
+                      <p className="text-sm text-slate-500">Sube una foto o PDF vigente.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente Validación</span>
+                    <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+                  </div>
+                </div>
+
+                {/* Matricula */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="bg-slate-100 p-3 rounded-xl"><FileText className="w-6 h-6 text-slate-600" /></div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">Matrícula del Vehículo</h4>
+                      <p className="text-sm text-slate-500">Documento actualizado del año en curso.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+                    <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente Validación</span>
+                    <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
@@ -180,16 +258,21 @@ export default function MiPerfilFletes() {
               <h2 className="text-3xl font-black mb-6">Billetera de Recargas y Planes</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-between">
                   <Wallet className="w-24 h-24 absolute -right-4 -bottom-4 opacity-10 text-white" />
-                  <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Saldo Prepago</p>
-                  <h3 className={`text-5xl font-black mb-2 ${balance < 5 ? 'text-red-400' : 'text-emerald-400'}`}>${balance.toFixed(2)}</h3>
-                  <p className="text-xs text-slate-400 leading-tight">De aquí se debitará el porcentaje de comisión cada vez que ganes un flete.</p>
+                  <div>
+                    <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Saldo Prepago</p>
+                    <h3 className={`text-5xl font-black mb-2 ${balance < 5 ? 'text-red-400' : 'text-emerald-400'}`}>$${balance.toFixed(2)}</h3>
+                    <p className="text-xs text-slate-400 leading-tight">De aquí se debitará el porcentaje de comisión cada vez que ganes un flete.</p>
+                  </div>
+                  {balance < 5 && <div className="mt-4 bg-red-500/20 text-red-300 text-xs font-bold p-2 rounded border border-red-500/30">Saldo bajo. Recarga para recibir notificaciones.</div>}
                 </div>
 
                 <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center">
-                  <h3 className="font-bold text-lg mb-4 text-slate-800">Recargar Saldo</h3>
-                  <div className="flex gap-4">
+                  <h3 className="font-bold text-lg mb-1 text-slate-800">Recargar Saldo a través de Administrador SARA</h3>
+                  <p className="text-sm text-slate-500 mb-6">El ecosistema está integrado a métodos de pago automáticos. Escoge tu preferencia.</p>
+                  
+                  <div className="flex gap-4 mb-6">
                     <div className="relative flex-1">
                       <span className="absolute left-4 top-3 font-bold text-slate-500">$</span>
                       <input 
@@ -199,11 +282,25 @@ export default function MiPerfilFletes() {
                         className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 font-bold text-lg outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
-                    <button onClick={handleRecharge} className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black px-8 rounded-xl transition-colors shadow-md">
-                      Pagar (Kushki)
+                    <button onClick={handleRecharge} className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black px-8 rounded-xl transition-colors shadow-md flex items-center">
+                      <CreditCard className="w-5 h-5 mr-2" /> Pagar Online
                     </button>
                   </div>
-                  {balance < 5 && <p className="text-sm text-red-500 font-bold mt-3">⚠️ Tu saldo es muy bajo. Recarga para seguir recibiendo notificaciones de viajes.</p>}
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-6">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <CreditCard className="w-8 h-8 text-blue-600" />
+                      <div className="text-xs"><p className="font-bold text-slate-800">Tarjetas</p><p className="text-slate-500">Crédito y Débito</p></div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <Building className="w-8 h-8 text-emerald-600" />
+                      <div className="text-xs"><p className="font-bold text-slate-800">Transferencias</p><p className="text-slate-500">Cuentas SARA</p></div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                      <QrCode className="w-8 h-8 text-slate-700" />
+                      <div className="text-xs"><p className="font-bold text-slate-800">Código QR</p><p className="text-slate-500">Billeteras Móviles</p></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -253,32 +350,73 @@ export default function MiPerfilFletes() {
           {/* TAB: HISTORIAL */}
           {activeTab === 'historial' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <h2 className="text-3xl font-black mb-6">Mis Viajes Realizados</h2>
-               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                 <table className="w-full text-left">
-                   <thead>
-                     <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
-                       <th className="p-4 font-medium">Ruta y Fecha</th>
-                       <th className="p-4 font-medium">Material</th>
-                       <th className="p-4 font-medium">Tarifa Cobrada</th>
-                       <th className="p-4 font-medium">Comisión SARA</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {[1,2,3].map((i) => (
-                       <tr key={i} className="border-b border-slate-100">
-                         <td className="p-4">
-                           <p className="font-bold text-slate-800">Quito Sur ➔ Cumbayá</p>
-                           <p className="text-xs text-slate-500">12 Oct 2026, 14:30</p>
-                         </td>
-                         <td className="p-4 text-sm font-medium text-slate-600 flex items-center"><Package className="w-4 h-4 mr-2"/> Cemento (8 Ton)</td>
-                         <td className="p-4 font-black text-emerald-600">$45.00</td>
-                         <td className="p-4 text-sm text-red-500 font-bold">- $6.75 (15%)</td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
+               <div className="flex justify-between items-center mb-6">
+                 <h2 className="text-3xl font-black">Historial Detallado de Viajes</h2>
+                 <div className="flex gap-2">
+                   <button className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
+                     <Download className="w-4 h-4 mr-2" /> Excel
+                   </button>
+                   <button className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
+                     <Download className="w-4 h-4 mr-2" /> PDF
+                   </button>
+                 </div>
                </div>
+               
+               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                 <div className="overflow-x-auto">
+                   <table className="w-full text-left whitespace-nowrap">
+                     <thead>
+                       <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                         <th className="p-4 font-bold">Ruta</th>
+                         <th className="p-4 font-bold">Embarque</th>
+                         <th className="p-4 font-bold">Llegada</th>
+                         <th className="p-4 font-bold">Tiempo</th>
+                         <th className="p-4 font-bold">Tarifa Cobrada</th>
+                         <th className="p-4 font-bold">Comisión SARA</th>
+                         <th className="p-4 font-bold">Utilidad Viaje</th>
+                       </tr>
+                     </thead>
+                     <tbody className="text-sm">
+                       {[
+                         { id: 1, route: 'Quito Sur -> Cumbayá', embarque: '12 Oct 2026, 14:00', llegada: '12 Oct 2026, 14:45', tiempo: '45 min', tarifa: 45.00, comision: 6.75, utilidad: 38.25 },
+                         { id: 2, route: 'Mitad del Mundo -> Calderón', embarque: '10 Oct 2026, 09:15', llegada: '10 Oct 2026, 10:20', tiempo: '1h 05 min', tarifa: 60.00, comision: 9.00, utilidad: 51.00 },
+                         { id: 3, route: 'Sangolquí -> Sur de Quito', embarque: '08 Oct 2026, 16:30', llegada: '08 Oct 2026, 17:10', tiempo: '40 min', tarifa: 35.00, comision: 5.25, utilidad: 29.75 },
+                       ].map((viaje) => (
+                         <tr key={viaje.id} className="border-b border-slate-100 hover:bg-slate-50">
+                           <td className="p-4 font-bold text-slate-800">{viaje.route}</td>
+                           <td className="p-4 text-slate-500">{viaje.embarque}</td>
+                           <td className="p-4 text-slate-500">{viaje.llegada}</td>
+                           <td className="p-4 font-medium text-slate-600">{viaje.tiempo}</td>
+                           <td className="p-4 font-black text-slate-800">$${viaje.tarifa.toFixed(2)}</td>
+                           <td className="p-4 font-bold text-red-500">- $${viaje.comision.toFixed(2)}</td>
+                           <td className="p-4 font-black text-emerald-600">$${viaje.utilidad.toFixed(2)}</td>
+                         </tr>
+                       ))}
+                     </tbody>
+                   </table>
+                 </div>
+               </div>
+
+               {/* Resumen de Totales */}
+               <div className="bg-slate-900 rounded-2xl p-6 text-white grid grid-cols-1 md:grid-cols-4 gap-6">
+                 <div>
+                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Total Viajes Realizados</p>
+                   <p className="text-3xl font-black">3</p>
+                 </div>
+                 <div>
+                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Tarifa Bruta Generada</p>
+                   <p className="text-3xl font-black text-white">$140.00</p>
+                 </div>
+                 <div>
+                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Comisiones Pagadas a SARA</p>
+                   <p className="text-3xl font-black text-red-400">-$21.00</p>
+                 </div>
+                 <div className="bg-emerald-500/20 p-4 rounded-xl -m-4 ml-2 border border-emerald-500/30">
+                   <p className="text-emerald-200 text-xs font-bold uppercase mb-1">Utilidad Neta</p>
+                   <p className="text-4xl font-black text-emerald-400">$119.00</p>
+                 </div>
+               </div>
+
             </div>
           )}
 
