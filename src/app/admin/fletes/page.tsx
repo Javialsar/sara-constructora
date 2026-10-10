@@ -1,11 +1,23 @@
 
 'use client';
 import React, { useState } from 'react';
-import { Truck, ShieldCheck, XCircle, Search, FileText, CheckCircle, Wallet, Eye, FileCheck, X, Download, Edit, Trash2, Ban, MapPin, Phone } from 'lucide-react';
+import { Truck, ShieldCheck, XCircle, Search, FileText, CheckCircle, Wallet, Eye, FileCheck, X, Download, Edit, Trash2, Ban, MapPin, Phone, Receipt, Check } from 'lucide-react';
 
 interface Document {
   type: string;
   status: 'Subido' | 'Verificado';
+}
+
+interface RechargeRequest {
+  id: string;
+  driverId: string;
+  driverName: string;
+  vehicle: string;
+  plate: string;
+  amount: number;
+  date: string;
+  status: 'pending' | 'approved' | 'rejected';
+  receiptUrl: string;
 }
 
 interface Driver {
@@ -24,6 +36,8 @@ interface Driver {
 }
 
 export default function AdminFletes() {
+  const [activeTab, setActiveTab] = useState<'vehiculos' | 'recargas'>('vehiculos');
+
   const [drivers, setDrivers] = useState<Driver[]>([
     { 
       id: '1', name: 'Carlos Mendoza', phone: '0991234567', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', plan: 'Estandar', status: 'pending', 
@@ -54,6 +68,11 @@ export default function AdminFletes() {
     }
   ]);
 
+  const [recharges, setRecharges] = useState<RechargeRequest[]>([
+    { id: 'R1', driverId: '1', driverName: 'Carlos Mendoza', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', amount: 50.00, date: '12 Oct 2026, 15:30', status: 'pending', receiptUrl: 'https://images.unsplash.com/photo-1620857329598-6e5458ce04eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80' },
+    { id: 'R2', driverId: '3', driverName: 'Marco Vinicio', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', amount: 100.00, date: '12 Oct 2026, 16:15', status: 'pending', receiptUrl: 'https://images.unsplash.com/photo-1620857329598-6e5458ce04eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80' }
+  ]);
+
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [previewDoc, setPreviewDoc] = useState<{type: string, url: string} | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -64,27 +83,6 @@ export default function AdminFletes() {
   const [filterProvincia, setFilterProvincia] = useState('');
   const [filterCiudad, setFilterCiudad] = useState('');
   const [filterDireccion, setFilterDireccion] = useState('');
-
-
-  const handleValidateRecharge = (id: string, amount: string) => {
-    const numericAmount = parseFloat(amount);
-    if(isNaN(numericAmount) || numericAmount <= 0) {
-      showToast("Ingrese un monto válido");
-      return;
-    }
-    const updatedDrivers = drivers.map((d): Driver => {
-      if (d.id === id) {
-        return { ...d, walletBalance: d.walletBalance + numericAmount };
-      }
-      return d;
-    });
-    setDrivers(updatedDrivers);
-    if (selectedDriver && selectedDriver.id === id) {
-      setSelectedDriver(updatedDrivers.find(d => d.id === id) || null);
-    }
-    setRechargeAmount("20");
-    showToast(`Recarga de ${numericAmount.toFixed(2)} validada exitosamente`);
-  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -124,6 +122,41 @@ export default function AdminFletes() {
     }
   };
 
+  const handleValidateRecharge = (id: string, amount: string) => {
+    const numericAmount = parseFloat(amount);
+    if(isNaN(numericAmount) || numericAmount <= 0) {
+      showToast("Ingrese un monto válido");
+      return;
+    }
+    const updatedDrivers = drivers.map((d): Driver => {
+      if (d.id === id) {
+        return { ...d, walletBalance: d.walletBalance + numericAmount };
+      }
+      return d;
+    });
+    setDrivers(updatedDrivers);
+    if (selectedDriver && selectedDriver.id === id) {
+      setSelectedDriver(updatedDrivers.find(d => d.id === id) || null);
+    }
+    setRechargeAmount("20");
+    showToast(`Recarga de $${numericAmount.toFixed(2)} validada exitosamente`);
+  };
+
+  const handleApproveRechargeRequest = (reqId: string, driverId: string, amount: number) => {
+    // Approve recharge
+    setRecharges(recharges.map(r => r.id === reqId ? { ...r, status: 'approved' } : r));
+    // Update driver wallet
+    setDrivers(drivers.map(d => d.id === driverId ? { ...d, walletBalance: d.walletBalance + amount } : d));
+    showToast(`Recarga de $${amount.toFixed(2)} aprobada. Saldo actualizado.`);
+    setPreviewDoc(null);
+  };
+
+  const handleRejectRechargeRequest = (reqId: string) => {
+    setRecharges(recharges.map(r => r.id === reqId ? { ...r, status: 'rejected' } : r));
+    showToast("Recarga rechazada");
+    setPreviewDoc(null);
+  };
+
   const filteredDrivers = drivers.filter(d => {
     const matchPlaca = d.plate.toLowerCase().includes(searchPlaca.toLowerCase()) || d.name.toLowerCase().includes(searchPlaca.toLowerCase());
     const matchProv = d.province.toLowerCase().includes(filterProvincia.toLowerCase());
@@ -149,111 +182,178 @@ export default function AdminFletes() {
         </div>
       </header>
 
-      {/* FILTROS AVANZADOS */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase">Buscar Placa / Nombre</label>
-          <div className="relative mt-1">
-             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-             <input type="text" value={searchPlaca} onChange={e => setSearchPlaca(e.target.value)} placeholder="Ej. PBA-1234" className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
+      {/* TABS */}
+      <div className="flex gap-4 mb-6 border-b border-slate-200">
+        <button 
+          onClick={() => setActiveTab('vehiculos')} 
+          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'vehiculos' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          <div className="flex items-center"><Truck className="w-4 h-4 mr-2" /> Validación de Vehículos</div>
+        </button>
+        <button 
+          onClick={() => setActiveTab('recargas')} 
+          className={`pb-3 px-2 font-bold text-sm border-b-2 transition-colors ${activeTab === 'recargas' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          <div className="flex items-center">
+             <Wallet className="w-4 h-4 mr-2" /> Validación de Recargas 
+             {recharges.filter(r => r.status === 'pending').length > 0 && (
+               <span className="ml-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{recharges.filter(r => r.status === 'pending').length}</span>
+             )}
           </div>
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase">Provincia</label>
-          <input type="text" value={filterProvincia} onChange={e => setFilterProvincia(e.target.value)} placeholder="Ej. Pichincha" className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase">Ciudad</label>
-          <input type="text" value={filterCiudad} onChange={e => setFilterCiudad(e.target.value)} placeholder="Ej. Quito" className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-slate-500 uppercase">Dirección</label>
-          <input type="text" value={filterDireccion} onChange={e => setFilterDireccion(e.target.value)} placeholder="Ej. Av. Simón Bolívar" className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
-        </div>
+        </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50">
-          <h2 className="font-bold flex items-center"><ShieldCheck className="w-5 h-5 mr-2 text-slate-600"/> Red de Transportistas Activos y Pendientes</h2>
-        </div>
+      {activeTab === 'vehiculos' && (
+        <>
+          {/* FILTROS AVANZADOS */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Buscar Placa / Nombre</label>
+              <div className="relative mt-1">
+                 <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                 <input type="text" value={searchPlaca} onChange={e => setSearchPlaca(e.target.value)} placeholder="Ej. PBA-1234" className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Provincia</label>
+              <input type="text" value={filterProvincia} onChange={e => setFilterProvincia(e.target.value)} placeholder="Ej. Pichincha" className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Ciudad</label>
+              <input type="text" value={filterCiudad} onChange={e => setFilterCiudad(e.target.value)} placeholder="Ej. Quito" className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Dirección</label>
+              <input type="text" value={filterDireccion} onChange={e => setFilterDireccion(e.target.value)} placeholder="Ej. Av. Simón Bolívar" className="w-full mt-1 px-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
+            </div>
+          </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left whitespace-nowrap">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-xs border-b border-slate-200 uppercase tracking-wider">
-                <th className="p-4 font-bold">Conductor / Detalles</th>
-                <th className="p-4 font-bold">Vehículo / Placa</th>
-                <th className="p-4 font-bold">Ubicación</th>
-                <th className="p-4 font-bold">Comisión</th>
-                <th className="p-4 font-bold">Billetera</th>
-                <th className="p-4 font-bold">Estado</th>
-                <th className="p-4 font-bold text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredDrivers.map(driver => (
-                <tr key={driver.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="p-4">
-                    <p className="font-bold text-slate-800">{driver.name}</p>
-                    <p className="text-xs text-slate-500 flex items-center mt-1"><Phone className="w-3 h-3 mr-1"/> {driver.phone}</p>
-                  </td>
-                  <td className="p-4">
-                    <p className="text-slate-600 font-medium text-sm">{driver.vehicle}</p>
-                    <p className="font-mono bg-white inline-block px-1.5 py-0.5 rounded border border-slate-200 text-xs mt-1 shadow-sm font-bold text-slate-700">{driver.plate}</p>
-                  </td>
-                  <td className="p-4">
-                    <p className="text-xs font-bold text-slate-700"><MapPin className="w-3 h-3 inline mr-1 text-slate-400"/>{driver.city}, {driver.province}</p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-[150px] truncate" title={driver.address}>{driver.address}</p>
-                  </td>
-                  <td className="p-4">
-                    <span className={"px-3 py-1 rounded-full text-xs font-bold " + (
-                      driver.plan === 'VIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                      driver.plan === 'Estandar' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
-                    )}>
-                      {driver.plan}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={"font-mono font-bold text-lg " + (driver.walletBalance < 10 ? 'text-red-500' : 'text-emerald-600')}>
-                      {'$' + driver.walletBalance.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={"px-2 py-1 text-xs font-bold rounded " + (
-                      driver.status === 'approved' ? 'text-emerald-700 bg-emerald-100' : 
-                      driver.status === 'blocked' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100'
-                    )}>
-                      {driver.status === 'approved' ? 'Operando' : driver.status === 'blocked' ? 'Bloqueado' : 'Revisión'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-right space-x-1">
-                    <button onClick={() => setSelectedDriver(driver)} className="text-amber-600 hover:bg-amber-50 px-2 py-1.5 rounded border border-amber-200 text-xs font-bold transition-colors inline-flex items-center" title="Validar Expediente">
-                      <Eye className="w-4 h-4 mr-1" /> {driver.status === 'pending' ? 'Validar' : 'Expediente'}
-                    </button>
-                    <button onClick={() => handleEdit(driver.id)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded border border-blue-200 transition-colors" title="Editar">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    {driver.status === 'blocked' ? (
-                      <button onClick={() => handleAction(driver.id, 'approved')} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded border border-emerald-200 transition-colors" title="Activar">
-                        <CheckCircle className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button onClick={() => handleAction(driver.id, 'blocked')} className="text-orange-600 hover:bg-orange-50 p-1.5 rounded border border-orange-200 transition-colors" title="Bloquear">
-                        <Ban className="w-4 h-4" />
-                      </button>
-                    )}
-                    <button onClick={() => handleDelete(driver.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded border border-red-200 transition-colors" title="Eliminar">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 bg-slate-50">
+              <h2 className="font-bold flex items-center"><ShieldCheck className="w-5 h-5 mr-2 text-slate-600"/> Red de Transportistas Activos y Pendientes</h2>
+            </div>
 
-      {/* MODAL DE REVISIÓN Y ALTA */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 text-xs border-b border-slate-200 uppercase tracking-wider">
+                    <th className="p-4 font-bold">Conductor / Detalles</th>
+                    <th className="p-4 font-bold">Vehículo / Placa</th>
+                    <th className="p-4 font-bold">Ubicación</th>
+                    <th className="p-4 font-bold">Comisión</th>
+                    <th className="p-4 font-bold">Billetera</th>
+                    <th className="p-4 font-bold">Estado</th>
+                    <th className="p-4 font-bold text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDrivers.map(driver => (
+                    <tr key={driver.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="p-4">
+                        <p className="font-bold text-slate-800">{driver.name}</p>
+                        <p className="text-xs text-slate-500 flex items-center mt-1"><Phone className="w-3 h-3 mr-1"/> {driver.phone}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-slate-600 font-medium text-sm">{driver.vehicle}</p>
+                        <p className="font-mono bg-white inline-block px-1.5 py-0.5 rounded border border-slate-200 text-xs mt-1 shadow-sm font-bold text-slate-700">{driver.plate}</p>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-xs font-bold text-slate-700"><MapPin className="w-3 h-3 inline mr-1 text-slate-400"/>{driver.city}, {driver.province}</p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-[150px] truncate" title={driver.address}>{driver.address}</p>
+                      </td>
+                      <td className="p-4">
+                        <span className={"px-3 py-1 rounded-full text-xs font-bold " + (
+                          driver.plan === 'VIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          driver.plan === 'Estandar' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
+                        )}>
+                          {driver.plan}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={"font-mono font-bold text-lg " + (driver.walletBalance < 10 ? 'text-red-500' : 'text-emerald-600')}>
+                          {'$' + driver.walletBalance.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={"px-2 py-1 text-xs font-bold rounded " + (
+                          driver.status === 'approved' ? 'text-emerald-700 bg-emerald-100' : 
+                          driver.status === 'blocked' ? 'text-red-700 bg-red-100' : 'text-amber-700 bg-amber-100'
+                        )}>
+                          {driver.status === 'approved' ? 'Operando' : driver.status === 'blocked' ? 'Bloqueado' : 'Revisión'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right space-x-1">
+                        <button onClick={() => setSelectedDriver(driver)} className="text-amber-600 hover:bg-amber-50 px-2 py-1.5 rounded border border-amber-200 text-xs font-bold transition-colors inline-flex items-center" title="Validar Expediente">
+                          <Eye className="w-4 h-4 mr-1" /> {driver.status === 'pending' ? 'Validar' : 'Expediente'}
+                        </button>
+                        <button onClick={() => handleEdit(driver.id)} className="text-blue-600 hover:bg-blue-50 p-1.5 rounded border border-blue-200 transition-colors" title="Editar">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        {driver.status === 'blocked' ? (
+                          <button onClick={() => handleAction(driver.id, 'approved')} className="text-emerald-600 hover:bg-emerald-50 p-1.5 rounded border border-emerald-200 transition-colors" title="Activar">
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button onClick={() => handleAction(driver.id, 'blocked')} className="text-orange-600 hover:bg-orange-50 p-1.5 rounded border border-orange-200 transition-colors" title="Bloquear">
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button onClick={() => handleDelete(driver.id)} className="text-red-600 hover:bg-red-50 p-1.5 rounded border border-red-200 transition-colors" title="Eliminar">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'recargas' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+           {recharges.map(recharge => (
+              <div key={recharge.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                 <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                    <div>
+                      <h3 className="font-bold text-slate-800">{recharge.driverName}</h3>
+                      <p className="text-xs text-slate-500">{recharge.date}</p>
+                    </div>
+                    <span className={"px-2 py-1 text-[10px] uppercase font-bold rounded-full " + (
+                        recharge.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                        recharge.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                    )}>
+                        {recharge.status === 'approved' ? 'Aprobado' : recharge.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                    </span>
+                 </div>
+                 <div className="p-4 flex-1">
+                    <p className="text-slate-600 font-medium text-sm">{recharge.vehicle}</p>
+                    <p className="font-mono bg-slate-100 inline-block px-1.5 py-0.5 rounded border border-slate-200 text-xs mt-1 font-bold text-slate-700 mb-4">{recharge.plate}</p>
+                    
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center mb-4">
+                       <p className="text-xs text-slate-500 uppercase font-bold mb-1">Monto Solicitado</p>
+                       <p className="text-3xl font-black text-emerald-600">${recharge.amount.toFixed(2)}</p>
+                    </div>
+
+                    <button 
+                       onClick={() => setPreviewDoc({type: 'Comprobante de Pago', url: recharge.receiptUrl, rechargeReq: recharge})}
+                       className="w-full border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center"
+                    >
+                       <Receipt className="w-4 h-4 mr-2"/> Ver Comprobante
+                    </button>
+                 </div>
+              </div>
+           ))}
+           {recharges.length === 0 && (
+              <div className="col-span-full py-12 text-center text-slate-500">
+                 No hay solicitudes de recarga.
+              </div>
+           )}
+        </div>
+      )}
+
+      {/* MODAL DE REVISIÓN Y ALTA DE VEHICULOS */}
       {selectedDriver && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
@@ -348,7 +448,7 @@ export default function AdminFletes() {
                     <p className="text-xs text-slate-500 mt-2 leading-tight">SARA descontará su comisión de esta billetera virtual en cada viaje concretado de forma automática.</p>
                     
                     <div className="mt-5 pt-4 border-t border-slate-200">
-                      <p className="text-xs text-slate-500 uppercase font-bold mb-2">Validar Transferencia / Pago</p>
+                      <p className="text-xs text-slate-500 uppercase font-bold mb-2">Validar Transferencia / Pago Manual</p>
                       <div className="flex gap-2">
                         <div className="relative">
                           <span className="absolute left-2 top-1.5 text-slate-400 font-bold">$</span>
@@ -360,6 +460,7 @@ export default function AdminFletes() {
                       </div>
                       <p className="text-[10px] text-slate-400 mt-2 leading-tight">Confirme el pago en las cuentas de SARA antes de validar. Esto habilitará al vehículo en el radar de fletes.</p>
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -414,8 +515,18 @@ export default function AdminFletes() {
           <div className="max-w-4xl w-full">
             <h3 className="text-white text-xl font-bold mb-4 text-center">{previewDoc.type}</h3>
             <img src={previewDoc.url} alt="Documento" className="w-full h-auto max-h-[80vh] object-contain rounded-lg border border-slate-700 shadow-2xl" />
-            <div className="mt-4 text-center">
+            <div className="mt-4 flex justify-center gap-4">
               <button onClick={() => setPreviewDoc(null)} className="px-6 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-700">Cerrar Visor</button>
+              {(previewDoc as any).rechargeReq && (previewDoc as any).rechargeReq.status === 'pending' && (
+                <>
+                  <button onClick={() => handleRejectRechargeRequest((previewDoc as any).rechargeReq.id)} className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 flex items-center">
+                    <X className="w-4 h-4 mr-2" /> Rechazar
+                  </button>
+                  <button onClick={() => handleApproveRechargeRequest((previewDoc as any).rechargeReq.id, (previewDoc as any).rechargeReq.driverId, (previewDoc as any).rechargeReq.amount)} className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 flex items-center">
+                    <Check className="w-4 h-4 mr-2" /> Aprobar Recarga
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
