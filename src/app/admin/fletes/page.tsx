@@ -247,10 +247,10 @@ export default function AdminFletes() {
           <p className="text-slate-500">Auditoría de transportistas, validación de documentos y gestión de billeteras prepago (Recargas).</p>
         </div>
         <div className="flex gap-2">
-           <button onClick={() => showToast('Descargando Excel...')} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-slate-800">
+           <button onClick={handleDownloadExcel} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-slate-800">
              <Download className="w-4 h-4 mr-2"/> Excel
            </button>
-           <button onClick={() => showToast('Descargando PDF...')} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-red-700">
+           <button onClick={handleDownloadPDF} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center hover:bg-red-700">
              <Download className="w-4 h-4 mr-2"/> PDF
            </button>
         </div>
