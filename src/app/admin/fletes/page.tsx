@@ -35,6 +35,10 @@ interface Driver {
   documents: Document[];
 }
 
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 export default function AdminFletes() {
   const [activeTab, setActiveTab] = useState<'vehiculos' | 'recargas'>('vehiculos');
 
@@ -164,6 +168,76 @@ export default function AdminFletes() {
     const matchDir = d.address.toLowerCase().includes(filterDireccion.toLowerCase());
     return matchPlaca && matchProv && matchCity && matchDir;
   });
+
+  const handleDownloadExcel = () => {
+    if (activeTab === 'vehiculos') {
+      const data = filteredDrivers.map(d => ({
+        'ID': d.id,
+        'Nombre': d.name,
+        'Teléfono': d.phone,
+        'Vehículo': d.vehicle,
+        'Placa': d.plate,
+        'Plan': d.plan,
+        'Billetera': d.walletBalance,
+        'Provincia': d.province,
+        'Ciudad': d.city,
+        'Dirección': d.address,
+        'Estado': d.status
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Vehiculos");
+      XLSX.writeFile(wb, "vehiculos.xlsx");
+    } else {
+      const data = recharges.map(r => ({
+        'ID': r.id,
+        'ID Conductor': r.driverId,
+        'Nombre': r.driverName,
+        'Vehículo': r.vehicle,
+        'Placa': r.plate,
+        'Monto': r.amount,
+        'Fecha': r.date,
+        'Estado': r.status
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Recargas");
+      XLSX.writeFile(wb, "recargas.xlsx");
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    if (activeTab === 'vehiculos') {
+      doc.text("Reporte de Vehículos", 14, 15);
+      const tableColumn = ["Nombre", "Vehículo", "Placa", "Plan", "Billetera", "Ciudad", "Estado"];
+      const tableRows = filteredDrivers.map(d => [
+        d.name,
+        d.vehicle,
+        d.plate,
+        d.plan,
+        d.walletBalance.toString(),
+        d.city,
+        d.status
+      ]);
+      autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
+      doc.save("vehiculos.pdf");
+    } else {
+      doc.text("Reporte de Recargas", 14, 15);
+      const tableColumn = ["Nombre", "Vehículo", "Placa", "Monto", "Fecha", "Estado"];
+      const tableRows = recharges.map(r => [
+        r.driverName,
+        r.vehicle,
+        r.plate,
+        r.amount.toString(),
+        r.date,
+        r.status
+      ]);
+      autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
+      doc.save("recargas.pdf");
+    }
+  };
+
 
   return (
     <div className="p-8 font-sans text-slate-800 max-w-7xl mx-auto relative h-screen overflow-y-auto">
