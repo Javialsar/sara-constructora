@@ -79,7 +79,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
   const allSlides: HeroSlide[] = [
     {
       id: "constructora",
-      label: "01 · Constructora",
+      label: "01 · SARA-CONSTRUCTORA",
       tag: "Ingeniería · Arquitectura · Construcción",
       title: (
         <>
@@ -97,14 +97,14 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
         text: "Conocer Proyectos",
         href: "/proyectos"
       },
-      image: logoUrl,
-      isLogo: true,
+      image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+      isLogo: false,
       accentColor: "text-brand-sage",
       pillActiveBg: "bg-brand-sage text-slate-950"
     },
     {
       id: "airbnb",
-      label: "02 · SARA Stays",
+      label: "02 · SARA-ALOJAMIENTO",
       tag: "Hospitality · Suites · Renta Vacacional & Corporativa",
       title: (
         <>
@@ -131,7 +131,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
     },
     {
       id: "inmobiliaria",
-      label: "03 · Inmobiliaria",
+      label: "03 · SARA-INMOBILIARIA",
       tag: "Bienes Raíces · Compra · Venta · Arriendo · Terrenos",
       title: (
         <>
@@ -158,7 +158,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
     },
     {
       id: "fletes",
-      label: "04 · Red de Fletes",
+      label: "04 · SARA-FLETES",
       tag: "Logística Pesada · Despacho 24/7 · Monitoreo GPS",
       title: (
         <>
@@ -184,7 +184,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
     },
     {
       id: "apu",
-      label: "05 · APU & SaaS",
+      label: "05 · SARA-APU",
       tag: "Gemelo Digital · Presupuestos Inteligentes · Precios Unitarios",
       title: (
         <>
@@ -210,7 +210,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
     },
     {
       id: "talento",
-      label: "06 · SARA Talento",
+      label: "06 · SARA-TALENTO",
       tag: "Red Profesional · Ingenieros & Arquitectos Certificados",
       title: (
         <>

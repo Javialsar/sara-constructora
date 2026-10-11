@@ -3,20 +3,12 @@
 import React, { useState } from 'react';
 import Hero from '@/components/sections/Hero';
 import EcosystemMatrix from './EcosystemMatrix';
-import LiveSyncShowcase from './LiveSyncShowcase';
-import StandardCheckoutBanner from './StandardCheckoutBanner';
-import InteractiveCostCalculator from './InteractiveCostCalculator';
+import FAQ from '@/components/sections/FAQ';
 import ContactoSection from '@/components/sections/ContactoSection';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
-import { AirbnbListing } from '@/components/stays/AirbnbData';
 import { CheckCircle2 } from 'lucide-react';
 
-interface LandingMasterProps {
-  realProjects: any[];
-  realStays: AirbnbListing[];
-}
-
-export default function LandingMaster({ realProjects, realStays }: LandingMasterProps) {
+export default function LandingMaster() {
   const [checkoutConfig, setCheckoutConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -69,29 +61,15 @@ export default function LandingMaster({ realProjects, realStays }: LandingMaster
         onOpenCheckout={handleOpenCheckout}
       />
 
-      {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA) */}
+      {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA con logotipos oficiales y títulos SARA-...) */}
       <EcosystemMatrix 
         onOpenCheckout={handleOpenCheckout}
       />
 
-      {/* 3. Live Sync Activity Feed (Datos 100% reales en tiempo real) */}
-      <LiveSyncShowcase 
-        realProjects={realProjects}
-        realStays={realStays}
-        onOpenCheckout={handleOpenCheckout}
-      />
+      {/* 3. Sección de Preguntas Frecuentes (FAQ) recuperada */}
+      <FAQ />
 
-      {/* 4. Standard Checkout Showcase Banner (Desglose a la izquierda, formas de pago a la derecha) */}
-      <StandardCheckoutBanner 
-        onOpenCheckout={handleOpenCheckout}
-      />
-
-      {/* 5. Interactive Cost & Feasibility Calculator */}
-      <InteractiveCostCalculator 
-        onOpenCheckout={handleOpenCheckout}
-      />
-
-      {/* 6. Global Contact Section */}
+      {/* 4. Global Contact Section */}
       <div className="bg-slate-900 border-t border-slate-800">
         <ContactoSection />
       </div>

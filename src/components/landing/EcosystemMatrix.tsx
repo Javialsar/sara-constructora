@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Building2, 
@@ -16,19 +16,30 @@ import {
   CheckCircle2,
   CreditCard
 } from 'lucide-react';
+import { getLogosEmpresa, LogosEmpresa, DEFAULT_LOGOS_EMPRESA } from '@/lib/services/logosService';
 
 interface EcosystemMatrixProps {
   onOpenCheckout: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void;
+  initialLogos?: LogosEmpresa;
 }
 
-export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps) {
+export default function EcosystemMatrix({ onOpenCheckout, initialLogos }: EcosystemMatrixProps) {
+  const [logos, setLogos] = useState<LogosEmpresa>(initialLogos || DEFAULT_LOGOS_EMPRESA);
+
+  useEffect(() => {
+    getLogosEmpresa().then((fetched) => {
+      if (fetched) setLogos(fetched);
+    });
+  }, []);
+
   const modules = [
     {
       id: 'constructora',
-      title: 'SARA Constructora',
+      title: 'SARA-CONSTRUCTORA',
       tagline: 'Infraestructura & Obra Civil',
       desc: 'Planificación arquitectónica, diseño estructural y dirección técnica de obras residenciales, viales y comerciales en Ecuador.',
-      icon: Building2,
+      logoUrl: logos.constructora,
+      iconFallback: Building2,
       href: '/constructora',
       accentColor: 'from-amber-500 to-amber-700',
       badge: 'División Matriz',
@@ -37,10 +48,11 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
     },
     {
       id: 'apu',
-      title: 'SARA APU Inteligente',
+      title: 'SARA-APU',
       tagline: 'Presupuestos & Gemelo Digital',
       desc: 'Software de análisis de precios unitarios con lectura automática de rubros, bases de insumos actualizadas y reportes de obra.',
-      icon: Calculator,
+      logoUrl: logos.apu,
+      iconFallback: Calculator,
       href: '/dashboard',
       accentColor: 'from-purple-500 to-purple-700',
       badge: 'SaaS Constructor',
@@ -48,11 +60,12 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
       pricePreview: { title: 'Suscripción APU Constructor Pro', amount: 19.99, isSub: true }
     },
     {
-      id: 'compras',
-      title: 'SARA Compras B2B',
+      id: 'marketplace',
+      title: 'SARA-MARKETPLACE',
       tagline: 'Marketplace de Materiales',
       desc: 'Conexión directa entre proveedores de acero, cemento, agregados y acabados con precios mayoristas en vivo.',
-      icon: ShoppingCart,
+      logoUrl: logos.compras,
+      iconFallback: ShoppingCart,
       href: '/modulos/compras',
       accentColor: 'from-cyan-500 to-cyan-700',
       badge: 'E-commerce Mayorista',
@@ -61,10 +74,11 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
     },
     {
       id: 'inmobiliaria',
-      title: 'SARA Inmobiliaria',
+      title: 'SARA-INMOBILIARIA',
       tagline: 'Propiedades & Terrenos',
       desc: 'Catálogo selecto de bienes raíces, casas campestres, departamentos urbanos y lotes de alta plusvalía.',
-      icon: Home,
+      logoUrl: logos.inmobiliaria,
+      iconFallback: Home,
       href: '/inmobiliaria',
       accentColor: 'from-rose-500 to-rose-700',
       badge: 'Plusvalía Asegurada',
@@ -72,11 +86,12 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
       pricePreview: { title: 'Reserva de Propiedad Inmobiliaria', amount: 100.00, isSub: false }
     },
     {
-      id: 'stays',
-      title: 'SARA Stays (Hospedaje)',
+      id: 'alojamiento',
+      title: 'SARA-ALOJAMIENTO',
       tagline: 'Suites & Villas Tipo Airbnb',
       desc: 'Alojamientos temporales de alta gama en Cuenca, Quito, Galápagos y Baños con cerradura inteligente y atención 24/7.',
-      icon: Hotel,
+      logoUrl: logos.stays,
+      iconFallback: Hotel,
       href: '/stays',
       accentColor: 'from-indigo-500 to-indigo-700',
       badge: 'Experiencia Superhost',
@@ -85,10 +100,11 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
     },
     {
       id: 'fletes',
-      title: 'Red de Fletes SARA',
+      title: 'SARA-FLETES',
       tagline: 'Logística & Transporte Pesado',
       desc: 'Despacho tipo Uber de fletes con geolocalización satelital en tiempo real, validación de carga y conductores certificados.',
-      icon: Truck,
+      logoUrl: logos.fletes,
+      iconFallback: Truck,
       href: '/modulos/fletes',
       accentColor: 'from-blue-500 to-blue-700',
       badge: 'Radar Satelital 24/7',
@@ -97,10 +113,11 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
     },
     {
       id: 'talento',
-      title: 'SARA Talento Pro',
+      title: 'SARA-TALENTO',
       tagline: 'Bolsa de Empleo & Certificación',
       desc: 'Matching algorítmico entre constructoras y profesionales: ingenieros civiles, arquitectos, topógrafos y maestros mayores.',
-      icon: Users,
+      logoUrl: logos.talento,
+      iconFallback: Users,
       href: '/modulos/talento',
       accentColor: 'from-amber-500 to-emerald-600',
       badge: 'Red de Especialistas',
@@ -108,11 +125,12 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
       pricePreview: { title: 'Certificación Profesional SARA', amount: 15.00, isSub: false }
     },
     {
-      id: 'fintech',
-      title: 'SARA Fintech & Escrow',
+      id: 'pagos',
+      title: 'SARA-PAGOS',
       tagline: 'Pagos Seguros & Custodia',
-      desc: 'Retenciones, anticipos garantizados y pago contra avance de obra para eliminar riesgos contractuales entre partes.',
-      icon: Wallet,
+      desc: 'Retenciones, anticipos garantizados y pago contra avance de obra con pasarela estándar, QR empresarial y cuentas bancarias.',
+      logoUrl: logos.fintech,
+      iconFallback: Wallet,
       href: '/modulos/financiero',
       accentColor: 'from-emerald-500 to-teal-700',
       badge: 'Pasarela Estándar',
@@ -128,30 +146,42 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Los 8 Módulos de Grupo SARA</span>
+            <span>Los 8 Servicios de Grupo SARA</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-4 text-white">
-            Un Ecosistema Conectado en Tiempo Real
+            Ecosistema de Módulos SARA
           </h2>
           <p className="text-slate-400 text-base sm:text-lg leading-relaxed">
-            Cada división opera de forma autónoma pero sincronizada con la misma base de datos empresarial y el mismo estándar bancario de cobro.
+            Logotipos y servicios sincronizados directamente con la base de datos y la administración central.
           </p>
         </div>
 
         {/* 8 Module Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {modules.map((m) => {
-            const Icon = m.icon;
+            const Icon = m.iconFallback;
             return (
               <div 
                 key={m.id}
                 className="group relative rounded-3xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
               >
                 <div>
-                  {/* Top line with Icon & Badge */}
+                  {/* Top line with Official Logo & Badge */}
                   <div className="flex items-start justify-between mb-5">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${m.accentColor} flex items-center justify-center text-white shadow-lg shadow-black/40`}>
-                      <Icon className="w-7 h-7" />
+                    <div className="w-16 h-16 rounded-2xl bg-white p-2.5 flex items-center justify-center shadow-lg border border-slate-200/20 group-hover:scale-105 transition-transform duration-300">
+                      {m.logoUrl ? (
+                        <img 
+                          src={m.logoUrl} 
+                          alt={m.title} 
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            // Fallback if image fails to load
+                            (e.target as any).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Icon className="w-8 h-8 text-slate-800" />
+                      )}
                     </div>
                     <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300">
                       {m.badge}
@@ -159,7 +189,7 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
                   </div>
 
                   {/* Title & Tagline */}
-                  <h3 className="text-xl font-bold text-white mb-1 tracking-tight group-hover:text-amber-400 transition-colors">
+                  <h3 className="text-lg font-black text-white mb-1 tracking-tight group-hover:text-amber-400 transition-colors uppercase">
                     {m.title}
                   </h3>
                   <p className="text-xs font-bold uppercase tracking-wider text-amber-500/90 mb-3">
@@ -188,7 +218,7 @@ export default function EcosystemMatrix({ onOpenCheckout }: EcosystemMatrixProps
                         isSubscription: m.pricePreview.isSub
                       })}
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-md transition-colors"
-                      title="Probar cobro estándar para este servicio"
+                      title="Cobro estándar para este servicio"
                     >
                       <CreditCard className="w-3 h-3" />
                       <span>${m.pricePreview.amount}</span>

@@ -12,14 +12,14 @@ export interface LogosEmpresa {
 }
 
 export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
-  constructora: "/logo-grupo-sara.png",
+  constructora: "/logo-hero.png",
   inmobiliaria: "/sara-inmobiliaria.png",
   stays: "/sara-stays.png",
-  apu: "/logo-grupo-sara.png",
-  compras: "/logo-grupo-sara.png",
-  fletes: "/logo-grupo-sara.png",
-  talento: "/logo-grupo-sara.png",
-  fintech: "/logo-grupo-sara.png",
+  apu: "/sara-apu.png",
+  compras: "/sara-grupo.png",
+  fletes: "/sara-fletes.png",
+  talento: "/sara-talento.png",
+  fintech: "/logo-hero.png",
 }
 
 export async function getLogosEmpresa(): Promise<LogosEmpresa> {
@@ -75,7 +75,7 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
       .limit(1)
       .single()
 
-    if (configData?.logo_url) {
+    if (configData?.logo_url && !configData.logo_url.includes("logo-grupo-sara")) {
       return {
         ...DEFAULT_LOGOS_EMPRESA,
         constructora: configData.logo_url,
