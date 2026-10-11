@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/Button"
-import { ArrowRight, ChevronLeft, ChevronRight, Calendar, Building2, Eye } from "lucide-react"
+import { ArrowRight, ChevronLeft, ChevronRight, Calendar, Building2, Eye, ShieldCheck, Sparkles, Truck, Calculator, ShoppingCart, Users, Wallet } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
 
@@ -30,7 +30,11 @@ interface HeroSlide {
   pillActiveBg: string
 }
 
-export default function Hero() {
+interface HeroProps {
+  onOpenCheckout?: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void
+}
+
+export default function Hero({ onOpenCheckout }: HeroProps) {
   const [logoUrl, setLogoUrl] = useState<string>('/logo-grupo-sara.png')
   const [projectSlides, setProjectSlides] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -71,11 +75,7 @@ export default function Hero() {
     fetchData()
   }, [])
 
-  // Construcción de la lista completa de slides en el orden exacto:
-  // 1. Constructora (Imagen 1)
-  // 2. Airbnb (Imagen 2)
-  // 3. Inmobiliaria (Imagen 3)
-  // 4 en adelante. Proyectos marcados para mostrarse (como estaban originalmente)
+  // Construcción de la lista completa de slides en el orden progresivo con todos los servicios y logos:
   const allSlides: HeroSlide[] = [
     {
       id: "constructora",
@@ -87,7 +87,7 @@ export default function Hero() {
           CONSTRUIMOS FUTURO.
         </>
       ),
-      description: "Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.",
+      description: "Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta con ingeniería y tecnología de vanguardia.",
       primaryBtn: {
         text: "Solicitar Cotización",
         href: "/contacto",
@@ -112,7 +112,7 @@ export default function Hero() {
           OPORTUNIDAD.
         </>
       ),
-      description: "Convierte tu casa, departamento o propiedad en una fuente de ingresos con el respaldo de SARA Constructora. Reserva y hospédate en suites de primer nivel nacional y mundial.",
+      description: "Convierte tu casa, departamento o propiedad en una fuente de ingresos con el respaldo de SARA Constructora. Reserva y hospédate en suites de primer nivel nacional y mundial con cerradura inteligente y atención 24/7.",
       primaryBtn: {
         text: "Ver Alojamientos Stays",
         href: "/stays",
@@ -156,8 +156,86 @@ export default function Hero() {
       accentColor: "text-emerald-400",
       pillActiveBg: "bg-emerald-400 text-slate-950"
     },
+    {
+      id: "fletes",
+      label: "04 · Red de Fletes",
+      tag: "Logística Pesada · Despacho 24/7 · Monitoreo GPS",
+      title: (
+        <>
+          LOGÍSTICA PESADA <span className="font-light italic text-blue-400">EN TIEMPO</span><br />
+          REAL.
+        </>
+      ),
+      description: "Red de transporte pesado y fletes con despacho inteligente tipo Uber, geolocalización satelital en vivo, verificación vehicular y liquidación prepago blindada.",
+      primaryBtn: {
+        text: "Consola de Fletes",
+        href: "/modulos/fletes",
+        variant: "amber",
+        icon: <Truck size={16} />
+      },
+      secondaryBtn: {
+        text: "Registrar Vehículo",
+        href: "/modulos/fletes/auth"
+      },
+      image: "/sara-fletes.png",
+      isLogo: false,
+      accentColor: "text-blue-400",
+      pillActiveBg: "bg-blue-400 text-slate-950"
+    },
+    {
+      id: "apu",
+      label: "05 · APU & SaaS",
+      tag: "Gemelo Digital · Presupuestos Inteligentes · Precios Unitarios",
+      title: (
+        <>
+          PRESUPUESTOS <span className="font-light italic text-purple-400">DE PRECISIÓN</span><br />
+          AL INSTANTE.
+        </>
+      ),
+      description: "Generación de gemelos digitales y lectura automática de presupuestos en Excel y CSV con la base de datos de análisis de precios unitarios (APU) más moderna del país.",
+      primaryBtn: {
+        text: "Probar APU SARA",
+        href: "/dashboard",
+        variant: "sage",
+        icon: <Calculator size={16} />
+      },
+      secondaryBtn: {
+        text: "Ver Planes de Software",
+        href: "/dashboard/planes"
+      },
+      image: "/sara-apu.png",
+      isLogo: false,
+      accentColor: "text-purple-400",
+      pillActiveBg: "bg-purple-400 text-slate-950"
+    },
+    {
+      id: "talento",
+      label: "06 · SARA Talento",
+      tag: "Red Profesional · Ingenieros & Arquitectos Certificados",
+      title: (
+        <>
+          TALENTO TÉCNICO <span className="font-light italic text-amber-300">CERTIFICADO</span><br />
+          PARA TU OBRA.
+        </>
+      ),
+      description: "Conexión directa con ingenieros civiles, arquitectos colegiados, topógrafos y maestros mayores calificados con validación documental y antecedentes verificados.",
+      primaryBtn: {
+        text: "Buscar Profesionales",
+        href: "/modulos/talento",
+        variant: "amber",
+        icon: <Users size={16} />
+      },
+      secondaryBtn: {
+        text: "Unirme como Profesional",
+        href: "/modulos/talento/registro"
+      },
+      image: "/sara-talento.png",
+      isLogo: false,
+      accentColor: "text-amber-300",
+      pillActiveBg: "bg-amber-300 text-slate-950"
+    },
     ...projectSlides.map((p, idx) => {
-      const slideNum = String(idx + 4).padStart(2, '0')
+      const slideNum = String(idx + 7).padStart(2, '0')
       return {
         id: `proy-${p.id}`,
         label: `${slideNum} · ${p.nombre}`,
@@ -212,7 +290,7 @@ export default function Hero() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative min-h-[90vh] lg:min-h-screen flex items-center pt-24 pb-16 overflow-hidden bg-brand-dark"
     >
-      {/* Fondo Split con las imágenes en rotación: 1. Constructora, 2. Airbnb, 3. Inmobiliaria, 4+. Proyectos */}
+      {/* Fondo Split con las imágenes y logos en rotación progresiva */}
       {allSlides.map((slide, index) => {
         const isActive = index === safeIndex
         return (
@@ -248,10 +326,25 @@ export default function Hero() {
       {/* Resplandor verde de marca de fondo */}
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-25 pointer-events-none" />
 
+      {/* Contenido Principal a la Izquierda: Mensaje de Alto Posicionamiento */}
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[75vh]">
         <div className="max-w-3xl space-y-6 md:pl-8">
           
-          {/* Tag de Categoría animado */}
+          {/* Header de Posicionamiento Fuerte */}
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-brand-sage/40 text-xs font-bold text-brand-sage shadow-lg backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 text-brand-sage" />
+              <span className="tracking-wider uppercase font-extrabold text-[11px]">GRUPO SARA</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-200">Ingeniería & Tecnología</span>
+            </div>
+
+            <div className="text-xs sm:text-sm font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-brand-sage via-amber-300 to-white uppercase pt-1 drop-shadow-md">
+              GRUPO SARA — Ingeniería y Arquitectura a la Vanguardia · Tecnología Integral
+            </div>
+          </div>
+          
+          {/* Tag de Categoría animado del slide actual */}
           <AnimatePresence mode="wait">
             <motion.div 
               key={`tag-${safeIndex}`}
@@ -329,6 +422,22 @@ export default function Hero() {
                   <div className="absolute inset-0 bg-brand-dark scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 ease-out z-0" />
                 </Link>
               </Button>
+
+              {onOpenCheckout && (
+                <button
+                  type="button"
+                  onClick={() => onOpenCheckout({
+                    title: `Consulta Técnica & Contratación - ${currentSlide.label}`,
+                    amount: 49.99,
+                    badgeText: "Grupo SARA Oficial",
+                    isSubscription: false
+                  })}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:border-brand-sage shadow-lg"
+                >
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Pasarela de Pago Estándar</span>
+                </button>
+              )}
               
               {currentSlide.secondaryBtn.isExternal ? (
                 <a 
@@ -356,7 +465,7 @@ export default function Hero() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navegador de Slides: 01 Constructora, 02 Airbnb, 03 Inmobiliaria, 04+ Proyectos */}
+          {/* Navegador de Slides: Logos e Indicadores de cada Servicio */}
           <div className="pt-6 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 max-w-full overflow-x-auto">
               {allSlides.map((s, idx) => {

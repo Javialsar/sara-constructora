@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import HeroUltra from './HeroUltra';
+import Hero from '@/components/sections/Hero';
 import EcosystemMatrix from './EcosystemMatrix';
 import LiveSyncShowcase from './LiveSyncShowcase';
 import StandardCheckoutBanner from './StandardCheckoutBanner';
@@ -64,25 +64,24 @@ export default function LandingMaster({ realProjects, realStays }: LandingMaster
         </div>
       )}
 
-      {/* 1. Hero Ultra */}
-      <HeroUltra 
+      {/* 1. Hero Principal Dinámico con logos de servicios en rotación progresiva y posicionamiento oficial */}
+      <Hero 
         onOpenCheckout={handleOpenCheckout}
-        projectCount={realProjects.length}
       />
 
-      {/* 2. Ecosystem Matrix (8 Modules) */}
+      {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA) */}
       <EcosystemMatrix 
         onOpenCheckout={handleOpenCheckout}
       />
 
-      {/* 3. Live Sync Activity Feed */}
+      {/* 3. Live Sync Activity Feed (Datos 100% reales en tiempo real) */}
       <LiveSyncShowcase 
         realProjects={realProjects}
         realStays={realStays}
         onOpenCheckout={handleOpenCheckout}
       />
 
-      {/* 4. Standard Checkout Showcase Banner */}
+      {/* 4. Standard Checkout Showcase Banner (Desglose a la izquierda, formas de pago a la derecha) */}
       <StandardCheckoutBanner 
         onOpenCheckout={handleOpenCheckout}
       />
