@@ -168,19 +168,19 @@ export default function EcosystemMatrix({ onOpenCheckout, initialLogos }: Ecosys
                 <div>
                   {/* Top line with Official Logo & Badge */}
                   <div className="flex items-start justify-between mb-5">
-                    <div className="w-16 h-16 rounded-2xl bg-white p-2.5 flex items-center justify-center shadow-lg border border-slate-200/20 group-hover:scale-105 transition-transform duration-300">
+                    <div className="w-20 h-20 rounded-2xl bg-slate-900/90 p-2.5 flex items-center justify-center shadow-xl border border-white/10 group-hover:scale-105 group-hover:border-amber-400/40 transition-all duration-300">
                       {m.logoUrl ? (
                         <img 
                           src={m.logoUrl} 
                           alt={m.title} 
-                          className="max-w-full max-h-full object-contain"
+                          className="max-w-full max-h-full object-contain filter drop-shadow-md"
                           onError={(e) => {
                             // Fallback if image fails to load
                             (e.target as any).style.display = 'none';
                           }}
                         />
                       ) : (
-                        <Icon className="w-8 h-8 text-slate-800" />
+                        <Icon className="w-9 h-9 text-slate-300" />
                       )}
                     </div>
                     <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-slate-300">
