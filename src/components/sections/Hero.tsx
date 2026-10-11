@@ -1,529 +1,243 @@
 "use client"
 import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/Button"
-import { ArrowRight, ChevronLeft, ChevronRight, Calendar, Building2, Eye, ShieldCheck, Sparkles, Truck, Calculator, ShoppingCart, Users, Wallet } from "lucide-react"
+import { Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { createClient } from "@/lib/supabase/client"
-
-interface HeroSlide {
-  id: string
-  label: string
-  tag: string
-  title: React.ReactNode
-  description: string
-  primaryBtn: {
-    text: string
-    href: string
-    variant: "sage" | "amber" | "emerald"
-    icon?: React.ReactNode
-    isExternal?: boolean
-  }
-  secondaryBtn: {
-    text: string
-    href: string
-    isExternal?: boolean
-  }
-  image: string
-  isLogo: boolean
-  accentColor: string
-  pillActiveBg: string
-}
+import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA, LogosEmpresa } from "@/lib/services/logosService"
 
 interface HeroProps {
   onOpenCheckout?: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void
 }
 
 export default function Hero({ onOpenCheckout }: HeroProps) {
-  const [logoUrl, setLogoUrl] = useState<string>('/logo-grupo-sara.png')
-  const [projectSlides, setProjectSlides] = useState<any[]>([])
+  const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
 
   useEffect(() => {
-    const fetchData = async () => {
-      const supabase = createClient()
-      
-      // 1. Obtener Logo Oficial
-      const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
-      if (config?.logo_url) {
-        setLogoUrl(config.logo_url)
-      }
-
-      // 2. Obtener Proyectos marcados para mostrarse (destacados)
-      const { data } = await supabase
-        .from('proyectos')
-        .select('id, nombre, ubicacion, estado, imagen_url')
-        .eq('destacado', true)
-        .not('imagen_url', 'is', null)
-
-      if (data && data.length > 0) {
-        setProjectSlides(data)
-      } else {
-        // Fallback por si aún no tienen destacados marcados
-        const { data: fallbackData } = await supabase
-          .from('proyectos')
-          .select('id, nombre, ubicacion, estado, imagen_url')
-          .not('imagen_url', 'is', null)
-          .limit(4)
-
-        if (fallbackData && fallbackData.length > 0) {
-          setProjectSlides(fallbackData)
-        }
-      }
-    }
-    fetchData()
+    getLogosEmpresa().then((fetched) => {
+      if (fetched) setLogos(fetched)
+    })
   }, [])
 
-  // Construcción de la lista completa de slides en el orden progresivo con todos los servicios y logos:
-  const allSlides: HeroSlide[] = [
+  const servicesSlides = [
     {
       id: "constructora",
-      label: "01 · SARA-CONSTRUCTORA",
-      tag: "Ingeniería · Arquitectura · Construcción",
-      title: (
-        <>
-          DISEÑAMOS <span className="font-light italic text-brand-sage">IDEAS.</span><br />
-          CONSTRUIMOS FUTURO.
-        </>
-      ),
-      description: "Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta con ingeniería y tecnología de vanguardia.",
-      primaryBtn: {
-        text: "Solicitar Cotización",
-        href: "/contacto",
-        variant: "sage"
-      },
-      secondaryBtn: {
-        text: "Conocer Proyectos",
-        href: "/proyectos"
-      },
-      image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
-      isLogo: false,
-      accentColor: "text-brand-sage",
-      pillActiveBg: "bg-brand-sage text-slate-950"
-    },
-    {
-      id: "airbnb",
-      label: "02 · SARA-ALOJAMIENTO",
-      tag: "Hospitality · Suites · Renta Vacacional & Corporativa",
-      title: (
-        <>
-          TU PROPIEDAD, <span className="font-light italic text-amber-400">UNA GRAN</span><br />
-          OPORTUNIDAD.
-        </>
-      ),
-      description: "Convierte tu casa, departamento o propiedad en una fuente de ingresos con el respaldo de SARA Constructora. Reserva y hospédate en suites de primer nivel nacional y mundial con cerradura inteligente y atención 24/7.",
-      primaryBtn: {
-        text: "Ver Alojamientos Stays",
-        href: "/stays",
-        variant: "amber",
-        icon: <Calendar size={16} />
-      },
-      secondaryBtn: {
-        text: "Publicar Mi Propiedad",
-        href: "https://wa.me/593981804023?text=Hola%20SARA%20Constructora,%20deseo%20m%C3%A1s%20informaci%C3%B3n%20para%20publicar%20mi%20propiedad%20en%20Airbnb",
-        isExternal: true
-      },
-      image: "/sara-airbnb.png",
-      isLogo: false,
+      indexNum: "01",
+      tag: "Infraestructura & Obra Civil",
+      title: "SARA-CONSTRUCTORA",
+      description: "Planificación arquitectónica, diseño estructural y dirección técnica de obras residenciales, viales y comerciales en Ecuador.",
+      logo: logos.constructora || "/logo-hero.png",
       accentColor: "text-amber-400",
-      pillActiveBg: "bg-amber-400 text-slate-950"
-    },
-    {
-      id: "inmobiliaria",
-      label: "03 · SARA-INMOBILIARIA",
-      tag: "Bienes Raíces · Compra · Venta · Arriendo · Terrenos",
-      title: (
-        <>
-          TU PRÓXIMO <span className="font-light italic text-emerald-400">ESPACIO</span><br />
-          ESTÁ AQUÍ.
-        </>
-      ),
-      description: "Compra, venta y arriendo de casas, departamentos y terrenos con confianza, seguridad jurídica, asesoría hipotecaria y acompañamiento profesional de SARA Constructora.",
-      primaryBtn: {
-        text: "Explorar Inmobiliaria",
-        href: "/inmobiliaria",
-        variant: "emerald",
-        icon: <Building2 size={16} />
-      },
-      secondaryBtn: {
-        text: "Consignar Propiedad",
-        href: "https://wa.me/593981804023?text=Hola%20SARA%20Inmobiliaria,%20deseo%20asesor%C3%ADa%20para%20comprar,%20vender%20o%20consignar%20una%20propiedad",
-        isExternal: true
-      },
-      image: "/sara-inmobiliaria.png",
-      isLogo: false,
-      accentColor: "text-emerald-400",
-      pillActiveBg: "bg-emerald-400 text-slate-950"
-    },
-    {
-      id: "fletes",
-      label: "04 · SARA-FLETES",
-      tag: "Logística Pesada · Despacho 24/7 · Monitoreo GPS",
-      title: (
-        <>
-          LOGÍSTICA PESADA <span className="font-light italic text-blue-400">EN TIEMPO</span><br />
-          REAL.
-        </>
-      ),
-      description: "Red de transporte pesado y fletes con despacho inteligente tipo Uber, geolocalización satelital en vivo, verificación vehicular y liquidación prepago blindada.",
-      primaryBtn: {
-        text: "Consola de Fletes",
-        href: "/modulos/fletes",
-        variant: "amber",
-        icon: <Truck size={16} />
-      },
-      secondaryBtn: {
-        text: "Registrar Vehículo",
-        href: "/modulos/fletes/auth"
-      },
-      image: "/sara-fletes.png",
-      isLogo: false,
-      accentColor: "text-blue-400",
-      pillActiveBg: "bg-blue-400 text-slate-950"
+      borderColor: "border-amber-400/30",
+      glowColor: "from-amber-500/20 via-amber-500/5 to-transparent",
+      badgeColor: "bg-amber-500/10 text-amber-300 border-amber-500/30"
     },
     {
       id: "apu",
-      label: "05 · SARA-APU",
-      tag: "Gemelo Digital · Presupuestos Inteligentes · Precios Unitarios",
-      title: (
-        <>
-          PRESUPUESTOS <span className="font-light italic text-purple-400">DE PRECISIÓN</span><br />
-          AL INSTANTE.
-        </>
-      ),
-      description: "Generación de gemelos digitales y lectura automática de presupuestos en Excel y CSV con la base de datos de análisis de precios unitarios (APU) más moderna del país.",
-      primaryBtn: {
-        text: "Probar APU SARA",
-        href: "/dashboard",
-        variant: "sage",
-        icon: <Calculator size={16} />
-      },
-      secondaryBtn: {
-        text: "Ver Planes de Software",
-        href: "/dashboard/planes"
-      },
-      image: "/sara-apu.png",
-      isLogo: false,
+      indexNum: "02",
+      tag: "Presupuestos & Gemelo Digital",
+      title: "SARA-APU",
+      description: "Software de análisis de precios unitarios con lectura automática de rubros, bases de insumos actualizadas y reportes de obra.",
+      logo: logos.apu || "/sara-apu.png",
       accentColor: "text-purple-400",
-      pillActiveBg: "bg-purple-400 text-slate-950"
+      borderColor: "border-purple-400/30",
+      glowColor: "from-purple-500/20 via-purple-500/5 to-transparent",
+      badgeColor: "bg-purple-500/10 text-purple-300 border-purple-500/30"
+    },
+    {
+      id: "marketplace",
+      indexNum: "03",
+      tag: "Marketplace de Materiales",
+      title: "SARA-MARKETPLACE",
+      description: "Conexión directa entre proveedores de acero, cemento, agregados y acabados con precios mayoristas en vivo.",
+      logo: logos.compras || "/sara-grupo.png",
+      accentColor: "text-cyan-400",
+      borderColor: "border-cyan-400/30",
+      glowColor: "from-cyan-500/20 via-cyan-500/5 to-transparent",
+      badgeColor: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30"
+    },
+    {
+      id: "inmobiliaria",
+      indexNum: "04",
+      tag: "Propiedades & Terrenos",
+      title: "SARA-INMOBILIARIA",
+      description: "Catálogo selecto de bienes raíces, casas campestres, departamentos urbanos y lotes de alta plusvalía.",
+      logo: logos.inmobiliaria || "/sara-inmobiliaria.png",
+      accentColor: "text-rose-400",
+      borderColor: "border-rose-400/30",
+      glowColor: "from-rose-500/20 via-rose-500/5 to-transparent",
+      badgeColor: "bg-rose-500/10 text-rose-300 border-rose-500/30"
+    },
+    {
+      id: "alojamiento",
+      indexNum: "05",
+      tag: "Suites & Villas Tipo Airbnb",
+      title: "SARA-ALOJAMIENTO",
+      description: "Alojamientos temporales de alta gama en Cuenca, Quito, Galápagos y Baños con cerradura inteligente y atención 24/7.",
+      logo: logos.stays || "/sara-stays.png",
+      accentColor: "text-indigo-400",
+      borderColor: "border-indigo-400/30",
+      glowColor: "from-indigo-500/20 via-indigo-500/5 to-transparent",
+      badgeColor: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
+    },
+    {
+      id: "fletes",
+      indexNum: "06",
+      tag: "Logística & Transporte Pesado",
+      title: "SARA-FLETES",
+      description: "Despacho tipo Uber de fletes con geolocalización satelital en tiempo real, validación de carga y conductores certificados.",
+      logo: logos.fletes || "/sara-fletes.png",
+      accentColor: "text-blue-400",
+      borderColor: "border-blue-400/30",
+      glowColor: "from-blue-500/20 via-blue-500/5 to-transparent",
+      badgeColor: "bg-blue-500/10 text-blue-300 border-blue-500/30"
     },
     {
       id: "talento",
-      label: "06 · SARA-TALENTO",
-      tag: "Red Profesional · Ingenieros & Arquitectos Certificados",
-      title: (
-        <>
-          TALENTO TÉCNICO <span className="font-light italic text-amber-300">CERTIFICADO</span><br />
-          PARA TU OBRA.
-        </>
-      ),
-      description: "Conexión directa con ingenieros civiles, arquitectos colegiados, topógrafos y maestros mayores calificados con validación documental y antecedentes verificados.",
-      primaryBtn: {
-        text: "Buscar Profesionales",
-        href: "/modulos/talento",
-        variant: "amber",
-        icon: <Users size={16} />
-      },
-      secondaryBtn: {
-        text: "Unirme como Profesional",
-        href: "/modulos/talento/registro"
-      },
-      image: "/sara-talento.png",
-      isLogo: false,
+      indexNum: "07",
+      tag: "Bolsa de Empleo & Certificación",
+      title: "SARA-TALENTO",
+      description: "Matching algorítmico entre constructoras y profesionales: ingenieros civiles, arquitectos, topógrafos y maestros mayores.",
+      logo: logos.talento || "/sara-talento.png",
       accentColor: "text-amber-300",
-      pillActiveBg: "bg-amber-300 text-slate-950"
+      borderColor: "border-amber-300/30",
+      glowColor: "from-amber-400/20 via-amber-400/5 to-transparent",
+      badgeColor: "bg-amber-400/10 text-amber-300 border-amber-400/30"
     },
-    ...projectSlides.map((p, idx) => {
-      const slideNum = String(idx + 7).padStart(2, '0')
-      return {
-        id: `proy-${p.id}`,
-        label: `${slideNum} · ${p.nombre}`,
-        tag: `Proyecto Destacado · ${p.ubicacion || 'Ecuador'}`,
-        title: (
-          <>
-            {p.nombre.toUpperCase()}
-          </>
-        ),
-        description: `Obra arquitectónica y constructiva ejecutada con ingeniería de precisión y los más altos estándares de diseño por SARA Constructora.`,
-        primaryBtn: {
-          text: "Ver Detalles del Proyecto",
-          href: `/proyectos/${p.id}`,
-          variant: "sage" as const,
-          icon: <Eye size={16} />
-        },
-        secondaryBtn: {
-          text: "Ver Todo el Portafolio",
-          href: "/proyectos"
-        },
-        image: p.imagen_url,
-        isLogo: false,
-        accentColor: "text-brand-sage",
-        pillActiveBg: "bg-brand-sage text-slate-950"
-      }
-    })
+    {
+      id: "pagos",
+      indexNum: "08",
+      tag: "Pasarela & Finanzas de Obra",
+      title: "SARA-PAGOS",
+      description: "Retenciones, anticipos garantizados y pago contra avance de obra con pasarela estándar, QR empresarial y cuentas bancarias.",
+      logo: logos.fintech || "/logo-grupo-sara.png",
+      accentColor: "text-emerald-400",
+      borderColor: "border-emerald-400/30",
+      glowColor: "from-emerald-500/20 via-emerald-500/5 to-transparent",
+      badgeColor: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+    }
   ]
 
-  // Rotación automática cada 6 segundos
+  // Rotación progresiva automática cada 2 segundos exactamente
   useEffect(() => {
-    if (isPaused || allSlides.length <= 1) return
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % allSlides.length)
-    }, 6000)
+      setCurrentIndex((prev) => (prev + 1) % servicesSlides.length)
+    }, 2000)
     return () => clearInterval(interval)
-  }, [isPaused, allSlides.length])
+  }, [servicesSlides.length])
 
-  const safeIndex = currentIndex % (allSlides.length || 1)
-  const currentSlide = allSlides[safeIndex] || allSlides[0]
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : allSlides.length - 1))
-  }
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % allSlides.length)
-  }
+  const currentSlide = servicesSlides[currentIndex] || servicesSlides[0]
 
   return (
-    <section 
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      className="relative min-h-[90vh] lg:min-h-screen flex items-center pt-24 pb-16 overflow-hidden bg-brand-dark"
-    >
-      {/* Fondo Split con las imágenes y logos en rotación progresiva */}
-      {allSlides.map((slide, index) => {
-        const isActive = index === safeIndex
-        return (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1200ms] ease-in-out z-0 
-              ${slide.isLogo 
-                ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat' 
-                : 'bg-cover bg-center lg:bg-[position:center_center] bg-no-repeat'
-              } 
-              ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-            style={{ 
-              backgroundImage: `url('${slide.image}')`, 
-              opacity: isActive ? (slide.isLogo ? 0.92 : 1) : 0 
-            }}
-          >
-            {/* Máscara de desvanecimiento suave para fundir la fotografía con el fondo oscuro */}
-            {!slide.isLogo && (
-              <div className="hidden lg:block absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-brand-dark via-brand-dark/85 to-transparent z-10" />
-            )}
+    <section className="relative min-h-[85vh] lg:min-h-[90vh] flex items-center pt-24 pb-16 overflow-hidden bg-brand-dark">
+      {/* Luces y texturas de fondo ambiental */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900/40 via-brand-dark to-slate-950 pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-sage/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 right-10 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="container relative z-20 mx-auto px-6 md:px-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center min-h-[65vh]">
+          
+          {/* Columna Izquierda: Mensaje Institucional de Alto Posicionamiento y Datos del Servicio */}
+          <div className="lg:col-span-7 space-y-7">
             
-            {/* Oscurecimiento en pantallas móviles para asegurar legibilidad */}
-            {!slide.isLogo && (
-              <div className="lg:hidden absolute inset-0 bg-brand-dark/80 z-10" />
-            )}
+            {/* Header de Posicionamiento Fuerte */}
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-brand-sage/40 text-xs font-bold text-brand-sage shadow-lg backdrop-blur-md">
+                <Sparkles className="w-3.5 h-3.5 text-brand-sage animate-pulse" />
+                <span className="tracking-wider uppercase font-extrabold text-[11px]">GRUPO SARA</span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-200 font-semibold">Ingeniería & Tecnología</span>
+              </div>
+
+              <div className="text-xs sm:text-sm font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-brand-sage via-amber-300 to-white uppercase pt-1 drop-shadow-md leading-relaxed">
+                GRUPO SARA — Ingeniería y Arquitectura a la Vanguardia · Tecnología Integral
+              </div>
+            </div>
+
+            {/* Transición de Servicio cada 2 segundos */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`service-${currentSlide.id}`}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="space-y-5"
+              >
+                {/* Tag de Categoría e Indicador de Progreso */}
+                <div className="flex items-center gap-3">
+                  <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold border ${currentSlide.badgeColor}`}>
+                    {currentSlide.indexNum} / 08
+                  </span>
+                  <div className="w-8 h-px bg-brand-sage/60" />
+                  <span className={`${currentSlide.accentColor} font-bold tracking-[0.2em] uppercase text-xs sm:text-sm drop-shadow-md`}>
+                    {currentSlide.tag}
+                  </span>
+                </div>
+
+                {/* Título Oficial del Servicio */}
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.1] drop-shadow-2xl">
+                  {currentSlide.title}
+                </h1>
+
+                {/* Descripción Exacta del Ecosistema */}
+                <p className="text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl leading-relaxed font-normal border-l-4 border-brand-sage pl-6 drop-shadow-lg">
+                  {currentSlide.description}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
           </div>
-        )
-      })}
-      
-      {/* Gradiente sutil para mantener los textos nítidos */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/65 to-transparent w-full md:w-[120%]" />
-      
-      {/* Resplandor verde de marca de fondo */}
-      <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-25 pointer-events-none" />
 
-      {/* Contenido Principal a la Izquierda: Mensaje de Alto Posicionamiento */}
-      <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[75vh]">
-        <div className="max-w-3xl space-y-6 md:pl-8">
-          
-          {/* Header de Posicionamiento Fuerte */}
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-brand-sage/40 text-xs font-bold text-brand-sage shadow-lg backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5 text-brand-sage" />
-              <span className="tracking-wider uppercase font-extrabold text-[11px]">GRUPO SARA</span>
-              <span className="text-slate-600">|</span>
-              <span className="text-slate-200">Ingeniería & Tecnología</span>
-            </div>
-
-            <div className="text-xs sm:text-sm font-black tracking-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-brand-sage via-amber-300 to-white uppercase pt-1 drop-shadow-md">
-              GRUPO SARA — Ingeniería y Arquitectura a la Vanguardia · Tecnología Integral
-            </div>
-          </div>
-          
-          {/* Tag de Categoría animado del slide actual */}
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={`tag-${safeIndex}`}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center gap-4"
-            >
-              <div className="w-12 h-px bg-brand-sage" />
-              <h2 className={`${currentSlide.accentColor} font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md`}>
-                {currentSlide.tag}
-              </h2>
-            </motion.div>
-          </AnimatePresence>
-          
-          {/* Título Principal Dinámico */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`title-${safeIndex}`}
-              initial={{ opacity: 0, y: 25 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.45 }}
-              className="space-y-3"
-            >
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight drop-shadow-2xl max-w-3xl">
-                {currentSlide.title}
-              </h1>
-            </motion.div>
-          </AnimatePresence>
-          
-          {/* Descripción Dinámica */}
-          <AnimatePresence mode="wait">
-            <motion.p 
-              key={`desc-${safeIndex}`}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              className="text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl leading-relaxed font-normal border-l-4 border-brand-sage pl-6 drop-shadow-lg"
-            >
-              {currentSlide.description}
-            </motion.p>
-          </AnimatePresence>
-
-          {/* Botones de Acción Dinámicos */}
-          <AnimatePresence mode="wait">
-            <motion.div 
-              key={`btns-${safeIndex}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.35 }}
-              className="flex flex-col sm:flex-row items-center gap-4 pt-4"
-            >
-              <Button 
-                variant="sage" 
-                size="lg" 
-                className={`w-full sm:w-auto group relative overflow-hidden transition-all shadow-xl font-black text-xs uppercase tracking-wider ${
-                  currentSlide.primaryBtn.variant === "amber"
-                    ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
-                    : currentSlide.primaryBtn.variant === "emerald"
-                    ? "bg-brand-sage hover:bg-emerald-500 text-slate-950"
-                    : "bg-brand-sage text-brand-dark hover:text-white"
-                }`} 
-                asChild
+          {/* Columna Derecha: Logotipo Oficial del Servicio Destacado en Rotación cada 2 Segundos */}
+          <div className="lg:col-span-5 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`logo-card-${currentSlide.id}`}
+                initial={{ opacity: 0, scale: 0.92, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="relative w-full max-w-md aspect-square flex flex-col items-center justify-center p-8 rounded-3xl bg-slate-900/60 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] group overflow-hidden"
               >
-                <Link href={currentSlide.primaryBtn.href}>
-                  <span className="relative z-10 flex items-center gap-2">
-                    {currentSlide.primaryBtn.icon}
-                    {currentSlide.primaryBtn.text} 
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                  </span>
-                  <div className="absolute inset-0 bg-brand-dark scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 ease-out z-0" />
-                </Link>
-              </Button>
+                {/* Resplandor dinámico de fondo con el color del servicio */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${currentSlide.glowColor} pointer-events-none`} />
+                <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-brand-sage/20 via-transparent to-amber-500/20 opacity-50 blur-xl pointer-events-none" />
 
-              {onOpenCheckout && (
-                <button
-                  type="button"
-                  onClick={() => onOpenCheckout({
-                    title: `Consulta Técnica & Contratación - ${currentSlide.label}`,
-                    amount: 49.99,
-                    badgeText: "Grupo SARA Oficial",
-                    isSubscription: false
-                  })}
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:border-brand-sage shadow-lg"
-                >
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Pasarela de Pago Estándar</span>
-                </button>
-              )}
-              
-              {currentSlide.secondaryBtn.isExternal ? (
-                <a 
-                  href={currentSlide.secondaryBtn.href} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="group flex items-center gap-3 text-white text-sm font-bold uppercase tracking-widest hover:text-brand-sage transition-colors drop-shadow-lg"
-                >
-                  <span className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center group-hover:border-brand-sage bg-white/5 backdrop-blur-sm transition-colors">
-                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                  {currentSlide.secondaryBtn.text}
-                </a>
-              ) : (
-                <Link 
-                  href={currentSlide.secondaryBtn.href} 
-                  className="group flex items-center gap-3 text-white text-sm font-bold uppercase tracking-widest hover:text-brand-sage transition-colors drop-shadow-lg"
-                >
-                  <span className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center group-hover:border-brand-sage bg-white/5 backdrop-blur-sm transition-colors">
-                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                  </span>
-                  {currentSlide.secondaryBtn.text}
-                </Link>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                {/* Contenedor del Logotipo Oficial */}
+                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+                  <div className="w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 flex items-center justify-center p-4">
+                    <img
+                      src={currentSlide.logo}
+                      alt={currentSlide.title}
+                      className="max-h-full max-w-full object-contain filter drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] transform group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  
+                  {/* Etiqueta institucional inferior */}
+                  <div className="mt-4 px-4 py-1.5 rounded-full bg-black/40 border border-white/10 backdrop-blur-md">
+                    <span className="text-[11px] font-mono tracking-widest text-slate-300 uppercase font-semibold">
+                      {currentSlide.title} · ECUADOR
+                    </span>
+                  </div>
+                </div>
 
-          {/* Navegador de Slides: Logos e Indicadores de cada Servicio */}
-          <div className="pt-6 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 max-w-full overflow-x-auto">
-              {allSlides.map((s, idx) => {
-                const isSelected = idx === safeIndex
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                      isSelected 
-                        ? s.pillActiveBg + " shadow-md scale-105" 
-                        : "text-gray-300 hover:text-white hover:bg-white/10"
-                    }`}
-                  >
-                    <span>{s.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Flechas manuales */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handlePrev}
-                aria-label="Slide anterior"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/15"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                onClick={handleNext}
-                aria-label="Slide siguiente"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/15"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+                {/* Pequeña barra indicadora de ciclo continuo (2s) */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 overflow-hidden">
+                  <motion.div
+                    key={`bar-${currentSlide.id}`}
+                    initial={{ width: "0%" }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 2, ease: "linear" }}
+                    className="h-full bg-brand-sage"
+                  />
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
         </div>
       </div>
-      
-      {/* Indicador sutil de scroll */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, delay: 1.5 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-2 text-white/40 pointer-events-none"
-      >
-        <span className="text-[9px] uppercase tracking-[0.2em] font-bold">Explorar</span>
-        <div className="w-px h-10 bg-white/20 relative overflow-hidden">
-          <motion.div 
-            animate={{ y: [0, 40] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-            className="w-full h-1/2 bg-brand-sage absolute top-0"
-          />
-        </div>
-      </motion.div>
     </section>
   )
 }

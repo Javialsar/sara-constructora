@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Hero from '@/components/sections/Hero';
 import EcosystemMatrix from './EcosystemMatrix';
 import FAQ from '@/components/sections/FAQ';
-import ContactoSection from '@/components/sections/ContactoSection';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -68,11 +67,6 @@ export default function LandingMaster() {
 
       {/* 3. Sección de Preguntas Frecuentes (FAQ) recuperada */}
       <FAQ />
-
-      {/* 4. Global Contact Section */}
-      <div className="bg-slate-900 border-t border-slate-800">
-        <ContactoSection />
-      </div>
 
       {/* Unified Standard Checkout Modal (matching image1) */}
       <StandardCheckoutModal

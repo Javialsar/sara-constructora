@@ -21,12 +21,12 @@ export default async function Footer() {
             <Link href="/" className="inline-block bg-white/5 p-3 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
               <img 
                 src={logo} 
-                alt="SARA Constructora" 
+                alt="Grupo SARA" 
                 className="h-16 md:h-20 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
               />
             </Link>
             <p className="text-xs text-gray-300 uppercase tracking-widest font-semibold leading-relaxed">
-              Ingeniería Civil · Arquitectura<br/>Construcción · Consultoría
+              GRUPO SARA<br/>Ingeniería · Arquitectura · Tecnología Integral
             </p>
             <p className="text-brand-sage text-sm font-medium italic">
               "Diseñamos ideas. Construimos futuro."
