@@ -88,9 +88,38 @@ export async function POST(request: Request) {
       resultados.email = "El cliente no tiene email registrado";
     }
 
+    // 3. Preparar enlace de WhatsApp para contacto directo
+    if (cliente.telefono) {
+      const cleanPhone = cliente.telefono.replace(/[^0-9]/g, "");
+      const mensajeWA = encodeURIComponent(`Hola ${cliente.nombre}, se ha registrado un nuevo avance en tu proyecto "${proyecto_nombre}": ${titulo_avance || 'Nuevo avance'}. Revisa los detalles en: ${enlace_portal || 'https://sara-constructora.vercel.app/portal'}`);
+      resultados.whatsapp = `https://wa.me/${cleanPhone}?text=${mensajeWA}`;
+    }
+
+    // 4. Registro inmutable en audit_logs de Supabase
+    try {
+      await supabase.from('audit_logs').insert([{
+        user_id: user.id,
+        modulo: 'SARA_CONSTRUCTORA',
+        accion: 'NOTIFICAR_CLIENTE',
+        entidad: 'clientes',
+        entidad_id: cliente_id,
+        detalles: {
+          cliente_nombre: `${cliente.nombre} ${cliente.apellido}`,
+          proyecto: proyecto_nombre,
+          tipo: tipo_notificacion,
+          titulo: titulo_avance,
+          resultados
+        },
+        ip_address: '127.0.0.1',
+        pais: 'EC'
+      }]);
+    } catch (auditErr) {
+      console.error("Error registrando log de notificación:", auditErr);
+    }
+
     return NextResponse.json({ 
       success: true, 
-      message: "Notificaciones procesadas", 
+      message: "Notificaciones procesadas y auditadas", 
       resultados 
     })
 

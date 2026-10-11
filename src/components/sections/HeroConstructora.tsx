@@ -71,84 +71,75 @@ export default function HeroConstructora() {
     fetchData()
   }, [])
 
-  // Construcción de la lista completa de slides en el orden exacto:
-  // 1. Constructora (Imagen Principal)
-  // 2 en adelante. Proyectos de la constructora
-  const allSlides: HeroSlide[] = [
-    {
-      id: "constructora",
-      label: "01 · Constructora",
-      tag: "Ingeniería · Arquitectura · Construcción",
-      title: (
-        <>
-          DISEÑAMOS <span className="font-light italic text-brand-sage">IDEAS.</span><br />
-          CONSTRUIMOS FUTURO.
-        </>
-      ),
-      description: "Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.",
-      primaryBtn: {
-        text: "Solicitar Cotización",
-        href: "/contacto",
-        variant: "sage"
-      },
-      secondaryBtn: {
-        text: "Portal Clientes",
-        href: "/portal/dashboard"
-      },
-      image: logoUrl,
-      isLogo: true,
-      accentColor: "text-brand-sage",
-      pillActiveBg: "bg-brand-sage text-slate-950"
-    },
-    ...projectSlides.map((p, idx) => {
-      const slideNum = String(idx + 2).padStart(2, '0')
-      return {
-        id: `proy-${p.id}`,
-        label: `${slideNum} · ${p.nombre}`,
-        tag: `Proyecto Destacado · ${p.ubicacion || 'Ecuador'}`,
-        title: (
-          <>
-            {p.nombre.toUpperCase()}
-          </>
-        ),
-        description: `Obra arquitectónica y constructiva ejecutada con ingeniería de precisión y los más altos estándares de diseño por SARA Constructora.`,
-        primaryBtn: {
-          text: "Ver Detalles del Proyecto",
-          href: `/proyectos/${p.id}`,
-          variant: "sage" as const,
-          icon: <Eye size={16} />
-        },
-        secondaryBtn: {
-          text: "Ver Avance Financiero",
-          href: "/modulos/financiero"
-        },
-        image: p.imagen_url,
-        isLogo: false,
-        accentColor: "text-brand-sage",
-        pillActiveBg: "bg-brand-sage text-slate-950"
-      }
-    })
-  ]
+  // Construcción de la lista completa de slides:
+  // Proyectos destacados con fotografía de alta resolución.
+  const allSlides: HeroSlide[] = projectSlides.length > 0
+    ? projectSlides.map((p, idx) => {
+        return {
+          id: `proy-${p.id}`,
+          label: p.nombre,
+          tag: `Proyecto Destacado · ${p.ubicacion || 'Ecuador'}`,
+          title: (
+            <>
+              {p.nombre.toUpperCase()}
+            </>
+          ),
+          description: `Obra arquitectónica y constructiva ejecutada con ingeniería de precisión y los más altos estándares de diseño por SARA Constructora.`,
+          primaryBtn: {
+            text: "Ver Detalles del Proyecto",
+            href: `/proyectos/${p.id}`,
+            variant: "sage" as const,
+            icon: <Eye size={16} />
+          },
+          secondaryBtn: {
+            text: "Portal Clientes",
+            href: "/portal/dashboard"
+          },
+          image: p.imagen_url,
+          isLogo: false,
+          accentColor: "text-brand-sage",
+          pillActiveBg: "bg-brand-sage text-slate-950"
+        }
+      })
+    : [
+        {
+          id: "constructora",
+          label: "Constructora",
+          tag: "Ingeniería · Arquitectura · Construcción",
+          title: (
+            <>
+              DISEÑAMOS <span className="font-light italic text-brand-sage">IDEAS.</span><br />
+              CONSTRUIMOS FUTURO.
+            </>
+          ),
+          description: "Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.",
+          primaryBtn: {
+            text: "Solicitar Cotización",
+            href: "/contacto",
+            variant: "sage" as const
+          },
+          secondaryBtn: {
+            text: "Portal Clientes",
+            href: "/portal/dashboard"
+          },
+          image: logoUrl,
+          isLogo: true,
+          accentColor: "text-brand-sage",
+          pillActiveBg: "bg-brand-sage text-slate-950"
+        }
+      ]
 
-  // Rotación automática cada 6 segundos
+  // Rotación suave automática cada 5 segundos
   useEffect(() => {
     if (isPaused || allSlides.length <= 1) return
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % allSlides.length)
-    }, 6000)
+    }, 5000)
     return () => clearInterval(interval)
   }, [isPaused, allSlides.length])
 
   const safeIndex = currentIndex % (allSlides.length || 1)
   const currentSlide = allSlides[safeIndex] || allSlides[0]
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : allSlides.length - 1))
-  }
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % allSlides.length)
-  }
 
   return (
     <section 
@@ -156,38 +147,29 @@ export default function HeroConstructora() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden bg-brand-dark"
     >
-      {/* Fondo Split con las imágenes en rotación: 1. Constructora, 2. Airbnb, 3. Inmobiliaria, 4+. Proyectos */}
+      {/* Fondo con las imágenes de los proyectos destacados en rotación continua */}
       {allSlides.map((slide, index) => {
         const isActive = index === safeIndex
         return (
           <div
             key={slide.id}
-            className={`absolute inset-0 lg:left-[45%] lg:w-auto w-full h-full transition-opacity duration-[1200ms] ease-in-out z-0 
+            className={`absolute inset-0 w-full h-full transition-all duration-[1200ms] ease-in-out z-0 
               ${slide.isLogo 
-                ? 'bg-[length:auto_60%] md:bg-[length:auto_75%] bg-center lg:bg-[position:80%_center] bg-no-repeat mix-blend-lighten' 
-                : 'bg-cover bg-center lg:bg-[position:center_center] bg-no-repeat'
+                ? 'bg-center bg-no-repeat bg-contain' 
+                : 'bg-cover bg-center lg:bg-[position:65%_center] bg-no-repeat'
               } 
-              ${isActive ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}
             style={{ 
-              backgroundImage: `url('${slide.image}')`, 
-              opacity: isActive ? (slide.isLogo ? 0.92 : 1) : 0 
+              backgroundImage: `url('${slide.image}')` 
             }}
           >
-            {/* Máscara de desvanecimiento suave para fundir la fotografía con el fondo oscuro */}
+            {/* Gradiente izquierdo para que el texto sea perfectamente legible sobre la fotografía */}
             {!slide.isLogo && (
-              <div className="hidden lg:block absolute inset-y-0 left-0 w-48 bg-gradient-to-r from-brand-dark via-brand-dark/85 to-transparent z-10" />
-            )}
-            
-            {/* Oscurecimiento en pantallas móviles para asegurar legibilidad */}
-            {!slide.isLogo && (
-              <div className="lg:hidden absolute inset-0 bg-brand-dark/80 z-10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-brand-dark/95 via-brand-dark/75 to-black/30 z-10" />
             )}
           </div>
         )
       })}
-      
-      {/* Gradiente sutil para mantener los textos nítidos */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-brand-dark/95 via-brand-dark/65 to-transparent w-full md:w-[120%]" />
       
       {/* Resplandor verde de marca de fondo */}
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-25 pointer-events-none" />
@@ -255,13 +237,7 @@ export default function HeroConstructora() {
               <Button 
                 variant="sage" 
                 size="lg" 
-                className={`w-full sm:w-auto group relative overflow-hidden transition-all shadow-xl font-black text-xs uppercase tracking-wider ${
-                  currentSlide.primaryBtn.variant === "amber"
-                    ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
-                    : currentSlide.primaryBtn.variant === "emerald"
-                    ? "bg-brand-sage hover:bg-emerald-500 text-slate-950"
-                    : "bg-brand-sage text-brand-dark hover:text-white"
-                }`} 
+                className="w-full sm:w-auto group relative overflow-hidden transition-all shadow-xl font-black text-xs uppercase tracking-wider bg-brand-sage text-brand-dark hover:text-white" 
                 asChild
               >
                 <Link href={currentSlide.primaryBtn.href}>
@@ -300,45 +276,23 @@ export default function HeroConstructora() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navegador de Slides: 01 Constructora, 02 Airbnb, 03 Inmobiliaria, 04+ Proyectos */}
-          <div className="pt-6 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 max-w-full overflow-x-auto">
-              {allSlides.map((s, idx) => {
-                const isSelected = idx === safeIndex
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
-                      isSelected 
-                        ? s.pillActiveBg + " shadow-md scale-105" 
-                        : "text-gray-300 hover:text-white hover:bg-white/10"
-                    }`}
-                  >
-                    <span>{s.label}</span>
-                  </button>
-                )
-              })}
+          {/* Indicadores minimalistas de slide (puntos limpios) */}
+          {allSlides.length > 1 && (
+            <div className="pt-6 flex items-center gap-2">
+              {allSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  aria-label={`Ir al proyecto ${idx + 1}`}
+                  className={`h-1.5 transition-all duration-500 rounded-full cursor-pointer ${
+                    idx === safeIndex 
+                      ? "w-8 bg-brand-sage" 
+                      : "w-2 bg-white/30 hover:bg-white/60"
+                  }`}
+                />
+              ))}
             </div>
-
-            {/* Flechas manuales */}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handlePrev}
-                aria-label="Slide anterior"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/15"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                onClick={handleNext}
-                aria-label="Slide siguiente"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer border border-white/15"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
+          )}
 
         </div>
       </div>

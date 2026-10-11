@@ -98,12 +98,24 @@ export default function AdminAvances() {
 
     const { error: errAvance } = await supabase.from("avances").insert([payload])
     
-    // 2. Actualizar el porcentaje global del proyecto si fue modificado
-    if (formData.nuevo_porcentaje) {
+    // 2. Actualizar el porcentaje global y el estado del proyecto de forma inteligente
+    if (formData.nuevo_porcentaje !== "") {
+      const pNum = parseInt(formData.nuevo_porcentaje) || 0;
+      const nuevoEstado = pNum >= 100 ? 'finalizado' : (pNum > 0 ? 'en_construccion' : 'en_diseno');
       await supabase
         .from("proyectos")
-        .update({ avance: parseInt(formData.nuevo_porcentaje) })
+        .update({ 
+          avance: pNum,
+          estado: nuevoEstado 
+        })
         .eq("id", formData.proyecto_id)
+    } else {
+      // Si no se especificó porcentaje nuevo, pero se sube una foto de avance, asegurar estado en_construccion
+      await supabase
+        .from("proyectos")
+        .update({ estado: 'en_construccion' })
+        .eq("id", formData.proyecto_id)
+        .eq("estado", "en_diseno")
     }
     
     if (!errAvance) {

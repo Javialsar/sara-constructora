@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { MapPin, ArrowLeft, Calendar, Activity, Info, Camera, User } from "lucide-react"
 import ProjectsMapClient from "@/components/ui/ProjectsMapClient"
+import DescargarReportePDF from "@/components/DescargarReportePDF"
 
 export const revalidate = 0;
 
@@ -46,13 +47,19 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
   
   const { data: proyecto, error } = await supabase
     .from('proyectos')
-    .select('*, clientes (nombre, apellido)')
+    .select('*, clientes (nombre, apellido, email, telefono)')
     .eq('id', id)
     .single()
 
   if (error || !proyecto) {
     notFound()
   }
+
+  const { data: avances } = await supabase
+    .from('avances')
+    .select('*')
+    .eq('proyecto_id', id)
+    .order('fecha', { ascending: false })
 
   const getStatusLabel = (estado: string) => {
     switch (estado) {
@@ -97,6 +104,7 @@ export default async function ProyectoDetailPage({ params }: { params: Promise<{
               <span className="bg-black/50 backdrop-blur-sm text-white px-3 py-1 text-xs font-bold uppercase tracking-wider flex items-center gap-1 border border-white/10">
                 Avance: {proyecto.avance}%
               </span>
+              <DescargarReportePDF proyecto={proyecto} avances={avances || []} />
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
