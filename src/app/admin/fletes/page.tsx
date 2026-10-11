@@ -41,10 +41,19 @@ import autoTable from 'jspdf-autotable';
 import AnalyticsDashboard from '@/components/admin/fletes/AnalyticsDashboard';
 import GlobalMap from '@/components/admin/fletes/GlobalMap';
 import PlanManager from '@/components/admin/fletes/PlanManager';
+import { getFletesConductores, updateConductorStatus, rechargeConductorWallet } from '@/lib/fletes-data';
 
 
 export default function AdminFletes() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'mapa' | 'vehiculos' | 'recargas' | 'planes'>('dashboard');
+
+  React.useEffect(() => {
+    getFletesConductores().then(data => {
+      if (data && data.length > 0) {
+        setDrivers(data as any);
+      }
+    });
+  }, []);
 
   const [drivers, setDrivers] = useState<Driver[]>([
     { 

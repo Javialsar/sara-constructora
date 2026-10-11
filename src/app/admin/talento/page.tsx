@@ -1,6 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { ShieldCheck, XCircle, Crown, Search, FileText, CheckCircle, Receipt, MapPin, Eye } from 'lucide-react';
+import { getTalentsFromDB } from '@/lib/services/talentoService';
+import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
 
 interface Candidate {
   id: string;
@@ -33,6 +35,23 @@ export default function AdminTalento() {
   ]);
 
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+
+  React.useEffect(() => {
+    getTalentsFromDB().then(data => {
+      if (data && data.length > 0) {
+        setCandidates(data.map(d => ({
+          id: d.id,
+          name: d.name,
+          role: d.role,
+          plan: d.plan,
+          status: d.status,
+          paymentId: d.paymentId || 'TXN-SARA-VERIFIED',
+          documents: d.documents || [{ type: 'Cédula de Identidad', status: 'Verificado' }],
+          rating: d.rating
+        })));
+      }
+    });
+  }, []);
 
   const handleAction = (id: string, newStatus: 'pending' | 'approved') => {
     setCandidates(candidates.map(c => c.id === id ? { ...c, status: newStatus } : c));

@@ -71,41 +71,59 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Temas Dinámicos */
-:root.theme-ocean {
+/* Temas Dinámicos del Ecosistema SARA */
+:root.theme-ocean, html.theme-ocean, body.theme-ocean {
   --color-sara-dark: #1e293b;
   --color-sara-sage: #3b82f6;
   --color-sara-black: #0f172a;
+  --color-brand-dark: #1e293b;
+  --color-brand-sage: #3b82f6;
+  --color-brand-black: #0f172a;
 }
 
-:root.theme-gold {
+:root.theme-gold, html.theme-gold, body.theme-gold {
   --color-sara-dark: #171717;
   --color-sara-sage: #d4af37;
   --color-sara-black: #000000;
+  --color-brand-dark: #171717;
+  --color-brand-sage: #d4af37;
+  --color-brand-black: #000000;
 }
 
-:root.theme-apucons {
+:root.theme-apucons, html.theme-apucons, body.theme-apucons {
   --color-sara-dark: #333333;
   --color-sara-sage: #ffcc00;
   --color-sara-black: #000000;
+  --color-brand-dark: #333333;
+  --color-brand-sage: #ffcc00;
+  --color-brand-black: #000000;
 }
 
-:root.theme-sunset {
+:root.theme-sunset, html.theme-sunset, body.theme-sunset {
   --color-sara-dark: #0f172a;
   --color-sara-sage: #ea580c;
   --color-sara-black: #020617;
+  --color-brand-dark: #0f172a;
+  --color-brand-sage: #ea580c;
+  --color-brand-black: #020617;
 }
 
-:root.theme-nordic {
+:root.theme-nordic, html.theme-nordic, body.theme-nordic {
   --color-sara-dark: #042f2e;
   --color-sara-sage: #06b6d4;
   --color-sara-black: #021a19;
+  --color-brand-dark: #042f2e;
+  --color-brand-sage: #06b6d4;
+  --color-brand-black: #021a19;
 }
 
-:root.theme-ruby {
+:root.theme-ruby, html.theme-ruby, body.theme-ruby {
   --color-sara-dark: #18181b;
   --color-sara-sage: #e11d48;
   --color-sara-black: #09090b;
+  --color-brand-dark: #18181b;
+  --color-brand-sage: #e11d48;
+  --color-brand-black: #09090b;
 }
 
 /* Force spin buttons */

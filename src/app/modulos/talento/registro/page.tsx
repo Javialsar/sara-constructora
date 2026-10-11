@@ -1,20 +1,54 @@
 'use client';
 import React, { useState } from 'react';
-import { Crown, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Crown, CheckCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import PaymentGatewayModal from '@/components/sara/PaymentGatewayModal';
+import { registerTalentInDB } from '@/lib/services/talentoService';
 
 export default function RegistroTalento() {
   const [selectedPlan, setSelectedPlan] = useState<'Basico' | 'Estandar' | 'VIP'>('Basico');
   const [showPayment, setShowPayment] = useState(false);
   const [successTx, setSuccessTx] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    nombre: 'Ing. Mateo Calderón',
+    rol: 'Ingeniero Civil Estructural',
+    experiencia: 6,
+    ubicacion: 'Quito, Cumbayá'
+  });
+
+  const getPlanFee = () => {
+    switch (selectedPlan) {
+      case 'VIP': return 49.99;
+      case 'Estandar': return 19.99;
+      default: return 4.99;
+    }
+  };
 
   const handleInitiatePayment = () => {
+    if (!formData.nombre || !formData.rol) {
+      return alert('Completa los campos obligatorios.');
+    }
     setShowPayment(true);
   };
 
-  const handlePaymentSuccess = (transactionId: string) => {
+  const handlePaymentSuccess = async (transactionId: string) => {
     setShowPayment(false);
+    setIsSaving(true);
+    
+    // Guardar inmediatamente en Supabase
+    await registerTalentInDB({
+      nombre: formData.nombre,
+      rol: formData.rol,
+      experiencia: Number(formData.experiencia) || 0,
+      ubicacion: formData.ubicacion,
+      plan: selectedPlan,
+      transactionId,
+      feeAmount: getPlanFee()
+    });
+
+    setIsSaving(false);
     setSuccessTx(transactionId);
   };
 
@@ -24,7 +58,7 @@ export default function RegistroTalento() {
         <CheckCircle className="w-20 h-20 text-emerald-500 mb-6" />
         <h1 className="text-3xl font-bold text-slate-800 mb-2">¡Pago y Registro Exitoso!</h1>
         <p className="text-slate-600 max-w-md mb-6">
-          Tu perfil ha sido enviado a la administración de SARA con el Plan {selectedPlan}. 
+          Tu perfil ha sido registrado y persistido en la base de datos Supabase con el Plan {selectedPlan}. 
           Transacción aprobada: <strong className="font-mono text-emerald-700">{successTx}</strong>
         </p>
         <Link href="/modulos/talento">
@@ -45,7 +79,7 @@ export default function RegistroTalento() {
           </Link>
           <div className="text-center mt-4">
             <h1 className="text-3xl font-bold mb-2">Únete a la Red de SARA Talento</h1>
-            <p className="text-slate-300">Encuentra trabajo en las mejores obras del país.</p>
+            <p className="text-slate-300">Encuentra trabajo en las mejores obras del país con pagos garantizados vía Escrow.</p>
           </div>
         </div>
 
@@ -54,19 +88,43 @@ export default function RegistroTalento() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
-              <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. Juan Pérez" />
+              <input 
+                type="text" 
+                value={formData.nombre}
+                onChange={e => setFormData({ ...formData, nombre: e.target.value })}
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="Ej. Juan Pérez" 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Rol / Especialidad</label>
-              <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. Ingeniero Civil" />
+              <input 
+                type="text" 
+                value={formData.rol}
+                onChange={e => setFormData({ ...formData, rol: e.target.value })}
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="Ej. Ingeniero Civil" 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Años de Experiencia</label>
-              <input type="number" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. 5" />
+              <input 
+                type="number" 
+                value={formData.experiencia}
+                onChange={e => setFormData({ ...formData, experiencia: parseInt(e.target.value) || 0 })}
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="Ej. 5" 
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Ubicación (Ciudad, Sector)</label>
-              <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Ej. Quito, Cumbayá" />
+              <input 
+                type="text" 
+                value={formData.ubicacion}
+                onChange={e => setFormData({ ...formData, ubicacion: e.target.value })}
+                className="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none" 
+                placeholder="Ej. Quito, Cumbayá" 
+              />
             </div>
           </div>
 
@@ -112,8 +170,12 @@ export default function RegistroTalento() {
 
           </div>
 
-          <button onClick={handleInitiatePayment} className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl text-lg transition-colors shadow-lg">
-            Proceder al Pago Seguro
+          <button 
+            onClick={handleInitiatePayment} 
+            disabled={isSaving}
+            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl text-lg transition-colors shadow-lg flex items-center justify-center gap-2"
+          >
+            {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Proceder al Pago Seguro y Registro'}
           </button>
         </div>
       </div>

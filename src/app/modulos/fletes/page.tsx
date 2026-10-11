@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, MapPin, Navigation, DollarSign, MessageCircle, Loader2, CheckCircle, Package, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { createFletesSolicitud, updateFletesSolicitudStatus } from '@/lib/fletes-data';
 
 interface FreightRequest {
   id: string;
@@ -38,9 +39,13 @@ export default function SaraFletesEngine() {
   const handleDriverNegotiate = () => {
     if(activeFreight && counterOffer) {
       setActiveFreight({ ...activeFreight, status: 'negotiating' });
-      // Simulamos que el constructor acepta la contraoferta en 3 segundos
-      setTimeout(() => {
-        setActiveFreight(prev => prev ? { ...prev, referencePrice: parseFloat(counterOffer), status: 'accepted', accessCode: generateAccessCode() } : null);
+      setTimeout(async () => {
+        const newCode = generateAccessCode();
+        const finalP = parseFloat(counterOffer);
+        setActiveFreight(prev => prev ? { ...prev, referencePrice: finalP, status: 'accepted', accessCode: newCode } : null);
+        if (activeFreight?.id) {
+          await updateFletesSolicitudStatus(activeFreight.id, 'asignado', newCode);
+        }
       }, 3000);
     }
   };
@@ -53,16 +58,26 @@ export default function SaraFletesEngine() {
     setIsCalculating(true);
     setAiAnalysis("SARA AI analizando tráfico, peso y clima en la ruta...");
     
-    setTimeout(() => {
-      // Simulamos el algoritmo de costeo logístico con IA
+    setTimeout(async () => {
       const basePrice = 15.00 + (weight * 2.50);
-      const trafficPremium = basePrice * 0.15; // 15% recargo por tráfico
+      const trafficPremium = basePrice * 0.15;
       const finalPrice = basePrice + trafficPremium;
       
-      setAiAnalysis(`IA determinó tarifa de $${finalPrice.toFixed(2)} (Incluye 15% recargo por alto tráfico actual en la zona)`);
+      setAiAnalysis("IA determinó tarifa de $" + finalPrice.toFixed(2) + " (Incluye 15% recargo por alto tráfico)");
       
+      // Guardar en Supabase tabla 'fletes_solicitudes'
+      const dbSol = await createFletesSolicitud({
+        origen: origin,
+        destino: destination,
+        tarifa: finalPrice,
+        material,
+        peso: weight
+      });
+
+      const assignedId = dbSol?.id || ('FLT-' + Math.floor(Math.random() * 10000));
+
       setActiveFreight({
-        id: 'FLT-' + Math.floor(Math.random() * 10000),
+        id: assignedId,
         origin,
         destination,
         material,
@@ -72,15 +87,17 @@ export default function SaraFletesEngine() {
         status: 'searching'
       });
       setIsCalculating(false);
-      
-      
     }, 2000);
   };
 
   // Función: Transportista acepta
-  const handleDriverAccept = () => {
+  const handleDriverAccept = async () => {
     if(activeFreight) {
-      setActiveFreight({ ...activeFreight, status: 'accepted', accessCode: generateAccessCode() });
+      const code = generateAccessCode();
+      setActiveFreight({ ...activeFreight, status: 'accepted', accessCode: code });
+      if (activeFreight.id) {
+        await updateFletesSolicitudStatus(activeFreight.id, 'asignado', code);
+      }
     }
   };
 

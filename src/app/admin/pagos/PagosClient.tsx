@@ -170,10 +170,11 @@ export default function PagosClient({ initialOrdenes }: { initialOrdenes: any[] 
                   <div className="flex items-center justify-center gap-2">
                     {/* Botón de Comprobante si aplica */}
                     <a 
-                      href={`/admin/pagos/ver-comprobante?user=${orden.user_id}`} 
-                      className="p-2 bg-slate-100 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Ver Comprobantes en Storage"
+                      href={orden.comprobante_url || `/admin/pagos/ver-comprobante?user=${orden.user_id}`} 
+                      className={`p-2 rounded-lg transition-colors ${orden.comprobante_url ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold' : 'bg-slate-100 text-slate-600 hover:text-blue-600 hover:bg-blue-50'}`}
+                      title={orden.comprobante_url ? "Ver Comprobante Real" : "Ver Comprobantes en Storage"}
                       target="_blank"
+                      rel="noopener noreferrer"
                     >
                       <ExternalLink size={16} />
                     </a>

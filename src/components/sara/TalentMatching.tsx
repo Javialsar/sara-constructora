@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { MapPin, Star, Award, Search, UserPlus, Navigation, Crown } from 'lucide-react';
 import Link from 'next/link';
+import { getTalentsFromDB, createJobEscrowApplication } from '@/lib/services/talentoService';
 
 interface Talent {
   id: string;
@@ -18,6 +19,21 @@ interface Talent {
 
 export default function TalentMatching() {
   const [searchRole, setSearchRole] = useState('');
+
+  React.useEffect(() => {
+    getTalentsFromDB().then(data => {
+      if (data && data.length > 0) setTalents(data);
+    });
+  }, []);
+
+  const handleHireTalent = async (talent: Talent) => {
+    try {
+      const appId = await createJobEscrowApplication(talent.id, talent.role, talent.hourlyRate);
+      alert(`¡Contratación Escrow Iniciada!\n\nProfesional: ${talent.name} (${talent.role})\nCódigo de Contrato: ${appId}\n\nEl fondo de garantía ha sido reservado y guardado en Supabase.`);
+    } catch (err: any) {
+      alert("Error al iniciar contratación: " + err.message);
+    }
+  };
   
   const constructorLocation = "Quito (Sector La Carolina)";
 

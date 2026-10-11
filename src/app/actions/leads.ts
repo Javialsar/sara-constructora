@@ -12,13 +12,44 @@ export async function submitSolicitudInmobiliaria(formData: FormData) {
 
   const supabase = await createSupabaseAdminClient()
 
-  // Intentamos insertarlo asumiendo la tabla 'solicitudes_inmobiliarias'
-  const { error } = await supabase.from('solicitudes_inmobiliarias').insert([{
-    inmueble_id,
-    texto,
-    estado: 'nueva',
-    autor: 'Usuario Interesado',
+  // Guardar en la tabla oficial de Supabase 'solicitudes_servicio'
+  const { error } = await supabase.from('solicitudes_servicio').insert([{
+    nombre: 'Usuario Interesado',
+    email: 'contacto@inmobiliaria.sara',
+    telefono: '0990000000',
+    tipo_servicio: 'inmobiliaria',
+    mensaje: `[Inmueble ID: ${inmueble_id}] ${texto}`,
+    estado: 'nueva'
   }])
+
+  // Sincronizar también con parametros_globales.indirectos_default.solicitudes_inmobiliaria
+  try {
+    const { data: pg } = await supabase.from('parametros_globales').select('id, indirectos_default').limit(1).single()
+    if (pg?.id) {
+      const indirectos = pg.indirectos_default || {}
+      const lista = Array.isArray(indirectos.solicitudes_inmobiliaria) ? indirectos.solicitudes_inmobiliaria : []
+      const nueva = {
+        id: `sol-${Date.now()}`,
+        inmuebleId: inmueble_id,
+        inmuebleTitulo: `Propiedad #${inmueble_id}`,
+        tipo: 'consulta',
+        interesado: {
+          nombre: 'Usuario Interesado',
+          telefono: '0990000000',
+          email: 'contacto@inmobiliaria.sara'
+        },
+        mensaje: texto,
+        estado: 'pendiente',
+        fechaCreacion: new Date().toISOString()
+      }
+      await supabase.from('parametros_globales').update({
+        indirectos_default: { ...indirectos, solicitudes_inmobiliaria: [nueva, ...lista] },
+        updated_at: new Date().toISOString()
+      }).eq('id', pg.id)
+    }
+  } catch (syncErr) {
+    console.warn("Sync inmobiliaria warning:", syncErr)
+  }
 
   if (error) {
     console.error("Error al enviar solicitud inmobiliaria:", error)

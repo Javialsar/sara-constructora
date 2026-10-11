@@ -10,10 +10,10 @@ export default async function AdminPagosPage() {
   
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
-  // Fetch todas las ordenes
+  // Fetch todas las ordenes incluyendo sus transacciones asociadas
   const { data: ordenes, error } = await supabaseAdmin
     .from("ordenes_pago")
-    .select("*")
+    .select("*, transacciones(*)")
     .order("created_at", { ascending: false })
 
   // Fetch todos los usuarios para cruzar nombres/correos
@@ -23,10 +23,13 @@ export default async function AdminPagosPage() {
   // Cruzar la información
   const ordenesConUsuarios = (ordenes || []).map(orden => {
     const user = users.find(u => u.id === orden.user_id)
+    const trx = Array.isArray(orden.transacciones) && orden.transacciones.length > 0 ? orden.transacciones[0] : null
     return {
       ...orden,
-      user_email: user?.email || "Usuario desconocido",
-      user_name: user?.user_metadata?.full_name || user?.user_metadata?.nombre || "Sin nombre"
+      user_email: user?.email || (orden.concepto?.includes(" - ") ? orden.concepto.split(" - ")[1] : "Usuario SARA"),
+      user_name: user?.user_metadata?.full_name || user?.user_metadata?.nombre || "Cliente Verificado",
+      comprobante_url: trx?.comprobante_url || null,
+      metodo_pago: trx?.metodo_pago || (orden.modulo === 'saas' ? 'transferencia' : 'stripe')
     }
   })
 

@@ -34,7 +34,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={montserrat.variable}>
+    <html lang="es" className={montserrat.variable} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('sara_theme');
+                  var valid = ['theme-ocean', 'theme-gold', 'theme-apucons', 'theme-sunset', 'theme-nordic', 'theme-ruby'];
+                  if (saved && valid.indexOf(saved) !== -1) {
+                    document.documentElement.classList.add(saved);
+                  }
+                } catch(e) {}
+              })();
+            `
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col font-sans bg-white text-brand-black">
         <Providers>
           <RealtimeProvider>

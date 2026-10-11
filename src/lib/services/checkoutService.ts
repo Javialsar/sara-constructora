@@ -92,16 +92,63 @@ export async function processPayment(details: PaymentDetails): Promise<PaymentRe
 async function recordPaymentInDatabase(data: PaymentDetails & { transactionId: string; status: string }) {
   try {
     const supabase = createSupabaseBrowserClient();
-    await supabase.from('fletes_recargas').insert({
-      referencia: data.transactionId,
-      metodo: data.paymentMethod.toUpperCase() + (data.paymentSubtype ? ` - ${data.paymentSubtype}` : ''),
-      valor: data.amount,
-      estado: data.status === 'APPROVED' ? 'Aprobado' : 'En Verificación',
-      cliente_email: data.customerEmail,
-      metadata: data.metadata || {},
-      created_at: new Date().toISOString()
-    });
+    
+    // Mapear módulo permitido ('saas', 'inmobiliaria', 'stays', 'constructora')
+    const serviceLower = (data.serviceName || '').toLowerCase();
+    let modulo: 'saas' | 'inmobiliaria' | 'stays' | 'constructora' = 'constructora';
+    if (serviceLower.includes('saas') || serviceLower.includes('apu')) {
+      modulo = 'saas';
+    } else if (serviceLower.includes('inmob') || serviceLower.includes('depto') || serviceLower.includes('casa')) {
+      modulo = 'inmobiliaria';
+    } else if (serviceLower.includes('stay') || serviceLower.includes('airbnb') || serviceLower.includes('alojamiento')) {
+      modulo = 'stays';
+    } else {
+      modulo = 'constructora';
+    }
+
+    const estadoOrden = data.status === 'APPROVED' ? 'completada' : 'pendiente';
+    const metodoTransaccion: 'stripe' | 'transferencia' | 'efectivo' = 
+      (data.paymentMethod === 'card' || data.paymentMethod === 'express') ? 'stripe' : 'transferencia';
+    const estadoAprobacion = data.status === 'APPROVED' ? 'aprobada' : 'pendiente';
+
+    // 1. Insertar orden de pago en Supabase
+    const { data: orden, error: ordenErr } = await supabase
+      .from('ordenes_pago')
+      .insert({
+        modulo,
+        referencia_id: data.transactionId,
+        concepto: `${data.serviceName} - ${data.customerEmail}`,
+        monto: Number(data.amount) || 0,
+        moneda: 'USD',
+        estado: estadoOrden
+      })
+      .select('id')
+      .single();
+
+    if (ordenErr) {
+      console.warn('Error insertando orden_pago en Supabase:', ordenErr.message);
+      return;
+    }
+
+    // 2. Insertar transacción vinculada con comprobante
+    if (orden?.id) {
+      const { error: trxErr } = await supabase
+        .from('transacciones')
+        .insert({
+          orden_id: orden.id,
+          metodo_pago: metodoTransaccion,
+          monto_pagado: Number(data.amount) || 0,
+          stripe_session_id: (data.paymentMethod === 'card' || data.paymentMethod === 'express') ? data.transactionId : null,
+          comprobante_url: data.voucherUrl || (data.metadata?.voucherUrl || null),
+          estado_aprobacion: estadoAprobacion,
+          observaciones_admin: data.referenceNumber ? `Referencia cliente: ${data.referenceNumber}` : null
+        });
+
+      if (trxErr) {
+        console.warn('Error insertando transaccion en Supabase:', trxErr.message);
+      }
+    }
   } catch (dbErr) {
-    console.warn('Registro en fletes_recargas omitido (tabla o credenciales offline):', dbErr);
+    console.error('Error guardando pago en Supabase:', dbErr);
   }
 }
