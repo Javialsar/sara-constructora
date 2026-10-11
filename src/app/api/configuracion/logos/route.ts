@@ -39,7 +39,8 @@ export async function GET() {
       const dbLogos = paramData?.indirectos_default?.logos_servicios || {}
 
       const merged: LogosEmpresa = {
-        constructora: dbLogos.constructora || configData?.logo_url || DEFAULT_LOGOS_EMPRESA.constructora,
+        grupo_sara: dbLogos.grupo_sara || configData?.logo_url || DEFAULT_LOGOS_EMPRESA.grupo_sara,
+        constructora: dbLogos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
         inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
         stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
         apu: dbLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
 
     const supabase = getSupabaseAdmin()
     if (!supabase) {
-      return NextResponse.json({ success: false, error: "ConexiÃ³n a base de datos no disponible" }, { status: 500 })
+      return NextResponse.json({ success: false, error: "Conexión a base de datos no disponible" }, { status: 500 })
     }
 
     // 1. Leer estado actual de indirectos_default
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
     const currentLogos: LogosEmpresa = currentIndirectos.logos_servicios || DEFAULT_LOGOS_EMPRESA
 
     const updatedLogos: LogosEmpresa = {
+      grupo_sara: body.grupo_sara?.trim() || currentLogos.grupo_sara || DEFAULT_LOGOS_EMPRESA.grupo_sara,
       constructora: body.constructora?.trim() || currentLogos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
       inmobiliaria: body.inmobiliaria?.trim() || currentLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
       stays: body.stays?.trim() || currentLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
@@ -111,7 +113,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: paramError.message }, { status: 500 })
     }
 
-    // 3. Sincronizar configuracion_empresa.logo_url con el logo de constructora
+    // 3. Sincronizar configuracion_empresa.logo_url con el logo de grupo_sara o constructora
     const { data: configRecord } = await supabase
       .from("configuracion_empresa")
       .select("id")
@@ -122,7 +124,7 @@ export async function POST(req: Request) {
       await supabase
         .from("configuracion_empresa")
         .update({
-          logo_url: updatedLogos.constructora,
+          logo_url: updatedLogos.grupo_sara || updatedLogos.constructora,
           updated_at: new Date().toISOString()
         })
         .eq("id", configRecord.id)
@@ -134,4 +136,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
-

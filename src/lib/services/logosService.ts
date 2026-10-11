@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client"
 
 export interface LogosEmpresa {
+  grupo_sara: string
   constructora: string
   inmobiliaria: string
   stays: string
@@ -12,6 +13,7 @@ export interface LogosEmpresa {
 }
 
 export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
+  grupo_sara: "/logo-grupo-sara.png",
   constructora: "/logo-hero.png",
   inmobiliaria: "/sara-inmobiliaria.png",
   stays: "/sara-stays.png",
@@ -30,6 +32,7 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
         const json = await res.json()
         if (json?.success && json?.logos) {
           return {
+            grupo_sara: json.logos.grupo_sara || DEFAULT_LOGOS_EMPRESA.grupo_sara,
             constructora: json.logos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
             inmobiliaria: json.logos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
             stays: json.logos.stays || DEFAULT_LOGOS_EMPRESA.stays,
@@ -56,8 +59,17 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
       .single()
 
     const dbLogos = data?.indirectos_default?.logos_servicios
+    const { data: configData } = await supabase
+      .from("configuracion_empresa")
+      .select("logo_url")
+      .limit(1)
+      .single()
+
+    const corporateLogo = configData?.logo_url || DEFAULT_LOGOS_EMPRESA.grupo_sara
+
     if (dbLogos) {
       return {
+        grupo_sara: dbLogos.grupo_sara || corporateLogo,
         constructora: dbLogos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
         inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
         stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
@@ -69,16 +81,10 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
       }
     }
 
-    const { data: configData } = await supabase
-      .from("configuracion_empresa")
-      .select("logo_url")
-      .limit(1)
-      .single()
-
-    if (configData?.logo_url && !configData.logo_url.includes("logo-grupo-sara")) {
+    if (configData?.logo_url) {
       return {
         ...DEFAULT_LOGOS_EMPRESA,
-        constructora: configData.logo_url,
+        grupo_sara: configData.logo_url,
       }
     }
   } catch (err) {

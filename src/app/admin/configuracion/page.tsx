@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 import { useState, useEffect } from "react"
 import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard, Sparkles, RefreshCw, Home, Compass } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
@@ -36,9 +36,10 @@ export default function ConfiguracionPage() {
   const [equipo, setEquipo] = useState<MiembroEquipo[]>([])
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancariaEmpresa[]>([])
   
-  // Logotipos para las 3 lÃ­neas de servicio de Grupo SARA
+  // Logotipos para Grupo SARA y unidades de negocio
   const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA)
   const [logoFiles, setLogoFiles] = useState<{
+    grupo_sara: File | null
     constructora: File | null
     inmobiliaria: File | null
     stays: File | null
@@ -48,6 +49,7 @@ export default function ConfiguracionPage() {
     talento: File | null
     fintech: File | null
   }>({
+    grupo_sara: null,
     constructora: null,
     inmobiliaria: null,
     stays: null,
@@ -182,7 +184,7 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     let finalLogos: LogosEmpresa = { ...logos }
-    const logoKeys: (keyof LogosEmpresa)[] = ['constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech']
+    const logoKeys: (keyof LogosEmpresa)[] = ['grupo_sara', 'constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech']
 
     for (const key of logoKeys) {
       const file = logoFiles[key]
@@ -209,9 +211,9 @@ export default function ConfiguracionPage() {
 
     setUploadingLogoKey(null)
     setLogos(finalLogos)
-    setLogoFiles({ constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null })
+    setLogoFiles({ grupo_sara: null, constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null })
 
-    // 1. Guardar logos de las 3 marcas en Supabase (parametros_globales y configuracion_empresa)
+    // 1. Guardar logos de Grupo SARA y servicios en Supabase (parametros_globales y configuracion_empresa)
     const logosSaved = await saveLogosEmpresa(finalLogos)
 
     // 2. Guardar datos generales de empresa y equipo directivo
@@ -219,7 +221,7 @@ export default function ConfiguracionPage() {
       .from('configuracion_empresa')
       .update({
         ...formData,
-        logo_url: finalLogos.constructora,
+        logo_url: finalLogos.grupo_sara || finalLogos.constructora,
         equipo_directivo: equipo
       })
       .eq('id', configId)
@@ -261,7 +263,7 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* ============================================================ */}
-      {/* SECCIÃ“N IDENTIDAD VISUAL: LAS 3 LÃNEAS DE SERVICIO DE GRUPO SARA */}
+      {/* SECCIÓN IDENTIDAD VISUAL: GRUPO SARA & UNIDADES DE NEGOCIO */}
       {/* ============================================================ */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
@@ -271,13 +273,102 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800">Identidad Visual & Logotipos Multi-Marca</h2>
-              <p className="text-xs text-gray-500">Configura y actualiza el logotipo correspondiente para cada una de las 4 lÃ­neas de negocio del Grupo SARA.</p>
+              <p className="text-xs text-gray-500">Configura y actualiza el logotipo del Grupo SARA y de cada una de sus unidades de negocio.</p>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
             <Sparkles size={12} className="text-emerald-500" />
-            8 Módulos Sincronizados
+            9 Logotipos Sincronizados (Grupo SARA + 8 Módulos)
           </span>
+        </div>
+
+        {/* TARJETA EMPRESARIAL DESTACADA: LOGOTIPO CORPORATIVO GRUPO SARA */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 text-white rounded-2xl p-6 border-2 border-amber-500/50 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
+            {/* Información */}
+            <div className="lg:col-span-5 space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider">
+                  <Sparkles size={13} /> Matriz Empresarial
+                </span>
+                <span className="text-xs font-bold text-amber-400">Holding Grupo SARA</span>
+              </div>
+              <h3 className="text-2xl font-black tracking-tight text-white">
+                Logotipo Empresarial — GRUPO SARA
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Logotipo corporativo matriz utilizado en el <strong>Header general</strong>, <strong>Landing Page del Grupo</strong>, <strong>Pie de página (Footer)</strong> y pasarelas de pago oficiales.
+              </p>
+              <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Sincronizado automáticamente con la base de datos oficial</span>
+              </div>
+            </div>
+
+            {/* Preview Box */}
+            <div className="lg:col-span-4 flex items-center justify-center">
+              <div className="w-full h-44 bg-slate-950 rounded-2xl flex items-center justify-center border-2 border-dashed border-amber-500/40 relative overflow-hidden p-4 shadow-2xl">
+                {uploadingLogoKey === "grupo_sara" && (
+                  <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
+                    <Loader2 className="animate-spin text-amber-400" size={30} />
+                  </div>
+                )}
+                {logoFiles.grupo_sara ? (
+                  <img
+                    src={URL.createObjectURL(logoFiles.grupo_sara)}
+                    alt="Nuevo Logo Grupo SARA"
+                    className="max-w-full max-h-full object-contain filter drop-shadow-xl"
+                  />
+                ) : logos.grupo_sara ? (
+                  <img
+                    src={logos.grupo_sara}
+                    alt="Logo Oficial Grupo SARA"
+                    className="max-w-full max-h-full object-contain filter drop-shadow-xl"
+                  />
+                ) : (
+                  <span className="text-gray-400 text-xs font-medium">Sin Logotipo Corporativo</span>
+                )}
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="lg:col-span-3 space-y-4 bg-slate-900/80 p-4 rounded-xl border border-white/10">
+              <div>
+                <label className="block text-xs font-bold text-slate-200 mb-2">
+                  Subir nuevo logotipo (PNG transparente)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      const file = e.target.files[0]
+                      setLogoFiles(prev => ({ ...prev, grupo_sara: file }))
+                    }
+                  }}
+                  className="w-full text-xs text-slate-400 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoFiles(prev => ({ ...prev, grupo_sara: null }))
+                    setLogos(prev => ({ ...prev, grupo_sara: "/logo-grupo-sara.png" }))
+                  }}
+                  className="text-slate-400 hover:text-amber-400 flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
+                  title="Restablecer al logo corporativo predeterminado"
+                >
+                  <RefreshCw size={12} /> Logo Original
+                </button>
+                <span className="text-amber-400 font-medium truncate max-w-[120px]" title={logos.grupo_sara}>
+                  {logoFiles.grupo_sara ? "Archivo listo" : logos.grupo_sara?.split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
