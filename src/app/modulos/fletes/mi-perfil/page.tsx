@@ -8,6 +8,7 @@ import { getFletesPlanes } from '@/lib/fletes-data';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 
 export default function MiPerfilFletes() {
   const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
@@ -64,6 +65,17 @@ export default function MiPerfilFletes() {
   const [balance, setBalance] = useState(0);
   const [rechargeAmount, setRechargeAmount] = useState(20);
   const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('Estandar');
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutConfig, setCheckoutConfig] = useState<{
+    title: string;
+    amount: number;
+    isSubscription: boolean;
+    interval?: string;
+  }>({
+    title: 'Recarga de Saldo Prepago',
+    amount: 20,
+    isSubscription: false
+  });
 
   // Estados Ubicacion
   const [driverCountry, setDriverCountry] = useState('Ecuador');
@@ -117,8 +129,24 @@ export default function MiPerfilFletes() {
   };
 
   const handleRecharge = () => {
-    showToast(`Redirigiendo a pasarela (Tarjetas, Transferencia, QR) para recargar ${rechargeAmount}. Al confirmar, tu saldo aumentar├í.`);
-    setBalance(balance + rechargeAmount);
+    setCheckoutConfig({
+      title: 'Recarga de Saldo SARA Fletes',
+      amount: rechargeAmount,
+      isSubscription: false
+    });
+    setIsCheckoutOpen(true);
+  };
+
+  const handleSelectPlanSubscription = (selectedPlanName: string) => {
+    const cost = selectedPlanName === 'VIP' ? 49.99 : selectedPlanName === 'Estandar' ? 19.99 : 4.99;
+    setPlan(selectedPlanName as any);
+    setCheckoutConfig({
+      title: `Suscripción a Plan ${selectedPlanName}`,
+      amount: cost,
+      isSubscription: true,
+      interval: 'por mes'
+    });
+    setIsCheckoutOpen(true);
   };
 
   return (
@@ -520,20 +548,27 @@ export default function MiPerfilFletes() {
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold mb-4">Selecciona tu Plan de Comisi├│n</h3>
+              <h3 className="text-xl font-bold mb-4">Selecciona tu Plan de Comisión</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {planesList.length > 0 ? planesList.map((p: any) => (
-                    <div key={p.id} onClick={() => setPlan(p.nombre)} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all ${plan === p.nombre ? 'border-amber-500 bg-amber-50 relative overflow-hidden' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                    <div key={p.id} onClick={() => handleSelectPlanSubscription(p.nombre)} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all group ${plan === p.nombre ? 'border-amber-500 bg-amber-50 relative overflow-hidden shadow-md' : 'border-slate-200 bg-white hover:border-amber-400 hover:shadow-sm'}`}>
                       {plan === p.nombre && <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">ACTIVO</div>}
                       <div className="flex justify-between items-start mb-4">
                         <h4 className={`font-black text-lg ${plan === p.nombre ? 'text-amber-900' : 'text-slate-800'}`}>{p.nombre}</h4>
                         {plan === p.nombre && <CheckCircle className="w-6 h-6 text-amber-500" />}
                       </div>
                       <div className="text-3xl font-black text-slate-800 mb-2">{p.comision}% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
-                      <ul className="text-sm text-slate-600 space-y-2 mt-4">
-                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Notificaciones estándar</li>
-                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Mapa nacional</li>
+                      <p className="text-xs text-slate-500 mb-3">{p.nombre === 'VIP' ? '$49.99/mes' : p.nombre === 'Estandar' ? '$19.99/mes' : '$4.99/mes'}</p>
+                      <ul className="text-sm text-slate-600 space-y-2 mt-4 mb-4">
+                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Notificaciones prioritarias</li>
+                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Cobertura Nacional GPS</li>
                       </ul>
+                      <button 
+                        type="button" 
+                        className={`w-full py-2 rounded-lg text-xs font-bold transition-colors ${plan === p.nombre ? 'bg-amber-500 text-slate-900' : 'bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white'}`}
+                      >
+                        {plan === p.nombre ? 'Plan Actual' : 'Suscribirse al Plan'}
+                      </button>
                     </div>
                   )) : (
                     <div className="col-span-3 text-center text-slate-500 py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">Cargando planes de Supabase...</div>
@@ -681,6 +716,36 @@ export default function MiPerfilFletes() {
           <p className="font-bold">{toastMessage}</p>
         </div>
       )}
+
+      {/* MODAL DE CHECKOUT ESTÁNDAR SARA */}
+      <StandardCheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        onSuccess={(txId) => {
+          setIsCheckoutOpen(false);
+          if (checkoutConfig.isSubscription) {
+            showToast(`¡Suscripción al plan activada con éxito! Ref: ${txId}`);
+          } else {
+            setBalance(balance + checkoutConfig.amount);
+            showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} aplicada! Ref: ${txId}`);
+          }
+        }}
+        title={checkoutConfig.title}
+        badgeText="SARA Fletes"
+        amount={checkoutConfig.amount}
+        isSubscription={checkoutConfig.isSubscription}
+        subscriptionInterval={checkoutConfig.interval || 'por mes'}
+        items={[
+          {
+            label: checkoutConfig.isSubscription 
+              ? `Acceso a red y beneficios ${checkoutConfig.title}`
+              : `Acreditación directa a billetera móvil SARA`,
+            amount: checkoutConfig.amount
+          }
+        ]}
+        defaultEmail="carlos.mendoza@gruposara.com"
+        defaultCustomerName="Carlos Mendoza"
+      />
     </div>
   );
 }
