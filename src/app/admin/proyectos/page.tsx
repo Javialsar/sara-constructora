@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Plus, MapPin, Building2, Pencil, Trash2, X, Star } from "lucide-react"
+import { createClientAccount } from "../clientes/actions"
 
 export default function AdminProyectos() {
   const supabase = createClient()
@@ -9,6 +10,15 @@ export default function AdminProyectos() {
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false)
+  const [isSubmittingClient, setIsSubmittingClient] = useState(false)
+  const [newClientData, setNewClientData] = useState({
+    nombre: "",
+    apellido: "",
+    email: "",
+    telefono: "",
+    password: ""
+  })
   
   const [editId, setEditId] = useState<string | null>(null)
   const [files, setFiles] = useState<File[]>([])
@@ -79,6 +89,35 @@ export default function AdminProyectos() {
     if (cParams) setCotizadorParams(cParams)
     
     setLoading(false)
+  }
+
+  const handleCreateClientFromProject = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmittingClient(true)
+    try {
+      const res = await createClientAccount(newClientData)
+      setIsSubmittingClient(false)
+      if (res.success && res.client) {
+        // Actualizar la lista local de clientes agregando el nuevo cliente arriba
+        setClientes((prev) => [
+          { id: res.client.id, nombre: res.client.nombre, apellido: res.client.apellido },
+          ...prev
+        ])
+        // Asignar inmediatamente el nuevo cliente al proyecto
+        setFormData((prev) => ({
+          ...prev,
+          cliente_id: res.client.id
+        }))
+        setIsAddClientModalOpen(false)
+        setNewClientData({ nombre: "", apellido: "", email: "", telefono: "", password: "" })
+        alert(`Cliente "${res.client.nombre} ${res.client.apellido}" registrado y asignado al proyecto exitosamente.`)
+      } else {
+        alert("Error al crear cliente: " + (res.error || "Ocurrió un error"))
+      }
+    } catch (err: any) {
+      setIsSubmittingClient(false)
+      alert("Error al crear cliente: " + err.message)
+    }
   }
 
   const defaultDatosFinancieros = {
@@ -489,17 +528,44 @@ export default function AdminProyectos() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-sm font-bold text-gray-700">Cliente Asignado</label>
-                    <select 
-                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white"
-                      value={formData.cliente_id}
-                      onChange={(e) => setFormData({...formData, cliente_id: e.target.value})}
-                    >
-                      <option value="">-- Ninguno (Proyecto Público) --</option>
-                      {clientes.map(c => (
-                        <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-gray-700">Cliente Asignado</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewClientData({ nombre: "", apellido: "", email: "", telefono: "", password: "" })
+                          setIsAddClientModalOpen(true)
+                        }}
+                        className="text-xs font-bold text-brand-dark bg-brand-sage/25 hover:bg-brand-sage/50 border border-brand-sage/60 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 shadow-sm"
+                        title="Registrar un nuevo cliente en el sistema"
+                      >
+                        <Plus size={13} className="stroke-[2.5]" />
+                        <span>(Agregar Cliente)</span>
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <select 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white"
+                        value={formData.cliente_id}
+                        onChange={(e) => setFormData({...formData, cliente_id: e.target.value})}
+                      >
+                        <option value="">-- Ninguno (Proyecto Público) --</option>
+                        {clientes.map(c => (
+                          <option key={c.id} value={c.id}>{c.nombre} {c.apellido}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewClientData({ nombre: "", apellido: "", email: "", telefono: "", password: "" })
+                          setIsAddClientModalOpen(true)
+                        }}
+                        className="p-2.5 bg-brand-dark hover:bg-brand-sage hover:text-brand-dark text-white rounded-lg transition-colors flex items-center justify-center shrink-0 shadow-sm"
+                        title="Crear y agregar nuevo cliente"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -893,6 +959,105 @@ export default function AdminProyectos() {
                   ) : (
                     editId ? "Guardar Cambios" : "Guardar Proyecto"
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Crear Cuenta de Cliente (Invocado desde Nuevo Proyecto) */}
+      {isAddClientModalOpen && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-xl font-bold text-brand-dark">Crear Cuenta de Cliente</h3>
+              <button 
+                type="button" 
+                onClick={() => setIsAddClientModalOpen(false)} 
+                className="text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <span className="text-xl">×</span>
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateClientFromProject} className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nombre *</label>
+                  <input 
+                    required 
+                    type="text" 
+                    value={newClientData.nombre} 
+                    onChange={(e) => setNewClientData({...newClientData, nombre: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" 
+                    placeholder="Ej. Carlos" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Apellido *</label>
+                  <input 
+                    required 
+                    type="text" 
+                    value={newClientData.apellido} 
+                    onChange={(e) => setNewClientData({...newClientData, apellido: e.target.value})} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" 
+                    placeholder="Ej. Mendoza" 
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico *</label>
+                <input 
+                  required 
+                  type="email" 
+                  value={newClientData.email} 
+                  onChange={(e) => setNewClientData({...newClientData, email: e.target.value})} 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" 
+                  placeholder="carlos@empresa.com" 
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Teléfono / WhatsApp</label>
+                <input 
+                  type="text" 
+                  value={newClientData.telefono} 
+                  onChange={(e) => setNewClientData({...newClientData, telefono: e.target.value})} 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" 
+                  placeholder="Ej. 098 765 4321" 
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña Temporal *</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={newClientData.password} 
+                  onChange={(e) => setNewClientData({...newClientData, password: e.target.value})} 
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none bg-white" 
+                  placeholder="Ej. Sara2026" 
+                />
+                <p className="text-xs text-gray-400 mt-1">Comparte esta clave con el cliente. Podrá cambiarla desde su panel.</p>
+              </div>
+              
+              <div className="pt-6 border-t border-gray-100 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setIsAddClientModalOpen(false)} 
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors" 
+                  disabled={isSubmittingClient}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmittingClient} 
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold bg-brand-dark text-white hover:bg-brand-sage hover:text-brand-dark transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmittingClient ? "Creando..." : "Crear Cliente"}
                 </button>
               </div>
             </form>

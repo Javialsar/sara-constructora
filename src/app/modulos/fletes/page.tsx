@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, MapPin, Navigation, DollarSign, MessageCircle, Loader2, CheckCircle, Package, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 import { createFletesSolicitud, updateFletesSolicitudStatus } from '@/lib/fletes-data';
 
 interface FreightRequest {
@@ -103,6 +104,7 @@ export default function SaraFletesEngine() {
 
   return (
     <div className="min-h-screen bg-slate-900 font-sans flex flex-col">
+      <ModuloIntroSplash modulo="fletes" />
       {/* HEADER NAVBAR */}
       <header className="bg-slate-950 text-white p-4 flex justify-between items-center shadow-md relative z-20">
         <div className="flex items-center gap-3">

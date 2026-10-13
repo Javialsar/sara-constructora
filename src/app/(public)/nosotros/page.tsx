@@ -1,60 +1,101 @@
-import { Phone, Mail, ShieldCheck, Target, Award, CheckCircle2, Lightbulb, Users } from "lucide-react"
+import { Phone, Mail, ShieldCheck, Target, Award, CheckCircle2, Lightbulb, Users, Cpu, Layers } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
-// Habilitar caché estático para esta página (revalida cada hora)
-export const revalidate = 3600;
+// Asegurar datos frescos de Supabase en cada carga
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export const metadata = {
+  title: "Nosotros | Grupo SARA - Holding de Ingeniería & Tecnología",
+  description: "Conoce a Grupo SARA: holding multisectorial líder en ingeniería civil, arquitectura, bienes raíces, hospitalidad y software en Ecuador.",
+}
 
 export default async function NosotrosPage() {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  const { data: config } = await supabase.from('configuracion_empresa').select('equipo_directivo, logo_url').limit(1).single()
-  const equipo = config?.equipo_directivo || []
-  const logoUrl = config?.logo_url || '/images/logo-sra-constructora.png'
+  const [{ data: config }, { data: paramData }] = await Promise.all([
+    supabase.from('configuracion_empresa').select('equipo_directivo, logo_url').limit(1).single(),
+    supabase.from('parametros_globales').select('indirectos_default').eq('id', 1).single()
+  ])
+  
+  const dbLogos = paramData?.indirectos_default?.logos_servicios || {}
+  const logoUrl = dbLogos.grupo_sara || config?.logo_url || '/logo-hero.png'
+  const equipo = config?.equipo_directivo && config.equipo_directivo.length > 0 ? config.equipo_directivo : [
+    {
+      id: "1",
+      nombre: "Javier Sarango Gona",
+      cargo: "GERENTE GENERAL",
+      telefono: "0981804023",
+      email: "javialsar@gmail.com",
+      imagen_url: "/images/team/javier.png"
+    },
+    {
+      id: "2",
+      nombre: "David Sarango M.",
+      cargo: "ARQUITECTO",
+      telefono: "+593 96 290 5439",
+      email: "dasarango2707@gmail.com",
+      imagen_url: "/images/team/david.png"
+    },
+    {
+      id: "3",
+      nombre: "Kevin Sarango M.",
+      cargo: "INGENIERO CIVIL",
+      telefono: "+593 99 186 7021",
+      email: "kjsarango68@gmail.com",
+      imagen_url: "/images/team/kevin.png"
+    }
+  ]
 
   return (
     <div className="min-h-screen bg-transparent">
       
-      {/* Hero Section */}
-      <div className="relative pt-28 pb-16 md:pt-32 md:pb-24 bg-brand-dark overflow-hidden">
+      {/* Hero Section Corporativo Grupo SARA */}
+      <div className="relative pt-28 pb-16 md:pt-36 md:pb-24 bg-brand-dark overflow-hidden">
         {/* Subtle Background pattern */}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-5">
           <div className="w-full h-full" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
         
         <div className="container mx-auto px-4 md:px-8 relative z-10 text-center">
+          <div className="inline-block bg-brand-sage/20 border border-brand-sage/40 text-brand-sage text-xs font-mono font-bold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6">
+            Holding Multisectorial · Ecuador
+          </div>
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-tighter mb-6 uppercase drop-shadow-md">
-            CONSTRUIMOS PROYECTOS. <br className="hidden md:block"/>
-            <span className="text-brand-sage">CREAMOS CONFIANZA.</span>
+            GRUPO SARA <br className="hidden md:block"/>
+            <span className="text-brand-sage">INGENIERÍA & TECNOLOGÍA INTEGRAL</span>
           </h1>
           <p className="text-xl md:text-2xl text-gray-300 font-light max-w-4xl mx-auto leading-relaxed">
-            En SARA CONSTRUCTORA transformamos ideas y necesidades en proyectos de Ingeniería Civil, Arquitectura, Construcción y Consultoría, integrando conocimiento técnico, planificación, diseño, tecnología e innovación.
+            Consolidamos un ecosistema empresarial de vanguardia que integra ingeniería civil, diseño arquitectónico, inversión inmobiliaria, hospitalidad ejecutiva, software de presupuestos, suministros mayoristas, logística pesada y pasarelas de pago blindadas en todo el Ecuador.
           </p>
         </div>
       </div>
 
-      {/* Main Content & Image */}
+      {/* Main Content & Logo Oficial */}
       <div className="container mx-auto px-4 md:px-8 py-8 relative z-20">
-        <div className="bg-white/80 backdrop-blur-md shadow-xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-[2rem]">
+        <div className="bg-white/90 backdrop-blur-md shadow-xl overflow-hidden border border-gray-100 flex flex-col lg:flex-row rounded-[2rem]">
           
-          <div className="lg:w-1/2 relative min-h-[300px] bg-white flex items-center justify-center p-8 lg:p-12">
-             <img 
-               src={logoUrl} 
-               alt="SARA Constructora Logo" 
-               className="w-full h-full object-contain drop-shadow-md hover:scale-105 transition-transform duration-700"
-             />
+          <div className="lg:w-1/2 relative min-h-[320px] sm:min-h-[360px] bg-white flex items-center justify-center p-8 lg:p-12 overflow-hidden group border-b lg:border-b-0 lg:border-r border-gray-100">
+             <div className="relative z-10 w-full h-full flex items-center justify-center">
+               <img 
+                 src={logoUrl} 
+                 alt="Grupo SARA Matriz Corporativa" 
+                 className="max-h-[260px] sm:max-h-[300px] w-auto max-w-[85%] object-contain filter drop-shadow-[0_10px_25px_rgba(0,0,0,0.15)] group-hover:scale-105 transition-transform duration-700"
+               />
+             </div>
           </div>
 
           <div className="lg:w-1/2 p-8 md:p-10 lg:p-12 space-y-6 text-gray-600 text-base md:text-lg leading-relaxed font-light flex flex-col justify-center">
             <p>
-              Desarrollamos soluciones integrales para proyectos en todo el Ecuador, atendiendo obras residenciales, comerciales, institucionales y de infraestructura, con una visión orientada a la seguridad, funcionalidad, eficiencia y calidad.
+              En <strong className="font-bold text-brand-dark">GRUPO SARA</strong> lideramos el desarrollo integral de proyectos en las 24 provincias de Ecuador. Nuestra estructura empresarial unifica experiencia técnica colegiada, ingeniería sismorresistente bajo norma NEC y plataformas digitales para garantizar precisión presupuestaria y respaldo patrimonial.
             </p>
             <p>
-              Acompañamos a nuestros clientes durante todo el proceso: desde los estudios preliminares, diseño y planificación, hasta la construcción, dirección, supervisión y entrega de la obra. Cada etapa es gestionada con responsabilidad y rigurosidad técnica para convertir una idea en una solución sólida y duradera.
+              Abarcamos todas las etapas del ciclo de edificación: desde la adquisición de terrenos de alta plusvalía y el modelado arquitectónico BIM, hasta la provisión mayorista de materiales sin intermediarios, la dirección de obra civil llave en mano y la gestión de alojamientos turísticos y corporativos de alto estándar.
             </p>
             <p className="font-medium text-brand-dark border-l-4 border-brand-sage pl-6 italic">
-              "Para SARA CONSTRUCTORA, construir va más allá de ejecutar una obra: significa proteger una inversión, materializar una visión y construir relaciones de confianza que perduren en el tiempo."
+              "Para GRUPO SARA, liderar significa innovar con rigor técnico, proteger el capital de nuestros clientes y construir relaciones de confianza duradera que impulsen el crecimiento de nuestro país."
             </p>
           </div>
         </div>
@@ -62,7 +103,7 @@ export default async function NosotrosPage() {
 
       <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
         
-        {/* Principios */}
+        {/* Principios de Grupo SARA */}
         <div className="mb-16 relative bg-brand-sage rounded-[2.5rem] py-10 px-4 md:px-12 overflow-hidden shadow-2xl">
           {/* Grid Background Pattern */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-10">
@@ -70,8 +111,10 @@ export default async function NosotrosPage() {
           </div>
           
           <div className="relative z-10 text-center mb-10">
-            <h2 className="text-sm font-bold tracking-[0.2em] text-brand-dark bg-white/90 inline-block px-4 py-1.5 rounded-full uppercase mb-4 shadow-sm">Lo que nos guía</h2>
-            <h3 className="text-3xl md:text-4xl font-extrabold text-white">PRINCIPIOS</h3>
+            <h2 className="text-sm font-bold tracking-[0.2em] text-brand-dark bg-white/90 inline-block px-4 py-1.5 rounded-full uppercase mb-4 shadow-sm">
+              Ejes Estratégicos
+            </h2>
+            <h3 className="text-3xl md:text-4xl font-extrabold text-white">PRINCIPIOS CORPORATIVOS</h3>
           </div>
           <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {/* Tarjeta 1 */}
@@ -79,34 +122,34 @@ export default async function NosotrosPage() {
               <div className="w-16 h-16 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-4 shadow-md">
                 <ShieldCheck size={32} />
               </div>
-              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">SEGURIDAD TÉCNICA</h4>
+              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">SEGURIDAD TÉCNICA & LEGAL</h4>
               <div className="w-8 h-0.5 bg-brand-dark/20 rounded-full mb-4"></div>
               <p className="text-gray-500 font-light text-sm leading-relaxed">
-                Cada proyecto se desarrolla sobre criterios de ingeniería, planificación y cumplimiento técnico. Construimos pensando en la seguridad de las personas, la estabilidad de las estructuras y la durabilidad de cada obra.
+                Cada obra, transacción inmobiliaria y proceso logístico cuenta con validación técnica colegiada, respaldo notarial y cumplimiento estricto de las normativas de construcción vigentes en Ecuador.
               </p>
             </div>
             
             {/* Tarjeta 2 */}
             <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-4 shadow-md">
-                <Award size={32} />
+                <Cpu size={32} />
               </div>
-              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">CALIDAD EN CADA DETALLE</h4>
+              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">TECNOLOGÍA & EFICIENCIA</h4>
               <div className="w-8 h-0.5 bg-brand-dark/20 rounded-full mb-4"></div>
               <p className="text-gray-500 font-light text-sm leading-relaxed">
-                Cuidamos cada etapa, desde la concepción y el diseño hasta los procesos constructivos y acabados. La calidad no es una opción: es nuestro estándar de trabajo.
+                Desarrollamos soluciones digitales pioneras como SARA-APU y monitoreo satelital en fletes pesados para erradicar sobrecostos, optimizar cronogramas y brindar transparencia absoluta.
               </p>
             </div>
 
             {/* Tarjeta 3 */}
             <div className="bg-white p-8 rounded-[2rem] shadow-xl border border-gray-50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 text-center flex flex-col items-center">
               <div className="w-16 h-16 bg-brand-dark text-white rounded-2xl flex items-center justify-center mb-4 shadow-md">
-                <Users size={32} />
+                <Layers size={32} />
               </div>
-              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">COMPROMISO CON EL CLIENTE</h4>
+              <h4 className="font-bold text-lg text-brand-sage mb-2 px-2 leading-tight">SINERGIA MULTISECTORIAL</h4>
               <div className="w-8 h-0.5 bg-brand-dark/20 rounded-full mb-4"></div>
               <p className="text-gray-500 font-light text-sm leading-relaxed">
-                Escuchamos, asesoramos y acompañamos al cliente durante todo el proyecto. Sus objetivos, su inversión y su confianza son también nuestra responsabilidad.
+                La integración coordinada de nuestras 8 divisiones permite que propietarios, contratistas e inversionistas cuenten con una solución completa de punta a punta con un solo grupo de confianza.
               </p>
             </div>
           </div>
@@ -119,26 +162,26 @@ export default async function NosotrosPage() {
           </div>
           <div className="relative z-10">
             <div className="text-center mb-12">
-              <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Nuestra cultura</h2>
-              <h3 className="text-3xl md:text-4xl font-extrabold">VALORES</h3>
+              <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">Cultura Organizacional</h2>
+              <h3 className="text-3xl md:text-4xl font-extrabold">VALORES DE GRUPO SARA</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center divide-y md:divide-y-0 md:divide-x divide-white/20">
               <div className="pt-8 md:pt-0 px-4">
                 <h4 className="font-bold text-2xl text-brand-sage mb-4">INTEGRIDAD</h4>
                 <p className="text-gray-300 font-light">
-                  Actuamos con ética, honestidad y transparencia, construyendo relaciones profesionales basadas en la confianza y en decisiones responsables.
+                  Actuamos con ética irreprochable, honestidad y total transparencia en cada presupuesto, contrato y auditoría de fondos en custodia.
                 </p>
               </div>
               <div className="pt-8 md:pt-0 px-4">
                 <h4 className="font-bold text-2xl text-brand-sage mb-4">RESPONSABILIDAD</h4>
                 <p className="text-gray-300 font-light">
-                  Asumimos cada proyecto con seriedad y compromiso, administrando responsablemente los recursos, costos, tiempos y procesos de ejecución.
+                  Asumimos la custodia del patrimonio de nuestros clientes con máxima rigurosidad, administrando eficientemente recursos, tiempos y estándares de calidad.
                 </p>
               </div>
               <div className="pt-8 md:pt-0 px-4">
                 <h4 className="font-bold text-2xl text-brand-sage mb-4">INNOVACIÓN</h4>
                 <p className="text-gray-300 font-light">
-                  Integramos ingeniería, arquitectura y nuevas tecnologías para desarrollar soluciones modernas, eficientes y sostenibles, capaces de responder a los desafíos actuales de la construcción.
+                  Fusionamos la ingeniería civil clásica con la potencia del software y la automatización para resolver con agilidad los desafíos de la construcción moderna.
                 </p>
               </div>
             </div>
@@ -149,54 +192,58 @@ export default async function NosotrosPage() {
         <div className="mb-12 text-center max-w-4xl mx-auto space-y-8">
           <h2 className="text-sm font-bold tracking-[0.2em] text-brand-sage uppercase mb-4">NUESTRA ESENCIA</h2>
           <h3 className="text-3xl md:text-4xl font-extrabold text-brand-dark tracking-tight leading-tight">
-            Seguridad para construir. <br/>Calidad para perdurar. <br className="md:hidden"/>Confianza para crecer.
+            Ingeniería para construir. <br/>Tecnología para optimizar. <br className="md:hidden"/>Confianza para crecer.
           </h3>
           <p className="text-xl text-gray-500 font-light">
-            En SARA CONSTRUCTORA, cada proyecto representa nuestro compromiso con la excelencia y nuestra responsabilidad con quienes confían en nosotros.
+            En GRUPO SARA, cada obra, proyecto inmobiliario y avance tecnológico representa nuestro compromiso irrenunciable con el desarrollo y la prosperidad de nuestro país.
           </p>
           <div className="pt-8 mt-8 border-t border-gray-200">
-            <p className="font-bold text-brand-dark text-lg uppercase tracking-wider">SARA CONSTRUCTORA</p>
-            <p className="text-brand-sage text-sm font-bold tracking-widest uppercase mb-4">Ingeniería · Arquitectura · Construcción · Consultoría</p>
-            <p className="italic text-gray-500">Ideas que construyen realidades.</p>
+            <p className="font-bold text-brand-dark text-lg uppercase tracking-wider">GRUPO SARA</p>
+            <p className="text-brand-sage text-sm font-bold tracking-widest uppercase mb-4">Constructora · Inmobiliaria · Stays · APU Software · Marketplace · Fletes · Talento · Pagos</p>
+            <p className="italic text-gray-500">Tecnología e ingeniería que construyen realidades.</p>
           </div>
         </div>
 
-        {/* Equipo */}
+        {/* Sección: Nuestro Equipo Directivo (Conservada Intacta desde la BD) */}
         <div className="pt-16">
           <header className="mb-16 text-center max-w-3xl mx-auto">
             <h2 className="text-3xl md:text-4xl font-extrabold text-brand-dark tracking-tighter mb-4 uppercase">
-              Nuestro Equipo
+              Nuestro Equipo Directivo
             </h2>
             <p className="text-brand-sage font-bold tracking-widest text-sm uppercase">
-              Profesionales comprometidos con la excelencia
+              Profesionales comprometidos con la excelencia y el liderazgo técnico
             </p>
           </header>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {equipo.map((miembro: any, i: number) => {
               const phoneLink = miembro.telefono ? miembro.telefono.replace(/\D/g, '') : ''
+              const fallbackImg = i === 0 ? '/images/team/javier.png' : i === 1 ? '/images/team/david.png' : '/images/team/kevin.png'
+              const foto = miembro.imagen_url || fallbackImg
+
               return (
-                <div key={i} className="bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group overflow-hidden">
-                  <div className="aspect-[3/4] bg-gray-100 relative overflow-hidden">
-                     <div 
-                       className="absolute inset-0 bg-cover bg-center grayscale group-hover:grayscale-0 transition-all duration-500"
-                       style={{ backgroundImage: `url(${miembro.imagen_url})` }} 
+                <div key={miembro.id || i} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 group overflow-hidden">
+                  <div className="aspect-[3/4] bg-slate-900 relative overflow-hidden flex items-center justify-center">
+                     <img 
+                       src={foto}
+                       alt={miembro.nombre}
+                       className="w-full h-full object-cover object-top filter grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500"
                      />
-                     <div className="absolute inset-0 bg-brand-dark/0 group-hover:bg-brand-dark/10 transition-colors" />
+                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent opacity-60 group-hover:opacity-20 transition-opacity" />
                   </div>
                   <div className="p-6 text-center">
                     <h3 className="font-bold text-brand-dark text-lg mb-1 tracking-tight">{miembro.nombre}</h3>
                     <p className="text-brand-sage font-bold text-xs tracking-widest uppercase mb-4">{miembro.cargo}</p>
                     <div className="pt-4 border-t border-gray-100 flex flex-col items-center gap-2">
                       {miembro.telefono && (
-                        <a href={`https://wa.me/${phoneLink}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-brand-sage font-medium transition-colors">
-                          <Phone size={14} />
+                        <a href={`https://wa.me/${phoneLink}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-brand-sage font-medium transition-colors">
+                          <Phone size={14} className="text-brand-sage" />
                           {miembro.telefono}
                         </a>
                       )}
                       {miembro.email && (
-                        <a href={`mailto:${miembro.email}`} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-brand-sage font-medium transition-colors">
-                          <Mail size={14} />
+                        <a href={`mailto:${miembro.email}`} className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-brand-sage font-medium transition-colors">
+                          <Mail size={14} className="text-brand-sage" />
                           {miembro.email}
                         </a>
                       )}

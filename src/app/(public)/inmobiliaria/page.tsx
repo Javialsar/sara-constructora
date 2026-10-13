@@ -3,6 +3,7 @@ import ThemeToggle from "@/components/ThemeToggle"
 import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { getLogosEmpresa } from "@/lib/services/logosService"
+import ModuloIntroSplash from "@/components/ui/ModuloIntroSplash"
 import { 
   Building2, 
   Search, 
@@ -514,6 +515,9 @@ export default function InmobiliariaPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-gray-900 pb-20">
+      {/* Intro con logotipo giratorio oficial 3D */}
+      <ModuloIntroSplash modulo="inmobiliaria" />
+
       {/* ============================================================ */}
       {/* 0. APP HEADER EXCLUSIVO: SARA INMOBILIARIA (STANDALONE)     */}
       {/* ============================================================ */}

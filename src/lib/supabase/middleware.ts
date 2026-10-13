@@ -28,7 +28,39 @@ export async function updateSession(request: NextRequest) {
   )
 
   // refreshes session if expired
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const pathname = request.nextUrl.pathname
+
+  // Proteger rutas administrativas
+  if (pathname.startsWith('/admin')) {
+    const isLoginPage = pathname === '/admin/login'
+
+    if (!user && !isLoginPage) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    if (user) {
+      const role = user.user_metadata?.role
+      const hasAdminAccess = role === 'admin' || role === 'tecnico'
+
+      if (isLoginPage && hasAdminAccess) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin'
+        return NextResponse.redirect(url)
+      }
+
+      if (!isLoginPage && !hasAdminAccess) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/admin/login'
+        url.searchParams.set('error', 'unauthorized')
+        return NextResponse.redirect(url)
+      }
+    }
+  }
 
   return supabaseResponse
 }

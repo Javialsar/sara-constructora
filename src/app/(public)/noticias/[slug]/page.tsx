@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { ArrowLeft, Calendar, User } from "lucide-react"
+import BlogImage from "@/components/ui/BlogImage"
 
 export const revalidate = 0;
 
@@ -63,7 +64,7 @@ export default async function ArticuloPage({ params }: { params: Promise<{ slug:
       <div className="relative pt-36 pb-20 md:pt-48 md:pb-32 bg-brand-dark overflow-hidden">
         {articulo.imagen_url ? (
           <div className="absolute inset-0 z-0">
-            <img src={articulo.imagen_url} alt={articulo.titulo} className="w-full h-full object-cover opacity-30" />
+            <BlogImage src={articulo.imagen_url} alt={articulo.titulo} className="w-full h-full object-cover opacity-30" />
             <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/80 to-transparent" />
           </div>
         ) : (

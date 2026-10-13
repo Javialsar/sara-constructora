@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import Link from "next/link"
 import { Calendar, ChevronRight } from "lucide-react"
+import BlogImage from "@/components/ui/BlogImage"
 
 export const revalidate = 0; // Para que los artículos carguen rápido y frescos
 
@@ -41,17 +42,11 @@ export default async function NoticiasPage() {
             {articulos.map((art) => (
               <article key={art.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg transition-shadow flex flex-col group">
                 <Link href={`/noticias/${art.slug}`} className="block h-60 overflow-hidden relative">
-                  {art.imagen_url ? (
-                    <img 
-                      src={art.imagen_url} 
-                      alt={art.titulo} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-brand-dark flex items-center justify-center">
-                      <span className="text-white/20 font-extrabold text-5xl">SARA</span>
-                    </div>
-                  )}
+                  <BlogImage 
+                    src={art.imagen_url} 
+                    alt={art.titulo} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                  />
                   <div className="absolute top-4 left-4 bg-brand-sage text-brand-dark text-xs font-bold uppercase px-3 py-1 rounded shadow-md">
                     {art.categoria}
                   </div>

@@ -13,15 +13,20 @@ export interface LogosEmpresa {
 }
 
 export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
-  grupo_sara: "/logo-grupo-sara.png",
-  constructora: "/logo-hero.png",
-  inmobiliaria: "/sara-inmobiliaria.png",
-  stays: "/sara-stays.png",
-  apu: "/sara-apu.png",
-  compras: "/sara-grupo.png",
-  fletes: "/sara-fletes.png",
-  talento: "/sara-talento.png",
+  grupo_sara: "/logo-hero.png",
+  constructora: "/images/sara-constructora.png",
+  inmobiliaria: "/images/sara-inmobiliaria.png",
+  stays: "/images/sara-stays.png",
+  apu: "/images/sara-apu.png",
+  compras: "/images/sara-grupo.png",
+  fletes: "/images/sara-fletes.png",
+  talento: "/images/sara-talento.png",
   fintech: "/logo-hero.png",
+}
+
+function sanitizeLogoUrl(url: string | undefined | null, fallback: string): string {
+  if (!url || typeof url !== "string" || url.trim() === "" || url === "null") return fallback
+  return url.trim()
 }
 
 export async function getLogosEmpresa(): Promise<LogosEmpresa> {
@@ -32,15 +37,15 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
         const json = await res.json()
         if (json?.success && json?.logos) {
           return {
-            grupo_sara: json.logos.grupo_sara || DEFAULT_LOGOS_EMPRESA.grupo_sara,
-            constructora: json.logos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
-            inmobiliaria: json.logos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
-            stays: json.logos.stays || DEFAULT_LOGOS_EMPRESA.stays,
-            apu: json.logos.apu || DEFAULT_LOGOS_EMPRESA.apu,
-            compras: json.logos.compras || DEFAULT_LOGOS_EMPRESA.compras,
-            fletes: json.logos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
-            talento: json.logos.talento || DEFAULT_LOGOS_EMPRESA.talento,
-            fintech: json.logos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
+            grupo_sara: sanitizeLogoUrl(json.logos.grupo_sara, DEFAULT_LOGOS_EMPRESA.grupo_sara),
+            constructora: sanitizeLogoUrl(json.logos.constructora, DEFAULT_LOGOS_EMPRESA.constructora),
+            inmobiliaria: sanitizeLogoUrl(json.logos.inmobiliaria, DEFAULT_LOGOS_EMPRESA.inmobiliaria),
+            stays: sanitizeLogoUrl(json.logos.stays, DEFAULT_LOGOS_EMPRESA.stays),
+            apu: sanitizeLogoUrl(json.logos.apu, DEFAULT_LOGOS_EMPRESA.apu),
+            compras: sanitizeLogoUrl(json.logos.compras, DEFAULT_LOGOS_EMPRESA.compras),
+            fletes: sanitizeLogoUrl(json.logos.fletes, DEFAULT_LOGOS_EMPRESA.fletes),
+            talento: sanitizeLogoUrl(json.logos.talento, DEFAULT_LOGOS_EMPRESA.talento),
+            fintech: sanitizeLogoUrl(json.logos.fintech, DEFAULT_LOGOS_EMPRESA.fintech),
           }
         }
       }

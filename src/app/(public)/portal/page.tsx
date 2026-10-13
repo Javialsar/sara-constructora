@@ -1,4 +1,5 @@
 "use client"
+import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield } from "lucide-react"
@@ -13,18 +14,19 @@ export default function PortalLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const supabase = createClient()
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Detectar si ya existe usuario sin expulsar la pantalla de autenticación
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        router.push("/portal/dashboard")
+        setCurrentUser(user)
       }
     }
     checkUser()
-  }, [router, supabase])
+  }, [supabase])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -76,6 +78,8 @@ export default function PortalLoginPage() {
   }
 
   return (
+    <>
+      <ModuloIntroSplash modulo="portal" />
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       {/* Background */}
       <div 
@@ -106,6 +110,37 @@ export default function PortalLoginPage() {
               Accede al seguimiento de tu proyecto en tiempo real
             </p>
           </div>
+
+          {/* Active Session Notice if logged in */}
+          {currentUser && (
+            <div className="m-6 mb-0 p-4 rounded-xl bg-brand-sage/10 border border-brand-sage/30 text-center">
+              <span className="text-[11px] font-bold text-brand-dark uppercase tracking-wider block mb-0.5">
+                Sesión Activa Detectada
+              </span>
+              <p className="text-xs text-gray-500 font-mono mb-3">
+                {currentUser.email}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => router.push("/portal/dashboard")}
+                  className="px-4 py-2 bg-brand-dark hover:bg-black text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm"
+                >
+                  Entrar a mi Entorno →
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await supabase.auth.signOut()
+                    setCurrentUser(null)
+                  }}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs uppercase tracking-wider rounded-lg transition-colors border border-gray-200"
+                >
+                  Cambiar Cuenta
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleLogin} className="p-8 space-y-6">
@@ -197,6 +232,6 @@ export default function PortalLoginPage() {
         </div>
       </motion.div>
     </div>
+    </>
   )
 }
-

@@ -1,6 +1,7 @@
 "use client"
 import React from "react"
 import { usePathname } from "next/navigation"
+import HeaderConstructora from "./HeaderConstructora"
 
 interface PublicLayoutChromeProps {
   children: React.ReactNode
@@ -21,7 +22,7 @@ export default function PublicLayoutChrome({
 }: PublicLayoutChromeProps) {
   const pathname = usePathname()
 
-  // Ocultar cabecera de menú corporativo, pie de página, chatbot y barra móvil en portales dedicados
+  // Ocultar cabecera corporativa en portales independientes (stays, airbnb, inmobiliaria)
   const isStandaloneModule = 
     pathname.startsWith("/stays") ||
     pathname.startsWith("/airbnb") || 
@@ -35,10 +36,26 @@ export default function PublicLayoutChrome({
     )
   }
 
+  // En el portal de clientes (tanto pantalla de login como dashboard privado), 
+  // retirar el menú superior corporativo y footer para una experiencia limpia y privada sin opciones externas
+  const isPortal = pathname.startsWith("/portal")
+  if (isPortal) {
+    return (
+      <main className="min-h-screen w-full flex flex-col bg-[#090e11]">
+        {children}
+        {chatbot}
+      </main>
+    )
+  }
+
+  // En todas las páginas del módulo Constructora (catálogo /proyectos y detalle de cada obra /proyectos/[id]),
+  // mostrar el menú y logotipo oficial del módulo Constructora (HeaderConstructora)
+  const isConstructoraProyectos = pathname.startsWith("/proyectos")
+
   return (
     <>
       {splashScreen}
-      {header}
+      {isConstructoraProyectos ? <HeaderConstructora /> : header}
       <main className="flex-1">
         {children}
       </main>

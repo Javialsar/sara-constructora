@@ -1,10 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Sparkles, ArrowRight, ShieldCheck } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA, LogosEmpresa } from "@/lib/services/logosService"
 import { createClient } from "@/lib/supabase/client"
-import Link from "next/link"
 
 interface HeroProps {
   onOpenCheckout?: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void
@@ -20,7 +20,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
       if (fetched) setLogos(fetched)
     })
 
-    // 2. Consulta directa en tiempo real a Supabase para garantizar datos frescos de la BD
+    // 2. Consulta directa en tiempo real a Supabase para sincronizar URLs actualizadas
     const fetchDirectDb = async () => {
       try {
         const supabase = createClient()
@@ -30,19 +30,21 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
         ])
 
         const dbLogos = paramData?.indirectos_default?.logos_servicios || {}
-        const corporateLogo = configData?.logo_url || dbLogos.grupo_sara || "/logo-grupo-sara.png"
+        const corporateLogo = configData?.logo_url && !configData.logo_url.includes("supabase.co/storage")
+          ? configData.logo_url 
+          : (dbLogos.grupo_sara || "/logo-hero.png")
 
         setLogos(prev => ({
           ...prev,
           grupo_sara: corporateLogo,
-          constructora: dbLogos.constructora || prev.constructora,
-          inmobiliaria: dbLogos.inmobiliaria || prev.inmobiliaria,
-          stays: dbLogos.stays || prev.stays,
-          apu: dbLogos.apu || prev.apu,
-          compras: dbLogos.compras || prev.compras,
-          fletes: dbLogos.fletes || prev.fletes,
-          talento: dbLogos.talento || prev.talento,
-          fintech: dbLogos.fintech || prev.fintech,
+          constructora: dbLogos.constructora && !dbLogos.constructora.includes("supabase.co/storage") ? dbLogos.constructora : prev.constructora,
+          inmobiliaria: dbLogos.inmobiliaria && !dbLogos.inmobiliaria.includes("supabase.co/storage") ? dbLogos.inmobiliaria : prev.inmobiliaria,
+          stays: dbLogos.stays && !dbLogos.stays.includes("supabase.co/storage") ? dbLogos.stays : prev.stays,
+          apu: dbLogos.apu && !dbLogos.apu.includes("supabase.co/storage") ? dbLogos.apu : prev.apu,
+          compras: dbLogos.compras && !dbLogos.compras.includes("supabase.co/storage") ? dbLogos.compras : prev.compras,
+          fletes: dbLogos.fletes && !dbLogos.fletes.includes("supabase.co/storage") ? dbLogos.fletes : prev.fletes,
+          talento: dbLogos.talento && !dbLogos.talento.includes("supabase.co/storage") ? dbLogos.talento : prev.talento,
+          fintech: dbLogos.fintech && !dbLogos.fintech.includes("supabase.co/storage") ? dbLogos.fintech : prev.fintech,
         }))
       } catch (err) {
         console.warn("Hero DB fetch fallback:", err)
@@ -51,37 +53,32 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
     fetchDirectDb()
   }, [])
 
-  // Secuencia de slides: Primero GRUPO SARA con su descripción y luego cada uno de los 8 servicios
-  // Con fotografía cinematográfica de fondo estilo Larsen & Toubro y logos libres (sin cuadro)
+  // Secuencia de slides: Primero GRUPO SARA y luego cada una de las 8 unidades
   const servicesSlides = [
     {
       id: "grupo-sara",
       indexNum: "01",
-      tag: "Holding Corporativo · Matriz Empresarial",
+      tag: "Matriz Corporativa · Holding Oficial",
       title: "GRUPO SARA",
-      headline: "INGENIERÍA & ARQUITECTURA A LA VANGUARDIA",
-      description: "Holding multisectorial que lidera el desarrollo y ejecución de obras civiles, gemelo digital de presupuestos, corretaje inmobiliario, suites de hospitalidad, red satelital de fletes y pagos blindados.",
-      logo: logos.grupo_sara || "/logo-grupo-sara.png",
+      description: "Ingeniería y arquitectura a la vanguardia con tecnología integral. Holding multisectorial que lidera el ecosistema de planificación de obras, software APU, catálogo inmobiliario, suites tipo Airbnb, fletes pesados satelitales, talento técnico colegiado y finanzas blindadas en todo el Ecuador.",
+      logo: logos.grupo_sara || "/logo-hero.png",
       accentColor: "text-amber-400",
       glowColor: "from-amber-500/30 via-amber-500/10 to-transparent",
-      badgeColor: "bg-amber-500/15 text-amber-300 border-amber-500/40",
-      label: "GRUPO SARA · HOLDING MATRIZ",
-      bgImage: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=2000&q=85",
-      href: "/#ecosistema"
+      badgeColor: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+      label: "GRUPO SARA · HOLDING",
+      href: "#ecosistema"
     },
     {
       id: "constructora",
       indexNum: "02",
       tag: "Infraestructura & Obra Civil",
       title: "SARA-CONSTRUCTORA",
-      headline: "DISEÑAMOS IDEAS. CONSTRUIMOS FUTURO.",
-      description: "Planificación arquitectónica, diseño estructural y dirección técnica de obras residenciales, viales y comerciales en Ecuador con ingeniería de precisión y tecnología BIM avanzada.",
-      logo: logos.constructora || "/logo-hero.png",
+      description: "Planificación arquitectónica, diseño estructural y dirección técnica de obras civiles, residenciales y comerciales en Ecuador con los más altos estándares de calidad e ingeniería de precisión bajo norma NEC.",
+      logo: logos.constructora || "/images/sara-constructora.png",
       accentColor: "text-brand-sage",
-      glowColor: "from-emerald-500/25 via-brand-sage/10 to-transparent",
+      glowColor: "from-emerald-500/30 via-brand-sage/10 to-transparent",
       badgeColor: "bg-emerald-500/10 text-brand-sage border-brand-sage/30",
-      label: "SARA CONSTRUCTORA · INFRAESTRUCTURA",
-      bgImage: "https://images.unsplash.com/photo-1541888946425-d0fbb186156f?auto=format&fit=crop&w=2000&q=85",
+      label: "SARA CONSTRUCTORA · OBRAS",
       href: "/constructora"
     },
     {
@@ -89,14 +86,12 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
       indexNum: "03",
       tag: "Propiedades & Terrenos",
       title: "SARA-INMOBILIARIA",
-      headline: "TU PRÓXIMO ESPACIO ESTÁ AQUÍ.",
-      description: "Catálogo selecto de bienes raíces, casas campestres, departamentos urbanos y lotes de alta plusvalía con seguridad jurídica, asesoría hipotecaria y tasación técnica garantizada.",
-      logo: logos.inmobiliaria || "/sara-inmobiliaria.png",
+      description: "Catálogo selecto de bienes raíces, casas campestres, departamentos urbanos y lotes de alta plusvalía con seguridad jurídica, asesoría hipotecaria y tasación técnica especializada.",
+      logo: logos.inmobiliaria || "/images/sara-inmobiliaria.png",
       accentColor: "text-rose-400",
-      glowColor: "from-rose-500/25 via-rose-500/10 to-transparent",
+      glowColor: "from-rose-500/30 via-rose-500/10 to-transparent",
       badgeColor: "bg-rose-500/10 text-rose-300 border-rose-500/30",
       label: "SARA INMOBILIARIA · BIENES RAÍCES",
-      bgImage: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=85",
       href: "/inmobiliaria"
     },
     {
@@ -104,14 +99,12 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
       indexNum: "04",
       tag: "Suites & Villas Tipo Airbnb",
       title: "SARA-ALOJAMIENTO",
-      headline: "HOSPEDAJE BOUTIQUE DE ALTA GAMA.",
-      description: "Alojamientos temporales en Cuenca, Quito, Galápagos y Baños con cerradura inteligente, atención 24/7 y acabados diseñados por el equipo arquitectónico de Grupo SARA.",
-      logo: logos.stays || "/sara-stays.png",
+      description: "Alojamientos temporales de alta gama en Cuenca, Quito, Galápagos y Baños con cerradura inteligente, atención 24/7 y acabados de lujo diseñados por el equipo arquitectónico de Grupo SARA.",
+      logo: logos.stays || "/images/sara-stays.png",
       accentColor: "text-indigo-400",
-      glowColor: "from-indigo-500/25 via-indigo-500/10 to-transparent",
+      glowColor: "from-indigo-500/30 via-indigo-500/10 to-transparent",
       badgeColor: "bg-indigo-500/10 text-indigo-300 border-indigo-500/30",
-      label: "SARA STAYS · HOSPITALITY",
-      bgImage: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2000&q=85",
+      label: "SARA ALOJAMIENTO · STAYS",
       href: "/stays"
     },
     {
@@ -119,59 +112,51 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
       indexNum: "05",
       tag: "Presupuestos & Gemelo Digital",
       title: "SARA-APU",
-      headline: "PRESUPUESTOS DE PRECISIÓN AL INSTANTE.",
       description: "Software de análisis de precios unitarios con lectura automática de rubros, bases de insumos actualizadas y reportes de obra en tiempo real para optimizar la rentabilidad de contratistas.",
-      logo: logos.apu || "/sara-apu.png",
-      accentColor: "text-purple-400",
-      glowColor: "from-purple-500/25 via-purple-500/10 to-transparent",
-      badgeColor: "bg-purple-500/10 text-purple-300 border-purple-500/30",
-      label: "SARA APU · SAAS CONSTRUCTOR",
-      bgImage: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=2000&q=85",
-      href: "/dashboard"
+      logo: logos.apu || "/images/sara-apu.png",
+      accentColor: "text-emerald-400",
+      glowColor: "from-emerald-500/30 via-emerald-500/10 to-transparent",
+      badgeColor: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+      label: "SARA APU · SOFTWARE",
+      href: "/apu"
     },
     {
       id: "marketplace",
       indexNum: "06",
-      tag: "Marketplace de Materiales",
+      tag: "Suministros Directos de Fábrica",
       title: "SARA-MARKETPLACE",
-      headline: "SUMINISTROS MAYORISTAS EN VIVO.",
-      description: "Conexión directa entre proveedores de acero, cemento, agregados y acabados con precios mayoristas en vivo para compras por volumen sin intermediarios en todo el país.",
-      logo: logos.compras || "/sara-grupo.png",
-      accentColor: "text-cyan-400",
-      glowColor: "from-cyan-500/25 via-cyan-500/10 to-transparent",
-      badgeColor: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30",
-      label: "SARA MARKETPLACE · MATERIALES B2B",
-      bgImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=2000&q=85",
+      description: "Suministro directo de acero, cemento, agregados y materiales certificados sin intermediarios. Cotización inmediata por volumen y despacho garantizado a pie de obra.",
+      logo: logos.compras || "/images/sara-grupo.png",
+      accentColor: "text-amber-400",
+      glowColor: "from-amber-500/30 via-amber-500/10 to-transparent",
+      badgeColor: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+      label: "SARA MARKETPLACE · COMPRAS",
       href: "/modulos/compras"
     },
     {
       id: "fletes",
       indexNum: "07",
-      tag: "Logística & Transporte Pesado",
+      tag: "Transporte Pesado Satelital",
       title: "SARA-FLETES",
-      headline: "LOGÍSTICA PESADA EN TIEMPO REAL.",
-      description: "Despacho tipo Uber de fletes con geolocalización satelital en tiempo real, validación de carga y conductores certificados con liquidación prepago blindada y seguimiento satelital 24/7.",
-      logo: logos.fletes || "/sara-fletes.png",
-      accentColor: "text-blue-400",
-      glowColor: "from-blue-500/25 via-blue-500/10 to-transparent",
-      badgeColor: "bg-blue-500/10 text-blue-300 border-blue-500/30",
-      label: "SARA FLETES · RADAR SATELITAL",
-      bgImage: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=2000&q=85",
+      description: "Flota de volquetas, plataformas y camiones pesados con despacho satelital 24/7 y monitoreo GPS en tiempo real para abastecimiento continuo en proyectos de construcción.",
+      logo: logos.fletes || "/images/sara-fletes.png",
+      accentColor: "text-cyan-400",
+      glowColor: "from-cyan-500/30 via-cyan-500/10 to-transparent",
+      badgeColor: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30",
+      label: "SARA FLETES · LOGÍSTICA",
       href: "/modulos/fletes"
     },
     {
       id: "talento",
       indexNum: "08",
-      tag: "Bolsa de Empleo & Certificación",
+      tag: "Especialistas Colegiados",
       title: "SARA-TALENTO",
-      headline: "RED TÉCNICA CERTIFICADA PARA OBRA.",
-      description: "Matching algorítmico entre constructoras y profesionales calificados: ingenieros civiles, arquitectos colegiados, topógrafos y maestros mayores con validación de credenciales técnicas.",
-      logo: logos.talento || "/sara-talento.png",
+      description: "Red certificada de ingenieros civiles, arquitectos colegiados, topógrafos y maestros mayores calificados para consultoría, diseño o ejecución directa de obras.",
+      logo: logos.talento || "/images/sara-talento.png",
       accentColor: "text-amber-300",
-      glowColor: "from-amber-400/25 via-amber-400/10 to-transparent",
+      glowColor: "from-amber-400/30 via-amber-400/10 to-transparent",
       badgeColor: "bg-amber-400/10 text-amber-300 border-amber-400/30",
-      label: "SARA TALENTO · RED PROFESIONAL",
-      bgImage: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=2000&q=85",
+      label: "SARA TALENTO · RED TÉCNICA",
       href: "/modulos/talento"
     },
     {
@@ -179,14 +164,12 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
       indexNum: "09",
       tag: "Pasarela & Finanzas de Obra",
       title: "SARA-PAGOS",
-      headline: "CUSTODIA Y PAGOS CONTRA AVANCE.",
-      description: "Retenciones, anticipos garantizados y pago contra avance de obra con pasarela estándar, QR empresarial DeUna y cuentas bancarias directas para blindar los fondos de proyectos.",
-      logo: logos.fintech || "/logo-grupo-sara.png",
+      description: "Retenciones, anticipos garantizados y pago contra avance de obra con pasarela estándar, QR empresarial DeUna y cuentas bancarias directas para proteger los fondos de clientes y constructores.",
+      logo: logos.fintech || "/logo-hero.png",
       accentColor: "text-emerald-400",
-      glowColor: "from-emerald-500/25 via-emerald-500/10 to-transparent",
+      glowColor: "from-emerald-500/30 via-emerald-500/10 to-transparent",
       badgeColor: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
-      label: "SARA PAGOS · FINTECH & CUSTODIA",
-      bgImage: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=2000&q=85",
+      label: "SARA PAGOS · FINANZAS BLINDADAS",
       href: "/modulos/financiero"
     }
   ]
@@ -202,44 +185,21 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
   const currentSlide = servicesSlides[currentIndex] || servicesSlides[0]
 
   return (
-    <section className="relative min-h-[88vh] lg:min-h-[94vh] flex items-center pt-28 pb-16 overflow-hidden bg-slate-950">
-      
-      {/* 1. Fondo Cinematográfico de Ingeniería & Arquitectura (Estilo Larsen & Toubro) */}
-      {servicesSlides.map((slide, idx) => {
-        const isActive = idx === currentIndex
-        return (
-          <div
-            key={`bg-${slide.id}`}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out z-0 ${
-              isActive ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
-          >
-            <img
-              src={slide.bgImage}
-              alt={slide.title}
-              className="w-full h-full object-cover object-center transform scale-105 transition-transform duration-10000 ease-out"
-            />
-          </div>
-        )
-      })}
+    <section className="relative min-h-[85vh] lg:min-h-[92vh] flex items-center pt-28 pb-16 overflow-hidden bg-slate-950">
+      {/* Luces y texturas ambientales coherentes */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900/50 via-slate-950 to-black pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-[30rem] h-[30rem] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 right-10 w-[30rem] h-[30rem] bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* 2. Gradientes de contraste para asegurar legibilidad cinematográfica */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-slate-950 via-slate-950/90 md:via-slate-950/80 to-slate-950/40 pointer-events-none" />
-      <div className="absolute inset-0 z-10 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/60 pointer-events-none" />
-
-      {/* Resplandor ambiental de marca */}
-      <div className="absolute -top-32 -left-32 w-[35rem] h-[35rem] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none z-10" />
-
-      {/* 3. Contenedor Principal */}
       <div className="container relative z-20 mx-auto px-6 md:px-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center min-h-[64vh]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center min-h-[62vh]">
           
-          {/* Columna Izquierda: Mensaje Institucional y Contenido Editorial */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* Columna Izquierda: Mensaje Institucional de Alto Posicionamiento y Datos del Servicio */}
+          <div className="lg:col-span-6 space-y-6">
             
-            {/* Header de Posicionamiento Fuerte */}
+            {/* Header de Posicionamiento */}
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-950/80 border border-brand-sage/40 text-xs font-bold text-brand-sage shadow-2xl backdrop-blur-md">
+              <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/90 border border-brand-sage/40 text-xs font-bold text-brand-sage shadow-lg backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5 text-brand-sage animate-pulse" />
                 <span className="tracking-wider uppercase font-extrabold text-[11px]">GRUPO SARA</span>
                 <span className="text-slate-600">|</span>
@@ -251,19 +211,19 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
               </div>
             </div>
 
-            {/* Transición de Textos cada 4 segundos */}
+            {/* Transición de Servicio cada 4 segundos */}
             <AnimatePresence mode="wait">
               <motion.div
-                key={`service-text-${currentSlide.id}`}
+                key={`service-${currentSlide.id}`}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="space-y-4"
+                className="space-y-5"
               >
                 {/* Tag de Categoría e Indicador de Progreso */}
                 <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-lg text-xs font-mono font-black border ${currentSlide.badgeColor} shadow-md`}>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-mono font-black border ${currentSlide.badgeColor}`}>
                     {currentSlide.indexNum} / 09
                   </span>
                   <div className="w-8 h-px bg-brand-sage/60" />
@@ -277,76 +237,97 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                   {currentSlide.title}
                 </h1>
 
-                {/* Sub-titular de alto impacto */}
-                <h2 className="text-sm sm:text-base font-extrabold text-amber-400 tracking-wider uppercase">
-                  {currentSlide.headline}
-                </h2>
-
                 {/* Descripción Exacta del Ecosistema */}
-                <p className="text-base sm:text-lg text-slate-200 max-w-2xl leading-relaxed font-normal border-l-4 border-brand-sage pl-6 drop-shadow-lg bg-slate-950/40 p-2 rounded-r-xl backdrop-blur-xs">
+                <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed font-normal border-l-4 border-brand-sage pl-6 drop-shadow-lg">
                   {currentSlide.description}
                 </p>
 
-                {/* Enlace sutil para acceder al módulo */}
-                <div className="pt-2">
-                  <Link
+                {/* Botón de Exploración Rápida */}
+                <div className="pt-2 flex flex-wrap items-center gap-4">
+                  <a
                     href={currentSlide.href}
-                    className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-amber-400 transition-colors group/link"
+                    className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:scale-105 transition-all"
                   >
-                    <span>Conocer más sobre {currentSlide.title}</span>
-                    <ArrowRight size={14} className="group-hover/link:translate-x-1 transition-transform text-brand-sage" />
-                  </Link>
+                    <span>Explorar {currentSlide.title}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </a>
+
+                  {onOpenCheckout && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenCheckout({
+                        title: `Consulta Técnica - ${currentSlide.title}`,
+                        amount: 49.99,
+                        badgeText: "Grupo SARA Oficial",
+                        isSubscription: false
+                      })}
+                      className="px-5 py-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all hover:border-brand-sage"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                      <span>Cotizar Servicio</span>
+                    </button>
+                  )}
                 </div>
               </motion.div>
             </AnimatePresence>
 
           </div>
 
-          {/* Columna Derecha: Logotipo Oficial Flotante y Libre (SIN CUADRO, estilo Larsen & Toubro) */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
+          {/* Columna Derecha: Logotipo Oficial Flotante Libre SIN CUADRO */}
+          <div className="lg:col-span-6 flex items-center justify-center p-4">
             <AnimatePresence mode="wait">
               <motion.div
-                key={`logo-free-${currentSlide.id}`}
-                initial={{ opacity: 0, scale: 0.88, y: 15 }}
+                key={`logo-${currentSlide.id}`}
+                initial={{ opacity: 0, scale: 0.9, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: -15 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="relative w-full flex flex-col items-center justify-center py-4"
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                className="relative flex items-center justify-center w-full max-w-lg"
               >
-                {/* Resplandor ambiental orgánico detrás del logotipo (sin marco cuadrado) */}
-                <div className={`absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr ${currentSlide.glowColor} blur-3xl opacity-75 pointer-events-none`} />
+                {/* Resplandor ambiental suave difuso detrás del logotipo (sin marco, sin cuadro, sin bordes) */}
+                <div className={`absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr ${currentSlide.glowColor} blur-3xl opacity-70 pointer-events-none`} />
 
-                {/* Logotipo Flotante Puro: NO EN CUADRO, tamaño imponente y alta nitidez */}
-                <div className="relative z-10 w-full flex items-center justify-center p-2">
-                  <img
-                    src={currentSlide.logo}
-                    alt={currentSlide.title}
-                    className="max-h-[300px] sm:max-h-[380px] md:max-h-[440px] lg:max-h-[480px] max-w-[95%] w-auto h-auto object-contain filter drop-shadow-[0_25px_45px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-700 select-none"
-                  />
-                </div>
-                
-                {/* Indicador de marca inferior libre */}
-                <div className="mt-4 px-4 py-1.5 rounded-full bg-slate-950/70 border border-white/10 backdrop-blur-md shadow-xl">
-                  <span className="text-[11px] sm:text-xs font-mono tracking-[0.25em] text-slate-200 uppercase font-bold">
-                    {currentSlide.label}
-                  </span>
-                </div>
+                {/* Logotipo oficial 3D transparente flotando libremente */}
+                <img
+                  src={currentSlide.logo}
+                  alt={currentSlide.title}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/logo-hero.png"
+                  }}
+                  className="relative z-10 max-h-[300px] sm:max-h-[380px] md:max-h-[440px] w-auto h-auto object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-500"
+                />
               </motion.div>
             </AnimatePresence>
           </div>
 
         </div>
-      </div>
 
-      {/* Barra de progreso inferior de ciclo continuo (4 segundos) */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 z-20 overflow-hidden">
-        <motion.div
-          key={`bar-${currentSlide.id}`}
-          initial={{ width: "0%" }}
-          animate={{ width: "100%" }}
-          transition={{ duration: 4, ease: "linear" }}
-          className="h-full bg-gradient-to-r from-brand-sage to-amber-400 shadow-[0_0_12px_rgba(60,122,82,0.9)]"
-        />
+        {/* Indicador de progreso sutil y selector de servicios */}
+        <div className="mt-8 pt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-900">
+          <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+            {servicesSlides.map((s, idx) => {
+              const isSelected = idx === currentIndex
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                    isSelected 
+                      ? "bg-amber-500 text-slate-950 shadow-md font-black scale-105" 
+                      : "text-slate-400 hover:text-white hover:bg-slate-900"
+                  }`}
+                >
+                  {s.indexNum} {s.title.replace('SARA-', '')}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="text-xs font-mono text-slate-500 uppercase tracking-widest hidden sm:block">
+            {currentIndex + 1} de {servicesSlides.length} Módulos Activos
+          </div>
+        </div>
+
       </div>
     </section>
   )

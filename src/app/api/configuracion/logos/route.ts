@@ -38,16 +38,23 @@ export async function GET() {
 
       const dbLogos = paramData?.indirectos_default?.logos_servicios || {}
 
+      const sanitize = (url: string | undefined | null, fallback: string) => {
+        if (!url || typeof url !== "string" || url.trim() === "" || url === "null") {
+          return fallback
+        }
+        return url.trim()
+      }
+
       const merged: LogosEmpresa = {
-        grupo_sara: dbLogos.grupo_sara || configData?.logo_url || DEFAULT_LOGOS_EMPRESA.grupo_sara,
-        constructora: dbLogos.constructora || DEFAULT_LOGOS_EMPRESA.constructora,
-        inmobiliaria: dbLogos.inmobiliaria || DEFAULT_LOGOS_EMPRESA.inmobiliaria,
-        stays: dbLogos.stays || DEFAULT_LOGOS_EMPRESA.stays,
-        apu: dbLogos.apu || DEFAULT_LOGOS_EMPRESA.apu,
-        compras: dbLogos.compras || DEFAULT_LOGOS_EMPRESA.compras,
-        fletes: dbLogos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
-        talento: dbLogos.talento || DEFAULT_LOGOS_EMPRESA.talento,
-        fintech: dbLogos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
+        grupo_sara: sanitize(dbLogos.grupo_sara || configData?.logo_url, DEFAULT_LOGOS_EMPRESA.grupo_sara),
+        constructora: sanitize(dbLogos.constructora, DEFAULT_LOGOS_EMPRESA.constructora),
+        inmobiliaria: sanitize(dbLogos.inmobiliaria, DEFAULT_LOGOS_EMPRESA.inmobiliaria),
+        stays: sanitize(dbLogos.stays, DEFAULT_LOGOS_EMPRESA.stays),
+        apu: sanitize(dbLogos.apu, DEFAULT_LOGOS_EMPRESA.apu),
+        compras: sanitize(dbLogos.compras, DEFAULT_LOGOS_EMPRESA.compras),
+        fletes: sanitize(dbLogos.fletes, DEFAULT_LOGOS_EMPRESA.fletes),
+        talento: sanitize(dbLogos.talento, DEFAULT_LOGOS_EMPRESA.talento),
+        fintech: sanitize(dbLogos.fintech, DEFAULT_LOGOS_EMPRESA.fintech),
       }
 
       return NextResponse.json({ success: true, logos: merged, origin: "supabase" })

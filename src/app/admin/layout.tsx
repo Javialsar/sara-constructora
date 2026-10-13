@@ -76,7 +76,18 @@ export default function AdminLayout({
       
       const { data: { user } } = await supabase.auth.getUser()
       
+      if (!user && pathname !== '/admin/login') {
+        window.location.href = '/admin/login'
+        return
+      }
+      
       if (user) {
+        const role = user.user_metadata?.role
+        if (role !== 'admin' && role !== 'tecnico' && pathname !== '/admin/login') {
+          window.location.href = '/admin/login?error=unauthorized'
+          return
+        }
+
         if (user.user_metadata?.full_name) {
             const name = user.user_metadata.full_name
             setUserName(name)
@@ -218,7 +229,12 @@ export default function AdminLayout({
         <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
-              <img src={logo} alt="SARA Logo" className="w-full h-full object-contain" />
+              <img 
+                src={logo || "/logo-hero.png"} 
+                alt="SARA Logo" 
+                onError={() => setLogo("/logo-hero.png")}
+                className="w-full h-full object-contain" 
+              />
             </div>
             {!isSidebarCollapsed && (
               <div className="overflow-hidden whitespace-nowrap">

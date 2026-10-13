@@ -1,6 +1,7 @@
 "use server"
 
 import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 import { revalidatePath } from "next/cache"
 
 // Inicializar un cliente Supabase con el Service Role Key (Admin API)
@@ -24,6 +25,18 @@ export async function createClientAccount(data: {
   password: string
 }) {
   try {
+    // 0. Validar autorización del solicitante (debe ser admin o técnico autenticado)
+    const supabaseCaller = await createSupabaseServerClient()
+    const { data: { user } } = await supabaseCaller.auth.getUser()
+    
+    if (!user) {
+      throw new Error("No autorizado: Debe iniciar sesión en el panel administrativo.")
+    }
+    
+    const role = user.user_metadata?.role
+    if (role !== 'admin' && role !== 'tecnico') {
+      throw new Error("No autorizado: Permisos insuficientes para registrar clientes.")
+    }
     // 1. Crear el usuario en Auth (Supabase)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -69,10 +82,19 @@ export async function createClientAccount(data: {
       throw new Error(`Error BD: ${dbError.message}`)
     }
 
-    // Refrescar la caché de la página de clientes
+    // Refrescar la caché de la página de clientes y proyectos
     revalidatePath('/admin/clientes')
+    revalidatePath('/admin/proyectos')
 
-    return { success: true }
+    return { 
+      success: true,
+      client: {
+        id: authData.user.id,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        email: data.email
+      }
+    }
   } catch (error: any) {
     console.error("Error al crear cuenta de cliente:", error)
     return { success: false, error: error.message }

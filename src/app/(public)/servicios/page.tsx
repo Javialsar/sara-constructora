@@ -1,3 +1,5 @@
+"use client"
+import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 import { ArrowRight, Compass, HardHat, Ruler, Building2, Map, Calculator, Wrench, Eye, Box, FileSignature } from "lucide-react"
 import Link from "next/link"
 

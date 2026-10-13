@@ -99,6 +99,17 @@ export default function ConfiguracionPage() {
     const logosData = await getLogosEmpresa()
     setLogos(logosData)
 
+    try {
+      const temaRes = await fetch('/api/configuracion/tema', { cache: 'no-store' })
+      if (temaRes.ok) {
+        const json = await temaRes.json()
+        if (json?.success && typeof json.tema === 'string') {
+          setCurrentTheme(json.tema)
+          localStorage.setItem('sara_theme', json.tema)
+        }
+      }
+    } catch {}
+
     setLoading(false)
   }
 
@@ -134,13 +145,30 @@ export default function ConfiguracionPage() {
     setCuentasBancarias(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c))
   }
 
-  const changeTheme = (themeClass: string) => {
-    document.documentElement.classList.remove('theme-ocean', 'theme-gold', 'theme-apucons', 'theme-sunset', 'theme-nordic', 'theme-ruby')
-    if (themeClass) {
+  const changeTheme = async (themeClass: string) => {
+    const validThemes = ['theme-ocean', 'theme-gold', 'theme-apucons', 'theme-sunset', 'theme-nordic', 'theme-ruby']
+    validThemes.forEach(cls => {
+      document.documentElement.classList.remove(cls)
+      document.body.classList.remove(cls)
+    })
+    if (themeClass && validThemes.includes(themeClass)) {
       document.documentElement.classList.add(themeClass)
+      document.body.classList.add(themeClass)
     }
     localStorage.setItem('sara_theme', themeClass)
     setCurrentTheme(themeClass)
+    window.dispatchEvent(new CustomEvent('sara_theme_change', { detail: themeClass }))
+
+    // Persistir globalmente en Supabase para todo el ecosistema y todos los m�dulos
+    try {
+      await fetch('/api/configuracion/tema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tema: themeClass })
+      })
+    } catch (err) {
+      console.warn('Error sincronizando tema con Supabase:', err)
+    }
   }
 
   const addMiembro = () => {
@@ -231,9 +259,9 @@ export default function ConfiguracionPage() {
 
     setSaving(false)
     if (error || !bankSaved || !logosSaved) {
-      alert("Aviso al guardar: " + (error?.message || "Algunos cambios no se guardaron correctamente. Por favor verifica la conexiÃ³n."))
+      alert("Aviso al guardar: " + (error?.message || "Algunos cambios no se guardaron correctamente. Por favor verifica la conexión."))
     } else {
-      alert("Â¡ConfiguraciÃ³n general, cuentas bancarias y logotipos de las 3 marcas actualizados con Ã©xito!")
+      alert("¡Configuración general, cuentas bancarias y logotipos del ecosistema actualizados con éxito!")
     }
   }
 
@@ -249,8 +277,8 @@ export default function ConfiguracionPage() {
     <div className="max-w-5xl space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">ConfiguraciÃ³n PÃºblica</h1>
-          <p className="text-gray-500">Administra la informaciÃ³n de contacto, redes sociales y el equipo directivo de la empresa.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuración Pública</h1>
+          <p className="text-gray-500">Administra la información de contacto, redes sociales y el equipo directivo de la empresa.</p>
         </div>
         <button 
           onClick={handleSave}
@@ -263,7 +291,7 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* ============================================================ */}
-      {/* SECCIÓN IDENTIDAD VISUAL: GRUPO SARA & UNIDADES DE NEGOCIO */}
+      {/* SECCI�N IDENTIDAD VISUAL: GRUPO SARA & UNIDADES DE NEGOCIO */}
       {/* ============================================================ */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
@@ -278,7 +306,7 @@ export default function ConfiguracionPage() {
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
             <Sparkles size={12} className="text-emerald-500" />
-            9 Logotipos Sincronizados (Grupo SARA + 8 Módulos)
+            9 Logotipos Sincronizados (Grupo SARA + 8 M�dulos)
           </span>
         </div>
 
@@ -286,7 +314,7 @@ export default function ConfiguracionPage() {
         <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 text-white rounded-2xl p-6 border-2 border-amber-500/50 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center relative z-10">
-            {/* Información */}
+            {/* Informaci�n */}
             <div className="lg:col-span-5 space-y-3">
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider">
@@ -295,14 +323,14 @@ export default function ConfiguracionPage() {
                 <span className="text-xs font-bold text-amber-400">Holding Grupo SARA</span>
               </div>
               <h3 className="text-2xl font-black tracking-tight text-white">
-                Logotipo Empresarial — GRUPO SARA
+                Logotipo Empresarial  GRUPO SARA
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Logotipo corporativo matriz utilizado en el <strong>Header general</strong>, <strong>Landing Page del Grupo</strong>, <strong>Pie de página (Footer)</strong> y pasarelas de pago oficiales.
+                Logotipo corporativo matriz utilizado en el <strong>Header general</strong>, <strong>Landing Page del Grupo</strong>, <strong>Pie de p�gina (Footer)</strong> y pasarelas de pago oficiales.
               </p>
               <div className="text-[11px] text-slate-400 flex items-center gap-2 pt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Sincronizado automáticamente con la base de datos oficial</span>
+                <span>Sincronizado autom�ticamente con la base de datos oficial</span>
               </div>
             </div>
 
@@ -323,7 +351,7 @@ export default function ConfiguracionPage() {
                 ) : logos.grupo_sara ? (
                   <img
                     src={logos.grupo_sara}
-                    alt="Logo Oficial Grupo SARA"
+                    alt="Logo Oficial Grupo SARA" onError={(e) => { e.currentTarget.src = "/logo-hero.png"; }}
                     className="max-w-full max-h-full object-contain filter drop-shadow-xl"
                   />
                 ) : (
@@ -403,7 +431,7 @@ export default function ConfiguracionPage() {
               ) : logos.constructora ? (
                 <img
                   src={logos.constructora}
-                  alt="Logo SARA Constructora"
+                  alt="Logo SARA Constructora" onError={(e) => { e.currentTarget.src = "/images/sara-constructora.png"; }}
                   className="max-w-full max-h-full object-contain filter drop-shadow"
                 />
               ) : (
@@ -460,7 +488,7 @@ export default function ConfiguracionPage() {
               </div>
               <h3 className="font-bold text-gray-900 text-base">SARA Inmobiliaria</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para la divisiÃ³n de Bienes RaÃ­ces: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/inmobiliaria</code>, pie de pÃ¡gina y catÃ¡logo de propiedades.
+                Logotipo para la división de Bienes Raíces: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/inmobiliaria</code>, pie de página y catálogo de propiedades.
               </p>
             </div>
 
@@ -480,7 +508,7 @@ export default function ConfiguracionPage() {
               ) : logos.inmobiliaria ? (
                 <img
                   src={logos.inmobiliaria}
-                  alt="Logo SARA Inmobiliaria"
+                  alt="Logo SARA Inmobiliaria" onError={(e) => { e.currentTarget.src = "/images/sara-inmobiliaria.png"; }}
                   className="max-w-full max-h-full object-contain filter drop-shadow"
                 />
               ) : (
@@ -537,7 +565,7 @@ export default function ConfiguracionPage() {
               </div>
               <h3 className="font-bold text-gray-900 text-base">SARA Stays</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para la divisiÃ³n de Alojamientos: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/stays</code>, login de huÃ©spedes, vouchers y confirmaciones.
+                Logotipo para la división de Alojamientos: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/stays</code>, login de huéspedes, vouchers y confirmaciones.
               </p>
             </div>
 
@@ -557,7 +585,7 @@ export default function ConfiguracionPage() {
               ) : logos.stays ? (
                 <img
                   src={logos.stays}
-                  alt="Logo SARA Stays"
+                  alt="Logo SARA Stays" onError={(e) => { e.currentTarget.src = "/images/sara-stays.png"; }}
                   className="max-w-full max-h-full object-contain filter drop-shadow"
                 />
               ) : (
@@ -614,7 +642,7 @@ export default function ConfiguracionPage() {
               </div>
               <h3 className="font-bold text-gray-900 text-base">SaaS APU</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para la plataforma SaaS: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/dashboard</code>, login de huÃ©spedes, vouchers y confirmaciones.
+                Logotipo para la plataforma SaaS: cabecera de <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/dashboard</code>, login de huéspedes, vouchers y confirmaciones.
               </p>
             </div>
 
@@ -634,7 +662,7 @@ export default function ConfiguracionPage() {
               ) : logos.apu ? (
                 <img
                   src={logos.apu}
-                  alt="Logo SaaS APU"
+                  alt="Logo SaaS APU" onError={(e) => { e.currentTarget.src = "/images/sara-apu.png"; }}
                   className="max-w-full max-h-full object-contain filter drop-shadow"
                 />
               ) : (
@@ -705,7 +733,7 @@ export default function ConfiguracionPage() {
               {logoFiles.compras ? (
                 <img src={URL.createObjectURL(logoFiles.compras)} alt="Nuevo Logo Compras" className="max-w-full max-h-full object-contain filter drop-shadow" />
               ) : logos.compras ? (
-                <img src={logos.compras} alt="Logo SARA Compras" className="max-w-full max-h-full object-contain filter drop-shadow" />
+                <img src={logos.compras} alt="Logo SARA Compras" onError={(e) => { e.currentTarget.src = "/images/sara-grupo.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" />
               ) : (
                 <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
               )}
@@ -735,7 +763,7 @@ export default function ConfiguracionPage() {
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-950 text-amber-400 uppercase">
                   <Compass size={12} /> Fletes
                 </span>
-                <span className="text-[11px] font-semibold text-gray-400">LogÃ­stica Pesada</span>
+                <span className="text-[11px] font-semibold text-gray-400">Logística Pesada</span>
               </div>
               <h3 className="font-bold text-gray-900 text-base">SARA Fletes</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
@@ -750,7 +778,7 @@ export default function ConfiguracionPage() {
               {logoFiles.fletes ? (
                 <img src={URL.createObjectURL(logoFiles.fletes)} alt="Nuevo Logo Fletes" className="max-w-full max-h-full object-contain filter drop-shadow" />
               ) : logos.fletes ? (
-                <img src={logos.fletes} alt="Logo SARA Fletes" className="max-w-full max-h-full object-contain filter drop-shadow" />
+                <img src={logos.fletes} alt="Logo SARA Fletes" onError={(e) => { e.currentTarget.src = "/images/sara-fletes.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" />
               ) : (
                 <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
               )}
@@ -777,7 +805,7 @@ export default function ConfiguracionPage() {
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-950 text-orange-400 uppercase"><Compass size={12} /> Talento</span>
-                <span className="text-[11px] font-semibold text-gray-400">RRHH y ContrataciÃ³n</span>
+                <span className="text-[11px] font-semibold text-gray-400">RRHH y Contratación</span>
               </div>
               <h3 className="font-bold text-gray-900 text-base">SARA Talento</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
@@ -786,7 +814,7 @@ export default function ConfiguracionPage() {
             </div>
             <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
               {uploadingLogoKey === "talento" && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10"><Loader2 className="animate-spin text-amber-400" size={26} /></div>}
-              {logoFiles.talento ? ( <img src={URL.createObjectURL(logoFiles.talento)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.talento ? ( <img src={logos.talento} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
+              {logoFiles.talento ? ( <img src={URL.createObjectURL(logoFiles.talento)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.talento ? ( <img src={logos.talento} alt="Logo SARA Talento" onError={(e) => { e.currentTarget.src = "/images/sara-talento.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
             </div>
             <div className="space-y-3">
               <div>
@@ -816,7 +844,7 @@ export default function ConfiguracionPage() {
             </div>
             <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
               {uploadingLogoKey === "fintech" && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10"><Loader2 className="animate-spin text-amber-400" size={26} /></div>}
-              {logoFiles.fintech ? ( <img src={URL.createObjectURL(logoFiles.fintech)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.fintech ? ( <img src={logos.fintech} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
+              {logoFiles.fintech ? ( <img src={URL.createObjectURL(logoFiles.fintech)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.fintech ? ( <img src={logos.fintech} alt="Logo SARA Fintech" onError={(e) => { e.currentTarget.src = "/logo-hero.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
             </div>
             <div className="space-y-3">
               <div>
@@ -837,7 +865,7 @@ export default function ConfiguracionPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         
-        {/* InformaciÃ³n de Contacto */}
+        {/* Información de Contacto */}
         <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage p-6 space-y-6">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
             <div className="w-10 h-10 rounded-lg bg-brand-dark flex items-center justify-center text-brand-sage">
@@ -852,12 +880,12 @@ export default function ConfiguracionPage() {
               <input type="text" name="nombre_empresa" value={formData.nombre_empresa} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Email PÃºblico</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Email Público</label>
               <input type="email" name="email_contacto" value={formData.email_contacto} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><Phone size={14}/> TelÃ©fono Fijo</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><Phone size={14}/> Teléfono Fijo</label>
                 <input type="text" name="telefono_principal" value={formData.telefono_principal} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
               </div>
               <div>
@@ -866,7 +894,7 @@ export default function ConfiguracionPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><MapPin size={14}/> DirecciÃ³n FÃ­sica</label>
+              <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-1"><MapPin size={14}/> Dirección Física</label>
               <input type="text" name="direccion" value={formData.direccion} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand-sage focus:border-brand-sage outline-none" />
             </div>
           </div>
@@ -914,7 +942,7 @@ export default function ConfiguracionPage() {
               onClick={addMiembro}
               className="flex items-center gap-2 text-sm font-bold text-brand-sage hover:text-brand-dark transition-colors"
             >
-              <Plus size={16} /> AÃ±adir Miembro
+              <Plus size={16} /> Añadir Miembro
             </button>
           </div>
 
@@ -971,7 +999,7 @@ export default function ConfiguracionPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">TelÃ©fono / WhatsApp</label>
+                    <label className="block text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">Teléfono / WhatsApp</label>
                     <input 
                       type="text" 
                       value={miembro.telefono || ""} 
@@ -996,7 +1024,7 @@ export default function ConfiguracionPage() {
             
             {equipo.length === 0 && (
               <div className="col-span-full py-12 text-center text-gray-500 border-2 border-dashed border-gray-200 rounded-xl">
-                No hay miembros del equipo directivo registrados aÃºn.
+                No hay miembros del equipo directivo registrados aún.
               </div>
             )}
           </div>
@@ -1004,7 +1032,7 @@ export default function ConfiguracionPage() {
       </div>
 
       {/* ============================================================ */}
-      {/* SECCIÃ“N: CUENTAS BANCARIAS DE LA EMPRESA (AIRBNB & RESERVAS) */}
+      {/* SECCI�N: CUENTAS BANCARIAS DE LA EMPRESA (AIRBNB & RESERVAS) */}
       {/* ============================================================ */}
       <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-amber-500 p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
@@ -1015,7 +1043,7 @@ export default function ConfiguracionPage() {
             <div>
               <h2 className="text-xl font-bold text-gray-800">Cuentas Bancarias para Cobros & Reservas</h2>
               <p className="text-xs text-gray-500">
-                Configura los datos de las cuentas bancarias que los clientes visualizarÃ¡n para transferencias al reservar en <strong>Airbnb</strong>, comprar en <strong>Inmobiliaria</strong> o suscribirse a <strong>SaaS APU</strong>.
+                Configura los datos de las cuentas bancarias que los clientes visualizarán para transferencias al reservar en <strong>Airbnb</strong>, comprar en <strong>Inmobiliaria</strong> o suscribirse a <strong>SaaS APU</strong>.
               </p>
             </div>
           </div>
@@ -1035,7 +1063,7 @@ export default function ConfiguracionPage() {
             <div key={cta.id || index} className="p-4 rounded-xl border border-gray-200 bg-slate-50/70 space-y-3">
               <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                 <span className="text-xs font-black uppercase text-amber-800 flex items-center gap-1.5">
-                  <Building size={14} className="text-amber-600" /> Cuenta #{index + 1} â€” {cta.banco || "Nuevo Banco"}
+                  <Building size={14} className="text-amber-600" /> Cuenta #{index + 1} � {cta.banco || "Nuevo Banco"}
                 </span>
                 <button
                   type="button"
@@ -1072,7 +1100,7 @@ export default function ConfiguracionPage() {
                   </select>
                 </div>
 
-                {/* NÃºmero de Cuenta */}
+                {/* Número de Cuenta */}
                 <div>
                   <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Nro de Cta</label>
                   <input
@@ -1084,9 +1112,9 @@ export default function ConfiguracionPage() {
                   />
                 </div>
 
-                {/* CÃ©dula o RUC */}
+                {/* Cédula o RUC */}
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">CÃ©dula / RUC</label>
+                  <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Cédula / RUC</label>
                   <input
                     type="text"
                     value={cta.cedulaRuc}
@@ -1121,9 +1149,9 @@ export default function ConfiguracionPage() {
                     className="w-full text-xs font-medium p-2 bg-white rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
-                  {/* CÃ³digo QR */}
+                  {/* Código QR */}
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">CÃ³digo QR de Pago</label>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase mb-1">Código QR de Pago</label>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <input
@@ -1171,7 +1199,7 @@ export default function ConfiguracionPage() {
           {cuentasBancarias.length === 0 && (
             <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
               <Building className="mx-auto text-gray-300 mb-2" size={32} />
-              <p className="text-sm font-bold text-gray-600">No hay cuentas bancarias registradas aÃºn</p>
+              <p className="text-sm font-bold text-gray-600">No hay cuentas bancarias registradas aún</p>
               <p className="text-xs text-gray-400 mt-1">Haz clic en "+ Agregar Cuenta Bancaria" para configurar los datos de cobro oficiales.</p>
             </div>
           )}
@@ -1187,7 +1215,7 @@ export default function ConfiguracionPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-800">Apariencia y Tema (Administrador)</h2>
-              <p className="text-xs text-gray-500">Personaliza la paleta cromÃ¡tica de la suite administrativa de SARA Constructora</p>
+              <p className="text-xs text-gray-500">Personaliza la paleta cromática de la suite administrativa de SARA Constructora</p>
             </div>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -1200,7 +1228,7 @@ export default function ConfiguracionPage() {
               id: '',
               name: 'Sara Sage',
               category: 'Corporativo Oficial',
-              desc: 'Verde esmeralda y bosque profundo caracterÃ­stico de SARA',
+              desc: 'Verde esmeralda y bosque profundo característico de SARA',
               c1: '#07130d',
               c2: '#3c7a52',
               c3: '#f4fbf6',
@@ -1210,7 +1238,7 @@ export default function ConfiguracionPage() {
               id: 'theme-sunset',
               name: 'Zafiro & Naranja',
               category: 'Contraste Moderno',
-              desc: 'Azul zafiro ejecutivo combinado con naranja dinÃ¡mico de alta visibilidad',
+              desc: 'Azul zafiro ejecutivo combinado con naranja dinámico de alta visibilidad',
               c1: '#0f172a',
               c2: '#ea580c',
               c3: '#fff7ed',
@@ -1219,8 +1247,8 @@ export default function ConfiguracionPage() {
             {
               id: 'theme-ocean',
               name: 'Constructor Ocean',
-              category: 'TÃ©cnico MarÃ­timo',
-              desc: 'Tonos azul pizarra y cobalto brillante para ingenierÃ­a y planos',
+              category: 'Técnico Marítimo',
+              desc: 'Tonos azul pizarra y cobalto brillante para ingeniería y planos',
               c1: '#1e293b',
               c2: '#3b82f6',
               c3: '#eff6ff',
@@ -1228,9 +1256,9 @@ export default function ConfiguracionPage() {
             },
             {
               id: 'theme-nordic',
-              name: 'NÃ³rdico Glaciar',
+              name: 'Nórdico Glaciar',
               category: 'Glaciar Minimal',
-              desc: 'Aguamarina Ã¡rtica y turquesa glaciar de balance cromÃ¡tico limpio',
+              desc: 'Aguamarina ártica y turquesa glaciar de balance cromático limpio',
               c1: '#042f2e',
               c2: '#06b6d4',
               c3: '#ecfeff',
@@ -1238,9 +1266,9 @@ export default function ConfiguracionPage() {
             },
             {
               id: 'theme-ruby',
-              name: 'Titanio & RubÃ­',
+              name: 'Titanio & Rubí',
               category: 'Lujo Vanguardista',
-              desc: 'Base zinc y carbÃ³n mate con acentos rubÃ­ neÃ³n de alto impacto',
+              desc: 'Base zinc y carbón mate con acentos rubí neón de alto impacto',
               c1: '#18181b',
               c2: '#e11d48',
               c3: '#fff1f2',
@@ -1250,7 +1278,7 @@ export default function ConfiguracionPage() {
               id: 'theme-gold',
               name: 'Elegante Dark',
               category: 'Premium Dorado',
-              desc: 'Negro obsidian de mÃ¡ximo contraste con sutil oro metÃ¡lico',
+              desc: 'Negro obsidian de máximo contraste con sutil oro metálico',
               c1: '#171717',
               c2: '#d4af37',
               c3: '#fefce8',

@@ -17,6 +17,7 @@ export default function ContactoSection() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
   
   const [config, setConfig] = useState<any>(null)
   
@@ -30,17 +31,24 @@ export default function ContactoSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage("")
+
+    if (!formData.nombre.trim() || !formData.email.trim() || !formData.telefono.trim()) {
+      setErrorMessage("Por favor, completa los campos obligatorios (Nombre, Email y Teléfono).")
+      return
+    }
+
     setIsSubmitting(true)
 
     // Combinar datos para que encajen en el esquema de cotizaciones
-    const nombreCompleto = `${formData.nombre} ${formData.apellido}`
-    const descripcionCompleta = `Ubicación: ${formData.ubicacion} | Etapa: ${formData.etapa} | Mensaje: ${formData.mensaje}`
+    const nombreCompleto = `${formData.nombre.trim()} ${formData.apellido.trim()}`.trim()
+    const descripcionCompleta = `Ubicación: ${formData.ubicacion.trim() || 'No especificada'} | Etapa: ${formData.etapa} | Mensaje: ${formData.mensaje.trim()}`
 
     const payload = {
       nombre: nombreCompleto,
-      email: formData.email,
-      telefono: formData.telefono,
-      tipo_proyecto: formData.tipo,
+      email: formData.email.trim(),
+      telefono: formData.telefono.trim(),
+      tipo_proyecto: formData.tipo || 'General',
       descripcion: descripcionCompleta,
       estado: 'pendiente'
     }
@@ -54,7 +62,7 @@ export default function ContactoSection() {
         nombre: "", apellido: "", telefono: "", email: "", tipo: "", etapa: "idea", ubicacion: "", mensaje: ""
       })
     } else {
-      alert("Error al enviar la solicitud: " + error.message)
+      setErrorMessage("No se pudo enviar la solicitud en este momento. Por favor, intenta de nuevo o comunícate vía WhatsApp/Teléfono.")
     }
   }
 
@@ -202,6 +210,12 @@ export default function ContactoSection() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {errorMessage && (
+                  <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label htmlFor="nombre" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Nombre *</label>

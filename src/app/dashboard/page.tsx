@@ -1,10 +1,14 @@
 "use client"
 import Link from "next/link"
 import { Calculator, Box, Layers, ArrowRight, FileSpreadsheet, Building2, Compass } from "lucide-react"
+import ModuloIntroSplash from "@/components/ui/ModuloIntroSplash"
 
 export default function DashboardPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-300">
+      {/* Intro con logotipo oficial 3D giratorio de SARA APU */}
+      <ModuloIntroSplash modulo="apu" />
+
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Bienvenido a tu panel de Presupuestos</h1>
         <p className="text-gray-500 mt-2">Crea cotizaciones y análisis de precios unitarios con nuestra base de datos actualizada.</p>

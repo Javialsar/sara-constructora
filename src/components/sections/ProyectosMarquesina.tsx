@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { MapPin, ArrowRight, Eye } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 const getStatusLabel = (estado: string) => {
@@ -9,7 +10,7 @@ const getStatusLabel = (estado: string) => {
     case 'en_diseno': return 'Diseño'
     case 'en_construccion': return 'En Construcción'
     case 'finalizado': return 'Finalizado'
-    default: return estado.replace('_', ' ')
+    default: return (estado || '').replace('_', ' ')
   }
 }
 
@@ -33,38 +34,64 @@ export default function ProyectosMarquesina() {
     fetchProyectos()
   }, [])
 
-  // Si aún está cargando o no hay proyectos, no renderizar la sección
-  if (loading || proyectosDB.length === 0) {
+  if (loading) {
+    return (
+      <section className="bg-[#080d10] py-16 md:py-24 overflow-hidden border-t border-b border-white/10 relative">
+        <div className="container mx-auto px-4 md:px-8 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <div className="h-4 w-44 bg-white/10 rounded animate-pulse" />
+            <div className="h-10 w-64 bg-white/10 rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="flex gap-6 px-4 md:px-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="w-[300px] md:w-[420px] h-[360px] md:h-[460px] rounded-2xl bg-white/[0.03] border border-white/10 animate-pulse shrink-0" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  // Si no hay proyectos, no renderizar la sección
+  if (proyectosDB.length === 0) {
     return null
   }
 
-  // Duplicamos el array para el efecto infinito
+  // Duplicamos el array para el efecto infinito continuo
   const proyectos = [...proyectosDB, ...proyectosDB]
 
   return (
-    <section className="bg-white py-12 md:py-20 overflow-hidden border-t border-b border-gray-100">
-      <div className="container mx-auto px-4 md:px-8 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <section className="bg-[#080d10] py-16 md:py-24 overflow-hidden border-t border-b border-white/10 relative">
+      
+      {/* Luz ambiental de fondo */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(197,160,89,0.08),rgba(0,0,0,0))] pointer-events-none" />
+
+      <div className="container mx-auto px-4 md:px-8 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
         <div>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-brand-dark tracking-tighter uppercase mb-2">
-            Portafolio Destacado
+          <div className="text-brand-sage font-extrabold tracking-[0.25em] text-xs uppercase mb-2">
+            Portafolio de Obras Civiles
+          </div>
+          <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase">
+            Nuestros <span className="text-brand-sage">Proyectos</span>
           </h2>
-          <p className="text-brand-sage font-bold tracking-widest text-xs uppercase">
-            Proyectos en desarrollo y ejecutados
-          </p>
         </div>
-        <Link href="/proyectos" className="text-brand-dark hover:text-brand-sage text-sm font-bold uppercase tracking-widest transition-colors flex items-center gap-2">
-          Ver todos los proyectos →
+        <Link 
+          href="/proyectos" 
+          className="inline-flex items-center gap-2 text-white hover:text-brand-sage text-xs font-black uppercase tracking-widest transition-all bg-white/5 hover:bg-white/10 px-5 py-3 rounded-xl border border-white/10 group"
+        >
+          <span>Explorar Catálogo Completo</span>
+          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform text-brand-sage" />
         </Link>
       </div>
 
       <div className="relative w-full flex overflow-x-hidden">
-        {/* Marquesina animada */}
+        {/* Marquesina animada infinita */}
         <motion.div 
-          className="flex gap-6 px-3 w-max"
+          className="flex gap-8 px-4 w-max"
           animate={{ x: ["0%", "-50%"] }}
           transition={{
             ease: "linear",
-            duration: Math.max(20, proyectosDB.length * 8),
+            duration: Math.max(25, proyectosDB.length * 9),
             repeat: Infinity,
           }}
         >
@@ -72,35 +99,40 @@ export default function ProyectosMarquesina() {
             <Link 
               href={`/proyectos/${proyecto.id}`}
               key={`${proyecto.id}-${idx}`} 
-              className="relative w-[300px] md:w-[450px] aspect-[4/3] group overflow-hidden bg-brand-black flex-shrink-0 cursor-pointer block"
+              className="relative w-[320px] md:w-[480px] aspect-[16/11] group overflow-hidden rounded-2xl border border-white/10 bg-[#0c1418] flex-shrink-0 cursor-pointer block hover:border-brand-sage/60 transition-all duration-500 shadow-2xl"
             >
               {proyecto.imagen_url ? (
                 <div 
-                  className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700"
+                  className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-700 ease-out brightness-[1.10] contrast-[1.12] saturate-[1.18]"
                   style={{ backgroundImage: `url(${proyecto.imagen_url})` }}
                 />
               ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-brand-black flex items-center justify-center">
-                  <span className="text-white/20 text-6xl font-extrabold uppercase">{proyecto.nombre?.charAt(0)}</span>
+                <div className="absolute inset-0 bg-gradient-to-br from-brand-dark to-[#0c1418] flex items-center justify-center">
+                  <span className="text-white/20 text-6xl font-black uppercase">{proyecto.nombre?.charAt(0)}</span>
                 </div>
               )}
-              {/* Overlays */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-500" />
+
+              {/* Degradados cinemáticos ligeros: permiten apreciar la arquitectura con gran luminosidad */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
               
-              <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-between">
+              <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-between z-10">
                 <div className="flex justify-between items-start">
-                  <span className="bg-brand-sage text-brand-dark text-[10px] font-bold uppercase tracking-widest px-3 py-1">
+                  <span className="bg-brand-sage text-brand-dark text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-md shadow-lg">
                     {getStatusLabel(proyecto.estado)}
+                  </span>
+
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-md text-white p-2 rounded-lg border border-white/20">
+                    <Eye size={14} />
                   </span>
                 </div>
                 
-                <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                  <h3 className="text-white font-bold text-xl md:text-2xl tracking-tight mb-1">
+                <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                  <h3 className="text-white font-black text-xl md:text-2xl tracking-tight uppercase mb-2 group-hover:text-brand-sage transition-colors">
                     {proyecto.nombre}
                   </h3>
-                  <p className="text-gray-400 text-sm flex items-center gap-2">
-                    <span className="w-4 h-[1px] bg-brand-sage inline-block" />
-                    {proyecto.ubicacion}
+                  <p className="text-slate-300 text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wider">
+                    <MapPin size={13} className="text-brand-sage shrink-0" />
+                    <span>{proyecto.ubicacion || 'Ecuador'}</span>
                   </p>
                 </div>
               </div>

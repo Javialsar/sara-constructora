@@ -1,4 +1,5 @@
 "use client"
+import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 
 import React, { useState, useEffect } from "react"
 import { Search, ShoppingCart, Filter, Star, Truck, Building2, PackageCheck, CheckCircle2, Loader2, X, Plus, Minus, ArrowRight } from "lucide-react"
@@ -237,7 +238,9 @@ export default function MarketplacePage() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-16">
+    <>
+      <ModuloIntroSplash modulo="compras" />
+      <div className="min-h-screen bg-slate-50 pt-24 pb-16">
       
       {/* Smart Banner Header */}
       <div className="bg-brand-dark text-white py-12 px-6">
@@ -535,5 +538,6 @@ export default function MarketplacePage() {
         </div>
       )}
     </div>
+    </>
   )
 }

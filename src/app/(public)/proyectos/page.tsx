@@ -26,7 +26,7 @@ export default function ProyectosPage() {
     async function load() {
       const { data } = await supabase
         .from("proyectos")
-        .select("*")
+        .select("id, nombre, ubicacion, estado, imagen_url, latitud, longitud, descripcion, avance, created_at")
         .order("created_at", { ascending: false })
 
       if (data) setProyectos(data)

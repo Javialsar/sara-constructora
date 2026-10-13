@@ -25,13 +25,11 @@ interface HeroSlide {
     isExternal?: boolean
   }
   image: string
-  isLogo: boolean
   accentColor: string
   pillActiveBg: string
 }
 
 export default function HeroConstructora() {
-  const [logoUrl, setLogoUrl] = useState<string>('/logo-grupo-sara.png')
   const [projectSlides, setProjectSlides] = useState<any[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -39,14 +37,8 @@ export default function HeroConstructora() {
   useEffect(() => {
     const fetchData = async () => {
       const supabase = createClient()
-      
-      // 1. Obtener Logo Oficial
-      const { data: config } = await supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
-      if (config?.logo_url) {
-        setLogoUrl(config.logo_url)
-      }
 
-      // 2. Obtener Proyectos marcados para mostrarse (destacados)
+      // Obtener Proyectos marcados para mostrarse (destacados)
       const { data } = await supabase
         .from('proyectos')
         .select('id, nombre, ubicacion, estado, imagen_url')
@@ -93,10 +85,9 @@ export default function HeroConstructora() {
           },
           secondaryBtn: {
             text: "Portal Clientes",
-            href: "/portal/dashboard"
+            href: "/portal"
           },
           image: p.imagen_url,
-          isLogo: false,
           accentColor: "text-brand-sage",
           pillActiveBg: "bg-brand-sage text-slate-950"
         }
@@ -115,15 +106,14 @@ export default function HeroConstructora() {
           description: "Transformamos visión en estructura. Integramos planificación, diseño y ejecución para proyectos de alta precisión arquitectónica y funcionalidad absoluta.",
           primaryBtn: {
             text: "Solicitar Cotización",
-            href: "/contacto",
+            href: "/constructora#cotizacion",
             variant: "sage" as const
           },
           secondaryBtn: {
             text: "Portal Clientes",
-            href: "/portal/dashboard"
+            href: "/portal"
           },
-          image: logoUrl,
-          isLogo: true,
+          image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop",
           accentColor: "text-brand-sage",
           pillActiveBg: "bg-brand-sage text-slate-950"
         }
@@ -147,32 +137,27 @@ export default function HeroConstructora() {
       onMouseLeave={() => setIsPaused(false)}
       className="relative min-h-[85vh] lg:min-h-[90vh] flex items-center overflow-hidden bg-brand-dark"
     >
-      {/* Fondo con las imágenes de los proyectos destacados en rotación continua */}
+      {/* Fondo con las imágenes de los proyectos arquitectónicos en rotación continua con máxima claridad e impacto visual */}
       {allSlides.map((slide, index) => {
         const isActive = index === safeIndex
         return (
           <div
             key={slide.id}
-            className={`absolute inset-0 w-full h-full transition-all duration-[1200ms] ease-in-out z-0 
-              ${slide.isLogo 
-                ? 'bg-center bg-no-repeat bg-contain' 
-                : 'bg-cover bg-center lg:bg-[position:65%_center] bg-no-repeat'
-              } 
+            className={`absolute inset-0 w-full h-full transition-all duration-[1200ms] ease-in-out z-0 bg-cover bg-center lg:bg-[position:65%_center] bg-no-repeat brightness-[1.12] contrast-[1.14] saturate-[1.20]
               ${isActive ? 'opacity-100 scale-100' : 'opacity-0 scale-105 pointer-events-none'}`}
             style={{ 
               backgroundImage: `url('${slide.image}')` 
             }}
           >
-            {/* Gradiente izquierdo para que el texto sea perfectamente legible sobre la fotografía */}
-            {!slide.isLogo && (
-              <div className="absolute inset-0 bg-gradient-to-r from-brand-dark/95 via-brand-dark/75 to-black/30 z-10" />
-            )}
+            {/* Gradiente cinematográfico ligero y transparente: permite que la arquitectura se aprecie nítida, luminosa e imponente */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent z-10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent z-10" />
           </div>
         )
       })}
       
-      {/* Resplandor verde de marca de fondo */}
-      <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-25 pointer-events-none" />
+      {/* Resplandor ambiental ultra sutil */}
+      <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-5 pointer-events-none" />
 
       <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[75vh]">
         <div className="max-w-3xl space-y-6 md:pl-8">

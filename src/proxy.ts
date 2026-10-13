@@ -62,15 +62,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // If user is logged in and visits /portal (login page), redirect to dashboard
-  if (pathname === '/portal' && user) {
-    const isAdmin = user.user_metadata?.role === 'admin'
-    if (!isAdmin) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/portal/dashboard'
-      return NextResponse.redirect(url)
-    }
-  }
+
 
   // If admin user visits /admin/login, redirect to /admin
   if (pathname === '/admin/login' && user) {

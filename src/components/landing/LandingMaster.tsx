@@ -55,20 +55,22 @@ export default function LandingMaster() {
         </div>
       )}
 
-      {/* 1. Hero Principal Dinámico con logos de servicios en rotación progresiva y posicionamiento oficial */}
+      {/* 1. Hero Principal Dinámico: logos rotativos flotantes sin cuadro */}
       <Hero 
         onOpenCheckout={handleOpenCheckout}
       />
 
-      {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA con logotipos oficiales y títulos SARA-...) */}
+      {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA) */}
       <EcosystemMatrix 
         onOpenCheckout={handleOpenCheckout}
       />
 
-      {/* 3. Sección de Preguntas Frecuentes (FAQ) recuperada */}
-      <FAQ />
+      {/* 3. Sección de Preguntas Frecuentes (FAQ) */}
+      <div id="faq">
+        <FAQ />
+      </div>
 
-      {/* Unified Standard Checkout Modal (matching image1) */}
+      {/* Unified Standard Checkout Modal */}
       <StandardCheckoutModal
         isOpen={checkoutConfig.isOpen}
         onClose={() => setCheckoutConfig((prev) => ({ ...prev, isOpen: false }))}

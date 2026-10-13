@@ -55,6 +55,88 @@ export function calcularTotalesPresupuesto({
   const ind = { pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(currentPresupuesto?.indirectos_config || {}), ...(indForm || {}) };
   const f = ind.formulas || defaultFormulas;
 
+  const safeEvaluateArithmetic = (expression: string): number => {
+    const sanitized = expression.replace(/[^0-9+\-*/().]/g, '');
+    if (!sanitized) return 0;
+
+    const tokens: (string | number)[] = [];
+    let i = 0;
+    while (i < sanitized.length) {
+      const ch = sanitized[i];
+      if (ch === '+' || ch === '-' || ch === '*' || ch === '/' || ch === '(' || ch === ')') {
+        tokens.push(ch);
+        i++;
+      } else if ((ch >= '0' && ch <= '9') || ch === '.') {
+        let numStr = '';
+        while (i < sanitized.length && ((sanitized[i] >= '0' && sanitized[i] <= '9') || sanitized[i] === '.')) {
+          numStr += sanitized[i];
+          i++;
+        }
+        tokens.push(parseFloat(numStr) || 0);
+      } else {
+        i++;
+      }
+    }
+
+    let pos = 0;
+
+    const parseFactor = (): number => {
+      if (pos >= tokens.length) return 0;
+      let sign = 1;
+      if (tokens[pos] === '+') {
+        pos++;
+      } else if (tokens[pos] === '-') {
+        sign = -1;
+        pos++;
+      }
+
+      if (pos >= tokens.length) return 0;
+      const token = tokens[pos];
+      if (token === '(') {
+        pos++;
+        const val = parseExpr();
+        if (pos < tokens.length && tokens[pos] === ')') {
+          pos++;
+        }
+        return sign * val;
+      } else if (typeof token === 'number') {
+        pos++;
+        return sign * token;
+      }
+      return 0;
+    };
+
+    const parseTerm = (): number => {
+      let result = parseFactor();
+      while (pos < tokens.length && (tokens[pos] === '*' || tokens[pos] === '/')) {
+        const op = tokens[pos++];
+        const right = parseFactor();
+        if (op === '*') {
+          result *= right;
+        } else if (op === '/') {
+          result = right !== 0 ? result / right : 0;
+        }
+      }
+      return result;
+    };
+
+    const parseExpr = (): number => {
+      let result = parseTerm();
+      while (pos < tokens.length && (tokens[pos] === '+' || tokens[pos] === '-')) {
+        const op = tokens[pos++];
+        const right = parseTerm();
+        if (op === '+') {
+          result += right;
+        } else if (op === '-') {
+          result -= right;
+        }
+      }
+      return result;
+    };
+
+    return parseExpr() || 0;
+  };
+
   const evalFormula = (formulaStr: string, varsObj: any) => {
     try {
       let s = String(formulaStr || '');
@@ -62,9 +144,7 @@ export function calcularTotalesPresupuesto({
       for (const k of sortedKeys) {
         s = s.split('$' + k).join(varsObj[k]);
       }
-      s = s.replace(/[^0-9+\-*/().]/g, '');
-      if (!s) return 0;
-      return new Function('return ' + s)() || 0;
+      return safeEvaluateArithmetic(s);
     } catch (e) {
       return 0;
     }

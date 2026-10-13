@@ -2,6 +2,7 @@
 import ThemeToggle from "@/components/ThemeToggle";
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import ModuloIntroSplash from "@/components/ui/ModuloIntroSplash";
 import {
   Calculator,
   Sparkles,
@@ -1036,6 +1037,9 @@ export default function AirbnbPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-gray-900 pb-20">
+      {/* Intro con logotipo oficial 3D giratorio */}
+      <ModuloIntroSplash modulo="stays" />
+
       {/* ============================================================ */}
       {/* 0. APP HEADER EXCLUSIVO: SARA STAYS (STANDALONE)             */}
       {/* ============================================================ */}

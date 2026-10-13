@@ -20,7 +20,7 @@ import { getLogosEmpresa } from "@/lib/services/logosService"
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [logo, setLogo] = useState("/logo-grupo-sara.png")
+  const [logo, setLogo] = useState("/logo-hero.png")
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,8 +34,8 @@ export default function Header() {
     getLogosEmpresa().then(logos => {
       if (logos?.grupo_sara) {
         setLogo(logos.grupo_sara)
-      } else if (logos?.constructora) {
-        setLogo(logos.constructora)
+      } else {
+        setLogo("/logo-hero.png")
       }
     })
   }, [])
@@ -53,10 +53,24 @@ export default function Header() {
           <img 
             src={logo} 
             alt="Grupo SARA Logo" 
-            className={cn("w-auto object-contain transition-all duration-300 group-hover:scale-105 filter drop-shadow-lg",
-              isScrolled ? "h-12 md:h-14" : "h-14 md:h-16"
+            onError={(e) => {
+              const target = e.currentTarget as HTMLImageElement
+              if (!target.src.endsWith('/logo-hero.png')) {
+                target.src = '/logo-hero.png'
+              }
+            }}
+            className={cn("w-auto object-contain transition-all duration-300 group-hover:scale-105 filter drop-shadow-[0_4px_14px_rgba(251,191,36,0.25)]",
+              isScrolled ? "h-11 md:h-13" : "h-13 md:h-15"
             )} 
           />
+          <div className="hidden sm:flex flex-col">
+            <span className="text-sm font-black tracking-widest text-white group-hover:text-amber-400 transition-colors uppercase">
+              GRUPO SARA
+            </span>
+            <span className="text-[10px] font-bold tracking-widest text-brand-sage uppercase">
+              Ingeniería & Tecnología
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Nav */}
