@@ -44,9 +44,9 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Check admin role
-    const isAdmin = user.user_metadata?.role === 'admin'
-    if (!isAdmin) {
+    // Check admin / tecnico role
+    const hasAccess = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'tecnico'
+    if (!hasAccess) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
       return NextResponse.redirect(url)
@@ -62,12 +62,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-
-
   // If admin user visits /admin/login, redirect to /admin
   if (pathname === '/admin/login' && user) {
-    const isAdmin = user.user_metadata?.role === 'admin'
-    if (isAdmin) {
+    const hasAccess = user.user_metadata?.role === 'admin' || user.user_metadata?.role === 'tecnico'
+    if (hasAccess) {
       const url = request.nextUrl.clone()
       url.pathname = '/admin'
       return NextResponse.redirect(url)
