@@ -1,9 +1,22 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { InmuebleAdmin } from "@/app/admin/inmobiliaria/page"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
+
+function sanitizeInmueblePublic(item: any) {
+  const { legalidad, ...clean } = item
+  return {
+    ...clean,
+    propietario: {
+      nombre: clean.propietario?.nombre || "Asesor Inmobiliario SARA",
+      telefono: clean.propietario?.telefono || "+593981804023",
+      email: clean.propietario?.email || "contacto@inmobiliaria.sara"
+    }
+  }
+}
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -208,56 +221,87 @@ const INMUEBLES_SEMILLA: InmuebleAdmin[] = [
   }
 ]
 
-// GET: Obtener todos los inmuebles de la base de datos Supabase
-export async function GET() {
+// GET: Obtener inmuebles con sanitización de privacidad y discriminación de rol
+export async function GET(req: Request) {
   const supabase = getSupabaseAdmin()
   if (!supabase) {
-    return NextResponse.json({ success: true, inmuebles: INMUEBLES_SEMILLA, source: "default_no_db" })
+    return NextResponse.json({ success: true, inmuebles: INMUEBLES_SEMILLA.map(sanitizeInmueblePublic), source: "default_no_db" })
   }
 
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    const role = user?.user_metadata?.role
+    const isAdmin = role === "admin" || role === "tecnico"
+
     const { data, error } = await supabase
       .from("parametros_globales")
       .select("id, indirectos_default")
       .limit(1)
       .single()
 
+    let catalogo: InmuebleAdmin[] = INMUEBLES_SEMILLA
     if (!error && data?.indirectos_default?.inmuebles_catalogo && Array.isArray(data.indirectos_default.inmuebles_catalogo)) {
-      return NextResponse.json({
-        success: true,
-        inmuebles: data.indirectos_default.inmuebles_catalogo,
-        source: "supabase"
-      })
-    }
-
-    // Si aún no existen inmuebles en la BD, guardar los datos semilla en Supabase
-    if (data?.id) {
-      const mergedIndirectos = {
-        ...(data.indirectos_default || {}),
-        inmuebles_catalogo: INMUEBLES_SEMILLA
-      }
+      catalogo = data.indirectos_default.inmuebles_catalogo
+    } else if (data?.id) {
       await supabase
         .from("parametros_globales")
         .update({
-          indirectos_default: mergedIndirectos,
+          indirectos_default: {
+            ...(data.indirectos_default || {}),
+            inmuebles_catalogo: INMUEBLES_SEMILLA
+          },
           updated_at: new Date().toISOString()
         })
         .eq("id", data.id)
     }
 
+    // 1. Si es Administrador autenticado: acceso a catálogo completo
+    if (isAdmin) {
+      return NextResponse.json({
+        success: true,
+        inmuebles: catalogo,
+        source: "supabase_admin"
+      })
+    }
+
+    // 2. Si es Propietario autenticado solicitando sus propiedades
+    const { searchParams } = new URL(req.url)
+    const emailFiltro = searchParams.get("propietarioEmail")
+    if (user && emailFiltro && user.email?.toLowerCase() === emailFiltro.toLowerCase()) {
+      const propios = catalogo.filter(item => item.propietario?.email?.toLowerCase() === user.email?.toLowerCase())
+      return NextResponse.json({
+        success: true,
+        inmuebles: propios,
+        source: "supabase_owner"
+      })
+    }
+
+    // 3. Consumo público anónimo: datos sanitizados sin cuentas bancarias ni documentos
+    const publicos = catalogo.filter(item => item.publicado !== false).map(sanitizeInmueblePublic)
     return NextResponse.json({
       success: true,
-      inmuebles: INMUEBLES_SEMILLA,
-      source: "seeded_to_supabase"
+      inmuebles: publicos,
+      source: "supabase_public"
     })
   } catch (err: any) {
     console.error("Error leyendo inmuebles de Supabase:", err)
-    return NextResponse.json({ success: true, inmuebles: INMUEBLES_SEMILLA, source: "fallback" })
+    return NextResponse.json({ success: true, inmuebles: INMUEBLES_SEMILLA.map(sanitizeInmueblePublic), source: "fallback" })
   }
 }
 
-// POST: Crear, actualizar un inmueble o sincronizar la lista completa en Supabase
+// POST: Crear o actualizar inmuebles con autorización obligatoria
 export async function POST(req: Request) {
+  const serverClient = await createSupabaseServerClient()
+  const { data: { user } } = await serverClient.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ success: false, error: "No autorizado. Inicie sesión para guardar propiedades." }, { status: 401 })
+  }
+
+  const role = user.user_metadata?.role
+  const isAdmin = role === "admin" || role === "tecnico"
+
   const supabase = getSupabaseAdmin()
   if (!supabase) {
     return NextResponse.json({ success: false, error: "Credenciales de Supabase no disponibles" }, { status: 500 })
@@ -265,6 +309,20 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
+
+    // Solo admin puede sobreescribir listas masivas
+    if (body.inmuebles && !isAdmin) {
+      return NextResponse.json({ success: false, error: "Permisos insuficientes para sincronización masiva." }, { status: 403 })
+    }
+
+    // Si no es admin, validar que la propiedad pertenezca a su correo
+    if (body.inmueble && !isAdmin) {
+      const propEmail = body.inmueble.propietario?.email || body.inmueble.propietarioEmail
+      if (!propEmail || propEmail.toLowerCase() !== user.email?.toLowerCase()) {
+        return NextResponse.json({ success: false, error: "No autorizado para modificar propiedades ajenas." }, { status: 403 })
+      }
+    }
+
     const { data: globalParam, error: fetchErr } = await supabase
       .from("parametros_globales")
       .select("id, indirectos_default")
@@ -281,10 +339,8 @@ export async function POST(req: Request) {
       : INMUEBLES_SEMILLA
 
     if (body.inmuebles && Array.isArray(body.inmuebles)) {
-      // Sincronización masiva de la lista completa
       listaActual = body.inmuebles
     } else if (body.inmueble) {
-      // Guardar o actualizar un inmueble específico
       const target: any = body.inmueble;
       if (!target.promocion) {
         target.promocion = {
@@ -334,8 +390,18 @@ export async function POST(req: Request) {
   }
 }
 
-// DELETE: Eliminar un inmueble por ID o Código de la BD Supabase
+// DELETE: Eliminar un inmueble verificando identidad o privilegios de administrador
 export async function DELETE(req: Request) {
+  const serverClient = await createSupabaseServerClient()
+  const { data: { user } } = await serverClient.auth.getUser()
+
+  if (!user) {
+    return NextResponse.json({ success: false, error: "No autorizado para eliminar inmuebles." }, { status: 401 })
+  }
+
+  const role = user.user_metadata?.role
+  const isAdmin = role === "admin" || role === "tecnico"
+
   const supabase = getSupabaseAdmin()
   if (!supabase) {
     return NextResponse.json({ success: false, error: "Credenciales de Supabase no disponibles" }, { status: 500 })
@@ -361,6 +427,17 @@ export async function DELETE(req: Request) {
       const listaActual: InmuebleAdmin[] = Array.isArray(indirectos.inmuebles_catalogo)
         ? indirectos.inmuebles_catalogo
         : []
+
+      const targetItem = listaActual.find(item => (id && item.id === id) || (codigo && item.codigo === codigo))
+      if (!targetItem) {
+        return NextResponse.json({ success: false, error: "Inmueble no encontrado" }, { status: 404 })
+      }
+
+      // Validar si el usuario tiene permiso para borrar
+      const esDuenio = targetItem.propietario?.email?.toLowerCase() === user.email?.toLowerCase()
+      if (!isAdmin && !esDuenio) {
+        return NextResponse.json({ success: false, error: "Permiso denegado para eliminar esta propiedad." }, { status: 403 })
+      }
 
       const filtrada = listaActual.filter(item => {
         if (id && item.id === id) return false

@@ -77,15 +77,16 @@ export default function InmobiliariaAuthPage() {
       let ownerCedula = ""
       let ownerApellido = ""
 
-      if (authError) {
-        console.warn("Supabase auth advertencia:", authError.message)
-      } else if (data?.user) {
-        const metadata = data.user.user_metadata || {}
-        rawName = metadata.nombre || rawName
-        ownerApellido = metadata.apellido || ""
-        ownerPhone = metadata.telefono || ownerPhone
-        ownerCedula = metadata.cedula || ""
+      if (authError || !data?.user) {
+        throw new Error(authError?.message || "Credenciales incorrectas. Verifica tu correo y contraseña.")
       }
+
+      const metadata = data.user.user_metadata || {}
+      rawName = metadata.nombre || rawName
+      ownerApellido = metadata.apellido || ""
+      ownerPhone = metadata.telefono || ownerPhone
+      ownerCedula = metadata.cedula || ""
+      ownerId = data.user.id
 
       const cleanParts = rawName.replace(/[._-]+/g, " ").trim().split(/\s+/)
       let finalNombre = cleanParts.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ")

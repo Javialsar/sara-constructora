@@ -58,7 +58,12 @@ export default function PresupuestosRealesPage() {
 
 const createMutation = useMutation({
     mutationFn: async (values: PresupuestoFormValues) => {
-      const { data, error } = await supabase.from('presupuestos_reales').insert([values]).select('*, cliente:clientes(id, nombre, apellido, email)').single();
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload = {
+        ...values,
+        ...(user?.id ? { user_id: user.id } : {})
+      };
+      const { data, error } = await supabase.from('presupuestos_reales').insert([payload]).select('*, cliente:clientes(id, nombre, apellido, email)').single();
       if (error) throw error;
       return data;
     },

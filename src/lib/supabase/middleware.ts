@@ -32,6 +32,25 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
+  // Proteger rutas del panel SaaS /dashboard
+  if (pathname.startsWith('/dashboard')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Redirigir si el usuario ya está autenticado e intenta entrar a /login
+  if (pathname === '/login' && user) {
+    const role = user.user_metadata?.role
+    const target = (role === 'admin' || role === 'tecnico') ? '/admin' : '/dashboard'
+    const url = request.nextUrl.clone()
+    url.pathname = target
+    return NextResponse.redirect(url)
+  }
+
   // Proteger rutas administrativas
   if (pathname.startsWith('/admin')) {
     const isLoginPage = pathname === '/admin/login'

@@ -1,6 +1,7 @@
 "use client"
-import { Percent } from "lucide-react"
+import { Percent, Loader2 } from "lucide-react"
 import { getInmobiliariaConfig, InmobiliariaConfigCompleta, DEFAULT_INMOBILIARIA_CONFIG } from "@/lib/services/inmobiliariaPlanesService"
+import { uploadInmuebleMedia, uploadInmuebleDocumentoPrivado } from "@/lib/services/storageInmuebles"
 import dynamic from "next/dynamic"
 
 import React, { useState, useRef, useCallback } from "react"
@@ -178,27 +179,31 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
     }))
   }
 
-  // Manejo de Imágenes (FileReader a Base64 - Simulado para simplificar en local)
-  const handleUploadFotos = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
+
+  // Manejo de Imágenes: Subida directa a Supabase Storage (inmuebles-media)
+  const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader()
-        reader.onload = (event) => {
-          if (event.target?.result) {
-            const url = event.target.result as string
-            setFormInmueble(prev => {
-              const list = [...(prev.galeriaImagenes || []), url]
-              return {
-                ...prev,
-                galeriaImagenes: list,
-                imagenUrl: prev.imagenUrl || url
-              }
-            })
+      setIsUploadingMedia(true)
+      try {
+        const uploadPromises = Array.from(files).map(file => uploadInmuebleMedia(file, "fotos"))
+        const results = await Promise.all(uploadPromises)
+        const urls = results.map(r => r.url)
+
+        setFormInmueble(prev => {
+          const list = [...(prev.galeriaImagenes || []), ...urls]
+          return {
+            ...prev,
+            galeriaImagenes: list,
+            imagenUrl: prev.imagenUrl || list[0] || ""
           }
-        }
-        reader.readAsDataURL(file)
-      })
+        })
+      } catch (err: any) {
+        alert(err.message || "Error al subir imágenes a Supabase Storage")
+      } finally {
+        setIsUploadingMedia(false)
+      }
     }
   }
 
@@ -218,32 +223,43 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
     setFormInmueble(prev => ({ ...prev, imagenUrl: url }))
   }
 
-  const handleUploadQR = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadQR = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setFormInmueble(prev => ({
-            ...prev,
-            cuentaBancaria: { ...prev.cuentaBancaria, qrCuenta: event.target!.result as string }
-          }))
-        }
+      setIsUploadingMedia(true)
+      try {
+        const result = await uploadInmuebleMedia(file, "fotos")
+        setFormInmueble(prev => ({
+          ...prev,
+          cuentaBancaria: { ...prev.cuentaBancaria, qrCuenta: result.url }
+        }))
+      } catch (err: any) {
+        alert(err.message || "Error al subir código QR")
+      } finally {
+        setIsUploadingMedia(false)
       }
-      reader.readAsDataURL(file)
     }
   }
 
-  const handleUploadVideos = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Manejo de Videos: Subida directa a Supabase Storage (inmuebles-media)
+  const handleUploadVideos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
-        const url = URL.createObjectURL(file) // Para previsualización rápida
+      setIsUploadingMedia(true)
+      try {
+        const uploadPromises = Array.from(files).map(file => uploadInmuebleMedia(file, "videos"))
+        const results = await Promise.all(uploadPromises)
+        const urls = results.map(r => r.url)
+
         setFormInmueble(prev => ({
           ...prev,
-          galeriaVideos: [...prev.galeriaVideos, url]
+          galeriaVideos: [...prev.galeriaVideos, ...urls]
         }))
-      })
+      } catch (err: any) {
+        alert(err.message || "Error al subir videos a Supabase Storage")
+      } finally {
+        setIsUploadingMedia(false)
+      }
     }
   }
 
@@ -255,48 +271,25 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
     })
   }
 
-  // Función para procesar archivos de legalidad (guardan solo el nombre o simulan subida por ahora)
-  
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const MAX_DIM = 1200;
-          if (width > height && width > MAX_DIM) {
-            height *= MAX_DIM / width;
-            width = MAX_DIM;
-          } else if (height > MAX_DIM) {
-            width *= MAX_DIM / height;
-            height = MAX_DIM;
+  // Manejo de Documentos Legales: Subida al bucket privado con RLS (inmuebles-documentos)
+  const handleUploadLegalFile = async (key: keyof typeof formInmueble.legalidad, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setIsUploadingMedia(true)
+      try {
+        const result = await uploadInmuebleDocumentoPrivado(file, String(key))
+        setFormInmueble(prev => ({
+          ...prev,
+          legalidad: {
+            ...prev.legalidad,
+            [key]: result.storagePath
           }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.6));
-        };
-        img.onerror = (e) => reject(e);
-      };
-      reader.onerror = (e) => reject(e);
-    });
-  }
-
-  const handleUploadLegalFile = (key: keyof typeof formInmueble.legalidad, e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormInmueble(prev => ({
-        ...prev,
-        legalidad: {
-          ...prev.legalidad,
-          [key]: e.target.files![0].name
-        }
-      }))
+        }))
+      } catch (err: any) {
+        alert(err.message || "Error al subir documento legal confidencial")
+      } finally {
+        setIsUploadingMedia(false)
+      }
     }
   }
 
@@ -313,12 +306,6 @@ export default function PublicarInmuebleModal({ isOpen, onClose, onSave, propiet
       (finalInmueble as any).id = crypto.randomUUID();
     }
     
-    const payloadSize = JSON.stringify(finalInmueble).length;
-    if (payloadSize > 4 * 1024 * 1024) {
-      alert("Error: El peso total de las imágenes y documentos (" + (payloadSize / 1024 / 1024).toFixed(1) + " MB) excede el límite permitido (4 MB). Por favor elimina algunos archivos o sube PDFs más ligeros.");
-      setIsSubmitting(false);
-      return;
-    }
     await onSave(finalInmueble)
     setIsSubmitting(false)
   }

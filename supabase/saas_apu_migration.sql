@@ -96,7 +96,24 @@ CREATE POLICY "Modificar recetas" ON rubro_insumos
   FOR ALL TO authenticated 
   USING (user_id = auth.uid());
 
--- 10. Políticas para Presupuesto_Rubros
+-- 10. Añadir propiedad a Presupuestos Reales
+ALTER TABLE presupuestos_reales
+  ADD COLUMN IF NOT EXISTS user_id UUID DEFAULT auth.uid() REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- 11. Políticas para Presupuestos Reales y Presupuesto_Rubros
+DROP POLICY IF EXISTS "Acceso a mis presupuestos_reales" ON presupuestos_reales;
+DROP POLICY IF EXISTS "Lectura de mis presupuestos_reales" ON presupuestos_reales;
+DROP POLICY IF EXISTS "Gestion de mis presupuestos_reales" ON presupuestos_reales;
+
+CREATE POLICY "Lectura de mis presupuestos_reales" ON presupuestos_reales
+  FOR SELECT TO authenticated
+  USING (user_id = auth.uid() OR user_id IS NULL);
+
+CREATE POLICY "Gestion de mis presupuestos_reales" ON presupuestos_reales
+  FOR ALL TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
 CREATE POLICY "Acceso a mis presupuestos_rubros" ON presupuesto_rubros
   FOR ALL TO authenticated
   USING (user_id = auth.uid());

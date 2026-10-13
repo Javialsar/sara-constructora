@@ -36,10 +36,10 @@ async function getActiveTheme(): Promise<string> {
     const supabase = createClient(url, key, { auth: { persistSession: false } });
     const { data } = await supabase
       .from("parametros_globales")
-      .select("indirectos_default")
+      .select("indirectos_default->tema_activo")
       .eq("id", 1)
       .single();
-    return data?.indirectos_default?.tema_activo || "";
+    return (data as any)?.tema_activo || "";
   } catch {
     return "";
   }

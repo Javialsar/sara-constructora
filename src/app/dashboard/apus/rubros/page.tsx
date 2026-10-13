@@ -28,11 +28,11 @@ function GruposManager({ familias, subfamilias, setFamilias, setSubfamilias, onB
   const handleAddGrupo = async (e: any) => {
     e.preventDefault(); if (!newGrupoNombre.trim()) return; setSaving(true);
     try {
-      const id = 'FAM-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? `FAM-${crypto.randomUUID()}` : `FAM-${Date.now()}`
       const { data, error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: 'rubro' }]).select()
       if (!error && data) { 
         setNewGrupoNombre(""); setShowGrupoForm(false); setFamilias([...familias, data[0]]); 
-        const sfId = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+        const sfId = typeof crypto !== 'undefined' && crypto.randomUUID ? `SF-${crypto.randomUUID()}` : `SF-${Date.now()}`
         const { data: sfData } = await supabase.from('subfamilias').insert([{ id: sfId, nombre: 'General', familia_id: id }]).select()
         if (sfData) setSubfamilias((prev: any) => [...prev, sfData[0]]);
       }
@@ -48,7 +48,7 @@ function GruposManager({ familias, subfamilias, setFamilias, setSubfamilias, onB
   const handleAddSubgrupo = async (e: any) => {
     e.preventDefault(); if (!selectedFamilia || !newSubNombre.trim()) return; setSaving(true);
     try {
-      const id = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? `SF-${crypto.randomUUID()}` : `SF-${Date.now()}`
       const { data, error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }]).select()
       if (!error && data) { setNewSubNombre(""); setShowSubForm(false); setSubfamilias([...subfamilias, data[0]]); }
     } finally { setSaving(false) }
@@ -972,14 +972,14 @@ const renderInsumoRow = (item: any) => (
   <button onClick={async () => {
     const nombre = window.prompt('Nombre del nuevo Grupo:');
     if (!nombre || !nombre.trim()) return;
-    const id = 'FAM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? `FAM-${crypto.randomUUID()}` : `FAM-${Date.now()}`;
     const { data, error } = await supabase.from('familias').insert([{ id, nombre: nombre.trim(), grupo_sugerido: 'rubro' }]).select();
     if (!error && data) {
       setFamilias([...familias, data[0]]);
-      const sfId = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      const sfId = typeof crypto !== 'undefined' && crypto.randomUUID ? `SF-${crypto.randomUUID()}` : `SF-${Date.now()}`;
       const { data: sfData } = await supabase.from('subfamilias').insert([{ id: sfId, nombre: 'General', familia_id: id }]).select();
       if (sfData) setSubfamilias((prev: any) => [...prev, sfData[0]]);
-    } else alert('Error al crear el grupo');
+    } else alert('No se pudo crear el grupo.');
   }} className="p-1.5 bg-brand-sage hover:bg-brand-dark text-white rounded transition-colors" title="Crear Grupo"><Plus size={14} /></button>
 </div>
             <div className="relative">

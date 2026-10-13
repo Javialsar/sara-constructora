@@ -53,17 +53,17 @@ function GruposManager({
     if (!newGrupoNombre.trim()) return
     setSaving(true)
     try {
-      const id = 'FAM-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? `FAM-${crypto.randomUUID()}` : `FAM-${Date.now()}`
       const { data, error } = await supabase.from('familias').insert([{ id, nombre: newGrupoNombre.trim(), grupo_sugerido: newGrupoTipo }]).select()
       
       if (!error && data && data.length > 0) { 
         setNewGrupoNombre(""); setShowGrupoForm(false);
         setFamilias([...familias, data[0]]); 
       } else {
-        alert(`Error al crear el grupo: ${error?.message || 'Fallo silencioso'}`)
+        alert("No se pudo crear el grupo. Verifique que el nombre no esté duplicado.")
       }
-    } catch (err: any) {
-      alert(`Excepción: ${err.message}`)
+    } catch {
+      alert("Ocurrió un error inesperado al registrar el grupo.")
     } finally {
       setSaving(false)
     }
@@ -86,19 +86,19 @@ function GruposManager({
     setSaving(true)
     setSubError(null)
     try {
-      const id = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? `SF-${crypto.randomUUID()}` : `SF-${Date.now()}`
       const { data, error } = await supabase.from('subfamilias').insert([{ id, nombre: newSubNombre.trim(), familia_id: selectedFamilia.id }]).select()
       
       if (!error && data && data.length > 0) { 
         setNewSubNombre(""); setShowSubForm(false); 
         setSubfamilias([...subfamilias, data[0]]);
       } else {
-        const msg = error?.message || 'Rechazado por la base de datos (Posible RLS o FK)'
+        const msg = 'No se pudo registrar el subgrupo. Verifique los datos ingresados.'
         setSubError(msg)
-        alert("Fallo al guardar: " + msg)
+        alert(msg)
       }
-    } catch (err: any) {
-      setSubError(err.message)
+    } catch {
+      setSubError("Error de conexión al guardar el subgrupo.")
     } finally {
       setSaving(false)
     }
