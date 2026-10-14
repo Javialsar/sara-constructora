@@ -22,7 +22,6 @@ import AsyncSelect from "@/components/ui/AsyncSelect"
 
 import { defaultFormulas, calcularTotalesPresupuesto } from "@/lib/calculadoras/presupuestos";
 import { useProject } from "@/contexts/ProjectContext"
-import { useSearchParams } from "next/navigation"
 
 
 const presupuestoSchema = z.object({
@@ -38,8 +37,6 @@ type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   const queryClient = useQueryClient();
-  const searchParams = useSearchParams();
-  const nuevoIdParam = searchParams.get('nuevo_id');
 
   const { projects, activeProject, currentCliente, isGlobalMode, setGlobalMode, openCreateModal, setActiveProject } = useProject();
   
@@ -140,13 +137,17 @@ export default function PresupuestosRealesPage() {
 
   // ⚡ Si venimos redirigidos tras exportar una licitación, abrir automáticamente el presupuesto
   useEffect(() => {
-    if (nuevoIdParam && presupuestos.length > 0) {
-      const target = presupuestos.find((p: any) => p.id === nuevoIdParam);
-      if (target) {
-        openEditor(target);
+    if (typeof window !== "undefined" && presupuestos.length > 0) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetId = urlParams.get('nuevo_id');
+      if (targetId) {
+        const target = presupuestos.find((p: any) => p.id === targetId);
+        if (target) {
+          openEditor(target);
+        }
       }
     }
-  }, [nuevoIdParam, presupuestos]);
+  }, [presupuestos]);
 
   const proyectosCRM: any[] = [];
   const clientesCRM: any[] = [];
