@@ -10,6 +10,7 @@ import { membreteBase64 } from "@/lib/membreteBase64"
 import { createClientAccount } from "@/app/admin/clientes/actions"
 import AsyncSelect from "@/components/ui/AsyncSelect"
 import AgentNetworkChoreography from "@/components/agents/AgentNetworkChoreography"
+import { SaraCoPilotAdvisor } from "@/components/agents/SaraCoPilotAdvisor"
 
 export default function CotizadorPage() {
   const supabase = createClient();
@@ -874,7 +875,16 @@ export default function CotizadorPage() {
               </div>
 
               {showAiAgentsView && (
-                <div className="pt-3 border-t border-slate-800">
+                <div className="pt-3 border-t border-slate-800 space-y-6">
+                  {/* Co-Piloto Asesor Interactivo y Generador de Exportables Oficiales */}
+                  <SaraCoPilotAdvisor
+                    proyectoId="cotizador-parametrico"
+                    nombreProyecto={cotizacion.nombreProyecto || cotizacion.nombreCliente || "Proyecto Cotizado"}
+                    ubicacion="Cuenca, Azuay"
+                    costoDirectoTotal={(resultados?.costoObra || 80000) + (resultados?.totalHonorarios || 0)}
+                    volumenDesalojoM3={Math.max(25, Math.round(((Number(cotizacion.areaConstruccion) || 160) * 0.35)))}
+                  />
+
                   <AgentNetworkChoreography
                     initialContext={{
                       nombre: cotizacion.nombreProyecto || cotizacion.nombreCliente || "Proyecto Cotizado",

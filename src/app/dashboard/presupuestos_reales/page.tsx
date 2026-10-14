@@ -14,6 +14,8 @@ import { createClient } from "@/lib/supabase/client"
 import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Copy, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings, Filter, Layers, Package, Boxes, PieChart} from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
 import AgentNetworkChoreography from "@/components/agents/AgentNetworkChoreography"
+import { SaraCoPilotAdvisor } from "@/components/agents/SaraCoPilotAdvisor"
+import { ArrowRight } from "lucide-react"
 import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } from "@/lib/pdfGenerator"
 import { generatePresupuestoGeneralExcel, generateExplosionExcel } from "@/lib/excelGenerator"
 import autoTable from "jspdf-autotable"
@@ -1099,13 +1101,35 @@ export default function PresupuestosRealesPage() {
             <Calendar size={16} className="inline mr-2"/> Cronograma de Trabajo
           </button>
           <button onClick={() => setActiveTab('red_agentes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors flex items-center ${activeTab === 'red_agentes' ? 'border-amber-500 text-amber-900 bg-amber-50/70 font-black' : 'border-transparent text-amber-700 hover:text-amber-900 bg-amber-50/30'}`}>
-            <Cpu size={16} className="inline mr-2 text-amber-500 animate-pulse"/> Red de Agentes IA
+            <Cpu size={16} className="inline mr-2 text-amber-500 animate-pulse"/> Red de Agentes IA & Co-Piloto
           </button>
         </div>
 
         {activeTab === 'detalle' && (
 
 <div className="w-full">
+          {/* Banner Interactivo de Co-Piloto Asesor */}
+          <div className="mb-4 bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-500/40 rounded-xl p-3.5 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-blue-100 shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400 flex-shrink-0">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+              </div>
+              <div>
+                <span className="font-extrabold text-white">Co-Piloto Asesor SARA Activo: </span>
+                <span className="text-slate-300">
+                  Analizando opciones de proveedores en Quito/Cuenca y coordinación de carga con cooperativa local.
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('red_agentes')}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold transition shadow-xs flex-shrink-0 cursor-pointer"
+            >
+              <span>Abrir Co-Piloto & Asesoría IA</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
           <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-800">Rubros del Proyecto</h2>
@@ -2110,25 +2134,43 @@ export default function PresupuestosRealesPage() {
         )}
 
         {activeTab === 'red_agentes' && (
-          <div className="w-full mb-12">
-            <AgentNetworkChoreography
-              initialContext={{
-                nombre: currentPresupuesto?.nombre_proyecto || activeProject?.nombre || "Obra Activa",
-                provincia: activeProject?.ubicacion?.includes(',') ? activeProject.ubicacion.split(',')[1].trim() : "Azuay",
-                ciudad: activeProject?.ubicacion?.split(',')[0].trim() || "Cuenca",
-                areaM2: Math.max(80, Math.round((totalCostoDirecto || 50000) / 480)),
-                tipologia: 'Residencial',
-                costoReferencial: totalCostoDirecto || currentPresupuesto?.costo_directo_total || 51918,
-                rubros: rubros.map(r => ({
-                  codigo: r.codigo,
-                  nombre: r.nombre,
-                  unidad: r.unidad,
-                  cantidad: r.cantidad,
-                  subtotal: r.subtotal
-                }))
-              }}
-              autoRun={true}
+          <div className="w-full mb-12 space-y-8">
+            {/* 1. Co-Piloto Asesor Interactivo con Consultor Senior, Persistencia en sara_ai_advisory_logs y Exportables */}
+            <SaraCoPilotAdvisor
+              proyectoId={currentPresupuesto?.id || activeProject?.id || 'presupuesto-activo'}
+              nombreProyecto={currentPresupuesto?.nombre_proyecto || activeProject?.nombre || "Obra Activa"}
+              ubicacion={activeProject?.ubicacion || "Cuenca, Azuay"}
+              costoDirectoTotal={totalCostoDirecto || currentPresupuesto?.costo_directo_total || 45200}
+              volumenDesalojoM3={Math.max(30, Math.round((totalCostoDirecto || 45200) / 1000))}
             />
+
+            {/* 2. Topologia de la Red de Agentes Colectivos */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Cpu className="w-5 h-5 text-amber-500" />
+                  <span>Topología y Sincronización de la Red Colectiva de Agentes (8 Nodos)</span>
+                </h3>
+              </div>
+              <AgentNetworkChoreography
+                initialContext={{
+                  nombre: currentPresupuesto?.nombre_proyecto || activeProject?.nombre || "Obra Activa",
+                  provincia: activeProject?.ubicacion?.includes(',') ? activeProject.ubicacion.split(',')[1].trim() : "Azuay",
+                  ciudad: activeProject?.ubicacion?.split(',')[0].trim() || "Cuenca",
+                  areaM2: Math.max(80, Math.round((totalCostoDirecto || 50000) / 480)),
+                  tipologia: 'Residencial',
+                  costoReferencial: totalCostoDirecto || currentPresupuesto?.costo_directo_total || 51918,
+                  rubros: rubros.map(r => ({
+                    codigo: r.codigo,
+                    nombre: r.nombre,
+                    unidad: r.unidad,
+                    cantidad: r.cantidad,
+                    subtotal: r.subtotal
+                  }))
+                }}
+                autoRun={true}
+              />
+            </div>
           </div>
         )}
 

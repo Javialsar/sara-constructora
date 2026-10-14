@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import AgentAnalyticsModal, { AgentAnalyticsData } from '@/components/agents/AgentAnalyticsModal';
 import { getAgentAnalytics } from '@/components/agents/AgentAnalyticsCatalog';
+import { SaraCoPilotAdvisor } from '@/components/agents/SaraCoPilotAdvisor';
 
 export default function AgentesEcosistemaPage() {
   const [isRunning, setIsRunning] = useState(false);
@@ -182,6 +183,15 @@ export default function AgentesEcosistemaPage() {
           </div>
         </div>
       </div>
+
+      {/* Co-Piloto Asesor Interactivo y Generador de Exportables Oficiales */}
+      <SaraCoPilotAdvisor
+        proyectoId="agentes-ecosistema-central"
+        nombreProyecto={projectName}
+        ubicacion={`${ciudad}, ${provincia}`}
+        costoDirectoTotal={choreographyResult?.resultados?.apu?.costoDirectoTotal || 51918}
+        volumenDesalojoM3={choreographyResult?.resultados?.apu?.desalojoCarga?.volumenTierraDesalojoM3 || 45}
+      />
 
       {/* Control de Lanzamiento de Simulación */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
