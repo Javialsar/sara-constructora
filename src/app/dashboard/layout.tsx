@@ -35,33 +35,28 @@ export default function DashboardLayout({
   const [userInitials, setUserInitials] = useState("U")
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [openGroup, setOpenGroup] = useState<string>("APU Y PRESUPUESTOS")
+  const [openGroup, setOpenGroup] = useState<string>("SUITE SARA-APU")
 
   const navGroups = [
     {
-      title: "APU Y PRESUPUESTOS",
+      title: "SUITE SARA-APU",
       items: [
+        { href: "/dashboard/presupuestos_reales", label: "Presupuestos & SERCOP VAE", icon: FileSpreadsheet },
         { href: "/dashboard/cotizador", label: "Cotizador Automático", icon: Calculator },
-        { href: "/dashboard/presupuestos_reales", label: "Presupuestos Reales", icon: FileSpreadsheet },
-        { href: "/dashboard/apus/rubros", label: "Mis Rubros (Recetas)", icon: Layers },
-        { href: "/dashboard/apus/insumos", label: "Mis Insumos", icon: Box },
+        { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros", icon: Layers },
+        { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos", icon: Box },
+        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones SERCOP)", icon: Search },
+        { href: "/dashboard/apus/fiscaliza", label: "SARA-Fiscaliza (Avance en Obra)", icon: HardHat },
+        { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
+        { href: "/dashboard/apus/importador", label: "Importador Masivo Excel", icon: Database },
       ]
     },
     {
-      title: "SERCOP, OBRA & BIM",
-      items: [
-        { href: "/dashboard/tenders", label: "SARA-Tenders (SERCOP)", icon: Search },
-        { href: "/dashboard/fiscaliza", label: "SARA-Fiscaliza (Obra)", icon: HardHat },
-        { href: "/dashboard/bim", label: "SARA-BIM Integrador", icon: Cuboid },
-      ]
-    },
-    {
-      title: "DIRECTORIO Y RECURSOS",
+      title: "DIRECTORIO & CRM",
       items: [
         { href: "/dashboard/directorio/clientes", label: "Mis Clientes (CRM)", icon: Users },
         { href: "/dashboard/directorio/proveedores", label: "Mis Proveedores", icon: Briefcase },
-        { href: "/dashboard/directorio/trabajadores", label: "Mi Personal de Obra", icon: Wrench },
-        { href: "/dashboard/apus/importador", label: "Importar Excel Masivo", icon: Database }
+        { href: "/dashboard/directorio/trabajadores", label: "Personal de Obra", icon: Wrench },
       ]
     },
     {
