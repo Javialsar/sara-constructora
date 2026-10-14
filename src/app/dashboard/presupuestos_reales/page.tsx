@@ -41,6 +41,9 @@ export default function PresupuestosRealesPage() {
   
   const [selectedProjectName, setSelectedProjectName] = useState("")
   const [isCustomProject, setIsCustomProject] = useState(false)
+  const [newAdminPct, setNewAdminPct] = useState(10.0)
+  const [newImprevPct, setNewImprevPct] = useState(5.0)
+  const [newUtilPct, setNewUtilPct] = useState(10.0)
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
@@ -63,14 +66,22 @@ export default function PresupuestosRealesPage() {
   const proyectosCRM: any[] = [];
   const clientesCRM: any[] = [];
 
-const createMutation = useMutation({
-    mutationFn: async (values: PresupuestoFormValues) => {
-      const { data: { user } } = await supabase.auth.getUser();
+  const createMutation = useMutation({
+    mutationFn: async (values: any) => {
+      // Importante: No enviar columnas inexistentes a la tabla presupuestos_reales (ej. user_id)
       const payload = {
-        ...values,
-        ...(user?.id ? { user_id: user.id } : {})
+        nombre_proyecto: values.nombre_proyecto,
+        cliente_id: values.cliente_id || null,
+        porcentaje_admin: Number(values.porcentaje_admin) || 10.0,
+        porcentaje_imprevistos: Number(values.porcentaje_imprevistos) || 5.0,
+        porcentaje_utilidad: Number(values.porcentaje_utilidad) || 10.0,
+        estado: 'borrador'
       };
-      const { data, error } = await supabase.from('presupuestos_reales').insert([payload]).select('*, cliente:clientes(id, nombre, apellido, email)').single();
+      const { data, error } = await supabase
+        .from('presupuestos_reales')
+        .insert([payload])
+        .select('*, cliente:clientes(id, nombre, apellido, email)')
+        .single();
       if (error) throw error;
       return data;
     },
@@ -78,25 +89,37 @@ const createMutation = useMutation({
       queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
       setIsNewModalOpen(false);
       openEditor(data);
-      resetNewForm();
 
       if (bimDataToProcess && bimDataToProcess.length > 0) {
-          await processBimData(data.id, bimDataToProcess);
-          setBimDataToProcess(null);
+        await processBimData(data.id, bimDataToProcess);
+        setBimDataToProcess(null);
       }
+    },
+    onError: (error: any) => {
+      console.error("Error al crear presupuesto:", error);
+      alert("Error al crear presupuesto: " + (error.message || JSON.stringify(error)));
     }
   });
 
-  const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, setValue: setNewValue, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<PresupuestoFormValues>({
-    resolver: zodResolver(presupuestoSchema),
-    defaultValues: { nombre_proyecto: '', porcentaje_admin: 10.0, porcentaje_imprevistos: 5.0, porcentaje_utilidad: 10.0, estado: 'borrador' }
-  });
+  const handleDirectCreatePresupuesto = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nombreFinal = (isCustomProject 
+      ? selectedProjectName 
+      : (!isGlobalMode && activeProject ? activeProject.nombre : selectedProjectName)).trim();
 
-  const submitNewPresupuesto = (data: PresupuestoFormValues) => {
-    const matched = projects.find((p: any) => p.nombre === data.nombre_proyecto);
+    if (!nombreFinal) {
+      alert("Por favor ingresa o selecciona el nombre de la obra o proyecto.");
+      return;
+    }
+
+    const matched = projects.find((p: any) => p.nombre.toLowerCase() === nombreFinal.toLowerCase());
+
     createMutation.mutate({
-      ...data,
-      cliente_id: matched?.cliente_id || null
+      nombre_proyecto: nombreFinal,
+      cliente_id: matched?.cliente_id || null,
+      porcentaje_admin: Number(newAdminPct) || 10.0,
+      porcentaje_imprevistos: Number(newImprevPct) || 5.0,
+      porcentaje_utilidad: Number(newUtilPct) || 10.0
     });
   };
 
@@ -108,7 +131,6 @@ const createMutation = useMutation({
         : (projects[0]?.nombre || "");
     setSelectedProjectName(defaultName);
     setIsCustomProject(false);
-    setNewValue("nombre_proyecto", defaultName, { shouldValidate: true });
     setIsNewModalOpen(true);
   };
 
@@ -149,9 +171,15 @@ const createMutation = useMutation({
         .maybeSingle()
 
       if (ep) {
-        setNewValue("porcentaje_admin", Number(ep.porcentaje_admin_default) || 10.0)
-        setNewValue("porcentaje_imprevistos", Number(ep.porcentaje_imprevistos_default) || 5.0)
-        setNewValue("porcentaje_utilidad", Number(ep.porcentaje_utilidad_default) || 10.0)
+        const a = Number(ep.porcentaje_admin_default) || 10.0
+        const i = Number(ep.porcentaje_imprevistos_default) || 5.0
+        const u = Number(ep.porcentaje_utilidad_default) || 10.0
+        setNewAdminPct(a)
+        setNewImprevPct(i)
+        setNewUtilPct(u)
+        setNewValue("porcentaje_admin", a)
+        setNewValue("porcentaje_imprevistos", i)
+        setNewValue("porcentaje_utilidad", u)
       }
     }
     loadEmpresaParams()
@@ -2292,7 +2320,7 @@ const createMutation = useMutation({
               </button>
             </div>
 
-            <form onSubmit={handleNewSubmit(submitNewPresupuesto)} className="p-6 space-y-4">
+            <form onSubmit={handleDirectCreatePresupuesto} className="p-6 space-y-4">
               {/* Selector / Asignación de Obra */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
@@ -2321,7 +2349,10 @@ const createMutation = useMutation({
                     </div>
                     <button
                       type="button"
-                      onClick={() => setIsCustomProject(true)}
+                      onClick={() => {
+                        setIsCustomProject(true)
+                        setSelectedProjectName("")
+                      }}
                       className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
                     >
                       Cambiar obra
@@ -2336,11 +2367,9 @@ const createMutation = useMutation({
                         if (val === "__CUSTOM__") {
                           setIsCustomProject(true)
                           setSelectedProjectName("")
-                          setNewValue("nombre_proyecto", "", { shouldValidate: true })
                         } else {
                           setIsCustomProject(false)
                           setSelectedProjectName(val)
-                          setNewValue("nombre_proyecto", val, { shouldValidate: true })
                         }
                       }}
                       className="w-full px-3.5 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -2360,14 +2389,8 @@ const createMutation = useMutation({
                           type="text"
                           placeholder="Escribe el nombre del proyecto (ej: Residencial Las Palmeras)"
                           value={selectedProjectName}
-                          onChange={(e) => {
-                            const val = e.target.value
-                            setSelectedProjectName(val)
-                            setNewValue("nombre_proyecto", val, { shouldValidate: true })
-                          }}
-                          className={`w-full px-3.5 py-2.5 border rounded-xl text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none ${
-                            newErrors.nombre_proyecto ? "border-red-500" : "border-gray-300 dark:border-slate-700"
-                          }`}
+                          onChange={(e) => setSelectedProjectName(e.target.value)}
+                          className="w-full px-3.5 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                         {!isGlobalMode && activeProject && (
                           <button
@@ -2375,7 +2398,6 @@ const createMutation = useMutation({
                             onClick={() => {
                               setIsCustomProject(false)
                               setSelectedProjectName(activeProject.nombre)
-                              setNewValue("nombre_proyecto", activeProject.nombre, { shouldValidate: true })
                             }}
                             className="text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline mt-1 block"
                           >
@@ -2385,10 +2407,6 @@ const createMutation = useMutation({
                       </div>
                     )}
                   </div>
-                )}
-
-                {newErrors.nombre_proyecto && (
-                  <p className="text-red-500 text-xs mt-1 font-semibold">{newErrors.nombre_proyecto.message}</p>
                 )}
               </div>
 
@@ -2405,7 +2423,8 @@ const createMutation = useMutation({
                     <input 
                       type="number" 
                       step="0.01" 
-                      {...registerNew("porcentaje_admin", { valueAsNumber: true })} 
+                      value={newAdminPct}
+                      onChange={(e) => setNewAdminPct(parseFloat(e.target.value) || 0)}
                       className="w-full border border-gray-300 dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-right font-bold text-gray-900 dark:text-white" 
                     />
                   </div>
@@ -2416,7 +2435,8 @@ const createMutation = useMutation({
                     <input 
                       type="number" 
                       step="0.01" 
-                      {...registerNew("porcentaje_imprevistos", { valueAsNumber: true })} 
+                      value={newImprevPct}
+                      onChange={(e) => setNewImprevPct(parseFloat(e.target.value) || 0)}
                       className="w-full border border-gray-300 dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-right font-bold text-gray-900 dark:text-white" 
                     />
                   </div>
@@ -2427,7 +2447,8 @@ const createMutation = useMutation({
                     <input 
                       type="number" 
                       step="0.01" 
-                      {...registerNew("porcentaje_utilidad", { valueAsNumber: true })} 
+                      value={newUtilPct}
+                      onChange={(e) => setNewUtilPct(parseFloat(e.target.value) || 0)}
                       className="w-full border border-gray-300 dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-right font-bold text-gray-900 dark:text-white" 
                     />
                   </div>
@@ -2445,7 +2466,7 @@ const createMutation = useMutation({
                 </button>
                 <button 
                   type="submit" 
-                  disabled={isNewSubmitting || createMutation.isPending} 
+                  disabled={createMutation.isPending} 
                   className="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
                 >
                   {createMutation.isPending ? "Creando Presupuesto..." : "Crear Presupuesto"}
