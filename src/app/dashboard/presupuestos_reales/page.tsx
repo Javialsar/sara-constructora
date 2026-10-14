@@ -22,6 +22,7 @@ import AsyncSelect from "@/components/ui/AsyncSelect"
 
 import { defaultFormulas, calcularTotalesPresupuesto } from "@/lib/calculadoras/presupuestos";
 import { useProject } from "@/contexts/ProjectContext"
+import { useSearchParams } from "next/navigation"
 
 
 const presupuestoSchema = z.object({
@@ -37,6 +38,9 @@ type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const nuevoIdParam = searchParams.get('nuevo_id');
+
   const { projects, activeProject, currentCliente, isGlobalMode, setGlobalMode, openCreateModal, setActiveProject } = useProject();
   
   const [selectedProjectName, setSelectedProjectName] = useState("")
@@ -73,7 +77,9 @@ export default function PresupuestosRealesPage() {
           .maybeSingle();
 
         if (cli && !cli.es_admin) {
-          query = query.eq('cliente_id', cli.id);
+          query = query.or(`cliente_id.eq.${cli.id},user_id.eq.${user.id}`);
+        } else if (!cli) {
+          query = query.eq('user_id', user.id);
         }
       }
 
@@ -131,6 +137,16 @@ export default function PresupuestosRealesPage() {
       return matchProject || clientName.includes(searchLower);
     });
   }, [presupuestos, isGlobalMode, activeProject, searchPresupuesto]);
+
+  // ⚡ Si venimos redirigidos tras exportar una licitación, abrir automáticamente el presupuesto
+  useEffect(() => {
+    if (nuevoIdParam && presupuestos.length > 0) {
+      const target = presupuestos.find((p: any) => p.id === nuevoIdParam);
+      if (target) {
+        openEditor(target);
+      }
+    }
+  }, [nuevoIdParam, presupuestos]);
 
   const proyectosCRM: any[] = [];
   const clientesCRM: any[] = [];

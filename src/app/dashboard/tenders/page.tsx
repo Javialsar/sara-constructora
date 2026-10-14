@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { useProject } from "@/contexts/ProjectContext"
 import { 
   Search, 
   Filter, 
@@ -44,6 +45,14 @@ interface ProcesoTender {
 export default function SaraTendersPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { 
+    projects, 
+    activeProject, 
+    currentCliente, 
+    setActiveProject, 
+    createProject 
+  } = useProject()
+
   const [procesos, setProcesos] = useState<ProcesoTender[]>([])
   const [loading, setLoading] = useState(true)
   const [provinciaFiltro, setProvinciaFiltro] = useState("todas")
@@ -54,6 +63,7 @@ export default function SaraTendersPage() {
   const [procesoActivo, setProcesoActivo] = useState<ProcesoTender | null>(null)
   const [exportandoPresupuesto, setExportandoPresupuesto] = useState(false)
   const [rubroDetalleIndex, setRubroDetalleIndex] = useState<number | null>(null)
+  const [targetProjectOption, setTargetProjectOption] = useState<string>("NEW")
 
   // Cargar datos reales o fallback de demostración
   useEffect(() => {
@@ -194,6 +204,7 @@ export default function SaraTendersPage() {
     setAnalizandoIA(true)
     setResultadoIA(null)
     setProcesoActivo(proceso)
+    setTargetProjectOption(activeProject ? `ACTIVE_${activeProject.id}` : "NEW")
     try {
       const res = await fetch("/api/tenders/analizar-pliego", {
         method: "POST",
@@ -223,18 +234,45 @@ export default function SaraTendersPage() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      const nombreObra = procesoActivo ? `${procesoActivo.codigo_proceso} - ${procesoActivo.objeto_proceso.substring(0, 60)}` : "Licitación SERCOP Importada"
+      if (!user) throw new Error("Debes iniciar sesión para exportar el presupuesto.")
 
-      // 1. Crear nuevo presupuesto
+      let targetProjectItem: any = null
+      let nombreObraFinal = ""
+
+      if (targetProjectOption === "NEW") {
+        nombreObraFinal = procesoActivo 
+          ? `${procesoActivo.codigo_proceso} - ${procesoActivo.objeto_proceso.substring(0, 50)}`
+          : "Licitación SERCOP"
+
+        // Registrar la nueva obra en el workspace del cliente
+        targetProjectItem = await createProject({
+          nombre: nombreObraFinal,
+          provincia: procesoActivo?.provincia || "Loja",
+          ubicacion: `${procesoActivo?.canton || "Loja"} • ${procesoActivo?.provincia || "Ecuador"}`,
+          descripcion: `Licitación SERCOP ${procesoActivo?.codigo_proceso || ""}: ${procesoActivo?.objeto_proceso || ""}`
+        })
+      } else if (targetProjectOption.startsWith("ACTIVE_")) {
+        targetProjectItem = activeProject
+        nombreObraFinal = activeProject?.nombre || (procesoActivo?.codigo_proceso || "Presupuesto SERCOP")
+      } else if (targetProjectOption.startsWith("PROJ_")) {
+        const pId = targetProjectOption.replace("PROJ_", "")
+        targetProjectItem = projects.find(p => p.id === pId) || null
+        nombreObraFinal = targetProjectItem?.nombre || (procesoActivo?.codigo_proceso || "Presupuesto SERCOP")
+      }
+
+      const clienteFinalId = targetProjectItem?.cliente_id || currentCliente?.id || null
+
+      // 1. Crear nuevo presupuesto en presupuestos_reales con cliente_id y user_id
       const { data: nuevoPresupuesto, error: errPres } = await supabase
         .from('presupuestos_reales')
         .insert([{
-          nombre_proyecto: nombreObra,
+          nombre_proyecto: nombreObraFinal,
+          cliente_id: clienteFinalId,
+          user_id: user.id,
           porcentaje_admin: 10.0,
           porcentaje_imprevistos: 5.0,
           porcentaje_utilidad: 10.0,
-          estado: 'borrador',
-          user_id: user?.id || null
+          estado: 'borrador'
         }])
         .select()
         .single()
@@ -243,22 +281,34 @@ export default function SaraTendersPage() {
         throw new Error(errPres?.message || "No se pudo crear el presupuesto")
       }
 
-      // 2. Insertar rubros extraídos
-      for (const item of resultadoIA.items) {
-        await supabase.from('presupuesto_rubros').insert([{
-          presupuesto_id: nuevoPresupuesto.id,
-          codigo_rubro: item.codigo_cpc || "SERCOP",
-          nombre_rubro: item.descripcion,
-          unidad: item.unidad,
-          precio_unitario_snapshot: item.precio_sara_apu || item.precio_unitario_referencial,
-          cantidad_obra: item.cantidad,
-          subtotal: item.cantidad * (item.precio_sara_apu || item.precio_unitario_referencial)
-        }])
+      // 2. Insertar rubros extraídos en lote
+      const rubrosPayload = resultadoIA.items.map((item: any) => ({
+        presupuesto_id: nuevoPresupuesto.id,
+        codigo_rubro: item.codigo_cpc || "SERCOP",
+        nombre_rubro: item.descripcion,
+        unidad: item.unidad,
+        precio_unitario_snapshot: item.precio_sara_apu || item.precio_unitario_referencial,
+        cantidad_obra: item.cantidad,
+        subtotal: item.cantidad * (item.precio_sara_apu || item.precio_unitario_referencial),
+        user_id: user.id
+      }))
+
+      const { error: errRubros } = await supabase
+        .from('presupuesto_rubros')
+        .insert(rubrosPayload)
+
+      if (errRubros) {
+        console.warn("Aviso al insertar rubros:", errRubros)
+      }
+
+      // 3. Activar inmediatamente el proyecto en el contexto global
+      if (targetProjectItem) {
+        setActiveProject(targetProjectItem)
       }
 
       setResultadoIA(null)
       alert("¡Oferta generada exitosamente! Te redirigiremos a Presupuestos para revisar los APU.")
-      router.push("/dashboard/presupuestos_reales")
+      router.push(`/dashboard/presupuestos_reales?nuevo_id=${nuevoPresupuesto.id}`)
     } catch (err: any) {
       alert("Error al exportar rubros a presupuesto: " + err.message)
     } finally {
@@ -572,6 +622,36 @@ export default function SaraTendersPage() {
                   );
                 })}
               </div>
+            </div>
+
+            {/* Selector de Obra de Destino */}
+            <div className="bg-gray-50 dark:bg-slate-950 p-3.5 rounded-2xl border border-gray-200 dark:border-slate-800 space-y-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                🏢 Asignar Presupuesto a la Obra:
+              </label>
+
+              <select
+                value={targetProjectOption}
+                onChange={(e) => setTargetProjectOption(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-xs font-semibold text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {activeProject && (
+                  <option value={`ACTIVE_${activeProject.id}`}>
+                    📌 Usar mi Obra Activa: {activeProject.nombre} ({activeProject.provincia || "Ecuador"})
+                  </option>
+                )}
+                <option value="NEW">
+                  ➕ Crear Nueva Obra: {procesoActivo?.codigo_proceso} ({procesoActivo?.provincia || "Ecuador"})
+                </option>
+                {projects.filter(p => p.id !== activeProject?.id).map((p) => (
+                  <option key={p.id} value={`PROJ_${p.id}`}>
+                    Obra Registrada: {p.nombre} {p.provincia ? `• ${p.provincia}` : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-gray-400">
+                El presupuesto se guardará dentro de este espacio de trabajo y podrás gestionarlo de inmediato.
+              </p>
             </div>
 
             <button 
