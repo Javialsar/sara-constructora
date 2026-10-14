@@ -138,25 +138,37 @@ CREATE TABLE IF NOT EXISTS public.sara_dashboard_metricas (
 CREATE INDEX IF NOT EXISTS idx_metricas_proyecto ON public.sara_dashboard_metricas(proyecto_id);
 
 -- ==============================================================================
--- 6. KEEP-ALIVE CRON JOB PARA SUPABASE (Previene pausa por inactividad)
+-- 5. KEEP-ALIVE CRON JOB PARA SUPABASE (Previene pausa por inactividad)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.sara_system_heartbeat (
-    id SERIAL PRIMARY KEY,
-    ping_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    origen VARCHAR(50) DEFAULT 'sara_auto_keepalive'
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_name VARCHAR(100) NOT NULL DEFAULT 'sara_core_keepalive',
+    last_ping TIMESTAMPTZ NOT NULL DEFAULT now(),
+    status VARCHAR(50) DEFAULT 'healthy',
+    metadata JSONB DEFAULT '{}'::jsonb
 );
 
--- Función que ejecuta un latido en la base de datos
+DROP FUNCTION IF EXISTS public.fn_sara_keep_alive_ping();
+
 CREATE OR REPLACE FUNCTION public.fn_sara_keep_alive_ping()
-RETURNS VOID AS $$
+RETURNS jsonb AS $$
+DECLARE
+    v_result jsonb;
 BEGIN
-    INSERT INTO public.sara_system_heartbeat (ping_timestamp, origen)
-    VALUES (NOW(), 'cron_heartbeat_iaSoft');
+    INSERT INTO public.sara_system_heartbeat (service_name, last_ping, status)
+    VALUES ('sara_autonomics_cron', now(), 'active');
     
-    -- Mantener la tabla ligera: borrar registros de más de 30 días
-    DELETE FROM public.sara_system_heartbeat WHERE ping_timestamp < NOW() - INTERVAL '30 days';
+    DELETE FROM public.sara_system_heartbeat 
+    WHERE last_ping < now() - INTERVAL '30 days';
+
+    v_result := jsonb_build_object(
+        'status', 'ok',
+        'timestamp', now(),
+        'message', 'Grupo SARA Core DB Ping exitoso'
+    );
+    RETURN v_result;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Intentar habilitar pg_cron si está disponible en la instancia
 DO $$
