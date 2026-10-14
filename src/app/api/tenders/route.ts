@@ -22,7 +22,7 @@ const tenderCreateSchema = z.object({
     'Consultoría',
     'Ínfima Cuantía'
   ]),
-  provincia: z.enum(['Loja', 'Azuay', 'El Oro', 'Pichincha', 'Guayas', 'Zamora Chinchipe', 'Otra']),
+  provincia: z.string().min(2),
   canton: z.string().default('Loja'),
   presupuesto_referencial: z.number().positive(),
   fecha_publicacion: z.string(),

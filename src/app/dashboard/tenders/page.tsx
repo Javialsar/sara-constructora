@@ -125,6 +125,51 @@ export default function SaraTendersPage() {
             match_score_apu: 74.2,
             rubros_extraidos_total: 12,
             estado: "vigente"
+          },
+          {
+            id: "t-005",
+            codigo_proceso: "LICO-EPMMOP-UIO-019-2026",
+            entidad_contratante: "EMPRESA PÚBLICA METROPOLITANA DE MOVILIDAD Y OBRAS PÚBLICAS - QUITO",
+            objeto_proceso: "REHABILITACIÓN VIAL INTEGRAL DEL CORREDOR INTEROCEÁNICO Y CONSTRUCCIÓN DE INTERCAMBIADOR CUMBAYÁ",
+            tipo_contratacion: "Licitación",
+            provincia: "Pichincha",
+            canton: "Quito",
+            presupuesto_referencial: 1850000.00,
+            fecha_publicacion: "2026-10-12T16:00:00Z",
+            fecha_limite_ofertas: "2026-11-05T17:00:00Z",
+            match_score_apu: 94.5,
+            rubros_extraidos_total: 82,
+            estado: "vigente"
+          },
+          {
+            id: "t-006",
+            codigo_proceso: "COT-MUNIC-GYE-031-2026",
+            entidad_contratante: "M.I. MUNICIPALIDAD DE GUAYAQUIL",
+            objeto_proceso: "CONSTRUCCIÓN DE SISTEMA DE DRENAJE PLUVIAL Y COLECTORES PRINCIPALES PARROQUIA TARQUI",
+            tipo_contratacion: "Cotización",
+            provincia: "Guayas",
+            canton: "Guayaquil",
+            presupuesto_referencial: 920400.00,
+            fecha_publicacion: "2026-10-11T10:00:00Z",
+            fecha_limite_ofertas: "2026-10-30T15:00:00Z",
+            match_score_apu: 89.1,
+            rubros_extraidos_total: 45,
+            estado: "vigente"
+          },
+          {
+            id: "t-007",
+            codigo_proceso: "MCO-GADM-MANTA-027-2026",
+            entidad_contratante: "GOBIERNO AUTÓNOMO DESCENTRALIZADO DE MANTA",
+            objeto_proceso: "CONSTRUCCIÓN DE PARQUE LINEAL TURÍSTICO Y MURO DE ESCOLLERA DE CONTENCIÓN PLAYA SAN MATEO",
+            tipo_contratacion: "Menor Cuantía Obra",
+            provincia: "Manabí",
+            canton: "Manta",
+            presupuesto_referencial: 275000.00,
+            fecha_publicacion: "2026-10-10T11:20:00Z",
+            fecha_limite_ofertas: "2026-10-25T16:00:00Z",
+            match_score_apu: 92.0,
+            rubros_extraidos_total: 31,
+            estado: "vigente"
           }
         ])
       }
@@ -179,7 +224,7 @@ export default function SaraTendersPage() {
             Licitaciones y Contratación Pública
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 max-w-2xl">
-            Buscador automatizado de pliegos oficiales del SERCOP en <strong>Loja, Azuay y El Oro</strong>. Lectura con IA y mapeo instantáneo con la base maestra de <strong>SARA-APU</strong>.
+            Buscador y radar automatizado de pliegos oficiales del SERCOP a <strong>Nivel Nacional (24 Provincias del Ecuador)</strong>. Lectura con IA y mapeo instantáneo con la base maestra de <strong>SARA-APU</strong>.
           </p>
         </div>
 
@@ -189,7 +234,7 @@ export default function SaraTendersPage() {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors shadow-xs"
         >
           <RefreshCw size={14} className={loading ? "animate-spin text-blue-600" : ""} />
-          Sincronizar SERCOP
+          Sincronizar SERCOP Nacional
         </button>
       </div>
 
@@ -201,7 +246,7 @@ export default function SaraTendersPage() {
             type="text" 
             value={busqueda} 
             onChange={e => setBusqueda(e.target.value)} 
-            placeholder="Buscar por código, municipio u objeto..."
+            placeholder="Buscar por código, municipio u objeto a nivel nacional..."
             className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -212,11 +257,39 @@ export default function SaraTendersPage() {
             onChange={e => setProvinciaFiltro(e.target.value)}
             className="w-full px-3 py-2 text-xs rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-800 dark:text-gray-100 font-medium focus:outline-none"
           >
-            <option value="todas">Todas las Provincias Prioritarias</option>
-            <option value="Loja">Loja</option>
-            <option value="Azuay">Azuay</option>
-            <option value="El Oro">El Oro</option>
-            <option value="Zamora Chinchipe">Zamora Chinchipe</option>
+            <option value="todas">🇪🇨 Todo el Ecuador (24 Provincias)</option>
+            <optgroup label="Sierra">
+              <option value="Azuay">Azuay</option>
+              <option value="Bolívar">Bolívar</option>
+              <option value="Cañar">Cañar</option>
+              <option value="Carchi">Carchi</option>
+              <option value="Chimborazo">Chimborazo</option>
+              <option value="Cotopaxi">Cotopaxi</option>
+              <option value="Imbabura">Imbabura</option>
+              <option value="Loja">Loja</option>
+              <option value="Pichincha">Pichincha</option>
+              <option value="Tungurahua">Tungurahua</option>
+            </optgroup>
+            <optgroup label="Costa">
+              <option value="El Oro">El Oro</option>
+              <option value="Esmeraldas">Esmeraldas</option>
+              <option value="Guayas">Guayas</option>
+              <option value="Los Ríos">Los Ríos</option>
+              <option value="Manabí">Manabí</option>
+              <option value="Santa Elena">Santa Elena</option>
+              <option value="Santo Domingo">Santo Domingo de los Tsáchilas</option>
+            </optgroup>
+            <optgroup label="Amazonía">
+              <option value="Morona Santiago">Morona Santiago</option>
+              <option value="Napo">Napo</option>
+              <option value="Orellana">Orellana</option>
+              <option value="Pastaza">Pastaza</option>
+              <option value="Sucumbíos">Sucumbíos</option>
+              <option value="Zamora Chinchipe">Zamora Chinchipe</option>
+            </optgroup>
+            <optgroup label="Insular">
+              <option value="Galápagos">Galápagos</option>
+            </optgroup>
           </select>
         </div>
 
