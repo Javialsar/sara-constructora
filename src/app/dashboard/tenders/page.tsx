@@ -281,24 +281,76 @@ export default function SaraTendersPage() {
         throw new Error(errPres?.message || "No se pudo crear el presupuesto")
       }
 
-      // 2. Insertar rubros extraídos en lote
-      const rubrosPayload = resultadoIA.items.map((item: any) => ({
-        presupuesto_id: nuevoPresupuesto.id,
-        codigo_rubro: item.codigo_cpc || "SERCOP",
-        nombre_rubro: item.descripcion,
-        unidad: item.unidad,
-        precio_unitario_snapshot: item.precio_sara_apu || item.precio_unitario_referencial,
-        cantidad_obra: item.cantidad,
-        subtotal: item.cantidad * (item.precio_sara_apu || item.precio_unitario_referencial),
-        user_id: user.id
-      }))
+      // 2. Insertar rubros extraídos y sus recetas de APU (presupuesto_rubro_insumos)
+      const subfamPorTipo: Record<string, string> = {
+        equipo: 'SF157',
+        mano_de_obra: 'SF429',
+        material: 'SF13656'
+      };
 
-      const { error: errRubros } = await supabase
-        .from('presupuesto_rubros')
-        .insert(rubrosPayload)
+      // Consultar insumos existentes para reutilizar IDs
+      const { data: insumosExistentes } = await supabase.from('insumos').select('id, nombre');
+      const insumoMap = new Map<string, string>();
+      insumosExistentes?.forEach((i: any) => insumoMap.set(i.nombre.trim().toLowerCase(), i.id));
 
-      if (errRubros) {
-        console.warn("Aviso al insertar rubros:", errRubros)
+      for (const item of resultadoIA.items) {
+        // Insertar rubro de presupuesto
+        const { data: nuevoRubro, error: errR } = await supabase
+          .from('presupuesto_rubros')
+          .insert([{
+            presupuesto_id: nuevoPresupuesto.id,
+            codigo_rubro: item.codigo_cpc || "SERCOP",
+            nombre_rubro: item.descripcion,
+            unidad: item.unidad,
+            precio_unitario_snapshot: item.precio_sara_apu || item.precio_unitario_referencial,
+            cantidad_obra: item.cantidad,
+            subtotal: item.cantidad * (item.precio_sara_apu || item.precio_unitario_referencial),
+            rubro_id: item.rubro_apu_id || null,
+            user_id: user.id
+          }])
+          .select()
+          .single();
+
+        if (!errR && nuevoRubro && item.insumos && item.insumos.length > 0) {
+          const recipeRows: any[] = [];
+          for (const ins of item.insumos) {
+            const key = ins.nombre.trim().toLowerCase();
+            let insumoId = insumoMap.get(key);
+
+            if (!insumoId) {
+              const codigoIns = `${ins.tipo.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+              const { data: createdIns } = await supabase.from('insumos').insert([{
+                codigo: codigoIns,
+                nombre: ins.nombre,
+                tipo: ins.tipo,
+                unidad: ins.unidad,
+                precio_sin_iva: ins.precio_unitario,
+                subfamilia_id: subfamPorTipo[ins.tipo] || 'SF13656',
+                is_global: true,
+                es_maestro: true,
+                user_id: null
+              }]).select().single();
+
+              if (createdIns && createdIns.id) {
+                insumoId = createdIns.id;
+                insumoMap.set(key, createdIns.id);
+              }
+            }
+
+            if (insumoId) {
+              recipeRows.push({
+                presupuesto_rubro_id: nuevoRubro.id,
+                insumo_id: insumoId,
+                cantidad: ins.cantidad,
+                precio_sin_iva_snapshot: ins.precio_unitario
+              });
+            }
+          }
+
+          if (recipeRows.length > 0) {
+            await supabase.from('presupuesto_rubro_insumos').insert(recipeRows);
+          }
+        }
       }
 
       // 3. Activar inmediatamente el proyecto en el contexto global

@@ -42,7 +42,15 @@ export async function POST(request: Request) {
         unidad: "m2",
         cantidad: 850.00,
         precio_unitario_referencial: 1.25,
-        especificaciones_tecnicas: "Levantamiento con estación total y colocación de estacas testigo cada 10 metros."
+        especificaciones_tecnicas: "Levantamiento con estación total y colocación de estacas testigo cada 10 metros.",
+        insumos: [
+          { nombre: "Estación Total / Nivel de precisión láser", tipo: "equipo", unidad: "hora", cantidad: 0.05, precio_unitario: 3.50 },
+          { nombre: "Topógrafo especialista calificado", tipo: "mano_de_obra", unidad: "hora", cantidad: 0.05, precio_unitario: 5.60 },
+          { nombre: "Peón cadenero de topografía", tipo: "mano_de_obra", unidad: "hora", cantidad: 0.10, precio_unitario: 3.80 },
+          { nombre: "Estacas de madera de monte 2x2\"", tipo: "material", unidad: "u", cantidad: 0.20, precio_unitario: 0.60 },
+          { nombre: "Clavos con cabeza para madera 2\"", tipo: "material", unidad: "kg", cantidad: 0.03, precio_unitario: 2.10 },
+          { nombre: "Pintura esmalte para estacas y marcas", tipo: "material", unidad: "gal", cantidad: 0.01, precio_unitario: 22.00 }
+        ]
       },
       {
         codigo_cpc: "54210.02.1",
@@ -50,7 +58,13 @@ export async function POST(request: Request) {
         unidad: "m3",
         cantidad: 145.50,
         precio_unitario_referencial: 14.80,
-        especificaciones_tecnicas: "Profundidad hasta 1.80m, incluye desalojo lateral y entibado de seguridad."
+        especificaciones_tecnicas: "Profundidad hasta 1.80m, incluye desalojo lateral y entibado de seguridad.",
+        insumos: [
+          { nombre: "Herramienta menor (picos, palas, barretas)", tipo: "equipo", unidad: "hora", cantidad: 0.50, precio_unitario: 1.20 },
+          { nombre: "Peón excavador de obra civil", tipo: "mano_de_obra", unidad: "hora", cantidad: 3.20, precio_unitario: 3.80 },
+          { nombre: "Albañil de control de niveles", tipo: "mano_de_obra", unidad: "hora", cantidad: 0.50, precio_unitario: 4.30 },
+          { nombre: "Madera para entibado puntual y tablas", tipo: "material", unidad: "u", cantidad: 0.25, precio_unitario: 3.50 }
+        ]
       },
       {
         codigo_cpc: "54220.01.3",
@@ -58,7 +72,19 @@ export async function POST(request: Request) {
         unidad: "m3",
         cantidad: 92.40,
         precio_unitario_referencial: 138.50,
-        especificaciones_tecnicas: "Cemento Portland tipo IP, ripio triturado 3/4 pulg, arena lavada, vibrado mecánico."
+        especificaciones_tecnicas: "Cemento Portland tipo IP, ripio triturado 3/4 pulg, arena lavada, vibrado mecánico.",
+        insumos: [
+          { nombre: "Hormigonera de 1 saco (Trompo) a gasolina", tipo: "equipo", unidad: "hora", cantidad: 1.80, precio_unitario: 4.50 },
+          { nombre: "Vibrador de inmersión para hormigón 4HP", tipo: "equipo", unidad: "hora", cantidad: 1.50, precio_unitario: 3.80 },
+          { nombre: "Maestro mayor de obra civil", tipo: "mano_de_obra", unidad: "hora", cantidad: 1.50, precio_unitario: 5.60 },
+          { nombre: "Albañil calificado MDT", tipo: "mano_de_obra", unidad: "hora", cantidad: 3.50, precio_unitario: 4.30 },
+          { nombre: "Peón de construcción MDT", tipo: "mano_de_obra", unidad: "hora", cantidad: 6.00, precio_unitario: 3.80 },
+          { nombre: "Cemento Portland Tipo IP (Saco 50kg)", tipo: "material", unidad: "saco", cantidad: 8.00, precio_unitario: 8.45 },
+          { nombre: "Arena gruesa de río lavada", tipo: "material", unidad: "m3", cantidad: 0.52, precio_unitario: 18.50 },
+          { nombre: "Ripio triturado 3/4\"", tipo: "material", unidad: "m3", cantidad: 0.82, precio_unitario: 22.00 },
+          { nombre: "Aditivo plastificante para hormigón", tipo: "material", unidad: "kg", cantidad: 1.20, precio_unitario: 3.80 },
+          { nombre: "Agua limpia de obra", tipo: "material", unidad: "m3", cantidad: 0.20, precio_unitario: 2.20 }
+        ]
       },
       {
         codigo_cpc: "54290.00.4",
@@ -66,7 +92,15 @@ export async function POST(request: Request) {
         unidad: "kg",
         cantidad: 7850.00,
         precio_unitario_referencial: 1.85,
-        especificaciones_tecnicas: "Varillas sismorresistentes norma INEN 102, incluye corte, doblado y alambre de amarre."
+        especificaciones_tecnicas: "Varillas sismorresistentes norma INEN 102, incluye corte, doblado y alambre de amarre.",
+        insumos: [
+          { nombre: "Cizalla mecánica y dobladora de varilla", tipo: "equipo", unidad: "hora", cantidad: 0.03, precio_unitario: 1.80 },
+          { nombre: "Fierrero calificado MDT", tipo: "mano_de_obra", unidad: "hora", cantidad: 0.05, precio_unitario: 4.40 },
+          { nombre: "Peón de construcción MDT", tipo: "mano_de_obra", unidad: "hora", cantidad: 0.05, precio_unitario: 3.80 },
+          { nombre: "Varilla de acero corrugado fy=4200 kg/cm2", tipo: "material", unidad: "kg", cantidad: 1.05, precio_unitario: 1.25 },
+          { nombre: "Alambre galvanizado/recocido de amarre #18", tipo: "material", unidad: "kg", cantidad: 0.035, precio_unitario: 2.10 },
+          { nombre: "Separadores plásticos de recubrimiento (pollitas)", tipo: "material", unidad: "u", cantidad: 2.00, precio_unitario: 0.15 }
+        ]
       },
       {
         codigo_cpc: "54310.03.2",
@@ -74,7 +108,16 @@ export async function POST(request: Request) {
         unidad: "m2",
         cantidad: 340.00,
         precio_unitario_referencial: 21.60,
-        especificaciones_tecnicas: "Mortero proporción 1:4, trabado uniforme con juntas de 1.5cm y chicotes de anclaje."
+        especificaciones_tecnicas: "Mortero proporción 1:4, trabado uniforme con juntas de 1.5cm y chicotes de anclaje.",
+        insumos: [
+          { nombre: "Andamio tubular metálico (cuerpo)", tipo: "equipo", unidad: "dia", cantidad: 0.15, precio_unitario: 2.00 },
+          { nombre: "Albañil oficial MDT", tipo: "mano_de_obra", unidad: "hora", cantidad: 1.20, precio_unitario: 4.30 },
+          { nombre: "Peón de construcción MDT", tipo: "mano_de_obra", unidad: "hora", cantidad: 1.20, precio_unitario: 3.80 },
+          { nombre: "Ladrillo panelón prensado 15x20x40", tipo: "material", unidad: "u", cantidad: 28.00, precio_unitario: 0.38 },
+          { nombre: "Cemento Portland Tipo IP (Saco 50kg)", tipo: "material", unidad: "saco", cantidad: 0.40, precio_unitario: 8.45 },
+          { nombre: "Arena fina cernida de mina", tipo: "material", unidad: "m3", cantidad: 0.045, precio_unitario: 19.00 },
+          { nombre: "Chicotes de alambre galvanizado #14", tipo: "material", unidad: "kg", cantidad: 0.08, precio_unitario: 2.30 }
+        ]
       }
     ]
 
@@ -98,7 +141,8 @@ export async function POST(request: Request) {
         rubro_apu_id: match ? match.id : null,
         rubro_apu_nombre: match ? match.nombre : "Rubro sin correlación directa",
         precio_sara_apu: match ? Number(match.total_costo_directo || 0) : null,
-        match_confianza: confianza
+        match_confianza: confianza,
+        insumos: item.insumos || []
       }
     })
 
