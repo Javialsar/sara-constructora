@@ -423,6 +423,13 @@ export async function POST(request: Request) {
       mapaInsumos.set(ins.nombre.trim().toLowerCase(), ins)
     })
 
+    // Subfamilias base por tipo de insumo (FAM-EQ, FAM-MO, FAM-MT)
+    const subfamPorTipo: Record<string, string> = {
+      equipo: 'SF157',
+      mano_de_obra: 'SF429',
+      material: 'SF13656'
+    }
+
     for (const rubroGen of rubrosAGenerar) {
       // 4.1 Resolver insumos y calcular Costo Directo
       const todosLosInsumos = [...rubroGen.materiales, ...rubroGen.mano_de_obra, ...rubroGen.equipos]
@@ -449,7 +456,9 @@ export async function POST(request: Request) {
               unidad: item.unidad,
               tipo: item.tipo,
               precio_sin_iva: item.precio_unitario,
+              subfamilia_id: subfamPorTipo[item.tipo] || 'SF13656',
               es_maestro: true,
+              is_global: true,
               user_id: null
             }])
             .select()
@@ -503,6 +512,7 @@ export async function POST(request: Request) {
           total_costo_directo: parseFloat(totalCostoDirecto.toFixed(4)),
           subfamilia_id: subfamiliaId,
           es_maestro: true,
+          is_global: true,
           user_id: null
         }])
         .select()
@@ -515,7 +525,8 @@ export async function POST(request: Request) {
             itemsRecetaParaInsertar.map(it => ({
               rubro_id: rubroInsertado.id,
               insumo_id: it.insumo_id,
-              cantidad: it.cantidad
+              cantidad: it.cantidad,
+              user_id: null
             }))
           )
         }

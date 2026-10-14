@@ -254,6 +254,7 @@ export default function RubrosPage() {
   const [currentRubro, setCurrentRubro] = useState<any>(null)
   const [rubroInsumos, setRubroInsumos] = useState<any[]>([])
   const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [loadingReceta, setLoadingReceta] = useState(false)
   
   const [allInsumos, setAllInsumos] = useState<any[]>([])
   const [searchInsumoTerm, setSearchInsumoTerm] = useState("")
@@ -344,16 +345,55 @@ export default function RubrosPage() {
       queryClient.invalidateQueries({ queryKey: ['rubros'] });
   }
 
+  // Clasificador resiliente de insumos en familias/categorías de APU
+  const isItemInFamily = (item: any, famIns: any) => {
+    if (!item?.insumos) return false;
+    const validSfIds = subfamilias.filter((sf: any) => sf.familia_id === famIns.id).map((sf: any) => sf.id);
+    // 1. Coincidencia directa por subfamilia_id
+    if (item.insumos.subfamilia_id && validSfIds.includes(item.insumos.subfamilia_id)) {
+      return true;
+    }
+    // 2. Coincidencia por tipo de insumo (material, mano_de_obra, equipo)
+    const tipo = (item.insumos.tipo || '').toLowerCase();
+    const famNombre = (famIns.nombre || '').toLowerCase();
+    const famGrupo = (famIns.grupo_sugerido || '').toLowerCase();
+
+    if (tipo === 'mano_de_obra' || tipo === 'manodeobra' || tipo.includes('mano') || tipo === 'mo' || tipo === 'm.o.') {
+      return famGrupo === 'mano_de_obra' || famNombre.includes('mano') || famIns.id === 'FAM-MO';
+    }
+    if (tipo === 'equipo' || tipo === 'equipos' || tipo === 'maquinaria' || tipo.includes('equipo') || tipo === 'eq') {
+      return famGrupo === 'equipo' || famNombre.includes('equipo') || famNombre.includes('maquinaria') || famIns.id === 'FAM-EQ';
+    }
+    if (tipo === 'transporte') {
+      return famGrupo === 'transporte' || famNombre.includes('transporte');
+    }
+    if (tipo === 'material' || tipo === 'materiales' || tipo === 'mat') {
+      return (famGrupo === 'material' || famNombre.includes('material') || famIns.id === 'FAM-MT') && !famNombre.includes('transporte');
+    }
+    return false;
+  };
+
   const openEditor = async (rubro: any) => {
-    setCurrentRubro(rubro); setIsEditorOpen(true); fetchRubroInsumos(rubro.id)
+    setCurrentRubro(rubro);
+    setIsEditorOpen(true);
+    setLoadingReceta(true);
+    await fetchRubroInsumos(rubro.id);
   }
-  const closeEditor = () => { setIsEditorOpen(false) }
+  const closeEditor = () => { setIsEditorOpen(false); setLoadingReceta(false); }
 
   const fetchRubroInsumos = async (rubro_id: string) => {
-    const { data, error } = await supabase.from('rubro_insumos')
-      .select('id, cantidad, insumo_id, insumos ( id, codigo, nombre, unidad, tipo, precio_sin_iva, subfamilia_id )')
-      .eq('rubro_id', rubro_id).order('id', { ascending: true })
-    if (!error) setRubroInsumos(data || [])
+    try {
+      const { data, error } = await supabase.from('rubro_insumos')
+        .select('id, cantidad, insumo_id, insumos ( id, codigo, nombre, unidad, tipo, precio_sin_iva, subfamilia_id )')
+        .eq('rubro_id', rubro_id).order('id', { ascending: true })
+      if (!error && data) {
+        setRubroInsumos(data)
+      } else {
+        setRubroInsumos([])
+      }
+    } finally {
+      setLoadingReceta(false);
+    }
   }
 
   const handleAddInsumoToRubro = async (insumo: any) => {
@@ -379,18 +419,17 @@ export default function RubrosPage() {
   const calcTotalesReceta = () => {
     let baseTotal = 0;
     rubroInsumos.forEach(item => {
-      baseTotal += item.cantidad * (item.insumos.precio_sin_iva || 0);
+      baseTotal += item.cantidad * (item.insumos?.precio_sin_iva || 0);
     });
     let totManoObra = 0;
-    const moFam = familiasInsumo.find(f => f.nombre.toLowerCase().includes('mano de obra'));
-    if (moFam) {
-       const moSubfamIds = subfamilias.filter(sf => sf.familia_id === moFam.id).map(sf=>sf.id);
-       rubroInsumos.forEach(item => {
-         if (moSubfamIds.includes(item.insumos.subfamilia_id)) {
-            totManoObra += item.cantidad * (item.insumos.precio_sin_iva || 0);
-         }
-       });
-    }
+    const moFam = familiasInsumo.find(f => f.nombre.toLowerCase().includes('mano de obra') || f.grupo_sugerido === 'mano_de_obra');
+    rubroInsumos.forEach(item => {
+      const tipo = (item.insumos?.tipo || '').toLowerCase();
+      const isMo = tipo === 'mano_de_obra' || tipo === 'manodeobra' || tipo.includes('mano') || tipo === 'mo' || (moFam && isItemInFamily(item, moFam));
+      if (isMo) {
+        totManoObra += item.cantidad * (item.insumos?.precio_sin_iva || 0);
+      }
+    });
     const herramientaMenor = totManoObra * ((currentRubro?.herramienta_menor_pct || 0) / 100);
     return { totalCostoDirecto: baseTotal + herramientaMenor, herramientaMenor };
   }
@@ -428,34 +467,38 @@ export default function RubrosPage() {
 
   const filteredInsumosSearch = allInsumos.filter((i:any) => {
       if (addInsumoCategory) {
+        const famIns = familiasInsumo.find(f => f.id === addInsumoCategory);
+        if (famIns) return isItemInFamily({ insumos: i }, famIns);
         const validSubfams = subfamilias.filter((sf:any) => sf.familia_id === addInsumoCategory).map((sf:any) => sf.id);
         return validSubfams.includes(i.subfamilia_id);
       }
       return true;
-    }).filter(i => i.nombre.toLowerCase().includes(searchInsumoTerm.toLowerCase()) || (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))).slice(0, 20)
+    }).filter(i => (i.nombre || '').toLowerCase().includes(searchInsumoTerm.toLowerCase()) || (i.codigo && i.codigo.toLowerCase().includes(searchInsumoTerm.toLowerCase()))).slice(0, 20)
 
   const { totalCostoDirecto, herramientaMenor } = currentRubro ? calcTotalesReceta() : { totalCostoDirecto:0, herramientaMenor:0 }
 
-  
-const renderInsumoRow = (item: any) => (
-    <tr key={item.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
-      <td className="px-4 py-2.5 font-mono text-xs text-gray-500 font-semibold">{item.insumos.codigo}</td>
-      <td className="px-4 py-2.5 font-medium text-gray-800 text-sm">{item.insumos.nombre}</td>
-      <td className="px-4 py-2.5 text-center">
-        <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">{item.insumos.unidad}</span>
-      </td>
-      <td className="px-4 py-2.5">
+  const renderInsumoRow = (item: any) => {
+    const ins = item.insumos || {};
+    return (
+      <tr key={item.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100">
+        <td className="px-4 py-2.5 font-mono text-xs text-gray-500 font-semibold">{ins.codigo || '—'}</td>
+        <td className="px-4 py-2.5 font-medium text-gray-800 text-sm">{ins.nombre || '—'}</td>
+        <td className="px-4 py-2.5 text-center">
+          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">{ins.unidad || 'u'}</span>
+        </td>
+        <td className="px-4 py-2.5">
           <QuantityInput item={item} handleUpdateCantidad={handleUpdateCantidad} />
         </td>
-      <td className="px-4 py-2.5 text-right text-sm text-gray-500">${Number(item.insumos.precio_sin_iva).toFixed(4)}</td>
-      <td className="px-4 py-2.5 text-right font-bold text-gray-900 text-sm">${(item.cantidad * item.insumos.precio_sin_iva).toFixed(4)}</td>
-      <td className="px-2 py-2.5 text-center">
-        <button onClick={() => handleRemoveInsumo(item.id)} className="p-1.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
-          <Trash2 size={14} />
-        </button>
-      </td>
-    </tr>
-  )
+        <td className="px-4 py-2.5 text-right text-sm text-gray-500">${Number(ins.precio_sin_iva || 0).toFixed(4)}</td>
+        <td className="px-4 py-2.5 text-right font-bold text-gray-900 text-sm">${(item.cantidad * (ins.precio_sin_iva || 0)).toFixed(4)}</td>
+        <td className="px-2 py-2.5 text-center">
+          <button onClick={() => handleRemoveInsumo(item.id)} className="p-1.5 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+            <Trash2 size={14} />
+          </button>
+        </td>
+      </tr>
+    );
+  };
 
   if (vista === 'grupos') return (
     <GruposManager familias={familias} subfamilias={subfamilias} setFamilias={setFamilias} setSubfamilias={setSubfamilias} onBack={() => setVista('catalogo')} />
@@ -1085,10 +1128,9 @@ const renderInsumoRow = (item: any) => (
             <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 shrink-0">
               <div className="grid grid-cols-4 gap-3">
                 {familiasInsumo.map(famIns => {
-                    const validSfIds = subfamilias.filter(sf => sf.familia_id === famIns.id).map(sf=>sf.id);
-                    const items = rubroInsumos.filter(ri => validSfIds.includes(ri.insumos.subfamilia_id));
-                    const subtotal = items.reduce((sum, item) => sum + (item.cantidad * item.insumos.precio_sin_iva), 0);
-                    const isEquipos = famIns.nombre.toLowerCase().includes('equipo');
+                    const items = rubroInsumos.filter(ri => isItemInFamily(ri, famIns));
+                    const subtotal = items.reduce((sum, item) => sum + (item.cantidad * (item.insumos?.precio_sin_iva || 0)), 0);
+                    const isEquipos = famIns.nombre.toLowerCase().includes('equipo') || famIns.grupo_sugerido === 'equipo';
                     return (
                       <div key={famIns.id} className="bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2.5">
                         <div className="flex items-center gap-2 mb-1">
@@ -1110,12 +1152,16 @@ const renderInsumoRow = (item: any) => (
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
-              
-              {familiasInsumo.map((famIns, idx) => {
-                  const validSfIds = subfamilias.filter(sf => sf.familia_id === famIns.id).map(sf=>sf.id);
-                  const items = rubroInsumos.filter(ri => validSfIds.includes(ri.insumos.subfamilia_id));
-                  const subtotal = items.reduce((sum, item) => sum + (item.cantidad * item.insumos.precio_sin_iva), 0);
-                  const isEquipos = famIns.nombre.toLowerCase().includes('equipo');
+              {loadingReceta ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-3">
+                  <Loader2 size={32} className="animate-spin text-brand-sage" />
+                  <p className="text-sm text-gray-500 font-medium">Cargando desglose de insumos y rendimientos...</p>
+                </div>
+              ) : (
+                familiasInsumo.map((famIns, idx) => {
+                  const items = rubroInsumos.filter(ri => isItemInFamily(ri, famIns));
+                  const subtotal = items.reduce((sum, item) => sum + (item.cantidad * (item.insumos?.precio_sin_iva || 0)), 0);
+                  const isEquipos = famIns.nombre.toLowerCase().includes('equipo') || famIns.grupo_sugerido === 'equipo';
                   const hMenor = isEquipos ? herramientaMenor : 0;
                   
                   return (
@@ -1123,7 +1169,7 @@ const renderInsumoRow = (item: any) => (
                       <div className="bg-gray-50 text-gray-800 px-4 py-2 flex justify-between items-center border-b border-gray-200">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-xs uppercase tracking-wide flex items-center gap-1.5"><Layers size={14} className="text-brand-sage"/> {idx + 1}. {famIns.nombre}</span>
-                          
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">{items.length} {items.length === 1 ? 'insumo' : 'insumos'}</span>
                         </div>
                         <span className="font-black text-sm text-brand-dark">${(subtotal + hMenor).toFixed(4)}</span>
                       </div>
@@ -1157,8 +1203,9 @@ const renderInsumoRow = (item: any) => (
                       </table>
                     </div>
                   )
-                })}
-              </div>
+                })
+              )}
+            </div>
               {/* Footer */}
             <div className="px-5 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
               
