@@ -47,58 +47,58 @@ export default function DashboardLayout({
 
   const navGroups = [
     {
-      title: "0. RED AGÉNTICA COLECTIVA (IA)",
+      title: "1. RED AGÉNTICA COLECTIVA (IA)",
       items: [
         { href: "/dashboard/agentes", label: "SARA-Ecosystem (8 Agentes)", icon: Cpu },
       ]
     },
     {
-      title: "1. CONFIGURACIÓN & BANCO DE DATOS",
-      items: [
-        { href: "/dashboard/parametros", label: "Parámetros de Mi Empresa & SRI", icon: Settings },
-        { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos (Material, MO, Eq)", icon: Box },
-        { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros (APUs Maestros)", icon: Layers },
-        { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (Generador con IA)", icon: Sparkles },
-        { href: "/dashboard/apus/importador", label: "Importador Masivo de APUs (Excel)", icon: Database },
-      ]
-    },
-    {
       title: "2. ESTUDIO & PRESUPUESTACIÓN",
       items: [
-        { href: "/dashboard/presupuestos_reales", label: "Presupuestos de Obra & VAE SERCOP", icon: FileSpreadsheet },
-        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones Públicas)", icon: Search },
-        { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos Métricos 3D)", icon: Cuboid },
+        { href: "/dashboard/presupuestos_reales", label: "Presupuestos de Obra & VAE", icon: FileSpreadsheet },
         { href: "/dashboard/cotizador", label: "Cotizador Paramétrico Rápido", icon: Calculator },
+        { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
+        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (SERCOP)", icon: Search },
       ]
     },
     {
-      title: "3. EJECUCIÓN & CONTROL EN OBRA",
+      title: "3. CATÁLOGOS & BANCO DE APUS",
+      items: [
+        { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros (APUs)", icon: Layers },
+        { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (Generador IA)", icon: Sparkles },
+        { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos (Material/MO)", icon: Box },
+        { href: "/dashboard/apus/importador", label: "Importador Masivo (Excel)", icon: Database },
+      ]
+    },
+    {
+      title: "4. CONTROL & OPERACIÓN EN OBRA",
       items: [
         { href: "/dashboard/fiscaliza", label: "SARA-Fiscaliza (Parte Diario & GPS)", icon: HardHat },
-        { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística & Renta)", icon: Truck },
+        { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística)", icon: Truck },
       ]
     },
     {
-      title: "4. FINANZAS & GESTIÓN LEGAL",
+      title: "5. FINANZAS, SRI & LEGAL",
       items: [
-        { href: "/dashboard/metricas-sri", label: "SARA-Dashboard (Utilidades & SRI)", icon: Receipt },
+        { href: "/dashboard/metricas-sri", label: "Dashboard Financiero & SRI", icon: Receipt },
         { href: "/dashboard/docs", label: "SARA-Docs (Contratos & Minutas)", icon: FileText },
       ]
     },
     {
-      title: "5. DIRECTORIO & CRM",
+      title: "6. DIRECTORIO & CRM",
       items: [
-        { href: "/dashboard/directorio/clientes", label: "Directorio de Clientes (CRM)", icon: Users },
-        { href: "/dashboard/directorio/proveedores", label: "Directorio de Proveedores", icon: Briefcase },
-        { href: "/dashboard/directorio/trabajadores", label: "Personal & Cuadrillas de Obra", icon: Wrench },
+        { href: "/dashboard/directorio/clientes", label: "Clientes (CRM)", icon: Users },
+        { href: "/dashboard/directorio/proveedores", label: "Proveedores Aliados", icon: Briefcase },
+        { href: "/dashboard/directorio/trabajadores", label: "Personal & Cuadrillas", icon: Wrench },
       ]
     },
     {
-      title: "6. CUENTA & SUSCRIPCIÓN",
+      title: "7. CONFIGURACIÓN & EMPRESA",
       items: [
-        { href: "/dashboard/planes", label: "Mi Plan SARA-APU Suite", icon: Settings },
-        { href: "/dashboard/marca", label: "Membrete Oficial & Reportes PDF", icon: Palette },
-        { href: "/dashboard/perfil", label: "Seguridad & Configuración de Cuenta", icon: ShieldAlert },
+        { href: "/dashboard/parametros", label: "Datos de Empresa & Facturación", icon: Settings },
+        { href: "/dashboard/marca", label: "Membrete Oficial & PDF", icon: Palette },
+        { href: "/dashboard/planes", label: "Mi Plan SARA Suite", icon: Sparkles },
+        { href: "/dashboard/perfil", label: "Seguridad & Cuenta", icon: ShieldAlert },
       ]
     }
   ]
@@ -128,7 +128,6 @@ export default function DashboardLayout({
         setUserName(name)
         setUserInitials(name.substring(0, 2).toUpperCase())
       } else {
-        // Redirigir al login si no hay sesión
         router.push("/login")
       }
     }
@@ -141,16 +140,30 @@ export default function DashboardLayout({
         const isOpen = openGroup === group.title
         const hasActiveItem = group.items.some(i => i.href === pathname)
         return (
-          <div key={groupIdx} className="mb-2">
+          <div 
+            key={groupIdx} 
+            className={`mb-2.5 transition-all duration-300 rounded-2xl ${
+              hasActiveItem 
+                ? "bg-gradient-to-b from-blue-950/80 to-indigo-950/60 border border-blue-500/40 shadow-lg shadow-blue-500/10 p-1.5" 
+                : "bg-transparent border border-transparent p-0.5"
+            }`}
+          >
             {!collapsed && (
               <button 
                 onClick={() => toggleGroup(group.title)}
-                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
-                  hasActiveItem ? "text-blue-400 font-bold bg-white/5" : isOpen ? "bg-white/10 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"
+                className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+                  hasActiveItem 
+                    ? "text-blue-300 bg-blue-500/20 shadow-xs" 
+                    : isOpen 
+                      ? "bg-white/10 text-white" 
+                      : "text-gray-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <span>{group.title}</span>
-                {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                <span className="flex items-center gap-2">
+                  {hasActiveItem && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
+                  <span>{group.title}</span>
+                </span>
+                {isOpen ? <ChevronDown size={14} className={hasActiveItem ? "text-blue-300" : ""} /> : <ChevronRight size={14} />}
               </button>
             )}
             
@@ -166,7 +179,11 @@ export default function DashboardLayout({
                       title={item.label}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center ${collapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2.5"} rounded-xl font-bold transition-all ${
-                        isActive ? "bg-blue-600 text-white shadow-md shadow-black/30" : "text-gray-300 hover:bg-white/10 hover:text-white"
+                        isActive 
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/50" 
+                          : hasActiveItem
+                            ? "text-slate-200 hover:bg-white/10 hover:text-white"
+                            : "text-gray-400 hover:bg-white/10 hover:text-white"
                       }`}
                     >
                       <Icon size={collapsed ? 20 : 18} className="shrink-0" />

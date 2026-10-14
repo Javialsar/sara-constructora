@@ -2,18 +2,20 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client"
-import { Settings, Calculator, Save, FileText, CheckCircle2, Download, UserPlus, X } from "lucide-react"
+import { Settings, Calculator, Save, FileText, CheckCircle2, Download, UserPlus, X, Cpu, Sparkles } from "lucide-react"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { membreteBase64 } from "@/lib/membreteBase64"
 import { createClientAccount } from "@/app/admin/clientes/actions"
 import AsyncSelect from "@/components/ui/AsyncSelect"
+import AgentNetworkChoreography from "@/components/agents/AgentNetworkChoreography"
 
 export default function CotizadorPage() {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<'generar' | 'parametros' | 'historial'>('generar')
+  const [showAiAgentsView, setShowAiAgentsView] = useState(false)
   
   // Estado para par�metros
     const setParams = (updater: any) => {
@@ -844,6 +846,49 @@ export default function CotizadorPage() {
 
           {/* Dashboards de Salida */}
           <div className="space-y-4">
+            {/* Banner y Acceso a Red de Agentes IA */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950/40 border border-amber-500/30 shadow-xl space-y-3 print:hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <Sparkles className="w-5 h-5 animate-pulse text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white flex items-center gap-2">
+                      <span>Red de Agentes IA (Memoria Histórica SARA)</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">8 Agentes</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Calcula un precio referencial inteligente ajustado por rendimientos en Azuay/Pichincha y volatilidad de acero y cemento.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAiAgentsView(!showAiAgentsView)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                >
+                  <Cpu className="w-4 h-4 text-slate-950" />
+                  <span>{showAiAgentsView ? 'Ocultar Red de Agentes' : 'Activar Red de Agentes IA'}</span>
+                </button>
+              </div>
+
+              {showAiAgentsView && (
+                <div className="pt-3 border-t border-slate-800">
+                  <AgentNetworkChoreography
+                    initialContext={{
+                      nombre: cotizacion.nombreProyecto || cotizacion.nombreCliente || "Proyecto Cotizado",
+                      provincia: "Azuay",
+                      ciudad: "Cuenca",
+                      areaM2: Number(cotizacion.areaConstruccion) || 160,
+                      tipologia: cotizacion.estructura === 'metalica' ? 'Estructura Metálica' : 'Residencial',
+                      costoReferencial: (resultados?.costoObra || 80000) + (resultados?.totalHonorarios || 0)
+                    }}
+                    autoRun={true}
+                  />
+                </div>
+              )}
+            </div>
             
             
 

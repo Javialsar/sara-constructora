@@ -4,7 +4,7 @@ import BimImporterModal from "./components/BimImporterModal"
 import RecipeModal from "./components/RecipeModal"
 import SercopVaeAnalyzer from "./components/SercopVaeAnalyzer"
 import IndirectosAnaliticoModal from "./components/IndirectosAnaliticoModal"
-import { Cuboid, ShieldCheck } from "lucide-react"
+import { Cuboid, ShieldCheck, Cpu, Sparkles } from "lucide-react"
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -13,6 +13,7 @@ import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
 import { Plus, Calendar, Search, Trash2, X, ArrowLeft, Copy, Save, Calculator, FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List , Settings, Filter, Layers, Package, Boxes, PieChart} from "lucide-react"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
+import AgentNetworkChoreography from "@/components/agents/AgentNetworkChoreography"
 import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } from "@/lib/pdfGenerator"
 import { generatePresupuestoGeneralExcel, generateExplosionExcel } from "@/lib/excelGenerator"
 import autoTable from "jspdf-autotable"
@@ -1097,6 +1098,9 @@ export default function PresupuestosRealesPage() {
           <button onClick={() => setIsGanttModalOpen(true)} className={`px-6 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700`}>
             <Calendar size={16} className="inline mr-2"/> Cronograma de Trabajo
           </button>
+          <button onClick={() => setActiveTab('red_agentes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors flex items-center ${activeTab === 'red_agentes' ? 'border-amber-500 text-amber-900 bg-amber-50/70 font-black' : 'border-transparent text-amber-700 hover:text-amber-900 bg-amber-50/30'}`}>
+            <Cpu size={16} className="inline mr-2 text-amber-500 animate-pulse"/> Red de Agentes IA
+          </button>
         </div>
 
         {activeTab === 'detalle' && (
@@ -1106,6 +1110,12 @@ export default function PresupuestosRealesPage() {
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="font-bold text-gray-800">Rubros del Proyecto</h2>
               <div className="flex gap-2">
+                <button 
+                  onClick={() => setActiveTab('red_agentes')} 
+                  className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-sm font-black py-1.5 px-4 rounded flex items-center gap-2 shadow-sm cursor-pointer"
+                >
+                  <Cpu size={16} /> Red de Agentes IA
+                </button>
                 {isBorrador && (
                   <>
                     <button onClick={savePresupuesto} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-1.5 px-4 rounded flex items-center gap-2 shadow-sm"><Save size={16} /> Guardar</button>
@@ -2099,6 +2109,29 @@ export default function PresupuestosRealesPage() {
           </div>
         )}
 
+        {activeTab === 'red_agentes' && (
+          <div className="w-full mb-12">
+            <AgentNetworkChoreography
+              initialContext={{
+                nombre: currentPresupuesto?.nombre_proyecto || activeProject?.nombre || "Obra Activa",
+                provincia: activeProject?.ubicacion?.includes(',') ? activeProject.ubicacion.split(',')[1].trim() : "Azuay",
+                ciudad: activeProject?.ubicacion?.split(',')[0].trim() || "Cuenca",
+                areaM2: Math.max(80, Math.round((totalCostoDirecto || 50000) / 480)),
+                tipologia: 'Residencial',
+                costoReferencial: totalCostoDirecto || currentPresupuesto?.costo_directo_total || 51918,
+                rubros: rubros.map(r => ({
+                  codigo: r.codigo,
+                  nombre: r.nombre,
+                  unidad: r.unidad,
+                  cantidad: r.cantidad,
+                  subtotal: r.subtotal
+                }))
+              }}
+              autoRun={true}
+            />
+          </div>
+        )}
+
 
         {/* Modal Buscar Rubro */}
         {isAddRubroModalOpen && (
@@ -2321,6 +2354,18 @@ export default function PresupuestosRealesPage() {
                     <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
                     <td className="px-6 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditor(p);
+                            setActiveTab('red_agentes');
+                          }} 
+                          title="Analizar con Red de Agentes IA"
+                          className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-xs mr-1"
+                        >
+                          <Cpu size={13} className="text-amber-500" />
+                          <span>Red Agentes</span>
+                        </button>
                         <button 
                           onClick={() => openEditor(p)} 
                           className="text-brand-sage font-bold mr-1 text-xs hover:underline"

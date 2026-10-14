@@ -25,14 +25,21 @@ import {
   Clock,
   Key,
   QrCode,
-  DollarSign
+  DollarSign,
+  BarChart3
 } from 'lucide-react';
+import AgentAnalyticsModal, { AgentAnalyticsData } from '@/components/agents/AgentAnalyticsModal';
+import { getAgentAnalytics } from '@/components/agents/AgentAnalyticsCatalog';
 
 export default function AgentesEcosistemaPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isLearning, setIsLearning] = useState(false);
   const [activeStep, setActiveStep] = useState<number>(0);
   const [selectedAgentTab, setSelectedAgentTab] = useState<string>('constructora');
+
+  // Modal de Analítica Detallada
+  const [selectedAnalytics, setSelectedAnalytics] = useState<AgentAnalyticsData | null>(null);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
 
   // Form State
   const [projectName, setProjectName] = useState('Residencia Campestre Paucarbamba');
@@ -311,6 +318,27 @@ export default function AgentesEcosistemaPage() {
                   </div>
                   <h4 className="font-black text-xs text-white leading-tight">{node.label}</h4>
                   <p className="text-[10px] text-slate-300 mt-1 opacity-80">{node.role}</p>
+
+                  <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold">Ver datos</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAnalytics(getAgentAnalytics(node.id, {
+                          proyectoNombre: projectName,
+                          provincia,
+                          costoObra: choreographyResult?.resultados?.apu?.costoTotalObra || 95000,
+                          areaM2
+                        }));
+                        setIsAnalyticsModalOpen(true);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold border border-white/10 transition-all cursor-pointer shadow-xs"
+                    >
+                      <BarChart3 className="w-3 h-3 text-amber-400" />
+                      <span>Analítica</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -804,6 +832,13 @@ export default function AgentesEcosistemaPage() {
           ))}
         </div>
       </div>
+
+      {/* Modal de Analítica Detallada */}
+      <AgentAnalyticsModal
+        isOpen={isAnalyticsModalOpen}
+        onClose={() => setIsAnalyticsModalOpen(false)}
+        agentData={selectedAnalytics}
+      />
     </div>
   );
 }
