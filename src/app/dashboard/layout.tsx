@@ -23,7 +23,8 @@ import {
   Sparkles,
   FileText,
   Truck,
-  Receipt
+  Receipt,
+  Cpu
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -45,6 +46,12 @@ export default function DashboardLayout({
   const [openGroup, setOpenGroup] = useState<string>("2. ESTUDIO & PRESUPUESTACIÓN")
 
   const navGroups = [
+    {
+      title: "0. RED AGÉNTICA COLECTIVA (IA)",
+      items: [
+        { href: "/dashboard/agentes", label: "SARA-Ecosystem (8 Agentes)", icon: Cpu },
+      ]
+    },
     {
       title: "1. CONFIGURACIÓN & BANCO DE DATOS",
       items: [
