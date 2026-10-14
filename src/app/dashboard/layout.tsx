@@ -17,6 +17,9 @@ import {
   Layers,
   FileSpreadsheet,
   Database,
+  Search,
+  HardHat,
+  Cuboid
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -42,6 +45,14 @@ export default function DashboardLayout({
         { href: "/dashboard/presupuestos_reales", label: "Presupuestos Reales", icon: FileSpreadsheet },
         { href: "/dashboard/apus/rubros", label: "Mis Rubros (Recetas)", icon: Layers },
         { href: "/dashboard/apus/insumos", label: "Mis Insumos", icon: Box },
+      ]
+    },
+    {
+      title: "SERCOP, OBRA & BIM",
+      items: [
+        { href: "/dashboard/tenders", label: "SARA-Tenders (SERCOP)", icon: Search },
+        { href: "/dashboard/fiscaliza", label: "SARA-Fiscaliza (Obra)", icon: HardHat },
+        { href: "/dashboard/bim", label: "SARA-BIM Integrador", icon: Cuboid },
       ]
     },
     {

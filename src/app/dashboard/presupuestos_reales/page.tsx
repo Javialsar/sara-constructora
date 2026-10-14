@@ -2,7 +2,9 @@
 "use client"
 import BimImporterModal from "./components/BimImporterModal"
 import RecipeModal from "./components/RecipeModal"
-import { Cuboid } from "lucide-react"
+import SercopVaeAnalyzer from "./components/SercopVaeAnalyzer"
+import IndirectosAnaliticoModal from "./components/IndirectosAnaliticoModal"
+import { Cuboid, ShieldCheck } from "lucide-react"
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -139,6 +141,7 @@ const createMutation = useMutation({
   }, [insumoSearch]);
   const [isRecipeModalOpen, setIsRecipeModalOpen] = useState(false)
   const [currentRecipeRubro, setCurrentRecipeRubro] = useState(null)
+  const [isIndirectosModalOpen, setIsIndirectosModalOpen] = useState(false)
 
   const [explosionData, setExplosionData] = useState([])
   const [loadingExplosion, setLoadingExplosion] = useState(false)
@@ -901,7 +904,10 @@ const createMutation = useMutation({
                     <button onClick={() => setActiveTab('explosion')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'explosion' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             <Calculator size={16} className="inline mr-2"/> Explosión de Insumos
           </button>
-<button onClick={() => setActiveTab('reportes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'reportes' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+          <button onClick={() => setActiveTab('vae_sercop')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'vae_sercop' ? 'border-brand-sage text-brand-dark bg-emerald-50/50' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <ShieldCheck size={16} className="inline mr-2 text-emerald-600"/> Cumplimiento VAE (SERCOP)
+          </button>
+          <button onClick={() => setActiveTab('reportes')} className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'reportes' ? 'border-brand-sage text-brand-dark' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             <FileText size={16} className="inline mr-2"/> Reportes
           </button>
           <button onClick={() => setIsGanttModalOpen(true)} className={`px-6 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-700`}>
@@ -1030,6 +1036,9 @@ const createMutation = useMutation({
                   <div className="flex items-center gap-2">
                     <button onClick={() => setIndForm({...indForm, pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0})} className='px-4 py-2 text-sm font-medium bg-white border border-gray-200 rounded-lg text-slate-600 shadow-sm hover:bg-slate-50 transition-colors'>% Porcentajes por defecto</button>
                     <button onClick={() => setIndForm({...indForm, formulas: defaultFormulas})} className='px-4 py-2 text-sm font-medium bg-slate-100 border border-transparent rounded-lg text-slate-600 hover:bg-slate-200 transition-colors'>Restaurar Fórmulas por defecto</button>
+                    <button onClick={() => setIsIndirectosModalOpen(true)} className='px-4 py-2 text-sm font-bold bg-amber-50 border border-amber-200 rounded-lg text-amber-800 hover:bg-amber-100 transition-colors flex items-center gap-1.5 shadow-sm'>
+                      <Calculator size={15} /> Justificación Analítica SERCOP (AIU)
+                    </button>
                     <div className="flex items-center gap-2 ml-4">
                       <input type="checkbox" id="show-formulas" checked={showFormulas} onChange={(e) => setShowFormulas(e.target.checked)} className="rounded text-brand-sage focus:ring-brand-sage w-4 h-4 cursor-pointer" />
                       <label htmlFor="show-formulas" className="text-sm text-gray-600 font-medium cursor-pointer">Visualizar fórmulas</label>
@@ -1795,6 +1804,16 @@ const createMutation = useMutation({
             );
         })()}
 
+        {activeTab === 'vae_sercop' && (
+          <SercopVaeAnalyzer
+            presupuesto={currentPresupuesto}
+            presupuestoRubros={presupuestoRubros}
+            rubrosRecipes={rubrosRecipes}
+            costoDirectoTotal={costoDirectoTotal}
+            granTotal={granTotal}
+          />
+        )}
+
 {activeTab === 'reportes' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden w-full mb-10">
              <table className="w-full text-sm text-left divide-y divide-gray-200">
@@ -1947,6 +1966,21 @@ const createMutation = useMutation({
             handleAddInsumoToRecipe={handleAddInsumoToRecipe}
           />
         )}
+        {/* Modal Justificación Analítica Indirectos (AIU) */}
+        <IndirectosAnaliticoModal
+          isOpen={isIndirectosModalOpen}
+          onClose={() => setIsIndirectosModalOpen(false)}
+          costoDirectoTotal={costoDirectoTotal}
+          projectName={currentPresupuesto?.nombre_proyecto || 'Proyecto'}
+          onApplyPercentages={(adminPct, impPct, utilPct) => {
+            setIndForm(prev => ({
+              ...prev,
+              ggen: adminPct,
+              pimp: impPct,
+              util: utilPct
+            }))
+          }}
+        />
       </div>
     )
   }
