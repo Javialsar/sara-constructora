@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useProject } from "@/contexts/ProjectContext"
 import { Building2, X, Plus, MapPin, Loader2, Sparkles } from "lucide-react"
 
@@ -12,6 +13,7 @@ const PROVINCIAS_ECUADOR = [
 ]
 
 export default function CreateProjectModal() {
+  const router = useRouter()
   const { isCreateModalOpen, closeCreateModal, createProject } = useProject()
   
   const [nombre, setNombre] = useState("")
@@ -39,6 +41,7 @@ export default function CreateProjectModal() {
         setNombre("")
         setUbicacion("")
         setDescripcion("")
+        router.push('/dashboard/presupuestos_reales')
       }
     } finally {
       setGuardando(false)

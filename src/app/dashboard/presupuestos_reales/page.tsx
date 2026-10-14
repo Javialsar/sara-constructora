@@ -5,7 +5,7 @@ import RecipeModal from "./components/RecipeModal"
 import SercopVaeAnalyzer from "./components/SercopVaeAnalyzer"
 import IndirectosAnaliticoModal from "./components/IndirectosAnaliticoModal"
 import { Cuboid, ShieldCheck } from "lucide-react"
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,6 +62,7 @@ export default function PresupuestosRealesPage() {
       let query = supabase
         .from('presupuestos_reales')
         .select('*, cliente:clientes(id, nombre, apellido, email)')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (user) {
@@ -94,6 +95,42 @@ export default function PresupuestosRealesPage() {
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
+
+  // ⚡ Sincronización de espacio de trabajo al cambiar de proyecto activo
+  const prevProjectIdRef = useRef<string | null>(activeProject?.id || null);
+  const prevGlobalModeRef = useRef<boolean>(isGlobalMode);
+
+  useEffect(() => {
+    const projectChanged = prevProjectIdRef.current !== (activeProject?.id || null);
+    const globalChanged = prevGlobalModeRef.current !== isGlobalMode;
+
+    if (projectChanged || globalChanged) {
+      prevProjectIdRef.current = activeProject?.id || null;
+      prevGlobalModeRef.current = isGlobalMode;
+
+      // Si el usuario seleccionó otra obra en el selector superior, cerrar cualquier editor/explosión y volver a la lista del proyecto
+      setView('lista');
+      setCurrentPresupuesto(null);
+    }
+  }, [activeProject?.id, isGlobalMode]);
+
+  // Lista de presupuestos filtrados por la obra activa o búsqueda
+  const filteredPresupuestos = useMemo(() => {
+    return presupuestos.filter((p: any) => {
+      // Filtro por obra activa
+      if (!isGlobalMode && activeProject) {
+        const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
+        const actNom = activeProject.nombre.toLowerCase().trim();
+        if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
+          return false;
+        }
+      }
+      const searchLower = searchPresupuesto.toLowerCase();
+      const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
+      const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
+      return matchProject || clientName.includes(searchLower);
+    });
+  }, [presupuestos, isGlobalMode, activeProject, searchPresupuesto]);
 
   const proyectosCRM: any[] = [];
   const clientesCRM: any[] = [];
@@ -470,6 +507,14 @@ export default function PresupuestosRealesPage() {
     if (!pres.cliente && pres.cliente_id && clientesCRM?.length > 0) {
       pres.cliente = clientesCRM.find((c: any) => c.id === pres.cliente_id) || null;
     }
+
+    // Sincronizar automáticamente la obra activa en el navbar para que coincida con el presupuesto que se está editando
+    const matched = projects.find((p: any) => p.nombre.toLowerCase() === (pres.nombre_proyecto || '').toLowerCase());
+    if (matched && (!activeProject || activeProject.id !== matched.id)) {
+      prevProjectIdRef.current = matched.id;
+      setActiveProject(matched);
+    }
+
     setCurrentPresupuesto(pres);
     setIndForm({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0, ...(presupuesto.indirectos_config || {}) });
     setActiveTab('detalle');
@@ -2186,21 +2231,7 @@ export default function PresupuestosRealesPage() {
             className="w-full max-w-md px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100" 
           />
           <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-            Total en vista: {
-              presupuestos.filter(p => {
-                if (!isGlobalMode && activeProject) {
-                  const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
-                  const actNom = activeProject.nombre.toLowerCase().trim();
-                  if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
-                    return false;
-                  }
-                }
-                const searchLower = searchPresupuesto.toLowerCase();
-                const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
-                const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
-                return matchProject || clientName.includes(searchLower);
-              }).length
-            } presupuestos
+            Total en vista: {filteredPresupuestos.length} presupuestos
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -2217,20 +2248,7 @@ export default function PresupuestosRealesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
-              {presupuestos.filter(p => {
-                // Filtro por obra activa
-                if (!isGlobalMode && activeProject) {
-                  const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
-                  const actNom = activeProject.nombre.toLowerCase().trim();
-                  if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
-                    return false;
-                  }
-                }
-                const searchLower = searchPresupuesto.toLowerCase();
-                const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
-                const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
-                return matchProject || clientName.includes(searchLower);
-              }).length === 0 ? (
+              {filteredPresupuestos.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
                     <div className="max-w-sm mx-auto space-y-3">
@@ -2259,19 +2277,7 @@ export default function PresupuestosRealesPage() {
                   </td>
                 </tr>
               ) : (
-                presupuestos.filter(p => {
-                  if (!isGlobalMode && activeProject) {
-                    const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
-                    const actNom = activeProject.nombre.toLowerCase().trim();
-                    if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
-                      return false;
-                    }
-                  }
-                  const searchLower = searchPresupuesto.toLowerCase();
-                  const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
-                  const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
-                  return matchProject || clientName.includes(searchLower);
-                }).map((p) => (
+                filteredPresupuestos.map((p) => (
                   <tr key={p.id} className="hover:bg-brand-sage/5 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => openEditor(p)}>
                     <td className="px-6 py-3">
                       <div className="font-bold text-brand-dark dark:text-white text-sm">{p.nombre_proyecto}</div>

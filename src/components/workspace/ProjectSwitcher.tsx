@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useProject } from "@/contexts/ProjectContext"
 import { 
   Building2, 
@@ -15,6 +16,7 @@ import {
 } from "lucide-react"
 
 export default function ProjectSwitcher() {
+  const router = useRouter()
   const { 
     projects, 
     activeProject, 
@@ -108,6 +110,7 @@ export default function ProjectSwitcher() {
               onClick={() => {
                 setActiveProject(null)
                 setIsOpen(false)
+                router.push('/dashboard/presupuestos_reales')
               }}
               className={`p-2.5 rounded-xl cursor-pointer transition-colors flex items-center justify-between text-xs ${
                 isGlobalMode 
@@ -143,6 +146,7 @@ export default function ProjectSwitcher() {
                     onClick={() => {
                       setActiveProject(proj)
                       setIsOpen(false)
+                      router.push('/dashboard/presupuestos_reales')
                     }}
                     className={`p-2.5 rounded-xl cursor-pointer transition-colors flex items-center justify-between text-xs ${
                       isSelected 
