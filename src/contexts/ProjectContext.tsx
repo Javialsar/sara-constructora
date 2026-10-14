@@ -148,16 +148,15 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   const createProject = async (data: { nombre: string; ubicacion?: string; provincia?: string; descripcion?: string }): Promise<ProjectItem | null> => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      const nuevoId = `proj-${Date.now()}`
-      
+      const ubicacionStr = data.provincia 
+        ? (data.ubicacion ? `${data.ubicacion} • ${data.provincia}` : data.provincia)
+        : (data.ubicacion || "Ecuador")
+
       const payload = {
-        id: nuevoId,
         nombre: data.nombre.trim(),
-        ubicacion: data.ubicacion || data.provincia || "Ecuador",
+        ubicacion: ubicacionStr,
         descripcion: data.descripcion || `Obra registrada desde Suite SARA-APU (${data.provincia || "Ecuador"})`,
-        estado: "en_ejecucion",
-        ...(user?.id ? { user_id: user.id } : {})
+        estado: "en_construccion"
       }
 
       const { data: creado, error } = await supabase
@@ -173,16 +172,16 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       }
 
       const nuevoItem: ProjectItem = {
-        id: creado ? creado.id : nuevoId,
-        nombre: payload.nombre,
-        ubicacion: payload.ubicacion,
-        provincia: data.provincia || "Pichincha",
-        descripcion: payload.descripcion,
-        estado: payload.estado,
-        created_at: new Date().toISOString()
+        id: creado.id,
+        nombre: creado.nombre || payload.nombre,
+        ubicacion: creado.ubicacion || payload.ubicacion,
+        provincia: data.provincia || "Loja",
+        descripcion: creado.descripcion || payload.descripcion,
+        estado: creado.estado || payload.estado,
+        created_at: creado.created_at || new Date().toISOString()
       }
 
-      setProjects(prev => [nuevoItem, ...prev])
+      setProjects(prev => [nuevoItem, ...prev.filter(p => p.id !== nuevoItem.id)])
       setActiveProject(nuevoItem)
       setIsCreateModalOpen(false)
       return nuevoItem
