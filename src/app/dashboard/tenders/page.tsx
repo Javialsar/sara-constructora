@@ -1,6 +1,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { 
   Search, 
   Filter, 
@@ -17,7 +19,8 @@ import {
   TrendingUp,
   Building2,
   AlertCircle,
-  Cpu
+  Cpu,
+  Loader2
 } from "lucide-react"
 
 interface ProcesoTender {
@@ -37,6 +40,8 @@ interface ProcesoTender {
 }
 
 export default function SaraTendersPage() {
+  const router = useRouter()
+  const supabase = createClient()
   const [procesos, setProcesos] = useState<ProcesoTender[]>([])
   const [loading, setLoading] = useState(true)
   const [provinciaFiltro, setProvinciaFiltro] = useState("todas")
@@ -44,6 +49,8 @@ export default function SaraTendersPage() {
   const [busqueda, setBusqueda] = useState("")
   const [analizandoIA, setAnalizandoIA] = useState(false)
   const [resultadoIA, setResultadoIA] = useState<any | null>(null)
+  const [procesoActivo, setProcesoActivo] = useState<ProcesoTender | null>(null)
+  const [exportandoPresupuesto, setExportandoPresupuesto] = useState(false)
 
   // Cargar datos reales o fallback de demostración
   useEffect(() => {
@@ -183,6 +190,7 @@ export default function SaraTendersPage() {
   const ejecutarAnalisisPliegoIA = async (proceso: ProcesoTender) => {
     setAnalizandoIA(true)
     setResultadoIA(null)
+    setProcesoActivo(proceso)
     try {
       const res = await fetch("/api/tenders/analizar-pliego", {
         method: "POST",
@@ -194,13 +202,64 @@ export default function SaraTendersPage() {
         })
       })
       const data = await res.json()
-      if (data.success) {
+      if (data.success && data.diagnostico_ia) {
         setResultadoIA(data.diagnostico_ia)
+      } else {
+        alert("Aviso del análisis SERCOP: " + (data.error || data.details || "No se pudo interpretar el pliego"))
       }
-    } catch (e) {
-      alert("Error al conectar con el lector IA de pliegos")
+    } catch (e: any) {
+      alert("Error al conectar con el lector IA de pliegos: " + e.message)
     } finally {
       setAnalizandoIA(false)
+    }
+  }
+
+  const handleExportarAPresupuesto = async () => {
+    if (!resultadoIA || !resultadoIA.items || resultadoIA.items.length === 0) return
+    setExportandoPresupuesto(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const nombreObra = procesoActivo ? `${procesoActivo.codigo_proceso} - ${procesoActivo.objeto_proceso.substring(0, 60)}` : "Licitación SERCOP Importada"
+
+      // 1. Crear nuevo presupuesto
+      const { data: nuevoPresupuesto, error: errPres } = await supabase
+        .from('presupuestos_reales')
+        .insert([{
+          nombre_proyecto: nombreObra,
+          porcentaje_admin: 10.0,
+          porcentaje_imprevistos: 5.0,
+          porcentaje_utilidad: 10.0,
+          estado: 'borrador',
+          user_id: user?.id || null
+        }])
+        .select()
+        .single()
+
+      if (errPres || !nuevoPresupuesto) {
+        throw new Error(errPres?.message || "No se pudo crear el presupuesto")
+      }
+
+      // 2. Insertar rubros extraídos
+      for (const item of resultadoIA.items) {
+        await supabase.from('presupuesto_rubros').insert([{
+          presupuesto_id: nuevoPresupuesto.id,
+          codigo_rubro: item.codigo_cpc || "SERCOP",
+          nombre_rubro: item.descripcion,
+          unidad: item.unidad,
+          precio_unitario_snapshot: item.precio_sara_apu || item.precio_unitario_referencial,
+          cantidad_obra: item.cantidad,
+          subtotal: item.cantidad * (item.precio_sara_apu || item.precio_unitario_referencial)
+        }])
+      }
+
+      setResultadoIA(null)
+      alert("¡Oferta generada exitosamente! Te redirigiremos a Presupuestos para revisar los APU.")
+      router.push("/dashboard/presupuestos_reales")
+    } catch (err: any) {
+      alert("Error al exportar rubros a presupuesto: " + err.message)
+    } finally {
+      setExportandoPresupuesto(false)
     }
   }
 
@@ -430,13 +489,21 @@ export default function SaraTendersPage() {
             </div>
 
             <button 
-              onClick={() => {
-                alert("Rubros importados automáticamente como nuevo presupuesto borrador en SARA-APU")
-                setResultadoIA(null)
-              }}
-              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all"
+              onClick={handleExportarAPresupuesto}
+              disabled={exportandoPresupuesto}
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
             >
-              Exportar Rubros a Presupuesto Maestro en SARA-APU
+              {exportandoPresupuesto ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Creando Presupuesto & Vinculando APU...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} />
+                  <span>Exportar Rubros a Presupuesto Maestro en SARA-APU</span>
+                </>
+              )}
             </button>
           </div>
         </div>

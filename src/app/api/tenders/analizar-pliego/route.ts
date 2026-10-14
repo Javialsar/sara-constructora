@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     // 1. Obtener catálogo maestro de rubros SARA-APU para matching semántico
     const { data: catalogoRubros, error: rubrosError } = await supabase
       .from('rubros')
-      .select('id, codigo, nombre, unidad, precio_total')
+      .select('id, codigo, nombre, unidad, total_costo_directo')
       .limit(300)
 
     if (rubrosError) {
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
         subtotal_referencial: Number((item.cantidad * item.precio_unitario_referencial).toFixed(2)),
         rubro_apu_id: match ? match.id : null,
         rubro_apu_nombre: match ? match.nombre : "Rubro sin correlación directa",
-        precio_sara_apu: match ? Number(match.precio_total || 0) : null,
+        precio_sara_apu: match ? Number(match.total_costo_directo || 0) : null,
         match_confianza: confianza
       }
     })
