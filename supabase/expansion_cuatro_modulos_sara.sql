@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS public.sara_maquinaria_solicitudes (
     maquinaria_id UUID REFERENCES public.sara_maquinaria_inventario(id) ON DELETE CASCADE,
     solicitante_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     proyecto_id UUID REFERENCES public.proyectos(id) ON DELETE SET NULL,
-    reporte_diario_id UUID REFERENCES public.sara_fiscaliza_reportes(id) ON DELETE SET NULL,
+    reporte_diario_id UUID REFERENCES public.sara_fiscalizacion_diaria(id) ON DELETE SET NULL,
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE NOT NULL,
     horas_solicitadas NUMERIC(8,2) NOT NULL DEFAULT 8.0,
