@@ -37,7 +37,7 @@ type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   const queryClient = useQueryClient();
-  const { projects, activeProject, currentCliente, isGlobalMode, setGlobalMode, openCreateModal } = useProject();
+  const { projects, activeProject, currentCliente, isGlobalMode, setGlobalMode, openCreateModal, setActiveProject } = useProject();
   
   const [selectedProjectName, setSelectedProjectName] = useState("")
   const [isCustomProject, setIsCustomProject] = useState(false)
@@ -120,6 +120,13 @@ export default function PresupuestosRealesPage() {
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
       setIsNewModalOpen(false);
+
+      // Si el presupuesto creado corresponde a un proyecto registrado, activarlo en el espacio de trabajo
+      const matched = projects.find((p: any) => p.nombre.toLowerCase() === data.nombre_proyecto.toLowerCase());
+      if (matched) {
+        setActiveProject(matched);
+      }
+
       openEditor(data);
 
       if (bimDataToProcess && bimDataToProcess.length > 0) {
@@ -135,9 +142,7 @@ export default function PresupuestosRealesPage() {
 
   const handleDirectCreatePresupuesto = (e: React.FormEvent) => {
     e.preventDefault();
-    const nombreFinal = (isCustomProject 
-      ? selectedProjectName 
-      : (!isGlobalMode && activeProject ? activeProject.nombre : selectedProjectName)).trim();
+    const nombreFinal = selectedProjectName.trim();
 
     if (!nombreFinal) {
       alert("Por favor ingresa o selecciona el nombre de la obra o proyecto.");
@@ -2357,90 +2362,85 @@ export default function PresupuestosRealesPage() {
               {/* Selector / Asignación de Obra */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
-                  Proyecto / Obra
+                  Proyecto / Obra Asignada
                 </label>
 
-                {!isGlobalMode && activeProject && !isCustomProject ? (
-                  <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                        ✓
-                      </div>
-                      <div className="overflow-hidden">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
-                          Obra Activa Seleccionada
-                        </span>
-                        <div className="font-bold text-sm text-gray-900 dark:text-white truncate">
-                          {activeProject.nombre}
+                <div className="space-y-2.5">
+                  <select
+                    value={isCustomProject ? "__CUSTOM__" : selectedProjectName}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      if (val === "__CUSTOM__") {
+                        setIsCustomProject(true)
+                        setSelectedProjectName("")
+                      } else {
+                        setIsCustomProject(false)
+                        setSelectedProjectName(val)
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="" disabled>-- Selecciona el proyecto para este presupuesto --</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.nombre}>
+                        {p.nombre} {p.provincia ? `• ${p.provincia}` : ""} {activeProject?.id === p.id ? " (Obra Activa)" : ""}
+                      </option>
+                    ))}
+                    <option value="__CUSTOM__">✍️ Escribir otro nombre de proyecto...</option>
+                  </select>
+
+                  {isCustomProject ? (
+                    <div className="relative animate-in fade-in duration-200">
+                      <input
+                        type="text"
+                        placeholder="Escribe el nombre de la obra (ej: Residencial Las Palmeras)"
+                        value={selectedProjectName}
+                        onChange={(e) => setSelectedProjectName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 border border-blue-400 dark:border-blue-600 rounded-xl text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
+                        autoFocus
+                      />
+                      {projects.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomProject(false)
+                            setSelectedProjectName(activeProject?.nombre || projects[0]?.nombre || "")
+                          }}
+                          className="text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline mt-1.5 inline-block"
+                        >
+                          ↩ Volver a seleccionar de mis obras registradas
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    selectedProjectName && (
+                      <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                            ✓
+                          </div>
+                          <div className="overflow-hidden">
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
+                              Presupuesto se creará bajo:
+                            </span>
+                            <div className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                              {selectedProjectName}
+                            </div>
+                          </div>
                         </div>
-                        {activeProject.provincia && (
-                          <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                            {activeProject.provincia}
+                        {activeProject?.nombre === selectedProjectName ? (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 shrink-0">
+                            Obra activa
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 shrink-0">
+                            Cambiará a esta obra
                           </span>
                         )}
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCustomProject(true)
-                        setSelectedProjectName("")
-                      }}
-                      className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
-                    >
-                      Cambiar obra
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <select
-                      value={isCustomProject ? "__CUSTOM__" : selectedProjectName}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        if (val === "__CUSTOM__") {
-                          setIsCustomProject(true)
-                          setSelectedProjectName("")
-                        } else {
-                          setIsCustomProject(false)
-                          setSelectedProjectName(val)
-                        }
-                      }}
-                      className="w-full px-3.5 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                    >
-                      <option value="">-- Selecciona una de tus obras registradas --</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.nombre}>
-                          {p.nombre} {p.provincia ? `• ${p.provincia}` : ""}
-                        </option>
-                      ))}
-                      <option value="__CUSTOM__">✍️ Escribir otro nombre de proyecto...</option>
-                    </select>
-
-                    {isCustomProject && (
-                      <div className="relative animate-in fade-in duration-200">
-                        <input
-                          type="text"
-                          placeholder="Escribe el nombre del proyecto (ej: Residencial Las Palmeras)"
-                          value={selectedProjectName}
-                          onChange={(e) => setSelectedProjectName(e.target.value)}
-                          className="w-full px-3.5 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
-                        {!isGlobalMode && activeProject && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsCustomProject(false)
-                              setSelectedProjectName(activeProject.nombre)
-                            }}
-                            className="text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline mt-1 block"
-                          >
-                            ↩ Volver a usar la obra activa: {activeProject.nombre}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    )
+                  )}
+                </div>
               </div>
 
               {/* Parámetros de Indirectos (AIU) */}
