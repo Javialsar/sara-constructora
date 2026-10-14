@@ -37,7 +37,10 @@ type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   const queryClient = useQueryClient();
-  const { activeProject, isGlobalMode, setGlobalMode, openCreateModal } = useProject();
+  const { projects, activeProject, isGlobalMode, setGlobalMode, openCreateModal } = useProject();
+  
+  const [selectedProjectName, setSelectedProjectName] = useState("")
+  const [isCustomProject, setIsCustomProject] = useState(false)
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
@@ -90,13 +93,24 @@ const createMutation = useMutation({
   });
 
   const submitNewPresupuesto = (data: PresupuestoFormValues) => {
-    const matched = proyectosCRM.find((p: any) => p.nombre === data.nombre_proyecto);
+    const matched = projects.find((p: any) => p.nombre === data.nombre_proyecto);
     createMutation.mutate({
       ...data,
       cliente_id: matched?.cliente_id || null
     });
   };
 
+  const openNewPresupuestoModal = (overrideProjectName?: string) => {
+    const defaultName = overrideProjectName 
+      ? overrideProjectName 
+      : (!isGlobalMode && activeProject) 
+        ? activeProject.nombre 
+        : (projects[0]?.nombre || "");
+    setSelectedProjectName(defaultName);
+    setIsCustomProject(false);
+    setNewValue("nombre_proyecto", defaultName, { shouldValidate: true });
+    setIsNewModalOpen(true);
+  };
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   const [isBimModalOpen, setIsBimModalOpen] = useState(false)
@@ -2036,7 +2050,7 @@ const createMutation = useMutation({
               <button onClick={() => setIsBimModalOpen(true)} className="bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:bg-blue-700 transition-all flex items-center gap-2">
                 <Cuboid size={20} /> Importación BIM
               </button>
-              <button onClick={() => setIsNewModalOpen(true)} className="bg-brand-sage text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:opacity-90 transition-all flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>
+              <button onClick={() => openNewPresupuestoModal()} className="bg-brand-sage text-white font-semibold py-2.5 px-5 rounded-full hover:shadow-md hover:opacity-90 transition-all flex items-center gap-2"><Plus size={20} /> Nuevo Presupuesto</button>
             </div>
           )}
       </div>
@@ -2162,10 +2176,7 @@ const createMutation = useMutation({
                       {!isGlobalMode && activeProject && (
                         <div className="flex justify-center gap-2">
                           <button
-                            onClick={() => {
-                              setNewValue("nombre_proyecto", activeProject.nombre);
-                              setIsNewModalOpen(true);
-                            }}
+                            onClick={() => openNewPresupuestoModal(activeProject.nombre)}
                             className="px-4 py-2 bg-brand-sage text-white text-xs font-bold rounded-lg shadow-sm hover:opacity-90 transition-opacity"
                           >
                             + Crear Presupuesto para {activeProject.nombre}
@@ -2261,45 +2272,186 @@ const createMutation = useMutation({
       </div>
 
       {isNewModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="flex justify-between p-6 border-b"><h3 className="text-xl font-bold">Nuevo Presupuesto</h3><button onClick={() => setIsNewModalOpen(false)}><X/></button></div>
-            <form onSubmit={handleNewSubmit(submitNewPresupuesto)} className="p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-gray-200 dark:border-slate-800 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold">
+                  🏗️
+                </div>
                 <div>
-                  <label className="block text-xs font-bold mb-1">Proyecto</label>
-                  <AsyncSelect
-    table="proyectos"
-    selectFields="id, nombre, cliente_id, cliente:clientes(id, nombre, apellido, email)"
-    searchColumns={['nombre']}
-    displayFormat={(p) => p ? `${p.nombre} ${p.cliente ? `(${p.cliente.nombre} ${p.cliente.apellido})` : ''}` : ''}
-    value={null}
-    onChange={(p) => setNewValue("nombre_proyecto", p ? p.nombre : "")}
-    placeholder="-- Buscar proyecto... --"
-    className={`w-full ${newErrors.nombre_proyecto ? 'border-red-500' : ''}`}
-  />
-                  {newErrors.nombre_proyecto && <p className="text-red-500 text-xs">{newErrors.nombre_proyecto.message}</p>}
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Nuevo Presupuesto de Obra</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Asigna la obra y define los porcentajes de indirectos (AIU)</p>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+              </div>
+              <button 
+                onClick={() => setIsNewModalOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleNewSubmit(submitNewPresupuesto)} className="p-6 space-y-4">
+              {/* Selector / Asignación de Obra */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                  Proyecto / Obra
+                </label>
+
+                {!isGlobalMode && activeProject && !isCustomProject ? (
+                  <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 rounded-xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        ✓
+                      </div>
+                      <div className="overflow-hidden">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
+                          Obra Activa Seleccionada
+                        </span>
+                        <div className="font-bold text-sm text-gray-900 dark:text-white truncate">
+                          {activeProject.nombre}
+                        </div>
+                        {activeProject.provincia && (
+                          <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                            {activeProject.provincia}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomProject(true)}
+                      className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                    >
+                      Cambiar obra
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <select
+                      value={isCustomProject ? "__CUSTOM__" : selectedProjectName}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === "__CUSTOM__") {
+                          setIsCustomProject(true)
+                          setSelectedProjectName("")
+                          setNewValue("nombre_proyecto", "", { shouldValidate: true })
+                        } else {
+                          setIsCustomProject(false)
+                          setSelectedProjectName(val)
+                          setNewValue("nombre_proyecto", val, { shouldValidate: true })
+                        }
+                      }}
+                      className="w-full px-3.5 py-2.5 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="">-- Selecciona una de tus obras registradas --</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.nombre}>
+                          {p.nombre} {p.provincia ? `• ${p.provincia}` : ""}
+                        </option>
+                      ))}
+                      <option value="__CUSTOM__">✍️ Escribir otro nombre de proyecto...</option>
+                    </select>
+
+                    {isCustomProject && (
+                      <div className="relative animate-in fade-in duration-200">
+                        <input
+                          type="text"
+                          placeholder="Escribe el nombre del proyecto (ej: Residencial Las Palmeras)"
+                          value={selectedProjectName}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setSelectedProjectName(val)
+                            setNewValue("nombre_proyecto", val, { shouldValidate: true })
+                          }}
+                          className={`w-full px-3.5 py-2.5 border rounded-xl text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none ${
+                            newErrors.nombre_proyecto ? "border-red-500" : "border-gray-300 dark:border-slate-700"
+                          }`}
+                        />
+                        {!isGlobalMode && activeProject && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCustomProject(false)
+                              setSelectedProjectName(activeProject.nombre)
+                              setNewValue("nombre_proyecto", activeProject.nombre, { shouldValidate: true })
+                            }}
+                            className="text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline mt-1 block"
+                          >
+                            ↩ Volver a usar la obra activa: {activeProject.nombre}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {newErrors.nombre_proyecto && (
+                  <p className="text-red-500 text-xs mt-1 font-semibold">{newErrors.nombre_proyecto.message}</p>
+                )}
+              </div>
+
+              {/* Parámetros de Indirectos (AIU) */}
+              <div className="bg-gray-50 dark:bg-slate-800/50 p-3.5 rounded-xl border border-gray-200 dark:border-slate-800">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-2">
+                  Porcentajes de Indirectos de la Obra (AIU)
+                </span>
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs font-bold">ADMIN (%)</label>
-                    <input type="number" step="0.01" {...registerNew("porcentaje_admin", { valueAsNumber: true })} className="w-full border rounded p-2" />
+                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      ADMIN (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      {...registerNew("porcentaje_admin", { valueAsNumber: true })} 
+                      className="w-full border border-gray-300 dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-right font-bold text-gray-900 dark:text-white" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold">IMPREV (%)</label>
-                    <input type="number" step="0.01" {...registerNew("porcentaje_imprevistos", { valueAsNumber: true })} className="w-full border rounded p-2" />
+                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      IMPREV (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      {...registerNew("porcentaje_imprevistos", { valueAsNumber: true })} 
+                      className="w-full border border-gray-300 dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-right font-bold text-gray-900 dark:text-white" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold">UTILIDAD (%)</label>
-                    <input type="number" step="0.01" {...registerNew("porcentaje_utilidad", { valueAsNumber: true })} className="w-full border rounded p-2" />
+                    <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+                      UTILIDAD (%)
+                    </label>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      {...registerNew("porcentaje_utilidad", { valueAsNumber: true })} 
+                      className="w-full border border-gray-300 dark:border-slate-700 rounded-lg p-2 text-sm bg-white dark:bg-slate-800 text-right font-bold text-gray-900 dark:text-white" 
+                    />
                   </div>
                 </div>
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <button type="button" onClick={() => setIsNewModalOpen(false)} className="px-5 py-2 font-bold text-gray-500">Cancelar</button>
-                  <button type="submit" disabled={isNewSubmitting || createMutation.isPending} className="px-5 py-2 font-bold bg-brand-dark text-white rounded">
-                    {createMutation.isPending ? 'Creando...' : 'Crear'}
-                  </button>
-                </div>
-              </form>
+              </div>
+
+              {/* Acciones */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-slate-800">
+                <button 
+                  type="button" 
+                  onClick={() => setIsNewModalOpen(false)} 
+                  className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isNewSubmitting || createMutation.isPending} 
+                  className="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition-colors flex items-center gap-1.5"
+                >
+                  {createMutation.isPending ? "Creando Presupuesto..." : "Crear Presupuesto"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

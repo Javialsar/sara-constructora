@@ -42,46 +42,56 @@ export default function DashboardLayout({
   const [userInitials, setUserInitials] = useState("U")
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [openGroup, setOpenGroup] = useState<string>("SUITE SARA-APU")
+  const [openGroup, setOpenGroup] = useState<string>("2. ESTUDIO & PRESUPUESTACIÓN")
 
   const navGroups = [
     {
-      title: "SUITE SARA-APU",
+      title: "1. CONFIGURACIÓN & BANCO DE DATOS",
       items: [
-        { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (NLP)", icon: Sparkles },
-        { href: "/dashboard/presupuestos_reales", label: "Presupuestos & SERCOP VAE", icon: FileSpreadsheet },
-        { href: "/dashboard/cotizador", label: "Cotizador Automático", icon: Calculator },
-        { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros", icon: Layers },
-        { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos", icon: Box },
-        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones)", icon: Search },
-        { href: "/dashboard/apus/fiscaliza", label: "SARA-Fiscaliza (Avance en Obra)", icon: HardHat },
-        { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
-        { href: "/dashboard/parametros", label: "Parámetros de Mi Empresa", icon: Settings },
-        { href: "/dashboard/apus/importador", label: "Importador Masivo Excel", icon: Database },
+        { href: "/dashboard/parametros", label: "Parámetros de Mi Empresa & SRI", icon: Settings },
+        { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos (Material, MO, Eq)", icon: Box },
+        { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros (APUs Maestros)", icon: Layers },
+        { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (Generador con IA)", icon: Sparkles },
+        { href: "/dashboard/apus/importador", label: "Importador Masivo de APUs (Excel)", icon: Database },
       ]
     },
     {
-      title: "OPERACIONES & LEGAL",
+      title: "2. ESTUDIO & PRESUPUESTACIÓN",
       items: [
-        { href: "/dashboard/docs", label: "SARA-Docs (Contratos & SERCOP)", icon: FileText },
-        { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística)", icon: Truck },
-        { href: "/dashboard/metricas-sri", label: "SARA-Dashboard (Utilidad & SRI)", icon: Receipt },
+        { href: "/dashboard/presupuestos_reales", label: "Presupuestos de Obra & VAE SERCOP", icon: FileSpreadsheet },
+        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones Públicas)", icon: Search },
+        { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos Métricos 3D)", icon: Cuboid },
+        { href: "/dashboard/cotizador", label: "Cotizador Paramétrico Rápido", icon: Calculator },
       ]
     },
     {
-      title: "DIRECTORIO & CRM",
+      title: "3. EJECUCIÓN & CONTROL EN OBRA",
       items: [
-        { href: "/dashboard/directorio/clientes", label: "Mis Clientes (CRM)", icon: Users },
-        { href: "/dashboard/directorio/proveedores", label: "Mis Proveedores", icon: Briefcase },
-        { href: "/dashboard/directorio/trabajadores", label: "Personal de Obra", icon: Wrench },
+        { href: "/dashboard/fiscaliza", label: "SARA-Fiscaliza (Parte Diario & GPS)", icon: HardHat },
+        { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística & Renta)", icon: Truck },
       ]
     },
     {
-      title: "CUENTA",
+      title: "4. FINANZAS & GESTIÓN LEGAL",
       items: [
-        { href: "/dashboard/planes", label: "Mi Plan / Suscripción", icon: Settings },
-        { href: "/dashboard/marca", label: "Marca y Reportes", icon: Palette },
-        { href: "/dashboard/perfil", label: "Seguridad y Accesos", icon: ShieldAlert },
+        { href: "/dashboard/metricas-sri", label: "SARA-Dashboard (Utilidades & SRI)", icon: Receipt },
+        { href: "/dashboard/docs", label: "SARA-Docs (Contratos & Minutas)", icon: FileText },
+      ]
+    },
+    {
+      title: "5. DIRECTORIO & CRM",
+      items: [
+        { href: "/dashboard/directorio/clientes", label: "Directorio de Clientes (CRM)", icon: Users },
+        { href: "/dashboard/directorio/proveedores", label: "Directorio de Proveedores", icon: Briefcase },
+        { href: "/dashboard/directorio/trabajadores", label: "Personal & Cuadrillas de Obra", icon: Wrench },
+      ]
+    },
+    {
+      title: "6. CUENTA & SUSCRIPCIÓN",
+      items: [
+        { href: "/dashboard/planes", label: "Mi Plan SARA-APU Suite", icon: Settings },
+        { href: "/dashboard/marca", label: "Membrete Oficial & Reportes PDF", icon: Palette },
+        { href: "/dashboard/perfil", label: "Seguridad & Configuración de Cuenta", icon: ShieldAlert },
       ]
     }
   ]
