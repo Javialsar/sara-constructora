@@ -1,0 +1,1068 @@
+{
+  "fecha_generacion": "2026-10-14T20:39:21.935Z",
+  "total_proveedores": 21,
+  "total_insumos": 58,
+  "total_rubros": 23,
+  "proveedores": [
+    {
+      "razon_social": "HOLCIM ECUADOR S.A.",
+      "ruc": "0990004199001",
+      "contacto_vendedor": "Ing. Fabricio Morales - Ventas Corporativas",
+      "telefono": "04-370-9000",
+      "email": "ventas.ecuador@holcim.com",
+      "direccion": "Av. Barcelona y Av. Pdte. Carlos Julio Arosemena, Guayaquil",
+      "sitio_web": "https://www.holcim.com.ec"
+    },
+    {
+      "razon_social": "UNACEM ECUADOR S.A.",
+      "ruc": "1790016919001",
+      "contacto_vendedor": "Ing. Roberto Dávalos - Comercialización Selvalegre",
+      "telefono": "02-393-2400",
+      "email": "contacto@unacem.com.ec",
+      "direccion": "Panamericana Norte Km 11 1/2, Quito",
+      "sitio_web": "https://unacem.com.ec"
+    },
+    {
+      "razon_social": "NOVACERO S.A.",
+      "ruc": "1790054365001",
+      "contacto_vendedor": "Ing. Carlos Mendoza - Proyectos Industriales",
+      "telefono": "02-398-9200",
+      "email": "servicioalcliente@novacero.com",
+      "direccion": "Panamericana Sur Km 14.5, Guamaní, Quito",
+      "sitio_web": "https://www.novacero.com"
+    },
+    {
+      "razon_social": "ADELCA S.A. (Acería del Ecuador)",
+      "ruc": "1790082490001",
+      "contacto_vendedor": "Arq. Gabriela Sánchez - Ventas Estructuras",
+      "telefono": "02-394-0800",
+      "email": "ventas@adelca.com",
+      "direccion": "Km 32 Vía a Daule / Aloag, Pichincha",
+      "sitio_web": "https://www.adelca.com"
+    },
+    {
+      "razon_social": "SEDEMI S.A.S.",
+      "ruc": "1791244303001",
+      "contacto_vendedor": "Ing. Esteban Viteri - División Estructuras Metálicas",
+      "telefono": "02-233-0400",
+      "email": "info@sedemi.com",
+      "direccion": "Autopista General Rumiñahui Km 13, Sangolquí",
+      "sitio_web": "https://sedemi.com"
+    },
+    {
+      "razon_social": "DIPAC MANTA S.A.",
+      "ruc": "1390145293001",
+      "contacto_vendedor": "Lcdo. Marcelo Aguirre - Red Mayorista Acero",
+      "telefono": "05-262-6700",
+      "email": "ventas@dipacmanta.com",
+      "direccion": "Vía Manta - Portoviejo Km 4.5",
+      "sitio_web": "https://www.dipacmanta.com"
+    },
+    {
+      "razon_social": "KUBIEC S.A.",
+      "ruc": "1791807383001",
+      "contacto_vendedor": "Ing. Andrés Peña - Cubiertas y Paneles Drywall",
+      "telefono": "02-399-4000",
+      "email": "soluciones@kubiec.com",
+      "direccion": "Parque Industrial Turubamba, Quito",
+      "sitio_web": "https://www.kubiec.com"
+    },
+    {
+      "razon_social": "PLASTIGAMA WAVIN (Mexichem Ecuador S.A.)",
+      "ruc": "0990011985001",
+      "contacto_vendedor": "Ing. Fernando Vaca - Redes Hidrosanitarias",
+      "telefono": "04-370-5200",
+      "email": "atencionalcliente@plastigama.com",
+      "direccion": "Km 4.5 Vía a Daule, Guayaquil",
+      "sitio_web": "https://www.wavin.com/es-ec"
+    },
+    {
+      "razon_social": "RIVAL TUBO SISTEMAS",
+      "ruc": "0190143807001",
+      "contacto_vendedor": "Ing. Paulina Carrión - Alcantarillado y Presión",
+      "telefono": "07-410-3800",
+      "email": "ventas@rival.com.ec",
+      "direccion": "Parque Industrial, Cuenca",
+      "sitio_web": "https://www.rival.com.ec"
+    },
+    {
+      "razon_social": "SIKA ECUATORIANA S.A.",
+      "ruc": "0990055745001",
+      "contacto_vendedor": "Ing. Marco Silva - Asesoría Técnica de Obra",
+      "telefono": "04-281-2700",
+      "email": "servicio.cliente@ec.sika.com",
+      "direccion": "Km 3.5 Vía Durán-Tambo, Guayas",
+      "sitio_web": "https://ecu.sika.com"
+    },
+    {
+      "razon_social": "INTACO ECUADOR S.A.",
+      "ruc": "0990848036001",
+      "contacto_vendedor": "Ing. Diana Paredes - Morteros y Adhesivos Bondex",
+      "telefono": "04-216-0400",
+      "email": "ventasecuador@intaco.com",
+      "direccion": "Km 16.5 Vía a Daule, Guayaquil",
+      "sitio_web": "https://www.intaco.com"
+    },
+    {
+      "razon_social": "GRAIMAN CÍA. LTDA.",
+      "ruc": "0190135898001",
+      "contacto_vendedor": "Dis. Santiago Alvarado - Grandes Proyectos Cerámicos",
+      "telefono": "07-280-4400",
+      "email": "proyectos@graiman.com",
+      "direccion": "Av. Gil Ramírez Dávalos y El Pedregal, Cuenca",
+      "sitio_web": "https://www.graiman.com"
+    },
+    {
+      "razon_social": "FV - ÁREA ANDINA S.A.",
+      "ruc": "1790055531001",
+      "contacto_vendedor": "Ing. Mónica Serrano - Grifería y Sanitarios",
+      "telefono": "02-396-1800",
+      "email": "ventas@fvandina.com.ec",
+      "direccion": "Panamericana Norte Km 15, Calacalí, Quito",
+      "sitio_web": "https://www.fvandina.com"
+    },
+    {
+      "razon_social": "EDESA S.A. / BRIGGS",
+      "ruc": "1790022714001",
+      "contacto_vendedor": "Arq. Luis Romero - Artefactos de Ahorro de Agua",
+      "telefono": "02-397-4200",
+      "email": "atencionclientes@edesa.com.ec",
+      "direccion": "Av. Eloy Alfaro y de los Álamos, Quito",
+      "sitio_web": "https://www.edesa.com.ec"
+    },
+    {
+      "razon_social": "PINTURAS CÓNDOR S.A.",
+      "ruc": "1790003183001",
+      "contacto_vendedor": "Ing. Javier Cárdenas - Recubrimientos Arquitectónicos",
+      "telefono": "02-396-0300",
+      "email": "servicioalcliente@condor.com.ec",
+      "direccion": "Panamericana Sur Km 11, Quito",
+      "sitio_web": "https://www.condor.com.ec"
+    },
+    {
+      "razon_social": "PINTUCO ECUADOR S.A.",
+      "ruc": "1790014266001",
+      "contacto_vendedor": "Ing. David Castro - Protección Anticorrosiva",
+      "telefono": "02-248-1800",
+      "email": "contacto@pintuco.com.ec",
+      "direccion": "Av. Galo Plaza Lasso N60-120, Quito",
+      "sitio_web": "https://pintuco.com.ec"
+    },
+    {
+      "razon_social": "IIASA CATERPILLAR ECUADOR",
+      "ruc": "0990004245001",
+      "contacto_vendedor": "Ing. Pablo Noboa - Maquinaria y Renta Equipos",
+      "telefono": "04-216-2000",
+      "email": "contacto@iiasa.com.ec",
+      "direccion": "Km 5.5 Vía a Daule, Guayaquil / Av. Galo Plaza Lasso, Quito",
+      "sitio_web": "https://www.iiasa.com.ec"
+    },
+    {
+      "razon_social": "ALCOMAQ CÍA. LTDA.",
+      "ruc": "1791789229001",
+      "contacto_vendedor": "Ing. Jorge Benítez - Alquiler y Venta Maquinaria Menor",
+      "telefono": "02-247-4900",
+      "email": "ventas@alcomaq.com.ec",
+      "direccion": "Av. 10 de Agosto N44-88, Quito",
+      "sitio_web": "https://www.alcomaq.com.ec"
+    },
+    {
+      "razon_social": "IMPTEK - CHOVA DEL ECUADOR S.A.",
+      "ruc": "1790514196001",
+      "contacto_vendedor": "Ing. Raúl Gómez - Impermeabilización Asfáltica",
+      "telefono": "02-382-7900",
+      "email": "contacto@imptek.com",
+      "direccion": "Parque Industrial El Inga, Vía a Pifo, Quito",
+      "sitio_web": "https://www.imptek.com"
+    },
+    {
+      "razon_social": "KNAUF ECUADOR S.A.",
+      "ruc": "1792451388001",
+      "contacto_vendedor": "Arq. Patricia Ortiz - Sistemas Drywall y Cielos Rasos",
+      "telefono": "02-394-1500",
+      "email": "info.ecuador@knauf.com",
+      "direccion": "Av. República del Salvador N34-229, Quito",
+      "sitio_web": "https://www.knauf.com.ec"
+    },
+    {
+      "razon_social": "DISENSA ECUADOR",
+      "ruc": "0991328907001",
+      "contacto_vendedor": "Red Franquiciada de Materiales de Construcción",
+      "telefono": "1800-347367",
+      "email": "red.disensa@holcim.com",
+      "direccion": "Cobertura nacional en 24 provincias del Ecuador",
+      "sitio_web": "https://www.disensa.com.ec"
+    }
+  ],
+  "insumos": [
+    {
+      "codigo": "MAT-EC-001",
+      "nombre": "Arena lavada de río para hormigón (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 16.5,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF1343"
+    },
+    {
+      "codigo": "MAT-EC-002",
+      "nombre": "Ripio triturado 3/4\" basáltico para hormigón (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 18.5,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF1343"
+    },
+    {
+      "codigo": "MAT-EC-003",
+      "nombre": "Piedra bola de río seleccionada d=15-30 cm (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 14.5,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF1343"
+    },
+    {
+      "codigo": "MAT-EC-004",
+      "nombre": "Subbase granular Clase 3 MTOP para mejoramiento (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 11.2,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF1343"
+    },
+    {
+      "codigo": "MAT-EC-005",
+      "nombre": "Cemento Holcim Fuerte Tipo GU saco 50 kg",
+      "unidad": "saco",
+      "tipo": "material",
+      "precio": 7.95,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-006",
+      "nombre": "Cemento Selvalegre Especial Tipo GU saco 50 kg",
+      "unidad": "saco",
+      "tipo": "material",
+      "precio": 7.8,
+      "prov": "UNACEM ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-007",
+      "nombre": "Hormigón premezclado f'c=210 kg/cm² bombeable (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 89.5,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-008",
+      "nombre": "Hormigón premezclado f'c=280 kg/cm² sismorresistente bombeable (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 97,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-009",
+      "nombre": "Hormigón premezclado f'c=350 kg/cm² para muros de corte (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 118,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-010",
+      "nombre": "Curador químico de hormigón Antisol / SikaCurador (Litro)",
+      "unidad": "L",
+      "tipo": "material",
+      "precio": 3.2,
+      "prov": "SIKA ECUATORIANA S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-011",
+      "nombre": "Aditivo plastificante reductor de agua Sika Plastiment (Galón)",
+      "unidad": "gal",
+      "tipo": "material",
+      "precio": 12.8,
+      "prov": "SIKA ECUATORIANA S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-012",
+      "nombre": "Mortero Grout sin retracción de alta resistencia 60 MPa (Saco 25 kg)",
+      "unidad": "saco",
+      "tipo": "material",
+      "precio": 18.5,
+      "prov": "SIKA ECUATORIANA S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-013",
+      "nombre": "Acero de refuerzo en varilla corrugada fy=4200 kg/cm² (kg)",
+      "unidad": "kg",
+      "tipo": "material",
+      "precio": 1.05,
+      "prov": "NOVACERO S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-014",
+      "nombre": "Alambre recocido de amarre N° 18 (kg)",
+      "unidad": "kg",
+      "tipo": "material",
+      "precio": 1.45,
+      "prov": "ADELCA S.A. (Acería del Ecuador)",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-015",
+      "nombre": "Malla electrosoldada 150x150x5.0 mm (m²)",
+      "unidad": "m2",
+      "tipo": "material",
+      "precio": 2.65,
+      "prov": "NOVACERO S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-016",
+      "nombre": "Perfiles de acero estructural laminado IPE / HEA / W (kg)",
+      "unidad": "kg",
+      "tipo": "material",
+      "precio": 1.48,
+      "prov": "SEDEMI S.A.S.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-017",
+      "nombre": "Perfil metálico tipo G / Correa costanera 100x50x15x2 mm (kg)",
+      "unidad": "kg",
+      "tipo": "material",
+      "precio": 1.55,
+      "prov": "DIPAC MANTA S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-018",
+      "nombre": "Lámina de acero colaborante Novalosa / Metaldeck cal. 22 (m²)",
+      "unidad": "m2",
+      "tipo": "material",
+      "precio": 13.8,
+      "prov": "NOVACERO S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-019",
+      "nombre": "Panel sándwich de cubierta PUR e=40 mm prepintado (m²)",
+      "unidad": "m2",
+      "tipo": "material",
+      "precio": 23.5,
+      "prov": "KUBIEC S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-020",
+      "nombre": "Perno de anclaje de alta resistencia ASTM A325 d=3/4\" L=500 mm (u)",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 9.8,
+      "prov": "SEDEMI S.A.S.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-021",
+      "nombre": "Pintura anticorrosiva epóxica industrial de altos sólidos (Galón)",
+      "unidad": "gal",
+      "tipo": "material",
+      "precio": 32,
+      "prov": "PINTUCO ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-022",
+      "nombre": "Electrodo para soldadura estructural E-7018 (kg)",
+      "unidad": "kg",
+      "tipo": "material",
+      "precio": 4.8,
+      "prov": "NOVACERO S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-023",
+      "nombre": "Tablero contrachapado fenólico 18 mm para encofrado (m²)",
+      "unidad": "m2",
+      "tipo": "material",
+      "precio": 14.5,
+      "prov": "DISENSA ECUADOR",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-024",
+      "nombre": "Tubería PPR termofusión PN-20 DN 20 mm (1/2\") x 4 m",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 4.2,
+      "prov": "PLASTIGAMA WAVIN (Mexichem Ecuador S.A.)",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-025",
+      "nombre": "Tubería PPR termofusión PN-20 DN 25 mm (3/4\") x 4 m",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 5.75,
+      "prov": "PLASTIGAMA WAVIN (Mexichem Ecuador S.A.)",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-026",
+      "nombre": "Tubería PVC desagüe sanitario espiga campana 110 mm (4\") x 3 m",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 9.2,
+      "prov": "PLASTIGAMA WAVIN (Mexichem Ecuador S.A.)",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-027",
+      "nombre": "Tubería PVC alcantarillado unión Z elastomérica DN 200 mm (8\") x 6 m",
+      "unidad": "m",
+      "tipo": "material",
+      "precio": 18.5,
+      "prov": "RIVAL TUBO SISTEMAS",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-028",
+      "nombre": "Marco y tapa redonda de pozo de revisión hierro dúctil D400 d=600 mm",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 165,
+      "prov": "RIVAL TUBO SISTEMAS",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-029",
+      "nombre": "Rejilla sumidero calzada hierro dúctil D400 con bisagra 90x40 cm",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 135,
+      "prov": "RIVAL TUBO SISTEMAS",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-030",
+      "nombre": "Inodoro ecológico doble descarga de alta eficiencia 4.8/3.0 L",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 88,
+      "prov": "EDESA S.A. / BRIGGS",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-031",
+      "nombre": "Lavamanos sobremueble con grifería monomando cromo FV",
+      "unidad": "jgo",
+      "tipo": "material",
+      "precio": 68,
+      "prov": "FV - ÁREA ANDINA S.A.",
+      "subfam": "SF1742"
+    },
+    {
+      "codigo": "MAT-EC-032",
+      "nombre": "Porcelanato rectificado esmaltado alto tráfico 60x60 / 60x120 cm (m²)",
+      "unidad": "m2",
+      "tipo": "material",
+      "precio": 15.8,
+      "prov": "GRAIMAN CÍA. LTDA.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-033",
+      "nombre": "Mortero adhesivo con polímeros Bondex Plus saco 25 kg",
+      "unidad": "saco",
+      "tipo": "material",
+      "precio": 7.1,
+      "prov": "INTACO ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-034",
+      "nombre": "Plancha de Gypsum estándar 1/2\" (1.22 x 2.44 m)",
+      "unidad": "plancha",
+      "tipo": "material",
+      "precio": 9.6,
+      "prov": "KNAUF ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-035",
+      "nombre": "Perfil montante de acero galvanizado para drywall 65x38x0.45 mm x 3 m",
+      "unidad": "u",
+      "tipo": "material",
+      "precio": 2.9,
+      "prov": "KUBIEC S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-036",
+      "nombre": "Pintura elastomérica impermeable para exteriores fachada (Caneca 5 gal)",
+      "unidad": "caneca",
+      "tipo": "material",
+      "precio": 78,
+      "prov": "PINTURAS CÓNDOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-037",
+      "nombre": "Pintura látex vinilacrílica Suprema lavable interiores (Caneca 5 gal)",
+      "unidad": "caneca",
+      "tipo": "material",
+      "precio": 52,
+      "prov": "PINTURAS CÓNDOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MAT-EC-038",
+      "nombre": "Mezcla asfáltica en caliente MTOP tipo 1 (m³)",
+      "unidad": "m3",
+      "tipo": "material",
+      "precio": 95,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "MO-EC-001",
+      "nombre": "Maestro Mayor / Inspector de Obra Civil (MDT Cat. C1)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 5.1,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "MO-EC-002",
+      "nombre": "Albañil calificado / Encofrador / Fierrero (MDT Cat. D2)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 4.35,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "MO-EC-003",
+      "nombre": "Soldador homologado en estructuras metálicas 3G/4G/6G (MDT Cat. C2)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 5.85,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "MO-EC-004",
+      "nombre": "Plomero instalador hidrosanitario / termofusión (MDT Cat. D2)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 4.3,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "MO-EC-005",
+      "nombre": "Pintor especializado de acabados y fachadas (MDT Cat. D2)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 4.35,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "MO-EC-006",
+      "nombre": "Operador de equipo pesado (Excavadora / Motoniveladora) (MDT Cat. C1)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 5.15,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "MO-EC-007",
+      "nombre": "Peón de obra civil y ayudante general (MDT Cat. E2)",
+      "unidad": "hora",
+      "tipo": "mano_de_obra",
+      "precio": 3.85,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF429"
+    },
+    {
+      "codigo": "EQ-EC-001",
+      "nombre": "Retroexcavadora 4x4 CAT 420 / JD 310 (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 34,
+      "prov": "IIASA CATERPILLAR ECUADOR",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-002",
+      "nombre": "Volqueta 8 m³ para desalojo y acarreo urbano (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 26,
+      "prov": "IIASA CATERPILLAR ECUADOR",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-003",
+      "nombre": "Volqueta doble troque 12-14 m³ (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 35,
+      "prov": "IIASA CATERPILLAR ECUADOR",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-004",
+      "nombre": "Rodillo compactador autopropulsado 10-12 Ton (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 42,
+      "prov": "IIASA CATERPILLAR ECUADOR",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-005",
+      "nombre": "Concretera mecánica de 1 saco a gasolina (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 4.5,
+      "prov": "ALCOMAQ CÍA. LTDA.",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-006",
+      "nombre": "Vibrador de hormigón a gasolina con aguja 38-45 mm (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 3.2,
+      "prov": "ALCOMAQ CÍA. LTDA.",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-007",
+      "nombre": "Placa compactadora vibratoria / Vibroapisonador (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 3.8,
+      "prov": "ALCOMAQ CÍA. LTDA.",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-008",
+      "nombre": "Soldadora eléctrica inversora industrial 250A (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 3.5,
+      "prov": "ALCOMAQ CÍA. LTDA.",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-009",
+      "nombre": "Camión grúa / Grúa telescópica de montaje (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 42,
+      "prov": "IIASA CATERPILLAR ECUADOR",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-010",
+      "nombre": "Bomba de hormigón telescópica montada en camión (Tarifa m³ bombeado)",
+      "unidad": "m3",
+      "tipo": "equipo",
+      "precio": 12.5,
+      "prov": "HOLCIM ECUADOR S.A.",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "EQ-EC-011",
+      "nombre": "Termofusora digital para tubería PPR (Tarifa horaria)",
+      "unidad": "hora",
+      "tipo": "equipo",
+      "precio": 1.5,
+      "prov": "ALCOMAQ CÍA. LTDA.",
+      "subfam": "SF157"
+    },
+    {
+      "codigo": "TRA-EC-001",
+      "nombre": "Acarreo y desalojo de excavación en volqueta D <= 1 km (m³)",
+      "unidad": "m3",
+      "tipo": "transporte",
+      "precio": 1.45,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF13656"
+    },
+    {
+      "codigo": "TRA-EC-002",
+      "nombre": "Sobreacarreo de material pétreo o desalojo en volqueta D > 1 km (m³·km)",
+      "unidad": "m3-km",
+      "tipo": "transporte",
+      "precio": 0.27,
+      "prov": "GRUPO-SARA",
+      "subfam": "SF13656"
+    }
+  ],
+  "rubros": [
+    {
+      "codigo": "RUB-EC-001",
+      "nombre": "Hormigón sismorresistente f'c=280 kg/cm² en vigas y columnas (incluye bombeo y aditivo plastificante)",
+      "categoria": "Estructura de hormigón",
+      "unidad": "m3",
+      "rendimiento": 0.35,
+      "costo_directo": 128.7597,
+      "insumos_count": 7,
+      "desglose": {
+        "materiales": 102.65,
+        "mano_obra": 11.895,
+        "equipos": 13.62,
+        "herramienta_menor": 0.59475
+      }
+    },
+    {
+      "codigo": "RUB-EC-002",
+      "nombre": "Hormigón sismorresistente f'c=350 kg/cm² en muros de corte y núcleos de ascensor",
+      "categoria": "Estructura de hormigón",
+      "unidad": "m3",
+      "rendimiento": 0.4,
+      "costo_directo": 152.907,
+      "insumos_count": 7,
+      "desglose": {
+        "materiales": 124.7,
+        "mano_obra": 13.74,
+        "equipos": 13.780000000000001,
+        "herramienta_menor": 0.687
+      }
+    },
+    {
+      "codigo": "RUB-EC-003",
+      "nombre": "Acero de refuerzo sismorresistente fy=4200 kg/cm² (ASTM A706 Gr. 60) figurado, cortado y colocado",
+      "categoria": "Estructura de hormigón",
+      "unidad": "kg",
+      "rendimiento": 0.05,
+      "costo_directo": 1.5675,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 1.15325,
+        "mano_obra": 0.39449999999999996,
+        "equipos": 0,
+        "herramienta_menor": 0.019725
+      }
+    },
+    {
+      "codigo": "RUB-EC-004",
+      "nombre": "Encofrado y desencofrado fenólico modulado para vigas, columnas y muros",
+      "categoria": "Estructura de hormigón",
+      "unidad": "m2",
+      "rendimiento": 0.9,
+      "costo_directo": 11.1845,
+      "insumos_count": 4,
+      "desglose": {
+        "materiales": 2.9000000000000004,
+        "mano_obra": 7.890000000000001,
+        "equipos": 0,
+        "herramienta_menor": 0.3945000000000001
+      }
+    },
+    {
+      "codigo": "RUB-EC-005",
+      "nombre": "Hormigón ciclópeo f'c=180 kg/cm² + 40% piedra bola para cimientos corridos y muros",
+      "categoria": "Estructura de hormigón",
+      "unidad": "m3",
+      "rendimiento": 2.2,
+      "costo_directo": 105.277,
+      "insumos_count": 9,
+      "desglose": {
+        "materiales": 64.84500000000001,
+        "mano_obra": 29.64,
+        "equipos": 9.31,
+        "herramienta_menor": 1.4820000000000002
+      }
+    },
+    {
+      "codigo": "RUB-EC-006",
+      "nombre": "Estructura metálica en perfiles IPE/HEA con soldadura homologada y pintura anticorrosiva epóxica",
+      "categoria": "05 Estructuras metálicas",
+      "unidad": "kg",
+      "rendimiento": 0.08,
+      "costo_directo": 4.1685,
+      "insumos_count": 8,
+      "desglose": {
+        "materiales": 2.5460000000000003,
+        "mano_obra": 0.54525,
+        "equipos": 1.05,
+        "herramienta_menor": 0.027262500000000002
+      }
+    },
+    {
+      "codigo": "RUB-EC-007",
+      "nombre": "Cubierta industrial con panel sándwich de poliuretano inyectado (PUR e=40 mm) prepintado",
+      "categoria": "05 Estructuras metálicas",
+      "unidad": "m2",
+      "rendimiento": 0.4,
+      "costo_directo": 28.3867,
+      "insumos_count": 4,
+      "desglose": {
+        "materiales": 24.675,
+        "mano_obra": 3.535,
+        "equipos": 0,
+        "herramienta_menor": 0.17675000000000002
+      }
+    },
+    {
+      "codigo": "RUB-EC-008",
+      "nombre": "Pernos de anclaje de alta resistencia ASTM A325 d=3/4\" L=500 mm con placa base y mortero Grout",
+      "categoria": "05 Estructuras metálicas",
+      "unidad": "u",
+      "rendimiento": 0.6,
+      "costo_directo": 20.053,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 14.425,
+        "mano_obra": 5.359999999999999,
+        "equipos": 0,
+        "herramienta_menor": 0.26799999999999996
+      }
+    },
+    {
+      "codigo": "RUB-EC-009",
+      "nombre": "Correas metálicas tipo \"G\" conformadas en frío (100x50x15x2 mm) con pintura anticorrosiva",
+      "categoria": "05 Estructuras metálicas",
+      "unidad": "kg",
+      "rendimiento": 0.07,
+      "costo_directo": 2.5934,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 2.092,
+        "mano_obra": 0.4775,
+        "equipos": 0,
+        "herramienta_menor": 0.023875
+      }
+    },
+    {
+      "codigo": "RUB-EC-010",
+      "nombre": "Losa mixta colaborante con lámina Novalosa / Steel Deck cal. 22 e=15 cm con malla electrosoldada",
+      "categoria": "05 Estructuras metálicas",
+      "unidad": "m2",
+      "rendimiento": 0.55,
+      "costo_directo": 32.8087,
+      "insumos_count": 7,
+      "desglose": {
+        "materiales": 26.222500000000004,
+        "mano_obra": 5.663,
+        "equipos": 0.6400000000000001,
+        "herramienta_menor": 0.28315
+      }
+    },
+    {
+      "codigo": "RUB-EC-011",
+      "nombre": "Tubería de termofusión PPR PN-20 DN 25 mm (3/4\") empotrada para agua fría y caliente con accesorios",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "m",
+      "rendimiento": 0.45,
+      "costo_directo": 5.6612,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 1.5525000000000002,
+        "mano_obra": 3.4130000000000003,
+        "equipos": 0.5249999999999999,
+        "herramienta_menor": 0.17065000000000002
+      }
+    },
+    {
+      "codigo": "RUB-EC-012",
+      "nombre": "Punto de agua potable empotrado en PPR PN-20 DN 20 mm con terminal de bronce roscado",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "pto",
+      "rendimiento": 1.5,
+      "costo_directo": 15.1545,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 3.1500000000000004,
+        "mano_obra": 10.29,
+        "equipos": 1.2000000000000002,
+        "herramienta_menor": 0.5145
+      }
+    },
+    {
+      "codigo": "RUB-EC-013",
+      "nombre": "Punto de desagüe sanitario PVC 110 mm (4\") para inodoro con codo y ventilación",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "pto",
+      "rendimiento": 1.8,
+      "costo_directo": 18.4402,
+      "insumos_count": 4,
+      "desglose": {
+        "materiales": 5.52,
+        "mano_obra": 12.305,
+        "equipos": 0,
+        "herramienta_menor": 0.6152500000000001
+      }
+    },
+    {
+      "codigo": "RUB-EC-014",
+      "nombre": "Red colectora de alcantarillado sanitario/pluvial PVC unión Z elastomérica DN 200 mm (8\")",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "m",
+      "rendimiento": 0.35,
+      "costo_directo": 24.3392,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 19.715,
+        "mano_obra": 4.404,
+        "equipos": 0,
+        "herramienta_menor": 0.2202
+      }
+    },
+    {
+      "codigo": "RUB-EC-015",
+      "nombre": "Pozo de revisión de alcantarillado H=1.50 m con cuerpo de H.S. f'c=210 kg/cm² y tapa hierro dúctil D400",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "u",
+      "rendimiento": 12,
+      "costo_directo": 417.166,
+      "insumos_count": 7,
+      "desglose": {
+        "materiales": 312.67499999999995,
+        "mano_obra": 78.42,
+        "equipos": 22.15,
+        "herramienta_menor": 3.9210000000000003
+      }
+    },
+    {
+      "codigo": "RUB-EC-016",
+      "nombre": "Sumidero de calzada tipo rejilla con cuerpo de H.S. f'c=210 kg/cm² y rejilla hierro dúctil D400 con bisagra",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "u",
+      "rendimiento": 6,
+      "costo_directo": 241.0955,
+      "insumos_count": 6,
+      "desglose": {
+        "materiales": 193.175,
+        "mano_obra": 39.21,
+        "equipos": 6.75,
+        "herramienta_menor": 1.9605000000000001
+      }
+    },
+    {
+      "codigo": "RUB-EC-017",
+      "nombre": "Suministro e instalación de inodoro ecológico de bajo consumo 4.8 L con asiento y accesorios",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "u",
+      "rendimiento": 1.8,
+      "costo_directo": 98.8098,
+      "insumos_count": 4,
+      "desglose": {
+        "materiales": 88,
+        "mano_obra": 10.294999999999998,
+        "equipos": 0,
+        "herramienta_menor": 0.5147499999999999
+      }
+    },
+    {
+      "codigo": "RUB-EC-018",
+      "nombre": "Suministro e instalación de lavamanos con mezcladora monomando cromo FV y desagüe",
+      "categoria": "14 Instalaciones hidrosanitarias",
+      "unidad": "jgo",
+      "rendimiento": 1.5,
+      "costo_directo": 76.379,
+      "insumos_count": 4,
+      "desglose": {
+        "materiales": 68,
+        "mano_obra": 7.979999999999999,
+        "equipos": 0,
+        "herramienta_menor": 0.39899999999999997
+      }
+    },
+    {
+      "codigo": "RUB-EC-019",
+      "nombre": "Piso de porcelanato rectificado 60x60 / 60x120 cm alto tráfico instalado con mortero Bondex Plus",
+      "categoria": "08 Pisos y revestimientos",
+      "unidad": "m2",
+      "rendimiento": 0.85,
+      "costo_directo": 24.3047,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 18.009999999999998,
+        "mano_obra": 5.994999999999999,
+        "equipos": 0,
+        "herramienta_menor": 0.29974999999999996
+      }
+    },
+    {
+      "codigo": "RUB-EC-020",
+      "nombre": "Cielo raso / Tumbado de Gypsum estándar 1/2\" con estructura de perfiles galvanizados y empaste",
+      "categoria": "09 Construcción liviana",
+      "unidad": "m2",
+      "rendimiento": 0.75,
+      "costo_directo": 11.0157,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 5.582,
+        "mano_obra": 5.175,
+        "equipos": 0,
+        "herramienta_menor": 0.25875
+      }
+    },
+    {
+      "codigo": "RUB-EC-021",
+      "nombre": "Pintura elastomérica impermeable exterior en fachadas (3 manos) con sellador antialcalino",
+      "categoria": "13 Pinturas",
+      "unidad": "m2",
+      "rendimiento": 0.3,
+      "costo_directo": 5.2715,
+      "insumos_count": 4,
+      "desglose": {
+        "materiales": 2.7300000000000004,
+        "mano_obra": 2.4205,
+        "equipos": 0,
+        "herramienta_menor": 0.12102500000000001
+      }
+    },
+    {
+      "codigo": "RUB-EC-022",
+      "nombre": "Carpeta asfáltica en caliente e=7.5 cm (Mezcla Asfáltica MTOP) extendida y compactada al 98%",
+      "categoria": "19 Urbanización y vialidad",
+      "unidad": "m2",
+      "rendimiento": 0.04,
+      "costo_directo": 8.8983,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 7.6000000000000005,
+        "mano_obra": 0.4365,
+        "equipos": 0.84,
+        "herramienta_menor": 0.021825
+      }
+    },
+    {
+      "codigo": "RUB-EC-023",
+      "nombre": "Subbase granular Clase 3 MTOP extendida y compactada al 100% Proctor Modificado e=20 cm",
+      "categoria": "19 Urbanización y vialidad",
+      "unidad": "m3",
+      "rendimiento": 0.08,
+      "costo_directo": 16.9358,
+      "insumos_count": 5,
+      "desglose": {
+        "materiales": 14,
+        "mano_obra": 0.796,
+        "equipos": 2.1,
+        "herramienta_menor": 0.0398
+      }
+    }
+  ]
+}
