@@ -19,7 +19,11 @@ import {
   Database,
   Search,
   HardHat,
-  Cuboid
+  Cuboid,
+  Sparkles,
+  FileText,
+  Truck,
+  Receipt
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -41,14 +45,23 @@ export default function DashboardLayout({
     {
       title: "SUITE SARA-APU",
       items: [
+        { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (NLP)", icon: Sparkles },
         { href: "/dashboard/presupuestos_reales", label: "Presupuestos & SERCOP VAE", icon: FileSpreadsheet },
         { href: "/dashboard/cotizador", label: "Cotizador Automático", icon: Calculator },
         { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros", icon: Layers },
         { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos", icon: Box },
-        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones SERCOP)", icon: Search },
+        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones)", icon: Search },
         { href: "/dashboard/apus/fiscaliza", label: "SARA-Fiscaliza (Avance en Obra)", icon: HardHat },
         { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
         { href: "/dashboard/apus/importador", label: "Importador Masivo Excel", icon: Database },
+      ]
+    },
+    {
+      title: "OPERACIONES & LEGAL",
+      items: [
+        { href: "/dashboard/docs", label: "SARA-Docs (Contratos & SERCOP)", icon: FileText },
+        { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística)", icon: Truck },
+        { href: "/dashboard/metricas-sri", label: "SARA-Dashboard (Utilidad & SRI)", icon: Receipt },
       ]
     },
     {
