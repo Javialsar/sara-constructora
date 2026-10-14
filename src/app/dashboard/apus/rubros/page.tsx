@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2 } from "lucide-react"
+import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2, Copy } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
@@ -246,7 +246,13 @@ export default function RubrosPage() {
   
   const createMutation = useMutation({
     mutationFn: async (values: RubroFormValues) => {
-      const payload = { ...values, subfamilia_id: values.subfamilia_id || null }; 
+      const { data: { user } } = await supabase.auth.getUser();
+      const payload = { 
+        ...values, 
+        subfamilia_id: values.subfamilia_id || null,
+        user_id: user?.id || null,
+        es_maestro: false
+      }; 
       delete (payload as any).familia_id_temp;
       const { data, error } = await supabase.from('rubros').insert([payload]).select().single();
       if (error) throw error;
@@ -359,12 +365,57 @@ export default function RubrosPage() {
     }
   }
 
-  const handleDeleteRubro = async (id: string, e: React.MouseEvent) => {
+  const handleCloneRubro = async (rubro: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm("¿Eliminar este rubro? Esto también borrará su receta.")) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      alert("Debes iniciar sesión para clonar este rubro.")
+      return
+    }
+
+    const nuevoCodigo = `${rubro.codigo || 'RUB'}-CLON`
+    const { data: nuevoRubro, error: errRubro } = await supabase.from('rubros').insert([{
+      codigo: nuevoCodigo,
+      nombre: `${rubro.nombre} (Copia Mi Empresa)`,
+      unidad: rubro.unidad,
+      rendimiento: rubro.rendimiento,
+      herramienta_menor_pct: rubro.herramienta_menor_pct,
+      total_costo_directo: rubro.total_costo_directo,
+      subfamilia_id: rubro.subfamilia_id,
+      es_maestro: false,
+      user_id: user.id
+    }]).select().single()
+
+    if (errRubro || !nuevoRubro) {
+      alert("Error al clonar rubro: " + (errRubro?.message || "Desconocido"))
+      return
+    }
+
+    const { data: recetaItems } = await supabase.from('rubro_insumos').select('insumo_id, cantidad').eq('rubro_id', rubro.id)
+    if (recetaItems && recetaItems.length > 0) {
+      await supabase.from('rubro_insumos').insert(
+        recetaItems.map((it: any) => ({
+          rubro_id: nuevoRubro.id,
+          insumo_id: it.insumo_id,
+          cantidad: it.cantidad
+        }))
+      )
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['rubros'] })
+    openEditor(nuevoRubro)
+  }
+
+  const handleDeleteRubro = async (id: string, e: React.MouseEvent, esMaestro?: boolean) => {
+    e.stopPropagation()
+    if (esMaestro) {
+      alert("No se pueden eliminar rubros oficiales del catálogo maestro de Grupo SARA.")
+      return
+    }
+    if (!confirm("¿Eliminar este rubro privado? Esto también borrará su receta.")) return
     await supabase.from('rubros').delete().eq('id', id)
     if (currentRubro && currentRubro.id === id) { setCurrentRubro(null); setRubroInsumos([]); setIsEditorOpen(false); }
-      queryClient.invalidateQueries({ queryKey: ['rubros'] });
+    queryClient.invalidateQueries({ queryKey: ['rubros'] });
   }
 
   const openEditor = async (rubro: any) => {
@@ -1063,13 +1114,34 @@ const renderInsumoRow = (item: any) => (
                   paginatedRubros.map((r) => (
                     <tr key={r.id} className="transition-colors cursor-pointer hover:bg-blue-50 border-l-4 border-transparent hover:border-blue-400" onClick={() => openEditor(r)}>
                       <td className="px-4 py-2.5 font-mono text-xs text-brand-sage font-bold whitespace-nowrap">{r.codigo}</td>
-                      <td className="px-4 py-2.5 font-medium text-gray-800 leading-tight">{r.nombre}</td>
+                      <td className="px-4 py-2.5 font-medium text-gray-800 leading-tight">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{r.nombre}</span>
+                          {r.es_maestro ? (
+                            <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">Oficial SARA</span>
+                          ) : (
+                            <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-bold">Privado Mi Empresa</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-center"><span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">{r.unidad}</span></td>
                       <td className="px-4 py-2.5 text-right font-black text-brand-dark whitespace-nowrap">${Number(r.total_costo_directo || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={(e) => { e.stopPropagation(); openEditor(r); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar APU"><Edit3 size={16} /></button>
-                          <button onClick={(e) => handleDeleteRubro(r.id, e)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Eliminar"><Trash2 size={16} /></button>
+                          {r.es_maestro ? (
+                            <>
+                              <button onClick={(e) => handleCloneRubro(r, e)} className="p-1.5 text-brand-sage hover:text-brand-dark hover:bg-brand-sage/10 rounded transition-colors flex items-center gap-1 text-xs font-bold" title="Clonar rubro oficial a mi catálogo privado para personalizarlo">
+                                <Copy size={15} />
+                                <span className="hidden sm:inline">Clonar</span>
+                              </button>
+                              <button onClick={(e) => { e.stopPropagation(); openEditor(r); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Ver APU"><Edit3 size={15} /></button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={(e) => { e.stopPropagation(); openEditor(r); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar APU"><Edit3 size={15} /></button>
+                              <button onClick={(e) => handleDeleteRubro(r.id, e, r.es_maestro)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Eliminar"><Trash2 size={15} /></button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

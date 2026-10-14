@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft, Download, FileSpreadsheet } from "lucide-react"
+import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft, Download, FileSpreadsheet, Copy } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -19,6 +19,7 @@ type Insumo = {
   unidad: string; tipo: string; precio_sin_iva: number
   proveedor_id: string | null; estado: boolean
   categoria?: string; fecha_actualizacion?: string; subfamilia_id?: string
+  es_maestro?: boolean; user_id?: string | null
 }
 
 // =============================================
@@ -422,7 +423,9 @@ export default function InsumosPage() {
           throw new Error("Ya existe un insumo con este nombre.");
         }
 
-        const dbPayload = {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        const dbPayload: any = {
             ...restForm,
             proveedor_id: restForm.proveedor_id === "" ? null : restForm.proveedor_id,
             subfamilia_id: restForm.subfamilia_id === "" ? null : restForm.subfamilia_id,
@@ -435,6 +438,10 @@ export default function InsumosPage() {
           await supabase.from('insumo_proveedores').delete().eq('insumo_id', editingId)
           if (proveedores_ids && proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map((pid: string) => ({ insumo_id: editingId, proveedor_id: pid })))
         } else {
+          // Insumo creado por el cliente: le pertenece exclusivamente a su empresa
+          dbPayload.user_id = user?.id || null;
+          dbPayload.es_maestro = false;
+
           const { data: newInsumo, error } = await supabase.from('insumos').insert([dbPayload]).select().single()
           if (error) throw error;
           if (proveedores_ids && proveedores_ids.length > 0) await supabase.from('insumo_proveedores').insert(proveedores_ids.map((pid: string) => ({ insumo_id: newInsumo.id, proveedor_id: pid })))
@@ -593,6 +600,22 @@ export default function InsumosPage() {
 
   const closeModal = () => { setIsModalOpen(false); setEditingId(null) }
 
+  const handleCloneInsumo = (insumo: Insumo) => {
+    setEditingId(null)
+    setFormData({
+      codigo: `${insumo.codigo || 'INS'}-COPIA`,
+      nombre: `${insumo.nombre} (Copia Mi Empresa)`,
+      descripcion: insumo.descripcion || "",
+      unidad: insumo.unidad,
+      tipo: insumo.tipo || "material",
+      categoria: insumo.categoria || "",
+      precio_sin_iva: insumo.precio_sin_iva || 0,
+      proveedor_id: insumo.proveedor_id || "",
+      proveedores_ids: insumoProvMap[insumo.id] || [],
+      subfamilia_id: insumo.subfamilia_id || ""
+    })
+    setIsModalOpen(true)
+  }
   
 
   const handleDelete = async (id: string) => {
@@ -876,7 +899,14 @@ export default function InsumosPage() {
                       <tr key={insumo.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 font-mono text-xs text-gray-500 font-semibold">{insumo.codigo || "—"}</td>
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-gray-800 text-sm">{insumo.nombre}</div>
+                          <div className="font-semibold text-gray-800 text-sm flex items-center gap-1.5 flex-wrap">
+                            <span>{insumo.nombre}</span>
+                            {insumo.es_maestro ? (
+                              <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-bold">Oficial SARA</span>
+                            ) : (
+                              <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-bold">Privado Mi Empresa</span>
+                            )}
+                          </div>
                           {subfamilia && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">{subfamilia.nombre}</span>}
                         </td>
                         <td className="px-4 py-3">
@@ -901,8 +931,21 @@ export default function InsumosPage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-2">
-                            <button onClick={() => openEditModal(insumo)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"><Edit size={15} /></button>
-                            <button onClick={() => handleDelete(insumo.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"><Trash2 size={15} /></button>
+                            {insumo.es_maestro ? (
+                              <button 
+                                onClick={() => handleCloneInsumo(insumo)} 
+                                className="p-1.5 text-brand-sage hover:text-brand-dark hover:bg-brand-sage/10 rounded transition-colors flex items-center gap-1 text-xs font-bold"
+                                title="Clonar insumo oficial a mi catálogo privado para personalizarlo"
+                              >
+                                <Copy size={14} />
+                                <span className="hidden sm:inline">Clonar</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button onClick={() => openEditModal(insumo)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar"><Edit size={15} /></button>
+                                <button onClick={() => handleDelete(insumo.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors" title="Eliminar"><Trash2 size={15} /></button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

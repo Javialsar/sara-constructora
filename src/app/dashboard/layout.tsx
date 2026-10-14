@@ -53,6 +53,7 @@ export default function DashboardLayout({
         { href: "/dashboard/apus/tenders", label: "SARA-Tenders (Licitaciones)", icon: Search },
         { href: "/dashboard/apus/fiscaliza", label: "SARA-Fiscaliza (Avance en Obra)", icon: HardHat },
         { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
+        { href: "/dashboard/parametros", label: "Parámetros de Mi Empresa", icon: Settings },
         { href: "/dashboard/apus/importador", label: "Importador Masivo Excel", icon: Database },
       ]
     },

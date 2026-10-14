@@ -123,6 +123,25 @@ const createMutation = useMutation({
   const [searchingInsumos, setSearchingInsumos] = useState(false);
 
   useEffect(() => {
+    const loadEmpresaParams = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: ep } = await supabase
+        .from('empresa_parametros_cliente')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (ep) {
+        setNewValue("porcentaje_admin", Number(ep.porcentaje_admin_default) || 10.0)
+        setNewValue("porcentaje_imprevistos", Number(ep.porcentaje_imprevistos_default) || 5.0)
+        setNewValue("porcentaje_utilidad", Number(ep.porcentaje_utilidad_default) || 10.0)
+      }
+    }
+    loadEmpresaParams()
+  }, [])
+
+  useEffect(() => {
     if (!insumoSearch || insumoSearch.length < 2) {
       setAllInsumos([]);
       return;
@@ -429,13 +448,34 @@ const createMutation = useMutation({
     const { data: recetaMaestra } = await supabase.from('rubro_insumos').select('insumo_id, cantidad, insumo:insumos(precio_sin_iva)').eq('rubro_id', rubro.id)
     
     if (recetaMaestra && recetaMaestra.length > 0) {
+      // Consultar precios zonificados del Marketplace si existen
+      const insumoIds = recetaMaestra.map(rm => rm.insumo_id);
+      const preciosZonificadosMap = new Map();
+
+      try {
+        const { data: pzList } = await supabase
+          .from('marketplace_precios_zonificados')
+          .select('insumo_id, precio_puesto_obra')
+          .in('insumo_id', insumoIds);
+
+        if (pzList && pzList.length > 0) {
+          pzList.forEach(pz => {
+            preciosZonificadosMap.set(pz.insumo_id, Number(pz.precio_puesto_obra));
+          });
+        }
+      } catch (errZon) {
+        console.warn("Marketplace zonificado no disponible, usando precio base:", errZon);
+      }
+
       const clonedRecipe = recetaMaestra.map(rm => {
         const insumoObj = Array.isArray(rm.insumo) ? rm.insumo[0] : rm.insumo;
+        const precioZonificado = preciosZonificadosMap.get(rm.insumo_id);
+        const precioFinal = precioZonificado !== undefined ? precioZonificado : (insumoObj ? insumoObj.precio_sin_iva : 0);
         return {
           presupuesto_rubro_id: newPresRubro.id,
           insumo_id: rm.insumo_id,
           cantidad: rm.cantidad,
-          precio_sin_iva_snapshot: insumoObj ? insumoObj.precio_sin_iva : 0
+          precio_sin_iva_snapshot: precioFinal
         }
       });
       await supabase.from('presupuesto_rubro_insumos').insert(clonedRecipe)

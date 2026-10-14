@@ -5,11 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2 } from "lucide-react"
+import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2, Sparkles } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
 import { membreteBase64 } from "@/lib/membreteBase64"
+import AiBulkRubrosModal from "./components/AiBulkRubrosModal"
 
 
 type Familia = { id: string, nombre: string, grupo_sugerido: string }
@@ -218,6 +219,7 @@ export default function RubrosPage() {
   const itemsPerPage = 10
 
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
+  const [isAiBulkModalOpen, setIsAiBulkModalOpen] = useState(false)
   
   const createMutation = useMutation({
     mutationFn: async (values: RubroFormValues) => {
@@ -904,6 +906,14 @@ const renderInsumoRow = (item: any) => (
             {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
             <span>PDF</span>
           </button>
+          <button 
+            onClick={() => setIsAiBulkModalOpen(true)}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-3.5 rounded-lg transition-all text-sm shadow-sm"
+            title="Generación Masiva de Rubros y APUs con IA para Grupo SARA"
+          >
+            <Sparkles size={16} className="text-yellow-300 animate-pulse" />
+            <span>Generador Masivo IA</span>
+          </button>
           <button onClick={() => {
             let initialValues = { codigo: '', nombre: '', unidad: 'm3', herramienta_menor_pct: 5.0, subfamilia_id: '', familia_id_temp: '' };
             if (selectedFamilia) {
@@ -1257,6 +1267,13 @@ const renderInsumoRow = (item: any) => (
           </div>
         </div>
       )}
+
+      {/* MODAL: Generador Masivo IA */}
+      <AiBulkRubrosModal 
+        isOpen={isAiBulkModalOpen} 
+        onClose={() => setIsAiBulkModalOpen(false)} 
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['rubros'] })} 
+      />
     </div>
   )
 }
