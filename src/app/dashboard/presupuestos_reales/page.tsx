@@ -37,7 +37,7 @@ type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   const queryClient = useQueryClient();
-  const { projects, activeProject, isGlobalMode, setGlobalMode, openCreateModal } = useProject();
+  const { projects, activeProject, currentCliente, isGlobalMode, setGlobalMode, openCreateModal } = useProject();
   
   const [selectedProjectName, setSelectedProjectName] = useState("")
   const [isCustomProject, setIsCustomProject] = useState(false)
@@ -58,10 +58,42 @@ export default function PresupuestosRealesPage() {
   const { data: presupuestos = [] } = useQuery({
     queryKey: ['presupuestos'],
     queryFn: async () => {
-      const { data } = await supabase.from('presupuestos_reales').select('*, cliente:clientes(id, nombre, apellido, email)').order('created_at', { ascending: false });
+      const { data: { user } } = await supabase.auth.getUser();
+      let query = supabase
+        .from('presupuestos_reales')
+        .select('*, cliente:clientes(id, nombre, apellido, email)')
+        .order('created_at', { ascending: false });
+
+      if (user) {
+        const { data: cli } = await supabase
+          .from('clientes')
+          .select('id, es_admin')
+          .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+          .maybeSingle();
+
+        if (cli && !cli.es_admin) {
+          query = query.eq('cliente_id', cli.id);
+        }
+      }
+
+      const { data } = await query;
       return data || [];
     }
   });
+
+  // ⚡ Sincronización en tiempo real de presupuestos
+  useEffect(() => {
+    const channel = supabase
+      .channel('presupuestos-realtime-listener')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'presupuestos_reales' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const proyectosCRM: any[] = [];
   const clientesCRM: any[] = [];
@@ -113,10 +145,11 @@ export default function PresupuestosRealesPage() {
     }
 
     const matched = projects.find((p: any) => p.nombre.toLowerCase() === nombreFinal.toLowerCase());
+    const clienteFinal = matched?.cliente_id || currentCliente?.id || null;
 
     createMutation.mutate({
       nombre_proyecto: nombreFinal,
-      cliente_id: matched?.cliente_id || null,
+      cliente_id: clienteFinal,
       porcentaje_admin: Number(newAdminPct) || 10.0,
       porcentaje_imprevistos: Number(newImprevPct) || 5.0,
       porcentaje_utilidad: Number(newUtilPct) || 10.0

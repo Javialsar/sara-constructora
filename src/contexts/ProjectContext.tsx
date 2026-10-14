@@ -18,6 +18,7 @@ export interface ProjectItem {
 interface ProjectContextType {
   projects: ProjectItem[]
   activeProject: ProjectItem | null
+  currentCliente: any | null
   isGlobalMode: boolean
   isLoading: boolean
   isCreateModalOpen: boolean
@@ -36,39 +37,94 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
   const [projects, setProjects] = useState<ProjectItem[]>([])
   const [activeProject, setActiveProjectState] = useState<ProjectItem | null>(null)
+  const [currentCliente, setCurrentCliente] = useState<any | null>(null)
   const [isGlobalMode, setIsGlobalMode] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false)
 
+  // 1. Obtener y vincular el cliente autenticado (Arquitecto, Ingeniero Civil, Constructora)
+  const resolveCurrentCliente = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return null
+
+      // Buscar si ya está vinculado por user_id o por email
+      let { data: cli } = await supabase
+        .from('clientes')
+        .select('*')
+        .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+        .maybeSingle()
+
+      // Si existe por email pero no tenía user_id, vincularlo permanentemente
+      if (cli && !cli.user_id) {
+        await supabase.from('clientes').update({ user_id: user.id }).eq('id', cli.id)
+        cli.user_id = user.id
+      }
+
+      // Si no existe, crear el perfil de cliente para este usuario
+      if (!cli) {
+        const { data: nuevoCli } = await supabase.from('clientes').insert([{
+          nombre: user.user_metadata?.full_name?.split(' ')[0] || user.email?.split('@')[0] || "Profesional",
+          apellido: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || "Constructora",
+          email: user.email,
+          user_id: user.id,
+          es_admin: false
+        }]).select().maybeSingle()
+        if (nuevoCli) cli = nuevoCli
+      }
+
+      setCurrentCliente(cli)
+      return cli
+    } catch (err) {
+      console.warn("Fallo al resolver cliente APU:", err)
+      return null
+    }
+  }
+
   const refreshProjects = async () => {
     setIsLoading(true)
     try {
+      const cli = await resolveCurrentCliente()
+
       // 1. Consultar proyectos registrados
-      const { data: dbProjects } = await supabase
+      let query = supabase
         .from('proyectos')
         .select('id, nombre, ubicacion, descripcion, estado, cliente_id, created_at, clientes(id, nombre, apellido)')
         .order('created_at', { ascending: false })
 
-      // 2. Consultar nombres de proyectos en presupuestos_reales para garantizar retrocompatibilidad total
-      const { data: dbPresupuestos } = await supabase
+      // Si no es admin general, filtrar únicamente los proyectos del cliente suscriptor
+      if (cli && !cli.es_admin) {
+        query = query.eq('cliente_id', cli.id)
+      }
+
+      const { data: dbProjects } = await query
+
+      // 2. Consultar nombres de proyectos en presupuestos_reales
+      let presQuery = supabase
         .from('presupuestos_reales')
         .select('nombre_proyecto, cliente_id, created_at')
+
+      if (cli && !cli.es_admin) {
+        presQuery = presQuery.eq('cliente_id', cli.id)
+      }
+
+      const { data: dbPresupuestos } = await presQuery
 
       const projectMap = new Map<string, ProjectItem>()
 
       // Añadir de la tabla proyectos
       if (dbProjects) {
         dbProjects.forEach((p: any) => {
-          const cli = Array.isArray(p.clientes) ? p.clientes[0] : p.clientes
+          const cliRel = Array.isArray(p.clientes) ? p.clientes[0] : p.clientes
           projectMap.set(p.nombre.trim().toLowerCase(), {
             id: p.id,
             nombre: p.nombre,
             ubicacion: p.ubicacion || "Ecuador",
-            provincia: p.ubicacion?.split('-')[0]?.trim() || "Pichincha",
+            provincia: p.ubicacion?.split('•')?.[1]?.trim() || p.ubicacion?.split('-')?.[0]?.trim() || "Pichincha",
             descripcion: p.descripcion || "",
             estado: p.estado || "en_ejecucion",
             cliente_id: p.cliente_id,
-            cliente_nombre: cli ? `${cli.nombre} ${cli.apellido}` : undefined,
+            cliente_nombre: cliRel ? `${cliRel.nombre} ${cliRel.apellido}` : undefined,
             created_at: p.created_at
           })
         })
@@ -126,8 +182,23 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // ⚡ Sincronización en tiempo real con Supabase Realtime
   useEffect(() => {
     refreshProjects()
+
+    const channel = supabase
+      .channel('sara-proyectos-realtime-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proyectos' }, () => {
+        refreshProjects()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'presupuestos_reales' }, () => {
+        refreshProjects()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const setActiveProject = (project: ProjectItem | null) => {
@@ -156,7 +227,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         nombre: data.nombre.trim(),
         ubicacion: ubicacionStr,
         descripcion: data.descripcion || `Obra registrada desde Suite SARA-APU (${data.provincia || "Ecuador"})`,
-        estado: "en_construccion"
+        estado: "en_construccion",
+        cliente_id: currentCliente?.id || null
       }
 
       const { data: creado, error } = await supabase
@@ -178,6 +250,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         provincia: data.provincia || "Loja",
         descripcion: creado.descripcion || payload.descripcion,
         estado: creado.estado || payload.estado,
+        cliente_id: payload.cliente_id,
         created_at: creado.created_at || new Date().toISOString()
       }
 
@@ -196,6 +269,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       value={{
         projects,
         activeProject,
+        currentCliente,
         isGlobalMode,
         isLoading,
         isCreateModalOpen,
