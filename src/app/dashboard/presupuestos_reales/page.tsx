@@ -2140,8 +2140,8 @@ export default function PresupuestosRealesPage() {
               proyectoId={currentPresupuesto?.id || activeProject?.id || 'presupuesto-activo'}
               nombreProyecto={currentPresupuesto?.nombre_proyecto || activeProject?.nombre || "Obra Activa"}
               ubicacion={activeProject?.ubicacion || "Cuenca, Azuay"}
-              costoDirectoTotal={totalCostoDirecto || currentPresupuesto?.costo_directo_total || 45200}
-              volumenDesalojoM3={Math.max(30, Math.round((totalCostoDirecto || 45200) / 1000))}
+              costoDirectoTotal={costoDirectoTotal || currentPresupuesto?.costo_directo_total || 45200}
+              volumenDesalojoM3={Math.max(30, Math.round((costoDirectoTotal || 45200) / 1000))}
             />
 
             {/* 2. Topologia de la Red de Agentes Colectivos */}
@@ -2157,15 +2157,15 @@ export default function PresupuestosRealesPage() {
                   nombre: currentPresupuesto?.nombre_proyecto || activeProject?.nombre || "Obra Activa",
                   provincia: activeProject?.ubicacion?.includes(',') ? activeProject.ubicacion.split(',')[1].trim() : "Azuay",
                   ciudad: activeProject?.ubicacion?.split(',')[0].trim() || "Cuenca",
-                  areaM2: Math.max(80, Math.round((totalCostoDirecto || 50000) / 480)),
+                  areaM2: Math.max(80, Math.round((costoDirectoTotal || 50000) / 480)),
                   tipologia: 'Residencial',
-                  costoReferencial: totalCostoDirecto || currentPresupuesto?.costo_directo_total || 51918,
-                  rubros: rubros.map(r => ({
-                    codigo: r.codigo,
-                    nombre: r.nombre,
-                    unidad: r.unidad,
-                    cantidad: r.cantidad,
-                    subtotal: r.subtotal
+                  costoReferencial: costoDirectoTotal || currentPresupuesto?.costo_directo_total || 51918,
+                  rubros: (presupuestoRubros || []).map((r: any) => ({
+                    codigo: r.codigo_rubro || r.codigo || 'R-00',
+                    nombre: r.nombre_rubro || r.nombre || 'Rubro de obra',
+                    unidad: r.unidad || 'und',
+                    cantidad: Number(r.cantidad_obra || r.cantidad || 1),
+                    subtotal: Number(r.subtotal || 0)
                   }))
                 }}
                 autoRun={true}
