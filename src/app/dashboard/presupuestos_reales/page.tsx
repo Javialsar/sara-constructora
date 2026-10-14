@@ -21,6 +21,7 @@ import AsyncSelect from "@/components/ui/AsyncSelect"
 
 
 import { defaultFormulas, calcularTotalesPresupuesto } from "@/lib/calculadoras/presupuestos";
+import { useProject } from "@/contexts/ProjectContext"
 
 
 const presupuestoSchema = z.object({
@@ -36,6 +37,7 @@ type PresupuestoFormValues = z.infer<typeof presupuestoSchema>;
 export default function PresupuestosRealesPage() {
   const supabase = createClient()
   const queryClient = useQueryClient();
+  const { activeProject, isGlobalMode, setGlobalMode, openCreateModal } = useProject();
   
   const [view, setView] = useState('lista')
   const [indForm, setIndForm] = useState({ pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0 })
@@ -2039,22 +2041,91 @@ const createMutation = useMutation({
           )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm ring-1 ring-gray-900/5 mb-6 overflow-hidden">
-        <div className="p-4 border-b bg-gray-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Banner Contextual de Espacio de Trabajo / Obra Activa */}
+      <div className={`p-4 rounded-2xl mb-6 border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-xs ${
+        !isGlobalMode && activeProject
+          ? "bg-gradient-to-r from-blue-50 to-indigo-50/70 border-blue-200 dark:from-slate-900 dark:to-blue-950/40 dark:border-blue-900/60"
+          : "bg-gray-50 border-gray-200 dark:bg-slate-900/50 dark:border-slate-800"
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg shadow-sm ${
+            !isGlobalMode && activeProject
+              ? "bg-blue-600 text-white"
+              : "bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300"
+          }`}>
+            {!isGlobalMode && activeProject ? "🏗️" : "🌐"}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                {!isGlobalMode && activeProject ? "Espacio de Trabajo Activo" : "Vista Global Multi-Obra"}
+              </span>
+              {!isGlobalMode && activeProject && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+                  {activeProject.provincia}
+                </span>
+              )}
+            </div>
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">
+              {!isGlobalMode && activeProject ? activeProject.nombre : "Todos los Proyectos y Presupuestos"}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {!isGlobalMode && activeProject 
+                ? "Filtrando presupuestos, explosión de insumos y AIU exclusivamente para esta obra."
+                : "Visualizando el portafolio consolidado de todas tus obras en Ecuador."}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {!isGlobalMode && activeProject ? (
+            <button
+              onClick={() => setGlobalMode()}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-300 transition-colors"
+            >
+              🌐 Ver Todas las Obras
+            </button>
+          ) : (
+            <button
+              onClick={() => openCreateModal()}
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-xs"
+            >
+              + Nueva Obra
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm ring-1 ring-gray-900/5 mb-6 overflow-hidden">
+        <div className="p-4 border-b border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <input 
             type="text" 
             placeholder="Buscar por proyecto o cliente..." 
             value={searchPresupuesto} 
             onChange={(e) => setSearchPresupuesto(e.target.value)} 
-            className="w-full max-w-md px-4 py-2 border rounded-lg text-sm bg-white" 
+            className="w-full max-w-md px-4 py-2 border border-gray-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100" 
           />
-          <div className="text-xs text-gray-500 font-medium">
-            Total presupuestos: {presupuestos.length}
+          <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+            Total en vista: {
+              presupuestos.filter(p => {
+                if (!isGlobalMode && activeProject) {
+                  const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
+                  const actNom = activeProject.nombre.toLowerCase().trim();
+                  if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
+                    return false;
+                  }
+                }
+                const searchLower = searchPresupuesto.toLowerCase();
+                const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
+                const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
+                return matchProject || clientName.includes(searchLower);
+              }).length
+            } presupuestos
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left divide-y divide-gray-200">
-            <thead className="bg-slate-50 text-slate-500 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200">
+          <table className="w-full text-sm text-left divide-y divide-gray-200 dark:divide-slate-800">
+            <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium uppercase text-[11px] tracking-wider border-b border-gray-200 dark:border-slate-700">
               <tr>
                 <th className="px-6 py-4">Proyecto</th>
                 <th className="px-6 py-4">Cliente</th>
@@ -2065,72 +2136,125 @@ const createMutation = useMutation({
                 <th className="px-6 py-4 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
               {presupuestos.filter(p => {
+                // Filtro por obra activa
+                if (!isGlobalMode && activeProject) {
+                  const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
+                  const actNom = activeProject.nombre.toLowerCase().trim();
+                  if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
+                    return false;
+                  }
+                }
                 const searchLower = searchPresupuesto.toLowerCase();
                 const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
                 const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
                 return matchProject || clientName.includes(searchLower);
-              }).map((p) => (
-                <tr key={p.id} className="hover:bg-brand-sage/5 cursor-pointer" onClick={() => openEditor(p)}>
-                  <td className="px-6 py-3">
-                    <div className="font-bold text-brand-dark text-sm">{p.nombre_proyecto}</div>
-                  </td>
-                  <td className="px-6 py-3">
-                    {p.cliente ? (
-                      <div className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-[10px]">
-                          {p.cliente.nombre?.[0] || 'C'}
+              }).length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-gray-400 dark:text-slate-500">
+                    <div className="max-w-sm mx-auto space-y-3">
+                      <p className="text-sm font-semibold">
+                        {!isGlobalMode && activeProject
+                          ? `No se encontraron presupuestos registrados para "${activeProject.nombre}".`
+                          : "No hay presupuestos que coincidan con la búsqueda."}
+                      </p>
+                      {!isGlobalMode && activeProject && (
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setNewValue("nombre_proyecto", activeProject.nombre);
+                              setIsNewModalOpen(true);
+                            }}
+                            className="px-4 py-2 bg-brand-sage text-white text-xs font-bold rounded-lg shadow-sm hover:opacity-90 transition-opacity"
+                          >
+                            + Crear Presupuesto para {activeProject.nombre}
+                          </button>
+                          <button
+                            onClick={() => setGlobalMode()}
+                            className="px-4 py-2 bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 text-xs font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+                          >
+                            Ver Todas las Obras
+                          </button>
                         </div>
-                        <span>{p.cliente.nombre} {p.cliente.apellido}</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">Sin cliente</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3 text-gray-500 text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-3 text-center">
-                    <span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'aprobado' || p.estado === 'enviado' || p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>
-                      {p.estado || 'borrador'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
-                  <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
-                  <td className="px-6 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <button 
-                        onClick={() => openEditor(p)} 
-                        className="text-brand-sage font-bold mr-1 text-xs hover:underline"
-                      >
-                        Editar / Ver
-                      </button>
-                      <button 
-                        onClick={(e) => openEditMetaModal(p, e)} 
-                        title="Reasignar Proyecto / Cliente" 
-                        className="text-gray-400 hover:text-emerald-600 p-1.5 transition-colors rounded hover:bg-emerald-50"
-                      >
-                        <Edit3 size={16}/>
-                      </button>
-                      <button 
-                        onClick={(e) => openCloneModal(p, e)} 
-                        title="Duplicar para otro Proyecto o Cliente" 
-                        className="text-gray-400 hover:text-blue-500 p-1.5 transition-colors rounded hover:bg-blue-50"
-                      >
-                        <Copy size={16}/>
-                      </button>
-                      {userRole === 'admin' && (
-                        <button 
-                          onClick={(e) => handleDeletePresupuesto(p.id, e)} 
-                          title="Eliminar Presupuesto" 
-                          className="text-gray-400 hover:text-red-500 p-1.5 transition-colors rounded hover:bg-red-50"
-                        >
-                          <Trash2 size={16}/>
-                        </button>
                       )}
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                presupuestos.filter(p => {
+                  if (!isGlobalMode && activeProject) {
+                    const pNom = (p.nombre_proyecto || '').toLowerCase().trim();
+                    const actNom = activeProject.nombre.toLowerCase().trim();
+                    if (pNom !== actNom && !pNom.includes(actNom) && !actNom.includes(pNom)) {
+                      return false;
+                    }
+                  }
+                  const searchLower = searchPresupuesto.toLowerCase();
+                  const matchProject = p.nombre_proyecto?.toLowerCase().includes(searchLower);
+                  const clientName = p.cliente ? `${p.cliente.nombre} ${p.cliente.apellido}`.toLowerCase() : '';
+                  return matchProject || clientName.includes(searchLower);
+                }).map((p) => (
+                  <tr key={p.id} className="hover:bg-brand-sage/5 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => openEditor(p)}>
+                    <td className="px-6 py-3">
+                      <div className="font-bold text-brand-dark dark:text-white text-sm">{p.nombre_proyecto}</div>
+                    </td>
+                    <td className="px-6 py-3">
+                      {p.cliente ? (
+                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                          <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold text-[10px]">
+                            {p.cliente.nombre?.[0] || 'C'}
+                          </div>
+                          <span>{p.cliente.nombre} {p.cliente.apellido}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Sin cliente</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-gray-500 dark:text-gray-400 text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-3 text-center">
+                      <span className={`px-2 py-1 rounded text-xs uppercase font-bold ${p.estado === 'aprobado' || p.estado === 'enviado' || p.estado === 'Entregado' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'}`}>
+                        {p.estado || 'borrador'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-right font-medium">${Number(p.costo_directo_total || 0).toFixed(2)}</td>
+                    <td className="px-6 py-3 text-right font-black text-brand-sage">${Number(p.gran_total || 0).toFixed(2)}</td>
+                    <td className="px-6 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button 
+                          onClick={() => openEditor(p)} 
+                          className="text-brand-sage font-bold mr-1 text-xs hover:underline"
+                        >
+                          Editar / Ver
+                        </button>
+                        <button 
+                          onClick={(e) => openEditMetaModal(p, e)} 
+                          title="Reasignar Proyecto / Cliente" 
+                          className="text-gray-400 hover:text-emerald-600 p-1.5 transition-colors rounded hover:bg-emerald-50"
+                        >
+                          <Edit3 size={16}/>
+                        </button>
+                        <button 
+                          onClick={(e) => openCloneModal(p, e)} 
+                          title="Duplicar para otro Proyecto o Cliente" 
+                          className="text-gray-400 hover:text-blue-500 p-1.5 transition-colors rounded hover:bg-blue-50"
+                        >
+                          <Copy size={16}/>
+                        </button>
+                        {userRole === 'admin' && (
+                          <button 
+                            onClick={(e) => handleDeletePresupuesto(p.id, e)} 
+                            title="Eliminar Presupuesto" 
+                            className="text-gray-400 hover:text-red-500 p-1.5 transition-colors rounded hover:bg-red-50"
+                          >
+                            <Trash2 size={16}/>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

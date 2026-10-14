@@ -27,6 +27,9 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
+import { ProjectProvider } from "@/contexts/ProjectContext"
+import ProjectSwitcher from "@/components/workspace/ProjectSwitcher"
+import CreateProjectModal from "@/components/workspace/CreateProjectModal"
 
 export default function DashboardLayout({
   children,
@@ -163,131 +166,140 @@ export default function DashboardLayout({
   )
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
-      {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/60 z-40 backdrop-blur-xs md:hidden transition-opacity"
-        />
-      )}
-
-      {/* Mobile Drawer */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col shadow-2xl md:hidden transform transition-transform duration-300 ease-in-out ${
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-      }`}>
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
-              <span className="text-slate-900 font-bold text-xl">S</span>
-            </div>
-            <div>
-              <h1 className="font-bold tracking-wider text-sm uppercase text-white">SaaS APU</h1>
-              <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Sara Constructora</p>
-            </div>
-          </div>
-          <button 
+    <ProjectProvider>
+      <div className="flex h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 overflow-hidden font-sans">
+        {/* Mobile Drawer Overlay */}
+        {isMobileMenuOpen && (
+          <div 
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10"
-          >
-            <ChevronDown size={20} className="rotate-90" />
-          </button>
-        </div>
-        {renderNavItems(false)}
-        <div className="p-3 border-t border-white/10">
-          <button 
-            title="Cerrar Sesión"
-            onClick={async () => {
-              const supabase = createClient()
-              await supabase.auth.signOut()
-              router.push('/')
-            }} 
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm"
-          >
-            <LogOut size={18} className="shrink-0" />
-            <span className="font-medium">Cerrar Sesión</span>
-          </button>
-        </div>
-      </div>
+            className="fixed inset-0 bg-black/60 z-40 backdrop-blur-xs md:hidden transition-opacity"
+          />
+        )}
 
-      {/* Desktop Sidebar */}
-      <aside className={`hidden md:flex ${isSidebarCollapsed ? "w-20" : "w-64"} shrink-0 bg-slate-900 text-white flex-col transition-all duration-300 z-20 print:hidden shadow-xl`}>
-        {/* Header del sidebar */}
-        <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
-              <span className="text-slate-900 font-bold text-xl">S</span>
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="overflow-hidden whitespace-nowrap">
+        {/* Mobile Drawer */}
+        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col shadow-2xl md:hidden transform transition-transform duration-300 ease-in-out ${
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}>
+          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+                <span className="text-slate-900 font-bold text-xl">S</span>
+              </div>
+              <div>
                 <h1 className="font-bold tracking-wider text-sm uppercase text-white">SaaS APU</h1>
                 <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Sara Constructora</p>
               </div>
-            )}
-          </div>
-        </div>
-
-        {renderNavItems(isSidebarCollapsed)}
-
-        <div className="p-3 border-t border-white/10">
-          <button 
-            title="Cerrar Sesión"
-            onClick={async () => {
-              const supabase = createClient()
-              await supabase.auth.signOut()
-              router.push('/')
-            }} 
-            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm`}
-          >
-            <LogOut size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Cerrar Sesión</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden print:overflow-visible print:block">
-        <header className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-6 z-10 shrink-0 print:hidden shadow-sm transition-colors">
-          <div className="flex items-center gap-3">
-            {/* Botón para abrir Drawer en Móvil o colapsar en Desktop */}
+            </div>
             <button 
-              onClick={() => {
-                if (window.innerWidth < 768) {
-                  setIsMobileMenuOpen(prev => !prev)
-                } else {
-                  setIsSidebarCollapsed(prev => !prev)
-                }
-              }}
-              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors focus:outline-none"
-              aria-label="Alternar menú de navegación"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10"
             >
-              <Menu size={22} />
+              <ChevronDown size={20} className="rotate-90" />
             </button>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">SaaS Dashboard</h2>
-              <span className="hidden sm:inline-flex text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                APU & Costos
-              </span>
-            </div>
           </div>
-          <div className="flex items-center gap-3 md:gap-4">
-            <div className="hidden sm:flex text-sm text-gray-500 dark:text-gray-400 font-medium items-center gap-1.5">
-              <span>Hola, {userName}</span>
-              <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold rounded border border-blue-200 dark:border-blue-800">Pro Plan</span>
-            </div>
-            <ThemeToggle />
-            <GlobalNotificationsBell destinatarioTipo="cliente_apu" />
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-500 flex items-center justify-center font-bold text-white shadow-sm ring-2 ring-white/10">
-              {userInitials}
-            </div>
+          {renderNavItems(false)}
+          <div className="p-3 border-t border-white/10">
+            <button 
+              title="Cerrar Sesión"
+              onClick={async () => {
+                const supabase = createClient()
+                await supabase.auth.signOut()
+                router.push('/')
+              }} 
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm"
+            >
+              <LogOut size={18} className="shrink-0" />
+              <span className="font-medium">Cerrar Sesión</span>
+            </button>
           </div>
-        </header>
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">
-          {children}
         </div>
-        <Chatbot />
-      </main>
-    </div>
+
+        {/* Desktop Sidebar */}
+        <aside className={`hidden md:flex ${isSidebarCollapsed ? "w-20" : "w-64"} shrink-0 bg-slate-900 text-white flex-col transition-all duration-300 z-20 print:hidden shadow-xl`}>
+          {/* Header del sidebar */}
+          <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+                <span className="text-slate-900 font-bold text-xl">S</span>
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="overflow-hidden whitespace-nowrap">
+                  <h1 className="font-bold tracking-wider text-sm uppercase text-white">SaaS APU</h1>
+                  <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Sara Constructora</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {renderNavItems(isSidebarCollapsed)}
+
+          <div className="p-3 border-t border-white/10">
+            <button 
+              title="Cerrar Sesión"
+              onClick={async () => {
+                const supabase = createClient()
+                await supabase.auth.signOut()
+                router.push('/')
+              }} 
+              className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-sm`}
+            >
+              <LogOut size={18} className="shrink-0" />
+              {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Cerrar Sesión</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="flex-1 flex flex-col h-full overflow-hidden print:overflow-visible print:block">
+          <header className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-6 z-10 shrink-0 print:hidden shadow-sm transition-colors gap-4">
+            <div className="flex items-center gap-3 shrink-0">
+              {/* Botón para abrir Drawer en Móvil o colapsar en Desktop */}
+              <button 
+                onClick={() => {
+                  if (window.innerWidth < 768) {
+                    setIsMobileMenuOpen(prev => !prev)
+                  } else {
+                    setIsSidebarCollapsed(prev => !prev)
+                  }
+                }}
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+                aria-label="Alternar menú de navegación"
+              >
+                <Menu size={22} />
+              </button>
+              <div className="hidden lg:flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">SaaS APU</h2>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                  Suite 2026
+                </span>
+              </div>
+            </div>
+
+            {/* Selector de Obra / Workspace Switcher Central */}
+            <div className="flex-1 flex justify-center max-w-xl">
+              <ProjectSwitcher />
+            </div>
+
+            <div className="flex items-center gap-3 md:gap-4 shrink-0">
+              <div className="hidden xl:flex text-sm text-gray-500 dark:text-gray-400 font-medium items-center gap-1.5">
+                <span>Hola, {userName}</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold rounded border border-blue-200 dark:border-blue-800">Pro Plan</span>
+              </div>
+              <ThemeToggle />
+              <GlobalNotificationsBell destinatarioTipo="cliente_apu" />
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-700 to-indigo-500 flex items-center justify-center font-bold text-white shadow-sm ring-2 ring-white/10">
+                {userInitials}
+              </div>
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">
+            {children}
+          </div>
+          <Chatbot />
+        </main>
+      </div>
+      <CreateProjectModal />
+    </ProjectProvider>
   )
 }

@@ -13,8 +13,10 @@ import {
   ArrowDownRight,
   Receipt
 } from "lucide-react"
+import { useProject } from "@/contexts/ProjectContext"
 
 export default function SaraDashboardSriPage() {
+  const { activeProject, isGlobalMode } = useProject()
   const [data, setData] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -51,15 +53,20 @@ export default function SaraDashboardSriPage() {
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300 pb-16">
       {/* Cabecera */}
       <div className="border-b border-gray-200 dark:border-slate-800 pb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-bold mb-2 border border-rose-200/60 dark:border-rose-800/60">
-          <Receipt size={14} className="text-rose-600" />
-          SARA-DASHBOARD • Control Financiero Real & Auditor SRI
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-xs font-bold border border-rose-200/60 dark:border-rose-800/60">
+            <Receipt size={14} className="text-rose-600" />
+            SARA-DASHBOARD • Control Financiero Real & Auditor SRI
+          </div>
+          <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+            🏗️ {!isGlobalMode && activeProject ? `${activeProject.nombre} (${activeProject.provincia})` : "Portafolio Global Multi-Obra"}
+          </span>
         </div>
         <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
           Inteligencia de Utilidades y Blindaje Fiscal (SRI)
         </h1>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 max-w-2xl">
-          Contraste matemático del presupuesto inicial de <strong>SARA-APU</strong> contra gastos reales de <strong>SARA-MARKETPLACE</strong> y <strong>SARA-FISCALIZA</strong>. Bloqueo preventivo de fondos de retención para evitar multas.
+          Contraste matemático del presupuesto de <strong>{!isGlobalMode && activeProject ? activeProject.nombre : "todas las obras"}</strong> contra adquisiciones en <strong>SARA-MARKETPLACE</strong> y avances de <strong>SARA-FISCALIZA</strong>. Bloqueo preventivo de fondos de retención para evitar multas.
         </p>
       </div>
 

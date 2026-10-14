@@ -20,6 +20,7 @@ import {
   Clock,
   Send
 } from "lucide-react"
+import { useProject } from "@/contexts/ProjectContext"
 
 interface RubroEjecucion {
   id: string
@@ -33,6 +34,7 @@ interface RubroEjecucion {
 }
 
 export default function SaraFiscalizaPage() {
+  const { activeProject, isGlobalMode, openCreateModal } = useProject()
   const [offlineMode, setOfflineMode] = useState(false)
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number; precision: number } | null>(null)
   const [obteniendoGPS, setObteniendoGPS] = useState(false)
@@ -171,14 +173,19 @@ export default function SaraFiscalizaPage() {
       {/* Header Mobile-First */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 dark:border-slate-800 pb-4">
         <div>
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 block">
-            Módulo SARA-FISCALIZA
-          </span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              Módulo SARA-FISCALIZA
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
+              {!isGlobalMode && activeProject ? activeProject.provincia : "Ecuador"}
+            </span>
+          </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
             Parte Diario de Obra
           </h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Proyecto: <strong>Residencial El Valle • Loja</strong> (Supervisión Técnica)
+            Proyecto: <strong className="text-gray-900 dark:text-gray-200">{!isGlobalMode && activeProject ? activeProject.nombre : "Portafolio General (Selecciona una Obra)"}</strong> (Supervisión Técnica)
           </p>
         </div>
 
