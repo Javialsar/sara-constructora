@@ -20,7 +20,9 @@ import {
   Building2,
   AlertCircle,
   Cpu,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from "lucide-react"
 
 interface ProcesoTender {
@@ -51,6 +53,7 @@ export default function SaraTendersPage() {
   const [resultadoIA, setResultadoIA] = useState<any | null>(null)
   const [procesoActivo, setProcesoActivo] = useState<ProcesoTender | null>(null)
   const [exportandoPresupuesto, setExportandoPresupuesto] = useState(false)
+  const [rubroDetalleIndex, setRubroDetalleIndex] = useState<number | null>(null)
 
   // Cargar datos reales o fallback de demostración
   useEffect(() => {
@@ -472,19 +475,102 @@ export default function SaraTendersPage() {
             </div>
 
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Rubros Identificados y Mapeados:</h4>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {resultadoIA.items.map((it: any, i: number) => (
-                  <div key={i} className="p-3 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-100 dark:border-slate-800 text-xs flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-gray-800 dark:text-gray-200">{it.descripcion}</p>
-                      <p className="text-[11px] text-gray-400">{it.cantidad} {it.unidad} • Ref: ${it.precio_unitario_referencial}/u</p>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Rubros Identificados y Mapeados ({resultadoIA.items.length}):
+                </h4>
+                <span className="text-[10px] text-gray-400">
+                  Presiona &quot;Ver Detalle&quot; para auditar especificaciones y APU
+                </span>
+              </div>
+
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {resultadoIA.items.map((it: any, i: number) => {
+                  const isExpanded = rubroDetalleIndex === i;
+                  return (
+                    <div 
+                      key={i} 
+                      className={`rounded-2xl transition-all border ${
+                        isExpanded 
+                          ? "bg-white dark:bg-slate-900 border-blue-400 dark:border-blue-600 shadow-md ring-1 ring-blue-500/20" 
+                          : "bg-gray-50 dark:bg-slate-950 border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="p-3.5 flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-gray-300 font-bold">
+                              CPC: {it.codigo_cpc || "N/A"}
+                            </span>
+                            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-[11px] bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                              {it.match_confianza}% Match SARA-APU
+                            </span>
+                          </div>
+                          <p className="font-bold text-gray-900 dark:text-gray-100 text-xs">
+                            {it.descripcion}
+                          </p>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                            Volumen: <strong className="text-gray-800 dark:text-gray-200">{it.cantidad} {it.unidad}</strong> • Ref. SERCOP: <strong className="text-blue-600 dark:text-blue-400">${it.precio_unitario_referencial}/u</strong> • Subtotal: <strong>${(it.cantidad * it.precio_unitario_referencial).toLocaleString('es-EC', { minimumFractionDigits: 2 })}</strong>
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setRubroDetalleIndex(isExpanded ? null : i)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0 ${
+                            isExpanded 
+                              ? "bg-blue-600 text-white shadow-xs" 
+                              : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                          }`}
+                        >
+                          <Eye size={13} />
+                          <span>{isExpanded ? "Ocultar" : "Ver Detalle"}</span>
+                        </button>
+                      </div>
+
+                      {/* Desglose Expandido de Especificaciones Técnicas y Homologación */}
+                      {isExpanded && (
+                        <div className="px-3.5 pb-3.5 pt-2 border-t border-gray-100 dark:border-slate-800 bg-blue-50/30 dark:bg-slate-900/50 rounded-b-2xl space-y-3 animate-in fade-in duration-150">
+                          {/* Especificaciones del pliego */}
+                          <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700 text-xs">
+                            <span className="text-[10px] uppercase font-extrabold tracking-wider text-blue-600 dark:text-blue-400 block mb-1">
+                              📋 Especificaciones Técnicas del Pliego SERCOP:
+                            </span>
+                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-[11px]">
+                              {it.especificaciones_tecnicas || "Especificación técnica reglamentaria según catálogo de contratación pública del SERCOP."}
+                            </p>
+                          </div>
+
+                          {/* Comparativa Homologada SARA-APU */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-gray-200 dark:border-slate-700">
+                              <span className="text-[10px] font-bold text-gray-400 block uppercase">
+                                Rubro Homologado en SARA-APU:
+                              </span>
+                              <div className="font-bold text-gray-900 dark:text-white text-xs mt-0.5 truncate">
+                                {it.rubro_apu_nombre || it.descripcion}
+                              </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-gray-200 dark:border-slate-700">
+                              <span className="text-[10px] font-bold text-gray-400 block uppercase">
+                                Costo Directo SARA-APU vs Ref. SERCOP:
+                              </span>
+                              <div className="font-bold text-xs mt-0.5 flex items-center justify-between">
+                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                  {it.precio_sara_apu ? `$${it.precio_sara_apu}/u` : "Por calibrar"}
+                                </span>
+                                <span className="text-gray-400 text-[10px]">
+                                  Ref. SERCOP: ${it.precio_unitario_referencial}/u
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                      {it.match_confianza}% Match
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
