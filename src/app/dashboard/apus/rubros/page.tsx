@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createClient } from "@/lib/supabase/client"
-import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2, Copy } from "lucide-react"
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { useProject } from "@/contexts/ProjectContext";
+import { Plus, Search, Trash2, X, Save, Box, PenTool, ChevronLeft, ChevronRight, Minus, Edit3, Wrench, HardHat, Package, Layers, ArrowLeft, ChevronDown, Download, FileSpreadsheet, Loader2, Copy, Sparkles, Database } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
@@ -192,6 +194,7 @@ type RubroFormValues = z.infer<typeof rubroSchema>;
 
 export default function RubrosPage() {
   const queryClient = useQueryClient();
+  const { activeProject } = useProject();
   const [vista, setVista] = useState("catalogo");
   const [familias, setFamilias] = useState<Familia[]>([]);
   const [subfamilias, setSubfamilias] = useState<Subfamilia[]>([]);
@@ -253,13 +256,16 @@ export default function RubrosPage() {
   const createMutation = useMutation({
     mutationFn: async (values: RubroFormValues) => {
       const { data: { user } } = await supabase.auth.getUser();
-      const payload = { 
+      const payload: any = { 
         ...values, 
         subfamilia_id: values.subfamilia_id || null,
         user_id: user?.id || null,
         es_maestro: false
       }; 
-      delete (payload as any).familia_id_temp;
+      delete payload.familia_id_temp;
+      if (activeProject?.id) {
+        payload.proyecto_id = activeProject.id;
+      }
       const { data, error } = await supabase.from('rubros').insert([payload]).select().single();
       if (error) throw error;
       return data;
@@ -380,7 +386,7 @@ export default function RubrosPage() {
     }
 
     const nuevoCodigo = `${rubro.codigo || 'RUB'}-CLON`
-    const { data: nuevoRubro, error: errRubro } = await supabase.from('rubros').insert([{
+    const clonePayload: any = {
       codigo: nuevoCodigo,
       nombre: `${rubro.nombre} (Copia Mi Empresa)`,
       unidad: rubro.unidad,
@@ -390,7 +396,11 @@ export default function RubrosPage() {
       subfamilia_id: rubro.subfamilia_id,
       es_maestro: false,
       user_id: user.id
-    }]).select().single()
+    }
+    if (activeProject?.id) {
+      clonePayload.proyecto_id = activeProject.id
+    }
+    const { data: nuevoRubro, error: errRubro } = await supabase.from('rubros').insert([clonePayload]).select().single()
 
     if (errRubro || !nuevoRubro) {
       alert("Error al clonar rubro: " + (errRubro?.message || "Desconocido"))
@@ -978,12 +988,35 @@ const renderInsumoRow = (item: any) => (
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 gap-3 shrink-0">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-brand-dark tracking-tight flex items-center gap-2">
-            <PenTool className="text-brand-sage" /> Catálogo de Rubros
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">Crea las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos.</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl md:text-3xl font-black text-brand-dark tracking-tight flex items-center gap-2">
+              <Layers className="text-brand-sage" /> Banco Maestro de Rubros (APUs)
+            </h1>
+            {activeProject && (
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                Obra Activa: {activeProject.nombre}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-500 text-sm mt-0.5">Crea y audita las recetas (Análisis de Precios Unitarios) uniendo materiales, mano de obra y equipos con rendimiento.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href="/dashboard/apus/ai-rubros"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-2 px-3 rounded-lg transition-all text-sm shadow-sm"
+            title="Diseñar Rubros y APUs con SARA Inteligencia Artificial"
+          >
+            <Sparkles size={16} className="text-yellow-300 animate-pulse" />
+            <span>SARA-AI Rubros</span>
+          </Link>
+          <Link
+            href="/dashboard/apus/importador"
+            className="flex items-center gap-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm"
+            title="Importador Masivo Excel & BIM"
+          >
+            <Database size={16} />
+            <span>Importar</span>
+          </Link>
           <button 
             onClick={exportToExcel} 
             disabled={isExporting}
@@ -1011,7 +1044,7 @@ const renderInsumoRow = (item: any) => (
             }
             resetNewForm(initialValues);
             setIsNewModalOpen(true);
-          }} className="bg-brand-sage text-white font-bold py-2 px-5 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap text-sm">
+          }} className="bg-brand-sage text-white font-bold py-2 px-4 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm whitespace-nowrap text-sm">
             <Plus size={16} /> Nuevo Rubro
           </button>
         </div>

@@ -26,6 +26,7 @@ interface ProjectContextType {
   activeProject: ProjectItem | null
   currentCliente: any | null
   isGlobalMode: boolean
+  setGlobalMode: (val: boolean) => void
   isLoading: boolean
   isCreateModalOpen: boolean
   setActiveProject: (project: ProjectItem | null) => void
@@ -388,6 +389,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         activeProject,
         currentCliente,
         isGlobalMode,
+        setGlobalMode: (val: boolean) => setIsGlobalMode(val),
         isLoading,
         isCreateModalOpen,
         setActiveProject,

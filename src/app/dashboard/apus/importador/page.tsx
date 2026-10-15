@@ -3,10 +3,12 @@ import React, { useState, useRef } from "react"
 import { Database, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, ArrowRight, Download, Package, Layers } from "lucide-react"
 import * as XLSX from "xlsx"
 import { createClient } from "@/lib/supabase/client"
+import { useProject } from "@/contexts/ProjectContext"
 
 type TabType = 'insumos' | 'rubros' | 'presupuestos'
 
 export default function ImportadorApuPage() {
+  const { activeProject } = useProject()
   const [activeTab, setActiveTab] = useState<TabType>('presupuestos')
   const [file, setFile] = useState<File | null>(null)
   const [previewData, setPreviewData] = useState<any[]>([])
@@ -120,6 +122,7 @@ export default function ImportadorApuPage() {
       let formattedData = []
 
       if (activeTab === 'insumos') {
+        const { data: { user } } = await supabase.auth.getUser()
         formattedData = fullParsedData.map((row: any) => ({
           codigo: row.codigo || "",
           nombre: row.nombre,
@@ -127,17 +130,23 @@ export default function ImportadorApuPage() {
           tipo: row.tipo?.toLowerCase() || "material", // material, equipo, mano_de_obra
           precio_sin_iva: parseFloat(row.precio_sin_iva || 0),
           descripcion: row.descripcion || "",
-          fecha_actualizacion: new Date().toISOString()
+          fecha_actualizacion: new Date().toISOString(),
+          es_maestro: false,
+          user_id: user?.id || null
         }))
         const { error } = await supabase.from('insumos').insert(formattedData)
         if (error) throw error
       } 
       else if (activeTab === 'rubros') {
+        const { data: { user } } = await supabase.auth.getUser()
         formattedData = fullParsedData.map((row: any) => ({
           codigo: row.codigo || "",
           nombre: row.nombre,
           unidad: row.unidad || "u",
-          herramienta_menor_pct: parseFloat(row.herramienta_menor_pct || 0)
+          herramienta_menor_pct: parseFloat(row.herramienta_menor_pct || 0),
+          es_maestro: false,
+          user_id: user?.id || null,
+          ...(activeProject?.id ? { proyecto_id: activeProject.id } : {})
         }))
         const { error } = await supabase.from('rubros').insert(formattedData)
         if (error) throw error

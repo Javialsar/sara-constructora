@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import Link from "next/link"
 import { 
   Sparkles, 
   Send, 
@@ -247,14 +248,23 @@ export default function SaraAiRubrosPage() {
           </p>
         </div>
 
-        {/* Botón Lote Masivo por Categorías */}
-        <button
-          onClick={() => setIsBulkModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all shrink-0"
-        >
-          <Sparkles size={15} className="text-yellow-300 animate-pulse" />
-          <span>Generar Lote por Categoría Constructiva</span>
-        </button>
+        {/* Botones de Acción */}
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <Link
+            href="/dashboard/apus/rubros"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold text-xs shadow-xs transition-all"
+          >
+            <Layers size={15} />
+            <span>Banco Maestro de Rubros</span>
+          </Link>
+          <button
+            onClick={() => setIsBulkModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all"
+          >
+            <Sparkles size={15} className="text-yellow-300 animate-pulse" />
+            <span>Generar Lote por Categoría Constructiva</span>
+          </button>
+        </div>
       </div>
 
       {/* Banner de Garantía de Aislamiento y Privacidad de Rubros */}

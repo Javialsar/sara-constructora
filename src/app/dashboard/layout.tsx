@@ -46,7 +46,7 @@ export default function DashboardLayout({
   const [userInitials, setUserInitials] = useState("U")
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [openGroup, setOpenGroup] = useState<string>("2. ESTUDIO & PRESUPUESTACIÓN")
+  const [openGroup, setOpenGroup] = useState<string>("2. ESTUDIO & PRESUPUESTACIÓN PRIVADA")
 
   const navGroups = [
     {
@@ -56,9 +56,9 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "2. ESTUDIO & PRESUPUESTACIÓN",
+      title: "2. ESTUDIO & PRESUPUESTACIÓN PRIVADA",
       items: [
-        { href: "/dashboard/presupuestos_reales", label: "Presupuestos de Obra & VAE", icon: FileSpreadsheet },
+        { href: "/dashboard/presupuestos_reales", label: "Mesa de Presupuestos Reales", icon: FileSpreadsheet },
         { href: "/dashboard/cotizador", label: "Cotizador Paramétrico Rápido", icon: Calculator },
         { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
       ]
@@ -75,10 +75,9 @@ export default function DashboardLayout({
     {
       title: "4. CATÁLOGOS & BANCO DE APUS",
       items: [
-        { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros (APUs)", icon: Layers },
-        { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (Generador IA)", icon: Sparkles },
-        { href: "/dashboard/apus/insumos", label: "Catálogo de Insumos (Material/MO)", icon: Box },
-        { href: "/dashboard/apus/importador", label: "Importador Masivo (Excel)", icon: Database },
+        { href: "/dashboard/apus/rubros", label: "Banco Maestro de Rubros (APUs)", icon: Layers },
+        { href: "/dashboard/apus/insumos", label: "Insumos, Cuadrillas & Equipos", icon: Box },
+        { href: "/dashboard/apus/importador", label: "Importador Masivo (Excel & BIM)", icon: Database },
       ]
     },
     {
@@ -122,7 +121,10 @@ export default function DashboardLayout({
     if (!pathname) return
     setIsMobileMenuOpen(false)
     for (const group of navGroups) {
-      if (group.items.some(i => i.href === pathname)) {
+      if (
+        group.items.some(i => i.href === pathname) ||
+        (group.title === "4. CATÁLOGOS & BANCO DE APUS" && pathname === "/dashboard/apus/ai-rubros")
+      ) {
         setOpenGroup(group.title)
         break
       }
@@ -149,7 +151,8 @@ export default function DashboardLayout({
     <nav className="flex-1 py-4 px-2 overflow-y-auto space-y-2">
       {navGroups.map((group, groupIdx) => {
         const isOpen = openGroup === group.title
-        const hasActiveItem = group.items.some(i => i.href === pathname)
+        const hasActiveItem = group.items.some(i => i.href === pathname) ||
+          (group.title === "4. CATÁLOGOS & BANCO DE APUS" && pathname === "/dashboard/apus/ai-rubros")
         return (
           <div 
             key={groupIdx} 
@@ -191,7 +194,7 @@ export default function DashboardLayout({
               <div className={`space-y-1 mt-1.5 ${collapsed ? "" : "pl-1"}`}>
                 {group.items.map((item) => {
                   const Icon = item.icon
-                  const isActive = pathname === item.href
+                  const isActive = pathname === item.href || (item.href === "/dashboard/apus/rubros" && pathname === "/dashboard/apus/ai-rubros")
                   return (
                     <Link 
                       key={item.href}
