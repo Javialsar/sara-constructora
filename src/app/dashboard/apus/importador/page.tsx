@@ -145,8 +145,7 @@ export default function ImportadorApuPage() {
           unidad: row.unidad || "u",
           herramienta_menor_pct: parseFloat(row.herramienta_menor_pct || 0),
           es_maestro: false,
-          user_id: user?.id || null,
-          ...(activeProject?.id ? { proyecto_id: activeProject.id } : {})
+          user_id: user?.id || null
         }))
         const { error } = await supabase.from('rubros').insert(formattedData)
         if (error) throw error

@@ -263,9 +263,6 @@ export default function RubrosPage() {
         es_maestro: false
       }; 
       delete payload.familia_id_temp;
-      if (activeProject?.id) {
-        payload.proyecto_id = activeProject.id;
-      }
       const { data, error } = await supabase.from('rubros').insert([payload]).select().single();
       if (error) throw error;
       return data;
@@ -396,9 +393,6 @@ export default function RubrosPage() {
       subfamilia_id: rubro.subfamilia_id,
       es_maestro: false,
       user_id: user.id
-    }
-    if (activeProject?.id) {
-      clonePayload.proyecto_id = activeProject.id
     }
     const { data: nuevoRubro, error: errRubro } = await supabase.from('rubros').insert([clonePayload]).select().single()
 

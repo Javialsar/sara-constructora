@@ -158,20 +158,18 @@ export default function SaraAiRubrosPage() {
         return
       }
 
-      // 1. Crear rubro en public.rubros con user_id del cliente y proyecto_id
+      // 1. Crear rubro en public.rubros con user_id del cliente (es_maestro: false)
       const codigoRubro = `AI-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
       const rubroPayload: any = {
         codigo: codigoRubro,
         nombre: resultado.nombre_rubro,
         unidad: resultado.unidad,
-        rendimiento: resultado.rendimiento_estimado,
         herramienta_menor_pct: resultado.herramienta_menor_pct || 5.0,
-        total_costo_directo: resultado.costo_directo_estimado,
         es_maestro: false,
         user_id: user.id
       }
-      if (activeProject?.id) {
-        rubroPayload.proyecto_id = activeProject.id
+      if (resultado.rendimiento_estimado !== undefined) {
+        rubroPayload.rendimiento = resultado.rendimiento_estimado
       }
 
       const { data: nuevoRubro, error: errRubro } = await supabase
