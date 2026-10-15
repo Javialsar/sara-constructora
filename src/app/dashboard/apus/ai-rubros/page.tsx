@@ -18,9 +18,11 @@ import {
   Edit2,
   Check,
   ChevronDown,
-  Loader2
+  Loader2,
+  ShieldCheck
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useProject } from "@/contexts/ProjectContext"
 import AiBulkRubrosModal from "@/app/admin/apus/rubros/components/AiBulkRubrosModal"
 
 interface InsumoRow {
@@ -46,6 +48,7 @@ interface ApuStructure {
 
 export default function SaraAiRubrosPage() {
   const supabase = createClient()
+  const { activeProject } = useProject()
   const [prompt, setPrompt] = useState("")
   const [loading, setLoading] = useState(false)
   const [resultado, setResultado] = useState<ApuStructure | null>(null)
@@ -154,20 +157,25 @@ export default function SaraAiRubrosPage() {
         return
       }
 
-      // 1. Crear rubro en public.rubros con user_id del cliente
+      // 1. Crear rubro en public.rubros con user_id del cliente y proyecto_id
       const codigoRubro = `AI-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+      const rubroPayload: any = {
+        codigo: codigoRubro,
+        nombre: resultado.nombre_rubro,
+        unidad: resultado.unidad,
+        rendimiento: resultado.rendimiento_estimado,
+        herramienta_menor_pct: resultado.herramienta_menor_pct || 5.0,
+        total_costo_directo: resultado.costo_directo_estimado,
+        es_maestro: false,
+        user_id: user.id
+      }
+      if (activeProject?.id) {
+        rubroPayload.proyecto_id = activeProject.id
+      }
+
       const { data: nuevoRubro, error: errRubro } = await supabase
         .from('rubros')
-        .insert([{
-          codigo: codigoRubro,
-          nombre: resultado.nombre_rubro,
-          unidad: resultado.unidad,
-          rendimiento: resultado.rendimiento_estimado,
-          herramienta_menor_pct: resultado.herramienta_menor_pct || 5.0,
-          total_costo_directo: resultado.costo_directo_estimado,
-          es_maestro: false,
-          user_id: user.id
-        }])
+        .insert([rubroPayload])
         .select()
         .single()
 
@@ -247,6 +255,33 @@ export default function SaraAiRubrosPage() {
           <Sparkles size={15} className="text-yellow-300 animate-pulse" />
           <span>Generar Lote por Categoría Constructiva</span>
         </button>
+      </div>
+
+      {/* Banner de Garantía de Aislamiento y Privacidad de Rubros */}
+      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-2 border-blue-500/40 rounded-2xl p-5 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-400/30 shrink-0 mt-0.5">
+            <ShieldCheck size={22} className="text-blue-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-white font-black text-sm">
+                Aislamiento de Seguridad: Catálogo Privado del Cliente
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                100% Protegido
+              </span>
+            </div>
+            <p className="text-slate-300 text-xs mt-1 leading-relaxed max-w-3xl">
+              Todos los rubros y APUs que diseñes o generes con Inteligencia Artificial pertenecen de forma <strong>exclusiva y confidencial a tu empresa</strong>{activeProject ? ` (asociados al proyecto: ${activeProject.nombre})` : ''}. <strong>Bajo ninguna circunstancia modifican, sobrescriben o alteran el Catálogo Maestro Oficial</strong> de Grupo SARA.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+          <span className="text-[11px] font-mono text-blue-200/80 bg-blue-950/60 px-3 py-1.5 rounded-xl border border-blue-500/20">
+            es_maestro: <strong className="text-emerald-400">false</strong> · Privado
+          </span>
+        </div>
       </div>
 
       {/* Barra de Entrada / Chat Inteligente */}
@@ -618,12 +653,15 @@ export default function SaraAiRubrosPage() {
         </div>
       )}
 
-      {/* Modal de Generación Masiva por Categorías */}
+      {/* Modal de Generación Masiva por Categorías (Privado para el cliente) */}
       <AiBulkRubrosModal
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
+        esPrivado={true}
+        proyectoId={activeProject?.id}
+        proyectoNombre={activeProject?.nombre}
         onSuccess={() => {
-          alert("¡Lote de rubros generado exitosamente en el catálogo maestro y disponible para tus proyectos!")
+          alert("¡Lote de rubros privados generado exitosamente para tu proyecto! Tu catálogo maestro de Grupo SARA no fue alterado.")
         }}
       />
     </div>

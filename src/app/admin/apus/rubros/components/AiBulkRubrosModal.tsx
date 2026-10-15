@@ -6,6 +6,9 @@ interface AiBulkRubrosModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  esPrivado?: boolean
+  proyectoId?: string
+  proyectoNombre?: string
 }
 
 const CATEGORIAS_CONSTRUCTIVAS = [
@@ -20,7 +23,14 @@ const PROVINCIAS_ECUADOR = [
   "Pichincha", "Guayas", "Azuay", "Loja", "El Oro", "Manabí", "Tungurahua", "Chimborazo", "Imbabura", "Santo Domingo"
 ]
 
-export default function AiBulkRubrosModal({ isOpen, onClose, onSuccess }: AiBulkRubrosModalProps) {
+export default function AiBulkRubrosModal({ 
+  isOpen, 
+  onClose, 
+  onSuccess,
+  esPrivado = false,
+  proyectoId,
+  proyectoNombre
+}: AiBulkRubrosModalProps) {
   const [categoria, setCategoria] = useState(CATEGORIAS_CONSTRUCTIVAS[0].id)
   const [cantidad, setCantidad] = useState(10)
   const [provincia, setProvincia] = useState("Pichincha")
@@ -46,7 +56,9 @@ export default function AiBulkRubrosModal({ isOpen, onClose, onSuccess }: AiBulk
           categoria,
           cantidad: Number(cantidad),
           provincia_referencia: provincia,
-          normativa_base: normativa
+          normativa_base: normativa,
+          es_privado: esPrivado,
+          proyecto_id: proyectoId || null
         })
       })
 
@@ -74,8 +86,14 @@ export default function AiBulkRubrosModal({ isOpen, onClose, onSuccess }: AiBulk
               <Sparkles className="text-brand-sage animate-pulse" size={22} />
             </div>
             <div>
-              <h2 className="text-lg font-black tracking-tight">Generador Masivo de Rubros & APU con IA</h2>
-              <p className="text-xs text-white/70">Expansión del Catálogo Maestro Oficial de Grupo SARA (Ecuador 2026)</p>
+              <h2 className="text-lg font-black tracking-tight">
+                {esPrivado ? "Generador Masivo de Rubros Privados con IA" : "Generador Masivo de Rubros & APU con IA"}
+              </h2>
+              <p className="text-xs text-white/70">
+                {esPrivado 
+                  ? `🔒 Exclusivo para tu cuenta ${proyectoNombre ? `· Proyecto: ${proyectoNombre}` : ''} (No altera el Catálogo Oficial de Grupo SARA)`
+                  : "Expansión del Catálogo Maestro Oficial de Grupo SARA (Ecuador 2026)"}
+              </p>
             </div>
           </div>
           <button onClick={onClose} disabled={loading} className="p-1 rounded-lg hover:bg-white/10 transition-colors text-white/80">
@@ -92,7 +110,9 @@ export default function AiBulkRubrosModal({ isOpen, onClose, onSuccess }: AiBulk
                 <div>
                   <h4 className="font-bold text-emerald-900 text-sm">¡Generación Masiva Completada con Éxito!</h4>
                   <p className="text-xs text-emerald-700 mt-0.5">
-                    Se crearon <strong>{resultado.total_rubros_generados} rubros maestros</strong> con sus desgloses técnicos de materiales, mano de obra sectorial (MDT) y equipos mecánicos.
+                    {esPrivado
+                      ? `Se crearon ${resultado.total_rubros_generados} rubros privados para tu uso exclusivo. El Catálogo Maestro de Grupo SARA permanece inalterable.`
+                      : `Se crearon ${resultado.total_rubros_generados} rubros maestros con sus desgloses técnicos de materiales, mano de obra sectorial (MDT) y equipos mecánicos.`}
                   </p>
                 </div>
               </div>

@@ -10,7 +10,9 @@ const generadorMasivoSchema = z.object({
   subcategoria: z.string().optional().default("General"),
   cantidad: z.number().int().min(1).max(50).default(10),
   provincia_referencia: z.string().optional().default("Pichincha"),
-  normativa_base: z.string().optional().default("NEC-SE-DS / MTOP / SERCOP 2026")
+  normativa_base: z.string().optional().default("NEC-SE-DS / MTOP / SERCOP 2026"),
+  es_privado: z.boolean().optional().default(false),
+  proyecto_id: z.string().optional().nullable()
 })
 
 interface GeneratedApuInsumo {
@@ -344,7 +346,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Parámetros inválidos", details: validation.error.flatten() }, { status: 400 })
     }
 
-    const { categoria, subcategoria, cantidad, provincia_referencia, normativa_base } = validation.data
+    const { categoria, subcategoria, cantidad, provincia_referencia, normativa_base, es_privado, proyecto_id } = validation.data
     const adminSupabase = createAdminClient()
 
     // 1. Obtener o crear la Familia / Grupo correspondiente
@@ -500,21 +502,26 @@ export async function POST(request: Request) {
       const herramientaMenorVal = costoDirectoManoObra * ((rubroGen.herramienta_menor_pct || 5) / 100)
       const totalCostoDirecto = costoDirectoMateriales + costoDirectoManoObra + costoDirectoEquipos + herramientaMenorVal
 
-      // 4.2 Crear Rubro Maestro en la base de datos
+      // 4.2 Crear Rubro en la base de datos (Privado para el cliente o Maestro para Grupo SARA)
+      const rubroPayload: any = {
+        codigo: rubroGen.codigo_sugerido,
+        nombre: rubroGen.nombre,
+        unidad: rubroGen.unidad,
+        rendimiento: rubroGen.rendimiento_horas,
+        herramienta_menor_pct: rubroGen.herramienta_menor_pct,
+        total_costo_directo: parseFloat(totalCostoDirecto.toFixed(4)),
+        subfamilia_id: subfamiliaId,
+        es_maestro: !es_privado,
+        is_global: !es_privado,
+        user_id: es_privado ? (user?.id || null) : null
+      }
+      if (es_privado && proyecto_id) {
+        rubroPayload.proyecto_id = proyecto_id
+      }
+
       const { data: rubroInsertado, error: errRubro } = await adminSupabase
         .from('rubros')
-        .insert([{
-          codigo: rubroGen.codigo_sugerido,
-          nombre: rubroGen.nombre,
-          unidad: rubroGen.unidad,
-          rendimiento: rubroGen.rendimiento_horas,
-          herramienta_menor_pct: rubroGen.herramienta_menor_pct,
-          total_costo_directo: parseFloat(totalCostoDirecto.toFixed(4)),
-          subfamilia_id: subfamiliaId,
-          es_maestro: true,
-          is_global: true,
-          user_id: null
-        }])
+        .insert([rubroPayload])
         .select()
         .single()
 
@@ -526,7 +533,7 @@ export async function POST(request: Request) {
               rubro_id: rubroInsertado.id,
               insumo_id: it.insumo_id,
               cantidad: it.cantidad,
-              user_id: null
+              user_id: es_privado ? (user?.id || null) : null
             }))
           )
         }

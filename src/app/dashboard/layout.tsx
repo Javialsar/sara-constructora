@@ -142,10 +142,10 @@ export default function DashboardLayout({
         return (
           <div 
             key={groupIdx} 
-            className={`mb-2.5 transition-all duration-300 rounded-2xl ${
+            className={`mb-3 transition-all duration-300 rounded-2xl ${
               hasActiveItem 
-                ? "bg-gradient-to-b from-blue-950/80 to-indigo-950/60 border border-blue-500/40 shadow-lg shadow-blue-500/10 p-1.5" 
-                : "bg-transparent border border-transparent p-0.5"
+                ? "bg-gradient-to-br from-blue-950/90 via-indigo-950/80 to-slate-900 border-2 border-blue-400/60 shadow-lg shadow-blue-500/15 p-2" 
+                : "bg-slate-950/30 border border-white/5 p-1"
             }`}
           >
             {!collapsed && (
@@ -153,22 +153,31 @@ export default function DashboardLayout({
                 onClick={() => toggleGroup(group.title)}
                 className={`w-full flex items-center justify-between px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
                   hasActiveItem 
-                    ? "text-blue-300 bg-blue-500/20 shadow-xs" 
+                    ? "text-blue-200 bg-blue-500/30 border border-blue-400/40 shadow-xs" 
                     : isOpen 
                       ? "bg-white/10 text-white" 
                       : "text-gray-400 hover:bg-white/5 hover:text-white"
                 }`}
               >
                 <span className="flex items-center gap-2">
-                  {hasActiveItem && <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />}
+                  {hasActiveItem && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse shadow-sm shadow-blue-400" />
+                  )}
                   <span>{group.title}</span>
                 </span>
-                {isOpen ? <ChevronDown size={14} className={hasActiveItem ? "text-blue-300" : ""} /> : <ChevronRight size={14} />}
+                <div className="flex items-center gap-1.5">
+                  {hasActiveItem && (
+                    <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-blue-400 text-slate-950">
+                      En Curso
+                    </span>
+                  )}
+                  {isOpen ? <ChevronDown size={14} className={hasActiveItem ? "text-blue-300" : ""} /> : <ChevronRight size={14} />}
+                </div>
               </button>
             )}
             
             {(isOpen || collapsed) && (
-              <div className={`space-y-1 mt-1 ${collapsed ? "" : "pl-1"}`}>
+              <div className={`space-y-1 mt-1.5 ${collapsed ? "" : "pl-1"}`}>
                 {group.items.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href
@@ -180,14 +189,14 @@ export default function DashboardLayout({
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center ${collapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2.5"} rounded-xl font-bold transition-all ${
                         isActive 
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/50" 
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/50 ring-1 ring-white/20" 
                           : hasActiveItem
                             ? "text-slate-200 hover:bg-white/10 hover:text-white"
                             : "text-gray-400 hover:bg-white/10 hover:text-white"
                       }`}
                     >
                       <Icon size={collapsed ? 20 : 18} className="shrink-0" />
-                      {!collapsed && <span className="whitespace-nowrap overflow-hidden text-sm">{item.label}</span>}
+                      {!collapsed && <span className="truncate text-xs md:text-sm font-semibold">{item.label}</span>}
                     </Link>
                   )
                 })}
@@ -249,7 +258,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Desktop Sidebar */}
-        <aside className={`hidden md:flex ${isSidebarCollapsed ? "w-20" : "w-64"} shrink-0 bg-slate-900 text-white flex-col transition-all duration-300 z-20 print:hidden shadow-xl`}>
+        <aside className={`hidden md:flex ${isSidebarCollapsed ? "w-20" : "w-72"} shrink-0 bg-slate-900 text-white flex-col transition-all duration-300 z-20 print:hidden shadow-xl`}>
           {/* Header del sidebar */}
           <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
             <div className="flex items-center gap-3 overflow-hidden">
