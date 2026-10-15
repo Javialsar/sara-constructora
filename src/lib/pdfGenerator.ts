@@ -141,105 +141,270 @@ export const generatePresupuestoGeneralPDF = (options: any) => {
 }
 
 export const generateAPUsPDF = (options: any) => {
+  return generateSercopApuPDF(options);
+};
+
+export const generateSercopApuPDF = (options: any) => {
   try {
     const {
       currentPresupuesto,
       presupuestoRubros,
       rubrosRecipes,
-      allRubros
+      allRubros,
+      tecnicoResponsable = "Ing. Residente / Oferente Responsable",
+      registroProfesional = "Reg. Profesional / C.I.: 1104XXXXXX",
+      entidadContratante = "Entidad Contratante (SERCOP Ecuador)",
+      codigoProceso = "PROCESO-SERCOP-2026"
     } = options;
 
-    const doc = new jsPDF();
-    
-    if (presupuestoRubros.length === 0) {
+    if (!presupuestoRubros || presupuestoRubros.length === 0) {
       alert("No hay rubros en el presupuesto para generar APUs.");
       return;
     }
 
-    let startY = 60;
-    let isFirstPage = true;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    presupuestoRubros.forEach((rubro: any) => {
-      if (startY > 250 || isFirstPage) {
-        if (!isFirstPage) {
-          doc.addPage();
-        }
-        doc.addImage(getCompanyMembrete(), 'PNG', 50, 10, 110, 40)
-        doc.setFontSize(16); doc.setFont("helvetica", "bold"); 
-        doc.text("ANÁLISIS DE PRECIOS UNITARIOS (APUS)", 14, 60)
-        startY = 75;
-        isFirstPage = false;
+    // Configuración de indirectos del presupuesto
+    const indConfig = currentPresupuesto?.indirectos_config || { ggen: 10, pimp: 3, util: 5 };
+    const pctGgen = Number(indConfig.ggen || 10) + Number(indConfig.pgas1 || 0) + Number(indConfig.pgas2 || 0) + Number(indConfig.pgas3 || 0);
+    const pctImp = Number(indConfig.pimp || 3);
+    const pctUtil = Number(indConfig.util || 5);
+    const pctAiuTotal = pctGgen + pctImp + pctUtil;
+
+    presupuestoRubros.forEach((rubro: any, index: number) => {
+      if (index > 0) {
+        doc.addPage();
       }
-      
-      doc.setFontSize(10); doc.setFont("helvetica", "bold");
-      doc.text(`Rubro: ${rubro.codigo_rubro} - ${rubro.nombre_rubro}`, 14, startY)
+
+      // 1. Membrete oficial
+      try {
+        doc.addImage(getCompanyMembrete(), 'PNG', 14, 8, 45, 18);
+      } catch (e) {}
+
+      // 2. Encabezado Oficial SERCOP
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 41, 59);
+      doc.text("SISTEMA NACIONAL DE CONTRATACIÓN PÚBLICA - SERCOP", pageWidth / 2, 14, { align: "center" });
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(59, 130, 246);
+      doc.text("FORMULARIO OFICIAL DE ANÁLISIS DE PRECIOS UNITARIOS (A.P.U.)", pageWidth / 2, 19, { align: "center" });
+
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(14, 28, pageWidth - 14, 28);
+
+      // 3. Ficha Técnica del Proceso y Rubro
+      doc.setFontSize(8);
+      doc.setTextColor(40);
+      doc.setFont("helvetica", "bold");
+      doc.text("PROYECTO:", 14, 33);
       doc.setFont("helvetica", "normal");
-      doc.text(`Unidad: ${rubro.unidad} | Costo Directo U: $${Number(rubro.precio_unitario_snapshot).toFixed(2)}`, 14, startY + 5)
-      
+      doc.text(`${currentPresupuesto?.nombre_proyecto || "Obra Civil"}`, 35, 33);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("ENTIDAD:", 14, 38);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${currentPresupuesto?.entidad_contratante || entidadContratante}`, 35, 38);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("CÓDIGO:", 120, 33);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${currentPresupuesto?.codigo_proceso || codigoProceso}`, 140, 33);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("FECHA:", 120, 38);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${new Date().toLocaleDateString('es-EC')}`, 140, 38);
+
+      // Caja Destacada del Rubro
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, 42, pageWidth - 28, 14, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(14, 42, pageWidth - 28, 14, 'S');
+
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(`RUBRO ${index + 1}: [${rubro.codigo_rubro || "RUB-001"}] ${rubro.nombre_rubro}`, 17, 48);
+
+      const rubroMaestro = allRubros?.find((ar: any) => ar.id === rubro.rubro_id);
+      const rendimiento = rubroMaestro?.rendimiento || rubro.rendimiento || 1.0;
+
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text(`UNIDAD: ${rubro.unidad}   |   RENDIMIENTO: ${Number(rendimiento).toFixed(2)} h/${rubro.unidad}   |   CANTIDAD OBRA: ${Number(rubro.cantidad_obra).toFixed(2)} ${rubro.unidad}`, 17, 53);
+
+      // 4. Tablas Desglosadas (4 Secciones SERCOP)
       const insumos = rubrosRecipes[rubro.id] || [];
-      const apuCol = ["Insumo", "Unidad", "Cantidad", "Precio Unit.", "Subtotal"];
-      const apuRows: any[] = [];
-      
-      const mat = insumos.filter((r: any) => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'material');
-      if (mat.length > 0) {
-        apuRows.push([{ content: 'MATERIALES', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [235, 245, 255], textColor: [41, 128, 185] } }]);
-        mat.forEach((m: any) => {
-           const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
-           apuRows.push([iObj?.nombre || '', iObj?.unidad || '', Number(m.cantidad).toFixed(4), Number(m.precio_sin_iva_snapshot).toFixed(4), (m.cantidad * m.precio_sin_iva_snapshot).toFixed(2)]);
-        });
-      }
-      const mo = insumos.filter((r: any) => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra');
-      let costoMO = 0;
-      if (mo.length > 0) {
-        apuRows.push([{ content: 'MANO DE OBRA', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [255, 245, 235], textColor: [211, 84, 0] } }]);
-        mo.forEach((m: any) => {
-           const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
-           const sub = m.cantidad * m.precio_sin_iva_snapshot;
-           costoMO += sub;
-           apuRows.push([iObj?.nombre || '', iObj?.unidad || '', Number(m.cantidad).toFixed(4), Number(m.precio_sin_iva_snapshot).toFixed(4), sub.toFixed(2)]);
-        });
-      }
-      
+      let startY = 60;
+
+      // --- SECCIÓN 1: EQUIPOS Y HERRAMIENTAS ---
       const eq = insumos.filter((r: any) => ['equipo', 'herramienta_menor'].includes((Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo));
+      const mo = insumos.filter((r: any) => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'mano_de_obra');
+      let costoMO = mo.reduce((acc: number, m: any) => acc + (Number(m.cantidad) * Number(m.precio_sin_iva_snapshot || 0)), 0);
       
-      const rubroMaestro = allRubros.find((ar: any) => ar.id === rubro.rubro_id);
-      const hmPct = rubroMaestro ? (Number(rubroMaestro.herramienta_menor_pct) || 0) : 5;
+      const hmPct = rubroMaestro ? (Number(rubroMaestro.herramienta_menor_pct) || 5) : 5;
       const hmValue = costoMO * (hmPct / 100);
 
-      if (eq.length > 0 || hmValue > 0) {
-        apuRows.push([{ content: 'EQUIPOS Y MAQUINARIA', colSpan: 5, styles: { fontStyle: 'bold', fillColor: [245, 235, 255], textColor: [142, 68, 173] } }]);
-        eq.forEach((m: any) => {
-           const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
-           apuRows.push([iObj?.nombre || '', iObj?.unidad || '', Number(m.cantidad).toFixed(4), Number(m.precio_sin_iva_snapshot).toFixed(4), (m.cantidad * m.precio_sin_iva_snapshot).toFixed(2)]);
-        });
-        if (hmValue > 0) {
-           apuRows.push([`Herramienta Menor (${hmPct}% de M.O.)`, '%', hmPct.toFixed(2), costoMO.toFixed(4), hmValue.toFixed(2)]);
+      const eqRows: any[] = eq.map((m: any) => {
+        const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
+        const cant = Number(m.cantidad || 0);
+        const pu = Number(m.precio_sin_iva_snapshot || 0);
+        return [iObj?.nombre || 'Equipo', iObj?.unidad || 'h', cant.toFixed(4), pu.toFixed(4), (cant * pu).toFixed(4)];
+      });
+      if (hmValue > 0) {
+        eqRows.push([`Herramienta Menor (${hmPct}% de Mano de Obra CCEC)`, '%mo', (hmPct / 100).toFixed(4), costoMO.toFixed(4), hmValue.toFixed(4)]);
+      }
+      let subtotalEquipos = eq.reduce((acc: number, m: any) => acc + (Number(m.cantidad) * Number(m.precio_sin_iva_snapshot || 0)), 0) + hmValue;
+
+      autoTable(doc, {
+        startY: startY,
+        head: [["1. EQUIPOS Y HERRAMIENTAS", "UND", "CANT.", "TARIFA H ($)", "SUBTOTAL ($)"]],
+        body: eqRows.length > 0 ? eqRows : [["No requiere equipo mecánico pesado", "-", "-", "-", "0.0000"]],
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 90 }, 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+        foot: [["SUBTOTAL EQUIPOS (A)", "", "", "", `$ ${subtotalEquipos.toFixed(4)}`]],
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'right' }
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 3;
+
+      // --- SECCIÓN 2: MANO DE OBRA (CCEC / MDT) ---
+      const moRows: any[] = mo.map((m: any) => {
+        const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
+        const cant = Number(m.cantidad || 0);
+        const pu = Number(m.precio_sin_iva_snapshot || 0);
+        return [iObj?.nombre || 'Categoría Ocupacional CCEC', iObj?.unidad || 'h', cant.toFixed(4), pu.toFixed(4), (cant * pu).toFixed(4)];
+      });
+
+      autoTable(doc, {
+        startY: startY,
+        head: [["2. MANO DE OBRA (Tablas Sectoriales CCEC/MDT)", "UND", "CANT.", "COSTO H. ($)", "SUBTOTAL ($)"]],
+        body: moRows.length > 0 ? moRows : [["Mano de obra incluida en subcontrato", "-", "-", "-", "0.0000"]],
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [15, 76, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 90 }, 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+        foot: [["SUBTOTAL MANO DE OBRA (B)", "", "", "", `$ ${costoMO.toFixed(4)}`]],
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'right' }
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 3;
+
+      // --- SECCIÓN 3: MATERIALES ---
+      const mat = insumos.filter((r: any) => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'material');
+      let subtotalMateriales = mat.reduce((acc: number, m: any) => acc + (Number(m.cantidad) * Number(m.precio_sin_iva_snapshot || 0)), 0);
+      const matRows: any[] = mat.map((m: any) => {
+        const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
+        const cant = Number(m.cantidad || 0);
+        const pu = Number(m.precio_sin_iva_snapshot || 0);
+        return [iObj?.nombre || 'Material de construcción', iObj?.unidad || 'u', cant.toFixed(4), pu.toFixed(4), (cant * pu).toFixed(4)];
+      });
+
+      autoTable(doc, {
+        startY: startY,
+        head: [["3. MATERIALES (Precios Referencia Mercado/INEC)", "UND", "CANT.", "PRECIO U ($)", "SUBTOTAL ($)"]],
+        body: matRows.length > 0 ? matRows : [["No requiere materiales adicionales", "-", "-", "-", "0.0000"]],
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [44, 122, 123], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 90 }, 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+        foot: [["SUBTOTAL MATERIALES (C)", "", "", "", `$ ${subtotalMateriales.toFixed(4)}`]],
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'right' }
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 3;
+
+      // --- SECCIÓN 4: TRANSPORTE ---
+      const trans = insumos.filter((r: any) => (Array.isArray(r.insumo) ? r.insumo[0] : r.insumo)?.tipo === 'transporte');
+      let subtotalTransporte = trans.reduce((acc: number, m: any) => acc + (Number(m.cantidad) * Number(m.precio_sin_iva_snapshot || 0)), 0);
+      const transRows: any[] = trans.map((m: any) => {
+        const iObj = Array.isArray(m.insumo) ? m.insumo[0] : m.insumo;
+        const cant = Number(m.cantidad || 0);
+        const pu = Number(m.precio_sin_iva_snapshot || 0);
+        return [iObj?.nombre || 'Transporte y Acarreo de Material', iObj?.unidad || 'm3-km', cant.toFixed(4), pu.toFixed(4), (cant * pu).toFixed(4)];
+      });
+
+      autoTable(doc, {
+        startY: startY,
+        head: [["4. TRANSPORTE (Fletes y Acarreos MTOP)", "UND", "DIST./VOL.", "TARIFA ($)", "SUBTOTAL ($)"]],
+        body: transRows.length > 0 ? transRows : [["Transporte incluido en precio puesto en obra", "km", "0.0000", "0.0000", "0.0000"]],
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [180, 83, 9], textColor: [255, 255, 255], fontStyle: 'bold' },
+        columnStyles: { 0: { cellWidth: 90 }, 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+        foot: [["SUBTOTAL TRANSPORTE (D)", "", "", "", `$ ${subtotalTransporte.toFixed(4)}`]],
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', halign: 'right' }
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 4;
+
+      // --- RESUMEN ECONÓMICO FINAL & DESGLOSE AIU ---
+      const costoDirectoRubro = subtotalEquipos + costoMO + subtotalMateriales + subtotalTransporte;
+      const valorAIU = costoDirectoRubro * (pctAiuTotal / 100);
+      const precioUnitarioFinal = costoDirectoRubro + valorAIU;
+
+      const summaryRows = [
+        ["TOTAL COSTO DIRECTO (A + B + C + D):", `$ ${costoDirectoRubro.toFixed(4)}`],
+        [`INDIRECTOS Y UTILIDAD AIU (${pctAiuTotal.toFixed(2)}%):`, `$ ${valorAIU.toFixed(4)}`],
+        [`  - Gastos Generales y Administración (${pctGgen}%):`, `$ ${(costoDirectoRubro * (pctGgen / 100)).toFixed(4)}`],
+        [`  - Imprevistos (${pctImp}%):`, `$ ${(costoDirectoRubro * (pctImp / 100)).toFixed(4)}`],
+        [`  - Utilidad (${pctUtil}%):`, `$ ${(costoDirectoRubro * (pctUtil / 100)).toFixed(4)}`],
+        ["PRECIO UNITARIO TOTAL PROPUESTO (P.U.):", `$ ${precioUnitarioFinal.toFixed(4)} / ${rubro.unidad}`]
+      ];
+
+      autoTable(doc, {
+        startY: startY,
+        body: summaryRows,
+        theme: 'plain',
+        styles: { fontSize: 7.5, cellPadding: 1 },
+        columnStyles: {
+          0: { cellWidth: 140, fontStyle: 'bold', textColor: [30, 41, 59] },
+          1: { cellWidth: 42, halign: 'right', fontStyle: 'bold', textColor: [15, 23, 42] }
         }
-      }
-      
-      if(apuRows.length > 0) {
-          autoTable(doc, {
-            startY: startY + 8,
-            head: [apuCol],
-            body: apuRows,
-            theme: 'grid',
-            styles: { fontSize: 7 },
-            headStyles: { fillColor: [240, 240, 240], textColor: [0,0,0] },
-            margin: { top: 60 }
-          });
-          startY = (doc as any).lastAutoTable?.finalY + 15 || startY + 20;
-      } else {
-          doc.setFont("helvetica", "italic"); doc.setFontSize(8); doc.text("No hay insumos registrados.", 14, startY + 12);
-          startY += 20;
-      }
+      });
+
+      startY = (doc as any).lastAutoTable?.finalY + 4;
+
+      // 5. Cita Normativa Obligatoria SERCOP
+      doc.setFontSize(6.5);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(100);
+      doc.text("Nota Técnica Obligatoria: Precios referenciados con cotizaciones locales e índices CAMICON / INEC Ecuador.", 14, startY);
+      doc.text("Salarios reales de mano de obra según Tablas Sectoriales CCEC / MDT con Factor de Sobrecosto (FSBC). Rendimientos documentados según normas MTOP/CAMICON.", 14, startY + 3.5);
+
+      // 6. Casillero de Firma del Responsable Técnico (Obligatorio SERCOP)
+      const firmaY = Math.max(startY + 14, pageHeight - 32);
+
+      doc.setDrawColor(100);
+      doc.line(pageWidth / 2 - 40, firmaY, pageWidth / 2 + 40, firmaY);
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text("FIRMA DEL PROFESIONAL RESPONSABLE TÉCNICO", pageWidth / 2, firmaY + 4, { align: "center" });
+
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(70);
+      doc.text(`${tecnicoResponsable}`, pageWidth / 2, firmaY + 8, { align: "center" });
+      doc.text(`${registroProfesional}   |   Oferente Habilitado RUP`, pageWidth / 2, firmaY + 11.5, { align: "center" });
     });
 
-    doc.save(`APUs_${currentPresupuesto.nombre_proyecto.replace(/\s+/g, '_')}.pdf`);
+    const nombreArchivo = `APUs_SERCOP_${(currentPresupuesto?.nombre_proyecto || "Obra").replace(/\s+/g, '_')}.pdf`;
+    doc.save(nombreArchivo);
   } catch (error: any) {
     console.error(error);
-    alert("Error al generar PDF de APUs: " + error.message);
+    alert("Error al generar APUs formato SERCOP: " + error.message);
   }
-}
+};
 
 export const generateExplosionPDF = (options: any) => {
   try {

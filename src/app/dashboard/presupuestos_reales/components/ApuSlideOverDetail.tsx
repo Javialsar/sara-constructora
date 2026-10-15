@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { 
   X, Plus, Trash2, Save, Sparkles, AlertCircle, 
-  Package, Users, Wrench, Truck, Check, Search, Loader2, ArrowRight
+  Package, Users, Wrench, Truck, Check, Search, Loader2, ArrowRight, FileText
 } from "lucide-react"
+import { generateSercopApuPDF } from "@/lib/pdfGenerator"
 
 interface ApuSlideOverDetailProps {
   isOpen: boolean
@@ -558,6 +559,23 @@ export default function ApuSlideOverDetail({
                   <span>Guardar a Banco Maestro</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  generateSercopApuPDF({
+                    currentPresupuesto: { nombre_proyecto: currentRecipeRubro.nombre_rubro },
+                    presupuestoRubros: [currentRecipeRubro],
+                    rubrosRecipes,
+                    allRubros: [currentRecipeRubro]
+                  })
+                }}
+                className="px-3 py-2 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition shadow-xs flex items-center gap-1.5"
+                title="Generar formulario oficial de APU bajo normativa SERCOP con firma técnica"
+              >
+                <FileText size={14} />
+                <span>APU SERCOP (PDF)</span>
+              </button>
 
               <button
                 type="button"

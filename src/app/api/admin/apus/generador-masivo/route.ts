@@ -515,9 +515,6 @@ export async function POST(request: Request) {
         is_global: !es_privado,
         user_id: es_privado ? (user?.id || null) : null
       }
-      if (es_privado && proyecto_id) {
-        rubroPayload.proyecto_id = proyecto_id
-      }
 
       const { data: rubroInsertado, error: errRubro } = await adminSupabase
         .from('rubros')

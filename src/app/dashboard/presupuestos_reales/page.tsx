@@ -785,7 +785,11 @@ export default function PresupuestosRealesPage() {
       currentPresupuesto,
       presupuestoRubros,
       rubrosRecipes,
-      allRubros
+      allRubros,
+      tecnicoResponsable: currentCliente ? `${currentCliente.nombre} ${currentCliente.apellido}` : (currentPresupuesto?.cliente ? `${currentPresupuesto.cliente.nombre} ${currentPresupuesto.cliente.apellido}` : "Ing. Residente / Oferente Responsable"),
+      registroProfesional: currentCliente?.identificacion ? `C.I. / RUP: ${currentCliente.identificacion}` : "Reg. Profesional / C.I.: 1104XXXXXX",
+      entidadContratante: currentPresupuesto?.entidad_contratante || activeProject?.entidad_contratante || "Entidad Contratante (SERCOP Ecuador)",
+      codigoProceso: currentPresupuesto?.codigo_proceso || activeProject?.codigo_proceso || "PROCESO-SERCOP-2026"
     });
   };
 
