@@ -24,7 +24,10 @@ import {
   FileText,
   Truck,
   Receipt,
-  Cpu
+  Cpu,
+  Building2,
+  ShieldCheck,
+  FileCheck
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -58,11 +61,19 @@ export default function DashboardLayout({
         { href: "/dashboard/presupuestos_reales", label: "Presupuestos de Obra & VAE", icon: FileSpreadsheet },
         { href: "/dashboard/cotizador", label: "Cotizador Paramétrico Rápido", icon: Calculator },
         { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
-        { href: "/dashboard/apus/tenders", label: "SARA-Tenders (SERCOP)", icon: Search },
       ]
     },
     {
-      title: "3. CATÁLOGOS & BANCO DE APUS",
+      title: "3. CONTRATACIÓN PÚBLICA (SERCOP)",
+      items: [
+        { href: "/dashboard/sercop/radar", label: "Radar de Licitaciones SERCOP", icon: Search },
+        { href: "/dashboard/sercop/proyectos", label: "Proyectos de Contratación Pública", icon: Building2 },
+        { href: "/dashboard/sercop/agente", label: "🤖 Agente SARA-SERCOP (Normativa)", icon: ShieldCheck },
+        { href: "/dashboard/sercop/vae", label: "Matriz VAE & Desagregación", icon: FileCheck },
+      ]
+    },
+    {
+      title: "4. CATÁLOGOS & BANCO DE APUS",
       items: [
         { href: "/dashboard/apus/rubros", label: "Catálogo de Rubros (APUs)", icon: Layers },
         { href: "/dashboard/apus/ai-rubros", label: "SARA-AI-Rubros (Generador IA)", icon: Sparkles },
@@ -71,21 +82,21 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "4. CONTROL & OPERACIÓN EN OBRA",
+      title: "5. CONTROL & OPERACIÓN EN OBRA",
       items: [
         { href: "/dashboard/fiscaliza", label: "SARA-Fiscaliza (Parte Diario & GPS)", icon: HardHat },
         { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística)", icon: Truck },
       ]
     },
     {
-      title: "5. FINANZAS, SRI & LEGAL",
+      title: "6. FINANZAS, SRI & LEGAL",
       items: [
         { href: "/dashboard/metricas-sri", label: "Dashboard Financiero & SRI", icon: Receipt },
         { href: "/dashboard/docs", label: "SARA-Docs (Contratos & Minutas)", icon: FileText },
       ]
     },
     {
-      title: "6. DIRECTORIO & CRM",
+      title: "7. DIRECTORIO & CRM",
       items: [
         { href: "/dashboard/directorio/clientes", label: "Clientes (CRM)", icon: Users },
         { href: "/dashboard/directorio/proveedores", label: "Proveedores Aliados", icon: Briefcase },
@@ -93,7 +104,7 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "7. CONFIGURACIÓN & EMPRESA",
+      title: "8. CONFIGURACIÓN & EMPRESA",
       items: [
         { href: "/dashboard/parametros", label: "Datos de Empresa & Facturación", icon: Settings },
         { href: "/dashboard/marca", label: "Membrete Oficial & PDF", icon: Palette },

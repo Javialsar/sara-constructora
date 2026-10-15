@@ -1,1 +1,1 @@
-export { default } from "../../tenders/page"
+export { default } from "../../sercop/radar/page"

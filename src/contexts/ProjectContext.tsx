@@ -13,6 +13,12 @@ export interface ProjectItem {
   cliente_id?: string | null
   cliente_nombre?: string
   created_at?: string
+  regimen?: 'particular' | 'privado' | 'publico_sercop'
+  codigo_proceso?: string
+  entidad_contratante?: string
+  presupuesto_referencial?: number
+  fecha_limite?: string
+  etapa_sercop?: 'convocatoria' | 'preguntas' | 'oferta' | 'convalidacion' | 'adjudicado' | 'contrato'
 }
 
 interface ProjectContextType {
@@ -25,13 +31,25 @@ interface ProjectContextType {
   setActiveProject: (project: ProjectItem | null) => void
   openCreateModal: () => void
   closeCreateModal: () => void
-  createProject: (data: { nombre: string; ubicacion?: string; provincia?: string; descripcion?: string }) => Promise<ProjectItem | null>
+  createProject: (data: { 
+    nombre: string
+    ubicacion?: string
+    provincia?: string
+    descripcion?: string
+    regimen?: 'particular' | 'privado' | 'publico_sercop'
+    codigo_proceso?: string
+    entidad_contratante?: string
+    presupuesto_referencial?: number
+    fecha_limite?: string
+    etapa_sercop?: 'convocatoria' | 'preguntas' | 'oferta' | 'convalidacion' | 'adjudicado' | 'contrato'
+  }) => Promise<ProjectItem | null>
   refreshProjects: () => Promise<void>
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined)
 
 const STORAGE_KEY = "sara_active_project_id"
+const SERCOP_META_KEY = "sara_sercop_metadata"
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const supabase = createClient()
@@ -89,7 +107,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       // 1. Consultar proyectos registrados
       let query = supabase
         .from('proyectos')
-        .select('id, nombre, ubicacion, descripcion, estado, cliente_id, created_at, clientes(id, nombre, apellido)')
+        .select('*')
         .order('created_at', { ascending: false })
 
       // Si no es admin general, filtrar únicamente los proyectos del cliente suscriptor
@@ -110,22 +128,49 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
       const { data: dbPresupuestos } = await presQuery
 
+      // Leer metadatos SERCOP guardados localmente
+      let localMeta: Record<string, any> = {}
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem(SERCOP_META_KEY)
+          if (raw) localMeta = JSON.parse(raw)
+        } catch {}
+      }
+
       const projectMap = new Map<string, ProjectItem>()
 
       // Añadir de la tabla proyectos
       if (dbProjects) {
         dbProjects.forEach((p: any) => {
           const cliRel = Array.isArray(p.clientes) ? p.clientes[0] : p.clientes
+          const meta = localMeta[p.id] || {}
+          const isSercopByName = (p.nombre && (
+            p.nombre.toLowerCase().includes("sercop") ||
+            p.nombre.includes("MCO-") ||
+            p.nombre.includes("SIE-") ||
+            p.nombre.includes("LICO-") ||
+            p.nombre.includes("COT-") ||
+            p.nombre.includes("CON-")
+          )) || (p.descripcion && p.descripcion.includes("[SERCOP:"))
+
+          const itemRegimen = p.regimen || meta.regimen || (isSercopByName ? 'publico_sercop' : 'particular')
+
           projectMap.set(p.nombre.trim().toLowerCase(), {
             id: p.id,
             nombre: p.nombre,
             ubicacion: p.ubicacion || "Ecuador",
-            provincia: p.ubicacion?.split('•')?.[1]?.trim() || p.ubicacion?.split('-')?.[0]?.trim() || "Pichincha",
+            provincia: p.provincia || p.ubicacion?.split('•')?.[1]?.trim() || p.ubicacion?.split('-')?.[0]?.trim() || "Loja",
             descripcion: p.descripcion || "",
             estado: p.estado || "en_ejecucion",
             cliente_id: p.cliente_id,
             cliente_nombre: cliRel ? `${cliRel.nombre} ${cliRel.apellido}` : undefined,
-            created_at: p.created_at
+            created_at: p.created_at,
+            regimen: itemRegimen,
+            codigo_proceso: p.codigo_proceso || meta.codigo_proceso,
+            entidad_contratante: p.entidad_contratante || meta.entidad_contratante,
+            presupuesto_referencial: p.presupuesto_referencial || meta.presupuesto_referencial,
+            fecha_limite: p.fecha_limite || meta.fecha_limite,
+            etapa_sercop: p.etapa_sercop || meta.etapa_sercop || (itemRegimen === 'publico_sercop' ? 'oferta' : undefined)
           })
         })
       }
@@ -136,14 +181,22 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
           if (pr.nombre_proyecto) {
             const key = pr.nombre_proyecto.trim().toLowerCase()
             if (!projectMap.has(key)) {
+              const meta = localMeta[key] || {}
+              const isSercop = key.includes("sercop") || key.includes("mco-") || key.includes("sie-")
+              const itemReg = meta.regimen || (isSercop ? 'publico_sercop' : 'particular')
               projectMap.set(key, {
                 id: `pres-${Math.random().toString(36).substring(2, 8)}`,
                 nombre: pr.nombre_proyecto,
                 ubicacion: "Ecuador",
-                provincia: "Pichincha",
+                provincia: "Loja",
                 estado: "en_ejecucion",
                 cliente_id: pr.cliente_id,
-                created_at: pr.created_at
+                created_at: pr.created_at,
+                regimen: itemReg,
+                codigo_proceso: meta.codigo_proceso,
+                entidad_contratante: meta.entidad_contratante,
+                presupuesto_referencial: meta.presupuesto_referencial,
+                etapa_sercop: meta.etapa_sercop || (itemReg === 'publico_sercop' ? 'oferta' : undefined)
               })
             }
           }
@@ -217,41 +270,105 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const createProject = async (data: { nombre: string; ubicacion?: string; provincia?: string; descripcion?: string }): Promise<ProjectItem | null> => {
+  const createProject = async (data: { 
+    nombre: string
+    ubicacion?: string
+    provincia?: string
+    descripcion?: string
+    regimen?: 'particular' | 'privado' | 'publico_sercop'
+    codigo_proceso?: string
+    entidad_contratante?: string
+    presupuesto_referencial?: number
+    fecha_limite?: string
+    etapa_sercop?: 'convocatoria' | 'preguntas' | 'oferta' | 'convalidacion' | 'adjudicado' | 'contrato'
+  }): Promise<ProjectItem | null> => {
     try {
       const ubicacionStr = data.provincia 
         ? (data.ubicacion ? `${data.ubicacion} • ${data.provincia}` : data.provincia)
         : (data.ubicacion || "Ecuador")
 
-      const payload = {
+      const regimenFinal = data.regimen || 'particular'
+      const etapaFinal = data.etapa_sercop || (regimenFinal === 'publico_sercop' ? 'oferta' : 'convocatoria')
+
+      const insertPayload: any = {
         nombre: data.nombre.trim(),
         ubicacion: ubicacionStr,
         descripcion: data.descripcion || `Obra registrada desde Suite SARA-APU (${data.provincia || "Ecuador"})`,
-        estado: "en_construccion",
+        estado: regimenFinal === 'publico_sercop' ? etapaFinal : "en_construccion",
         cliente_id: currentCliente?.id || null
       }
 
-      const { data: creado, error } = await supabase
+      // Intentar insertar con campos extendidos
+      let creado: any = null
+      const fullPayload = {
+        ...insertPayload,
+        regimen: regimenFinal,
+        codigo_proceso: data.codigo_proceso,
+        entidad_contratante: data.entidad_contratante,
+        presupuesto_referencial: data.presupuesto_referencial
+      }
+
+      const { data: dbData, error } = await supabase
         .from('proyectos')
-        .insert([payload])
+        .insert([fullPayload])
         .select()
         .single()
 
       if (error) {
-        console.error("Error al insertar proyecto:", error)
-        alert("Error al registrar proyecto: " + error.message)
-        return null
+        // Fallback si la tabla aún no cuenta con las columnas
+        const fallbackPayload = {
+          ...insertPayload,
+          descripcion: (data.descripcion ? `${data.descripcion} ` : '') + (data.codigo_proceso ? `[SERCOP: ${data.codigo_proceso} - ${data.entidad_contratante || ''}]` : '')
+        }
+        const { data: fbData, error: fbError } = await supabase
+          .from('proyectos')
+          .insert([fallbackPayload])
+          .select()
+          .single()
+
+        if (fbError) {
+          console.error("Error al insertar proyecto:", fbError)
+          alert("Error al registrar proyecto: " + fbError.message)
+          return null
+        }
+        creado = fbData
+      } else {
+        creado = dbData
+      }
+
+      const sercopMeta = {
+        regimen: regimenFinal,
+        codigo_proceso: data.codigo_proceso,
+        entidad_contratante: data.entidad_contratante,
+        presupuesto_referencial: data.presupuesto_referencial,
+        fecha_limite: data.fecha_limite,
+        etapa_sercop: etapaFinal
+      }
+
+      if (typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem(SERCOP_META_KEY)
+          const map = raw ? JSON.parse(raw) : {}
+          map[creado.id] = sercopMeta
+          localStorage.setItem(SERCOP_META_KEY, JSON.stringify(map))
+        } catch {}
       }
 
       const nuevoItem: ProjectItem = {
         id: creado.id,
-        nombre: creado.nombre || payload.nombre,
-        ubicacion: creado.ubicacion || payload.ubicacion,
+        nombre: creado.nombre || insertPayload.nombre,
+        ubicacion: creado.ubicacion || insertPayload.ubicacion,
         provincia: data.provincia || "Loja",
-        descripcion: creado.descripcion || payload.descripcion,
-        estado: creado.estado || payload.estado,
-        cliente_id: payload.cliente_id,
-        created_at: creado.created_at || new Date().toISOString()
+        descripcion: creado.descripcion || insertPayload.descripcion,
+        estado: creado.estado || insertPayload.estado,
+        cliente_id: insertPayload.cliente_id,
+        created_at: creado.created_at || new Date().toISOString(),
+        regimen: regimenFinal,
+        codigo_proceso: data.codigo_proceso,
+        entidad_contratante: data.entidad_contratante,
+        presupuesto_referencial: data.presupuesto_referencial,
+        fecha_limite: data.fecha_limite,
+        etapa_sercop: etapaFinal
       }
 
       setProjects(prev => [nuevoItem, ...prev.filter(p => p.id !== nuevoItem.id)])

@@ -65,8 +65,15 @@ export default function ProjectSwitcher() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             )}
           </div>
-          <div className="truncate font-bold text-gray-900 dark:text-white">
-            {isGlobalMode ? "Todas las Obras (Global)" : activeProject?.nombre || "Seleccionar Obra"}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="truncate font-bold text-gray-900 dark:text-white">
+              {isGlobalMode ? "Todas las Obras (Global)" : activeProject?.nombre || "Seleccionar Obra"}
+            </span>
+            {!isGlobalMode && activeProject?.regimen === 'publico_sercop' && (
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-extrabold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 shrink-0 animate-in fade-in">
+                🏛️ SERCOP
+              </span>
+            )}
           </div>
         </div>
 
@@ -157,18 +164,26 @@ export default function ProjectSwitcher() {
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                         isSelected 
-                          ? "bg-blue-600 text-white" 
-                          : "bg-gray-100 dark:bg-slate-800 text-gray-500"
+                          ? (proj.regimen === 'publico_sercop' ? "bg-amber-600 text-white" : "bg-blue-600 text-white")
+                          : (proj.regimen === 'publico_sercop' ? "bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400" : "bg-gray-100 dark:bg-slate-800 text-gray-500")
                       }`}>
                         <Building2 size={15} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="font-bold truncate text-gray-900 dark:text-white">
-                          {proj.nombre}
+                        <div className="font-bold truncate text-gray-900 dark:text-white flex items-center gap-1.5">
+                          <span className="truncate">{proj.nombre}</span>
+                          {proj.regimen === 'publico_sercop' && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                              🏛️ SERCOP
+                            </span>
+                          )}
                         </div>
                         <div className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
                           <MapPin size={10} className="shrink-0" />
-                          <span className="truncate">{proj.ubicacion || proj.provincia || "Ecuador"}</span>
+                          <span className="truncate">
+                            {proj.codigo_proceso ? `${proj.codigo_proceso} • ` : ''}
+                            {proj.ubicacion || proj.provincia || "Ecuador"}
+                          </span>
                         </div>
                       </div>
                     </div>
