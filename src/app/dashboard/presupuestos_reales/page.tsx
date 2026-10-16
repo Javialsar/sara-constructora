@@ -2132,22 +2132,24 @@ export default function PresupuestosRealesPage() {
           granTotal={granTotal || currentPresupuesto?.gran_total || 0}
           updateTaskSchedule={async (id: string, fieldOrUpdates: any, value?: any) => {
             if (typeof fieldOrUpdates === 'object') {
-              await supabase.from('presupuesto_rubros').update(fieldOrUpdates).eq('id', id);
+              const { fecha_fin, ...safeUpdates } = fieldOrUpdates;
+              await supabase.from('presupuesto_rubros').update(safeUpdates).eq('id', id);
             } else {
-              await supabase.from('presupuesto_rubros').update({ [fieldOrUpdates]: value }).eq('id', id);
+              if (fieldOrUpdates !== 'fecha_fin') {
+                await supabase.from('presupuesto_rubros').update({ [fieldOrUpdates]: value }).eq('id', id);
+              }
             }
-            fetchPresupuestoRubros(currentPresupuesto.id);
+            await fetchPresupuestoRubros(currentPresupuesto.id);
           }}
           onBatchScheduleUpdate={async (updates: any[]) => {
             for (const up of updates) {
               await supabase.from('presupuesto_rubros').update({
                 fecha_inicio: up.fecha_inicio,
-                fecha_fin: up.fecha_fin,
                 duracion_dias: up.duracion_dias,
                 predecesores: up.predecesores
               }).eq('id', up.id);
             }
-            fetchPresupuestoRubros(currentPresupuesto.id);
+            await fetchPresupuestoRubros(currentPresupuesto.id);
           }}
         />
 

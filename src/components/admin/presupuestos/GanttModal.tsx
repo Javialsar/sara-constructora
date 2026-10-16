@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { 
   Calendar, 
   X, 
@@ -51,18 +51,18 @@ const FASES_CONSTRUCTIVAS: { [key: string]: { peso: number; orden: number; paral
   columnas: { peso: 6, orden: 6, paralela: false, rendDefault: 8 },
   vigas: { peso: 6, orden: 6, paralela: false, rendDefault: 8 },
   muros: { peso: 6, orden: 6, paralela: false, rendDefault: 10 },
-  losa: { peso: 7, orden: 7, paralela: false, rendDefault: 14 }, // Incluye encofrado + vaciado + fraguado
+  losa: { peso: 7, orden: 7, paralela: false, rendDefault: 14 },
   cubierta: { peso: 8, orden: 8, paralela: false, rendDefault: 10 },
 
   // Fase 3: Mamposterías e Instalaciones Embutidas
-  mamposteria: { peso: 9, orden: 9, paralela: false, rendDefault: 18 }, // m2/dia
+  mamposteria: { peso: 9, orden: 9, paralela: false, rendDefault: 18 },
   paredes: { peso: 9, orden: 9, paralela: false, rendDefault: 18 },
   hidrosanitaria: { peso: 10, orden: 10, paralela: true, rendDefault: 10 },
   electrica: { peso: 10, orden: 10, paralela: true, rendDefault: 10 },
   tuberias: { peso: 10, orden: 10, paralela: true, rendDefault: 12 },
 
   // Fase 4: Enlucidos y Revestimientos
-  enlucido: { peso: 11, orden: 11, paralela: false, rendDefault: 22 }, // m2/dia
+  enlucido: { peso: 11, orden: 11, paralela: false, rendDefault: 22 },
   masillado: { peso: 11, orden: 11, paralela: false, rendDefault: 20 },
   contrapiso: { peso: 11, orden: 11, paralela: false, rendDefault: 25 },
   impermeabilizacion: { peso: 12, orden: 12, paralela: false, rendDefault: 20 },
@@ -106,26 +106,40 @@ export default function GanttModal({
   onBatchScheduleUpdate
 }: GanttModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
-  const [fechaInicioObra, setFechaInicioObra] = useState<string>(() => {
-    // Por defecto, el próximo lunes o hoy
-    const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() + ((day === 0 ? 1 : 8) - day) // Siguiente lunes
-    const nextMonday = new Date(d.setDate(diff))
-    return nextMonday.toISOString().split('T')[0]
-  })
+  const [fechaInicioObra, setFechaInicioObra] = useState<string>("2026-10-27")
   const [ritmoTrabajo, setRitmoTrabajo] = useState<'estandar' | 'acelerado'>('estandar')
   const [showCriticalPath, setShowCriticalPath] = useState<boolean>(true)
   const [isAiPlanning, setIsAiPlanning] = useState<boolean>(false)
   const [aiReport, setAiReport] = useState<string | null>(null)
 
-  // Identificación de Tareas Críticas (CPM simplificado)
+  // Estado local reactivo de rubros para actualización en tiempo real instantánea
+  const [localRubros, setLocalRubros] = useState<any[]>([])
+
+  useEffect(() => {
+    if (presupuestoRubros && presupuestoRubros.length > 0) {
+      const sorted = [...presupuestoRubros].sort((a, b) => {
+        const da = a.fecha_inicio ? new Date(a.fecha_inicio + 'T00:00:00').getTime() : 0
+        const db = b.fecha_inicio ? new Date(b.fecha_inicio + 'T00:00:00').getTime() : 0
+        return da - db
+      })
+      setLocalRubros(sorted)
+
+      // Si el primer rubro tiene fecha de inicio, reflejarla en el selector
+      const primerConFecha = sorted.find(r => r.fecha_inicio)
+      if (primerConFecha) {
+        setFechaInicioObra(primerConFecha.fecha_inicio)
+      }
+    } else {
+      setLocalRubros([])
+    }
+  }, [presupuestoRubros])
+
+  // Identificación de Tareas Críticas (CPM)
   const criticalTaskIds = useMemo(() => {
-    if (!presupuestoRubros || presupuestoRubros.length === 0) return new Set<string>()
-    // Las tareas que forman la cadena más larga hasta la fecha máxima
+    if (!localRubros || localRubros.length === 0) return new Set<string>()
     let maxEndDate = 0
     let lastTaskId = ""
-    presupuestoRubros.forEach((pr) => {
+    localRubros.forEach((pr) => {
       const start = pr.fecha_inicio ? new Date(pr.fecha_inicio + 'T00:00:00').getTime() : 0
       const dur = parseInt(pr.duracion_dias) || 1
       const end = start + (dur * 86400000)
@@ -140,23 +154,23 @@ export default function GanttModal({
       let currentId: string | null = lastTaskId
       while (currentId) {
         criticalSet.add(currentId)
-        const task = presupuestoRubros.find((p) => p.id === currentId)
+        const task = localRubros.find((p) => p.id === currentId)
         currentId = task?.predecesores || null
       }
     }
     return criticalSet
-  }, [presupuestoRubros])
+  }, [localRubros])
 
-  // KPIs de Planificación
+  // KPIs de Planificación calculados en tiempo real
   const kpis = useMemo(() => {
-    if (!presupuestoRubros || presupuestoRubros.length === 0) {
+    if (!localRubros || localRubros.length === 0) {
       return { totalDias: 0, fechaFin: null, tareasCriticas: 0, costoTotal: granTotal }
     }
     let minStart = Infinity
     let maxEnd = -Infinity
     let tareasCriticasCount = 0
 
-    presupuestoRubros.forEach((pr) => {
+    localRubros.forEach((pr) => {
       const s = pr.fecha_inicio ? new Date(pr.fecha_inicio + 'T00:00:00').getTime() : new Date().getTime()
       const dur = parseInt(pr.duracion_dias) || 1
       const e = s + (dur * 86400000)
@@ -172,26 +186,26 @@ export default function GanttModal({
       totalDias,
       fechaFin: isNaN(fechaFin.getTime()) ? null : fechaFin.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }),
       tareasCriticas: tareasCriticasCount,
-      costoTotal: granTotal || presupuestoRubros.reduce((acc, r) => acc + (Number(r.subtotal) || 0), 0)
+      costoTotal: granTotal || localRubros.reduce((acc, r) => acc + (Number(r.subtotal) || 0), 0)
     }
-  }, [presupuestoRubros, criticalTaskIds, granTotal])
+  }, [localRubros, criticalTaskIds, granTotal])
 
-  // Tareas para gantt-task-react
+  // Tareas para gantt-task-react (ordenadas secuencialmente)
   const tasks: Task[] = useMemo(() => {
-    if (!presupuestoRubros || presupuestoRubros.length === 0) return []
+    if (!localRubros || localRubros.length === 0) return []
     
-    return presupuestoRubros.map((pr: any, idx: number) => {
+    return localRubros.map((pr: any, idx: number) => {
       const startDate = pr.fecha_inicio ? new Date(pr.fecha_inicio + 'T00:00:00') : new Date()
       const endDate = new Date(startDate)
-      const duracion = parseInt(pr.duracion_dias) || 1
+      const duracion = Math.max(1, parseInt(pr.duracion_dias) || 1)
       endDate.setDate(startDate.getDate() + duracion)
       
       const deps = pr.predecesores ? [pr.predecesores] : []
       const isCritical = criticalTaskIds.has(pr.id) && showCriticalPath
 
-      // Paleta visual: Rojo neón para ruta crítica, azul/cian para secuencia estándar
-      const progressColor = isCritical ? '#ef4444' : '#2563eb'
-      const progressSelectedColor = isCritical ? '#dc2626' : '#1d4ed8'
+      // Paleta visual: Rojo neón para ruta crítica, azul/violeta para secuencia estándar
+      const progressColor = isCritical ? '#ef4444' : '#3b82f6'
+      const progressSelectedColor = isCritical ? '#dc2626' : '#2563eb'
 
       return {
         id: pr.id,
@@ -210,13 +224,13 @@ export default function GanttModal({
         }
       }
     })
-  }, [presupuestoRubros, criticalTaskIds, showCriticalPath])
+  }, [localRubros, criticalTaskIds, showCriticalPath])
 
   if (!isOpen) return null
 
-  // 1. MOTOR AGÉNTICO SARA-CRONOS: Planificación de Secuencia y Ruta Crítica
+  // 1. MOTOR AGÉNTICO SARA-CRONOS: Planificación de Secuencia Constructiva & Ruta Crítica
   const handleAutoPlanificarSARA = async () => {
-    if (!presupuestoRubros || presupuestoRubros.length === 0) {
+    if (!localRubros || localRubros.length === 0) {
       alert("No hay rubros en el presupuesto para planificar.")
       return
     }
@@ -225,17 +239,16 @@ export default function GanttModal({
     setAiReport(null)
 
     try {
-      // Ordenar rubros por orden técnico de fases constructivas
-      const rubrosClasificados = presupuestoRubros.map((r) => {
+      // Clasificar cada rubro por fase técnica constructiva
+      const rubrosClasificados = localRubros.map((r) => {
         const info = clasificarFase(r.nombre_rubro, r.capitulo)
         const cantidad = Number(r.cantidad_obra) || 1
         
-        // Calcular duración estimada según rendimiento
         let durCalculada = Math.ceil(cantidad / (info.rendDefault || 10))
         if (ritmoTrabajo === 'acelerado') {
-          durCalculada = Math.ceil(durCalculada * 0.75) // Turno intensivo
+          durCalculada = Math.ceil(durCalculada * 0.75)
         }
-        durCalculada = Math.max(2, Math.min(durCalculada, 25)) // Acotado entre 2 y 25 días por rubro
+        durCalculada = Math.max(2, Math.min(durCalculada, 25))
 
         return {
           ...r,
@@ -244,63 +257,69 @@ export default function GanttModal({
         }
       })
 
-      // Ordenar por orden de fase constructiva
+      // Ordenar por secuencia lógica constructiva
       rubrosClasificados.sort((a, b) => a.faseInfo.orden - b.faseInfo.orden)
 
-      // Asignar fechas secuenciales y dependencias
+      // Encadenar fechas y predecesores
       const fechaBase = new Date(fechaInicioObra + 'T00:00:00')
       let cursorFecha = new Date(fechaBase)
       const updates: any[] = []
       let predecesorIdAnterior: string | null = null
 
-      rubrosClasificados.forEach((item, index) => {
+      rubrosClasificados.forEach((item) => {
         const itemStart = new Date(cursorFecha)
-        
-        // Si no es paralela y existe predecesor, depende de la anterior
         const dependencias = (!item.faseInfo.paralela && predecesorIdAnterior) ? predecesorIdAnterior : null
-
         const itemEnd = new Date(itemStart)
         itemEnd.setDate(itemStart.getDate() + item.duracionCalculada)
 
         updates.push({
           id: item.id,
           fecha_inicio: itemStart.toISOString().split('T')[0],
-          fecha_fin: itemEnd.toISOString().split('T')[0],
           duracion_dias: item.duracionCalculada,
           predecesores: dependencias
         })
 
-        // Avanzar el cursor para la siguiente tarea si no es 100% paralela
         if (!item.faseInfo.paralela) {
           cursorFecha = new Date(itemEnd)
           predecesorIdAnterior = item.id
         } else {
-          // Si es paralela, desplaza solo parcialmente (traslape del 30%)
           cursorFecha.setDate(cursorFecha.getDate() + Math.ceil(item.duracionCalculada * 0.4))
         }
       })
 
-      // Ejecutar persistencia en base de datos
+      // Actualizar de inmediato el estado local en pantalla
+      const mapUpdates = new Map(updates.map(u => [u.id, u]))
+      const updatedLocal = rubrosClasificados.map(r => {
+        const up = mapUpdates.get(r.id)
+        return {
+          ...r,
+          fecha_inicio: up?.fecha_inicio,
+          duracion_dias: up?.duracion_dias,
+          predecesores: up?.predecesores
+        }
+      })
+      setLocalRubros(updatedLocal)
+
+      // Persistir de forma segura en Supabase (sin columna inexistente fecha_fin)
       if (onBatchScheduleUpdate) {
         await onBatchScheduleUpdate(updates)
       } else {
-        // Fallback secuencial
         for (const up of updates) {
           await updateTaskSchedule(up.id, {
             fecha_inicio: up.fecha_inicio,
-            fecha_fin: up.fecha_fin,
             duracion_dias: up.duracion_dias,
             predecesores: up.predecesores
           })
         }
       }
 
+      const totalDiasEst = Math.round((cursorFecha.getTime() - fechaBase.getTime()) / 86400000)
       setAiReport(
-        `✅ Planificación optimizada por SARA-Cronos: ${updates.length} rubros organizados en ${rubrosClasificados.length} etapas constructivas. Fecha de inicio: ${fechaInicioObra}. Duración total estimada: ${Math.round((cursorFecha.getTime() - fechaBase.getTime()) / 86400000)} días.`
+        `✅ Planificación optimizada por SARA-Cronos: ${updates.length} rubros organizados en orden cronológico real. Inicio: ${fechaInicioObra} · Duración total: ${totalDiasEst} días.`
       )
     } catch (err: any) {
       console.error("Error en auto-planificación SARA-Cronos:", err)
-      alert("Hubo un error al planificar con SARA-Cronos: " + (err.message || err))
+      alert("Error al planificar con SARA-Cronos: " + (err.message || err))
     } finally {
       setIsAiPlanning(false)
     }
@@ -308,7 +327,7 @@ export default function GanttModal({
 
   // 2. EXPORTAR CRONOGRAMA VALORADO A EXCEL (.XLSX)
   const handleExportExcelValorado = () => {
-    if (!presupuestoRubros || presupuestoRubros.length === 0) {
+    if (!localRubros || localRubros.length === 0) {
       alert("No hay rubros para exportar.")
       return
     }
@@ -323,7 +342,7 @@ export default function GanttModal({
         [`Fecha de Emisión: ${new Date().toLocaleDateString('es-EC')}`],
         [`Plazo Total Programado: ${kpis.totalDias} días laborables | Entrega estimada: ${kpis.fechaFin || 'Por definir'}`],
         [`Inversión Total Presupuestada: $${Number(kpis.costoTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD`],
-        [] // Línea vacía
+        []
       ]
 
       const headers = [
@@ -335,13 +354,12 @@ export default function GanttModal({
         "P.U. ($)", 
         "Subtotal ($)", 
         "Fecha Inicio", 
-        "Fecha Fin", 
         "Duración (Días)", 
         "Predecesor",
         "Ruta Crítica (CPM)"
       ]
 
-      const rows = presupuestoRubros.map((r, idx) => [
+      const rows = localRubros.map((r, idx) => [
         idx + 1,
         r.codigo_rubro || `RUB-${idx + 1}`,
         r.nombre_rubro,
@@ -350,7 +368,6 @@ export default function GanttModal({
         Number(r.precio_unitario_snapshot || 0).toFixed(2),
         Number(r.subtotal || 0).toFixed(2),
         r.fecha_inicio || '-',
-        r.fecha_fin || '-',
         r.duracion_dias || 1,
         r.predecesores ? `Tarea ${r.predecesores}` : 'Inicio / Sin predecesor',
         criticalTaskIds.has(r.id) ? 'SÍ (CRÍTICA)' : 'NO'
@@ -359,20 +376,18 @@ export default function GanttModal({
       const dataAOA = [...cabecera, headers, ...rows]
       const ws = XLSX.utils.aoa_to_sheet(dataAOA)
 
-      // Formato de anchos de columna
       ws['!cols'] = [
-        { wch: 5 },  // N°
-        { wch: 14 }, // Código
-        { wch: 45 }, // Rubro
-        { wch: 8 },  // Unidad
-        { wch: 10 }, // Cantidad
-        { wch: 12 }, // P.U.
-        { wch: 14 }, // Subtotal
-        { wch: 14 }, // Fecha Inicio
-        { wch: 14 }, // Fecha Fin
-        { wch: 16 }, // Duración
-        { wch: 22 }, // Predecesor
-        { wch: 20 }, // Ruta Crítica
+        { wch: 5 },
+        { wch: 14 },
+        { wch: 45 },
+        { wch: 8 },
+        { wch: 10 },
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 16 },
+        { wch: 22 },
+        { wch: 20 },
       ]
 
       XLSX.utils.book_append_sheet(wb, ws, "Cronograma Valorado")
@@ -390,10 +405,9 @@ export default function GanttModal({
     const endDate = task.end
     
     const startIso = startDate.toISOString().split('T')[0]
-    const endIso = endDate.toISOString().split('T')[0]
     const duracion = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)))
     
-    const originalTask = presupuestoRubros.find((p: any) => p.id === task.id)
+    const originalTask = localRubros.find((p: any) => p.id === task.id)
     let shiftDays = 0
     
     if (originalTask && originalTask.fecha_inicio) {
@@ -401,26 +415,34 @@ export default function GanttModal({
       shiftDays = Math.round((startDate.getTime() - originalStart.getTime()) / (1000 * 60 * 60 * 24))
     }
 
+    // Actualizar estado local
+    setLocalRubros(prev => prev.map(r => {
+      if (r.id === task.id) {
+        return { ...r, fecha_inicio: startIso, duracion_dias: duracion }
+      }
+      return r
+    }))
+
+    // Persistir sin fecha_fin
     updateTaskSchedule(task.id, {
       fecha_inicio: startIso,
-      fecha_fin: endIso,
       duracion_dias: duracion
     }, null)
 
-    // Cascada para hijos
+    // Cascada para tareas dependientes
     if (shiftDays !== 0) {
       const shiftChildren = (parentId: string, currentShift: number) => {
-        const children = presupuestoRubros.filter((p: any) => p.predecesores === parentId)
+        const children = localRubros.filter((p: any) => p.predecesores === parentId)
         children.forEach((child: any) => {
           if (child.fecha_inicio) {
             const childStart = new Date(child.fecha_inicio + 'T00:00:00')
             childStart.setDate(childStart.getDate() + currentShift)
-            const childEnd = new Date(childStart)
-            childEnd.setDate(childStart.getDate() + (parseInt(child.duracion_dias) || 1))
+            const newIso = childStart.toISOString().split('T')[0]
+
+            setLocalRubros(prev => prev.map(r => r.id === child.id ? { ...r, fecha_inicio: newIso } : r))
 
             updateTaskSchedule(child.id, {
-              fecha_inicio: childStart.toISOString().split('T')[0],
-              fecha_fin: childEnd.toISOString().split('T')[0]
+              fecha_inicio: newIso
             }, null)
 
             shiftChildren(child.id, currentShift)
@@ -546,7 +568,7 @@ export default function GanttModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handleAutoPlanificarSARA}
-              disabled={isAiPlanning || !presupuestoRubros?.length}
+              disabled={isAiPlanning || !localRubros?.length}
               className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-purple-600/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
             >
               {isAiPlanning ? (
@@ -594,7 +616,7 @@ export default function GanttModal({
             <Flame size={16} className="text-rose-400" />
             <div>
               <span className="text-[10px] text-slate-400 uppercase font-black block">Tareas en Ruta Crítica</span>
-              <span className="text-sm font-black text-rose-300 font-mono">{kpis.tareasCriticas} de {presupuestoRubros?.length || 0}</span>
+              <span className="text-sm font-black text-rose-300 font-mono">{kpis.tareasCriticas} de {localRubros?.length || 0}</span>
             </div>
           </div>
 
