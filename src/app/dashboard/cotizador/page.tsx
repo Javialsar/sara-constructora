@@ -2465,11 +2465,11 @@ export default function CotizadorPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
                   {historialCotizaciones.map((c: any) => {
+                    const det = c.detalles_json || {};
                     const totalCons = Number(c.total_consultoria) || 0;
                     const totalOb = Number(c.total_obra) || 0;
                     const sub = totalCons + totalOb;
-                    const grand = Math.round(sub * 1.15);
-                    const det = c.detalles_json || {};
+                    const grand = Number(det.gran_total_con_iva || (sub * 1.15));
                     return (
                       <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="px-4 py-3 font-mono text-slate-500">{new Date(c.created_at).toLocaleDateString('es-ES')}</td>
@@ -2652,7 +2652,7 @@ export default function CotizadorPage() {
                 <div className="flex justify-between items-center text-sm font-black pt-2 border-t border-white/15 text-amber-400">
                   <span>Gran Total con IVA (15%)</span>
                   <span className="font-mono text-base font-black">
-                    ${Math.round((Number(detalleModalCotizacion.total_consultoria || 0) + Number(detalleModalCotizacion.total_obra || 0)) * 1.15).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                    ${Number(detalleModalCotizacion.detalles_json?.gran_total_con_iva || ((Number(detalleModalCotizacion.total_consultoria || 0) + Number(detalleModalCotizacion.total_obra || 0)) * 1.15)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                   </span>
                 </div>
               </div>
