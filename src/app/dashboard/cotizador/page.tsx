@@ -38,7 +38,12 @@ import {
   Gift,
   Tag,
   Percent,
-  RotateCcw
+  RotateCcw,
+  Eye,
+  Edit3,
+  Trash2,
+  PieChart,
+  Info
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -278,6 +283,18 @@ export default function CotizadorPage() {
     topografia: null
   });
 
+  // Configuración de Indirectos AIU (Administración, Imprevistos, Utilidad)
+  // Calibrado por los Agentes de Conocimiento SARA con estándares de construcción de Ecuador
+  const [aiuConfig, setAiuConfig] = useState({
+    porcentajeAdmin: 8.0,
+    porcentajeImprevistos: 3.0,
+    porcentajeUtilidad: 9.0
+  });
+
+  // Modal para ver el detalle de una cotización del historial
+  const [detalleModalCotizacion, setDetalleModalCotizacion] = useState<any | null>(null);
+  const [showAiuEditor, setShowAiuEditor] = useState(false);
+
   const [savingQuote, setSavingQuote] = useState(false);
   const pdfRef = useRef<HTMLDivElement>(null);
 
@@ -371,8 +388,35 @@ export default function CotizadorPage() {
     if (cotizacion.climatizacion === 'splits') costoExtras += (params.costo_extra_splits || 1200);
     if (cotizacion.climatizacion === 'central') costoExtras += (params.costo_extra_aire_central || 4500);
 
-    const costoObra = costoObraBase + costoExtras;
-    const desgloseObra = { base: costoObraBase, extras: costoExtras };
+    // Costo Directo de Obra (Materiales, Mano de Obra, Equipos y Maquinaria)
+    const costoObraDirecto = costoObraBase + costoExtras;
+
+    // Costos Indirectos y Margen de Utilidad (AIU) - Estándar Ecuador
+    const pctAdmin = Number(aiuConfig.porcentajeAdmin) || 0;
+    const pctImprev = Number(aiuConfig.porcentajeImprevistos) || 0;
+    const pctUtil = Number(aiuConfig.porcentajeUtilidad) || 0;
+    const pctAiuTotal = pctAdmin + pctImprev + pctUtil;
+
+    const montoAdmin = costoObraDirecto * (pctAdmin / 100);
+    const montoImprevistos = costoObraDirecto * (pctImprev / 100);
+    const montoUtilidad = costoObraDirecto * (pctUtil / 100);
+    const montoAiuTotal = montoAdmin + montoImprevistos + montoUtilidad;
+
+    // Costo de Obra Completo (Costo Directo + AIU)
+    const costoObra = costoObraDirecto + montoAiuTotal;
+    const desgloseObra = { 
+      base: costoObraBase, 
+      extras: costoExtras,
+      directo: costoObraDirecto,
+      montoAdmin,
+      montoImprevistos,
+      montoUtilidad,
+      montoAiuTotal,
+      pctAdmin,
+      pctImprev,
+      pctUtil,
+      pctAiuTotal
+    };
 
     // Módulo 1: Consultoría & Aprobación Municipal (Calibrado con IA + Descuentos Comerciales)
     const tarifaArqM2 = calib.factorDisenoArq;
@@ -407,6 +451,15 @@ export default function CotizadorPage() {
 
     return {
       costoObra,
+      costoObraDirecto,
+      montoAdmin,
+      montoImprevistos,
+      montoUtilidad,
+      montoAiuTotal,
+      pctAdmin,
+      pctImprev,
+      pctUtil,
+      pctAiuTotal,
       desgloseObra,
       fEstructura,
       tarifaArqM2,
@@ -475,6 +528,87 @@ export default function CotizadorPage() {
       geotecnia: null,
       topografia: null
     });
+  };
+
+  // Cargar una cotización del historial de vuelta al Cotizador Paramétrico
+  const handleCargarCotizacionEnCotizador = (c: any) => {
+    const det = c.detalles_json || {};
+    
+    // Restaurar parámetros generales y de obra
+    setCotizacion({
+      nombreCliente: c.clientes ? `${c.clientes.nombre} ${c.clientes.apellido}`.trim() : (det.nombreCliente || ''),
+      nombreProyecto: c.nombre_proyecto || det.nombreProyecto || '',
+      provincia: det.provincia || 'Pichincha',
+      canton: det.canton || 'Quito',
+      areaConstruccion: String(c.area_construccion || det.areaConstruccion || '120'),
+      pendiente: det.pendiente || 'plana',
+      suelo: det.suelo || 'normal',
+      accesibilidad: det.accesibilidad || 'urbana',
+      pisos: det.pisos || '2',
+      estructura: det.estructura || 'hormigon',
+      acabados: det.acabados || 'estandar',
+      cuartosMaster: det.cuartosMaster ?? 1,
+      cuartosNormales: det.cuartosNormales ?? 2,
+      banosCompletos: det.banosCompletos ?? 2,
+      mediosBanos: det.mediosBanos ?? 1,
+      lavanderia: det.lavanderia ?? true,
+      salaComedor: det.salaComedor || 'abierta',
+      cocina: det.cocina || 'abierta',
+      estudio: det.estudio ?? false,
+      salaTv: det.salaTv ?? false,
+      zonaBbq: det.zonaBbq ?? true,
+      jacuzzi: det.jacuzzi ?? false,
+      piscina: det.piscina ?? false,
+      terrazaRooftop: det.terrazaRooftop ?? false,
+      cerramientoMl: det.cerramientoMl ?? 30,
+      cisterna: det.cisterna ?? true,
+      garaje: det.garaje || 'descubierto',
+      climatizacion: det.climatizacion || 'splits',
+      incArquitectura: det.incArquitectura ?? true,
+      incEstructura: det.incEstructura ?? true,
+      incAprobacionPlanos: det.incAprobacionPlanos ?? true,
+      incGeotecnia: det.incGeotecnia ?? true,
+      incElectrico: det.incElectrico ?? true,
+      incHidrico: det.incHidrico ?? true,
+      incTopografia: det.incTopografia ?? true,
+    });
+
+    // Restaurar descuentos comerciales si existían
+    if (det.descuentos_modulo1) {
+      setDescuentosModulo1(det.descuentos_modulo1);
+    } else {
+      restaurarTarifasModulo1();
+    }
+
+    // Restaurar configuración AIU si existía
+    if (det.aiu_config) {
+      setAiuConfig(det.aiu_config);
+    }
+
+    // Vincular cliente si existe
+    if (c.cliente_id) {
+      setSelectedClienteId(c.cliente_id);
+    }
+
+    setDetalleModalCotizacion(null);
+    setActiveTab('generar');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Eliminar cotización del historial
+  const handleEliminarCotizacion = async (id: string, nombre: string) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar permanentemente la cotización "${nombre || 'Sin título'}" del historial? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const { error } = await supabase.from('historial_cotizaciones').delete().eq('id', id);
+    if (error) {
+      alert("Error al eliminar: " + error.message);
+    } else {
+      if (detalleModalCotizacion?.id === id) {
+        setDetalleModalCotizacion(null);
+      }
+      queryClient.invalidateQueries({ queryKey: ['historial_cotizaciones'] });
+    }
   };
 
   // Exportar a PDF Oficial con Membrete y Desglose de Descuentos
@@ -553,9 +687,15 @@ export default function CotizadorPage() {
       ...(resultados.totalAhorroConsultoria > 0 ? [[{ content: 'BONIFICACIÓN COMERCIAL GRUPO SARA (AHORRO CLIENTE)', styles: { fontStyle: 'bold', textColor: [16, 185, 129] } }, { content: `-$${resultados.totalAhorroConsultoria.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold', textColor: [16, 185, 129] } }]] : []),
       [{ content: 'TOTAL MÓDULO 1 (CONSULTORÍA ACORDADA)', styles: { fontStyle: 'bold' } }, { content: `$${resultados.totalHonorarios.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
       [{ content: 'MÓDULO 2: PROYECCIÓN PARAMÉTRICA DE EJECUCIÓN DE OBRA', colSpan: 2, styles: { fillColor: [226, 232, 240], fontStyle: 'bold' } }],
-      [`Obra Gris y Acabados Base (${cotizacion.acabados} - ${cotizacion.canton})`, `$${resultados.desgloseObra.base.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      [`Costo Directo Base (${cotizacion.acabados} - ${cotizacion.canton})`, `$${resultados.desgloseObra.base.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
       ["Equipamiento Interior, Wellness, BBQ y Exteriores", `$${resultados.desgloseObra.extras.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      [{ content: 'TOTAL MÓDULO 2 (EJECUCIÓN DE OBRA)', styles: { fontStyle: 'bold' } }, { content: `$${resultados.costoObra.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
+      [{ content: 'SUBTOTAL COSTO DIRECTO DE OBRA (CD)', styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }, { content: `$${resultados.costoObraDirecto.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }],
+      [{ content: 'COSTOS INDIRECTOS Y MARGEN CONSTRUCTOR (AIU)', colSpan: 2, styles: { fillColor: [254, 243, 199], fontStyle: 'bold', textColor: [146, 64, 14] } }],
+      [`Gastos Administrativos & Residencia de Obra (${resultados.pctAdmin.toFixed(1)}%)`, `$${resultados.montoAdmin.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      [`Imprevistos y Contingencias Técnicas (${resultados.pctImprev.toFixed(1)}%)`, `$${resultados.montoImprevistos.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      [`Utilidad Constructora Grupo SARA (${resultados.pctUtil.toFixed(1)}%)`, `$${resultados.montoUtilidad.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      [{ content: `TOTAL INDIRECTOS AIU (${resultados.pctAiuTotal.toFixed(1)}%)`, styles: { fontStyle: 'bold' } }, { content: `$${resultados.montoAiuTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
+      [{ content: 'TOTAL MÓDULO 2 (EJECUCIÓN DE OBRA: CD + AIU)', styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } }, { content: `$${resultados.costoObra.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold', fillColor: [226, 232, 240] } }],
       [{ content: 'SUBTOTAL GENERAL ACORDADO', styles: { fontStyle: 'bold' } }, { content: `$${resultados.subtotalGeneral.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
       [{ content: `IVA Estimado (${params?.porcentaje_iva_base || 15}%)`, styles: { fontStyle: 'bold' } }, { content: `$${resultados.ivaEstimado.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fontStyle: 'bold' } }],
       [{ content: 'GRAN TOTAL PRESUPUESTO REFERENCIAL (USD)', styles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' } }, { content: `$${resultados.granTotalConIva.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, styles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' } }]
@@ -711,12 +851,19 @@ export default function CotizadorPage() {
       excelRows.push([extraIdx++, `Sistema de Climatización (${cotizacion.climatizacion})`, "GLB", 1, cotizacion.climatizacion === 'central' ? 4500 : 1200, cotizacion.climatizacion === 'central' ? 4500 : 1200]);
     }
 
-    excelRows.push(["", "", "", "", "SUBTOTAL MÓDULO 2 (OBRA):", resultados.costoObra]);
+    excelRows.push(["", "", "", "", "SUBTOTAL COSTO DIRECTO OBRA (CD):", resultados.costoObraDirecto]);
+    excelRows.push(["", "", "", "", `Gastos Administrativos & Residencia (${resultados.pctAdmin}%):`, resultados.montoAdmin]);
+    excelRows.push(["", "", "", "", `Imprevistos y Contingencias (${resultados.pctImprev}%):`, resultados.montoImprevistos]);
+    excelRows.push(["", "", "", "", `Utilidad Constructora Grupo SARA (${resultados.pctUtil}%):`, resultados.montoUtilidad]);
+    excelRows.push(["", "", "", "", `TOTAL INDIRECTOS AIU (${resultados.pctAiuTotal}%):`, resultados.montoAiuTotal]);
+    excelRows.push(["", "", "", "", "TOTAL MÓDULO 2 (OBRA: CD + AIU):", resultados.costoObra]);
     excelRows.push([]);
 
     excelRows.push(["RESUMEN ECONÓMICO INTEGRAL"]);
     excelRows.push(["Subtotal Módulo 1 (Consultoría & Permisos):", resultados.totalHonorarios]);
-    excelRows.push(["Subtotal Módulo 2 (Ejecución de Obra & Extras):", resultados.costoObra]);
+    excelRows.push(["Subtotal Módulo 2 Costo Directo (CD):", resultados.costoObraDirecto]);
+    excelRows.push([`Subtotal Módulo 2 Indirectos AIU (${resultados.pctAiuTotal}%):`, resultados.montoAiuTotal]);
+    excelRows.push(["Subtotal Ejecución de Obra (Módulo 2):", resultados.costoObra]);
     excelRows.push(["SUBTOTAL GENERAL ESTIMADO:", resultados.subtotalGeneral]);
     excelRows.push([`IVA Estimado (${params?.porcentaje_iva_base || 15}%):`, resultados.ivaEstimado]);
     excelRows.push(["GRAN TOTAL PRESUPUESTO REFERENCIAL (USD):", resultados.granTotalConIva]);
@@ -785,9 +932,9 @@ export default function CotizadorPage() {
         .insert([{
           nombre_proyecto: nombreProj,
           cliente_id: selectedClienteId || targetProject?.cliente_id || null,
-          porcentaje_admin: 10.0,
-          porcentaje_imprevistos: 5.0,
-          porcentaje_utilidad: 10.0,
+          porcentaje_admin: aiuConfig.porcentajeAdmin,
+          porcentaje_imprevistos: aiuConfig.porcentajeImprevistos,
+          porcentaje_utilidad: aiuConfig.porcentajeUtilidad,
           estado: 'borrador',
           indirectos_config: {
             regimen: 'privado',
@@ -1174,7 +1321,8 @@ export default function CotizadorPage() {
       });
 
       const costoDirectoCalculado = insertedRubros.reduce((acc: number, curr: any) => acc + Number(curr.subtotal || 0), 0);
-      const granTotalCalculado = Math.round(costoDirectoCalculado * 1.25); // Con AIU base 25%
+      const factorAiuMultiplier = 1 + ((Number(aiuConfig.porcentajeAdmin) || 0) + (Number(aiuConfig.porcentajeImprevistos) || 0) + (Number(aiuConfig.porcentajeUtilidad) || 0)) / 100;
+      const granTotalCalculado = Math.round(costoDirectoCalculado * factorAiuMultiplier);
 
       await supabase
         .from('presupuestos_reales')
@@ -1234,6 +1382,12 @@ export default function CotizadorPage() {
         entidad_municipal: resCalculados.calib.nombreGAD,
         descuentos_modulo1: descuentosModulo1,
         total_ahorro_consultoria: resCalculados.totalAhorroConsultoria,
+        aiu_config: aiuConfig,
+        costo_directo: resCalculados.costoObraDirecto,
+        monto_aiu_total: resCalculados.montoAiuTotal,
+        monto_admin: resCalculados.montoAdmin,
+        monto_imprevistos: resCalculados.montoImprevistos,
+        monto_utilidad: resCalculados.montoUtilidad,
         gran_total_con_iva: resCalculados.granTotalConIva
       }
     };
@@ -2106,12 +2260,101 @@ export default function CotizadorPage() {
 
                 <div className="flex justify-between items-center p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                   <div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Módulo 2: Ejecución de Obra</span>
-                    <span className="text-[10px] text-slate-400">Obra gris, acabados, BBQ, Jacuzzi y exteriores</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 block">Módulo 2: Ejecución de Obra (CD + AIU)</span>
+                    <span className="text-[10px] text-slate-400">Costo directo + Gastos Admin, Imprevistos y Utilidad</span>
                   </div>
                   <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-sm">
                     ${resultados?.costoObra.toLocaleString()}
                   </span>
+                </div>
+
+                {/* Desglose Transparente de Costo Directo e Indirectos AIU */}
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+                    <span className="flex items-center gap-1.5 text-slate-800 dark:text-white">
+                      <Calculator size={13} className="text-blue-500" /> Costo Directo de Obra (CD):
+                    </span>
+                    <span className="font-mono font-black text-slate-900 dark:text-white">
+                      ${resultados?.costoObraDirecto.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <div className="border-t border-slate-200 dark:border-slate-700/60 pt-2 space-y-1.5 text-[11px]">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                      <span>• Gastos Administrativos & Residencia ({resultados?.pctAdmin}%):</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        ${resultados?.montoAdmin.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                      <span>• Imprevistos y Contingencias ({resultados?.pctImprev}%):</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        ${resultados?.montoImprevistos.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                      <span>• Margen de Utilidad Constructora SARA ({resultados?.pctUtil}%):</span>
+                      <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                        ${resultados?.montoUtilidad.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-bold pt-1.5 border-t border-slate-200 dark:border-slate-700/60 text-amber-700 dark:text-amber-300">
+                      <span>Subtotal Indirectos AIU ({resultados?.pctAiuTotal}%):</span>
+                      <span className="font-mono font-black">
+                        +${resultados?.montoAiuTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botón para calibrar % AIU */}
+                  <div className="pt-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowAiuEditor(!showAiuEditor)}
+                      className="text-[10px] text-amber-600 dark:text-amber-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Settings size={11} />
+                      {showAiuEditor ? 'Cerrar Ajustes AIU' : 'Calibrar % AIU (Admin/Imprev/Util)'}
+                    </button>
+                  </div>
+
+                  {showAiuEditor && (
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-amber-500/20 text-center">
+                      <div>
+                        <label className="text-[9px] font-bold text-slate-500 block mb-0.5">Admin %</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={aiuConfig.porcentajeAdmin}
+                          onChange={e => setAiuConfig({ ...aiuConfig, porcentajeAdmin: Number(e.target.value) || 0 })}
+                          className="w-full text-center p-1 text-[11px] font-mono border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-slate-500 block mb-0.5">Imprevistos %</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={aiuConfig.porcentajeImprevistos}
+                          onChange={e => setAiuConfig({ ...aiuConfig, porcentajeImprevistos: Number(e.target.value) || 0 })}
+                          className="w-full text-center p-1 text-[11px] font-mono border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-bold text-slate-500 block mb-0.5">Utilidad %</label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={aiuConfig.porcentajeUtilidad}
+                          onChange={e => setAiuConfig({ ...aiuConfig, porcentajeUtilidad: Number(e.target.value) || 0 })}
+                          className="w-full text-center p-1 text-[11px] font-mono border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2224,7 +2467,8 @@ export default function CotizadorPage() {
                     <th className="px-4 py-3 text-right">Área</th>
                     <th className="px-4 py-3 text-right">Consultoría & GAD</th>
                     <th className="px-4 py-3 text-right">Obra Paramétrica</th>
-                    <th className="px-4 py-3 text-right rounded-tr-xl">Gran Total Estimado</th>
+                    <th className="px-4 py-3 text-right">Gran Total Estimado</th>
+                    <th className="px-4 py-3 text-center rounded-tr-xl">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40">
@@ -2239,7 +2483,7 @@ export default function CotizadorPage() {
                         <td className="px-4 py-3 font-mono text-slate-500">{new Date(c.created_at).toLocaleDateString('es-ES')}</td>
                         <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{c.clientes?.nombre} {c.clientes?.apellido}</td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
-                          <div>{c.nombre_proyecto || 'Sin título'}</div>
+                          <div className="font-bold">{c.nombre_proyecto || 'Sin título'}</div>
                           {det.canton && (
                             <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
                               📍 {det.canton}, {det.provincia}
@@ -2250,6 +2494,36 @@ export default function CotizadorPage() {
                         <td className="px-4 py-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">${totalCons.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                         <td className="px-4 py-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300">${totalOb.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                         <td className="px-4 py-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">${grand.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                        <td className="px-4 py-3 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setDetalleModalCotizacion(c)}
+                              className="px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1 font-bold text-[11px] cursor-pointer"
+                              title="Ver desglose y detalle completo del presupuesto"
+                            >
+                              <Eye size={13} />
+                              <span className="hidden sm:inline">Detalle</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCargarCotizacionEnCotizador(c)}
+                              className="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors flex items-center gap-1 font-bold text-[11px] cursor-pointer"
+                              title="Cargar y editar en el Cotizador Paramétrico"
+                            >
+                              <Edit3 size={13} />
+                              <span className="hidden sm:inline">Editar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarCotizacion(c.id, c.nombre_proyecto)}
+                              className="p-1 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+                              title="Eliminar del historial"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -2257,6 +2531,169 @@ export default function CotizadorPage() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* MODAL DETALLE DE COTIZACIÓN HISTÓRICA */}
+      {detalleModalCotizacion && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center p-5 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
+              <div>
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  Ficha Técnica • Cotización Registrada
+                </span>
+                <h3 className="text-base font-black text-slate-900 dark:text-white mt-1">
+                  {detalleModalCotizacion.nombre_proyecto || 'Sin Título'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Cliente: <strong className="text-slate-700 dark:text-slate-300">{detalleModalCotizacion.clientes?.nombre} {detalleModalCotizacion.clientes?.apellido}</strong> • {new Date(detalleModalCotizacion.created_at).toLocaleDateString('es-ES')}
+                </p>
+              </div>
+              <button 
+                onClick={() => setDetalleModalCotizacion(null)} 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              {/* Parámetros Generales */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Ubicación</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {detalleModalCotizacion.detalles_json?.canton || 'Quito'}, {detalleModalCotizacion.detalles_json?.provincia || 'Pichincha'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Área Construcción</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">
+                    {detalleModalCotizacion.area_construccion} m²
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Sistema Estructural</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">
+                    {detalleModalCotizacion.detalles_json?.estructura || 'Hormigón'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-bold uppercase">Gama Acabados</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 capitalize">
+                    {detalleModalCotizacion.detalles_json?.acabados || 'Estándar'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Distribución y Extras */}
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">
+                  Distribución y Espacios Incluidos
+                </span>
+                <div className="flex flex-wrap gap-1.5 text-[11px]">
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    🛏️ {detalleModalCotizacion.detalles_json?.cuartosMaster || 1} Máster + {detalleModalCotizacion.detalles_json?.cuartosNormales || 2} Dorm.
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                    🚿 {detalleModalCotizacion.detalles_json?.banosCompletos || 2} Baños completos + {detalleModalCotizacion.detalles_json?.mediosBanos || 1} Social
+                  </span>
+                  {detalleModalCotizacion.detalles_json?.zonaBbq && (
+                    <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                      🔥 Zona BBQ
+                    </span>
+                  )}
+                  {detalleModalCotizacion.detalles_json?.jacuzzi && (
+                    <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20">
+                      🫧 Jacuzzi
+                    </span>
+                  )}
+                  {detalleModalCotizacion.detalles_json?.piscina && (
+                    <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                      🏊 Piscina
+                    </span>
+                  )}
+                  {detalleModalCotizacion.detalles_json?.terrazaRooftop && (
+                    <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                      🏢 Terraza Roof Top
+                    </span>
+                  )}
+                  {detalleModalCotizacion.detalles_json?.cerramientoMl > 0 && (
+                    <span className="px-2 py-0.5 rounded-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                      🧱 {detalleModalCotizacion.detalles_json?.cerramientoMl} ml cerramiento
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Resumen Económico */}
+              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 text-white space-y-2.5">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-300 border-b border-white/10 pb-2">
+                  <span>Módulo 1: Consultoría & Permisos GAD</span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    ${Number(detalleModalCotizacion.total_consultoria || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                  <span>Módulo 2: Costo Directo de Obra (CD)</span>
+                  <span className="font-mono text-slate-200">
+                    ${Number(detalleModalCotizacion.detalles_json?.costo_directo || (Number(detalleModalCotizacion.total_obra || 0) * 0.833)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-bold text-amber-300 border-b border-white/10 pb-2">
+                  <span>Módulo 2: Indirectos y Utilidad (AIU)</span>
+                  <span className="font-mono text-amber-300 font-bold">
+                    +${Number(detalleModalCotizacion.detalles_json?.monto_aiu_total || (Number(detalleModalCotizacion.total_obra || 0) * 0.167)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                  <span>Total Módulo 2 (Ejecución de Obra)</span>
+                  <span className="font-mono text-white font-bold">
+                    ${Number(detalleModalCotizacion.total_obra || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-sm font-black pt-2 border-t border-white/15 text-amber-400">
+                  <span>Gran Total con IVA (15%)</span>
+                  <span className="font-mono text-base font-black">
+                    ${Math.round((Number(detalleModalCotizacion.total_consultoria || 0) + Number(detalleModalCotizacion.total_obra || 0)) * 1.15).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones del Modal */}
+            <div className="flex items-center justify-between p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+              <button
+                type="button"
+                onClick={() => handleEliminarCotizacion(detalleModalCotizacion.id, detalleModalCotizacion.nombre_proyecto)}
+                className="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition flex items-center gap-1.5"
+              >
+                <Trash2 size={14} /> Eliminar Cotización
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDetalleModalCotizacion(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCargarCotizacionEnCotizador(detalleModalCotizacion)}
+                  className="px-4 py-2 text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <Edit3 size={14} /> Cargar y Editar en Cotizador
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
