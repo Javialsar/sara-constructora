@@ -7,7 +7,8 @@ import {
   FileText, Download, Box, Users, Wrench, Hammer, Tag, Printer, Edit3, 
   ChevronDown, ChevronRight, Lock, CheckCircle2, Loader2, List, Settings, 
   Filter, Layers, Package, Boxes, PieChart, Sparkles, Cpu, ShieldCheck, 
-  Building2, ArrowRight, Check, AlertTriangle, Truck, RefreshCw, FolderPlus
+  Building2, ArrowRight, Check, AlertTriangle, Truck, RefreshCw, FolderPlus,
+  Square, Ruler
 } from "lucide-react"
 
 import BimImporterModal from "./components/BimImporterModal"
@@ -15,6 +16,7 @@ import SercopVaeAnalyzer from "./components/SercopVaeAnalyzer"
 import IndirectosAnaliticoModal from "./components/IndirectosAnaliticoModal"
 import ApuSlideOverDetail from "./components/ApuSlideOverDetail"
 import GanttModal from "@/components/admin/presupuestos/GanttModal"
+import PdfTakeOffModal from "@/components/admin/presupuestos/PdfTakeOffModal"
 import AgentNetworkChoreography from "@/components/agents/AgentNetworkChoreography"
 import { SaraCoPilotAdvisor } from "@/components/agents/SaraCoPilotAdvisor"
 import AsyncSelect from "@/components/ui/AsyncSelect"
@@ -81,6 +83,7 @@ export default function PresupuestosRealesPage() {
   const [isBimModalOpen, setIsBimModalOpen] = useState(false)
   const [bimDataToProcess, setBimDataToProcess] = useState<any[] | null>(null)
   const [isGanttModalOpen, setIsGanttModalOpen] = useState(false)
+  const [isTakeOffModalOpen, setIsTakeOffModalOpen] = useState(false)
   const [isIndirectosModalOpen, setIsIndirectosModalOpen] = useState(false)
 
   // Duplicar Presupuesto
@@ -1241,6 +1244,15 @@ export default function PresupuestosRealesPage() {
               <span>Cronograma (Gantt)</span>
             </button>
 
+            <button
+              onClick={() => setIsTakeOffModalOpen(true)}
+              className="py-2.5 px-4 text-xs font-extrabold rounded-lg text-cyan-400 hover:text-white hover:bg-cyan-950/40 flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer"
+              title="Medir planos 2D en PDF y volcar cantidades al presupuesto"
+            >
+              <Square size={15} className="rotate-45 text-cyan-400" />
+              <span>SARA Take-Off (Planos 2D)</span>
+            </button>
+
             {/* Pestañas específicas SERCOP */}
             {currentRegimen === 'sercop' && (
               <>
@@ -1527,6 +1539,16 @@ export default function PresupuestosRealesPage() {
                                           >
                                             <Edit3 size={11} />
                                             <span>APU</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => setIsTakeOffModalOpen(true)}
+                                            className="px-2 py-1 rounded bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-bold text-[10px] transition-colors flex items-center gap-1"
+                                            title="Medir cómputo métrico en plano 2D con SARA Take-Off"
+                                          >
+                                            <Square size={10} className="rotate-45 text-cyan-600" />
+                                            <span>Medir</span>
                                           </button>
 
                                           {isBorrador && (
@@ -2151,6 +2173,21 @@ export default function PresupuestosRealesPage() {
               }).eq('id', up.id);
             }
             await fetchPresupuestoRubros(currentPresupuesto.id);
+          }}
+        />
+
+        {/* MODAL SARA TAKE-OFF (CÓMPUTOS MÉTRICOS EN PLANOS 2D / PDF) */}
+        <PdfTakeOffModal
+          isOpen={isTakeOffModalOpen}
+          onClose={() => setIsTakeOffModalOpen(false)}
+          presupuestoId={currentPresupuesto?.id}
+          nombreProyecto={currentPresupuesto?.nombre_proyecto || 'Proyecto'}
+          presupuestoRubros={presupuestoRubros}
+          onMeasurementsApplied={async () => {
+            if (currentPresupuesto?.id) {
+              await fetchPresupuestoRubros(currentPresupuesto.id);
+              queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+            }
           }}
         />
 
