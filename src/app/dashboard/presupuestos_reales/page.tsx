@@ -163,6 +163,41 @@ export default function PresupuestosRealesPage() {
     }
   }, [activeProject?.id, isGlobalMode]);
 
+  // Auto-apertura si viene redirigido con query param ?open=[presupuesto_id]
+  const hasAutoOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (hasAutoOpenedRef.current) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const openId = urlParams.get('open');
+    if (!openId) return;
+
+    const handleAutoOpen = async () => {
+      hasAutoOpenedRef.current = true;
+      let target = (presupuestos || []).find((p: any) => p.id === openId);
+      if (!target) {
+        const { data } = await supabase
+          .from('presupuestos_reales')
+          .select('*, cliente:clientes(id, nombre, apellido, email)')
+          .eq('id', openId)
+          .maybeSingle();
+        target = data;
+      }
+      if (target) {
+        const matched = projects.find((p: any) => p.nombre.toLowerCase() === (target.nombre_proyecto || '').toLowerCase());
+        if (matched) {
+          prevProjectIdRef.current = matched.id;
+          setActiveProject(matched);
+        }
+        window.history.replaceState({}, '', '/dashboard/presupuestos_reales');
+        openEditor(target);
+      }
+    };
+
+    handleAutoOpen();
+  }, [presupuestos, projects]);
+
   // Carga de rol y parámetros de empresa
   useEffect(() => {
     const initUserData = async () => {
