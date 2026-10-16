@@ -16,20 +16,26 @@ import {
   HardHat,
   ArrowRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  FolderSync
 } from "lucide-react"
+import { useProject } from "@/contexts/ProjectContext"
 
 export default function SaraBimPage() {
+  const { activeProject } = useProject()
   const [modelos, setModelos] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [modeloActivo, setModeloActivo] = useState<string>("mod-1")
 
-  // Modelo de ejemplo cargado desde Revit 2026
+  // Modelo BIM adaptado dinámicamente al proyecto activo
+  const nombreProyectoActivo = activeProject?.nombre || "Edificio Torre Esmeralda"
+  const guidCalculado = activeProject?.id ? activeProject.id.replace(/-/g, '').slice(0, 24) : "7b4f2c9144a348e0bb129c3f"
+
   const modeloDemo = {
-    id: "mod-1",
-    nombre_modelo: "EDIFICIO TORRE ESMERALDA - ESTRUCTURA & ALBAÑILERÍA",
-    software: "Autodesk Revit 2026",
-    guid: "7b4f2c91-44a3-48e0-bb12-9c3f19e4811a",
+    id: activeProject?.id || "mod-1",
+    nombre_modelo: `${nombreProyectoActivo.toUpperCase()} - ESTRUCTURA & ALBAÑILERÍA BIM`,
+    software: "Autodesk Revit 2026 (Add-in SARA)",
+    guid: `${guidCalculado}-revit-2026`,
     volumen_hormigon: 342.50, // m³
     peso_acero: 28450.00, // kg
     area_mamposteria: 1120.00, // m²
