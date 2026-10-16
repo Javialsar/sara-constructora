@@ -688,6 +688,282 @@ export default function GanttModal({
     }
   }
 
+  // 3.1. DESCARGAR INFORME OPERATIVO COMPLETO LOOKAHEAD EN PDF (Días, Semanas o Meses)
+  const handleExportInformeLookaheadPdf = () => {
+    if (!localRubros || localRubros.length === 0) {
+      alert("No hay actividades cargadas para exportar el informe.")
+      return
+    }
+
+    try {
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" })
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageHeight = doc.internal.pageSize.getHeight()
+
+      const modoTexto = viewMode === ViewMode.Day 
+        ? "PROGRAMACIÓN DIARIA DE OBRA" 
+        : viewMode === ViewMode.Week 
+        ? "LOOKAHEAD SEMANAL OPERATIVO" 
+        : "PLANIFICACIÓN MENSUAL DE HITOS"
+
+      // 1. Membrete Ejecutivo Corporativo SARA
+      doc.setFillColor(15, 23, 42) // Slate-900
+      doc.rect(0, 0, pageWidth, 28, "F")
+
+      doc.setTextColor(255, 255, 255)
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(13)
+      doc.text("GRUPO CONSTRUCTOR SARA · DIRECCIÓN TÉCNICA DE OPERACIONES", 14, 11)
+
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(9)
+      doc.setTextColor(168, 85, 247) // Purple-400
+      doc.text(`INFORME OPERATIVO DETALLADO · ${modoTexto}`, 14, 18)
+
+      doc.setFontSize(8)
+      doc.setTextColor(148, 163, 184) // Slate-400
+      doc.text(`Asignación de Personal Técnico, Materiales para Bodega, Maquinaria y Procedimientos`, 14, 23)
+
+      // 2. Metadatos de la Obra
+      doc.setTextColor(30, 41, 59)
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(9)
+      doc.text(`PROYECTO: ${nombreProyecto.toUpperCase()}`, 14, 34)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Presupuesto Total: $${Number(kpis.costoTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD  |  Plazo: ${kpis.totalDias} días laborables`, 14, 39)
+      doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString('es-EC', { dateStyle: 'full' })}`, 14, 44)
+
+      let currentY = 48
+
+      // Recorrer cada período de reporte
+      periodosReporte.forEach((periodo, pIdx) => {
+        // Verificar espacio para el banner del período
+        if (currentY > pageHeight - 45) {
+          doc.addPage()
+          currentY = 20
+        }
+
+        // Banner del Período
+        doc.setFillColor(88, 28, 135) // Purple-900
+        doc.roundedRect(14, currentY, pageWidth - 28, 9, 1.5, 1.5, "F")
+        doc.setTextColor(255, 255, 255)
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(9)
+        doc.text(`PERÍODO ${pIdx + 1}: ${periodo.label.toUpperCase()}`, 18, currentY + 6)
+
+        doc.setFont("helvetica", "bold")
+        doc.setFontSize(8.5)
+        doc.text(`Inversión Período: $${Number(periodo.costo).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD  |  ${periodo.rubros.length} Actividades`, pageWidth - 20, currentY + 6, { align: "right" })
+
+        currentY += 12
+
+        // A. Tabla de Actividades y Procedimiento Constructivo
+        const actRows = periodo.rubros.map((r: any) => {
+          const faseInfo = clasificarFase(r.nombre_rubro, r.capitulo)
+          return [
+            String(r.indexGlobal).padStart(2, '0'),
+            r.codigo_rubro || `R-${r.indexGlobal}`,
+            r.nombre_rubro,
+            `${Number(r.cantidad_obra || 1).toFixed(2)} ${r.unidad || 'u'}`,
+            `${r.duracion_dias || 1} d`,
+            faseInfo.procedimiento
+          ]
+        })
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [["N°", "CÓDIGO", "ACTIVIDAD / FRENTE DE TRABAJO", "CANT.", "DÍAS", "PROCEDIMIENTO TÉCNICO CONSTRUCTIVO"]],
+          body: actRows,
+          theme: "grid",
+          styles: { fontSize: 7, cellPadding: 2, textColor: [30, 41, 59] },
+          headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+          columnStyles: {
+            0: { cellWidth: 8, halign: "center" },
+            1: { cellWidth: 16, fontStyle: "bold" },
+            2: { cellWidth: 42, fontStyle: "bold" },
+            3: { cellWidth: 16, halign: "right" },
+            4: { cellWidth: 12, halign: "center" },
+            5: { cellWidth: 88, textColor: [71, 85, 105] }, // Slate-600
+          },
+          margin: { left: 14, right: 14 }
+        })
+
+        currentY = (doc as any).lastAutoTable?.finalY + 4
+
+        // B. Consolidación de Recursos Requeridos para este Período
+        const matMap = new Map<string, { nombre: string; unidad: string; cant: number; costo: number }>()
+        const moMap = new Map<string, { nombre: string; unidad: string; cant: number; costo: number }>()
+        const eqMap = new Map<string, { nombre: string; unidad: string; cant: number; costo: number }>()
+
+        periodo.rubros.forEach((rubro: any) => {
+          const insumos = rubrosRecipes[rubro.id] || []
+          const cantObra = Number(rubro.cantidad_obra) || 1
+
+          insumos.forEach((i: any) => {
+            const tipo = (i.insumo?.tipo || '').toLowerCase()
+            const nombre = i.insumo?.nombre || 'Insumo sin nombre'
+            const unidad = i.insumo?.unidad || 'u'
+            const cantTotal = Number(i.cantidad || 0) * cantObra
+            const pu = Number(i.precio_sin_iva_snapshot || 0)
+            const subtotal = cantTotal * pu
+
+            if (tipo.includes('mat')) {
+              const existing = matMap.get(nombre) || { nombre, unidad, cant: 0, costo: 0 }
+              existing.cant += cantTotal
+              existing.costo += subtotal
+              matMap.set(nombre, existing)
+            } else if (tipo.includes('mano') || tipo.includes('obr')) {
+              const existing = moMap.get(nombre) || { nombre, unidad, cant: 0, costo: 0 }
+              existing.cant += cantTotal
+              existing.costo += subtotal
+              moMap.set(nombre, existing)
+            } else if (tipo.includes('equipo') || tipo.includes('maq')) {
+              const existing = eqMap.get(nombre) || { nombre, unidad, cant: 0, costo: 0 }
+              existing.cant += cantTotal
+              existing.costo += subtotal
+              eqMap.set(nombre, existing)
+            }
+          })
+        })
+
+        const resourceRows: any[] = []
+
+        // 1. Mano de Obra
+        if (moMap.size > 0) {
+          Array.from(moMap.values()).forEach((item) => {
+            resourceRows.push([
+              "MANO DE OBRA / CUADRILLA",
+              item.nombre,
+              item.unidad,
+              item.cant.toFixed(2),
+              `$${item.costo.toFixed(2)}`
+            ])
+          })
+        } else {
+          resourceRows.push([
+            "MANO DE OBRA",
+            "Cuadrilla técnica estándar de albañilería / peones según avance",
+            "jornal",
+            "-",
+            "Incluido en P.U."
+          ])
+        }
+
+        // 2. Materiales en Bodega
+        if (matMap.size > 0) {
+          Array.from(matMap.values()).forEach((item) => {
+            resourceRows.push([
+              "MATERIAL (DESPACHO BODEGA)",
+              item.nombre,
+              item.unidad,
+              item.cant.toFixed(2),
+              `$${item.costo.toFixed(2)}`
+            ])
+          })
+        } else {
+          resourceRows.push([
+            "MATERIAL",
+            "Materiales e insumos menores especificados en planos",
+            "global",
+            "-",
+            "Por stock"
+          ])
+        }
+
+        // 3. Maquinaria & Equipos
+        if (eqMap.size > 0) {
+          Array.from(eqMap.values()).forEach((item) => {
+            resourceRows.push([
+              "MAQUINARIA & EQUIPO",
+              item.nombre,
+              item.unidad,
+              item.cant.toFixed(2),
+              `$${item.costo.toFixed(2)}`
+            ])
+          })
+        }
+
+        // Verificar espacio antes de imprimir la tabla de recursos
+        if (currentY > pageHeight - 35) {
+          doc.addPage()
+          currentY = 20
+        }
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [["CATEGORÍA", "RECURSO (PERSONAL / MATERIAL EN BODEGA / MAQUINARIA)", "UND.", "TOTAL REQUERIDO", "VALOR ESTIMADO ($)"]],
+          body: resourceRows,
+          theme: "striped",
+          styles: { fontSize: 6.5, cellPadding: 1.8, textColor: [30, 41, 59] },
+          headStyles: { fillColor: [71, 85, 105], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+          columnStyles: {
+            0: { cellWidth: 42, fontStyle: "bold" },
+            1: { cellWidth: 84 },
+            2: { cellWidth: 14, halign: "center" },
+            3: { cellWidth: 22, halign: "right", fontStyle: "bold" },
+            4: { cellWidth: 20, halign: "right" },
+          },
+          margin: { left: 14, right: 14 },
+          didParseCell: (data) => {
+            if (data.section === "body" && data.column.dataKey === 0) {
+              const val = String(data.cell.raw || '')
+              if (val.includes("MANO")) {
+                data.cell.styles.textColor = [8, 145, 178] // Cyan-600
+              } else if (val.includes("MATERIAL")) {
+                data.cell.styles.textColor = [217, 119, 6] // Amber-600
+              } else if (val.includes("MAQUINARIA")) {
+                data.cell.styles.textColor = [225, 29, 72] // Rose-600
+              }
+            }
+          }
+        })
+
+        currentY = (doc as any).lastAutoTable?.finalY + 8
+      })
+
+      // Bloque final de Firmas Técnicas de Responsabilidad
+      if (currentY > pageHeight - 40) {
+        doc.addPage()
+        currentY = 30
+      } else {
+        currentY = Math.max(currentY + 10, pageHeight - 35)
+      }
+
+      doc.setDrawColor(148, 163, 184)
+      doc.setLineWidth(0.3)
+
+      doc.line(14, currentY, 56, currentY)
+      doc.setFontSize(7); doc.setFont("helvetica", "bold"); doc.setTextColor(30, 41, 59)
+      doc.text("ING. RESIDENTE DE OBRA", 18, currentY + 4)
+      doc.setFont("helvetica", "normal"); doc.setTextColor(100, 116, 139)
+      doc.text("Dirección & Frente Técnico", 16, currentY + 7.5)
+
+      doc.line(64, currentY, 106, currentY)
+      doc.setFont("helvetica", "bold"); doc.setTextColor(30, 41, 59)
+      doc.text("MAESTRO MAYOR DE OBRA", 68, currentY + 4)
+      doc.setFont("helvetica", "normal"); doc.setTextColor(100, 116, 139)
+      doc.text("Asignación de Cuadrillas", 68, currentY + 7.5)
+
+      doc.line(114, currentY, 156, currentY)
+      doc.setFont("helvetica", "bold"); doc.setTextColor(30, 41, 59)
+      doc.text("BODEGA & LOGÍSTICA", 122, currentY + 4)
+      doc.setFont("helvetica", "normal"); doc.setTextColor(100, 116, 139)
+      doc.text("Despacho de Materiales", 120, currentY + 7.5)
+
+      doc.line(164, currentY, 196, currentY)
+      doc.setFont("helvetica", "bold"); doc.setTextColor(30, 41, 59)
+      doc.text("FISCALIZADOR", 172, currentY + 4)
+      doc.setFont("helvetica", "normal"); doc.setTextColor(100, 116, 139)
+      doc.text("Aprobación Semanal", 169, currentY + 7.5)
+
+      const safeName = nombreProyecto.replace(/[^a-zA-Z0-9]/g, "_")
+      doc.save(`Informe_Operativo_Lookahead_${safeName}.pdf`)
+    } catch (err: any) {
+      console.error("Error al exportar Informe Lookahead en PDF:", err)
+      alert("Error al generar Informe Lookahead: " + (err.message || err))
+    }
+  }
+
   // 4. DESCARGAR FICHA TÉCNICA DE ACTIVIDAD INDIVIDUAL EN PDF
   const handleExportTaskDetailPdf = (rubro: any) => {
     if (!rubro) return
@@ -1116,7 +1392,7 @@ export default function GanttModal({
                 </p>
               </div>
               <button
-                onClick={handleExportPdfGantt}
+                onClick={handleExportInformeLookaheadPdf}
                 className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
               >
                 <Download size={13} />
