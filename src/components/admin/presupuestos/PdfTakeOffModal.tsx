@@ -23,7 +23,8 @@ import {
   Eye,
   FileText,
   Loader2,
-  Building2
+  Building2,
+  Undo2
 } from "lucide-react"
 import { 
   Point2D, 
@@ -33,7 +34,8 @@ import {
   calculatePolygonAreaM2, 
   calculatePolylineLengthM, 
   calculateWallAreaM2, 
-  getPolygonCentroid 
+  getPolygonCentroid,
+  detectArchitecturalRoomsFromBlueprint
 } from "@/lib/takeoff/geometry"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -138,6 +140,46 @@ export default function PdfTakeOffModal({
   // Aplicación a presupuesto
   const [isApplying, setIsApplying] = useState<boolean>(false)
   const [applySuccessMsg, setApplySuccessMsg] = useState<string | null>(null)
+  const [isDetectingAi, setIsDetectingAi] = useState<boolean>(false)
+
+  // Auto-Detección Inteligente de Ambientes con SARA-Vision
+  const handleAiAutoDetect = () => {
+    setIsDetectingAi(true)
+    setTimeout(() => {
+      const detected = detectArchitecturalRoomsFromBlueprint(selectedBlueprint, scaleRatio, presupuestoRubros)
+      setMediciones(detected)
+      setIsDetectingAi(false)
+      alert(`🤖 SARA-Vision completó el escaneo:\nSe detectaron automáticamente ${detected.length} recintos y elementos con deducción de vanos y coincidencia de APUs del presupuesto.`)
+    }, 600)
+  }
+
+  // Deshacer último vértice del dibujo en progreso
+  const handleUndoPoint = () => {
+    setCurrentPoints(prev => prev.slice(0, -1))
+  }
+
+  // Limpiar todas las capas
+  const handleClearAll = () => {
+    if (window.confirm("¿Deseas limpiar todas las capas y mediciones de este plano?")) {
+      setMediciones([])
+      setCurrentPoints([])
+    }
+  }
+
+  // Deducción interactiva de vanos en mampostería
+  const handleUpdateAreaVanos = (medId: string, nuevosVanos: number) => {
+    setMediciones(prev => prev.map(m => {
+      if (m.id === medId && m.tipo === 'pared') {
+        const areaNeta = calculateWallAreaM2(m.puntos, scaleRatio, m.alturaPared || 2.6, nuevosVanos)
+        return {
+          ...m,
+          areaVanos: nuevosVanos,
+          resultado: areaNeta
+        }
+      }
+      return m
+    }))
+  }
 
   const svgRef = useRef<SVGSVGElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -560,6 +602,21 @@ export default function PdfTakeOffModal({
               <Hash size={14} className="text-rose-300" />
               <span>Conteo (u)</span>
             </button>
+
+            {/* BOTÓN SARA-VISION: AUTO-DETECTAR AMBIENTES CON IA */}
+            <button
+              onClick={handleAiAutoDetect}
+              disabled={isDetectingAi}
+              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition font-black bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-sm cursor-pointer disabled:opacity-50 ml-1"
+              title="Detectar automáticamente recintos, áreas y mampostería con IA"
+            >
+              {isDetectingAi ? (
+                <Loader2 size={14} className="animate-spin text-white" />
+              ) : (
+                <Sparkles size={14} className="text-yellow-300 animate-pulse" />
+              )}
+              <span>{isDetectingAi ? "Detectando..." : "🤖 Auto-Detectar con IA"}</span>
+            </button>
           </div>
 
           {/* Ajustes contextuales (Altura pared + Paleta de color) */}
@@ -618,6 +675,29 @@ export default function PdfTakeOffModal({
                 <RotateCcw size={13} />
               </button>
             </div>
+
+            {/* Acciones de Edición Rápida */}
+            {currentPoints.length > 0 && (
+              <button 
+                onClick={handleUndoPoint}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                title="Deshacer último vértice"
+              >
+                <Undo2 size={13} className="text-amber-400" />
+                <span>Deshacer Punto</span>
+              </button>
+            )}
+
+            {mediciones.length > 0 && (
+              <button 
+                onClick={handleClearAll}
+                className="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                title="Limpiar todas las capas medidas"
+              >
+                <Trash2 size={13} />
+                <span>Limpiar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -940,6 +1020,24 @@ export default function PdfTakeOffModal({
                         ))}
                       </select>
                     </div>
+
+                    {/* Deducción de Vanos si es pared */}
+                    {med.tipo === 'pared' && (
+                      <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-[10px]">
+                        <span className="text-slate-400 font-semibold">Descontar Vanos (Puertas/Ventanas):</span>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={med.areaVanos || 0}
+                            onChange={(e) => handleUpdateAreaVanos(med.id, Number(e.target.value) || 0)}
+                            className="w-14 bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-center font-mono font-bold text-rose-300 outline-none"
+                          />
+                          <span className="text-slate-500 font-bold">m²</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Acciones de la medición */}
                     <div className="flex items-center justify-between pt-1 border-t border-slate-900 text-[10px]">
