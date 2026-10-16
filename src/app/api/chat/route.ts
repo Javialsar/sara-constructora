@@ -143,21 +143,247 @@ const KNOWLEDGE_BASE = {
 function generarRespuestaInteligente(mensajeUsuario: string, userProjectsContext: string = ""): string {
   const query = mensajeUsuario.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+  // =========================================================================
+  // GUÍAS DE PROCESOS TÉCNICOS PASO A PASO CON EJEMPLOS DE INGENIERÍA REAL
+  // =========================================================================
+
+  // A. PROCESO: SARA Take-Off (Medición de Planos 2D en PDF / Auto-Detección)
+  if (query.match(/\b(take[- ]?off|medir planos?|cubicacion|cubicar planos?|auto[- ]?deteccion|sara[- ]?vision|medicion en pdf|escalar planos?)\b/)) {
+    return `📐 **GUÍA TÉCNICA PASO A PASO: MEDICIÓN DE PLANOS CON SARA TAKE-OFF 2D**
+
+**🎯 Objetivo:**
+Digitalizar planos arquitectónicos y estructurales en PDF o imagen para cuantificar áreas, longitudes y volúmenes con precisión milimétrica y vincularlos directamente a los rubros del presupuesto.
+
+---
+
+### 📋 **Procedimiento Paso a Paso:**
+
+1. **Cargar el Plano:**
+   Ingresa a **SARA Take-Off** (\`/dashboard/takeoff\`) y arrastra tu plano arquitectónico o estructural en formato PDF o imagen de alta resolución.
+2. **Calibrar la Escala (Imprescindible):**
+   Haz clic en la herramienta **"Calibrar Escala"**, haz clic en dos extremos de una cota conocida del plano (ej: un muro de 4.00 m) e introduce el valor numérico exacto en metros. Esto fija la equivalencia de píxeles por metro con precisión submilimétrica.
+3. **Medición Manual o Asistida por IA:**
+   • **Manual:** Selecciona la herramienta *Polígono* para losas/pisos, *Línea* para mamposterías/bordillos, o *Puntos* para elementos puntuales (columnas, zapatas).
+   • **Automática con SARA-Vision:** Pulsa **\`[ 🤖 Auto-Detectar con IA ]\`**. La red neuronal segmenta recintos, deduce áreas netas y descuenta automáticamente los vanos de puertas y ventanas según la normativa constructiva.
+4. **Vincular y Vaciar al Presupuesto:**
+   Selecciona la medición y haz clic en **\`[ 🔗 Asignar a Rubro APU ]\`**. La cantidad se transfiere en tiempo real a la Mesa de Presupuestos sin errores de tipeo.
+
+---
+
+### 📐 **Ejemplo Práctico de Obra Real:**
+
+* **Caso de Estudio:** Villa Unifamiliar en Loja — Cuantificación de Contrapiso de Hormigón Simple $e = 10\\text{ cm}$.
+* **1. Medición de Sala-Comedor:**
+  Polígono trazado en el plano: $6.50\\text{ m} \\times 5.20\\text{ m} = \\mathbf{33.80\\text{ m}^2}$.
+* **2. Cubicación Volumétrica:**
+  $$\\text{Volumen} = 33.80\\text{ m}^2 \\times 0.10\\text{ m} = 3.38\\text{ m}^3\\text{ de hormigón } f'c = 210\\text{ kg/cm}^2$$
+* **3. Desperdicio Técnico (5% según norma):**
+  $$3.38\\text{ m}^3 \\times 1.05 = \\mathbf{3.55\\text{ m}^3\\text{ a pedir en mixer}}$$
+* **4. Impacto en Presupuesto:**
+  El rubro *"Contrapiso de hormigón simple e=10cm"* recibe automáticamente la cantidad de **$33.80\\text{ m}^2$**. Al precio unitario de $14.25/m², el costo directo queda liquidado en **$481.65 USD**.
+
+👉 **Acceso directo:** Puedes abrir el módulo ahora mismo desde el menú lateral en **1. ESTUDIO & PRESUPUESTACIÓN PRIVADA > SARA Take-Off (Planos 2D)**.`;
+  }
+
+  // B. PROCESO: Estructurar Presupuesto de Obra & Generar Rubros con IA
+  if (query.match(/\b(crear presupuesto|armar presupuesto|hacer presupuesto|generar rubros?|ai[- ]?rubros|mesa de presupuestos|como cotizar|factor aiu|desglose apu)\b/)) {
+    return `⚡ **GUÍA TÉCNICA PASO A PASO: MESA DE PRESUPUESTOS REALES & GENERACIÓN CON IA**
+
+**🎯 Objetivo:**
+Estructurar la oferta económica y técnica de un proyecto por capítulos, calculando precios unitarios desglosados en 4 componentes (Materiales, Mano de Obra, Equipos y Transporte) aplicando la fórmula del Factor AIU.
+
+---
+
+### 📋 **Procedimiento Paso a Paso:**
+
+1. **Vincular al Proyecto Activo:**
+   Ingresa a **Mesa de Presupuestos Reales** (\`/dashboard/presupuestos_reales\`). El sistema detecta la obra seleccionada en el selector superior y carga automáticamente su cliente y régimen.
+2. **Definir Capítulos Constructivos:**
+   Crea la estructura lógica de la obra:
+   • *1. Trabajos Preliminares y Replanteo*
+   • *2. Movimiento de Tierras y Cimentación*
+   • *3. Estructura y Hormigones*
+   • *4. Mampostería y Enlucidos*
+   • *5. Instalaciones Hidrosanitarias y Eléctricas*
+   • *6. Acabados de Primera*
+3. **Inserción de Rubros e Inteligencia Artificial:**
+   Escribe la descripción de la actividad en la fila de inserción rápida. Si el rubro no existe en tu catálogo, presiona **\`[ ⚡ Generar con IA ]\`** (ej: *"Muro de hormigón ciclópeo H=2.50m con 40% piedra bola"*). En 2 segundos, el motor genera la dosificación exacta de insumos, cuadrilla CCEC y equipo.
+4. **Calibrar Precios en el Drawer Lateral (Slide-Over):**
+   Haz clic en cualquier rubro para abrir el panel lateral deslizante. Ajusta rendimientos horarios y costos unitarios de insumos.
+5. **Configurar el Factor AIU (Administración, Imprevistos y Utilidad):**
+   Ajusta el porcentaje de indirectos (típicamente entre 18% y 25% en Ecuador) para obtener el precio unitario final de venta.
+
+---
+
+### 📐 **Ejemplo Práctico de Obra Real:**
+
+* **Rubro Analizado:** Mampostería de ladrillo panel de arcilla 6 huecos ($e = 15\\text{ cm}$) con mortero $1:4$.
+* **1. Materiales por $m^2$:**
+  • 25 unidades de ladrillo panel $\\times \\$0.32$ = $\\$8.00$
+  • Cemento Selvalegre / Guapán ($0.18\\text{ sacos} \\times \\$7.50$) = $\\$1.35$
+  • Arena lavada clasificada ($0.025\\text{ m}^3 \\times \\$18.00$) = $\\$0.45$
+  • *Subtotal Materiales:* $\\$9.80$
+* **2. Mano de Obra (Rendimiento: 0.85 horas/$m^2$):**
+  • Cuadrilla: 1 Albañil ($\\$4.15/\\text{h}$) + 1 Peón ($\\$3.60/\\text{h}$) = $\\$7.75/\\text{hora}$
+  • Costo cuadrilla $\\times 0.85\\text{ h} = \\mathbf{\\$6.59}$
+* **3. Equipos y Herramientas (5% de Mano de Obra):**
+  • Andamios, badilejo, nivel, carretilla = $0.05 \\times \\$6.59 = \\mathbf{\\$0.33}$
+* **4. Costo Directo Total:**
+  $$CD = \\$9.80 + \\$6.59 + \\$0.33 = \\mathbf{\\$16.72 / m^2}$$
+* **5. Factor AIU (20%):**
+  $$P.U. = \\$16.72 \\times 1.20 = \\mathbf{\\$20.06 / m^2}$$
+* **Presupuesto para $120\\text{ m}^2$:** $120 \\times \\$20.06 = \\mathbf{\\$2,407.20 USD}$.
+
+👉 **Acceso directo:** Inicia tu presupuesto en **1. ESTUDIO & PRESUPUESTACIÓN PRIVADA > Mesa de Presupuestos Reales**.`;
+  }
+
+  // C. PROCESO: Licitaciones Públicas SERCOP & Matriz VAE
+  if (query.match(/\b(sercop|licitacion|matriz vae|vae|contratacion publica|menor cuantia|pliego|convalidacion|losncp|reajuste)\b/)) {
+    return `🏛️ **GUÍA TÉCNICA PASO A PASO: POSTULACIÓN SERCOP & MATRIZ VAE**
+
+**🎯 Objetivo:**
+Identificar licitaciones de obra pública en el Radar Nacional, estructurar la oferta conforme a la LOSNCP y su Reglamento General vigente, y calcular la Matriz de Valor Agregado Ecuatoriano (VAE) para garantizar la no descalificación.
+
+---
+
+### 📋 **Procedimiento Paso a Paso:**
+
+1. **Explorar el Radar Nacional SERCOP:**
+   Dirígete a **Radar de Licitaciones SERCOP** (\`/dashboard/sercop/radar\`). Filtra por tu provincia de cobertura (ej: Azuay, Loja, Pichincha) y modalidad contractual (Menor Cuantía, Cotización o Licitación).
+2. **Postular y Crear Proyecto Público:**
+   Haz clic en **\`[ Postular / Crear Proyecto SERCOP ]\`** en el proceso de tu interés. El sistema crea un proyecto con régimen \`publico_sercop\` importando el Código del Proceso (ej: \`MCO-GADML-015-2026\`) y la Entidad Contratante.
+3. **Auditoría con el Agente SARA-SERCOP:**
+   Consulta al **Agente SARA-SERCOP** (\`/dashboard/sercop/agente\`) para validar:
+   • Anticipo máximo permitido (hasta 50% según el Art. 71 LOSNCP).
+   • Convalidación de errores de forma vs. fondo (Art. 23 RGLOSNCP).
+   • Equipo mínimo requerido y acreditación de propiedad o compromiso de arrendamiento.
+4. **Calcular la Matriz VAE Oficial:**
+   Ve a **Matriz VAE & Desagregación** (\`/dashboard/sercop/vae\`). El sistema clasifica tus insumos en producción nacional vs. importada y calcula el porcentaje ponderado para verificar que supere el umbral mínimo del pliego.
+
+---
+
+### 📐 **Ejemplo Práctico de Obra Real:**
+
+* **Proceso Evaluado:** \`MCO-GADMA-008-2026\` — "Construcción de Cancha de Uso Múltiple y Graderíos".
+* **Presupuesto Referencial del Estado:** $\\$42,500.00 USD$.
+* **Exigencia del Pliego:** Porcentaje mínimo de VAE = **40.00%**.
+* **1. Desglose de Insumos en la Oferta:**
+  • Cemento Nacional (Selvalegre/Chimborazo): $\\$6,200$ (Nacional 100%)
+  • Acero de Refuerzo (Adelca/Novacero): $\\$8,400$ (Nacional 100%)
+  • Áridos y Lastre de Cantera Local: $\\$3,100$ (Nacional 100%)
+  • Mano de Obra Ecuatoriana (Cuadrillas locales): $\\$12,500$ (Nacional 100%)
+  • Luminarias LED Industriales Especiales: $\\$4,800$ (Importado 0%)
+* **2. Ecuación del VAE:**
+  $$\\text{Costo Directo Total} = \\$35,000.00 USD$$
+  $$\\text{Componente Nacional Total} = \\$6,200 + \\$8,400 + \\$3,100 + \\$12,500 = \\$30,200.00 USD$$
+  $$\\mathbf{\\% VAE} = \\left( \\frac{\\$30,200.00}{\\$35,000.00} \\right) \\times 100 = \\mathbf{86.29\\%}$$
+* **3. Dictamen:** **CUMPLE** (86.29% $\\ge$ 40.00%). La oferta queda habilitada sin riesgo de descalificación por origen de componentes.
+
+👉 **Acceso directo:** Explora procesos activos en **2. CONTRATACIÓN PÚBLICA (SERCOP) > Radar de Licitaciones SERCOP**.`;
+  }
+
+  // D. PROCESO: Cronograma de Obra, Lookahead y Planificación de Cuadrillas
+  if (query.match(/\b(cronograma|gantt|lookahead|ruta critica|cpm|planificacion de obra|recursos por dia|cuadrillas|explosion de insumos)\b/)) {
+    return `📅 **GUÍA TÉCNICA PASO A PASO: CRONOGRAMA, RUTA CRÍTICA Y LOOKAHEAD SEMANAL**
+
+**🎯 Objetivo:**
+Secuenciar las actividades del presupuesto en el tiempo, determinar la Ruta Crítica (CPM) y generar el reporte Lookahead descargable para coordinar bodega, choferes y maestros de obra por día, semana o mes.
+
+---
+
+### 📋 **Procedimiento Paso a Paso:**
+
+1. **Generar la Secuencia Temporal:**
+   Dentro de tu presupuesto en la pestaña **Cronograma (Gantt)**, vincula las dependencias de inicio-fin entre tareas (ej: *Fundición de losa* depende de *Armado de hierro* y *Encofrado*).
+2. **Calcular la Duración Automática:**
+   La duración de cada rubro se calcula dividiendo la cantidad total entre el rendimiento de la cuadrilla asignada:
+   $$\\text{Días Laborales} = \\frac{\\text{Cantidad Total}}{\\text{Rendimiento Diario de la Cuadrilla}}$$
+3. **Identificar la Ruta Crítica (CPM):**
+   Las barras marcadas en rojo son las que no tienen holgura. Un retraso de 1 día en estas actividades desplaza la fecha de entrega final y genera multas contractuales.
+4. **Filtrar por Horizonte Lookahead (Día / Semana / Mes):**
+   Selecciona el filtro temporal para inspeccionar con exactitud qué insumos deben estar despachados en bodega y cuántos operarios deben ingresar a la obra esa semana.
+5. **Descargar Reporte Ejecutivo en PDF:**
+   Pulsa **\`[ 📥 Descargar Reporte de Actividades ]\`** para imprimir la orden de trabajo con firmas del Residente de Obra, Bodeguero y Director de Proyecto.
+
+---
+
+### 📐 **Ejemplo Práctico de Obra Real:**
+
+* **Actividad:** Fundición de Zapatas y Plintos de Hormigón Armado ($18.00\\text{ m}^3$).
+* **Horizonte:** Semana 3 (Lunes a Viernes).
+* **1. Requerimiento de Personal (Lookahead Mano de Obra):**
+  • 1 Maestro Mayor de Obra
+  • 2 Fierreros armadores
+  • 4 Albañiles calificados
+  • 6 Peones de soporte y acarreo
+* **2. Requerimiento de Materiales en Bodega:**
+  • 144 sacos de Cemento Portland Tipo IP
+  • $12.50\\text{ m}^3$ de ripio triturado $3/4"$
+  • $8.20\\text{ m}^3$ de arena lavada de río
+  • $1,350\\text{ kg}$ de varilla corrugada $\\varnothing 12\\text{ mm}$ y $\\varnothing 10\\text{ mm}$
+  • $50\\text{ kg}$ de alambre recocido $\#18$
+* **3. Maquinaria Programada:**
+  • 1 Concretera de 1 saco ($8\\text{ horas/día}$)
+  • 1 Vibrador de hormigón a gasolina con manguera de $38\\text{ mm}$
+
+👉 **Acceso directo:** Abre tu cronograma en **1. ESTUDIO & PRESUPUESTACIÓN > Mesa de Presupuestos Reales > Pestaña Cronograma**.`;
+  }
+
+  // E. PROCESO: SARA-BIM 3D (Cómputos Métricos desde Modelos IFC / Revit)
+  if (query.match(/\b(bim|ifc|revit|computos 3d|modelo 3d|volumetria 3d|extraccion de cantidades)\b/)) {
+    return `🏢 **GUÍA TÉCNICA PASO A PASO: SARA-BIM & CÓMPUTOS 3D**
+
+**🎯 Objetivo:**
+Cargar modelos digitales en formato IFC (Industry Foundation Classes) provenientes de Revit, Archicad o CYPE para auditar geometrías tridimensionales y extraer volúmenes y áreas sin errores de cálculo manual.
+
+---
+
+### 📋 **Procedimiento Paso a Paso:**
+
+1. **Subir el Modelo IFC:**
+   Ingresa a **SARA-BIM (Cómputos 3D)** (\`/dashboard/apus/bim\`) y arrastra tu archivo \`.ifc\` arquitectónico o estructural.
+2. **Navegación e Inspección en Visor 3D:**
+   Usa el visor interactivo (rotación 360°, zoom y cortes de sección) para aislar por niveles (Planta Baja, Piso 1, Cubierta) o por familias (\`IfcWall\`, \`IfcBeam\`, \`IfcColumn\`, \`IfcSlab\`).
+3. **Mapeo Semántico de Familias a Rubros APU:**
+   Vincula cada tipo de elemento IFC con un rubro del Banco Maestro (ej: elementos \`IfcColumn\` de $30 \\times 30\\text{ cm}$ vinculados al rubro *"Columnas de hormigón armado f'c=240 kg/cm²"*).
+4. **Extracción y Transferencia Automática:**
+   Presiona **\`[ Exportar a Presupuesto ]\`**. SARA-BIM suma las volumetrías volumétricas exactas ($m^3$) y encofrados ($m^2$) transfiriéndolos directamente a tu hoja de costos.
+
+---
+
+### 📐 **Ejemplo Práctico de Obra Real:**
+
+* **Edificio Residencial 4 Plantas:**
+* **Extracción de Columnas Nivel +0.00 a +3.00:**
+  • 16 columnas rectangulares de $0.35\\text{ m} \\times 0.35\\text{ m} \\times 2.80\\text{ m}$.
+  • Volumen geométrico por columna: $0.35 \\times 0.35 \\times 2.80 = 0.343\\text{ m}^3$.
+  • Volumen total extraído: $16 \\times 0.343 = \\mathbf{5.488\\text{ m}^3}$.
+* **Área de Encofrado Metálico o Madera:**
+  • Perímetro por columna: $(0.35 + 0.35) \\times 2 = 1.40\\text{ m}$.
+  • Área por columna: $1.40 \\times 2.80 = 3.92\\text{ m}^2$.
+  • Área total de encofrado: $16 \\times 3.92 = \\mathbf{62.72\\text{ m}^2}$.
+* **Ahorro de Tiempo:** Extracción instantánea en 3 segundos vs. 4 horas de cubicación manual sobre planos en papel.
+
+👉 **Acceso directo:** Carga tu modelo en **1. ESTUDIO & PRESUPUESTACIÓN > SARA-BIM (Cómputos 3D)**.`;
+  }
+
+  // =========================================================================
+  // CONSULTAS CORPORATIVAS Y DE NEGOCIO HABITUALES
+  // =========================================================================
+
   // 1. Saludos e Identidad
-  if (query.match(/\b(hola|buenos dias|buenas tardes|buenas noches|saludos|que tal|quien eres|presentate)\b/)) {
-    return `¡Hola! Soy **SARA-IA**, la Asistente de Inteligencia Artificial Oficial de **Grupo SARA** 🏢✨.
+  if (query.match(/\b(hola|buenos dias|buenas tardes|buenas noches|saludos|que tal|quien eres|presentate|mentor)\b/)) {
+    return `¡Hola! Soy **SARA-Mentor**, tu Co-Piloto de Inducción Técnica y de Procesos de **Grupo SARA** 👷‍♂️📐.
 
-Formo parte del ecosistema corporativo que integra:
-• 🏗️ **SARA-CONSTRUCTORA**: Obras civiles, diseño arquitectónico y cálculo estructural.
-• 🏡 **SARA-INMOBILIARIA**: Venta de terrenos, casas campestres y departamentos.
-• 🧳 **SARA-ALOJAMIENTO (Stays)**: Suites y villas boutique tipo Airbnb con check-in 24/7.
-• 📊 **SARA-APU**: Software de análisis de precios unitarios y presupuestos de obra.
-• 🛒 **SARA-MARKETPLACE**: Compra directa de acero, cemento y materiales al por mayor.
-• 🚛 **SARA-FLETES**: Transporte pesado con monitoreo satelital GPS 24/7.
-• 👷 **SARA-TALENTO**: Red de ingenieros civiles, arquitectos colegiados y técnicos.
-• 💳 **SARA-PAGOS**: Pasarela blindada con custodia y pagos por avance de obra.
+Mi misión es guiarte **paso a paso** en cualquier proceso de ingeniería, presupuestación o fiscalización con ejemplos reales y cálculos numéricos:
 
-¿En qué división o proyecto te puedo asesorar hoy? También puedes contactar a nuestro Gerente General por WhatsApp al **+593 98 180 4023**.`;
+• 📐 **Take-Off 2D**: ¿Cómo medir planos PDF y auto-detectar recintos con IA?
+• ⚡ **Presupuestos Reales**: ¿Cómo generar rubros APU desglosados y calcular el Factor AIU?
+• 🏛️ **SERCOP & VAE**: ¿Cómo postular a licitaciones públicas y aprobar la Matriz VAE?
+• 📅 **Cronograma Lookahead**: ¿Cómo planificar cuadrillas, insumos y ruta crítica?
+• 🏢 **SARA-BIM 3D**: ¿Cómo extraer volumetrías de hormigón y acero desde archivos IFC?
+
+¿Sobre qué proceso constructivo o módulo del sistema deseas que te explique el paso a paso?`;
   }
 
   // 2. Consulta de Proyectos personales
@@ -229,18 +455,15 @@ Puedes escribirnos en cualquier momento al WhatsApp para agendar una reunión pr
   }
 
   // 7. Respuesta Global por defecto con orientación completa
-  return `Con gusto te asesoro. En **Grupo SARA** cubrimos todo el ciclo de la construcción e inversión inmobiliaria:
+  return `Con gusto te oriento. Como **SARA-Mentor**, estoy preparado para guiarte paso a paso con ejemplos de cálculo en cualquier proceso de la plataforma:
 
-1. **SARA-CONSTRUCTORA**: Obras civiles, planos y dirección técnica colegiada (norma NEC).
-2. **SARA-INMOBILIARIA**: Venta de lotes, casas campestres y departamentos con estudio legal.
-3. **SARA-ALOJAMIENTO (Stays)**: Suites ejecutivas y turísticas tipo Airbnb en Cuenca y Ecuador.
-4. **SARA-APU**: Software de presupuestos y precios unitarios ($19.99/mes).
-5. **SARA-MARKETPLACE**: Cemento, acero y áridos al por mayor directo de fábrica.
-6. **SARA-FLETES**: Volquetas y transporte pesado con monitoreo satelital 24/7.
-7. **SARA-TALENTO**: Contratación de ingenieros, arquitectos y cuadrillas de albañilería.
-8. **SARA-PAGOS**: Fondos en custodia y pasarela de pago blindada.
+1. 📐 **SARA Take-Off (Planos 2D)**: Cuantificación milimétrica en PDF y auto-detección de recintos.
+2. ⚡ **Mesa de Presupuestos Reales**: Estructura de capítulos, desglose APU y factor AIU.
+3. 🏛️ **SERCOP & Matriz VAE**: Licitaciones públicas, normativa LOSNCP y Valor Agregado Ecuatoriano.
+4. 📅 **Cronograma & Lookahead**: Planificación de obra, ruta crítica (CPM) y asignación de cuadrillas.
+5. 🏢 **SARA-BIM 3D**: Extracción automatizada de volúmenes geométricos desde modelos IFC.
 
-Para una atención inmediata, también puedes llamar o chatear al WhatsApp corporativo **+593 98 180 4023** con Javier Sarango Gona (Gerente General).`;
+¿Cuál de estos procesos deseas que revisemos juntos con un ejemplo práctico? También puedes comunicarte directamente con Gerencia al **+593 98 180 4023**.`;
 }
 
 export async function POST(req: Request) {
@@ -277,23 +500,25 @@ export async function POST(req: Request) {
     const openAiKey = process.env.OPENAI_API_KEY;
     if (openAiKey && openAiKey.startsWith('sk-')) {
       try {
-        const systemPrompt = `Eres SARA-IA, la Asistente de Inteligencia Artificial Oficial de "Grupo SARA" (Holding de Ingeniería, Construcción y Tecnología en Ecuador).
-Hablas con un tono ejecutivo, cordial, técnico y altamente profesional en español ecuatoriano neutro.
-Gerente General: Javier Sarango Gona. Teléfono / WhatsApp: +593 98 180 4023. Correo: contacto@saraconstructora.com. Sede: Cuenca, Azuay, con operaciones en todo Ecuador.
+        const systemPrompt = `Eres SARA-Mentor, el Co-Piloto de Inducción Técnica y de Procesos Oficial de "Grupo SARA" (Holding de Ingeniería, Arquitectura y Construcción en Ecuador).
+Tu rol es orientar a ingenieros, arquitectos, contratistas y personal técnico en CÓMO TRABAJA CADA PROCESO del ecosistema.
 
-Conocimiento Oficial del Ecosistema de Grupo SARA:
-1. SARA-CONSTRUCTORA: Obras civiles, diseño arquitectónico, cálculo estructural sismorresistente bajo norma NEC, fiscalización y llave en mano.
-2. SARA-INMOBILIARIA: Terrenos, casas campestres, departamentos con título notarial limpio y crédito BIESS/banca privada.
-3. SARA-ALOJAMIENTO (Stays): Suites y villas boutique tipo Airbnb en Cuenca, Quito, Galápagos y Baños con cerradura inteligente 24/7.
-4. SARA-APU: Software cloud de análisis de precios unitarios con 9,800+ rubros ecuatorianos, SERCOP y reportes por $19.99/mes.
-5. SARA-MARKETPLACE: Venta al por mayor sin intermediarios de acero Adelca/Novacero, cemento Guapán/Selvalegre y áridos.
-6. SARA-FLETES: Volquetas y plataformas pesadas con monitoreo satelital GPS 24/7 nacional.
-7. SARA-TALENTO: Ingenieros civiles, arquitectos colegiados, topógrafos con drones y maestros de obra calificados.
-8. SARA-PAGOS: Escrow blindado (fondos retenidos hasta verificación técnica de avance), QR DeUna y cuentas directas Banco Pichincha / Guayaquil.
+REGLAS ESENCIALES DE TUS RESPUESTAS:
+1. Explica siempre con una metodología rigurosa:
+   - 🎯 Objetivo del proceso.
+   - 📋 Flujo Paso a Paso (Paso 1, Paso 2, Paso 3...).
+   - 📐 Ejemplo Práctico de Obra Real con NÚMEROS Y FÓRMULAS CONCRETAS (dimensiones, rendimientos, m², m³, dosificaciones, VAE, etc.).
+   - 🚀 Enlace o indicación de cómo acceder en el sistema.
+2. Dominio de los procesos clave:
+   - SARA Take-Off (/dashboard/takeoff): Medición de planos 2D en PDF, calibración de escala y auto-detección IA con descuento de vanos.
+   - Mesa de Presupuestos (/dashboard/presupuestos_reales): Creación de capítulos, generación con IA [⚡ Generar con IA], desglose en 4 componentes (Materiales, Mano de Obra, Equipos, Transporte) y Factor AIU (18-25%).
+   - Contratación Pública SERCOP (/dashboard/sercop/radar y /dashboard/sercop/vae): Búsqueda en radar, normativa LOSNCP, cálculo oficial de Matriz VAE (% de componente nacional) y convalidación de errores.
+   - Cronograma Lookahead (/dashboard/presupuestos_reales pestaña Cronograma): Ruta Crítica (CPM), explosión de recursos diarios, cuadrillas y materiales para bodega.
+   - SARA-BIM 3D (/dashboard/apus/bim): Carga de archivos IFC, cubicación automática de volúmenes y áreas sin errores de cálculo manual.
+3. Tono: Ejecutivo, técnico, claro y constructivo en español ecuatoriano neutro.
+Gerente General: Javier Sarango Gona (WhatsApp: +593 98 180 4023). Sede: Cuenca, Azuay, Ecuador.
 
-${userProjectsContext ? `Proyectos del usuario autenticado:\n${userProjectsContext}` : 'El usuario es un visitante o cliente general.'}
-
-Responde de forma clara, estructurada con viñetas cuando sea útil y siempre orienta al usuario a resolver su duda o comunicarse al WhatsApp corporativo.`;
+${userProjectsContext ? `Proyectos del usuario autenticado:\n${userProjectsContext}` : 'El usuario es un profesional o visitante.'}`;
 
         const openAiRes = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',

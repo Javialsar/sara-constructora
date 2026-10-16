@@ -47,17 +47,11 @@ export default function DashboardLayout({
   const [userInitials, setUserInitials] = useState("U")
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [openGroup, setOpenGroup] = useState<string>("2. ESTUDIO & PRESUPUESTACIÓN PRIVADA")
+  const [openGroup, setOpenGroup] = useState<string>("1. ESTUDIO & PRESUPUESTACIÓN PRIVADA")
 
   const navGroups = [
     {
-      title: "1. RED AGÉNTICA COLECTIVA (IA)",
-      items: [
-        { href: "/dashboard/agentes", label: "SARA-Ecosystem (8 Agentes)", icon: Cpu },
-      ]
-    },
-    {
-      title: "2. ESTUDIO & PRESUPUESTACIÓN PRIVADA",
+      title: "1. ESTUDIO & PRESUPUESTACIÓN PRIVADA",
       items: [
         { href: "/dashboard/presupuestos_reales", label: "Mesa de Presupuestos Reales", icon: FileSpreadsheet },
         { href: "/dashboard/takeoff", label: "SARA Take-Off (Planos 2D)", icon: Ruler },
@@ -66,7 +60,7 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "3. CONTRATACIÓN PÚBLICA (SERCOP)",
+      title: "2. CONTRATACIÓN PÚBLICA (SERCOP)",
       items: [
         { href: "/dashboard/sercop/radar", label: "Radar de Licitaciones SERCOP", icon: Search },
         { href: "/dashboard/sercop/proyectos", label: "Proyectos de Contratación Pública", icon: Building2 },
@@ -75,7 +69,7 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "4. CATÁLOGOS & BANCO DE APUS",
+      title: "3. CATÁLOGOS & BANCO DE APUS",
       items: [
         { href: "/dashboard/apus/rubros", label: "Banco Maestro de Rubros (APUs)", icon: Layers },
         { href: "/dashboard/apus/insumos", label: "Insumos, Cuadrillas & Equipos", icon: Box },
@@ -83,21 +77,21 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "5. CONTROL & OPERACIÓN EN OBRA",
+      title: "4. CONTROL & OPERACIÓN EN OBRA",
       items: [
         { href: "/dashboard/fiscaliza", label: "SARA-Fiscaliza (Parte Diario & GPS)", icon: HardHat },
         { href: "/dashboard/maquinaria", label: "SARA-Maquinaria (Logística)", icon: Truck },
       ]
     },
     {
-      title: "6. FINANZAS, SRI & LEGAL",
+      title: "5. FINANZAS, SRI & LEGAL",
       items: [
         { href: "/dashboard/metricas-sri", label: "Dashboard Financiero & SRI", icon: Receipt },
         { href: "/dashboard/docs", label: "SARA-Docs (Contratos & Minutas)", icon: FileText },
       ]
     },
     {
-      title: "7. DIRECTORIO & CRM",
+      title: "6. DIRECTORIO & CRM",
       items: [
         { href: "/dashboard/directorio/clientes", label: "Clientes (CRM)", icon: Users },
         { href: "/dashboard/directorio/proveedores", label: "Proveedores Aliados", icon: Briefcase },
@@ -105,7 +99,7 @@ export default function DashboardLayout({
       ]
     },
     {
-      title: "8. CONFIGURACIÓN & EMPRESA",
+      title: "7. CONFIGURACIÓN & EMPRESA",
       items: [
         { href: "/dashboard/parametros", label: "Datos de Empresa & Facturación", icon: Settings },
         { href: "/dashboard/marca", label: "Membrete Oficial & PDF", icon: Palette },
@@ -125,7 +119,7 @@ export default function DashboardLayout({
     for (const group of navGroups) {
       if (
         group.items.some(i => i.href === pathname) ||
-        (group.title === "4. CATÁLOGOS & BANCO DE APUS" && pathname === "/dashboard/apus/ai-rubros")
+        (group.title === "3. CATÁLOGOS & BANCO DE APUS" && pathname === "/dashboard/apus/ai-rubros")
       ) {
         setOpenGroup(group.title)
         break
