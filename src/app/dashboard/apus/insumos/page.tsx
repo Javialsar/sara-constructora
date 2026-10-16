@@ -792,26 +792,53 @@ export default function InsumosPage() {
   // ---- RENDER VISTA CATÁLOGO ----
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] p-4 md:p-6 bg-gray-50/50 overflow-hidden">
-      {/* HEADER */}
-      <div className="flex justify-between items-start md:items-center mb-3 gap-3 shrink-0">
+      {/* HEADER con acabado Emil Kowalski / High Taste */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4 shrink-0 pb-3 border-b border-slate-200/60 dark:border-slate-800">
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-brand-dark flex items-center gap-2">
-            <FileText className="text-brand-sage" /> Catálogo de Insumos
-          </h1>
-          <p className="text-gray-500 text-sm mt-0.5">Gestión centralizada de Materiales, Equipos y Recursos.</p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <FileText size={18} />
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-display">
+              Catálogo de Insumos
+            </h1>
+          </div>
+          <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-1 pl-10.5">
+            Gestión centralizada de Materiales, Equipos y Recursos.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={exportToExcel} disabled={isExporting} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm disabled:opacity-50" title="Exportar a Excel">
-            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />} Excel
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button 
+            onClick={exportToExcel} 
+            disabled={isExporting} 
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200 font-medium text-xs tracking-wide transition-all duration-150 active:scale-[0.98] shadow-xs disabled:opacity-50"
+            title="Exportar a Excel"
+          >
+            {isExporting ? <Loader2 size={14} className="animate-spin text-emerald-600" /> : <FileSpreadsheet size={14} className="text-emerald-600" />} 
+            <span>Excel</span>
           </button>
-          <button onClick={exportToPDF} disabled={isExporting} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm shadow-sm disabled:opacity-50" title="Exportar a PDF">
-            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} PDF
+          <button 
+            onClick={exportToPDF} 
+            disabled={isExporting} 
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200 font-medium text-xs tracking-wide transition-all duration-150 active:scale-[0.98] shadow-xs disabled:opacity-50" 
+            title="Exportar a PDF"
+          >
+            {isExporting ? <Loader2 size={14} className="animate-spin text-rose-600" /> : <Download size={14} className="text-rose-600" />} 
+            <span>PDF</span>
           </button>
-          <button onClick={() => setVista('grupos')} className="border border-gray-300 text-gray-600 font-semibold py-2 px-4 rounded-lg hover:bg-white transition-colors text-sm flex items-center gap-2 shadow-sm">
-            <Layers size={15} /> Grupos
+          <button 
+            onClick={() => setVista('grupos')} 
+            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200 font-medium text-xs tracking-wide transition-all duration-150 active:scale-[0.98] shadow-xs"
+          >
+            <Layers size={14} className="text-slate-500" /> 
+            <span>Grupos</span>
           </button>
-          <button onClick={openNewModal} className="bg-brand-sage text-white font-bold py-2 px-5 rounded-lg hover:bg-brand-dark transition-colors flex items-center gap-2 shadow-sm text-sm">
-            <Plus size={16} /> Nuevo Insumo
+          <button 
+            onClick={openNewModal} 
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs tracking-wide shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98]"
+          >
+            <Plus size={15} /> 
+            <span>Nuevo Insumo</span>
           </button>
         </div>
       </div>
@@ -919,10 +946,12 @@ export default function InsumosPage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            {outdated && <span title="Precio desactualizado"><AlertTriangle size={14} className="text-amber-400" /></span>}
+                            {outdated && <span title="Precio desactualizado"><AlertTriangle size={14} className="text-amber-500" /></span>}
                             <div>
-                              <div className={`font-bold text-sm ${outdated ? 'text-amber-600' : 'text-gray-900'}`}>${Number(insumo.precio_sin_iva).toFixed(4)}</div>
-                              <div className="text-xs text-gray-400 flex items-center gap-1 justify-end">
+                              <div className={`font-semibold text-sm tabular-nums tracking-tight ${outdated ? 'text-amber-600' : 'text-slate-900 dark:text-slate-100'}`}>
+                                ${Number(insumo.precio_sin_iva).toFixed(4)}
+                              </div>
+                              <div className="text-[11px] text-slate-400 tabular-nums flex items-center gap-1 justify-end mt-0.5">
                                 <Calendar size={10} />
                                 {insumo.fecha_actualizacion ? new Date(insumo.fecha_actualizacion).toLocaleDateString() : 'Nunca'}
                               </div>

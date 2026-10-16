@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat, Syne } from "next/font/google";
+import { Montserrat, Plus_Jakarta_Sans, Geist } from "next/font/google";
 import "./globals.css";
 import Providers from "@/lib/providers";
 import SessionTracker from "@/components/SessionTracker";
@@ -13,8 +13,14 @@ const montserrat = Montserrat({
   display: "swap",
 });
 
-const syne = Syne({
-  variable: "--font-syne",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-display",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
   display: "swap",
 });
@@ -59,7 +65,7 @@ export default async function RootLayout({
   const activeTheme = await getActiveTheme();
 
   return (
-    <html lang="es" className={`${montserrat.variable} ${syne.variable} ${activeTheme}`.trim()} suppressHydrationWarning>
+    <html lang="es" className={`${montserrat.variable} ${plusJakartaSans.variable} ${geist.variable} ${activeTheme}`.trim()} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

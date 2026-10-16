@@ -325,10 +325,10 @@ export default function SaraApuLandingPage() {
               <span>Plataforma Inteligente de Precios Unitarios & Red de Agentes</span>
             </div>
 
-            {/* Título de Alto Impacto */}
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white uppercase tracking-tight leading-[1.08]">
-              Todo lo que necesitas para presupuestar <br className="hidden sm:block" />
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
+            {/* Título de Alto Impacto con Escala Tipográfica Equilibrada */}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[44px] font-extrabold text-white tracking-tight leading-snug md:leading-tight max-w-4xl mx-auto">
+              Todo lo que necesitas para presupuestar{" "}
+              <span className="block mt-1 bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
                 obras en Ecuador en un solo lugar
               </span>
             </h1>
@@ -389,7 +389,7 @@ export default function SaraApuLandingPage() {
               <Network size={14} />
               <span>Memoria Compartida y Aprendizaje Continuo</span>
             </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
               Red de 8 Agentes Autónomos
             </h2>
             <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
@@ -421,7 +421,7 @@ export default function SaraApuLandingPage() {
                     </div>
 
                     {/* Nombre y Rol */}
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight mb-1 group-hover:text-blue-300 transition-colors">
+                    <h3 className="text-base font-bold text-white tracking-tight mb-1 group-hover:text-blue-300 transition-colors">
                       {agente.nombre}
                     </h3>
                     <p className="text-xs font-bold text-slate-400 mb-3">
@@ -475,7 +475,7 @@ export default function SaraApuLandingPage() {
                 <Brain size={14} />
                 <span>Inteligencia Artificial Práctica para Obra</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
                 Potenciado por Inteligencia Artificial
               </h2>
               <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
@@ -502,7 +502,7 @@ export default function SaraApuLandingPage() {
                         </span>
                       </div>
 
-                      <h3 className="text-xl font-black text-white uppercase tracking-tight mb-1 group-hover:text-blue-300 transition-colors">
+                      <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mb-1 group-hover:text-blue-300 transition-colors">
                         {item.titulo}
                       </h3>
                       <p className="text-xs font-bold text-slate-400 mb-4">
@@ -557,7 +557,7 @@ export default function SaraApuLandingPage() {
               <Layers size={14} />
               <span>Herramientas Profesionales</span>
             </div>
-            <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight">
               Módulos del Sistema SARA APU
             </h2>
             <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
@@ -584,7 +584,7 @@ export default function SaraApuLandingPage() {
                       </span>
                     </div>
 
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight mb-2 group-hover:text-blue-300 transition-colors">
+                    <h3 className="text-base font-bold text-white tracking-tight mb-2 group-hover:text-blue-300 transition-colors">
                       {mod.titulo}
                     </h3>
 
@@ -679,7 +679,7 @@ export default function SaraApuLandingPage() {
               <span className="inline-block px-3 py-1 rounded-full bg-white/20 text-xs font-bold uppercase tracking-wider mb-3">
                 Comienza a Presupuestar Hoy
               </span>
-              <h3 className="text-2xl md:text-4xl font-black mb-3">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold mb-2 tracking-tight">
                 Tu Próximo Proyecto con Estándar Profesional
               </h3>
               <p className="text-blue-100 text-sm leading-relaxed">

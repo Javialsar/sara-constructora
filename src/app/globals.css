@@ -16,7 +16,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-montserrat);
-  --font-display: var(--font-syne), var(--font-montserrat), sans-serif;
+  --font-display: var(--font-display), var(--font-montserrat), sans-serif;
+  --font-mono: var(--font-geist), monospace;
   
   --color-brand-dark: var(--color-sara-dark);
   --color-brand-sage: var(--color-sara-sage);
@@ -24,8 +25,8 @@
 
   --animate-marquee: marquee 40s linear infinite;
 
-  --shadow-premium: 0 20px 40px -15px rgba(7, 19, 13, 0.08);
-  --shadow-premium-hover: 0 30px 60px -15px rgba(7, 19, 13, 0.14);
+  --shadow-premium: 0 10px 30px -10px rgba(7, 19, 13, 0.06);
+  --shadow-premium-hover: 0 20px 40px -12px rgba(7, 19, 13, 0.12);
 }
 
 @keyframes marquee {
@@ -44,6 +45,7 @@ body {
   font-family: var(--font-montserrat), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Base styles for smooth scrolling and clean selection */
@@ -53,19 +55,19 @@ html {
 
 ::selection {
   background: var(--color-sara-sage);
-  color: var(--color-sara-black);
+  color: #ffffff;
 }
 
-/* Typography styles to be reused con jerarquía editorial */
+/* Typography styles de alta gama (Taste & Craft) */
 @layer base {
   h1, h2, h3 {
-    font-family: var(--font-syne), var(--font-montserrat), sans-serif;
-    font-weight: 800;
-    letter-spacing: -0.03em;
+    font-family: var(--font-display), var(--font-montserrat), sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.025em;
   }
   h4, h5, h6 {
     font-family: var(--font-montserrat), sans-serif;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.015em;
   }
 }
