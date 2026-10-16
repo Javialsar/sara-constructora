@@ -2130,6 +2130,7 @@ export default function PresupuestosRealesPage() {
           presupuestoRubros={presupuestoRubros}
           nombreProyecto={currentPresupuesto?.nombre_proyecto || 'Proyecto'}
           granTotal={granTotal || currentPresupuesto?.gran_total || 0}
+          rubrosRecipes={rubrosRecipes}
           updateTaskSchedule={async (id: string, fieldOrUpdates: any, value?: any) => {
             if (typeof fieldOrUpdates === 'object') {
               const { fecha_fin, ...safeUpdates } = fieldOrUpdates;
