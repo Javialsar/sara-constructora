@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat } from "next/font/google";
+import { Montserrat, Syne } from "next/font/google";
 import "./globals.css";
 import Providers from "@/lib/providers";
 import SessionTracker from "@/components/SessionTracker";
@@ -9,6 +9,12 @@ import { createClient } from "@supabase/supabase-js";
 
 const montserrat = Montserrat({
   variable: "--font-montserrat",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const syne = Syne({
+  variable: "--font-syne",
   subsets: ["latin"],
   display: "swap",
 });
@@ -53,7 +59,7 @@ export default async function RootLayout({
   const activeTheme = await getActiveTheme();
 
   return (
-    <html lang="es" className={`${montserrat.variable} ${activeTheme}`.trim()} suppressHydrationWarning>
+    <html lang="es" className={`${montserrat.variable} ${syne.variable} ${activeTheme}`.trim()} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

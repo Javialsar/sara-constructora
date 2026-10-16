@@ -159,10 +159,10 @@ export default function HeroConstructora() {
       {/* Resplandor ambiental ultra sutil */}
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_at_left,_var(--color-brand-sage)_0%,_transparent_60%)] opacity-5 pointer-events-none" />
 
-      <div className="container relative z-20 mx-auto px-6 md:px-12 flex flex-col justify-center min-h-[75vh]">
-        <div className="max-w-3xl space-y-6 md:pl-8">
+      <div className="container relative z-20 mx-auto px-5 sm:px-8 md:px-12 flex flex-col justify-center min-h-[80vh] md:min-h-[85vh] py-20 md:py-24">
+        <div className="max-w-4xl space-y-7 md:space-y-8 md:pl-6 lg:pl-10">
           
-          {/* Tag de Categoría animado */}
+          {/* Kicker / Tag de Categoría con acento refinado */}
           <AnimatePresence mode="wait">
             <motion.div 
               key={`tag-${safeIndex}`}
@@ -170,16 +170,16 @@ export default function HeroConstructora() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4 }}
-              className="flex items-center gap-4"
+              className="flex items-center gap-3.5"
             >
-              <div className="w-12 h-px bg-brand-sage" />
-              <h2 className={`${currentSlide.accentColor} font-bold tracking-[0.2em] uppercase text-xs md:text-sm drop-shadow-md`}>
+              <div className="w-10 h-[2px] bg-brand-sage rounded-full" />
+              <span className="font-mono text-xs uppercase tracking-[0.25em] font-bold text-brand-sage bg-brand-sage/10 backdrop-blur-md px-3 py-1 rounded-full border border-brand-sage/20">
                 {currentSlide.tag}
-              </h2>
+              </span>
             </motion.div>
           </AnimatePresence>
           
-          {/* Título Principal Dinámico */}
+          {/* Título Principal con tipografía Display de autor (Syne / font-display) */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`title-${safeIndex}`}
@@ -189,13 +189,13 @@ export default function HeroConstructora() {
               transition={{ duration: 0.45 }}
               className="space-y-3"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.05] tracking-tight drop-shadow-2xl">
+              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.02] tracking-[-0.035em] drop-shadow-2xl">
                 {currentSlide.title}
               </h1>
             </motion.div>
           </AnimatePresence>
           
-          {/* Descripción Dinámica */}
+          {/* Descripción con ritmo editorial y respiración */}
           <AnimatePresence mode="wait">
             <motion.p 
               key={`desc-${safeIndex}`}
@@ -203,13 +203,13 @@ export default function HeroConstructora() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.4 }}
-              className="text-base md:text-lg text-gray-100 max-w-2xl leading-relaxed font-light border-l-2 border-brand-sage/50 pl-6 drop-shadow-lg"
+              className="text-base sm:text-lg md:text-xl text-slate-200/90 max-w-2xl leading-relaxed font-normal border-l-2 border-brand-sage/60 pl-5 md:pl-6 drop-shadow-md"
             >
               {currentSlide.description}
             </motion.p>
           </AnimatePresence>
 
-          {/* Botones de Acción Dinámicos */}
+          {/* Botones de Acción con ergonomía móvil nativa (área táctil >= 48px) */}
           <AnimatePresence mode="wait">
             <motion.div 
               key={`btns-${safeIndex}`}
@@ -217,19 +217,19 @@ export default function HeroConstructora() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.35 }}
-              className="flex flex-col sm:flex-row items-center gap-4 pt-4"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4 pb-2"
             >
               <Button 
                 variant="sage" 
                 size="lg" 
-                className="w-full sm:w-auto group relative overflow-hidden transition-all shadow-xl font-black text-xs uppercase tracking-wider bg-brand-sage text-brand-dark hover:text-white" 
+                className="w-full sm:w-auto min-h-[50px] px-8 group relative overflow-hidden transition-all shadow-[0_12px_30px_rgba(60,122,82,0.35)] font-bold text-xs uppercase tracking-widest bg-brand-sage text-brand-dark hover:text-white rounded-xl active:scale-[0.98]" 
                 asChild
               >
                 <Link href={currentSlide.primaryBtn.href}>
-                  <span className="relative z-10 flex items-center gap-2">
+                  <span className="relative z-10 flex items-center justify-center gap-2.5">
                     {currentSlide.primaryBtn.icon}
                     {currentSlide.primaryBtn.text} 
-                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight size={17} className="group-hover:translate-x-1 transition-transform" />
                   </span>
                   <div className="absolute inset-0 bg-brand-dark scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500 ease-out z-0" />
                 </Link>
@@ -240,20 +240,20 @@ export default function HeroConstructora() {
                   href={currentSlide.secondaryBtn.href} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="group flex items-center gap-3 text-white text-sm font-bold uppercase tracking-widest hover:text-brand-sage transition-colors drop-shadow-lg"
+                  className="min-h-[50px] px-6 rounded-xl border border-white/20 bg-white/5 backdrop-blur-md hover:bg-white/10 group flex items-center justify-center gap-3 text-white text-xs font-bold uppercase tracking-widest hover:border-brand-sage/60 transition-all drop-shadow-lg active:scale-[0.98]"
                 >
-                  <span className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center group-hover:border-brand-sage bg-white/5 backdrop-blur-sm transition-colors">
-                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  <span className="w-8 h-8 rounded-full border border-white/30 flex items-center justify-center group-hover:border-brand-sage bg-black/20 transition-colors">
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform text-white group-hover:text-brand-sage" />
                   </span>
                   {currentSlide.secondaryBtn.text}
                 </a>
               ) : (
                 <Link 
                   href={currentSlide.secondaryBtn.href} 
-                  className="group flex items-center gap-3 text-white text-sm font-bold uppercase tracking-widest hover:text-brand-sage transition-colors drop-shadow-lg"
+                  className="min-h-[50px] px-6 rounded-xl border border-white/20 bg-white/5 backdrop-blur-md hover:bg-white/10 group flex items-center justify-center gap-3 text-white text-xs font-bold uppercase tracking-widest hover:border-brand-sage/60 transition-all drop-shadow-lg active:scale-[0.98]"
                 >
-                  <span className="w-8 h-8 rounded-full border border-white/50 flex items-center justify-center group-hover:border-brand-sage bg-white/5 backdrop-blur-sm transition-colors">
-                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  <span className="w-8 h-8 rounded-full border border-white/30 flex items-center justify-center group-hover:border-brand-sage bg-black/20 transition-colors">
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform text-white group-hover:text-brand-sage" />
                   </span>
                   {currentSlide.secondaryBtn.text}
                 </Link>
@@ -261,20 +261,22 @@ export default function HeroConstructora() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Indicadores minimalistas de slide (puntos limpios) */}
+          {/* Indicadores táctiles ergonómicos (hit area ampliada para móvil) */}
           {allSlides.length > 1 && (
-            <div className="pt-6 flex items-center gap-2">
+            <div className="pt-4 flex items-center gap-3">
               {allSlides.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentIndex(idx)}
                   aria-label={`Ir al proyecto ${idx + 1}`}
-                  className={`h-1.5 transition-all duration-500 rounded-full cursor-pointer ${
+                  className="py-3 px-1 -my-3 cursor-pointer group focus:outline-none"
+                >
+                  <span className={`block h-1.5 transition-all duration-500 rounded-full ${
                     idx === safeIndex 
-                      ? "w-8 bg-brand-sage" 
-                      : "w-2 bg-white/30 hover:bg-white/60"
-                  }`}
-                />
+                      ? "w-10 bg-brand-sage shadow-[0_0_12px_rgba(60,122,82,0.8)]" 
+                      : "w-2.5 bg-white/30 group-hover:bg-white/60"
+                  }`} />
+                </button>
               ))}
             </div>
           )}

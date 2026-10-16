@@ -337,20 +337,18 @@ export default function ParametrosClientePage() {
       // 6. Cargar desde Supabase si existe sesión
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        if (user.user_metadata?.empresa_identidad) {
-          setEmpresa(prev => ({ ...prev, ...user.user_metadata.empresa_identidad }))
-          if (user.user_metadata.empresa_identidad.latitud) {
-            setMapPosition([user.user_metadata.empresa_identidad.latitud, user.user_metadata.empresa_identidad.longitud])
-          }
-        }
-        if (user.user_metadata?.empresa_logo) {
-          setLogoBase64(user.user_metadata.empresa_logo)
-        }
-        if (user.user_metadata?.staff_tecnico && Array.isArray(user.user_metadata.staff_tecnico)) {
-          setStaffTecnico(user.user_metadata.staff_tecnico)
-        }
-        if (user.user_metadata?.reportes_config) {
-          setReportesConfig(user.user_metadata.reportes_config)
+        // Asegurar que user_metadata esté limpio de payloads pesados para prevenir error HTTP 494
+        if (user.user_metadata?.empresa_logo || user.user_metadata?.empresa_identidad) {
+          try {
+            await supabase.auth.updateUser({
+              data: {
+                empresa_identidad: null,
+                empresa_logo: null,
+                staff_tecnico: null,
+                reportes_config: null
+              }
+            })
+          } catch (e) {}
         }
 
         const { data } = await supabase
@@ -548,14 +546,19 @@ export default function ParametrosClientePage() {
       // 2. Persistencia en Supabase
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        await supabase.auth.updateUser({
-          data: {
-            empresa_identidad: empresa,
-            empresa_logo: logoBase64,
-            staff_tecnico: staffTecnico,
-            reportes_config: reportesConfig
-          }
-        })
+        // Garantizar que user_metadata no contenga logos ni objetos pesados que inflen las cookies
+        if (user.user_metadata?.empresa_logo || user.user_metadata?.empresa_identidad) {
+          try {
+            await supabase.auth.updateUser({
+              data: {
+                empresa_identidad: null,
+                empresa_logo: null,
+                staff_tecnico: null,
+                reportes_config: null
+              }
+            })
+          } catch (e) {}
+        }
 
         const payload = {
           user_id: user.id,

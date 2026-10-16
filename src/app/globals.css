@@ -16,12 +16,16 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-montserrat);
+  --font-display: var(--font-syne), var(--font-montserrat), sans-serif;
   
   --color-brand-dark: var(--color-sara-dark);
   --color-brand-sage: var(--color-sara-sage);
   --color-brand-black: var(--color-sara-black);
 
   --animate-marquee: marquee 40s linear infinite;
+
+  --shadow-premium: 0 20px 40px -15px rgba(7, 19, 13, 0.08);
+  --shadow-premium-hover: 0 30px 60px -15px rgba(7, 19, 13, 0.14);
 }
 
 @keyframes marquee {
@@ -52,11 +56,17 @@ html {
   color: var(--color-sara-black);
 }
 
-/* Typography styles to be reused */
+/* Typography styles to be reused con jerarquía editorial */
 @layer base {
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h3 {
+    font-family: var(--font-syne), var(--font-montserrat), sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  h4, h5, h6 {
+    font-family: var(--font-montserrat), sans-serif;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.015em;
   }
 }
 
