@@ -480,25 +480,41 @@ export default function PresupuestosRealesPage() {
       setActiveProject(matched);
     }
 
-    // Inicializar configuración de capítulos e indirectos si no existen
+    // Inicializar configuración de capítulos e indirectos recuperando porcentajes AIU
+    const indConfig = pres.indirectos_config || {};
+    const adminPct = Number(indConfig.ggen) > 0 ? Number(indConfig.ggen) : (Number(pres.porcentaje_admin) || 8);
+    const impPct = Number(indConfig.pimp) > 0 ? Number(indConfig.pimp) : (Number(pres.porcentaje_imprevistos) || 4);
+    const utilPct = Number(indConfig.util) > 0 ? Number(indConfig.util) : (Number(pres.porcentaje_utilidad) || 8);
+
     if (!pres.indirectos_config) {
       pres.indirectos_config = {
         regimen: 'privado',
         capitulos: DEFAULT_CAPITULOS,
         rubro_capitulo_map: {},
-        pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0
+        pmaq1: 5, pmob1: 0, pmat1: 0, 
+        ggen: adminPct, 
+        pgas1: 0, pgas2: 0, pgas3: 0, 
+        pimp: impPct, 
+        util: utilPct
       };
-    } else if (!pres.indirectos_config.capitulos || pres.indirectos_config.capitulos.length === 0) {
-      pres.indirectos_config.capitulos = DEFAULT_CAPITULOS;
-    }
-    if (!pres.indirectos_config.regimen) {
-      pres.indirectos_config.regimen = 'privado';
+    } else {
+      pres.indirectos_config = {
+        ...indConfig,
+        ggen: adminPct,
+        pimp: impPct,
+        util: utilPct,
+        capitulos: indConfig.capitulos?.length ? indConfig.capitulos : DEFAULT_CAPITULOS,
+        regimen: indConfig.regimen || 'privado'
+      };
     }
 
     setCurrentPresupuesto(pres);
     setIndForm({
-      pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0,
-      ...(pres.indirectos_config || {})
+      pmaq1: 5, pmob1: 0, pmat1: 0, pgas1: 0, pgas2: 0, pgas3: 0,
+      ...(pres.indirectos_config || {}),
+      ggen: adminPct,
+      pimp: impPct,
+      util: utilPct
     });
     setActiveTab('detalle');
     setView('editor');
@@ -2112,11 +2128,24 @@ export default function PresupuestosRealesPage() {
           isOpen={isGanttModalOpen}
           onClose={() => setIsGanttModalOpen(false)}
           presupuestoRubros={presupuestoRubros}
+          nombreProyecto={currentPresupuesto?.nombre_proyecto || 'Proyecto'}
+          granTotal={granTotal || currentPresupuesto?.gran_total || 0}
           updateTaskSchedule={async (id: string, fieldOrUpdates: any, value?: any) => {
             if (typeof fieldOrUpdates === 'object') {
               await supabase.from('presupuesto_rubros').update(fieldOrUpdates).eq('id', id);
             } else {
               await supabase.from('presupuesto_rubros').update({ [fieldOrUpdates]: value }).eq('id', id);
+            }
+            fetchPresupuestoRubros(currentPresupuesto.id);
+          }}
+          onBatchScheduleUpdate={async (updates: any[]) => {
+            for (const up of updates) {
+              await supabase.from('presupuesto_rubros').update({
+                fecha_inicio: up.fecha_inicio,
+                fecha_fin: up.fecha_fin,
+                duracion_dias: up.duracion_dias,
+                predecesores: up.predecesores
+              }).eq('id', up.id);
             }
             fetchPresupuestoRubros(currentPresupuesto.id);
           }}

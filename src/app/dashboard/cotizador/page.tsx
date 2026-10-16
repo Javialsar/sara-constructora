@@ -1322,7 +1322,10 @@ export default function CotizadorPage() {
       });
 
       const costoDirectoCalculado = insertedRubros.reduce((acc: number, curr: any) => acc + Number(curr.subtotal || 0), 0);
-      const factorAiuMultiplier = 1 + ((Number(aiuConfig.porcentajeAdmin) || 0) + (Number(aiuConfig.porcentajeImprevistos) || 0) + (Number(aiuConfig.porcentajeUtilidad) || 0)) / 100;
+      const pctAdmin = Number(aiuConfig.porcentajeAdmin) || 8;
+      const pctImprev = Number(aiuConfig.porcentajeImprevistos) || 4;
+      const pctUtil = Number(aiuConfig.porcentajeUtilidad) || 8;
+      const factorAiuMultiplier = 1 + (pctAdmin + pctImprev + pctUtil) / 100;
       const granTotalCalculado = Math.round(costoDirectoCalculado * factorAiuMultiplier);
 
       await supabase
@@ -1330,11 +1333,18 @@ export default function CotizadorPage() {
         .update({
           costo_directo_total: costoDirectoCalculado,
           gran_total: granTotalCalculado,
+          porcentaje_admin: pctAdmin,
+          porcentaje_imprevistos: pctImprev,
+          porcentaje_utilidad: pctUtil,
           indirectos_config: {
             regimen: 'privado',
             capitulos: capitulosPresupuesto,
             rubro_capitulo_map: updatedMap,
-            pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0
+            pmaq1: 5, pmob1: 0, pmat1: 0, 
+            ggen: pctAdmin, 
+            pgas1: 0, pgas2: 0, pgas3: 0, 
+            pimp: pctImprev, 
+            util: pctUtil
           }
         })
         .eq('id', newPresupuesto.id);
