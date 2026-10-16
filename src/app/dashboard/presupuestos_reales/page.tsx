@@ -23,6 +23,7 @@ import { generatePresupuestoGeneralPDF, generateAPUsPDF, generateExplosionPDF } 
 import { generatePresupuestoGeneralExcel, generateExplosionExcel } from "@/lib/excelGenerator"
 import { defaultFormulas, calcularTotalesPresupuesto } from "@/lib/calculadoras/presupuestos";
 import { useProject } from "@/contexts/ProjectContext"
+import { syncAllInsumosForPresupuesto } from "@/lib/apuRecipeGenerator"
 
 const DEFAULT_CAPITULOS = [
   "1. Obras Preliminares y Desbroce",
@@ -778,6 +779,24 @@ export default function PresupuestosRealesPage() {
     await fetchPresupuestoRubros(currentPresupuesto.id);
   };
 
+  const [isSyncingAllInsumos, setIsSyncingAllInsumos] = useState(false);
+
+  // Sincronizar masivamente las recetas e insumos de todos los rubros del presupuesto
+  const handleSyncAllInsumos = async () => {
+    if (!currentPresupuesto?.id) return;
+    setIsSyncingAllInsumos(true);
+    try {
+      const res = await syncAllInsumosForPresupuesto(supabase, currentPresupuesto.id);
+      await fetchPresupuestoRubros(currentPresupuesto.id);
+      alert(`¡Sincronización de insumos completada! Se verificaron ${res.totalRubros || 0} rubros.`);
+    } catch (err: any) {
+      console.error("Error al sincronizar insumos:", err);
+      alert("Error al sincronizar insumos: " + (err.message || err));
+    } finally {
+      setIsSyncingAllInsumos(false);
+    }
+  };
+
   // Guardar Fórmulas de Indirectos
   const handleSaveIndirectos = async () => {
     const { error } = await supabase.from('presupuestos_reales').update({
@@ -1131,6 +1150,17 @@ export default function PresupuestosRealesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isSyncingAllInsumos}
+                    onClick={handleSyncAllInsumos}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Sincronizar y generar recetas de insumos faltantes (materiales, cuadrillas CCEC, equipos) para todos los rubros"
+                  >
+                    {isSyncingAllInsumos ? <Loader2 size={15} className="animate-spin text-amber-700" /> : <Sparkles size={15} className="text-amber-600" />}
+                    <span>{isSyncingAllInsumos ? "Sincronizando..." : "⚡ Sincronizar Insumos"}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setNewCapituloModalOpen(true)}

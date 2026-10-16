@@ -53,6 +53,7 @@ import { createClientAccount } from "@/app/admin/clientes/actions";
 import AsyncSelect from "@/components/ui/AsyncSelect";
 import { useProject } from "@/contexts/ProjectContext";
 import CotizadorAgentNetworkModal from "@/components/cotizador/CotizadorAgentNetworkModal";
+import { syncAllInsumosForPresupuesto } from "@/lib/apuRecipeGenerator";
 
 // 24 Provincias y principales cantones del Ecuador
 const PROVINCIAS_CANTONES: Record<string, string[]> = {
@@ -1338,7 +1339,14 @@ export default function CotizadorPage() {
         })
         .eq('id', newPresupuesto.id);
 
-      // 7. Redirigir y abrir de inmediato el editor con todos los rubros
+      // 7. Sincronizar automáticamente la receta analítica de insumos (Materiales, Mano de Obra, Equipos)
+      try {
+        await syncAllInsumosForPresupuesto(supabase, newPresupuesto.id);
+      } catch (syncErr) {
+        console.warn("Aviso: la sincronización de insumos se completará en segundo plano:", syncErr);
+      }
+
+      // 8. Redirigir y abrir de inmediato el editor con todos los rubros
       queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
       router.push(`/dashboard/presupuestos_reales?open=${newPresupuesto.id}`);
     } catch (err: any) {

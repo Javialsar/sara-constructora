@@ -5,6 +5,7 @@ import {
   Package, Users, Wrench, Truck, Check, Search, Loader2, ArrowRight, FileText
 } from "lucide-react"
 import { generateSercopApuPDF } from "@/lib/pdfGenerator"
+import { syncInsumosForPresupuestoRubro } from "@/lib/apuRecipeGenerator"
 
 interface ApuSlideOverDetailProps {
   isOpen: boolean
@@ -213,6 +214,23 @@ export default function ApuSlideOverDetail({
     }
   }
 
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false)
+
+  // Sincronizar / Generar analíticamente la receta de insumos con la Red de Agentes SARA
+  const handleAutoSyncRecipe = async () => {
+    if (!currentRecipeRubro?.id) return
+    setIsAutoSyncing(true)
+    try {
+      await syncInsumosForPresupuestoRubro(supabase, currentRecipeRubro)
+      await onRecipeUpdated()
+    } catch (e: any) {
+      console.error("Error al sincronizar receta:", e)
+      alert("Error al sincronizar insumos: " + (e.message || e))
+    } finally {
+      setIsAutoSyncing(false)
+    }
+  }
+
   if (!isOpen || !currentRecipeRubro) return null
 
   const itemsToShow = categorized[activeSection] || []
@@ -400,14 +418,55 @@ export default function ApuSlideOverDetail({
               )}
             </div>
 
+            {/* Banner de Sincronización si el rubro no tiene insumos */}
+            {rawItems.length === 0 && (
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-start gap-2.5">
+                  <div className="p-2 bg-blue-100 text-blue-700 rounded-xl shrink-0 mt-0.5">
+                    <Sparkles size={16} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-blue-900 leading-tight">
+                      Receta Analítica de Insumos Pendiente
+                    </h4>
+                    <p className="text-[11px] text-blue-700 mt-0.5 leading-relaxed">
+                      Este rubro no cuenta con desglose analítico en la base de datos. Pulsa el botón para sincronizar de inmediato su receta analítica (materiales, cuadrillas CCEC y equipos) calculada al P.U. referencial de <span className="font-bold font-mono">${Number(currentRecipeRubro.precio_unitario_snapshot || 0).toFixed(2)}</span>.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isAutoSyncing}
+                  onClick={handleAutoSyncRecipe}
+                  className="px-4 py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-2 transition shrink-0 cursor-pointer disabled:opacity-50"
+                >
+                  {isAutoSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  <span>{isAutoSyncing ? "Sincronizando..." : "⚡ Sincronizar Insumos"}</span>
+                </button>
+              </div>
+            )}
+
             {/* Tabla de Insumos de la Sección */}
             {itemsToShow.length === 0 ? (
-              <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                <p className="text-xs text-slate-400 font-medium">
-                  No hay insumos agregados en esta categoría.
+              <div className="p-8 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/50 space-y-3">
+                <p className="text-xs text-slate-500 font-medium">
+                  No hay insumos registrados en la categoría de <span className="font-bold">{activeSection.replace('_', ' ')}</span>.
                 </p>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Usa el buscador superior para agregar insumos del catálogo o cuadrillas CCEC.
+                {rawItems.length === 0 && (
+                  <div>
+                    <button
+                      type="button"
+                      disabled={isAutoSyncing}
+                      onClick={handleAutoSyncRecipe}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                    >
+                      {isAutoSyncing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                      <span>⚡ Sincronizar Receta Completa de Insumos</span>
+                    </button>
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-400">
+                  O usa el buscador superior para agregar insumos individuales del catálogo o cuadrillas CCEC.
                 </p>
               </div>
             ) : (
