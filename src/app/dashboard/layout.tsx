@@ -27,7 +27,8 @@ import {
   Cpu,
   Building2,
   ShieldCheck,
-  FileCheck
+  FileCheck,
+  Ruler
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -59,6 +60,7 @@ export default function DashboardLayout({
       title: "2. ESTUDIO & PRESUPUESTACIÓN PRIVADA",
       items: [
         { href: "/dashboard/presupuestos_reales", label: "Mesa de Presupuestos Reales", icon: FileSpreadsheet },
+        { href: "/dashboard/takeoff", label: "SARA Take-Off (Planos 2D)", icon: Ruler },
         { href: "/dashboard/cotizador", label: "Cotizador Paramétrico Rápido", icon: Calculator },
         { href: "/dashboard/apus/bim", label: "SARA-BIM (Cómputos 3D)", icon: Cuboid },
       ]
