@@ -335,6 +335,141 @@ export default function PresupuestosRealesPage() {
     });
   };
 
+  // ----------------------------------------------------
+  // ACCIONES EN LISTA: EDITAR, CLONAR Y ELIMINAR
+  // ----------------------------------------------------
+  const handleOpenCloneModal = (presupuesto: any) => {
+    setCloneSource(presupuesto);
+    setCloneNombreProyecto(`${presupuesto.nombre_proyecto} (Copia)`);
+    setCloneClienteId(presupuesto.cliente_id || '');
+    setIsCloneModalOpen(true);
+  };
+
+  const handleExecuteClone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cloneSource) return;
+    setIsCloning(true);
+    try {
+      const nombreFinal = cloneNombreProyecto.trim() || `${cloneSource.nombre_proyecto} (Copia)`;
+
+      // 1. Crear nuevo presupuesto clon
+      const { data: newPres, error: newPresErr } = await supabase
+        .from('presupuestos_reales')
+        .insert([{
+          nombre_proyecto: nombreFinal,
+          cliente_id: cloneClienteId || cloneSource.cliente_id || null,
+          costo_directo_total: cloneSource.costo_directo_total || 0,
+          gran_total: cloneSource.gran_total || 0,
+          porcentaje_admin: cloneSource.porcentaje_admin || 10,
+          porcentaje_imprevistos: cloneSource.porcentaje_imprevistos || 5,
+          porcentaje_utilidad: cloneSource.porcentaje_utilidad || 10,
+          estado: 'borrador',
+          indirectos_config: cloneSource.indirectos_config || {
+            regimen: 'privado',
+            capitulos: DEFAULT_CAPITULOS,
+            rubro_capitulo_map: {},
+            pmaq1: 5, pmob1: 0, pmat1: 0, ggen: 0, pgas1: 0, pgas2: 0, pgas3: 0, pimp: 0, util: 0
+          }
+        }])
+        .select('*')
+        .single();
+
+      if (newPresErr) throw newPresErr;
+
+      // 2. Traer todos los rubros del presupuesto fuente
+      const { data: sourceRubros, error: rubrosErr } = await supabase
+        .from('presupuesto_rubros')
+        .select('*')
+        .eq('presupuesto_id', cloneSource.id)
+        .order('created_at', { ascending: true });
+
+      if (rubrosErr) throw rubrosErr;
+
+      if (sourceRubros && sourceRubros.length > 0) {
+        // Mapear los rubros con el nuevo presupuesto_id
+        const rubrosToInsert = sourceRubros.map((r: any) => ({
+          presupuesto_id: newPres.id,
+          codigo_rubro: r.codigo_rubro,
+          nombre_rubro: r.nombre_rubro,
+          unidad: r.unidad,
+          cantidad_obra: r.cantidad_obra,
+          precio_unitario_snapshot: r.precio_unitario_snapshot,
+          subtotal: r.subtotal,
+          capitulo: r.capitulo,
+          fecha_inicio: r.fecha_inicio,
+          fecha_fin: r.fecha_fin,
+          dias_duracion: r.dias_duracion
+        }));
+
+        const { data: insertedRubros, error: insErr } = await supabase
+          .from('presupuesto_rubros')
+          .insert(rubrosToInsert)
+          .select('*');
+
+        if (insErr) throw insErr;
+
+        // 3. Traer y clonar las recetas analíticas (presupuesto_rubro_insumos)
+        const sourceRubroIds = sourceRubros.map((r: any) => r.id);
+        const { data: sourceInsumos } = await supabase
+          .from('presupuesto_rubro_insumos')
+          .select('*')
+          .in('presupuesto_rubro_id', sourceRubroIds);
+
+        if (sourceInsumos && sourceInsumos.length > 0 && insertedRubros) {
+          const insumosToInsert: any[] = [];
+          sourceRubros.forEach((sr: any, idx: number) => {
+            const newRubro = insertedRubros[idx];
+            if (!newRubro) return;
+            const relatedInsumos = sourceInsumos.filter((si: any) => si.presupuesto_rubro_id === sr.id);
+            relatedInsumos.forEach((ri: any) => {
+              insumosToInsert.push({
+                presupuesto_rubro_id: newRubro.id,
+                insumo_id: ri.insumo_id,
+                cantidad: ri.cantidad,
+                precio_sin_iva_snapshot: ri.precio_sin_iva_snapshot,
+                rendimiento: ri.rendimiento
+              });
+            });
+          });
+
+          if (insumosToInsert.length > 0) {
+            await supabase.from('presupuesto_rubro_insumos').insert(insumosToInsert);
+          }
+        }
+      }
+
+      setIsCloneModalOpen(false);
+      setCloneSource(null);
+      queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      alert(`Presupuesto clonado exitosamente: "${nombreFinal}" con todos sus rubros e insumos.`);
+    } catch (err: any) {
+      console.error("Error al clonar presupuesto:", err);
+      alert("Error al clonar: " + (err.message || JSON.stringify(err)));
+    } finally {
+      setIsCloning(false);
+    }
+  };
+
+  const handleDeletePresupuesto = async (presupuesto: any) => {
+    const confirmMsg = `¿Estás seguro de eliminar el presupuesto "${presupuesto.nombre_proyecto}"?\n\nEsta acción quitará el presupuesto de la lista activa.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const { error } = await supabase
+        .from('presupuestos_reales')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', presupuesto.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['presupuestos'] });
+      alert("Presupuesto eliminado correctamente.");
+    } catch (err: any) {
+      console.error("Error al eliminar presupuesto:", err);
+      alert("Error al eliminar: " + (err.message || JSON.stringify(err)));
+    }
+  };
+
   // Abrir editor
   const openEditor = async (presupuesto: any) => {
     let pres = { ...presupuesto };
@@ -2168,11 +2303,36 @@ export default function PresupuestosRealesPage() {
                       </td>
                       <td className="px-6 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-center gap-1.5">
+                          {/* 1. Botón Editar / Abrir Mesa */}
                           <button
+                            type="button"
                             onClick={() => openEditor(p)}
-                            className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition"
+                            className="px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-1 font-bold text-xs shadow-2xs border border-blue-200 hover:border-blue-600 cursor-pointer"
+                            title="Abrir y Editar Presupuesto en la Mesa de Trabajo"
                           >
-                            Abrir Mesa
+                            <Edit3 size={13} />
+                            <span>Editar</span>
+                          </button>
+
+                          {/* 2. Botón Clonar / Duplicar */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCloneModal(p)}
+                            className="px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-500 hover:text-slate-950 transition-all flex items-center gap-1 font-bold text-xs shadow-2xs border border-amber-200 hover:border-amber-500 cursor-pointer"
+                            title="Clonar / Duplicar Presupuesto con sus Rubros e Insumos"
+                          >
+                            <Copy size={13} />
+                            <span className="hidden sm:inline">Clonar</span>
+                          </button>
+
+                          {/* 3. Botón Eliminar */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePresupuesto(p)}
+                            className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center shadow-2xs border border-red-200 hover:border-red-600 cursor-pointer"
+                            title="Eliminar Presupuesto"
+                          >
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -2263,6 +2423,99 @@ export default function PresupuestosRealesPage() {
             setIsNewModalOpen(true);
           }}
         />
+      )}
+
+      {/* Modal para Clonar Presupuesto */}
+      {isCloneModalOpen && cloneSource && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-amber-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-700 flex items-center justify-center">
+                  <Copy size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900">Clonar / Duplicar Presupuesto</h3>
+                  <p className="text-[11px] text-slate-500">Duplica todos los rubros, insumos y configuración de indirectos</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setIsCloneModalOpen(false); setCloneSource(null); }} 
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleExecuteClone} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1.5">
+                  Nombre del Presupuesto Duplicado *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={cloneNombreProyecto}
+                  onChange={(e) => setCloneNombreProyecto(e.target.value)}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-xs bg-white text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-bold"
+                  placeholder="Ej: Residencia El Chiquito - Variante 2"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-700 mb-1.5">
+                  Presupuesto Original Fuente
+                </label>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+                  <div className="font-bold text-slate-800">{cloneSource.nombre_proyecto}</div>
+                  <div className="text-slate-500 flex items-center justify-between">
+                    <span>Cliente: {cloneSource.cliente ? `${cloneSource.cliente.nombre} ${cloneSource.cliente.apellido}` : 'Sin cliente'}</span>
+                    <span className="font-mono font-bold text-slate-700">${Number(cloneSource.gran_total || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100 text-xs text-blue-900 space-y-1">
+                <span className="font-bold block">✨ ¿Qué se duplicará con esta acción?</span>
+                <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-blue-800">
+                  <li>Todos los capítulos y estructura de la hoja de presupuesto.</li>
+                  <li>Todos los rubros con sus cantidades de obra y precios unitarios.</li>
+                  <li>Las recetas analíticas completas de insumos (Materiales, Mano de Obra, Equipos y Transporte).</li>
+                  <li>La configuración de indirectos y porcentajes AIU.</li>
+                </ul>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  disabled={isCloning}
+                  onClick={() => { setIsCloneModalOpen(false); setCloneSource(null); }}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCloning || !cloneNombreProyecto.trim()}
+                  className="px-5 py-2 text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isCloning ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Duplicando Rubros e Insumos...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      <span>Confirmar y Clonar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>
