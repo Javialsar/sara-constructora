@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import dynamic from "next/dynamic"
 import { 
@@ -28,19 +28,53 @@ import {
   ExternalLink,
   ChevronRight,
   Briefcase,
-  Layers
+  Layers,
+  UploadCloud,
+  Image as ImageIcon,
+  CheckSquare,
+  FileCheck2,
+  QrCode,
+  PenTool
 } from "lucide-react"
 
 // Importación dinámica de Leaflet para evitar errores en SSR
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-72 bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 text-sm gap-2 animate-pulse">
+    <div className="w-full h-80 bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-slate-400 text-sm gap-2 animate-pulse">
       <Compass size={28} className="animate-spin text-cyan-600" />
       <span>Cargando mapa interactivo & geolocalización satelital...</span>
     </div>
   )
 })
+
+// Coordenadas de referencia inmediata por Provincia en Ecuador
+const COORDENADAS_PROVINCIAS: Record<string, [number, number]> = {
+  "Azuay": [-2.9001285, -79.0058965],
+  "Loja": [-3.99313, -79.20422],
+  "Pichincha": [-0.180653, -78.467838],
+  "Guayas": [-2.189412, -79.889066],
+  "El Oro": [-3.25811, -79.95508],
+  "Manabí": [-1.05458, -80.45445],
+  "Tungurahua": [-1.24908, -78.61675],
+  "Chimborazo": [-1.66355, -78.65465],
+  "Imbabura": [0.35171, -78.12233],
+  "Cotopaxi": [-0.93521, -78.61554],
+  "Cañar": [-2.73969, -78.84860],
+  "Santo Domingo": [-0.25305, -79.17536],
+  "Esmeraldas": [0.9592, -79.6539],
+  "Los Ríos": [-1.80217, -79.53443],
+  "Carchi": [0.81237, -77.71727],
+  "Bolívar": [-1.59258, -79.00412],
+  "Pastaza": [-1.49239, -78.00257],
+  "Morona Santiago": [-2.30868, -78.11135],
+  "Napo": [-0.9938, -77.8128],
+  "Zamora Chinchipe": [-4.06922, -78.95669],
+  "Sucumbíos": [0.08473, -76.88283],
+  "Orellana": [-0.46389, -76.98722],
+  "Santa Elena": [-2.22622, -80.85873],
+  "Galápagos": [-0.95377, -90.9656]
+}
 
 // 24 Provincias y principales cantones de Ecuador
 const PROVINCIAS_ECUADOR: Record<string, string[]> = {
@@ -79,38 +113,55 @@ export interface ProfesionalStaff {
   email: string
 }
 
+export interface ReportesConfig {
+  incluir_logo: boolean
+  incluir_razon_social: boolean
+  incluir_ruc: boolean
+  incluir_direccion: boolean
+  incluir_telefono: boolean
+  incluir_email: boolean
+  incluir_qr: boolean
+  tecnico_firmante_id: string
+  segunda_firma_habilitada: boolean
+  segunda_firma_cargo: string
+  segunda_firma_nombre: string
+}
+
 export default function ParametrosClientePage() {
   const supabase = createClient()
   
   // Viñeta Activa (Tabs)
-  const [activeTab, setActiveTab] = useState<'empresa' | 'aiu' | 'sri'>('empresa')
+  const [activeTab, setActiveTab] = useState<'empresa' | 'reportes' | 'aiu' | 'sri'>('empresa')
+
+  // Logotipo Oficial de la Empresa
+  const [logoBase64, setLogoBase64] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 1. Datos de Identidad Corporativa y Geolocalización
   const [empresa, setEmpresa] = useState({
-    razon_social: "GRUPO SARA INGENIERÍA & CONSTRUCCIÓN S.A.S.",
-    nombre_comercial: "Grupo SARA Constructora",
-    ruc: "0190456789001",
-    gerente: "Ing. Javier Sarango Gona",
-    provincia: "Azuay",
-    canton: "Cuenca",
-    ciudad: "Cuenca",
-    calle_principal: "Av. Paucarbamba",
-    calle_secundaria: "Los Álamos, Edif. Corporativo SARA, Piso 4",
+    razon_social: "LIDER ARQUITECTURA",
+    nombre_comercial: "ARQ-PRISMA",
+    ruc: "1102978630001",
+    gerente: "JOSE DE LA CUADRA",
+    provincia: "Pichincha",
+    canton: "Quito",
+    ciudad: "Quito",
+    calle_principal: "Av. República del Salvador",
+    calle_secundaria: "y Naciones Unidas, Edificio Prisma, Of. 502",
     telefono: "+593 98 180 4023",
-    email: "contacto@saraconstructora.com",
-    sitio_web: "https://saraconstructora.com",
-    facebook: "https://facebook.com/saraconstructora",
-    instagram: "https://instagram.com/saraconstructora",
-    linkedin: "https://linkedin.com/company/grupo-sara",
-    tiktok: "https://tiktok.com/@saraconstructora",
-    youtube: "https://youtube.com/@saraconstructora",
-    latitud: -2.9001285,
-    longitud: -79.0058965
+    email: "contacto@arqprisma.com",
+    sitio_web: "https://arqprisma.com",
+    facebook: "https://facebook.com/arqprisma",
+    instagram: "@arqprisma.ec",
+    linkedin: "linkedin.com/company/arqprisma",
+    latitud: -0.180653,
+    longitud: -78.467838
   })
 
   // Mapa interactivo Leaflet: Coordenadas [lat, lng]
-  const [mapPosition, setMapPosition] = useState<[number, number]>([-2.9001285, -79.0058965])
+  const [mapPosition, setMapPosition] = useState<[number, number]>([-0.180653, -78.467838])
   const [isLocating, setIsLocating] = useState(false)
+  const [isGeocoding, setIsGeocoding] = useState(false)
 
   // Staff Técnico Colegiado
   const [staffTecnico, setStaffTecnico] = useState<ProfesionalStaff[]>([
@@ -140,6 +191,21 @@ export default function ParametrosClientePage() {
     }
   ])
 
+  // Configuración de Reportes, Membrete & Firmas
+  const [reportesConfig, setReportesConfig] = useState<ReportesConfig>({
+    incluir_logo: true,
+    incluir_razon_social: true,
+    incluir_ruc: true,
+    incluir_direccion: true,
+    incluir_telefono: true,
+    incluir_email: true,
+    incluir_qr: true,
+    tecnico_firmante_id: "1",
+    segunda_firma_habilitada: true,
+    segunda_firma_cargo: "Representante Legal / Gerente General",
+    segunda_firma_nombre: "JOSE DE LA CUADRA"
+  })
+
   // Modal para agregar miembro al Staff Técnico
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false)
   const [nuevoStaff, setNuevoStaff] = useState<Omit<ProfesionalStaff, 'id'>>({
@@ -157,14 +223,14 @@ export default function ParametrosClientePage() {
     decimales_cantidades: 2,
     decimales_precios: 2,
 
-    // Costos Indirectos AIU (Imagen 2)
+    // Costos Indirectos AIU (10% Admin, 5% Imprevistos, 10% Utilidad, 5% Herramienta Menor)
     porcentaje_admin_default: 10.0,
     porcentaje_imprevistos_default: 5.0,
     porcentaje_utilidad_default: 10.0,
     herramienta_menor_default: 5.0,
 
-    // Políticas Fiscales SRI Ecuador 2026 (Imagen 1)
-    regimen_tributario: "general", // general, rimpe_emprendedor, rimpe_popular, contribuyente_especial
+    // Políticas Fiscales SRI Ecuador 2026
+    regimen_tributario: "general",
     es_agente_retencion: false,
     retencion_renta_pct: 1.75,
     retencion_iva_pct: 30.0,
@@ -179,14 +245,14 @@ export default function ParametrosClientePage() {
   const [saving, setSaving] = useState(false)
   const [mensaje, setMensaje] = useState("")
 
-  // Cargar parámetros y datos de empresa
+  // Cargar parámetros, logotipo y datos de empresa
   useEffect(() => {
     fetchParametrosYEmpresa()
   }, [])
 
   // Sincronizar posición del mapa con la empresa
   useEffect(() => {
-    if (mapPosition) {
+    if (mapPosition && !isNaN(mapPosition[0]) && !isNaN(mapPosition[1])) {
       setEmpresa(prev => ({
         ...prev,
         latitud: Number(mapPosition[0].toFixed(7)),
@@ -198,7 +264,11 @@ export default function ParametrosClientePage() {
   const fetchParametrosYEmpresa = async () => {
     setLoading(true)
     try {
-      // 1. Cargar desde LocalStorage para sincronización inmediata
+      // 1. Cargar Logotipo
+      const savedLogo = localStorage.getItem("my_company_logo")
+      if (savedLogo) setLogoBase64(savedLogo)
+
+      // 2. Cargar Datos Empresa
       const savedEmpresa = localStorage.getItem("sara_empresa_identidad")
       if (savedEmpresa) {
         try {
@@ -209,7 +279,7 @@ export default function ParametrosClientePage() {
           }
         } catch (e) {}
       } else {
-        // Fallback a my_company_profile de marca
+        // Fallback a my_company_profile
         const oldProfile = localStorage.getItem("my_company_profile")
         if (oldProfile) {
           try {
@@ -235,6 +305,7 @@ export default function ParametrosClientePage() {
         }
       }
 
+      // 3. Cargar Staff Técnico
       const savedStaff = localStorage.getItem("sara_empresa_staff")
       if (savedStaff) {
         try {
@@ -245,6 +316,16 @@ export default function ParametrosClientePage() {
         } catch (e) {}
       }
 
+      // 4. Cargar Configuración de Reportes
+      const savedReportes = localStorage.getItem("sara_reportes_config")
+      if (savedReportes) {
+        try {
+          const parsedR = JSON.parse(savedReportes)
+          setReportesConfig(prev => ({ ...prev, ...parsedR }))
+        } catch (e) {}
+      }
+
+      // 5. Cargar Parámetros AIU y SRI
       const savedParams = localStorage.getItem("sara_empresa_parametros")
       if (savedParams) {
         try {
@@ -253,21 +334,25 @@ export default function ParametrosClientePage() {
         } catch (e) {}
       }
 
-      // 2. Cargar desde Supabase
+      // 6. Cargar desde Supabase si existe sesión
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Metadatos de usuario en Supabase Auth
         if (user.user_metadata?.empresa_identidad) {
           setEmpresa(prev => ({ ...prev, ...user.user_metadata.empresa_identidad }))
           if (user.user_metadata.empresa_identidad.latitud) {
             setMapPosition([user.user_metadata.empresa_identidad.latitud, user.user_metadata.empresa_identidad.longitud])
           }
         }
+        if (user.user_metadata?.empresa_logo) {
+          setLogoBase64(user.user_metadata.empresa_logo)
+        }
         if (user.user_metadata?.staff_tecnico && Array.isArray(user.user_metadata.staff_tecnico)) {
           setStaffTecnico(user.user_metadata.staff_tecnico)
         }
+        if (user.user_metadata?.reportes_config) {
+          setReportesConfig(user.user_metadata.reportes_config)
+        }
 
-        // Parámetros numéricos en tabla empresa_parametros_cliente
         const { data } = await supabase
           .from('empresa_parametros_cliente')
           .select('*')
@@ -288,7 +373,80 @@ export default function ParametrosClientePage() {
     }
   }
 
-  // Obtener geolocalización GPS del navegador en tiempo real
+  // Manejo de carga de logotipo oficial
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("La imagen debe tener un tamaño inferior a 2 MB.")
+        return
+      }
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+        setLogoBase64(base64)
+        localStorage.setItem("my_company_logo", base64)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleEliminarLogo = () => {
+    if (confirm("¿Deseas quitar el logotipo oficial?")) {
+      setLogoBase64(null)
+      localStorage.removeItem("my_company_logo")
+    }
+  }
+
+  // Geocodificación y reubicación automática en el mapa
+  const reubicarEnMapa = async (provincia: string, canton: string, calle: string) => {
+    // 1. Si existe centroide directo de provincia, ubicar inmediatamente
+    if (COORDENADAS_PROVINCIAS[provincia]) {
+      setMapPosition(COORDENADAS_PROVINCIAS[provincia])
+    }
+
+    // 2. Intentar afinar con geocodificación OSM Nominatim
+    const query = `${calle ? calle + ", " : ""}${canton}, ${provincia}, Ecuador`
+    setIsGeocoding(true)
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+      const data = await res.json()
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat)
+        const lon = parseFloat(data[0].lon)
+        if (!isNaN(lat) && !isNaN(lon)) {
+          setMapPosition([lat, lon])
+        }
+      }
+    } catch (err) {
+      console.warn("Geocoding aviso:", err)
+    } finally {
+      setIsGeocoding(false)
+    }
+  }
+
+  const handleProvinciaChange = (prov: string) => {
+    const cantones = PROVINCIAS_ECUADOR[prov] || []
+    const defaultCanton = cantones[0] || prov
+    setEmpresa(prev => ({
+      ...prev,
+      provincia: prov,
+      canton: defaultCanton,
+      ciudad: defaultCanton
+    }))
+    reubicarEnMapa(prov, defaultCanton, empresa.calle_principal)
+  }
+
+  const handleCantonChange = (cant: string) => {
+    setEmpresa(prev => ({
+      ...prev,
+      canton: cant,
+      ciudad: cant
+    }))
+    reubicarEnMapa(empresa.provincia, cant, empresa.calle_principal)
+  }
+
+  // Obtener geolocalización GPS del dispositivo en tiempo real
   const handleObtenerUbicacionGPS = () => {
     if (!navigator.geolocation) {
       alert("La geolocalización no está soportada por tu navegador.")
@@ -312,7 +470,7 @@ export default function ParametrosClientePage() {
       (err) => {
         console.warn("Error GPS:", err)
         setIsLocating(false)
-        alert("No se pudo obtener la posición GPS automática. Puedes marcarla haciendo clic sobre el mapa satelital.")
+        alert("No se pudo obtener la posición GPS automática. Puedes arrastrar el marcador sobre el mapa satelital.")
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
@@ -360,8 +518,12 @@ export default function ParametrosClientePage() {
       localStorage.setItem("sara_empresa_identidad", JSON.stringify(empresa))
       localStorage.setItem("sara_empresa_staff", JSON.stringify(staffTecnico))
       localStorage.setItem("sara_empresa_parametros", JSON.stringify(params))
+      localStorage.setItem("sara_reportes_config", JSON.stringify(reportesConfig))
+      if (logoBase64) {
+        localStorage.setItem("my_company_logo", logoBase64)
+      }
 
-      // Compatibilidad con módulo de Marca & Membrete
+      // Compatibilidad con PDF de presupuestos y membretes
       localStorage.setItem("my_company_profile", JSON.stringify({
         formData: {
           nombre_comercial: empresa.nombre_comercial,
@@ -379,22 +541,22 @@ export default function ParametrosClientePage() {
       // Emitir evento para sincronización reactiva en tiempo real en ventanas abiertas
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("empresa_parametros_updated", { 
-          detail: { params, empresa, staffTecnico } 
+          detail: { params, empresa, staffTecnico, reportesConfig, logoBase64 } 
         }))
       }
 
       // 2. Persistencia en Supabase
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        // Actualizar user_metadata con ficha de empresa y staff
         await supabase.auth.updateUser({
           data: {
             empresa_identidad: empresa,
-            staff_tecnico: staffTecnico
+            empresa_logo: logoBase64,
+            staff_tecnico: staffTecnico,
+            reportes_config: reportesConfig
           }
         })
 
-        // Upsert en tabla empresa_parametros_cliente
         const payload = {
           user_id: user.id,
           decimales_calculos: Number(params.decimales_calculos),
@@ -417,7 +579,7 @@ export default function ParametrosClientePage() {
           .upsert([payload], { onConflict: 'user_id' })
       }
 
-      setMensaje("✅ ¡Ficha de empresa, geolocalización, staff técnico y parámetros de cálculo guardados con éxito!")
+      setMensaje("✅ ¡Ficha de empresa, mapa satelital, staff técnico y parámetros de reportes guardados con éxito!")
       setTimeout(() => setMensaje(""), 4500)
     } catch (err: any) {
       setMensaje("⚠️ Error al guardar: " + (err.message || "Error desconocido"))
@@ -427,29 +589,22 @@ export default function ParametrosClientePage() {
   }
 
   const handleEmpresaChange = (field: string, value: any) => {
-    setEmpresa(prev => {
-      const updated = { ...prev, [field]: value }
-      // Si cambia provincia, reajustar cantón por defecto
-      if (field === "provincia" && PROVINCIAS_ECUADOR[value]?.length) {
-        updated.canton = PROVINCIAS_ECUADOR[value][0]
-      }
-      return updated
-    })
+    setEmpresa(prev => ({ ...prev, [field]: value }))
   }
 
   const handleParamChange = (field: string, value: any) => {
-    setParams(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    setParams(prev => ({ ...prev, [field]: value }))
   }
 
   const totalAiu = Number(params.porcentaje_admin_default) + Number(params.porcentaje_imprevistos_default) + Number(params.porcentaje_utilidad_default)
 
+  // Obtener técnico firmante activo
+  const tecnicoFirmante = staffTecnico.find(t => t.id === reportesConfig.tecnico_firmante_id) || staffTecnico[0]
+
   if (loading) {
     return (
       <div className="p-12 flex flex-col justify-center items-center h-full">
-        <Loader2 className="w-10 h-10 text-brand-sage animate-spin mb-3" />
+        <Loader2 className="w-10 h-10 text-cyan-600 animate-spin mb-3" />
         <p className="text-gray-500 font-medium text-sm">Cargando parámetros y ficha empresarial...</p>
       </div>
     )
@@ -465,10 +620,10 @@ export default function ParametrosClientePage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-3">
             <Building2 className="text-cyan-600 dark:text-cyan-400" size={30} />
-            Datos de Empresa & Parámetros Operativos
+            Datos de Empresa, Logotipo & Parámetros
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-2xl text-xs sm:text-sm">
-            Ficha de identidad corporativa, geolocalización satelital en tiempo real, staff técnico colegiado y políticas de costos indirectos (AIU) para el ecosistema.
+            Ficha de identidad corporativa, logotipo oficial, geolocalización en tiempo real y parámetros para cálculo de presupuestos y firmas en reportes.
           </p>
         </div>
 
@@ -506,7 +661,19 @@ export default function ParametrosClientePage() {
           }`}
         >
           <Building2 size={16} />
-          <span>1. Identidad Corporativa, Geolocalización & Staff Técnico</span>
+          <span>1. Identidad Corporativa, Logotipo & Geolocalización</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('reportes')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap ${
+            activeTab === 'reportes'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+          }`}
+        >
+          <FileCheck2 size={16} />
+          <span>2. Parámetros de Reportes, Membrete & Firmas</span>
         </button>
 
         <button
@@ -518,7 +685,7 @@ export default function ParametrosClientePage() {
           }`}
         >
           <FileText size={16} />
-          <span>2. Costos Indirectos (AIU) & Precisión Numérica</span>
+          <span>3. Costos Indirectos (AIU) & Precisión Numérica</span>
           <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">
             {totalAiu}% AIU
           </span>
@@ -533,173 +700,291 @@ export default function ParametrosClientePage() {
           }`}
         >
           <Landmark size={16} />
-          <span>3. Políticas Tributarias & Retenciones SRI (2026)</span>
+          <span>4. Políticas Tributarias & Retenciones SRI (2026)</span>
         </button>
       </div>
 
       <form onSubmit={handleSave} className="space-y-8">
         
         {/* ========================================================================= */}
-        {/* VIÑETA 1: IDENTIDAD CORPORATIVA, GEOLOCALIZACIÓN SATELITAL & STAFF TÉCNICO */}
+        {/* VIÑETA 1: IDENTIDAD CORPORATIVA, LOGOTIPO, DIRECCIÓN JUNTO AL MAPA       */}
         {/* ========================================================================= */}
         {activeTab === 'empresa' && (
           <div className="space-y-6">
             
-            {/* 1.1 Ficha Legal y Tributaria */}
+            {/* 1.1 Logotipo Oficial y Datos Generales de la Empresa */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-4 font-bold flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
                   <Building2 size={18} className="text-cyan-400" />
-                  Datos Oficiales de la Empresa Constructora
+                  Datos Oficiales & Logotipo de la Empresa Constructora
                 </div>
                 <span className="text-xs bg-cyan-400/20 text-cyan-300 px-2.5 py-0.5 rounded-full font-medium">
-                  RUC & Personería Jurídica
+                  RUC & Membrete
                 </span>
               </div>
 
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                <div className="lg:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Razón Social Oficial (SRI / Registro Mercantil)
-                  </label>
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+                
+                {/* Cuadro de Logotipo Oficial */}
+                <div className="lg:col-span-1 flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-center">
                   <input
-                    type="text"
-                    value={empresa.razon_social}
-                    onChange={e => handleEmpresaChange('razon_social', e.target.value)}
-                    placeholder="Ej. GRUPO SARA INGENIERÍA & CONSTRUCCIÓN S.A.S."
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/*"
+                    className="hidden"
                   />
-                  <p className="text-[11px] text-slate-400 mt-1">Nombre registrado para facturación electrónica y contratos públicos SERCOP.</p>
+                  
+                  {logoBase64 ? (
+                    <div className="space-y-3 w-full flex flex-col items-center">
+                      <div className="w-full h-32 bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden shadow-inner">
+                        <img 
+                          src={logoBase64} 
+                          alt="Logotipo Oficial" 
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-cyan-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100"
+                        >
+                          Cambiar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleEliminarLogo}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 hover:bg-red-100"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-2xl bg-cyan-100 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center">
+                        <UploadCloud size={30} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Logotipo de la Empresa</p>
+                        <p className="text-[10px] text-slate-400">PNG, JPG o SVG (máx. 2MB)</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-1 text-xs font-bold px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl shadow hover:from-blue-700 hover:to-cyan-700 transition-all"
+                      >
+                        Subir Logotipo
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-slate-400 mt-2 text-center">
+                    Aparecerá en el encabezado de todos tus presupuestos, ofertas SERCOP y reportes PDF.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Nombre Comercial
-                  </label>
-                  <input
-                    type="text"
-                    value={empresa.nombre_comercial}
-                    onChange={e => handleEmpresaChange('nombre_comercial', e.target.value)}
-                    placeholder="Ej. Grupo SARA Constructora"
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">Nombre de marca visible para presupuestos.</p>
+                {/* Campos de Identidad Legal */}
+                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
+                      Razón Social Oficial (SRI / Registro Mercantil)
+                    </label>
+                    <input
+                      type="text"
+                      value={empresa.razon_social}
+                      onChange={e => handleEmpresaChange('razon_social', e.target.value)}
+                      placeholder="Ej. LIDER ARQUITECTURA"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Nombre legal registrado para contratos y facturación electrónica.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
+                      Nombre Comercial
+                    </label>
+                    <input
+                      type="text"
+                      value={empresa.nombre_comercial}
+                      onChange={e => handleEmpresaChange('nombre_comercial', e.target.value)}
+                      placeholder="Ej. ARQ-PRISMA"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Nombre comercial visible.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
+                      Número de RUC (Ecuador)
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={13}
+                      value={empresa.ruc}
+                      onChange={e => handleEmpresaChange('ruc', e.target.value)}
+                      placeholder="Ej. 1102978630001"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">13 dígitos reglamentarios.</p>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
+                      Gerente General / Representante Legal
+                    </label>
+                    <input
+                      type="text"
+                      value={empresa.gerente}
+                      onChange={e => handleEmpresaChange('gerente', e.target.value)}
+                      placeholder="Ej. JOSE DE LA CUADRA"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">Suscribe ofertas técnicas y contratos legales.</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Número de RUC (Ecuador)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={13}
-                    value={empresa.ruc}
-                    onChange={e => handleEmpresaChange('ruc', e.target.value)}
-                    placeholder="Ej. 0190456789001"
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">13 dígitos reglamentarios del SRI.</p>
-                </div>
-
-                <div className="lg:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Gerente General / Representante Legal
-                  </label>
-                  <input
-                    type="text"
-                    value={empresa.gerente}
-                    onChange={e => handleEmpresaChange('gerente', e.target.value)}
-                    placeholder="Ej. Ing. Javier Sarango Gona"
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">Suscribe ofertas técnicas y planillas de avance de obra.</p>
-                </div>
               </div>
             </div>
 
-            {/* 1.2 Dirección Física & Cobertura */}
+            {/* 1.2 DIRECCIÓN DE LA MATRIZ UBICADA JUNTO AL MAPA (Grid 2 Columnas) */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-              <div className="bg-slate-800 text-white p-4 font-bold flex items-center justify-between">
+              <div className="bg-slate-800 text-white p-4 font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
-                  <MapPin size={18} className="text-amber-400" />
-                  Dirección Matriz & Cobertura Territorial
+                  <MapPin size={18} className="text-cyan-400" />
+                  Dirección Matriz & Geolocalización Satelital Interactiva
                 </div>
-                <span className="text-xs text-slate-300 font-mono">Ecuador</span>
+
+                <div className="flex items-center gap-2">
+                  {isGeocoding && (
+                    <span className="text-xs text-cyan-300 flex items-center gap-1 font-normal bg-cyan-950/60 px-2 py-0.5 rounded-full border border-cyan-800 animate-pulse">
+                      <Compass size={12} className="animate-spin" /> Buscando en mapa...
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleObtenerUbicacionGPS}
+                    disabled={isLocating}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow transition-all hover:scale-102 disabled:opacity-50"
+                  >
+                    <Crosshair size={13} className={isLocating ? "animate-spin" : ""} />
+                    <span>{isLocating ? "Detectando GPS..." : "📍 Mi Ubicación GPS en Vivo"}</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Provincia
-                  </label>
-                  <select
-                    value={empresa.provincia}
-                    onChange={e => handleEmpresaChange('provincia', e.target.value)}
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-600"
-                  >
-                    {Object.keys(PROVINCIAS_ECUADOR).map(prov => (
-                      <option key={prov} value={prov}>{prov}</option>
-                    ))}
-                  </select>
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* COLUMNA IZQUIERDA: Formulario de Dirección Reactivo */}
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">
+                        Provincia
+                      </label>
+                      <select
+                        value={empresa.provincia}
+                        onChange={e => handleProvinciaChange(e.target.value)}
+                        className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-600"
+                      >
+                        {Object.keys(PROVINCIAS_ECUADOR).map(prov => (
+                          <option key={prov} value={prov}>{prov}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">
+                        Cantón
+                      </label>
+                      <select
+                        value={empresa.canton}
+                        onChange={e => handleCantonChange(e.target.value)}
+                        className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-600"
+                      >
+                        {(PROVINCIAS_ECUADOR[empresa.provincia] || [empresa.canton]).map(cant => (
+                          <option key={cant} value={cant}>{cant}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">
+                      Ciudad / Parroquia
+                    </label>
+                    <input
+                      type="text"
+                      value={empresa.ciudad}
+                      onChange={e => {
+                        handleEmpresaChange('ciudad', e.target.value)
+                        reubicarEnMapa(empresa.provincia, empresa.canton, e.target.value)
+                      }}
+                      placeholder="Ej. Quito / Iñaquito"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">
+                      Calle Principal & Nomenclatura
+                    </label>
+                    <input
+                      type="text"
+                      value={empresa.calle_principal}
+                      onChange={e => {
+                        handleEmpresaChange('calle_principal', e.target.value)
+                        // Disparar geocodificación reactiva con la nueva calle
+                        reubicarEnMapa(empresa.provincia, empresa.canton, e.target.value)
+                      }}
+                      placeholder="Ej. Av. República del Salvador y N34"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Al escribir o cambiar la calle, el mapa se centra automáticamente.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 uppercase">
+                      Calle Secundaria / Edificio / Oficina
+                    </label>
+                    <input
+                      type="text"
+                      value={empresa.calle_secundaria}
+                      onChange={e => handleEmpresaChange('calle_secundaria', e.target.value)}
+                      placeholder="Ej. Edif. Prisma, Piso 5, Of. 502"
+                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  </div>
+
+                  <div className="p-3 bg-cyan-50 dark:bg-cyan-950/40 rounded-xl border border-cyan-200 dark:border-cyan-900 text-[11px] text-cyan-900 dark:text-cyan-200 font-mono flex items-center justify-between">
+                    <div>
+                      <p className="font-bold">Coordenadas Exactas:</p>
+                      <p>Lat: {empresa.latitud}</p>
+                      <p>Lng: {empresa.longitud}</p>
+                    </div>
+                    <span className="text-[10px] text-cyan-700 dark:text-cyan-300 font-sans text-right max-w-[140px]">
+                      Arrastra el pin en el mapa para afinar la ubicación.
+                    </span>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Cantón
-                  </label>
-                  <select
-                    value={empresa.canton}
-                    onChange={e => handleEmpresaChange('canton', e.target.value)}
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-blue-600"
-                  >
-                    {(PROVINCIAS_ECUADOR[empresa.provincia] || [empresa.canton]).map(cant => (
-                      <option key={cant} value={cant}>{cant}</option>
-                    ))}
-                  </select>
+                {/* COLUMNA DERECHA: Mapa Satelital Interactivo con Pin Arrastrable */}
+                <div className="lg:col-span-7 flex flex-col">
+                  <div className="w-full h-80 lg:h-full min-h-[320px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0 shadow-sm">
+                    <MapComponent position={mapPosition} setPosition={setMapPosition} />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-2 text-right">
+                    💡 <b>Tip de Precisión:</b> Haz clic en el mapa o <b>arrastra el icono azul</b> directamente hacia la puerta de tu sede u obra.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Ciudad / Parroquia
-                  </label>
-                  <input
-                    type="text"
-                    value={empresa.ciudad}
-                    onChange={e => handleEmpresaChange('ciudad', e.target.value)}
-                    placeholder="Ej. Cuenca / San Blas"
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Calle Principal y Secundaria (Nomenclatura / Edificio)
-                  </label>
-                  <input
-                    type="text"
-                    value={empresa.calle_principal}
-                    onChange={e => handleEmpresaChange('calle_principal', e.target.value)}
-                    placeholder="Ej. Av. Paucarbamba y Los Álamos, N° 4-12"
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
-                    Detalles Adicionales / Referencia
-                  </label>
-                  <input
-                    type="text"
-                    value={empresa.calle_secundaria}
-                    onChange={e => handleEmpresaChange('calle_secundaria', e.target.value)}
-                    placeholder="Ej. Edif. Corporativo SARA, Piso 4"
-                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                  />
-                </div>
               </div>
             </div>
 
-            {/* 1.3 Medios de Contacto & Redes Sociales */}
+            {/* 1.3 Canales de Contacto & Redes Sociales */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="bg-slate-800 text-white p-4 font-bold flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
@@ -736,7 +1021,7 @@ export default function ParametrosClientePage() {
                       type="email"
                       value={empresa.email}
                       onChange={e => handleEmpresaChange('email', e.target.value)}
-                      placeholder="contacto@saraconstructora.com"
+                      placeholder="contacto@arqprisma.com"
                       className="w-full border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
@@ -752,7 +1037,7 @@ export default function ParametrosClientePage() {
                       type="url"
                       value={empresa.sitio_web}
                       onChange={e => handleEmpresaChange('sitio_web', e.target.value)}
-                      placeholder="https://saraconstructora.com"
+                      placeholder="https://arqprisma.com"
                       className="w-full border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
                     />
                   </div>
@@ -763,95 +1048,44 @@ export default function ParametrosClientePage() {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
                     Facebook
                   </label>
-                  <div className="relative">
-                    <svg className="absolute left-3.5 top-3 text-blue-600 w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                    <input
-                      type="text"
-                      value={empresa.facebook}
-                      onChange={e => handleEmpresaChange('facebook', e.target.value)}
-                      placeholder="https://facebook.com/saraconstructora"
-                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={empresa.facebook}
+                    onChange={e => handleEmpresaChange('facebook', e.target.value)}
+                    placeholder="https://facebook.com/arqprisma"
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
                     Instagram
                   </label>
-                  <div className="relative">
-                    <svg className="absolute left-3.5 top-3 text-pink-600 w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                    </svg>
-                    <input
-                      type="text"
-                      value={empresa.instagram}
-                      onChange={e => handleEmpresaChange('instagram', e.target.value)}
-                      placeholder="@saraconstructora"
-                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={empresa.instagram}
+                    onChange={e => handleEmpresaChange('instagram', e.target.value)}
+                    placeholder="@arqprisma.ec"
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
                     LinkedIn
                   </label>
-                  <div className="relative">
-                    <svg className="absolute left-3.5 top-3 text-blue-700 w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                    <input
-                      type="text"
-                      value={empresa.linkedin}
-                      onChange={e => handleEmpresaChange('linkedin', e.target.value)}
-                      placeholder="linkedin.com/company/grupo-sara"
-                      className="w-full border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={empresa.linkedin}
+                    onChange={e => handleEmpresaChange('linkedin', e.target.value)}
+                    placeholder="linkedin.com/company/arqprisma"
+                    className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white bg-slate-50/50 dark:bg-slate-800/50 outline-none focus:ring-2 focus:ring-blue-600"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* 1.4 Geolocalización & Mapa en Tiempo Real */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-              <div className="bg-gradient-to-r from-cyan-900 to-blue-950 text-white p-4 font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
-                  <Compass size={18} className="text-cyan-400" />
-                  Geolocalización & Ubicación en Tiempo Real
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleObtenerUbicacionGPS}
-                  disabled={isLocating}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs shadow transition-all hover:scale-102 self-start sm:self-auto disabled:opacity-50"
-                >
-                  <Crosshair size={14} className={isLocating ? "animate-spin" : ""} />
-                  <span>{isLocating ? "Detectando satélites..." : "📍 Obtener Mi Ubicación Actual (GPS en Vivo)"}</span>
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-                  <div className="flex items-center gap-4 font-mono font-bold text-slate-800 dark:text-slate-200">
-                    <span>Lat: {empresa.latitud}</span>
-                    <span>Lng: {empresa.longitud}</span>
-                  </div>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    * Puedes hacer clic en cualquier parte del mapa satelital para reubicar el pin de la oficina central en tiempo real.
-                  </span>
-                </div>
-
-                <div className="w-full h-80 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 relative z-0">
-                  <MapComponent position={mapPosition} setPosition={setMapPosition} />
-                </div>
-              </div>
-            </div>
-
-            {/* 1.5 Ficha del Staff Técnico Colegiado */}
+            {/* 1.4 Ficha del Staff Técnico Colegiado */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="bg-slate-900 text-white p-4 font-bold flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
@@ -929,17 +1163,258 @@ export default function ParametrosClientePage() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIÑETA 2: COSTOS INDIRECTOS (AIU) & PRECISIÓN NUMÉRICA (IMAGEN 2)         */}
+        {/* VIÑETA 2: PARÁMETROS DE REPORTES, MEMBRETE & FIRMAS                       */}
+        {/* ========================================================================= */}
+        {activeTab === 'reportes' && (
+          <div className="space-y-6">
+            
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-900 via-blue-900 to-slate-900 text-white p-4 font-bold flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
+                  <FileCheck2 size={18} className="text-indigo-400" />
+                  Configuración del Membrete Oficial & Encabezado en Reportes (PDF / Excel)
+                </div>
+                <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2.5 py-0.5 rounded-full font-medium">
+                  Documentos Ejecuidos
+                </span>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <p className="text-xs text-slate-500">
+                  Selecciona qué elementos deben aparecer en la cabecera y el pie de página de los presupuestos, cronogramas Lookahead, informes de fiscalización y desgloses VAE.
+                </p>
+
+                {/* Selección de Elementos de Cabecera */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  
+                  <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={reportesConfig.incluir_logo}
+                      onChange={e => setReportesConfig(prev => ({ ...prev, incluir_logo: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Logotipo Oficial</p>
+                      <p className="text-[10px] text-slate-400">Mostrar imagen en el encabezado izquierdo.</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={reportesConfig.incluir_razon_social}
+                      onChange={e => setReportesConfig(prev => ({ ...prev, incluir_razon_social: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Razón Social & Marca</p>
+                      <p className="text-[10px] text-slate-400">{empresa.razon_social} ({empresa.nombre_comercial})</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={reportesConfig.incluir_ruc}
+                      onChange={e => setReportesConfig(prev => ({ ...prev, incluir_ruc: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Número de RUC</p>
+                      <p className="text-[10px] text-slate-400">RUC: {empresa.ruc}</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={reportesConfig.incluir_direccion}
+                      onChange={e => setReportesConfig(prev => ({ ...prev, incluir_direccion: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Dirección Completa</p>
+                      <p className="text-[10px] text-slate-400">{empresa.ciudad}, {empresa.provincia}</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={reportesConfig.incluir_telefono}
+                      onChange={e => setReportesConfig(prev => ({ ...prev, incluir_telefono: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Teléfono & WhatsApp</p>
+                      <p className="text-[10px] text-slate-400">{empresa.telefono}</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:border-indigo-500 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={reportesConfig.incluir_qr}
+                      onChange={e => setReportesConfig(prev => ({ ...prev, incluir_qr: e.target.checked }))}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">Código QR de Autenticidad</p>
+                      <p className="text-[10px] text-slate-400">Verificación digital en tiempo real.</p>
+                    </div>
+                  </label>
+
+                </div>
+              </div>
+            </div>
+
+            {/* Técnico que Firmará los Informes Generados */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="bg-slate-800 text-white p-4 font-bold flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
+                  <PenTool size={18} className="text-cyan-400" />
+                  Responsables de Firma en Informes y Presupuestos
+                </div>
+                <span className="text-xs text-slate-300 font-mono">Pie de Firma Oficial</span>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* Selector del Profesional Firmante Principal */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase">
+                        Técnico que Firmará los Informes Generados (Firma Principal)
+                      </label>
+                      <select
+                        value={reportesConfig.tecnico_firmante_id}
+                        onChange={e => setReportesConfig(prev => ({ ...prev, tecnico_firmante_id: e.target.value }))}
+                        className="w-full border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-600"
+                      >
+                        {staffTecnico.map(prof => (
+                          <option key={prof.id} value={prof.id}>
+                            {prof.nombre} — {prof.cargo} ({prof.senescyt || "SENESCYT N/A"})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Aparecerá en el bloque de firma de elaboración técnica del presupuesto y cronograma.
+                      </p>
+                    </div>
+
+                    {/* Checkbox Segunda Firma */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={reportesConfig.segunda_firma_habilitada}
+                          onChange={e => setReportesConfig(prev => ({ ...prev, segunda_firma_habilitada: e.target.checked }))}
+                          className="w-4 h-4 text-indigo-600 rounded"
+                        />
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Habilitar Segunda Firma (Aprobado por / Representante Legal)
+                        </span>
+                      </label>
+
+                      {reportesConfig.segunda_firma_habilitada && (
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase">Nombre</label>
+                            <input
+                              type="text"
+                              value={reportesConfig.segunda_firma_nombre}
+                              onChange={e => setReportesConfig(prev => ({ ...prev, segunda_firma_nombre: e.target.value }))}
+                              className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-500 uppercase">Cargo</label>
+                            <input
+                              type="text"
+                              value={reportesConfig.segunda_firma_cargo}
+                              onChange={e => setReportesConfig(prev => ({ ...prev, segunda_firma_cargo: e.target.value }))}
+                              className="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* VISTA PREVIA DEL PIE DE FIRMA EN VIVO */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full">
+                        Vista Previa del Bloque de Firmas
+                      </span>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Así se estampará al final de tus entregables en PDF:
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t border-dashed border-slate-300 dark:border-slate-700">
+                      {/* Firma 1: Técnico Responsable */}
+                      <div className="text-center">
+                        <div className="w-32 border-b border-slate-800 dark:border-slate-300 mx-auto mb-1.5"></div>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                          {tecnicoFirmante?.nombre || "Ingeniero Responsable"}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          {tecnicoFirmante?.cargo || "Responsable Técnico"}
+                        </p>
+                        <p className="text-[9px] font-mono text-slate-400">
+                          REG. SENESCYT: {tecnicoFirmante?.senescyt || "1005-2026-000000"}
+                        </p>
+                        <p className="text-[9px] font-semibold text-blue-600 dark:text-cyan-400 mt-0.5">
+                          {empresa.razon_social}
+                        </p>
+                      </div>
+
+                      {/* Firma 2: Aprobación */}
+                      {reportesConfig.segunda_firma_habilitada ? (
+                        <div className="text-center">
+                          <div className="w-32 border-b border-slate-800 dark:border-slate-300 mx-auto mb-1.5"></div>
+                          <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
+                            {reportesConfig.segunda_firma_nombre}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-medium">
+                            {reportesConfig.segunda_firma_cargo}
+                          </p>
+                          <p className="text-[9px] font-mono text-slate-400">
+                            RUC: {empresa.ruc}
+                          </p>
+                          <p className="text-[9px] font-semibold text-blue-600 dark:text-cyan-400 mt-0.5">
+                            {empresa.nombre_comercial}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center text-[10px] text-slate-400 italic">
+                          (Segunda firma desactivada)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* VIÑETA 3: COSTOS INDIRECTOS (AIU) & PRECISIÓN NUMÉRICA                     */}
         {/* ========================================================================= */}
         {activeTab === 'aiu' && (
           <div className="space-y-6">
             
-            {/* SECCIÓN 2: Costos Indirectos AIU Predeterminados de tu Constructora */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
               <div className="bg-emerald-700 text-white p-4 font-bold flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
                   <FileText size={18} />
-                  2. Costos Indirectos (AIU) Predeterminados para Nuevos Presupuestos
+                  3. Costos Indirectos (AIU) Predeterminados para Nuevos Presupuestos
                 </div>
                 <span className="text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-medium">Margen Base</span>
               </div>
@@ -1084,7 +1559,7 @@ export default function ParametrosClientePage() {
         )}
 
         {/* ========================================================================= */}
-        {/* VIÑETA 3: POLÍTICAS TRIBUTARIAS & RETENCIONES SRI (IMAGEN 1)               */}
+        {/* VIÑETA 4: POLÍTICAS TRIBUTARIAS & RETENCIONES SRI                         */}
         {/* ========================================================================= */}
         {activeTab === 'sri' && (
           <div className="space-y-6">
@@ -1093,7 +1568,7 @@ export default function ParametrosClientePage() {
               <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-4 font-bold flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm uppercase tracking-wider">
                   <Landmark size={18} className="text-amber-400" />
-                  3. Políticas Tributarias & Retenciones SRI (Ecuador 2026)
+                  4. Políticas Tributarias & Retenciones SRI (Ecuador 2026)
                 </div>
                 <span className="text-xs bg-amber-400/20 text-amber-300 px-2.5 py-0.5 rounded-full font-medium">SARA-DASHBOARD SRI</span>
               </div>
@@ -1191,7 +1666,7 @@ export default function ParametrosClientePage() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Configuración activa para la Red Agéntica y motores de cálculo SARA.</span>
+            <span>Configuración activa para la Red Agéntica, Presupuestos y Reportes Oficiales.</span>
           </div>
 
           <button

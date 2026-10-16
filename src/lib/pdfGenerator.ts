@@ -18,8 +18,65 @@ const getCompanyProfile = () => {
     if (profileStr) {
       try { return JSON.parse(profileStr).formData; } catch(e) {}
     }
+    const identStr = localStorage.getItem('sara_empresa_identidad');
+    if (identStr) {
+      try {
+        const id = JSON.parse(identStr);
+        return {
+          nombre_comercial: id.nombre_comercial,
+          razon_social: id.razon_social,
+          ruc: id.ruc,
+          representante: id.gerente,
+          telefono: id.telefono,
+          email: id.email,
+          website: id.sitio_web,
+          direccion: `${id.calle_principal || ''} ${id.calle_secundaria || ''} - ${id.ciudad || ''}, ${id.provincia || ''}`
+        };
+      } catch(e) {}
+    }
   }
   return null;
+};
+
+export const getSignersInfo = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const reportesStr = localStorage.getItem('sara_reportes_config');
+      const staffStr = localStorage.getItem('sara_empresa_staff');
+      const empresaStr = localStorage.getItem('sara_empresa_identidad');
+
+      const reportes = reportesStr ? JSON.parse(reportesStr) : null;
+      const staff = staffStr ? JSON.parse(staffStr) : [];
+      const empresa = empresaStr ? JSON.parse(empresaStr) : null;
+
+      let principal = staff.find((t: any) => t.id === reportes?.tecnico_firmante_id) || staff[0] || {
+        nombre: "Ing. Javier Sarango Gona",
+        cargo: "Director General & Ing. Civil Estructural",
+        senescyt: "1005-2016-189423"
+      };
+
+      return {
+        tecnicoPrincipal: principal,
+        segundaFirmaHabilitada: reportes?.segunda_firma_habilitada ?? true,
+        segundaFirmaNombre: reportes?.segunda_firma_nombre || empresa?.gerente || "JOSE DE LA CUADRA",
+        segundaFirmaCargo: reportes?.segunda_firma_cargo || "Representante Legal / Gerente General",
+        empresa: empresa,
+        reportesConfig: reportes
+      };
+    } catch(e) {}
+  }
+  return {
+    tecnicoPrincipal: {
+      nombre: "Ing. Javier Sarango Gona",
+      cargo: "Director Técnico & Ing. Civil",
+      senescyt: "1005-2016-189423"
+    },
+    segundaFirmaHabilitada: true,
+    segundaFirmaNombre: "JOSE DE LA CUADRA",
+    segundaFirmaCargo: "Representante Legal",
+    empresa: null,
+    reportesConfig: null
+  };
 };
 
 const addCompanyFooter = (doc: jsPDF) => {
@@ -34,7 +91,9 @@ const addCompanyFooter = (doc: jsPDF) => {
     doc.setFont("helvetica", "normal");
     
     let footerParts = [];
-    if (profile.nombre_comercial) footerParts.push(profile.nombre_comercial);
+    if (profile.nombre_comercial || profile.razon_social) {
+      footerParts.push(profile.razon_social || profile.nombre_comercial);
+    }
     if (profile.ruc) footerParts.push(`RUC: ${profile.ruc}`);
     if (profile.direccion) footerParts.push(`Dir: ${profile.direccion.substring(0,50)}`);
     if (profile.telefono) footerParts.push(`Tel: ${profile.telefono}`);
@@ -60,9 +119,10 @@ export const generatePresupuestoGeneralPDF = (options: any) => {
 
     const { costoDirectoTotal, a, i, u, granTotal } = totales;
 
+    const signers = getSignersInfo();
     const proyectoFound = proyectosCRM.find((p: any) => p.id === currentPresupuesto.proyecto_crm_id);
     const nombreCliente = proyectoFound?.clientes?.nombre || "Cliente No Asignado";
-    const nombreTecnico = "Técnico Responsable";
+    const nombreTecnico = signers.tecnicoPrincipal.nombre;
     const diasEstimados = currentPresupuesto.dias_estimados || 30;
 
     const doc = new jsPDF();
@@ -73,7 +133,7 @@ export const generatePresupuestoGeneralPDF = (options: any) => {
     doc.setFontSize(10); doc.setFont("helvetica", "bold")
     doc.text(`Proyecto:`, 14, 63); doc.setFont("helvetica", "normal"); doc.text(`${currentPresupuesto.nombre_proyecto}`, 35, 63)
     doc.setFont("helvetica", "bold"); doc.text(`Cliente:`, 14, 68); doc.setFont("helvetica", "normal"); doc.text(`${nombreCliente}`, 35, 68)
-    doc.setFont("helvetica", "bold"); doc.text(`Elaborado por:`, 14, 73); doc.setFont("helvetica", "normal"); doc.text(`${nombreTecnico}`, 42, 73)
+    doc.setFont("helvetica", "bold"); doc.text(`Elaborado por:`, 14, 73); doc.setFont("helvetica", "normal"); doc.text(`${nombreTecnico} (${signers.tecnicoPrincipal.cargo})`, 42, 73)
     
     doc.setFont("helvetica", "bold"); doc.text(`Fecha:`, 120, 63); doc.setFont("helvetica", "normal"); doc.text(`${new Date().toLocaleDateString()}`, 150, 63)
     doc.setFont("helvetica", "bold"); doc.text(`Plazo Estimado:`, 120, 68); doc.setFont("helvetica", "normal"); doc.text(`~${diasEstimados} días laborables`, 150, 68)
@@ -115,23 +175,42 @@ export const generatePresupuestoGeneralPDF = (options: any) => {
     doc.text(`${granTotal.toFixed(2)}`, 190, finalY + 65, { align: 'right' })
     
     let firmaY = finalY + 85;
-    if (firmaY > 270) {
+    if (firmaY > 265) {
         doc.addPage();
         firmaY = 40;
     }
 
     doc.setDrawColor(0);
-    doc.line(40, firmaY, 95, firmaY);
-    doc.setFontSize(9); doc.setFont("helvetica", "bold");
-    doc.text("ELABORADO POR:", 67.5, firmaY + 5, { align: "center" });
+    // Firma 1: Técnico Responsable Seleccionado
+    doc.line(30, firmaY, 95, firmaY);
+    doc.setFontSize(8); doc.setFont("helvetica", "bold");
+    doc.text("RESPONSABLE TÉCNICO:", 62.5, firmaY + 5, { align: "center" });
     doc.setFont("helvetica", "normal");
-    doc.text(`${nombreTecnico}`, 67.5, firmaY + 10, { align: "center" });
+    doc.text(`${signers.tecnicoPrincipal.nombre}`, 62.5, firmaY + 9, { align: "center" });
+    doc.setFontSize(7); doc.setTextColor(100);
+    doc.text(`${signers.tecnicoPrincipal.cargo}`, 62.5, firmaY + 13, { align: "center" });
+    if (signers.tecnicoPrincipal.senescyt) {
+      doc.text(`SENESCYT: ${signers.tecnicoPrincipal.senescyt}`, 62.5, firmaY + 17, { align: "center" });
+    }
+    doc.setTextColor(0);
 
-    doc.line(115, firmaY, 170, firmaY);
-    doc.setFontSize(9); doc.setFont("helvetica", "bold");
-    doc.text("APROBADO POR (CLIENTE):", 142.5, firmaY + 5, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.text(`${nombreCliente}`, 142.5, firmaY + 10, { align: "center" });
+    // Firma 2: Aprobación
+    doc.line(115, firmaY, 180, firmaY);
+    doc.setFontSize(8); doc.setFont("helvetica", "bold");
+    if (signers.segundaFirmaHabilitada) {
+      doc.text("APROBACIÓN DE OBRA:", 147.5, firmaY + 5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.text(`${signers.segundaFirmaNombre}`, 147.5, firmaY + 9, { align: "center" });
+      doc.setFontSize(7); doc.setTextColor(100);
+      doc.text(`${signers.segundaFirmaCargo}`, 147.5, firmaY + 13, { align: "center" });
+    } else {
+      doc.text("APROBADO POR (CLIENTE):", 147.5, firmaY + 5, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.text(`${nombreCliente}`, 147.5, firmaY + 9, { align: "center" });
+    }
+    doc.setTextColor(0);
+
+    addCompanyFooter(doc);
 
     doc.save(`Presupuesto_${currentPresupuesto.nombre_proyecto.replace(/\s+/g, '_')}.pdf`)
   } catch (error: any) {

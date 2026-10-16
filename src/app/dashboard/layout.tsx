@@ -101,8 +101,7 @@ export default function DashboardLayout({
     {
       title: "7. CONFIGURACIÓN & EMPRESA",
       items: [
-        { href: "/dashboard/parametros", label: "Datos de Empresa & Facturación", icon: Settings },
-        { href: "/dashboard/marca", label: "Membrete Oficial & PDF", icon: Palette },
+        { href: "/dashboard/parametros", label: "Datos de Empresa, Logo & Parámetros", icon: Settings },
         { href: "/dashboard/planes", label: "Mi Plan SARA Suite", icon: Sparkles },
         { href: "/dashboard/perfil", label: "Seguridad & Cuenta", icon: ShieldAlert },
       ]
