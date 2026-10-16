@@ -28,7 +28,8 @@ import {
   Building2,
   ShieldCheck,
   FileCheck,
-  Ruler
+  Ruler,
+  Crown
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -45,6 +46,7 @@ export default function DashboardLayout({
   const router = useRouter()
   const [userName, setUserName] = useState("Usuario")
   const [userInitials, setUserInitials] = useState("U")
+  const [userPlan, setUserPlan] = useState("Pro Plan")
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState<string>("1. ESTUDIO & PRESUPUESTACIÓN PRIVADA")
@@ -102,7 +104,6 @@ export default function DashboardLayout({
       title: "7. CONFIGURACIÓN & EMPRESA",
       items: [
         { href: "/dashboard/parametros", label: "Datos de Empresa, Logo & Parámetros", icon: Settings },
-        { href: "/dashboard/planes", label: "Mi Plan SARA Suite", icon: Sparkles },
         { href: "/dashboard/perfil", label: "Seguridad & Cuenta", icon: ShieldAlert },
       ]
     }
@@ -135,6 +136,27 @@ export default function DashboardLayout({
         const name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Usuario"
         setUserName(name)
         setUserInitials(name.substring(0, 2).toUpperCase())
+
+        try {
+          const { data: sub } = await supabase
+            .from('suscripciones_saas')
+            .select('plan_id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+          if (sub?.plan_id) {
+            const planNames: Record<string, string> = {
+              gratis: "Plan Gratuito",
+              basico: "Plan Básico",
+              pro: "Pro Plan",
+              profesional: "Plan Profesional",
+              empresarial: "Plan Empresarial"
+            }
+            setUserPlan(planNames[sub.plan_id.toLowerCase()] || sub.plan_id)
+          }
+        } catch (e) {
+          console.error("Error al obtener suscripción:", e)
+        }
       } else {
         router.push("/login")
       }
@@ -143,7 +165,56 @@ export default function DashboardLayout({
   }, [])
 
   const renderNavItems = (collapsed = false) => (
-    <nav className="flex-1 py-4 px-2 overflow-y-auto space-y-2">
+    <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-2">
+      {/* ACCESO RÁPIDO Y DESTACADO: MIS PLANES & SUSCRIPCIÓN (FUERA DE CONFIGURACIÓN) */}
+      <div className="mb-3 px-0.5">
+        <Link 
+          href="/dashboard/planes"
+          onClick={() => setIsMobileMenuOpen(false)}
+          title="Mis Planes & Suscripción SARA Suite"
+          className={`w-full flex items-center ${collapsed ? "justify-center w-11 h-11 mx-auto" : "justify-between px-3 py-2.5"} rounded-2xl font-bold transition-all duration-300 ${
+            pathname === "/dashboard/planes"
+              ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-400"
+              : "bg-gradient-to-r from-blue-950/80 via-indigo-950/60 to-slate-900 border border-blue-400/40 text-blue-100 hover:border-blue-400 hover:bg-blue-900/40 shadow-sm"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 overflow-hidden">
+            <div className={`p-1.5 rounded-xl shrink-0 transition-transform ${
+              pathname === "/dashboard/planes"
+                ? "bg-white/20 text-white"
+                : "bg-gradient-to-br from-amber-400/20 to-blue-500/20 text-amber-300 border border-amber-400/40"
+            }`}>
+              <Sparkles size={collapsed ? 20 : 17} className={pathname === "/dashboard/planes" ? "" : "animate-pulse"} />
+            </div>
+            {!collapsed && (
+              <div className="text-left overflow-hidden">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black uppercase tracking-wider text-white">Mis Planes</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 shadow-xs">
+                    SaaS
+                  </span>
+                </div>
+                <p className="text-[10px] text-blue-300 font-medium truncate">
+                  Elegir o Cambiar Plan
+                </p>
+              </div>
+            )}
+          </div>
+          {!collapsed && (
+            <div className="flex items-center gap-1 shrink-0">
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                pathname === "/dashboard/planes"
+                  ? "bg-white/20 text-white"
+                  : "bg-blue-500/30 text-blue-200 border border-blue-400/30"
+              }`}>
+                {userPlan}
+              </span>
+              <ChevronRight size={14} className="text-blue-300" />
+            </div>
+          )}
+        </Link>
+      </div>
+
       {navGroups.map((group, groupIdx) => {
         const isOpen = openGroup === group.title
         const hasActiveItem = group.items.some(i => i.href === pathname) ||
@@ -250,7 +321,18 @@ export default function DashboardLayout({
             </button>
           </div>
           {renderNavItems(false)}
-          <div className="p-3 border-t border-white/10">
+          <div className="p-3 border-t border-white/10 space-y-2">
+            <Link
+              href="/dashboard/planes"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-blue-950/80 to-indigo-950/80 border border-blue-400/30 text-xs font-bold text-white hover:border-blue-400 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-amber-400" />
+                <span>Plan: <span className="text-blue-300 font-extrabold">{userPlan}</span></span>
+              </div>
+              <span className="text-[10px] uppercase font-bold text-blue-400">Ver Planes →</span>
+            </Link>
             <button 
               title="Cerrar Sesión"
               onClick={async () => {
@@ -285,7 +367,22 @@ export default function DashboardLayout({
 
           {renderNavItems(isSidebarCollapsed)}
 
-          <div className="p-3 border-t border-white/10">
+          <div className="p-3 border-t border-white/10 space-y-2">
+            {!isSidebarCollapsed && (
+              <Link
+                href="/dashboard/planes"
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-blue-950/80 to-indigo-950/80 border border-blue-400/30 text-xs font-bold text-white hover:border-blue-400 transition-all group shadow-xs"
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <div className="text-left overflow-hidden">
+                    <p className="text-[9px] uppercase tracking-wider text-gray-400 font-semibold">Tu Suscripción</p>
+                    <p className="text-xs font-extrabold text-blue-200 truncate">{userPlan}</p>
+                  </div>
+                </div>
+                <span className="text-[10px] uppercase font-bold text-blue-400 group-hover:text-blue-300 shrink-0">Mejorar →</span>
+              </Link>
+            )}
             <button 
               title="Cerrar Sesión"
               onClick={async () => {
@@ -333,9 +430,16 @@ export default function DashboardLayout({
             </div>
 
             <div className="flex items-center gap-3 md:gap-4 shrink-0">
-              <div className="hidden xl:flex text-sm text-gray-500 dark:text-gray-400 font-medium items-center gap-1.5">
+              <div className="hidden xl:flex text-sm text-gray-500 dark:text-gray-400 font-medium items-center gap-2">
                 <span>Hola, {userName}</span>
-                <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 font-bold rounded border border-blue-200 dark:border-blue-800">Pro Plan</span>
+                <Link
+                  href="/dashboard/planes"
+                  title="Administrar o Mejorar mi Plan SARA Suite"
+                  className="text-xs px-2.5 py-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold rounded-lg shadow-sm border border-blue-400/40 flex items-center gap-1.5 transition-all hover:scale-105"
+                >
+                  <Sparkles size={13} className="text-amber-300" />
+                  <span>{userPlan}</span>
+                </Link>
               </div>
               <ThemeToggle />
               <GlobalNotificationsBell destinatarioTipo="cliente_apu" />
