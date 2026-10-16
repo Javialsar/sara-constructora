@@ -70,6 +70,7 @@ export default function PresupuestosRealesPage() {
   const [generatingAiCapitulo, setGeneratingAiCapitulo] = useState<string | null>(null)
   const [newCapituloModalOpen, setNewCapituloModalOpen] = useState(false)
   const [newCapituloName, setNewCapituloName] = useState('')
+  const [showKpiSummary, setShowKpiSummary] = useState(true)
 
   // Slide-Over Lateral APU
   const [isSlideOverOpen, setIsSlideOverOpen] = useState(false)
@@ -993,7 +994,7 @@ export default function PresupuestosRealesPage() {
       <div className="-m-4 md:-m-6 min-h-[calc(100vh-4rem)] bg-slate-100/70 text-slate-800 pb-16">
         
         {/* CABECERA EJECUTIVA UNIFICADA - MESA DE TRABAJO TÉCNICA */}
-        <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 shadow-lg px-4 sm:px-6 py-4 text-white transition-all">
+        <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 text-white transition-all">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             {/* Lado Izquierdo: Identidad de la Obra y Switch de Régimen */}
@@ -1065,8 +1066,18 @@ export default function PresupuestosRealesPage() {
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
+                onClick={() => setShowKpiSummary(!showKpiSummary)}
+                className="px-2.5 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+                title={showKpiSummary ? "Ocultar panel de tarjetas KPI" : "Mostrar panel de tarjetas KPI"}
+              >
+                <PieChart size={14} className="text-amber-400" />
+                <span className="hidden sm:inline">{showKpiSummary ? "Ocultar KPIs" : "Ver KPIs"}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleGeneratePresupuestoGeneralExcel}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer"
                 title="Descargar presupuesto general en Excel"
               >
                 <Download size={14} className="text-emerald-400" />
@@ -1076,7 +1087,7 @@ export default function PresupuestosRealesPage() {
               <button
                 type="button"
                 onClick={handleGeneratePresupuestoGeneralPDF}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer"
                 title="Generar presupuesto en PDF con membrete"
               >
                 <FileText size={14} className="text-rose-400" />
@@ -1086,7 +1097,7 @@ export default function PresupuestosRealesPage() {
               <button
                 type="button"
                 onClick={handleGenerateAPUsPDF}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5"
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 hover:text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer"
                 title="Imprimir desglose de todos los APUs en PDF"
               >
                 <Printer size={14} className="text-blue-400" />
@@ -1097,7 +1108,7 @@ export default function PresupuestosRealesPage() {
                 <button
                   type="button"
                   onClick={savePresupuesto}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition shadow-md flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition shadow-md flex items-center gap-1.5 cursor-pointer"
                 >
                   <Save size={14} />
                   <span>Guardar</span>
@@ -1107,66 +1118,69 @@ export default function PresupuestosRealesPage() {
           </div>
 
           {/* 4 TARJETAS KPI DE ALTA GAMA EN TEMA OSCURO EJECUTIVO */}
-          <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-3 border-t border-slate-800/80">
-            {/* Costo Directo */}
-            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between">
-              <div>
-                <span className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Costo Directo (CD)</span>
-                <span className="text-lg font-black text-white font-mono">
-                  ${costoDirectoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+          {showKpiSummary && (
+            <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-3 border-t border-slate-800/80 animate-in fade-in duration-150">
+              {/* Costo Directo */}
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between">
+                <div>
+                  <span className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Costo Directo (CD)</span>
+                  <span className="text-lg font-black text-white font-mono">
+                    ${costoDirectoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                  <Calculator size={16} />
+                </div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
-                <Calculator size={16} />
-              </div>
-            </div>
 
-            {/* Factor Indirectos AIU */}
-            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between">
-              <div>
-                <span className="block text-[10px] font-extrabold uppercase text-amber-400 tracking-wider">
-                  Indirectos AIU ({factorAiuPct.toFixed(1)}%)
-                </span>
-                <span className="text-lg font-black text-amber-300 font-mono">
-                  ${indirectosMontoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              {/* Factor Indirectos AIU */}
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between">
+                <div>
+                  <span className="block text-[10px] font-extrabold uppercase text-amber-400 tracking-wider">
+                    Indirectos AIU ({factorAiuPct.toFixed(1)}%)
+                  </span>
+                  <span className="text-lg font-black text-amber-300 font-mono">
+                    ${indirectosMontoTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                  <PieChart size={16} />
+                </div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center">
-                <PieChart size={16} />
-              </div>
-            </div>
 
-            {/* Gran Total (Precio de Venta) */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl border border-blue-400/40 flex items-center justify-between shadow-md">
-              <div>
-                <span className="block text-[10px] font-extrabold uppercase text-blue-100 tracking-wider">Total Presupuesto (P.V.)</span>
-                <span className="text-lg font-black font-mono text-white">
-                  ${granTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
+              {/* Gran Total (Precio de Venta) */}
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-3 rounded-xl border border-blue-400/40 flex items-center justify-between shadow-md">
+                <div>
+                  <span className="block text-[10px] font-extrabold uppercase text-blue-100 tracking-wider">Total Presupuesto (P.V.)</span>
+                  <span className="text-lg font-black font-mono text-white">
+                    ${granTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
+                  <CheckCircle2 size={16} />
+                </div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-white/20 text-white flex items-center justify-center">
-                <CheckCircle2 size={16} />
-              </div>
-            </div>
 
-            {/* Cantidad de Rubros y Capítulos */}
-            <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between">
-              <div>
-                <span className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Volumen de Obra</span>
-                <span className="text-sm font-black text-white">
-                  {presupuestoRubros.length} rubros <span className="font-normal text-slate-400 text-xs">en {listaCapitulos.length} caps.</span>
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-                <Layers size={16} />
+              {/* Cantidad de Rubros y Capítulos */}
+              <div className="bg-slate-800/80 p-3 rounded-xl border border-slate-700/60 flex items-center justify-between">
+                <div>
+                  <span className="block text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">Volumen de Obra</span>
+                  <span className="text-sm font-black text-white">
+                    {presupuestoRubros.length} rubros <span className="font-normal text-slate-400 text-xs">en {listaCapitulos.length} caps.</span>
+                  </span>
+                </div>
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                  <Layers size={16} />
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </header>
 
-        {/* PESTAÑAS DE VISTA DEL PRESUPUESTO */}
-        <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6">
-          <div className="max-w-7xl mx-auto flex overflow-x-auto space-x-1 py-1">
+        {/* PESTAÑAS DE VISTA DEL PRESUPUESTO - SLIM & ACCESIBLE */}
+        <div className="sticky top-0 z-20 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 shadow-md">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div className="flex overflow-x-auto space-x-1 py-1.5 scrollbar-none">
             <button
               onClick={() => setActiveTab('detalle')}
               className={`py-2.5 px-4 text-xs font-extrabold rounded-lg flex items-center gap-1.5 transition whitespace-nowrap ${
@@ -1263,6 +1277,19 @@ export default function PresupuestosRealesPage() {
               <FileText size={15} />
               <span>Reportes</span>
             </button>
+          </div>
+
+            {isBorrador && (
+              <button
+                type="button"
+                onClick={savePresupuesto}
+                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition shadow-sm flex items-center gap-1.5 cursor-pointer ml-2"
+                title="Guardar cambios del presupuesto"
+              >
+                <Save size={13} />
+                <span className="hidden sm:inline">Guardar</span>
+              </button>
+            )}
           </div>
         </div>
 
