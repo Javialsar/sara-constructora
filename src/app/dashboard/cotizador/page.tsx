@@ -1450,22 +1450,6 @@ export default function CotizadorPage() {
               <CheckCircle2 size={14} /> Historial
             </button>
           </div>
-
-          <button 
-            onClick={handleExportExcel}
-            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Descargar presupuesto referencial en Microsoft Excel (.xlsx)"
-          >
-            <FileSpreadsheet size={15} /> Exportar Excel
-          </button>
-
-          <button 
-            onClick={handleExportPDF}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 cursor-pointer border border-slate-700"
-            title="Descargar propuesta técnica en PDF oficial con membrete"
-          >
-            <Download size={15} /> Exportar PDF
-          </button>
         </div>
       </div>
 
