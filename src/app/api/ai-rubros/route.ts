@@ -28,13 +28,21 @@ export async function POST(request: Request) {
 
     const { descripcion_rubro, unidad_sugerida, complejidad } = validation.data
 
-    // 1. Consultar base de insumos maestros existentes para mapeo inteligente
-    const { data: insumosDb } = await supabase
-      .from('insumos')
-      .select('id, codigo, nombre, tipo, unidad, precio_sin_iva')
-      .limit(150)
+    // 1. Consultar base de insumos maestros y parámetros empresariales
+    const [{ data: insumosDb }, { data: userParams }] = await Promise.all([
+      supabase
+        .from('insumos')
+        .select('id, codigo, nombre, tipo, unidad, precio_sin_iva')
+        .limit(150),
+      supabase
+        .from('empresa_parametros_cliente')
+        .select('herramienta_menor_default')
+        .eq('user_id', user.id)
+        .maybeSingle()
+    ])
 
     const insumosExistentes = insumosDb || []
+    const herramientaMenorPct = Number(userParams?.herramienta_menor_default) || 5.0
 
     // 2. Esquema estricto de prompt para garantizar estructuración JSON libre de errores
     const systemPrompt = `Actúas como el Especialista Senior de Presupuestos y APU de "Grupo SARA" (Ecuador, 2026).
@@ -43,7 +51,7 @@ Tu tarea es tomar una descripción en lenguaje natural de un rubro de construcci
 Normas Técnicas y Ecuatorianas Obligatorias:
 1. Divide el análisis en tres sub-tablas estrictas: 'materiales', 'mano_de_obra' y 'equipos'.
 2. Los salarios de Mano de Obra deben reflejar el Costo Horario Real (CHR) de las Tablas Sectoriales del Ministerio del Trabajo (MDT) Ecuador con beneficios de ley (albañil $4.20/h, peón $3.75/h, maestro $5.50/h aprox).
-3. En equipos incluye siempre herramienta menor (pct sobre mano de obra o tarifa horaria).
+3. En equipos incluye siempre herramienta menor con la tasa empresarial configurada: ${herramientaMenorPct}% sobre mano de obra.
 4. El rendimiento debe ser expresado en horas por unidad de obra producida.
 5. DEBES responder ÚNICA Y EXCLUSIVAMENTE con un objeto JSON válido, sin bloques de código markdown, sin texto antes ni después.
 
@@ -62,7 +70,7 @@ Estructura JSON Requerida:
   ],
   "equipos": [
     { "nombre": "Hormigonera 1 saco (trompo)", "unidad": "hora", "cantidad": 1.2, "precio_unitario": 4.50, "es_nacional": true, "insumo_existente_id": null },
-    { "nombre": "Herramienta menor (5% M.O.)", "unidad": "%mo", "cantidad": 5.0, "precio_unitario": 1.00, "es_nacional": true, "insumo_existente_id": null }
+    { "nombre": "Herramienta menor (${herramientaMenorPct}% M.O.)", "unidad": "%mo", "cantidad": ${herramientaMenorPct}, "precio_unitario": 1.00, "es_nacional": true, "insumo_existente_id": null }
   ]
 }`
 
@@ -95,7 +103,7 @@ Estructura JSON Requerida:
         eq = [
           { nombre: "Vibrador de hormigón a gasolina", unidad: "hora", cantidad: 1.5, precio_unitario: 3.50, es_nacional: false },
           { nombre: "Hormigonera de 1 saco", unidad: "hora", cantidad: 2.0, precio_unitario: 4.50, es_nacional: false },
-          { nombre: "Herramienta menor (5% Mano de Obra)", unidad: "%mo", cantidad: 5.0, precio_unitario: 1.00, es_nacional: true }
+          { nombre: `Herramienta menor (${herramientaMenorPct}% Mano de Obra)`, unidad: "%mo", cantidad: herramientaMenorPct, precio_unitario: 1.00, es_nacional: true }
         ]
       } else if (q.includes("mamposteria") || q.includes("mampostería") || q.includes("pared") || q.includes("bloque") || q.includes("ladrillo")) {
         nombre = "Mampostería de Bloque de Cemento 15x20x40cm con Mortero 1:4"
@@ -111,7 +119,7 @@ Estructura JSON Requerida:
         ]
         eq = [
           { nombre: "Andamio metálico modular", unidad: "hora", cantidad: 0.5, precio_unitario: 1.20, es_nacional: true },
-          { nombre: "Herramienta menor", unidad: "%mo", cantidad: 5.0, precio_unitario: 1.00, es_nacional: true }
+          { nombre: `Herramienta menor (${herramientaMenorPct}% M.O.)`, unidad: "%mo", cantidad: herramientaMenorPct, precio_unitario: 1.00, es_nacional: true }
         ]
       } else if (q.includes("excavacion") || q.includes("excavación") || q.includes("zanja") || q.includes("desbroce")) {
         nombre = "Excavación Manual en Terreno Conglomerado h=0-2m"

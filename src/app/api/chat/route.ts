@@ -210,8 +210,13 @@ Estructurar la oferta económica y técnica de un proyecto por capítulos, calcu
    Escribe la descripción de la actividad en la fila de inserción rápida. Si el rubro no existe en tu catálogo, presiona **\`[ ⚡ Generar con IA ]\`** (ej: *"Muro de hormigón ciclópeo H=2.50m con 40% piedra bola"*). En 2 segundos, el motor genera la dosificación exacta de insumos, cuadrilla CCEC y equipo.
 4. **Calibrar Precios en el Drawer Lateral (Slide-Over):**
    Haz clic en cualquier rubro para abrir el panel lateral deslizante. Ajusta rendimientos horarios y costos unitarios de insumos.
-5. **Configurar el Factor AIU (Administración, Imprevistos y Utilidad):**
-   Ajusta el porcentaje de indirectos (típicamente entre 18% y 25% en Ecuador) para obtener el precio unitario final de venta.
+5. **Configurar el Factor AIU Predeterminado de la Empresa:**
+   El sistema aplica automáticamente los valores corporativos configurados en **/dashboard/parametros**:
+   • *Gastos Generales / Admin:* **10%**
+   • *Imprevistos de Obra:* **5%**
+   • *Utilidad Empresarial Deseada:* **10%**
+   • *Factor AIU Total:* **25%** ($10\% + 5\% + 10\%$).
+   • *Herramienta Menor:* **5%** sobre el subtotal de mano de obra.
 
 ---
 
@@ -226,13 +231,13 @@ Estructurar la oferta económica y técnica de un proyecto por capítulos, calcu
 * **2. Mano de Obra (Rendimiento: 0.85 horas/$m^2$):**
   • Cuadrilla: 1 Albañil ($\\$4.15/\\text{h}$) + 1 Peón ($\\$3.60/\\text{h}$) = $\\$7.75/\\text{hora}$
   • Costo cuadrilla $\\times 0.85\\text{ h} = \\mathbf{\\$6.59}$
-* **3. Equipos y Herramientas (5% de Mano de Obra):**
+* **3. Equipos y Herramientas (5% de Herramienta Menor M.O. según Parámetros):**
   • Andamios, badilejo, nivel, carretilla = $0.05 \\times \\$6.59 = \\mathbf{\\$0.33}$
-* **4. Costo Directo Total:**
+* **4. Costo Directo Total (CD):**
   $$CD = \\$9.80 + \\$6.59 + \\$0.33 = \\mathbf{\\$16.72 / m^2}$$
-* **5. Factor AIU (20%):**
-  $$P.U. = \\$16.72 \\times 1.20 = \\mathbf{\\$20.06 / m^2}$$
-* **Presupuesto para $120\\text{ m}^2$:** $120 \\times \\$20.06 = \\mathbf{\\$2,407.20 USD}$.
+* **5. Factor AIU Empresarial (25% = 10% Admin + 5% Imprevistos + 10% Utilidad):**
+  $$P.U. = \\$16.72 \\times (1 + 0.25) = \\$16.72 \\times 1.25 = \\mathbf{\\$20.90 / m^2}$$
+* **Presupuesto para $120\\text{ m}^2$:** $120 \\times \\$20.90 = \\mathbf{\\$2,508.00 USD}$.
 
 👉 **Acceso directo:** Inicia tu presupuesto en **1. ESTUDIO & PRESUPUESTACIÓN PRIVADA > Mesa de Presupuestos Reales**.`;
   }

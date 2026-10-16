@@ -211,6 +211,22 @@ export default function PresupuestosRealesPage() {
         if (user.user_metadata?.role) setUserRole(user.user_metadata.role)
         if (user.user_metadata?.full_name) setUserName(user.user_metadata.full_name)
 
+        let adminVal = 10.0
+        let imprevVal = 5.0
+        let utilVal = 10.0
+
+        if (typeof window !== "undefined") {
+          const savedParams = localStorage.getItem("sara_empresa_parametros")
+          if (savedParams) {
+            try {
+              const parsed = JSON.parse(savedParams)
+              if (parsed.porcentaje_admin_default) adminVal = Number(parsed.porcentaje_admin_default)
+              if (parsed.porcentaje_imprevistos_default) imprevVal = Number(parsed.porcentaje_imprevistos_default)
+              if (parsed.porcentaje_utilidad_default) utilVal = Number(parsed.porcentaje_utilidad_default)
+            } catch (e) {}
+          }
+        }
+
         const { data: ep } = await supabase
           .from('empresa_parametros_cliente')
           .select('*')
@@ -218,10 +234,14 @@ export default function PresupuestosRealesPage() {
           .maybeSingle()
 
         if (ep) {
-          setNewAdminPct(Number(ep.porcentaje_admin_default) || 10.0)
-          setNewImprevPct(Number(ep.porcentaje_imprevistos_default) || 5.0)
-          setNewUtilPct(Number(ep.porcentaje_utilidad_default) || 10.0)
+          adminVal = Number(ep.porcentaje_admin_default) || adminVal
+          imprevVal = Number(ep.porcentaje_imprevistos_default) || imprevVal
+          utilVal = Number(ep.porcentaje_utilidad_default) || utilVal
         }
+
+        setNewAdminPct(adminVal)
+        setNewImprevPct(imprevVal)
+        setNewUtilPct(utilVal)
       }
     }
     initUserData()
