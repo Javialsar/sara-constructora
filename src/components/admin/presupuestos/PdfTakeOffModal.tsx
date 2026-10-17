@@ -26,6 +26,11 @@ import {
   Loader2,
   Building2,
   Undo2,
+  Redo2,
+  EyeOff,
+  Keyboard,
+  Focus,
+  MousePointer,
   Compass,
   Boxes,
   Maximize,
@@ -160,7 +165,8 @@ export default function PdfTakeOffModal({
       rubro_id: presupuestoRubros.find(r => (r.nombre_rubro || '').toLowerCase().includes('contrapiso'))?.id || undefined,
       rubro_nombre: "Contrapiso de hormigón simple e=10cm",
       precioUnitario: 14.50,
-      costoTotal: 562.60
+      costoTotal: 562.60,
+      visible: true
     },
     {
       id: "med-demo-2",
@@ -176,9 +182,18 @@ export default function PdfTakeOffModal({
       rubro_id: presupuestoRubros.find(r => (r.nombre_rubro || '').toLowerCase().includes('mamposteria') || (r.nombre_rubro || '').toLowerCase().includes('ladrillo'))?.id || undefined,
       rubro_nombre: "Mampostería de ladrillo panelón e=12cm",
       precioUnitario: 16.50,
-      costoTotal: 254.76
+      costoTotal: 254.76,
+      visible: true
     }
   ])
+
+  // Pila de historial para Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y)
+  const [history, setHistory] = useState<TakeOffMeasurement[][]>([])
+  const [historyIndex, setHistoryIndex] = useState<number>(-1)
+
+  // Capa seleccionada en lienzo o panel
+  const [selectedMedicionId, setSelectedMedicionId] = useState<string | null>(null)
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false)
 
   // Notificaciones y diálogos
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
@@ -202,18 +217,171 @@ export default function PdfTakeOffModal({
     setTimeout(() => setToastMsg(null), 4000)
   }
 
-  // Escuchar tecla Shift para Modo Orto (90° / 180°)
+  // Inicializar historial con estado por defecto
+  useEffect(() => {
+    if (history.length === 0 && mediciones.length > 0) {
+      setHistory([mediciones])
+      setHistoryIndex(0)
+    }
+  }, [])
+
+  // Actualizar mediciones registrando snapshot en el historial
+  const updateMedicionesWithHistory = (
+    updater: TakeOffMeasurement[] | ((prev: TakeOffMeasurement[]) => TakeOffMeasurement[])
+  ) => {
+    setMediciones(current => {
+      const next = typeof updater === 'function' ? updater(current) : updater
+      setHistory(prevH => {
+        const truncated = prevH.slice(0, Math.max(0, historyIndex + 1))
+        return [...truncated, next]
+      })
+      setHistoryIndex(prevIdx => prevIdx + 1)
+      return next
+    })
+  }
+
+  // Deshacer: quita vértice si dibuja, o retrocede en historial
+  const handleUndo = () => {
+    if (currentPoints.length > 0) {
+      setCurrentPoints(prev => prev.slice(0, -1))
+      showToast("Vértice anterior eliminado", "info")
+      return
+    }
+    if (historyIndex > 0) {
+      const prevIdx = historyIndex - 1
+      const targetState = history[prevIdx]
+      setHistoryIndex(prevIdx)
+      setMediciones(targetState)
+      showToast(`Deshecho (Ctrl+Z) · Estado ${prevIdx + 1}/${history.length}`, "info")
+    } else {
+      showToast("No hay más acciones para deshacer", "info")
+    }
+  }
+
+  // Rehacer: avanza en el historial
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextIdx = historyIndex + 1
+      const targetState = history[nextIdx]
+      setHistoryIndex(nextIdx)
+      setMediciones(targetState)
+      showToast(`Rehecho (Ctrl+Y) · Estado ${nextIdx + 1}/${history.length}`, "info")
+    } else {
+      showToast("No hay más acciones para rehacer", "info")
+    }
+  }
+
+  const canUndo = currentPoints.length > 0 || historyIndex > 0
+  const canRedo = historyIndex < history.length - 1
+
+  // Alternar visibilidad de capa
+  const toggleVisibility = (medId: string) => {
+    updateMedicionesWithHistory(prev => prev.map(m => {
+      if (m.id === medId) {
+        return { ...m, visible: m.visible === false ? true : false }
+      }
+      return m
+    }))
+  }
+
+  // Zoom enfocado en el cursor con la rueda del ratón
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87
+    const newZoom = Math.min(4.0, Math.max(0.25, Number((zoom * zoomFactor).toFixed(2))))
+    
+    if (svgRef.current) {
+      const rect = svgRef.current.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+      
+      const scaleChange = newZoom / zoom
+      setPanOffset(prev => ({
+        x: mouseX - (mouseX - prev.x) * scaleChange,
+        y: mouseY - (mouseY - prev.y) * scaleChange
+      }))
+    }
+    setZoom(newZoom)
+  }
+
+  // Ajustar plano a los límites de pantalla (Fit / Zoom Extents)
+  const handleFitToScreen = () => {
+    if (!svgRef.current) {
+      setZoom(1)
+      setPanOffset({ x: 0, y: 0 })
+      return
+    }
+    const rect = svgRef.current.getBoundingClientRect()
+    const padding = 36
+    const availW = Math.max(200, rect.width - padding * 2)
+    const availH = Math.max(200, rect.height - padding * 2)
+    
+    const bpW = blueprintDimensions.width || 1000
+    const bpH = blueprintDimensions.height || 700
+    
+    const fitScale = Math.min(availW / bpW, availH / bpH, 1.5)
+    const finalZoom = Math.max(0.25, Number(fitScale.toFixed(2)))
+    
+    const centeredX = (rect.width - bpW * finalZoom) / 2
+    const centeredY = (rect.height - bpH * finalZoom) / 2
+    
+    setZoom(finalZoom)
+    setPanOffset({ x: centeredX, y: centeredY })
+    showToast(`Plano ajustado y centrado (${Math.round(finalZoom * 100)}%)`, "info")
+  }
+
+  // Escuchar atajos globales de teclado (Ctrl+Z, Ctrl+Y, Shift, Esc, Backspace, L)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      const tagName = activeEl?.tagName?.toLowerCase()
+      if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+        return
+      }
+
       if (e.key === 'Shift') setIsOrthoActive(true)
+
+      // Undo: Ctrl+Z o Meta+Z (sin Shift)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault()
+        handleUndo()
+        return
+      }
+
+      // Redo: Ctrl+Y o Ctrl+Shift+Z o Meta+Shift+Z
+      if (
+        ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))
+      ) {
+        e.preventDefault()
+        handleRedo()
+        return
+      }
+
+      // Backspace: borrar último vértice si está dibujando
+      if (e.key === 'Backspace' && currentPoints.length > 0) {
+        e.preventDefault()
+        setCurrentPoints(prev => prev.slice(0, -1))
+        showToast("Vértice anterior eliminado", "info")
+        return
+      }
+
+      // Escape: cancelar trazado o calibración activa
       if (e.key === 'Escape') {
         setCurrentPoints([])
+        setSelectedMedicionId(null)
         if (isCalibrating) {
           setIsCalibrating(false)
           setCalibrationPoints([])
         }
       }
+
+      // Tecla L: alternar Lupa telescópica
+      if (e.key === 'l' || e.key === 'L') {
+        setIsMagnifierActive(prev => !prev)
+      }
     }
+
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === 'Shift') setIsOrthoActive(false)
     }
@@ -224,7 +392,7 @@ export default function PdfTakeOffModal({
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [isCalibrating])
+  }, [isCalibrating, currentPoints, history, historyIndex])
 
   // Calibración inicial al cambiar de plano demo
   useEffect(() => {
@@ -331,9 +499,10 @@ export default function PdfTakeOffModal({
         rubro_nombre: matchingRubro?.nombre_rubro,
         rubro_codigo: matchingRubro?.codigo_rubro,
         precioUnitario: pu,
-        costoTotal: pu * 1
+        costoTotal: pu * 1,
+        visible: true
       }
-      setMediciones(prev => [...prev, nuevoConteo])
+      updateMedicionesWithHistory(prev => [...prev, nuevoConteo])
       return
     }
 
@@ -362,9 +531,10 @@ export default function PdfTakeOffModal({
           rubro_nombre: matchingRubro?.nombre_rubro,
           rubro_codigo: matchingRubro?.codigo_rubro,
           precioUnitario: pu,
-          costoTotal: Number((areaM2 * pu).toFixed(2))
+          costoTotal: Number((areaM2 * pu).toFixed(2)),
+          visible: true
         }
-        setMediciones(prev => [...prev, nuevaMed])
+        updateMedicionesWithHistory(prev => [...prev, nuevaMed])
         setCurrentPoints([])
         showToast(`Área rectangular calculada: ${areaM2} m²`, "success")
       }
@@ -429,9 +599,10 @@ export default function PdfTakeOffModal({
         rubro_nombre: matchingRubro?.nombre_rubro,
         rubro_codigo: matchingRubro?.codigo_rubro,
         precioUnitario: pu,
-        costoTotal: Number((volM3 * pu).toFixed(2))
+        costoTotal: Number((volM3 * pu).toFixed(2)),
+        visible: true
       }
-      setMediciones(prev => [...prev, nuevaMed])
+      updateMedicionesWithHistory(prev => [...prev, nuevaMed])
       showToast(`Volumen calculado: ${volM3} m³ (Área: ${areaM2} m²)`, "success")
     } else {
       const matchingRubro = presupuestoRubros.find(r => (r.nombre_rubro || '').toLowerCase().includes('contrapiso') || (r.nombre_rubro || '').toLowerCase().includes('piso') || (r.nombre_rubro || '').toLowerCase().includes('ceramica'))
@@ -449,9 +620,10 @@ export default function PdfTakeOffModal({
         rubro_nombre: matchingRubro?.nombre_rubro,
         rubro_codigo: matchingRubro?.codigo_rubro,
         precioUnitario: pu,
-        costoTotal: Number((areaM2 * pu).toFixed(2))
+        costoTotal: Number((areaM2 * pu).toFixed(2)),
+        visible: true
       }
-      setMediciones(prev => [...prev, nuevaMed])
+      updateMedicionesWithHistory(prev => [...prev, nuevaMed])
       showToast(`Área calculada: ${areaM2} m²`, "success")
     }
 
@@ -483,9 +655,10 @@ export default function PdfTakeOffModal({
       rubro_nombre: matchingRubro?.nombre_rubro,
       rubro_codigo: matchingRubro?.codigo_rubro,
       precioUnitario: pu,
-      costoTotal: Number((areaM2 * pu).toFixed(2))
+      costoTotal: Number((areaM2 * pu).toFixed(2)),
+      visible: true
     }
-    setMediciones(prev => [...prev, nuevaMed])
+    updateMedicionesWithHistory(prev => [...prev, nuevaMed])
     setCurrentPoints([])
     showToast(`Muro calculado: ${areaM2} m² (Longitud: ${lenM} m)`, "success")
   }
@@ -511,9 +684,10 @@ export default function PdfTakeOffModal({
       rubro_nombre: matchingRubro?.nombre_rubro,
       rubro_codigo: matchingRubro?.codigo_rubro,
       precioUnitario: pu,
-      costoTotal: Number((lenM * pu).toFixed(2))
+      costoTotal: Number((lenM * pu).toFixed(2)),
+      visible: true
     }
-    setMediciones(prev => [...prev, nuevaMed])
+    updateMedicionesWithHistory(prev => [...prev, nuevaMed])
     setCurrentPoints([])
     showToast(`Longitud calculada: ${lenM} m`, "success")
   }
@@ -542,7 +716,7 @@ export default function PdfTakeOffModal({
     })
 
     // Actualizar todas las mediciones existentes con la nueva escala de precisión
-    setMediciones(prev => prev.map(m => {
+    updateMedicionesWithHistory(prev => prev.map(m => {
       let nuevoResultado = m.resultado
       if (m.tipo === 'area' || m.tipo === 'rectangulo') {
         nuevoResultado = calculatePolygonAreaM2(m.puntos, newRatio)
@@ -711,7 +885,7 @@ export default function PdfTakeOffModal({
 
   // Deducción rápida de vanos
   const handleAddVanoToMuro = (medId: string, areaVanoM2: number) => {
-    setMediciones(prev => prev.map(m => {
+    updateMedicionesWithHistory(prev => prev.map(m => {
       if (m.id === medId && m.tipo === 'pared') {
         const vanosActuales = Number(m.areaVanos) || 0
         const nuevosVanos = Number((vanosActuales + areaVanoM2).toFixed(2))
@@ -734,7 +908,7 @@ export default function PdfTakeOffModal({
     const rubro = presupuestoRubros.find(r => r.id === rubroId)
     const pu = Number(rubro?.precio_unitario) || 0
 
-    setMediciones(prev => prev.map(m => {
+    updateMedicionesWithHistory(prev => prev.map(m => {
       if (m.id === medId) {
         return {
           ...m,
@@ -751,7 +925,8 @@ export default function PdfTakeOffModal({
 
   // Eliminar medición
   const handleDeleteMedicion = (medId: string) => {
-    setMediciones(prev => prev.filter(m => m.id !== medId))
+    updateMedicionesWithHistory(prev => prev.filter(m => m.id !== medId))
+    if (selectedMedicionId === medId) setSelectedMedicionId(null)
   }
 
   // Auto-Detección Inteligente de Ambientes con SARA-Vision
@@ -764,7 +939,7 @@ export default function PdfTakeOffModal({
         presupuestoRubros,
         blueprintDimensions
       )
-      setMediciones(detected)
+      updateMedicionesWithHistory(detected.map(d => ({ ...d, visible: true })))
       setIsDetectingAi(false)
       showToast(`🤖 SARA-Vision detectó ${detected.length} recintos calibrados a escala.`, "success")
     }, 600)
@@ -1145,57 +1320,46 @@ export default function PdfTakeOffModal({
             ))}
           </div>
 
-          {/* Controles de Zoom */}
+          {/* Botones de Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y) */}
           <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button 
-              onClick={() => setZoom(prev => Math.max(0.3, prev - 0.2))} 
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-              title="Alejar"
+              type="button"
+              disabled={!canUndo}
+              onClick={handleUndo}
+              className="px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-amber-400 disabled:opacity-30 disabled:hover:text-slate-500 hover:bg-slate-800 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              title={currentPoints.length > 0 ? "Deshacer último vértice (Ctrl+Z)" : "Deshacer última capa (Ctrl+Z)"}
             >
-              <ZoomOut size={14} />
-            </button>
-            <span className="text-[11px] font-mono px-1 font-bold text-slate-300">{Math.round(zoom * 100)}%</span>
-            <button 
-              onClick={() => setZoom(prev => Math.min(3.5, prev + 0.2))} 
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-              title="Acercar"
-            >
-              <ZoomIn size={14} />
+              <Undo2 size={14} className="text-amber-400" />
+              <span className="hidden sm:inline">Deshacer</span>
+              <kbd className="hidden md:inline text-[9px] bg-slate-800 px-1 py-0.5 rounded text-slate-400 font-mono">^Z</kbd>
             </button>
             <button 
-              onClick={() => { setZoom(1); setPanOffset({ x: 0, y: 0 }) }} 
-              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-              title="Restablecer vista"
+              type="button"
+              disabled={!canRedo}
+              onClick={handleRedo}
+              className="px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-cyan-400 disabled:opacity-30 disabled:hover:text-slate-500 hover:bg-slate-800 transition flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              title="Rehacer capa (Ctrl+Y / Ctrl+Shift+Z)"
             >
-              <RotateCcw size={13} />
+              <Redo2 size={14} className="text-cyan-400" />
+              <span className="hidden sm:inline">Rehacer</span>
+              <kbd className="hidden md:inline text-[9px] bg-slate-800 px-1 py-0.5 rounded text-slate-400 font-mono">^Y</kbd>
             </button>
           </div>
 
-          {/* Deshacer y Limpiar */}
-          {currentPoints.length > 0 && (
-            <button 
-              onClick={() => setCurrentPoints(prev => prev.slice(0, -1))}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
-              title="Deshacer último vértice"
-            >
-              <Undo2 size={13} className="text-amber-400" />
-              <span>Deshacer</span>
-            </button>
-          )}
-
+          {/* Limpiar Capas */}
           {mediciones.length > 0 && (
             <button 
               onClick={() => {
-                if (window.confirm("¿Limpiar todas las capas de medición?")) {
-                  setMediciones([])
+                if (window.confirm("¿Deseas limpiar todas las capas de medición de este plano?")) {
+                  updateMedicionesWithHistory([])
                   setCurrentPoints([])
                 }
               }}
-              className="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+              className="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 rounded-xl text-xs font-bold flex items-center gap-1 transition cursor-pointer"
               title="Limpiar todas las capas"
             >
               <Trash2 size={13} />
-              <span>Limpiar</span>
+              <span className="hidden sm:inline">Limpiar</span>
             </button>
           )}
         </div>
@@ -1210,6 +1374,7 @@ export default function PdfTakeOffModal({
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove as any}
           onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
         >
           {/* Toast informativo flotante */}
           {toastMsg && (
@@ -1387,22 +1552,43 @@ export default function PdfTakeOffModal({
 
               {/* 3. CAPAS DE MEDICIONES CONFIRMADAS */}
               {mediciones.map((m) => {
+                if (m.visible === false) return null
+                const isSelected = selectedMedicionId === m.id
                 const centroid = getPolygonCentroid(m.puntos)
 
                 if (m.tipo === 'area' || m.tipo === 'rectangulo' || m.tipo === 'volumen') {
                   const pointsStr = m.puntos.map(p => `${p.x},${p.y}`).join(' ')
                   return (
-                    <g key={m.id} className="transition-opacity hover:opacity-90 cursor-pointer">
+                    <g 
+                      key={m.id} 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (currentPoints.length === 0 && activeTool !== 'calibrate') {
+                          setSelectedMedicionId(m.id)
+                        }
+                      }}
+                      className="transition-opacity hover:opacity-95 cursor-pointer"
+                    >
+                      {/* Halo de selección */}
+                      {isSelected && (
+                        <polygon 
+                          points={pointsStr} 
+                          fill="none" 
+                          stroke="#22d3ee" 
+                          strokeWidth={4.5} 
+                          strokeDasharray="6 3"
+                        />
+                      )}
                       <polygon 
                         points={pointsStr} 
                         fill={m.color} 
-                        fillOpacity={0.35} 
-                        stroke={m.color} 
-                        strokeWidth={2} 
+                        fillOpacity={isSelected ? 0.45 : 0.32} 
+                        stroke={isSelected ? "#38bdf8" : m.color} 
+                        strokeWidth={isSelected ? 2.5 : 2} 
                       />
                       {/* Vértices */}
                       {m.puntos.map((pt, pIdx) => (
-                        <circle key={pIdx} cx={pt.x} cy={pt.y} r={3} fill="#ffffff" stroke={m.color} strokeWidth={1.5} />
+                        <circle key={pIdx} cx={pt.x} cy={pt.y} r={isSelected ? 4 : 3} fill="#ffffff" stroke={isSelected ? "#22d3ee" : m.color} strokeWidth={1.5} />
                       ))}
                       {/* Etiqueta de Metrado */}
                       <rect 
@@ -1412,9 +1598,9 @@ export default function PdfTakeOffModal({
                         height={24} 
                         rx={6} 
                         fill="#0f172a" 
-                        fillOpacity={0.9} 
-                        stroke={m.color} 
-                        strokeWidth={1.5} 
+                        fillOpacity={0.92} 
+                        stroke={isSelected ? "#22d3ee" : m.color} 
+                        strokeWidth={isSelected ? 2 : 1.5} 
                       />
                       <text 
                         x={centroid.x} 
@@ -1432,25 +1618,47 @@ export default function PdfTakeOffModal({
 
                 if (m.tipo === 'pared' || m.tipo === 'longitud') {
                   return (
-                    <g key={m.id}>
+                    <g 
+                      key={m.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (currentPoints.length === 0 && activeTool !== 'calibrate') {
+                          setSelectedMedicionId(m.id)
+                        }
+                      }}
+                      className="cursor-pointer"
+                    >
                       {m.puntos.map((pt, idx) => {
                         if (idx === m.puntos.length - 1) return null
                         const next = m.puntos[idx + 1]
                         return (
-                          <line 
-                            key={idx} 
-                            x1={pt.x} 
-                            y1={pt.y} 
-                            x2={next.x} 
-                            y2={next.y} 
-                            stroke={m.color} 
-                            strokeWidth={4} 
-                            strokeLinecap="round" 
-                          />
+                          <g key={idx}>
+                            {isSelected && (
+                              <line 
+                                x1={pt.x} 
+                                y1={pt.y} 
+                                x2={next.x} 
+                                y2={next.y} 
+                                stroke="#22d3ee" 
+                                strokeWidth={7} 
+                                strokeLinecap="round" 
+                                opacity={0.6}
+                              />
+                            )}
+                            <line 
+                              x1={pt.x} 
+                              y1={pt.y} 
+                              x2={next.x} 
+                              y2={next.y} 
+                              stroke={isSelected ? "#38bdf8" : m.color} 
+                              strokeWidth={4} 
+                              strokeLinecap="round" 
+                            />
+                          </g>
                         )
                       })}
                       {m.puntos.map((pt, pIdx) => (
-                        <circle key={pIdx} cx={pt.x} cy={pt.y} r={4} fill="#ffffff" stroke={m.color} strokeWidth={2} />
+                        <circle key={pIdx} cx={pt.x} cy={pt.y} r={isSelected ? 5 : 4} fill="#ffffff" stroke={isSelected ? "#22d3ee" : m.color} strokeWidth={2} />
                       ))}
                       {/* Etiqueta */}
                       <rect 
@@ -1460,9 +1668,9 @@ export default function PdfTakeOffModal({
                         height={18} 
                         rx={4} 
                         fill="#0f172a" 
-                        fillOpacity={0.9} 
-                        stroke={m.color} 
-                        strokeWidth={1} 
+                        fillOpacity={0.92} 
+                        stroke={isSelected ? "#22d3ee" : m.color} 
+                        strokeWidth={isSelected ? 2 : 1} 
                       />
                       <text 
                         x={centroid.x} 
@@ -1481,7 +1689,19 @@ export default function PdfTakeOffModal({
                 if (m.tipo === 'conteo') {
                   const pt = m.puntos[0]
                   return (
-                    <g key={m.id}>
+                    <g 
+                      key={m.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (currentPoints.length === 0 && activeTool !== 'calibrate') {
+                          setSelectedMedicionId(m.id)
+                        }
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {isSelected && (
+                        <circle cx={pt.x} cy={pt.y} r={16} fill="none" stroke="#22d3ee" strokeWidth={2} strokeDasharray="3 3" />
+                      )}
                       <circle cx={pt.x} cy={pt.y} r={8} fill={m.color} stroke="#ffffff" strokeWidth={2} />
                       <circle cx={pt.x} cy={pt.y} r={14} fill="none" stroke={m.color} strokeWidth={1} strokeDasharray="2 2" className="animate-spin" />
                       <text x={pt.x} y={pt.y + 3} fill="#ffffff" fontSize={9} fontWeight="bold" textAnchor="middle">✓</text>
@@ -1544,6 +1764,59 @@ export default function PdfTakeOffModal({
                   {currentPoints.map((pt, idx) => (
                     <circle key={idx} cx={pt.x} cy={pt.y} r={4.5} fill="#ffffff" stroke={selectedColor.hex} strokeWidth={2} />
                   ))}
+
+                  {/* 4.5. INDICADOR FLOTANTE DE COTA EN TIEMPO REAL JUNTO AL CURSOR */}
+                  {cursorPos && (
+                    <g id="live-cursor-hud">
+                      {activeTool === 'rectangulo' && currentPoints.length === 1 && (
+                        (() => {
+                          const p1 = currentPoints[0]
+                          const wM = (Math.abs(cursorPos.x - p1.x) * scaleRatio).toFixed(2)
+                          const hM = (Math.abs(cursorPos.y - p1.y) * scaleRatio).toFixed(2)
+                          const aM2 = (Number(wM) * Number(hM)).toFixed(2)
+                          return (
+                            <g transform={`translate(${cursorPos.x + 14}, ${cursorPos.y - 12})`}>
+                              <rect x={0} y={-14} width={100} height={22} rx={5} fill="#090d16" fillOpacity={0.92} stroke="#818cf8" strokeWidth={1} />
+                              <text x={50} y={1} fill="#e0e7ff" fontSize={10} fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                                {wM}m × {hM}m ({aM2} m²)
+                              </text>
+                            </g>
+                          )
+                        })()
+                      )}
+
+                      {(activeTool === 'pared' || activeTool === 'longitud') && (
+                        (() => {
+                          const lastPt = currentPoints[currentPoints.length - 1]
+                          const distM = (calculateDistancePx(lastPt, cursorPos) * scaleRatio).toFixed(2)
+                          return (
+                            <g transform={`translate(${cursorPos.x + 14}, ${cursorPos.y - 12})`}>
+                              <rect x={0} y={-14} width={68} height={22} rx={5} fill="#090d16" fillOpacity={0.92} stroke="#38bdf8" strokeWidth={1} />
+                              <text x={34} y={1} fill="#38bdf8" fontSize={10} fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                                📏 {distM} m
+                              </text>
+                            </g>
+                          )
+                        })()
+                      )}
+
+                      {(activeTool === 'area' || activeTool === 'volumen') && (
+                        (() => {
+                          const lastPt = currentPoints[currentPoints.length - 1]
+                          const distM = (calculateDistancePx(lastPt, cursorPos) * scaleRatio).toFixed(2)
+                          const isNearStart = currentPoints.length >= 3 && calculateDistancePx(cursorPos, currentPoints[0]) < 20 / zoom
+                          return (
+                            <g transform={`translate(${cursorPos.x + 14}, ${cursorPos.y - 12})`}>
+                              <rect x={0} y={-14} width={isNearStart ? 116 : 74} height={22} rx={5} fill="#090d16" fillOpacity={0.92} stroke={isNearStart ? "#10b981" : "#06b6d4"} strokeWidth={1.5} />
+                              <text x={isNearStart ? 58 : 37} y={1} fill={isNearStart ? "#a7f3d0" : "#67e8f9"} fontSize={10} fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                                {isNearStart ? "✓ Clic para cerrar" : `Seg: ${distM} m`}
+                              </text>
+                            </g>
+                          )
+                        })()
+                      )}
+                    </g>
+                  )}
                 </g>
               )}
 
@@ -1598,7 +1871,7 @@ export default function PdfTakeOffModal({
 
           {/* LUPA DE PRECISIÓN FLOTANTE (ZOOM LENS) */}
           {isMagnifierActive && cursorPos && (
-            <div className="absolute bottom-4 right-4 z-20 w-40 h-40 rounded-2xl bg-slate-900 border-2 border-cyan-400 overflow-hidden shadow-2xl pointer-events-none flex items-center justify-center">
+            <div className="absolute bottom-16 right-3 z-20 w-40 h-40 rounded-2xl bg-slate-900 border-2 border-cyan-400 overflow-hidden shadow-2xl pointer-events-none flex items-center justify-center">
               <svg className="w-full h-full bg-slate-950">
                 <g transform={`scale(3.5) translate(${-cursorPos.x + 20}, ${-cursorPos.y + 20})`}>
                   {uploadedImage ? (
@@ -1615,6 +1888,100 @@ export default function PdfTakeOffModal({
               </div>
             </div>
           )}
+
+          {/* HUD FLOTANTE DE ZOOM, NAVEGACIÓN Y DESHACER EXCLUSIVO DEL ÁREA DEL PLANO */}
+          <div className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-2.5 py-1.5 rounded-2xl border border-slate-700/80 shadow-2xl text-white select-none">
+            
+            {/* Deshacer (Ctrl+Z) */}
+            <button
+              type="button"
+              disabled={!canUndo}
+              onClick={handleUndo}
+              className="p-1.5 rounded-xl hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent text-slate-300 hover:text-amber-400 transition cursor-pointer"
+              title={currentPoints.length > 0 ? "Deshacer último vértice (Ctrl+Z o Backspace)" : "Deshacer última acción (Ctrl+Z)"}
+            >
+              <Undo2 size={16} />
+            </button>
+
+            {/* Rehacer (Ctrl+Y) */}
+            <button
+              type="button"
+              disabled={!canRedo}
+              onClick={handleRedo}
+              className="p-1.5 rounded-xl hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent text-slate-300 hover:text-cyan-400 transition cursor-pointer"
+              title="Rehacer acción (Ctrl+Y o Ctrl+Shift+Z)"
+            >
+              <Redo2 size={16} />
+            </button>
+
+            <div className="w-px h-5 bg-slate-700 mx-0.5" />
+
+            {/* Zoom Out (-) */}
+            <button
+              type="button"
+              onClick={() => setZoom(prev => Math.max(0.25, Number((prev - 0.15).toFixed(2))))}
+              className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+              title="Alejar plano (Rueda de ratón hacia abajo)"
+            >
+              <ZoomOut size={16} />
+            </button>
+
+            {/* Porcentaje y Reset 100% */}
+            <button
+              type="button"
+              onClick={() => setZoom(1)}
+              className="px-2 py-1 rounded-lg hover:bg-slate-800 font-mono text-[11px] font-bold text-cyan-300 hover:text-white transition cursor-pointer"
+              title="Restablecer zoom al 100% (1:1)"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+
+            {/* Zoom In (+) */}
+            <button
+              type="button"
+              onClick={() => setZoom(prev => Math.min(4.0, Number((prev + 0.15).toFixed(2))))}
+              className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition cursor-pointer"
+              title="Acercar plano (Rueda de ratón hacia arriba)"
+            >
+              <ZoomIn size={16} />
+            </button>
+
+            <div className="w-px h-5 bg-slate-700 mx-0.5" />
+
+            {/* Ajustar a Pantalla (Fit to Screen) */}
+            <button
+              type="button"
+              onClick={handleFitToScreen}
+              className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-emerald-400 transition cursor-pointer"
+              title="Ajustar plano a toda la pantalla (Centrar)"
+            >
+              <Focus size={16} />
+            </button>
+
+            {/* Lupa 3.5x */}
+            <button
+              type="button"
+              onClick={() => setIsMagnifierActive(prev => !prev)}
+              className={`p-1.5 rounded-xl transition cursor-pointer ${
+                isMagnifierActive 
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50' 
+                  : 'hover:bg-slate-800 text-slate-300 hover:text-white'
+              }`}
+              title="Activar / Desactivar lupa de precisión (tecla L)"
+            >
+              <Search size={16} />
+            </button>
+
+            {/* Atajos de Teclado Modal */}
+            <button
+              type="button"
+              onClick={() => setIsShortcutsModalOpen(true)}
+              className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-indigo-400 transition cursor-pointer"
+              title="Ver atajos de teclado y ayuda rápida"
+            >
+              <Keyboard size={16} />
+            </button>
+          </div>
 
         </div>
 
@@ -1645,29 +2012,53 @@ export default function PdfTakeOffModal({
                 </p>
               </div>
             ) : (
-              mediciones.map((m) => (
-                <div 
-                  key={m.id} 
-                  className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-2.5 transition hover:border-slate-700 shadow-sm"
-                >
-                  {/* Fila Superior: Nombre, Tipo y Resultado */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
-                      <input
-                        type="text"
-                        value={m.nombre}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setMediciones(prev => prev.map(item => item.id === m.id ? { ...item, nombre: val } : item))
-                        }}
-                        className="text-xs font-bold text-white bg-transparent outline-none hover:border-b border-slate-700 focus:border-cyan-400 w-44"
-                      />
+              mediciones.map((m) => {
+                const isSelected = selectedMedicionId === m.id
+                return (
+                  <div 
+                    key={m.id} 
+                    onClick={() => setSelectedMedicionId(m.id)}
+                    className={`bg-slate-950 p-3.5 rounded-2xl border space-y-2.5 transition shadow-sm cursor-pointer ${
+                      isSelected 
+                        ? 'border-cyan-400 ring-1 ring-cyan-500/50 bg-slate-900/90' 
+                        : 'border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    {/* Fila Superior: Nombre, Tipo, Ojo de visibilidad y Resultado */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        {/* Botón Ocultar / Mostrar capa */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleVisibility(m.id)
+                          }}
+                          className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition shrink-0 cursor-pointer"
+                          title={m.visible !== false ? "Ocultar capa en el plano" : "Mostrar capa en el plano"}
+                        >
+                          {m.visible !== false ? (
+                            <Eye size={13} className="text-cyan-400" />
+                          ) : (
+                            <EyeOff size={13} className="text-slate-500" />
+                          )}
+                        </button>
+                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
+                        <input
+                          type="text"
+                          value={m.nombre}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setMediciones(prev => prev.map(item => item.id === m.id ? { ...item, nombre: val } : item))
+                          }}
+                          className="text-xs font-bold text-white bg-transparent outline-none hover:border-b border-slate-700 focus:border-cyan-400 flex-1 min-w-0 truncate"
+                        />
+                      </div>
+                      <span className="text-xs font-black text-emerald-400 font-mono whitespace-nowrap shrink-0">
+                        {m.resultado} {m.unidad}
+                      </span>
                     </div>
-                    <span className="text-xs font-black text-emerald-400 font-mono whitespace-nowrap">
-                      {m.resultado} {m.unidad}
-                    </span>
-                  </div>
 
                   {/* Asignación de Rubro APU */}
                   <div>
@@ -1743,7 +2134,7 @@ export default function PdfTakeOffModal({
                     </button>
                   </div>
                 </div>
-              ))
+              )})
             )}
           </div>
 
@@ -1964,6 +2355,80 @@ export default function PdfTakeOffModal({
             <p className="text-xs text-slate-400 leading-relaxed">
               Procesando cotas vectoriales y convirtiendo lámina a máxima resolución para calibración 2D.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE ATAJOS DE TECLADO Y GUÍA DE PRECISIÓN */}
+      {isShortcutsModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-lg w-full p-6 text-white shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                  <Keyboard size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Atajos de Teclado & Productividad SARA Take-Off</h3>
+                  <p className="text-[11px] text-slate-400">Optimiza tu velocidad al computar planos 2D</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsShortcutsModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Deshacer acción / vértice</span>
+                <kbd className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-amber-400">Ctrl + Z</kbd>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Rehacer acción</span>
+                <kbd className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-cyan-400">Ctrl + Y</kbd>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Modo Ortogonal (90°/180°)</span>
+                <kbd className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-emerald-400">Shift</kbd>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Zoom enfocado al cursor</span>
+                <span className="text-slate-400 font-mono text-[11px] font-bold">Rueda Ratón</span>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Mover plano (Pan)</span>
+                <span className="text-slate-400 font-mono text-[11px] font-bold">Clic Central</span>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Borrar último punto</span>
+                <kbd className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-slate-300">Backspace</kbd>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Cancelar / Soltar herramienta</span>
+                <kbd className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-slate-300">Esc</kbd>
+              </div>
+              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
+                <span className="text-slate-300 font-medium">Alternar Lupa 3.5x</span>
+                <kbd className="bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono font-bold text-cyan-400">L</kbd>
+              </div>
+            </div>
+
+            <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800/60 text-[11px] text-slate-400 space-y-1">
+              <p>💡 <strong className="text-slate-200">Tip de Precisión:</strong> Para cerrar un área o habitación, puedes hacer <strong>doble clic</strong> o simplemente hacer clic sobre el primer vértice marcado (punto cian imantado).</p>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setIsShortcutsModalOpen(false)}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg transition cursor-pointer"
+              >
+                Entendido
+              </button>
+            </div>
           </div>
         </div>
       )}

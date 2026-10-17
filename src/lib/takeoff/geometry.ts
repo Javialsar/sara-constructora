@@ -36,6 +36,7 @@ export interface TakeOffMeasurement {
   rubro_codigo?: string
   precioUnitario?: number // $/unidad del APU
   costoTotal?: number // resultado * precioUnitario
+  visible?: boolean // visibilidad de capa en el lienzo (default true)
 }
 
 /**
