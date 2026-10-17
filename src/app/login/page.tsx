@@ -4,7 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { Calculator, ArrowRight, Loader2, ArrowLeft, HardHat, Mail, Lock, User as UserIcon, Phone, Eye, EyeOff } from "lucide-react"
+import { canAccessModule, getUserModule, SARA_MODULES, getUserPortalUrl } from "@/lib/auth/moduleGuards"
+import { Calculator, ArrowRight, Loader2, ArrowLeft, HardHat, Mail, Lock, User as UserIcon, Phone, Eye, EyeOff, AlertTriangle, ExternalLink } from "lucide-react"
 
 export default function SaaSLogin() {
   const router = useRouter()
@@ -13,6 +14,7 @@ export default function SaaSLogin() {
   const [isLogin, setIsLogin] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null)
   
   // Form fields
   const [email, setEmail] = useState("")
@@ -29,38 +31,63 @@ export default function SaaSLogin() {
     e.preventDefault()
     setLoading(true)
     setError("")
+    setRedirectPortal(null)
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         })
-        if (error) throw error
+        if (signInError) throw signInError
+
+        const user = data?.user
+        const meta = user?.user_metadata || {}
+
+        // VALIDACIÓN DE SEGREGACIÓN POR MÓDULO
+        if (!canAccessModule(meta, 'sara_apu')) {
+          await supabase.auth.signOut()
+          const userMod = getUserModule(meta)
+          const modDef = SARA_MODULES[userMod]
+          const portalUrl = getUserPortalUrl(meta)
+          
+          setRedirectPortal({
+            url: portalUrl,
+            name: modDef?.name || "tu módulo correspondiente"
+          })
+
+          throw new Error(
+            `Acceso restringido: Esta cuenta está registrada en "${modDef?.name || 'otro módulo'}". Para acceder a SARA APU debes usar una cuenta de Presupuestos o ingresar en tu portal correspondiente.`
+          )
+        }
+
         router.push('/dashboard')
       } else {
         if (password !== confirmPassword) {
-            throw new Error("Las contraseñas no coinciden")
+          throw new Error("Las contraseñas no coinciden")
         }
         if (password.length < 6) {
-            throw new Error("La contraseña debe tener al menos 6 caracteres")
+          throw new Error("La contraseña debe tener al menos 6 caracteres")
         }
         
-        const { error } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
               phone: phone,
-              role: 'profesional' // Rol específico para el SaaS
+              role: 'profesional',
+              modulo_origen: 'sara_apu',
+              modulos_autorizados: ['sara_apu']
             }
           }
         })
-        if (error) throw error
+        if (signUpError) throw signUpError
+        
         // Autologueo después del registro
         await supabase.auth.signInWithPassword({ email, password })
-        router.push('/dashboard/planes') // Llevarlo a los planes directo
+        router.push('/dashboard/planes')
       }
     } catch (err: any) {
       setError(err.message || "Error de autenticación")
@@ -100,8 +127,22 @@ export default function SaaSLogin() {
           </p>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100">
-              {error}
+            <div className="bg-amber-50 text-amber-900 p-4 rounded-xl text-sm font-medium mb-6 border border-amber-200 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                <p className="leading-snug">{error}</p>
+              </div>
+              {redirectPortal && (
+                <div className="pt-1">
+                  <Link
+                    href={redirectPortal.url}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all"
+                  >
+                    <span>Ir al portal de {redirectPortal.name}</span>
+                    <ExternalLink size={13} />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

@@ -6,6 +6,7 @@ import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
+import { canAccessModule, getUserModule, getUserPortalUrl, SARA_MODULES } from "@/lib/auth/moduleGuards"
 
 export default function PortalLoginPage() {
   const router = useRouter()
@@ -14,6 +15,7 @@ export default function PortalLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const supabase = createClient()
 
@@ -45,6 +47,22 @@ export default function PortalLoginPage() {
 
       if (signInError) {
         throw new Error(signInError.message === 'Invalid login credentials' ? 'Credenciales inválidas.' : signInError.message)
+      }
+
+      // Validar segregación de módulo estricta
+      const userMeta = data.user.user_metadata || {}
+      if (!canAccessModule(userMeta, 'sara_constructora')) {
+        await supabase.auth.signOut()
+        const userMod = getUserModule(userMeta)
+        const modDef = SARA_MODULES[userMod]
+        const portalUrl = getUserPortalUrl(userMeta)
+        setRedirectPortal({
+          url: portalUrl,
+          name: modDef?.name || 'tu módulo correspondiente'
+        })
+        throw new Error(
+          `Acceso restringido: Esta cuenta pertenece al módulo "${modDef?.name || 'otro módulo'}". Para acceder al Portal de Obras debes ingresar con una cuenta de Constructora o dirigirte a tu portal asignado.`
+        )
       }
 
       // Check if user status is active from the clientes table
@@ -150,7 +168,17 @@ export default function PortalLoginPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm rounded"
               >
-                {error}
+                <div className="space-y-2">
+                <p>{error}</p>
+                {redirectPortal && (
+                  <Link
+                    href={redirectPortal.url}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-dark hover:bg-black text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                  >
+                    Ir a {redirectPortal.name} →
+                  </Link>
+                )}
+              </div>
               </motion.div>
             )}
 

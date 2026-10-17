@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
+import { SaraModule } from "@/lib/auth/moduleGuards"
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +14,56 @@ const supabaseAdmin = createClient(
     }
   }
 )
+
+export async function getAuthUsersAction() {
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      perPage: 1000
+    })
+    if (error) throw error
+
+    return {
+      success: true,
+      users: data.users.map(u => {
+        const meta = u.user_metadata || {}
+        return {
+          id: u.id,
+          email: u.email || '',
+          created_at: u.created_at,
+          modulo_origen: (meta.modulo_origen as SaraModule) || null,
+          modulos_autorizados: (meta.modulos_autorizados as SaraModule[]) || (meta.modulo_origen ? [meta.modulo_origen as SaraModule] : []),
+          role: meta.role || (meta.es_admin ? 'admin' : 'cliente'),
+          full_name: meta.full_name || `${meta.nombre || ''} ${meta.apellido || ''}`.trim() || 'Usuario Registrado',
+          phone: meta.phone || meta.telefono || ''
+        }
+      })
+    }
+  } catch (error: any) {
+    console.error("Error al obtener usuarios de auth:", error)
+    return { success: false, error: error.message, users: [] }
+  }
+}
+
+export async function updateUserModulesAction(userId: string, modulos: SaraModule[]) {
+  try {
+    const { data: user, error: fetchErr } = await supabaseAdmin.auth.admin.getUserById(userId)
+    if (fetchErr) throw fetchErr
+
+    const currentMeta = user.user.user_metadata || {}
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        ...currentMeta,
+        modulos_autorizados: modulos
+      }
+    })
+    if (error) throw error
+    revalidatePath('/admin/accesos')
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error al actualizar módulos autorizados:", error)
+    return { success: false, error: error.message }
+  }
+}
 
 export async function updateUserStatusAction(
   id: string, 
@@ -97,6 +148,7 @@ export async function createUserAccessAction(data: {
   cedula?: string
   password: string
   rol: 'Administrador' | 'Técnico' | 'Cliente'
+  modulo_origen?: SaraModule
 }) {
   try {
     if (!data.nombre || !data.email || !data.password || !data.rol) {
@@ -107,6 +159,8 @@ export async function createUserAccessAction(data: {
       return { success: false, error: "La contraseña debe tener al menos 6 caracteres." }
     }
 
+    const modOrigen = data.modulo_origen || (data.rol === 'Administrador' || data.rol === 'Técnico' ? undefined : 'sara_apu')
+
     // 1. Crear el usuario en Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -116,7 +170,11 @@ export async function createUserAccessAction(data: {
         nombre: data.nombre,
         apellido: data.apellido || '',
         full_name: `${data.nombre} ${data.apellido || ''}`.trim(),
-        role: data.rol === 'Administrador' ? 'admin' : (data.rol === 'Técnico' ? 'tecnico' : 'cliente')
+        role: data.rol === 'Administrador' ? 'admin' : (data.rol === 'Técnico' ? 'tecnico' : 'cliente'),
+        ...(modOrigen ? {
+          modulo_origen: modOrigen,
+          modulos_autorizados: [modOrigen]
+        } : {})
       }
     })
 

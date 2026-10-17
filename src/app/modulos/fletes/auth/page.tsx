@@ -1,16 +1,84 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Truck, Mail, Lock, User, FileText, UploadCloud, ChevronRight } from 'lucide-react';
+import { Truck, Mail, Lock, User, ChevronRight, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { canAccessModule, getUserModule, getUserPortalUrl, SARA_MODULES } from '@/lib/auth/moduleGuards';
 
 export default function FletesAuth() {
   const [isLogin, setIsLogin] = useState(true);
-  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [placa, setPlaca] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push('/modulos/fletes/mi-perfil');
+    setError(null);
+    setRedirectPortal(null);
+    setLoading(true);
+
+    try {
+      if (isLogin) {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (signInError) throw signInError;
+
+        // Guard de segregación de módulo
+        const userMeta = data.user.user_metadata || {};
+        if (!canAccessModule(userMeta, 'sara_fletes')) {
+          await supabase.auth.signOut();
+          const userMod = getUserModule(userMeta);
+          const modDef = SARA_MODULES[userMod];
+          const portalUrl = getUserPortalUrl(userMeta);
+          setRedirectPortal({
+            url: portalUrl,
+            name: modDef?.name || 'tu módulo correspondiente'
+          });
+          throw new Error(
+            `Acceso restringido: Esta cuenta está registrada en "${modDef?.name || 'otro módulo'}". Para ingresar al Radar de Fletes debes usar una cuenta de Transportista o acceder desde tu portal correspondiente.`
+          );
+        }
+
+        router.push('/modulos/fletes/mi-perfil');
+      } else {
+        if (!nombre || !placa) {
+          throw new Error('Por favor completa todos los campos del vehículo.');
+        }
+
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: nombre,
+              placa: placa.toUpperCase(),
+              role: 'transportista',
+              modulo_origen: 'sara_fletes',
+              modulos_autorizados: ['sara_fletes']
+            }
+          }
+        });
+        if (signUpError) throw signUpError;
+
+        // Iniciar sesión inmediatamente
+        await supabase.auth.signInWithPassword({ email, password });
+        router.push('/modulos/fletes/mi-perfil');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error de autenticación');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,12 +128,36 @@ export default function FletesAuth() {
               {isLogin ? 'Iniciar Sesión' : 'Registro de Vehículo'}
             </h3>
             <button 
-              onClick={() => setIsLogin(!isLogin)}
+              type="button"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+                setRedirectPortal(null);
+              }}
               className="text-sm font-bold text-blue-600 hover:text-blue-800"
             >
               {isLogin ? 'Crear una cuenta' : 'Ya tengo cuenta'}
             </button>
           </div>
+
+          {error && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600 mt-0.5" />
+                <span>{error}</span>
+              </div>
+              {redirectPortal && (
+                <div className="pt-2">
+                  <Link
+                    href={redirectPortal.url}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
+                  >
+                    Ir a {redirectPortal.name} →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
@@ -74,14 +166,28 @@ export default function FletesAuth() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
                   <div className="relative">
                     <User className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                    <input required type="text" className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" placeholder="Juan Pérez" />
+                    <input 
+                      required 
+                      type="text" 
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" 
+                      placeholder="Juan Pérez" 
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Placa del Vehículo</label>
                   <div className="relative">
                     <Truck className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                    <input required type="text" className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none uppercase font-mono" placeholder="ABC-1234" />
+                    <input 
+                      required 
+                      type="text" 
+                      value={placa}
+                      onChange={(e) => setPlaca(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none uppercase font-mono" 
+                      placeholder="ABC-1234" 
+                    />
                   </div>
                 </div>
               </div>
@@ -91,7 +197,14 @@ export default function FletesAuth() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
               <div className="relative">
                 <Mail className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                <input required type="email" className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" placeholder="correo@ejemplo.com" />
+                <input 
+                  required 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" 
+                  placeholder="correo@ejemplo.com" 
+                />
               </div>
             </div>
 
@@ -99,12 +212,23 @@ export default function FletesAuth() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
               <div className="relative">
                 <Lock className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                <input required type="password" className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" placeholder="••••••••" />
+                <input 
+                  required 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" 
+                  placeholder="••••••••" 
+                />
               </div>
             </div>
 
-            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-lg flex items-center justify-center transition-colors">
-              {isLogin ? 'Ingresar al Radar' : 'Registrar Vehículo y Subir Documentos'}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold py-3 rounded-lg flex items-center justify-center transition-colors"
+            >
+              {loading ? 'Procesando...' : (isLogin ? 'Ingresar al Radar' : 'Registrar Vehículo y Comenzar')}
               <ChevronRight className="w-5 h-5 ml-2" />
             </button>
           </form>

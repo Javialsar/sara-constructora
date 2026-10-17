@@ -61,26 +61,26 @@ export default function ProyectosMarquesina() {
   const proyectos = [...proyectosDB, ...proyectosDB]
 
   return (
-    <section className="bg-[#080d10] py-16 md:py-24 overflow-hidden border-t border-b border-white/10 relative">
+    <section className="bg-[#080d10] py-20 md:py-28 lg:py-32 overflow-hidden border-t border-b border-white/[0.08] relative">
       
       {/* Luz ambiental de fondo */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(197,160,89,0.08),rgba(0,0,0,0))] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(60,122,82,0.12),rgba(0,0,0,0))] pointer-events-none" />
 
       <div className="container mx-auto px-4 md:px-8 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
         <div>
-          <div className="text-brand-sage font-extrabold tracking-[0.25em] text-xs uppercase mb-2">
-            Portafolio de Obras Civiles
+          <div className="font-mono text-brand-sage font-bold tracking-[0.25em] text-[11px] uppercase mb-2.5">
+            Portafolio de Obras Civiles & Arquitectura
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight uppercase">
+          <h2 className="font-display text-3xl md:text-5xl font-extrabold text-white tracking-tight uppercase">
             Nuestros <span className="text-brand-sage">Proyectos</span>
           </h2>
         </div>
         <Link 
           href="/proyectos" 
-          className="inline-flex items-center gap-2 text-white hover:text-brand-sage text-xs font-black uppercase tracking-widest transition-all bg-white/5 hover:bg-white/10 px-5 py-3 rounded-xl border border-white/10 group"
+          className="min-h-[44px] inline-flex items-center gap-2.5 text-white hover:text-brand-sage text-xs font-bold uppercase tracking-widest transition-all duration-200 ease-out bg-white/[0.04] hover:bg-white/[0.08] px-5 py-2.5 rounded-xl border border-white/[0.08] group active:scale-[0.98] ring-1 ring-black/[0.05]"
         >
           <span>Explorar Catálogo Completo</span>
-          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform text-brand-sage" />
+          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-200 text-brand-sage" />
         </Link>
       </div>
 
@@ -99,7 +99,7 @@ export default function ProyectosMarquesina() {
             <Link 
               href={`/proyectos/${proyecto.id}`}
               key={`${proyecto.id}-${idx}`} 
-              className="relative w-[320px] md:w-[480px] aspect-[16/11] group overflow-hidden rounded-2xl border border-white/10 bg-[#0c1418] flex-shrink-0 cursor-pointer block hover:border-brand-sage/60 transition-all duration-500 shadow-2xl"
+              className="relative w-[320px] md:w-[480px] aspect-[16/11] group overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0c1418] flex-shrink-0 cursor-pointer block hover:border-brand-sage/60 ring-1 ring-black/[0.1] transition-all duration-500 ease-out shadow-2xl active:scale-[0.99]"
             >
               {proyecto.imagen_url ? (
                 <div 
@@ -112,22 +112,22 @@ export default function ProyectosMarquesina() {
                 </div>
               )}
 
-              {/* Degradados cinemáticos ligeros: permiten apreciar la arquitectura con gran luminosidad */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
+              {/* Degradados cinemáticos ligeros */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
               
               <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-between z-10">
                 <div className="flex justify-between items-start">
-                  <span className="bg-brand-sage text-brand-dark text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-md shadow-lg">
+                  <span className="font-mono bg-brand-sage text-brand-dark text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-lg shadow-sm">
                     {getStatusLabel(proyecto.estado)}
                   </span>
 
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 backdrop-blur-md text-white p-2 rounded-lg border border-white/20">
-                    <Eye size={14} />
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/10 backdrop-blur-md text-white p-2 rounded-xl border border-white/20 shadow-xs">
+                    <Eye size={15} />
                   </span>
                 </div>
                 
-                <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-                  <h3 className="text-white font-black text-xl md:text-2xl tracking-tight uppercase mb-2 group-hover:text-brand-sage transition-colors">
+                <div className="translate-y-2 group-hover:translate-y-0 transition-transform duration-300 ease-out">
+                  <h3 className="font-display text-white font-extrabold text-xl md:text-2xl tracking-tight uppercase mb-2 group-hover:text-brand-sage transition-colors duration-200">
                     {proyecto.nombre}
                   </h3>
                   <p className="text-slate-300 text-xs font-semibold flex items-center gap-1.5 uppercase tracking-wider">

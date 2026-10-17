@@ -25,6 +25,7 @@ import {
 import { createClient } from "@/lib/supabase/client"
 import { setGuestSession, getGuestSession } from "@/lib/services/guestAuth"
 import { getLogosEmpresa } from "@/lib/services/logosService"
+import { canAccessModule, getUserModule, SARA_MODULES, getUserPortalUrl } from "@/lib/auth/moduleGuards"
 
 interface ReturnContext {
   redirect: string
@@ -63,6 +64,7 @@ export default function AirbnbAuthPage() {
   const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null)
   const [successMsg, setSuccessMsg] = useState("")
 
   // Form State: Login
@@ -189,6 +191,24 @@ export default function AirbnbAuthPage() {
         console.warn("Supabase auth advertencia, evaluando sesión de huésped:", authError.message)
       } else if (data?.user) {
         const metadata = data.user.user_metadata || {}
+
+        // VALIDACIÓN DE SEGREGACIÓN POR MÓDULO
+        if (!canAccessModule(metadata, 'sara_stays')) {
+          await supabase.auth.signOut()
+          const userMod = getUserModule(metadata)
+          const modDef = SARA_MODULES[userMod]
+          const portalUrl = getUserPortalUrl(metadata)
+
+          setRedirectPortal({
+            url: portalUrl,
+            name: modDef?.name || "tu módulo correspondiente"
+          })
+
+          throw new Error(
+            `Acceso restringido: Esta cuenta está registrada en "${modDef?.name || 'otro módulo'}". Para ingresar al Portal de Alojamientos SARA Stays debes usar una cuenta de Huésped o dirigirte a tu portal.`
+          )
+        }
+
         rawName = metadata.nombre || rawName
         guestApellido = metadata.apellido || ""
         guestPhone = metadata.telefono || guestPhone
@@ -249,7 +269,7 @@ export default function AirbnbAuthPage() {
     setIsLoading(true)
 
     try {
-      // 1. Registro en Supabase Auth
+      // 1. Registro en Supabase Auth con etiquetado de módulo
       const { data, error: signUpErr } = await supabase.auth.signUp({
         email: regForm.email.trim(),
         password: regForm.password,
@@ -258,7 +278,11 @@ export default function AirbnbAuthPage() {
             nombre: regForm.nombre.trim(),
             apellido: regForm.apellido.trim(),
             telefono: regForm.telefono.trim(),
-            cedula: regForm.cedula.trim()
+            cedula: regForm.cedula.trim(),
+            role: "huesped",
+            rol: "huesped",
+            modulo_origen: "sara_stays",
+            modulos_autorizados: ["sara_stays"]
           }
         }
       })
@@ -476,9 +500,22 @@ export default function AirbnbAuthPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100 flex gap-2 items-center">
-              <span>⚠️</span>
-              {error}
+            <div className="bg-amber-50 text-amber-900 p-4 rounded-xl text-sm font-medium mb-6 border border-amber-200 space-y-2">
+              <div className="flex gap-2 items-start">
+                <span className="shrink-0 mt-0.5">⚠️</span>
+                <p className="leading-snug">{error}</p>
+              </div>
+              {redirectPortal && (
+                <div className="pt-1">
+                  <Link
+                    href={redirectPortal.url}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-sm transition-all"
+                  >
+                    <span>Ir al portal de {redirectPortal.name}</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
           {successMsg && (

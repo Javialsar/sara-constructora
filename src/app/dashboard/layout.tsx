@@ -267,7 +267,7 @@ export default function DashboardLayout({
                       href={item.href} 
                       title={item.label}
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center ${collapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2.5"} rounded-xl font-bold transition-all ${
+                      className={`flex items-center min-h-[44px] ${collapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl font-bold transition-all duration-200 ease-out active:scale-[0.98] ${
                         isActive 
                           ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-900/50 ring-1 ring-white/20" 
                           : hasActiveItem
@@ -300,7 +300,7 @@ export default function DashboardLayout({
         )}
 
         {/* Mobile Drawer */}
-        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col shadow-2xl md:hidden transform transition-transform duration-300 ease-in-out ${
+        <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white flex flex-col shadow-2xl md:hidden transform transition-transform duration-300 ease-in-out pb-safe ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}>
           <div className="p-4 border-b border-white/10 flex items-center justify-between">

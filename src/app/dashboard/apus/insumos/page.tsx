@@ -847,16 +847,16 @@ export default function InsumosPage() {
       <div className="flex gap-4 flex-1 overflow-hidden min-h-0">
 
         {/* LEFT: ÁRBOL DE GRUPOS */}
-        <div className="w-64 shrink-0 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden">
-          <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0">
-            <span className="font-bold text-gray-700 text-xs uppercase tracking-wider">Grupos / Subgrupos</span>
+        <div className="w-64 shrink-0 bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200/60 dark:border-slate-800 ring-1 ring-black/[0.04] flex flex-col overflow-hidden">
+          <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 shrink-0">
+            <span className="font-display font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wider">Grupos & Familias</span>
           </div>
-          <div className="overflow-y-auto flex-1 p-2 space-y-0.5">
+          <div className="overflow-y-auto flex-1 p-2 space-y-1">
             <button onClick={() => { setSelectedFamilia(null); setSelectedSubfamilia(null); setSearchTerm(""); setCurrentPage(1); }}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex justify-between items-center
-                ${!selectedFamilia ? 'bg-brand-sage text-white' : 'text-gray-600 hover:bg-gray-100'}`}>
+              className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ease-out flex justify-between items-center active:scale-[0.98]
+                ${!selectedFamilia ? 'bg-brand-sage text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'}`}>
               <span className="flex items-center gap-2"><Box size={15} /> Todos</span>
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${!selectedFamilia ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{insumosCountsData?.total || 0}</span>
+              <span className={`text-xs font-mono tabular-nums px-2 py-0.5 rounded-full ${!selectedFamilia ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700'}`}>{insumosCountsData?.total || 0}</span>
             </button>
             {familias.map(fam => {
               const subs = subfsPorFamilia(fam.id)
@@ -865,21 +865,21 @@ export default function InsumosPage() {
               return (
                 <div key={fam.id}>
                   <button onClick={() => { selectFamilia(fam.id); toggleFamilia(fam.id) }}
-                    className={`w-full text-left px-2 py-2 rounded-lg text-sm transition-colors flex items-center gap-1
-                      ${isSelected ? 'bg-brand-sage text-white font-medium' : 'text-gray-700 hover:bg-gray-100'}`}>
-                    <span className="text-gray-400">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
+                    className={`w-full text-left px-2.5 py-2 rounded-xl text-sm transition-all duration-150 ease-out flex items-center gap-1 active:scale-[0.98]
+                      ${isSelected ? 'bg-brand-sage text-white font-medium shadow-xs' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'}`}>
+                    <span className="text-slate-400">{isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</span>
                     <span className="mr-1">{getFamiliaIcon(fam.grupo_sugerido)}</span>
                     <span className="flex-1 truncate text-xs font-semibold">{fam.nombre}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'}`}>{countByFamilia(fam.id)}</span>
+                    <span className={`text-xs font-mono tabular-nums px-1.5 py-0.5 rounded-full shrink-0 ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>{countByFamilia(fam.id)}</span>
                   </button>
                   {isExpanded && subs.map(sf => {
                     const isSubSelected = selectedSubfamilia === sf.id
                     return (
                       <button key={sf.id} onClick={() => selectSubfamilia(sf.id, fam.id)}
-                        className={`w-full text-left pl-8 pr-2 py-1.5 rounded-lg text-xs transition-colors flex items-center justify-between mt-0.5
-                          ${isSubSelected ? 'bg-blue-100 text-blue-800 font-semibold border-l-2 border-blue-500' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}>
+                        className={`w-full text-left pl-8 pr-2.5 py-1.5 rounded-xl text-xs transition-all duration-150 ease-out flex items-center justify-between mt-0.5 active:scale-[0.98]
+                          ${isSubSelected ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 font-semibold border-l-2 border-blue-500' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-700 dark:hover:text-slate-200'}`}>
                         <span className="truncate">• {sf.nombre}</span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ml-1 ${isSubSelected ? 'bg-blue-200 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{countBySubfamilia(sf.id)}</span>
+                        <span className={`text-xs font-mono tabular-nums px-1.5 py-0.5 rounded-full shrink-0 ml-1 ${isSubSelected ? 'bg-blue-200 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>{countBySubfamilia(sf.id)}</span>
                       </button>
                     )
                   })}
@@ -890,13 +890,13 @@ export default function InsumosPage() {
         </div>
 
         {/* RIGHT: TABLA DE INSUMOS */}
-        <div className="flex-1 bg-white rounded-xl shadow border border-gray-200 flex flex-col overflow-hidden min-w-0">
-          <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0">
+        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200/60 dark:border-slate-800 ring-1 ring-black/[0.04] flex flex-col overflow-hidden min-w-0">
+          <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 shrink-0">
             <div className="relative max-w-md">
               <input type="text" placeholder="Buscar por código o nombre..." value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-sage" />
-              <Search className="absolute left-3 top-2 text-gray-400" size={16} />
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 dark:border-slate-750 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-sage/40 transition-all duration-150" />
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
             </div>
           </div>
 

@@ -48,7 +48,12 @@ export default function PortalRegistroPage() {
           data: {
             nombre: formData.nombre,
             apellido: formData.apellido,
+            full_name: `${formData.nombre} ${formData.apellido}`.trim(),
             telefono: formData.telefono,
+            phone: formData.telefono,
+            role: 'cliente_constructora',
+            modulo_origen: 'sara_constructora',
+            modulos_autorizados: ['sara_constructora']
           },
         },
       })

@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { setOwnerSession, getOwnerSession } from "@/lib/services/ownerAuth"
+import { canAccessModule, getUserModule, SARA_MODULES, getUserPortalUrl } from "@/lib/auth/moduleGuards"
 
 export default function InmobiliariaAuthPage() {
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function InmobiliariaAuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null)
   const [successMsg, setSuccessMsg] = useState("")
 
   // Login
@@ -82,6 +84,24 @@ export default function InmobiliariaAuthPage() {
       }
 
       const metadata = data.user.user_metadata || {}
+
+      // VALIDACIÓN DE SEGREGACIÓN POR MÓDULO
+      if (!canAccessModule(metadata, 'sara_inmobiliaria')) {
+        await supabase.auth.signOut()
+        const userMod = getUserModule(metadata)
+        const modDef = SARA_MODULES[userMod]
+        const portalUrl = getUserPortalUrl(metadata)
+
+        setRedirectPortal({
+          url: portalUrl,
+          name: modDef?.name || "tu módulo correspondiente"
+        })
+
+        throw new Error(
+          `Acceso restringido: Esta cuenta está registrada en "${modDef?.name || 'otro módulo'}". Para acceder al Portal Inmobiliario debes ingresar con una cuenta autorizada de Bienes Raíces o dirigirte a tu portal.`
+        )
+      }
+
       rawName = metadata.nombre || rawName
       ownerApellido = metadata.apellido || ""
       ownerPhone = metadata.telefono || ownerPhone
@@ -149,7 +169,10 @@ export default function InmobiliariaAuthPage() {
             apellido: regForm.apellido.trim(),
             telefono: regForm.telefono.trim(),
             cedula: regForm.cedula.trim(),
-            rol: "propietario_inmobiliaria"
+            rol: "propietario_inmobiliaria",
+            role: "propietario_inmobiliaria",
+            modulo_origen: "sara_inmobiliaria",
+            modulos_autorizados: ["sara_inmobiliaria"]
           }
         }
       })
@@ -251,8 +274,19 @@ export default function InmobiliariaAuthPage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium mb-6 border border-red-100">
-              {error}
+            <div className="bg-amber-50 text-amber-900 p-4 rounded-xl text-sm font-medium mb-6 border border-amber-200 space-y-2">
+              <p className="leading-snug">{error}</p>
+              {redirectPortal && (
+                <div className="pt-1">
+                  <Link
+                    href={redirectPortal.url}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+                  >
+                    <span>Ir al portal de {redirectPortal.name}</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
           {successMsg && (

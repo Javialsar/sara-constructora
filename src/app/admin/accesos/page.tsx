@@ -1,18 +1,21 @@
 "use client"
 import { useState, useMemo, useEffect } from "react"
 import { 
-  Search, Shield, ShieldAlert, ShieldCheck, Key, Trash2, Power, PowerOff, UserCheck, UserX, Mail, Phone, Hash, Calendar, Edit, ChevronDown, CheckCircle, Lock, Unlock, RefreshCw, Clock, Download, FileSpreadsheet, Plus, Loader2, Sparkles, UserPlus, X, Radio
+  Search, Shield, ShieldAlert, ShieldCheck, Key, Trash2, Power, PowerOff, UserCheck, UserX, Mail, Phone, Hash, Calendar, Edit, ChevronDown, CheckCircle, Lock, Unlock, RefreshCw, Clock, Download, FileSpreadsheet, Plus, Loader2, Sparkles, UserPlus, X, Radio, Layers, ExternalLink, Settings2
 } from "lucide-react"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
 import { membreteBase64 } from "@/lib/membreteBase64"
 import { createClient } from "@/lib/supabase/client"
+import { SaraModule, SARA_MODULES } from "@/lib/auth/moduleGuards"
 import { 
   updateUserStatusAction, 
   deleteUserAction, 
   changeUserPasswordAction, 
-  createUserAccessAction 
+  createUserAccessAction,
+  getAuthUsersAction,
+  updateUserModulesAction
 } from "./actions"
 
 type UserStatus = 'activo' | 'inactivo' | 'bloqueado'
@@ -20,7 +23,7 @@ type UserRole = 'Administrador' | 'Técnico' | 'Cliente'
 
 type UsuarioAcceso = {
   id: string
-  table: 'clientes' | 'trabajadores'
+  table: 'clientes' | 'trabajadores' | 'auth_users'
   fecha_creacion: string
   hora_creacion: string
   nombres: string
@@ -30,6 +33,29 @@ type UsuarioAcceso = {
   email: string
   rol: UserRole
   estado: UserStatus
+  modulo_origen?: SaraModule | 'sara_master' | null
+  modulos_autorizados?: SaraModule[]
+}
+
+const MODULE_TABS: { id: string; label: string; icon: string; filterKey: string }[] = [
+  { id: 'all', label: 'Todos', icon: '🏢', filterKey: '' },
+  { id: 'sara_apu', label: 'SARA APU', icon: '📊', filterKey: 'sara_apu' },
+  { id: 'sara_constructora', label: 'Constructora', icon: '🏗️', filterKey: 'sara_constructora' },
+  { id: 'sara_inmobiliaria', label: 'Inmobiliaria', icon: '🏠', filterKey: 'sara_inmobiliaria' },
+  { id: 'sara_stays', label: 'Stays', icon: '🛏️', filterKey: 'sara_stays' },
+  { id: 'sara_fletes', label: 'Fletes', icon: '🚚', filterKey: 'sara_fletes' },
+  { id: 'sara_talento', label: 'Talento', icon: '👷', filterKey: 'sara_talento' },
+  { id: 'sara_master', label: 'Global / Admin', icon: '👑', filterKey: 'sara_master' },
+]
+
+const MODULE_CONFIG: Record<string, { label: string; badgeClass: string; icon: string }> = {
+  sara_apu: { label: 'SARA APU', badgeClass: 'bg-blue-100 text-blue-700 border-blue-200', icon: '📊' },
+  sara_constructora: { label: 'Constructora', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: '🏗️' },
+  sara_inmobiliaria: { label: 'Inmobiliaria', badgeClass: 'bg-cyan-100 text-cyan-700 border-cyan-200', icon: '🏠' },
+  sara_stays: { label: 'Stays', badgeClass: 'bg-rose-100 text-rose-700 border-rose-200', icon: '🛏️' },
+  sara_fletes: { label: 'Fletes', badgeClass: 'bg-amber-100 text-amber-700 border-amber-200', icon: '🚚' },
+  sara_talento: { label: 'Talento', badgeClass: 'bg-violet-100 text-violet-700 border-violet-200', icon: '👷' },
+  sara_master: { label: 'Holding Global', badgeClass: 'bg-purple-100 text-purple-700 border-purple-200', icon: '👑' },
 }
 
 export default function AccesosPage() {
@@ -40,12 +66,19 @@ export default function AccesosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState<string>("")
   const [statusFilter, setStatusFilter] = useState<string>("")
+  const [selectedModuleTab, setSelectedModuleTab] = useState<string>("all")
 
   // Modal para cambio de clave
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UsuarioAcceso | null>(null)
   const [newPassword, setNewPassword] = useState("")
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
+  // Modal para gestionar modulos de usuario
+  const [isModuleModalOpen, setIsModuleModalOpen] = useState(false)
+  const [moduleModalUser, setModuleModalUser] = useState<UsuarioAcceso | null>(null)
+  const [userSelectedModules, setUserSelectedModules] = useState<SaraModule[]>([])
+  const [isSavingModules, setIsSavingModules] = useState(false)
 
   // Modal para crear nuevo usuario / acceso
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -57,7 +90,8 @@ export default function AccesosPage() {
     telefono: "",
     cedula: "",
     password: "",
-    rol: "Cliente" as UserRole
+    rol: "Cliente" as UserRole,
+    modulo_origen: "sara_apu" as SaraModule
   })
 
   // Toast / Mensajes
@@ -68,21 +102,31 @@ export default function AccesosPage() {
     setTimeout(() => setNotification(null), 3500)
   }
 
-  // Carga de usuarios reales desde Supabase
+  // Carga de usuarios reales combinando Clientes, Trabajadores y Supabase Auth
   const fetchRealUsers = async () => {
     try {
-      const [{ data: clientsData, error: errClients }, { data: trabData, error: errTrab }] = await Promise.all([
+      setLoading(true)
+      const [{ data: clientsData, error: errClients }, { data: trabData, error: errTrab }, authRes] = await Promise.all([
         supabase.from('clientes').select('*').order('created_at', { ascending: false }),
-        supabase.from('trabajadores').select('*').order('created_at', { ascending: false })
+        supabase.from('trabajadores').select('*').order('created_at', { ascending: false }),
+        getAuthUsersAction()
       ])
 
       if (errClients) console.error("Error cargando clientes:", errClients)
       if (errTrab) console.error("Error cargando trabajadores:", errTrab)
 
-      const combined: UsuarioAcceso[] = []
+      const authMap = new Map<string, any>()
+      if (authRes.success && authRes.users) {
+        authRes.users.forEach(u => authMap.set(u.id, u))
+      }
 
+      const combined: UsuarioAcceso[] = []
+      const processedUserIds = new Set<string>()
+
+      // 1. Clientes registrados
       if (clientsData && clientsData.length > 0) {
         clientsData.forEach((c: any) => {
+          processedUserIds.add(c.id)
           const d = new Date(c.created_at || Date.now())
           const fecha = d.toLocaleDateString('es-EC', { year: 'numeric', month: '2-digit', day: '2-digit' })
           const hora = d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })
@@ -90,6 +134,11 @@ export default function AccesosPage() {
           let normalizedEstado: UserStatus = 'activo'
           if (c.estado === 'inactivo') normalizedEstado = 'inactivo'
           else if (c.estado === 'bloqueado') normalizedEstado = 'bloqueado'
+
+          const authInfo = authMap.get(c.id)
+          const modOrigen: SaraModule | 'sara_master' = c.es_admin 
+            ? 'sara_master' 
+            : (authInfo?.modulo_origen || 'sara_constructora')
 
           combined.push({
             id: c.id,
@@ -102,11 +151,14 @@ export default function AccesosPage() {
             telefono: c.telefono || 'Sin teléfono',
             email: c.email || 'Sin correo',
             rol: c.es_admin ? 'Administrador' : 'Cliente',
-            estado: normalizedEstado
+            estado: normalizedEstado,
+            modulo_origen: modOrigen,
+            modulos_autorizados: authInfo?.modulos_autorizados || [modOrigen as SaraModule]
           })
         })
       }
 
+      // 2. Trabajadores y Técnicos
       if (trabData && trabData.length > 0) {
         trabData.forEach((t: any) => {
           const d = new Date(t.created_at || Date.now())
@@ -128,8 +180,46 @@ export default function AccesosPage() {
             telefono: t.telefono || 'Sin teléfono',
             email: t.email || `${(t.nombre_completo || 'tecnico').toLowerCase().replace(/\s+/g, '.')}@saraconstructora.com`,
             rol: 'Técnico',
-            estado: t.estado ? 'activo' : 'inactivo'
+            estado: t.estado ? 'activo' : 'inactivo',
+            modulo_origen: 'sara_master',
+            modulos_autorizados: ['sara_apu', 'sara_constructora', 'sara_inmobiliaria', 'sara_stays', 'sara_fletes', 'sara_talento']
           })
+        })
+      }
+
+      // 3. Usuarios de Auth que se registraron por otros portales (APU, Inmobiliaria, Stays, Fletes, Talento)
+      if (authRes.success && authRes.users) {
+        authRes.users.forEach(u => {
+          if (!processedUserIds.has(u.id)) {
+            const d = new Date(u.created_at || Date.now())
+            const fecha = d.toLocaleDateString('es-EC', { year: 'numeric', month: '2-digit', day: '2-digit' })
+            const hora = d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })
+
+            const parts = (u.full_name || '').split(' ')
+            const nombres = parts.slice(0, Math.ceil(parts.length / 2)).join(' ') || u.full_name || 'Usuario'
+            const apellidos = parts.slice(Math.ceil(parts.length / 2)).join(' ') || ''
+
+            const isAdm = u.role === 'admin' || u.role === 'superadmin'
+            const isTec = u.role === 'tecnico'
+
+            const modOrigen = isAdm ? 'sara_master' : (u.modulo_origen || 'sara_apu')
+
+            combined.push({
+              id: u.id,
+              table: 'auth_users',
+              fecha_creacion: fecha,
+              hora_creacion: hora,
+              nombres,
+              apellidos,
+              cedula: `ID-${u.id.substring(0, 8).toUpperCase()}`,
+              telefono: u.phone || 'Sin teléfono',
+              email: u.email,
+              rol: isAdm ? 'Administrador' : (isTec ? 'Técnico' : 'Cliente'),
+              estado: 'activo',
+              modulo_origen: modOrigen,
+              modulos_autorizados: u.modulos_autorizados || [modOrigen as SaraModule]
+            })
+          }
         })
       }
 
@@ -151,21 +241,15 @@ export default function AccesosPage() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'clientes' },
-        (payload) => {
-          fetchRealUsers()
-        }
+        () => fetchRealUsers()
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'trabajadores' },
-        (payload) => {
-          fetchRealUsers()
-        }
+        () => fetchRealUsers()
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsRealtimeActive(true)
-        }
+        setIsRealtimeActive(status === 'SUBSCRIBED')
       })
 
     return () => {
@@ -173,11 +257,13 @@ export default function AccesosPage() {
     }
   }, [])
 
-  // Cambiar estado en Base de Datos (Activar / Desactivar / Bloquear)
+  // Cambiar Estado
   const handleStatusChange = async (user: UsuarioAcceso, newStatus: UserStatus) => {
-    if (!confirm(`¿Estás seguro de marcar a ${user.nombres} ${user.apellidos} como ${newStatus.toUpperCase()}?`)) return
-    
-    // Actualización optimista
+    if (user.table === 'auth_users') {
+      showNotification(`El usuario de auth ${user.nombres} ya está activo en su portal de origen.`)
+      return
+    }
+
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, estado: newStatus } : u))
     
     const res = await updateUserStatusAction(user.id, user.table, newStatus)
@@ -185,24 +271,27 @@ export default function AccesosPage() {
       showNotification(`Estado de ${user.nombres} actualizado a ${newStatus} en base de datos.`)
     } else {
       showNotification(`Error: ${res.error}`, 'error')
-      fetchRealUsers() // revertir
+      fetchRealUsers()
     }
   }
 
-  // Eliminar usuario en Base de Datos
+  // Eliminar usuario
   const handleDelete = async (user: UsuarioAcceso) => {
     const nombreCompleto = `${user.nombres} ${user.apellidos}`.trim()
-    if (!confirm(`ADVERTENCIA: ¿Eliminar permanentemente a "${nombreCompleto}" de la base de datos? Esta acción no se puede deshacer.`)) return
+    if (!confirm(`ADVERTENCIA: ¿Eliminar permanentemente a "${nombreCompleto}" del sistema? Esta acción no se puede deshacer.`)) return
 
-    // Optimista
     setUsers(prev => prev.filter(u => u.id !== user.id))
 
-    const res = await deleteUserAction(user.id, user.table)
-    if (res.success) {
-      showNotification(`Usuario ${nombreCompleto} eliminado exitosamente.`)
+    if (user.table === 'clientes' || user.table === 'trabajadores') {
+      const res = await deleteUserAction(user.id, user.table)
+      if (res.success) {
+        showNotification(`Usuario ${nombreCompleto} eliminado exitosamente.`)
+      } else {
+        showNotification(`Error al eliminar: ${res.error}`, 'error')
+        fetchRealUsers()
+      }
     } else {
-      showNotification(`Error al eliminar: ${res.error}`, 'error')
-      fetchRealUsers()
+      showNotification(`Usuario eliminado del panel.`)
     }
   }
 
@@ -213,7 +302,7 @@ export default function AccesosPage() {
     setIsKeyModalOpen(true)
   }
 
-  // Guardar nueva clave en Supabase Auth
+  // Guardar nueva clave
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUser) return
@@ -230,6 +319,30 @@ export default function AccesosPage() {
     }
   }
 
+  // Abrir modal de modulos
+  const openModuleModal = (user: UsuarioAcceso) => {
+    setModuleModalUser(user)
+    setUserSelectedModules(user.modulos_autorizados || [user.modulo_origen as SaraModule || 'sara_apu'])
+    setIsModuleModalOpen(true)
+  }
+
+  // Guardar modulos autorizados
+  const handleSaveModules = async () => {
+    if (!moduleModalUser) return
+    setIsSavingModules(true)
+
+    const res = await updateUserModulesAction(moduleModalUser.id, userSelectedModules)
+    setIsSavingModules(false)
+
+    if (res.success) {
+      setIsModuleModalOpen(false)
+      showNotification(`Módulos de ${moduleModalUser.nombres} actualizados exitosamente.`)
+      fetchRealUsers()
+    } else {
+      showNotification(`Error al actualizar módulos: ${res.error}`, 'error')
+    }
+  }
+
   // Generador de clave segura
   const handleRegeneratePassword = () => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%"
@@ -238,7 +351,7 @@ export default function AccesosPage() {
     setNewPassword(pass)
   }
 
-  // Crear nuevo usuario de acceso en Supabase
+  // Crear nuevo usuario
   const handleCreateNewUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsCreatingUser(true)
@@ -255,15 +368,33 @@ export default function AccesosPage() {
         telefono: "",
         cedula: "",
         password: "",
-        rol: "Cliente"
+        rol: "Cliente",
+        modulo_origen: "sara_apu"
       })
-      showNotification("¡Usuario creado exitosamente y sincronizado en tiempo real!")
+      showNotification("Usuario y credenciales creados exitosamente en Supabase Auth.")
       fetchRealUsers()
     } else {
-      showNotification(`Error al crear usuario: ${res.error}`, 'error')
+      showNotification(res.error || "Error al crear usuario", "error")
     }
   }
 
+  // Conteo de usuarios por modulo
+  const moduleCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: users.length }
+    MODULE_TABS.forEach(tab => {
+      if (tab.id !== 'all') {
+        counts[tab.id] = users.filter(u => {
+          if (tab.id === 'sara_master') {
+            return u.rol === 'Administrador' || u.rol === 'Técnico' || u.modulo_origen === 'sara_master'
+          }
+          return u.modulo_origen === tab.id || u.modulos_autorizados?.includes(tab.id as SaraModule)
+        }).length
+      }
+    })
+    return counts
+  }, [users])
+
+  // Filtrado de usuarios
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
       const matchSearch = 
@@ -275,31 +406,40 @@ export default function AccesosPage() {
       const matchRole = roleFilter ? u.rol === roleFilter : true
       const matchStatus = statusFilter ? u.estado === statusFilter : true
 
-      return matchSearch && matchRole && matchStatus
-    })
-  }, [users, searchTerm, roleFilter, statusFilter])
+      let matchModule = true
+      if (selectedModuleTab !== 'all') {
+        if (selectedModuleTab === 'sara_master') {
+          matchModule = u.rol === 'Administrador' || u.rol === 'Técnico' || u.modulo_origen === 'sara_master'
+        } else {
+          matchModule = u.modulo_origen === selectedModuleTab || Boolean(u.modulos_autorizados?.includes(selectedModuleTab as SaraModule))
+        }
+      }
 
-  // Exportar Excel con Encabezado Institucional
+      return matchSearch && matchRole && matchStatus && matchModule
+    })
+  }, [users, searchTerm, roleFilter, statusFilter, selectedModuleTab])
+
+  // Exportar Excel
   const exportToExcel = () => {
     const headerRows = [
-      ["SARA CONSTRUCTORA S.A."],
-      ["SISTEMA INTEGRADO DE GESTIÓN, AUDITORÍA Y ACCESOS"],
-      ["REPORTE: NÓMINA GENERAL Y CONTROL DE ACCESOS (TIEMPO REAL)"],
-      [`Fecha y Hora de Emisión: ${new Date().toLocaleString()}`],
-      [`Total de Registros Sincronizados: ${filteredUsers.length}`],
+      ["SARA CONSTRUCTORA S.A. - HOLDING EMPRESARIAL"],
+      ["SISTEMA INTEGRADO DE SEGREGACIÓN Y CONTROL DE ACCESOS"],
+      ["REPORTE: NÓMINA GENERAL DE CLIENTES Y PROFESIONALES POR MÓDULO"],
+      [`Fecha de Emisión: ${new Date().toLocaleString()}`],
+      [`Total Registros: ${filteredUsers.length}`],
       [],
-      ["Nº", "FECHA REGISTRO", "HORA", "CÉDULA / ID", "NOMBRES", "APELLIDOS", "EMAIL", "TELÉFONO", "ROL", "ESTADO"]
+      ["Nº", "FECHA REGISTRO", "CÉDULA / ID", "NOMBRES", "APELLIDOS", "EMAIL", "TELÉFONO", "MÓDULO ORIGEN", "ROL", "ESTADO"]
     ];
 
     const dataRows = filteredUsers.map((u, idx) => [
       idx + 1,
-      u.fecha_creacion,
-      u.hora_creacion,
+      `${u.fecha_creacion} ${u.hora_creacion}`,
       u.cedula,
       u.nombres,
       u.apellidos,
       u.email,
       u.telefono,
+      MODULE_CONFIG[u.modulo_origen || 'sara_apu']?.label || u.modulo_origen || 'SARA APU',
       u.rol,
       u.estado.toUpperCase()
     ]);
@@ -307,15 +447,14 @@ export default function AccesosPage() {
     const worksheet = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Accesos");
-    XLSX.writeFile(workbook, `Nomina_Accesos_Usuarios_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `Nomina_Usuarios_Modulos_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
-  // Exportar PDF con Membrete Institucional
+  // Exportar PDF
   const exportToPDF = () => {
     const doc = new jsPDF('landscape');
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Membrete
     if (membreteBase64) {
       try {
         doc.addImage(membreteBase64, 'PNG', 0, 0, pageWidth, 28);
@@ -327,65 +466,40 @@ export default function AccesosPage() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.setTextColor(30, 41, 59);
-    doc.text("CONTROL DE ACCESOS Y USUARIOS", 14, 35);
+    doc.text("SEGREGACIÓN DE ACCESOS Y CLIENTES POR MÓDULO", 14, 35);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Nómina de credenciales sincronizada con Supabase • Emisión: ${new Date().toLocaleString()}`, 14, 40);
+    doc.text(`Nómina oficial del Holding Grupo SARA • Emisión: ${new Date().toLocaleString()}`, 14, 40);
 
     const tableData = filteredUsers.map((u, idx) => [
       idx + 1,
       `${u.fecha_creacion}\n${u.hora_creacion}`,
       `${u.apellidos}, ${u.nombres}\nCI/ID: ${u.cedula}`,
       `${u.email}\nTelf: ${u.telefono}`,
+      MODULE_CONFIG[u.modulo_origen || 'sara_apu']?.label || 'SARA APU',
       u.rol,
       u.estado.toUpperCase()
     ]);
 
     autoTable(doc, {
-      startY: 45,
-      head: [["#", "Fecha / Hora", "Usuario (Nombres y Cédula)", "Contacto (Email / Teléfono)", "Rol", "Estado"]],
+      startY: 46,
+      head: [['#', 'Registro', 'Cliente / Profesional', 'Contacto', 'Módulo', 'Rol', 'Estado']],
       body: tableData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [30, 41, 59],
-        textColor: 255,
-        fontSize: 8,
-        fontStyle: 'bold'
-      },
-      bodyStyles: {
-        fontSize: 8,
-        cellPadding: 3
-      },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 70 },
-        3: { cellWidth: 70 },
-        4: { cellWidth: 30, halign: 'center' },
-        5: { cellWidth: 25, halign: 'center' }
-      },
-      didDrawPage: (data) => {
-        const pageCount = doc.internal.pages.length - 1;
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(
-          `Página ${data.pageNumber} de ${pageCount} — SARA CONSTRUCTORA S.A.`,
-          pageWidth / 2,
-          doc.internal.pageSize.getHeight() - 8,
-          { align: 'center' }
-        );
-      }
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
     });
 
-    doc.save(`Nomina_Accesos_Usuarios_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Nomina_Usuarios_Modulos_${new Date().toISOString().split('T')[0]}.pdf`);
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] p-4 md:p-6 bg-slate-50/50">
+    <div className="flex flex-col h-[calc(100vh-5rem)] p-4 sm:p-6 overflow-hidden max-w-7xl mx-auto w-full">
       
-      {/* NOTIFICACIÓN TOAST */}
+      {/* NOTIFICACION FLOTANTE */}
       {notification && (
         <div className={`fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-xl border flex items-center gap-3 transition-all animate-in slide-in-from-bottom-5 ${
           notification.type === 'error' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -400,7 +514,7 @@ export default function AccesosPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-              <ShieldCheck className="text-brand-sage" size={28} /> Control de Accesos y Usuarios
+              <ShieldCheck className="text-brand-sage" size={28} /> Control de Accesos y Segregación de Módulos
             </h1>
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -408,7 +522,7 @@ export default function AccesosPage() {
             </div>
           </div>
           <p className="text-gray-500 text-xs mt-0.5">
-            Administra la nómina completa de usuarios, sus roles, credenciales y estados sincronizados directamente con la base de datos.
+            Organiza y administra a los clientes por portal. Cada usuario solo puede ingresar a su módulo asignado a menos que le otorgues permisos multi-módulo.
           </p>
         </div>
 
@@ -424,14 +538,14 @@ export default function AccesosPage() {
           <button 
             onClick={exportToExcel} 
             className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-3.5 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors" 
-            title="Exportar a Excel con encabezado institucional"
+            title="Exportar a Excel"
           >
             <FileSpreadsheet size={16} /> Excel
           </button>
           <button 
             onClick={exportToPDF} 
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors" 
-            title="Exportar a PDF con membrete institucional"
+            title="Exportar a PDF"
           >
             <Download size={16} /> PDF
           </button>
@@ -445,7 +559,7 @@ export default function AccesosPage() {
             <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
             <input 
               type="text" 
-              placeholder="Buscar cédula, nombre, email..." 
+              placeholder="Buscar por cédula, nombre, email..." 
               value={searchTerm} 
               onChange={e => setSearchTerm(e.target.value)} 
               className="w-64 pl-9 pr-3 py-2 bg-white border border-gray-200 rounded-lg text-sm shadow-sm focus:outline-none focus:border-brand-sage" 
@@ -454,14 +568,41 @@ export default function AccesosPage() {
         </div>
       </div>
 
+      {/* PESTAÑAS DE SEGREGACIÓN POR MÓDULOS */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none">
+        {MODULE_TABS.map(tab => {
+          const isActive = selectedModuleTab === tab.id
+          const count = moduleCounts[tab.id] || 0
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setSelectedModuleTab(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                isActive 
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                  : 'bg-white text-slate-600 border-gray-200 hover:bg-slate-50'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+              }`}>
+                {count}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* PANEL PRINCIPAL */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col flex-1 overflow-hidden min-h-0">
         
         {/* Filtros Rapidos */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50/80 flex flex-wrap gap-4 shrink-0 items-center">
+        <div className="p-3 border-b border-gray-100 bg-gray-50/80 flex flex-wrap gap-4 shrink-0 items-center">
           <div className="flex items-center gap-2 text-sm">
             <span className="font-bold text-gray-500 uppercase text-xs">Rol:</span>
-            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="border-gray-200 rounded-md text-sm outline-none bg-white px-2.5 py-1">
+            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="border-gray-200 rounded-md text-xs font-semibold outline-none bg-white px-2.5 py-1">
               <option value="">Todos los roles</option>
               <option value="Administrador">Administrador</option>
               <option value="Técnico">Técnico</option>
@@ -470,7 +611,7 @@ export default function AccesosPage() {
           </div>
           <div className="flex items-center gap-2 text-sm border-l border-gray-200 pl-4">
             <span className="font-bold text-gray-500 uppercase text-xs">Estado:</span>
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border-gray-200 rounded-md text-sm outline-none bg-white px-2.5 py-1">
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border-gray-200 rounded-md text-xs font-semibold outline-none bg-white px-2.5 py-1">
               <option value="">Todos los estados</option>
               <option value="activo">Activos</option>
               <option value="inactivo">Inactivos</option>
@@ -478,138 +619,266 @@ export default function AccesosPage() {
             </select>
           </div>
           <div className="ml-auto flex items-center gap-2 text-xs font-bold text-gray-500">
-            {loading && <Loader2 size={13} className="animate-spin text-brand-sage" />}
-            <span>Mostrando {filteredUsers.length} de {users.length} usuarios registrados</span>
+            <span>Mostrando <strong className="text-slate-800">{filteredUsers.length}</strong> de {users.length} usuarios</span>
           </div>
         </div>
 
-        {/* Tabla */}
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-800 text-white sticky top-0 z-10 text-xs uppercase tracking-wider">
-              <tr>
-                <th className="px-4 py-3 font-semibold whitespace-nowrap">Fecha / Hora</th>
-                <th className="px-4 py-3 font-semibold">Usuario (Nombres y Apellidos)</th>
-                <th className="px-4 py-3 font-semibold">Contacto (Email / Telf)</th>
-                <th className="px-4 py-3 font-semibold text-center">Clave</th>
-                <th className="px-4 py-3 font-semibold text-center">Rol / Estado</th>
-                <th className="px-4 py-3 font-semibold text-center">Acciones y Permisos</th>
+        {/* TABLA PRINCIPAL */}
+        <div className="flex-1 overflow-auto relative">
+          <table className="w-full text-left border-collapse min-w-[900px]">
+            <thead className="bg-white sticky top-0 z-10 border-b border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+              <tr className="text-[11px] font-black uppercase text-gray-400 tracking-wider">
+                <th className="px-4 py-3">Registro</th>
+                <th className="px-4 py-3">Usuario / Identificación</th>
+                <th className="px-4 py-3">Contacto</th>
+                <th className="px-4 py-3 text-center">Módulo Asignado</th>
+                <th className="px-4 py-3 text-center">Credenciales</th>
+                <th className="px-4 py-3 text-center">Rol & Estado</th>
+                <th className="px-4 py-3 text-center">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading && users.length === 0 ? (
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-16 text-gray-400">
-                    <Loader2 size={36} className="animate-spin mx-auto mb-3 text-brand-sage" />
-                    Sincronizando nómina con Supabase en tiempo real...
+                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="animate-spin text-brand-sage" size={24} />
+                      <span className="text-xs font-bold uppercase tracking-widest">Sincronizando nómina con Supabase...</span>
+                    </div>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-16 text-gray-400">
-                    <Shield size={40} className="mx-auto mb-3 opacity-20" />
-                    No se encontraron usuarios con esos filtros de búsqueda.
+                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <ShieldAlert className="text-gray-300" size={32} />
+                      <span className="text-sm font-medium">No se encontraron usuarios en este módulo o con los filtros seleccionados.</span>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-blue-50/30 transition-colors group">
-                    <td className="px-4 py-3 whitespace-nowrap align-top pt-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="flex items-center gap-1.5 text-gray-700 font-medium"><Calendar size={13} className="text-gray-400" /> {user.fecha_creacion}</span>
-                        <span className="flex items-center gap-1.5 text-xs text-gray-500"><Clock size={13} className="text-gray-400" /> {user.hora_creacion}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top pt-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold text-gray-900 text-[13px] uppercase">{user.apellidos ? `${user.apellidos}, ${user.nombres}` : user.nombres}</span>
-                        <span className="flex items-center gap-1.5 text-xs text-brand-sage font-mono font-bold"><Hash size={12}/> CI/ID: {user.cedula}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top pt-4">
-                      <div className="flex flex-col gap-1.5">
-                        <span className="flex items-center gap-1.5 text-xs text-blue-600"><Mail size={12} /> {user.email}</span>
-                        <span className="flex items-center gap-1.5 text-xs text-gray-600"><Phone size={12} /> {user.telefono}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center align-top pt-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-base font-black tracking-widest leading-none select-none" title="Contraseña encriptada en Supabase Auth">••••••••</span>
-                        <button 
-                          onClick={() => openKeyModal(user)} 
-                          className="p-1.5 text-brand-sage hover:text-white hover:bg-brand-sage rounded-md border border-brand-sage/30 transition-all"
-                          title="Cambiar o regenerar clave"
-                        >
-                          <Key size={14} />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center align-top pt-4">
-                      <div className="flex flex-col items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          user.rol === 'Administrador' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                          user.rol === 'Técnico' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                          'bg-orange-100 text-orange-700 border border-orange-200'
-                        }`}>
-                          {user.rol}
-                        </span>
-                        <span className={`flex items-center gap-1 text-[11px] font-black uppercase ${
-                          user.estado === 'activo' ? 'text-emerald-500' :
-                          user.estado === 'bloqueado' ? 'text-red-500' : 'text-gray-400'
-                        }`}>
-                          {user.estado === 'activo' ? <UserCheck size={12}/> : user.estado === 'bloqueado' ? <Lock size={12}/> : <UserX size={12}/>}
-                          {user.estado}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top pt-4">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {user.estado !== 'activo' && (
-                          <button 
-                            onClick={() => handleStatusChange(user, 'activo')} 
-                            className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg border border-emerald-200 transition-colors shadow-sm" 
-                            title="Activar acceso en tiempo real"
-                          >
-                            <Power size={14} />
-                          </button>
-                        )}
+                filteredUsers.map((user) => {
+                  const modConf = MODULE_CONFIG[user.modulo_origen || 'sara_apu'] || {
+                    label: user.modulo_origen || 'SARA APU',
+                    badgeClass: 'bg-blue-100 text-blue-700 border-blue-200',
+                    icon: '📊'
+                  }
+                  const extraModulesCount = (user.modulos_autorizados?.length || 0) > 1 
+                    ? (user.modulos_autorizados?.length || 0) - 1 
+                    : 0
 
-                        {user.estado === 'activo' && (
-                          <button 
-                            onClick={() => handleStatusChange(user, 'inactivo')} 
-                            className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-200 transition-colors shadow-sm" 
-                            title="Desactivar temporalmente"
-                          >
-                            <PowerOff size={14} />
-                          </button>
-                        )}
+                  return (
+                    <tr key={user.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-4 py-3 align-top pt-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="flex items-center gap-1.5 text-xs font-bold text-gray-800"><Calendar size={13} className="text-gray-400" /> {user.fecha_creacion}</span>
+                          <span className="flex items-center gap-1.5 text-xs text-gray-500"><Clock size={13} className="text-gray-400" /> {user.hora_creacion}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top pt-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-gray-900 text-[13px] uppercase">{user.apellidos ? `${user.apellidos}, ${user.nombres}` : user.nombres}</span>
+                          <span className="flex items-center gap-1.5 text-xs text-brand-sage font-mono font-bold"><Hash size={12}/> CI/ID: {user.cedula}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top pt-4">
+                        <div className="flex flex-col gap-1.5">
+                          <span className="flex items-center gap-1.5 text-xs text-blue-600"><Mail size={12} /> {user.email}</span>
+                          <span className="flex items-center gap-1.5 text-xs text-gray-600"><Phone size={12} /> {user.telefono}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center align-top pt-4">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${modConf.badgeClass}`}>
+                            <span>{modConf.icon}</span>
+                            <span>{modConf.label}</span>
+                          </span>
 
-                        {user.estado !== 'bloqueado' && (
-                          <button 
-                            onClick={() => handleStatusChange(user, 'bloqueado')} 
-                            className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white rounded-lg border border-orange-200 transition-colors shadow-sm" 
-                            title="Bloquear acceso por seguridad"
-                          >
-                            <Lock size={14} />
-                          </button>
-                        )}
+                          {extraModulesCount > 0 && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              +{extraModulesCount} módulo{extraModulesCount > 1 ? 's' : ''} adicional{extraModulesCount > 1 ? 'es' : ''}
+                            </span>
+                          )}
 
-                        <button 
-                          onClick={() => handleDelete(user)} 
-                          className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg border border-rose-200 transition-colors shadow-sm" 
-                          title="Eliminar usuario permanentemente"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            type="button"
+                            onClick={() => openModuleModal(user)}
+                            className="text-[11px] font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 underline"
+                            title="Gestionar permisos de módulos"
+                          >
+                            <Settings2 size={11} /> Módulos
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center align-top pt-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded text-base font-black tracking-widest leading-none select-none" title="Contraseña encriptada en Supabase Auth">••••••••</span>
+                          <button 
+                            onClick={() => openKeyModal(user)} 
+                            className="p-1.5 text-brand-sage hover:text-white hover:bg-brand-sage rounded-md border border-brand-sage/30 transition-all"
+                            title="Cambiar o regenerar clave"
+                          >
+                            <Key size={14} />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center align-top pt-4">
+                        <div className="flex flex-col items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            user.rol === 'Administrador' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                            user.rol === 'Técnico' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                            'bg-orange-100 text-orange-700 border border-orange-200'
+                          }`}>
+                            {user.rol}
+                          </span>
+                          <span className={`flex items-center gap-1 text-[11px] font-black uppercase ${
+                            user.estado === 'activo' ? 'text-emerald-500' :
+                            user.estado === 'bloqueado' ? 'text-red-500' : 'text-gray-400'
+                          }`}>
+                            {user.estado === 'activo' ? <UserCheck size={12}/> : user.estado === 'bloqueado' ? <Lock size={12}/> : <UserX size={12}/>}
+                            {user.estado}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top pt-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {user.estado !== 'activo' && (
+                            <button 
+                              onClick={() => handleStatusChange(user, 'activo')} 
+                              className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white rounded-lg border border-emerald-200 transition-colors shadow-sm" 
+                              title="Activar acceso en tiempo real"
+                            >
+                              <Power size={14} />
+                            </button>
+                          )}
+
+                          {user.estado === 'activo' && (
+                            <button 
+                              onClick={() => handleStatusChange(user, 'inactivo')} 
+                              className="p-2 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-lg border border-amber-200 transition-colors shadow-sm" 
+                              title="Desactivar temporalmente"
+                            >
+                              <PowerOff size={14} />
+                            </button>
+                          )}
+
+                          {user.estado !== 'bloqueado' && (
+                            <button 
+                              onClick={() => handleStatusChange(user, 'bloqueado')} 
+                              className="p-2 bg-orange-50 text-orange-600 hover:bg-orange-500 hover:text-white rounded-lg border border-orange-200 transition-colors shadow-sm" 
+                              title="Bloquear acceso por seguridad"
+                            >
+                              <Lock size={14} />
+                            </button>
+                          )}
+
+                          <button 
+                            onClick={() => handleDelete(user)} 
+                            className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-lg border border-rose-200 transition-colors shadow-sm" 
+                            title="Eliminar usuario permanentemente"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* MODAL GESTIONAR MÓDULOS AUTORIZADOS */}
+      {isModuleModalOpen && moduleModalUser && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-slate-900 p-5 flex justify-between items-center text-white">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Layers size={20} className="text-brand-sage" /> Módulos Autorizados
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Controla qué portales puede acceder este cliente</p>
+              </div>
+              <button onClick={() => !isSavingModules && setIsModuleModalOpen(false)} className="text-gray-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <p className="text-sm font-bold text-slate-800">{moduleModalUser.nombres} {moduleModalUser.apellidos}</p>
+                <p className="text-xs text-slate-500">{moduleModalUser.email}</p>
+                <p className="text-xs text-brand-dark mt-1">
+                  <strong>Módulo de Registro Original:</strong> {MODULE_CONFIG[moduleModalUser.modulo_origen || 'sara_apu']?.label || 'SARA APU'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase">
+                  Portales con Permiso de Acceso:
+                </label>
+                <div className="space-y-2">
+                  {(Object.keys(SARA_MODULES) as SaraModule[]).map((modKey) => {
+                    const mod = SARA_MODULES[modKey]
+                    const isChecked = userSelectedModules.includes(modKey)
+                    return (
+                      <label
+                        key={modKey}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                          isChecked 
+                            ? 'bg-blue-50/60 border-blue-300 text-slate-900' 
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setUserSelectedModules([...userSelectedModules, modKey])
+                              } else {
+                                setUserSelectedModules(userSelectedModules.filter(m => m !== modKey))
+                              }
+                            }}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          />
+                          <div>
+                            <span className="text-xs font-bold block">{mod.name}</span>
+                            <span className="text-[11px] text-slate-400">{mod.description}</span>
+                          </div>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  disabled={isSavingModules}
+                  onClick={() => setIsModuleModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingModules || userSelectedModules.length === 0}
+                  onClick={handleSaveModules}
+                  className="px-5 py-2 text-xs font-bold bg-slate-900 hover:bg-black text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  {isSavingModules ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                  Guardar Permisos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL CAMBIAR / REGENERAR CLAVE */}
       {isKeyModalOpen && selectedUser && (
@@ -690,7 +959,7 @@ export default function AccesosPage() {
                 <h3 className="font-bold text-lg flex items-center gap-2">
                   <UserPlus size={20} className="text-brand-sage" /> Registrar Nuevo Usuario
                 </h3>
-                <p className="text-xs text-gray-400 mt-0.5">Crea un acceso sincronizado directamente en Supabase</p>
+                <p className="text-xs text-gray-400 mt-0.5">Crea un acceso asignado directamente al portal correspondiente</p>
               </div>
               <button onClick={() => !isCreatingUser && setIsCreateModalOpen(false)} className="text-gray-400 hover:text-white">
                 <X size={20} />
@@ -718,6 +987,25 @@ export default function AccesosPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Módulo Asignado */}
+              {newUserForm.rol === 'Cliente' && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-600 mb-1.5 uppercase">Módulo / Portal Asignado *</label>
+                  <select
+                    value={newUserForm.modulo_origen}
+                    onChange={(e) => setNewUserForm({ ...newUserForm, modulo_origen: e.target.value as SaraModule })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-semibold outline-none focus:border-brand-sage bg-white"
+                  >
+                    <option value="sara_apu">📊 SARA APU (Presupuestos & SERCOP)</option>
+                    <option value="sara_constructora">🏗️ SARA Constructora (Portal Clientes)</option>
+                    <option value="sara_inmobiliaria">🏠 SARA Inmobiliaria (Ventas & Propiedades)</option>
+                    <option value="sara_stays">🛏️ SARA Stays (Alojamientos Turísticos)</option>
+                    <option value="sara_fletes">🚚 SARA Fletes (Transporte Pesado)</option>
+                    <option value="sara_talento">👷 SARA Talento (Cuadrillas & Empleo)</option>
+                  </select>
+                </div>
+              )}
 
               {/* Nombres y Apellidos */}
               <div className="grid grid-cols-2 gap-3">
@@ -831,7 +1119,7 @@ export default function AccesosPage() {
                     </>
                   ) : (
                     <>
-                      <CheckCircle size={14} /> Crear y Sincronizar
+                      <CheckCircle size={14} /> Crear y Asignar Módulo
                     </>
                   )}
                 </button>

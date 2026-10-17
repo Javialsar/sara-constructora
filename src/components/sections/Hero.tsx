@@ -212,41 +212,42 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
             </div>
 
             {/* Transición de Servicio cada 4 segundos */}
+            {/* Transición de Servicio cada 4 segundos */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={`service-${currentSlide.id}`}
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -15 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                className="space-y-5"
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="space-y-6"
               >
                 {/* Tag de Categoría e Indicador de Progreso */}
                 <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-lg text-xs font-mono font-black border ${currentSlide.badgeColor}`}>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-mono font-bold tabular-nums border ${currentSlide.badgeColor}`}>
                     {currentSlide.indexNum} / 09
                   </span>
                   <div className="w-8 h-px bg-brand-sage/60" />
-                  <span className={`${currentSlide.accentColor} font-bold tracking-[0.2em] uppercase text-xs sm:text-sm drop-shadow-md`}>
+                  <span className={`${currentSlide.accentColor} font-mono font-bold tracking-[0.2em] uppercase text-xs sm:text-sm drop-shadow-md`}>
                     {currentSlide.tag}
                   </span>
                 </div>
 
-                {/* Título Oficial del Servicio */}
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-[1.08] drop-shadow-2xl">
+                {/* Título Oficial del Servicio con font-display */}
+                <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-[1.05] drop-shadow-2xl">
                   {currentSlide.title}
                 </h1>
 
                 {/* Descripción Exacta del Ecosistema */}
-                <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed font-normal border-l-4 border-brand-sage pl-6 drop-shadow-lg">
+                <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed font-normal border-l-2 border-brand-sage/80 pl-6 drop-shadow-lg">
                   {currentSlide.description}
                 </p>
 
-                {/* Botón de Exploración Rápida */}
+                {/* Botón de Exploración Rápida con ergonomía móvil */}
                 <div className="pt-2 flex flex-wrap items-center gap-4">
                   <a
                     href={currentSlide.href}
-                    className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:scale-105 transition-all"
+                    className="min-h-[48px] inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-sm ring-1 ring-amber-400/40 hover:shadow-md hover:shadow-amber-500/20 active:scale-[0.98] transition-all duration-200 ease-out cursor-pointer"
                   >
                     <span>Explorar {currentSlide.title}</span>
                     <ArrowRight className="w-4 h-4" />
@@ -261,7 +262,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                         badgeText: "Grupo SARA Oficial",
                         isSubscription: false
                       })}
-                      className="px-5 py-3 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all hover:border-brand-sage"
+                      className="min-h-[48px] px-5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all duration-200 ease-out hover:border-brand-sage active:scale-[0.98] ring-1 ring-black/[0.05]"
                     >
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       <span>Cotizar Servicio</span>
@@ -281,10 +282,10 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                 initial={{ opacity: 0, scale: 0.9, y: 15 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: -15 }}
-                transition={{ duration: 0.45, ease: "easeOut" }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="relative flex items-center justify-center w-full max-w-lg"
               >
-                {/* Resplandor ambiental suave difuso detrás del logotipo (sin marco, sin cuadro, sin bordes) */}
+                {/* Resplandor ambiental suave difuso detrás del logotipo */}
                 <div className={`absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr ${currentSlide.glowColor} blur-3xl opacity-70 pointer-events-none`} />
 
                 {/* Logotipo oficial 3D transparente flotando libremente */}
@@ -294,7 +295,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                   onError={(e) => {
                     (e.currentTarget as HTMLImageElement).src = "/logo-hero.png"
                   }}
-                  className="relative z-10 max-h-[300px] sm:max-h-[380px] md:max-h-[440px] w-auto h-auto object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-500"
+                  className="relative z-10 max-h-[300px] sm:max-h-[380px] md:max-h-[440px] w-auto h-auto object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-500 ease-out"
                 />
               </motion.div>
             </AnimatePresence>
@@ -303,18 +304,18 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
         </div>
 
         {/* Indicador de progreso sutil y selector de servicios */}
-        <div className="mt-8 pt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-900">
-          <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+        <div className="mt-10 pt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/[0.08]">
+          <div className="flex items-center gap-2 overflow-x-auto py-1">
             {servicesSlides.map((s, idx) => {
               const isSelected = idx === currentIndex
               return (
                 <button
                   key={s.id}
                   onClick={() => setCurrentIndex(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                  className={`min-h-[38px] px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold tabular-nums transition-all duration-200 ease-out cursor-pointer active:scale-[0.98] ${
                     isSelected 
-                      ? "bg-amber-500 text-slate-950 shadow-md font-black scale-105" 
-                      : "text-slate-400 hover:text-white hover:bg-slate-900"
+                      ? "bg-amber-500 text-slate-950 shadow-sm font-black ring-1 ring-amber-400" 
+                      : "text-slate-400 hover:text-white bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.06]"
                   }`}
                 >
                   {s.indexNum} {s.title.replace('SARA-', '')}
@@ -323,7 +324,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
             })}
           </div>
 
-          <div className="text-xs font-mono text-slate-500 uppercase tracking-widest hidden sm:block">
+          <div className="text-xs font-mono tabular-nums text-slate-400 uppercase tracking-widest hidden sm:block">
             {currentIndex + 1} de {servicesSlides.length} Módulos Activos
           </div>
         </div>
