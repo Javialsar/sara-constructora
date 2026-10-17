@@ -534,7 +534,10 @@ export default function PdfTakeOffModal({
     return mediciones.flatMap(m => m.puntos)
   }, [mediciones])
 
-  if (!isOpen) return null
+  // Cálculo total de costos del plano
+  const totalCostoPlano = useMemo(() => {
+    return mediciones.reduce((acc, curr) => acc + (Number(curr.costoTotal) || 0), 0)
+  }, [mediciones])
 
   // Coordenadas locales dentro del SVG con zoom, pan, orto y snapping magnético
   const getSvgCoordinates = (e: React.MouseEvent<SVGSVGElement>): Point2D => {
@@ -1175,10 +1178,7 @@ export default function PdfTakeOffModal({
     }
   }
 
-  // Cálculo total de costos del plano
-  const totalCostoPlano = useMemo(() => {
-    return mediciones.reduce((acc, curr) => acc + (Number(curr.costoTotal) || 0), 0)
-  }, [mediciones])
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col justify-between overflow-hidden animate-in fade-in duration-200">

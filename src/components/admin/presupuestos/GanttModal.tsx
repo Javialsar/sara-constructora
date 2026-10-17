@@ -21,7 +21,17 @@ import {
   Wrench,
   ChevronRight,
   Info,
-  Printer
+  Printer,
+  Table,
+  Pin,
+  Bookmark,
+  Plus,
+  Minus,
+  Search,
+  Eye,
+  ArrowUpRight,
+  Check,
+  Activity
 } from "lucide-react"
 import { Gantt, Task, ViewMode } from "gantt-task-react"
 import "gantt-task-react/dist/index.css"
@@ -223,7 +233,7 @@ export default function GanttModal({
   rubrosRecipes = {},
   onBatchScheduleUpdate
 }: GanttModalProps) {
-  const [activeTab, setActiveTab] = useState<'gantt' | 'informe'>('gantt')
+  const [activeTab, setActiveTab] = useState<'msproject' | 'gantt' | 'curva_s' | 'informe'>('msproject')
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
   const [fechaInicioObra, setFechaInicioObra] = useState<string>("2026-10-27")
   const [ritmoTrabajo, setRitmoTrabajo] = useState<'estandar' | 'acelerado'>('estandar')
@@ -236,6 +246,13 @@ export default function GanttModal({
 
   // Modal / Drawer de Ficha Técnica de la Actividad
   const [selectedTaskDetail, setSelectedTaskDetail] = useState<any | null>(null)
+
+  // Herramientas Especialistas de Microsoft Project
+  const [baselineTasks, setBaselineTasks] = useState<Record<string, { start: string; duration: number }> | null>(null)
+  const [baselineDate, setBaselineDate] = useState<string | null>(null)
+  const [msSearch, setMsSearch] = useState<string>("")
+  const [msChapterFilter, setMsChapterFilter] = useState<string>("todos")
+  const [onlyCriticalFilter, setOnlyCriticalFilter] = useState<boolean>(false)
 
   useEffect(() => {
     if (presupuestoRubros && presupuestoRubros.length > 0) {
@@ -423,6 +440,91 @@ export default function GanttModal({
     }
   }, [localRubros, viewMode, fechaInicioObra])
 
+  // Lista de Capítulos disponibles para filtro WBS
+  const capitulosDisponibles = useMemo(() => {
+    const setCaps = new Set<string>()
+    localRubros.forEach(r => {
+      if (r.capitulo) setCaps.add(r.capitulo)
+    })
+    return Array.from(setCaps)
+  }, [localRubros])
+
+  // Rubros filtrados para la Hoja de Tareas estilo Microsoft Project
+  const filteredRubrosMSProject = useMemo(() => {
+    return localRubros.filter((r) => {
+      if (onlyCriticalFilter && !criticalTaskIds.has(r.id)) return false
+      if (msChapterFilter !== 'todos' && r.capitulo !== msChapterFilter) return false
+      if (msSearch.trim()) {
+        const q = msSearch.toLowerCase()
+        const matchNom = (r.nombre_rubro || '').toLowerCase().includes(q)
+        const matchCod = (r.codigo_rubro || '').toLowerCase().includes(q)
+        if (!matchNom && !matchCod) return false
+      }
+      return true
+    })
+  }, [localRubros, onlyCriticalFilter, criticalTaskIds, msChapterFilter, msSearch])
+
+  // Datos analíticos de Curva S (EVM - Planned Value Acumulado)
+  const curvaSData = useMemo(() => {
+    if (!localRubros || localRubros.length === 0) {
+      return { points: [], totalCost: granTotal || 1, minTime: 0, maxTime: 0 }
+    }
+    const totalCost = Number(kpis.costoTotal) || 1
+    const sorted = [...localRubros].sort((a, b) => {
+      const da = a.fecha_inicio ? new Date(a.fecha_inicio + 'T00:00:00').getTime() : 0
+      const db = b.fecha_inicio ? new Date(b.fecha_inicio + 'T00:00:00').getTime() : 0
+      return da - db
+    })
+
+    let minTime = Infinity
+    let maxTime = -Infinity
+    sorted.forEach(r => {
+      const s = r.fecha_inicio ? new Date(r.fecha_inicio + 'T00:00:00').getTime() : new Date().getTime()
+      const dur = Math.max(1, parseInt(r.duracion_dias) || 1)
+      const e = s + (dur * 86400000)
+      if (s < minTime) minTime = s
+      if (e > maxTime) maxTime = e
+    })
+
+    if (minTime >= maxTime) maxTime = minTime + (30 * 86400000)
+    const totalSpan = maxTime - minTime
+
+    const numSamples = 12
+    const points: { x: number; y: number; pctTime: number; pctCost: number; costAccum: number; dateStr: string }[] = []
+
+    for (let i = 0; i <= numSamples; i++) {
+      const curTime = minTime + (totalSpan * (i / numSamples))
+      const curDate = new Date(curTime)
+      let costAccum = 0
+
+      sorted.forEach(r => {
+        const s = r.fecha_inicio ? new Date(r.fecha_inicio + 'T00:00:00').getTime() : minTime
+        const dur = Math.max(1, (parseInt(r.duracion_dias) || 1)) * 86400000
+        const e = s + dur
+        const subtotal = Number(r.subtotal) || 0
+
+        if (curTime >= e) {
+          costAccum += subtotal
+        } else if (curTime > s) {
+          const frac = (curTime - s) / dur
+          costAccum += subtotal * frac
+        }
+      })
+
+      const pctCost = Math.min(100, Number(((costAccum / totalCost) * 100).toFixed(1)))
+      points.push({
+        x: Number((i * (100 / numSamples)).toFixed(1)),
+        y: Number((100 - pctCost).toFixed(1)),
+        pctTime: Math.round((i / numSamples) * 100),
+        pctCost,
+        costAccum: Math.round(costAccum),
+        dateStr: curDate.toLocaleDateString('es-EC', { month: 'short', day: 'numeric' })
+      })
+    }
+
+    return { points, totalCost, minTime, maxTime }
+  }, [localRubros, kpis.costoTotal, granTotal])
+
   if (!isOpen) return null
 
   // 1. MOTOR AGÉNTICO SARA-CRONOS
@@ -568,6 +670,118 @@ export default function GanttModal({
       console.error("Error al exportar Excel:", err)
       alert("Error al exportar cronograma: " + (err.message || err))
     }
+  }
+
+  // 2.5. EXPORTAR A MICROSOFT PROJECT NATIVO (.XML COMPATIBLE 2016-365)
+  const handleExportMSProjectXML = () => {
+    if (!localRubros || localRubros.length === 0) {
+      alert("No hay tareas en el cronograma para exportar a Microsoft Project.")
+      return
+    }
+
+    const startDateIso = fechaInicioObra ? `${fechaInicioObra}T08:00:00` : new Date().toISOString()
+    const safeName = (nombreProyecto || "Proyecto").replace(/[^a-zA-Z0-9]/g, "_")
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n`
+    xml += `<Project xmlns="http://schemas.microsoft.com/project">\n`
+    xml += `  <Name>${(nombreProyecto || "Proyecto").replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Name>\n`
+    xml += `  <Title>Cronograma Oficial SARA-Cronos CPM</Title>\n`
+    xml += `  <Company>GRUPO CONSTRUCTOR SARA</Company>\n`
+    xml += `  <StartDate>${startDateIso}</StartDate>\n`
+    xml += `  <CurrencySymbol>$</CurrencySymbol>\n`
+    xml += `  <Tasks>\n`
+
+    localRubros.forEach((r, idx) => {
+      const uid = idx + 1
+      const taskStart = r.fecha_inicio ? `${r.fecha_inicio}T08:00:00` : startDateIso
+      const durDias = Math.max(1, parseInt(r.duracion_dias) || 1)
+      const endDate = new Date(taskStart)
+      endDate.setDate(endDate.getDate() + durDias)
+      const taskEnd = `${endDate.toISOString().split('T')[0]}T17:00:00`
+      const isCrit = criticalTaskIds.has(r.id) ? 1 : 0
+      const cost = Number(r.subtotal || 0).toFixed(2)
+
+      const predIdx = r.predecesores ? localRubros.findIndex((p: any) => p.id === r.predecesores) : -1
+      const predUID = predIdx >= 0 ? predIdx + 1 : null
+
+      xml += `    <Task>\n`
+      xml += `      <UID>${uid}</UID>\n`
+      xml += `      <ID>${uid}</ID>\n`
+      xml += `      <Name>${String(r.nombre_rubro || 'Actividad').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Name>\n`
+      xml += `      <Type>0</Type>\n`
+      xml += `      <IsNull>0</IsNull>\n`
+      xml += `      <Start>${taskStart}</Start>\n`
+      xml += `      <Finish>${taskEnd}</Finish>\n`
+      xml += `      <Duration>PT${durDias * 8}H0M0S</Duration>\n`
+      xml += `      <DurationFormat>7</DurationFormat>\n`
+      xml += `      <Work>PT${durDias * 8}H0M0S</Work>\n`
+      xml += `      <Cost>${cost}</Cost>\n`
+      xml += `      <Critical>${isCrit}</Critical>\n`
+      xml += `      <PercentComplete>0</PercentComplete>\n`
+      if (predUID) {
+        xml += `      <PredecessorLink>\n`
+        xml += `        <PredecessorUID>${predUID}</PredecessorUID>\n`
+        xml += `        <Type>1</Type>\n`
+        xml += `        <CrossProject>0</CrossProject>\n`
+        xml += `      </PredecessorLink>\n`
+      }
+      xml += `    </Task>\n`
+    })
+
+    xml += `  </Tasks>\n`
+    xml += `</Project>\n`
+
+    const blob = new Blob([xml], { type: "application/xml;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `Cronograma_MSProject_${safeName}.xml`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // 2.6. FIJAR LÍNEA BASE (BASELINE 0) ESTILO MS PROJECT
+  const handleSetBaseline = () => {
+    if (!localRubros || localRubros.length === 0) return
+    const map: Record<string, { start: string; duration: number }> = {}
+    localRubros.forEach(r => {
+      map[r.id] = {
+        start: r.fecha_inicio || fechaInicioObra,
+        duration: Math.max(1, parseInt(r.duracion_dias) || 1)
+      }
+    })
+    setBaselineTasks(map)
+    const nowStr = new Date().toLocaleDateString('es-EC', { dateStyle: 'short', timeStyle: 'short' })
+    setBaselineDate(nowStr)
+    alert(`📌 ¡Línea Base 0 establecida con éxito!\nSe capturó el plazo contractual para ${localRubros.length} tareas.\nFecha de fijación: ${nowStr}.`)
+  }
+
+  // 2.7. AJUSTAR DURACIÓN O INICIO DIRECTAMENTE EN HOJA MS PROJECT
+  const handleTaskFieldChange = (id: string, field: 'fecha_inicio' | 'duracion_dias' | 'predecesores', value: any) => {
+    const target = localRubros.find(r => r.id === id)
+    if (!target) return
+
+    let finalVal = value
+    if (field === 'duracion_dias') {
+      finalVal = Math.max(1, parseInt(value) || 1)
+    }
+
+    const updated = { ...target, [field]: finalVal }
+    setLocalRubros(prev => prev.map(r => r.id === id ? updated : r))
+
+    updateTaskSchedule(id, {
+      [field]: finalVal
+    }, null)
+  }
+
+  const handleAdjustDuration = (id: string, delta: number) => {
+    const target = localRubros.find(r => r.id === id)
+    if (!target) return
+    const currentDur = parseInt(target.duracion_dias) || 1
+    const newDur = Math.max(1, currentDur + delta)
+    handleTaskFieldChange(id, 'duracion_dias', newDur)
   }
 
   // 3. DESCARGAR CRONOGRAMA VALORADO EN PDF OFICIAL (jspdf + autotable)
@@ -1108,39 +1322,69 @@ export default function GanttModal({
     <div className="fixed inset-0 bg-slate-950/85 z-[100] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md animate-fade-in">
       <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full h-[95vh] flex flex-col overflow-hidden shadow-2xl text-slate-100">
         
-        {/* CSS INYECTADO PARA FORZAR MÁXIMO CONTRASTE Y LEGIBILIDAD EN LA TABLA DEL GANTT */}
+        {/* CSS INYECTADO PARA FORZAR MÁXIMO CONTRASTE Y LEGIBILIDAD EN LA TABLA DEL GANTT (IMAGEN 2) */}
         <style dangerouslySetInnerHTML={{ __html: `
-          .gantt-root-contrast div[class*="taskListWrapper"] {
+          .gantt-root-contrast {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+          }
+          .gantt-root-contrast * {
+            color: #0f172a !important;
+          }
+          .gantt-root-contrast div[class*="taskListWrapper"],
+          .gantt-root-contrast > div > div:first-child {
             background-color: #ffffff !important;
             border-right: 2px solid #cbd5e1 !important;
           }
-          .gantt-root-contrast div[class*="taskListHeader"] {
+          .gantt-root-contrast div[class*="taskListHeader"],
+          .gantt-root-contrast > div > div:first-child > div:first-child {
             background-color: #f1f5f9 !important;
             border-bottom: 2px solid #cbd5e1 !important;
           }
-          .gantt-root-contrast div[class*="taskListHeader"] * {
+          .gantt-root-contrast div[class*="taskListHeader"] *,
+          .gantt-root-contrast > div > div:first-child > div:first-child * {
             color: #0f172a !important;
             font-weight: 800 !important;
             font-size: 11px !important;
             text-transform: uppercase !important;
           }
-          .gantt-root-contrast div[class*="taskListTableRow"] {
+          .gantt-root-contrast div[class*="taskListTableRow"],
+          .gantt-root-contrast div[class*="Row"],
+          .gantt-root-contrast div[class*="_3lLk3"],
+          .gantt-root-contrast div[class*="_34SS0"] > div {
             background-color: #ffffff !important;
             border-bottom: 1px solid #e2e8f0 !important;
             transition: background-color 0.15s ease;
           }
-          .gantt-root-contrast div[class*="taskListTableRow"]:hover {
+          .gantt-root-contrast div[class*="taskListTableRow"]:nth-child(even),
+          .gantt-root-contrast div[class*="Row"]:nth-child(even),
+          .gantt-root-contrast div[class*="_3lLk3"]:nth-child(even) {
+            background-color: #f8fafc !important;
+          }
+          .gantt-root-contrast div[class*="taskListTableRow"]:hover,
+          .gantt-root-contrast div[class*="Row"]:hover,
+          .gantt-root-contrast div[class*="_3lLk3"]:hover {
             background-color: #eff6ff !important;
             cursor: pointer;
           }
-          .gantt-root-contrast div[class*="taskListTableRow"] * {
+          .gantt-root-contrast div[class*="taskListTableRow"] *,
+          .gantt-root-contrast div[class*="Row"] *,
+          .gantt-root-contrast div[class*="_3lLk3"] * {
             color: #0f172a !important;
             font-weight: 700 !important;
             font-size: 11.5px !important;
           }
           .gantt-root-contrast svg text {
-            fill: #1e293b !important;
-            font-weight: 600 !important;
+            fill: #0f172a !important;
+            font-weight: 700 !important;
+          }
+          /* Texto interno en barras de actividades */
+          .gantt-root-contrast svg g[class*="bar"] text,
+          .gantt-root-contrast svg g text[dominant-baseline="central"],
+          .gantt-root-contrast svg g text[alignment-baseline="central"] {
+            fill: #ffffff !important;
+            font-weight: 800 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8) !important;
           }
         `}} />
 
@@ -1153,62 +1397,111 @@ export default function GanttModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
-                  Cronograma de Ejecución de Obra
+                  Cronograma & Control de Obra
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase">
-                  SARA-Cronos CPM
+                  SARA-Cronos · MS Project CPM
                 </span>
+                {baselineDate && (
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                    <Pin size={10} /> Línea Base Activa
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400">
-                Proyecto: <span className="text-slate-200 font-bold">{nombreProyecto}</span> · Secuencia técnica de obra y control de hitos
+                Proyecto: <span className="text-slate-200 font-bold">{nombreProyecto}</span> · Planificación técnica, ruta crítica y control EVM
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            {/* SWITCH ENTRE GANTT E INFORME LOOKAHEAD */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* PESTAÑAS: MS PROJECT, GANTT, CURVA S, INFORME */}
             <div className="flex bg-slate-800 p-1 rounded-xl border border-slate-700 text-xs font-bold">
+              <button 
+                onClick={() => setActiveTab('msproject')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  activeTab === 'msproject' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Hoja de tareas detallada estilo Microsoft Project (WBS, Duración, Predecesoras, Recursos)"
+              >
+                <Table size={13} />
+                <span>Hoja MS Project</span>
+              </button>
               <button 
                 onClick={() => setActiveTab('gantt')}
                 className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
                   activeTab === 'gantt' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
+                title="Diagrama de barras temporal interactivo Gantt"
               >
                 <Layers size={13} />
                 <span>Diagrama Gantt</span>
               </button>
               <button 
+                onClick={() => setActiveTab('curva_s')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                  activeTab === 'curva_s' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Curva S de Inversión Acumulada (EVM - Planned Value)"
+              >
+                <TrendingUp size={13} />
+                <span>Curva S (EVM)</span>
+              </button>
+              <button 
                 onClick={() => setActiveTab('informe')}
                 className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                  activeTab === 'informe' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                  activeTab === 'informe' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
+                title="Lookahead semanal y despacho logístico de materiales"
               >
                 <FileText size={13} />
-                <span>Informe Lookahead</span>
+                <span>Lookahead</span>
               </button>
             </div>
 
-            {/* VISTAS DÍAS / SEMANAS / MESES */}
-            <div className="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700 text-xs font-bold">
-              <button 
-                className={`px-2.5 py-1.5 rounded-lg transition-all ${viewMode === ViewMode.Day ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`} 
-                onClick={() => setViewMode(ViewMode.Day)}
-              >
-                Días
-              </button>
-              <button 
-                className={`px-2.5 py-1.5 rounded-lg transition-all ${viewMode === ViewMode.Week ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`} 
-                onClick={() => setViewMode(ViewMode.Week)}
-              >
-                Semanas
-              </button>
-              <button 
-                className={`px-2.5 py-1.5 rounded-lg transition-all ${viewMode === ViewMode.Month ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`} 
-                onClick={() => setViewMode(ViewMode.Month)}
-              >
-                Meses
-              </button>
-            </div>
+            {/* VISTAS DÍAS / SEMANAS / MESES (Si está en Gantt o Lookahead) */}
+            {(activeTab === 'gantt' || activeTab === 'informe') && (
+              <div className="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700 text-xs font-bold">
+                <button 
+                  className={`px-2.5 py-1.5 rounded-lg transition-all ${viewMode === ViewMode.Day ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`} 
+                  onClick={() => setViewMode(ViewMode.Day)}
+                >
+                  Días
+                </button>
+                <button 
+                  className={`px-2.5 py-1.5 rounded-lg transition-all ${viewMode === ViewMode.Week ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`} 
+                  onClick={() => setViewMode(ViewMode.Week)}
+                >
+                  Semanas
+                </button>
+                <button 
+                  className={`px-2.5 py-1.5 rounded-lg transition-all ${viewMode === ViewMode.Month ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`} 
+                  onClick={() => setViewMode(ViewMode.Month)}
+                >
+                  Meses
+                </button>
+              </div>
+            )}
+
+            {/* BOTÓN: EXPORTAR A MICROSOFT PROJECT NATIVO (.XML) */}
+            <button
+              onClick={handleExportMSProjectXML}
+              className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Descargar archivo .XML compatible directamente con Microsoft Project 2016, 2019, 2021 y Microsoft 365"
+            >
+              <Download size={14} className="text-indigo-400" />
+              <span>MS Project (.xml)</span>
+            </button>
+
+            {/* BOTÓN: FIJAR LÍNEA BASE 0 */}
+            <button
+              onClick={handleSetBaseline}
+              className="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+              title="Guardar instantánea de fechas contractuales como Línea Base 0 para control de desviaciones"
+            >
+              <Pin size={14} className="text-amber-400" />
+              <span>Línea Base 0</span>
+            </button>
 
             {/* BOTÓN EXPORTAR EXCEL */}
             <button
@@ -1227,7 +1520,7 @@ export default function GanttModal({
               title="Descargar Cronograma Oficial en PDF de Alta Resolución"
             >
               <FileText size={14} />
-              <span>Descargar PDF</span>
+              <span>PDF</span>
             </button>
 
             {/* CERRAR */}
@@ -1344,8 +1637,287 @@ export default function GanttModal({
           </div>
         </div>
 
-        {/* ÁREA DE CONTENIDO: GANTT vs INFORME LOOKAHEAD */}
-        {activeTab === 'gantt' ? (
+        {/* ÁREA DE CONTENIDO: TAB 1: HOJA MS PROJECT */}
+        {activeTab === 'msproject' && (
+          <div className="flex-1 overflow-auto p-3 flex flex-col bg-slate-950 space-y-3">
+            {/* BARRA DE HERRAMIENTAS MS PROJECT */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Búsqueda rápida */}
+                <div className="relative">
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Filtrar por nombre o código..."
+                    value={msSearch}
+                    onChange={(e) => setMsSearch(e.target.value)}
+                    className="pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 w-56"
+                  />
+                  {msSearch && (
+                    <button onClick={() => setMsSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtro por Capítulo / WBS */}
+                {capitulosDisponibles.length > 0 && (
+                  <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-700 px-2.5 py-1 rounded-lg">
+                    <span className="text-slate-400 text-[11px] font-medium">Capítulo:</span>
+                    <select
+                      value={msChapterFilter}
+                      onChange={(e) => setMsChapterFilter(e.target.value)}
+                      className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer"
+                    >
+                      <option value="todos" className="bg-slate-900 text-white">Todos los Capítulos</option>
+                      {capitulosDisponibles.map(c => (
+                        <option key={c} value={c} className="bg-slate-900 text-white">{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Filtro Sólo Ruta Crítica */}
+                <label className="flex items-center gap-2 cursor-pointer bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-lg select-none hover:border-slate-600 transition-all">
+                  <input
+                    type="checkbox"
+                    checked={onlyCriticalFilter}
+                    onChange={(e) => setOnlyCriticalFilter(e.target.checked)}
+                    className="accent-rose-500 cursor-pointer w-3.5 h-3.5"
+                  />
+                  <span className="text-slate-300 font-bold text-xs flex items-center gap-1">
+                    <Flame size={13} className="text-rose-400" />
+                    Solo Ruta Crítica
+                  </span>
+                </label>
+              </div>
+
+              {/* Info de Tareas y Línea Base */}
+              <div className="flex items-center gap-3 text-slate-400 text-xs">
+                <span>
+                  Mostrando <strong className="text-white font-mono">{filteredRubrosMSProject.length}</strong> de <strong className="text-white font-mono">{localRubros.length}</strong> tareas
+                </span>
+                {baselineDate && (
+                  <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 font-mono text-[11px] flex items-center gap-1">
+                    <Pin size={11} /> LB0: {baselineDate}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* TABLA ESTILO HOJA DE TAREAS MICROSOFT PROJECT */}
+            <div className="flex-1 overflow-auto border border-slate-800 rounded-xl bg-slate-900 shadow-inner">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-950 text-slate-300 uppercase font-black text-[10.5px] sticky top-0 z-20 border-b border-slate-800">
+                  <tr>
+                    <th className="py-2.5 px-2 text-center w-12 border-r border-slate-800">WBS</th>
+                    <th className="py-2.5 px-2 text-center w-12 border-r border-slate-800" title="Modo de Programación: Automático">Modo</th>
+                    <th className="py-2.5 px-2.5 w-24 border-r border-slate-800">Código</th>
+                    <th className="py-2.5 px-3 min-w-[240px] border-r border-slate-800">Nombre de la Tarea</th>
+                    <th className="py-2.5 px-2.5 text-center w-36 border-r border-slate-800">Duración (días)</th>
+                    <th className="py-2.5 px-2.5 w-32 border-r border-slate-800">Comienzo</th>
+                    <th className="py-2.5 px-2.5 w-32 border-r border-slate-800">Fin</th>
+                    <th className="py-2.5 px-2.5 min-w-[140px] border-r border-slate-800">Predecesoras</th>
+                    <th className="py-2.5 px-2.5 min-w-[170px] border-r border-slate-800">Nombres de Recursos</th>
+                    <th className="py-2.5 px-2 text-center w-28 border-r border-slate-800">Holgura / Estado</th>
+                    <th className="py-2.5 px-2 text-center w-24 border-r border-slate-800">Línea Base</th>
+                    <th className="py-2.5 px-3 text-right w-28">Costo ($)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80 font-medium">
+                  {filteredRubrosMSProject.length > 0 ? (
+                    filteredRubrosMSProject.map((r: any, idx: number) => {
+                      const dur = Math.max(1, parseInt(r.duracion_dias) || 1)
+                      const isCrit = criticalTaskIds.has(r.id)
+                      const startStr = r.fecha_inicio || fechaInicioObra
+                      const startDate = new Date(startStr + 'T00:00:00')
+                      const endDate = new Date(startDate)
+                      endDate.setDate(startDate.getDate() + dur)
+                      const endStr = isNaN(endDate.getTime()) ? '-' : endDate.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })
+                      
+                      const insumos = rubrosRecipes[r.id] || []
+                      const mats = insumos.filter((i: any) => (i.insumo?.tipo || '').toLowerCase().includes('mat'))
+                      const mo = insumos.filter((i: any) => (i.insumo?.tipo || '').toLowerCase().includes('mano') || (i.insumo?.tipo || '').toLowerCase().includes('obr'))
+                      const eq = insumos.filter((i: any) => (i.insumo?.tipo || '').toLowerCase().includes('equipo') || (i.insumo?.tipo || '').toLowerCase().includes('maq'))
+
+                      // Comparación Línea Base
+                      const baseData = baselineTasks ? baselineTasks[r.id] : null
+                      const durDiff = baseData ? dur - baseData.duration : null
+
+                      return (
+                        <tr 
+                          key={r.id} 
+                          className={`hover:bg-slate-800/50 transition-colors ${isCrit ? 'bg-rose-950/15' : idx % 2 === 0 ? 'bg-slate-900/60' : 'bg-slate-900/20'}`}
+                        >
+                          {/* WBS */}
+                          <td className="py-2 px-2 text-center font-mono font-bold text-slate-400 border-r border-slate-800">
+                            {idx + 1}
+                          </td>
+
+                          {/* Modo Tarea */}
+                          <td className="py-2 px-2 text-center border-r border-slate-800" title="Auto-programada SARA CPM">
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">
+                              ⚡
+                            </span>
+                          </td>
+
+                          {/* Código */}
+                          <td className="py-2 px-2.5 font-mono text-slate-300 text-[11px] font-bold border-r border-slate-800">
+                            {r.codigo_rubro || `R-${idx + 1}`}
+                          </td>
+
+                          {/* Nombre de la Tarea con botón de Ficha Técnica */}
+                          <td className="py-2 px-3 border-r border-slate-800">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-white font-bold text-[11.5px] hover:text-indigo-300 transition-colors cursor-pointer" onClick={() => setSelectedTaskDetail(r)}>
+                                {r.nombre_rubro}
+                              </span>
+                              <button
+                                onClick={() => setSelectedTaskDetail(r)}
+                                className="p-1 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded transition-all shrink-0"
+                                title="Ver Ficha Técnica, Procedimiento y Desglose APU"
+                              >
+                                <Eye size={12} />
+                              </button>
+                            </div>
+                            {r.capitulo && (
+                              <span className="text-[10px] text-slate-400 block font-normal truncate max-w-xs">
+                                📁 {r.capitulo}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Duración con Stepper [ - ] [ input ] [ + ] */}
+                          <td className="py-2 px-2 border-r border-slate-800">
+                            <div className="flex items-center justify-center gap-1 bg-slate-950/90 border border-slate-700/80 rounded-lg p-0.5">
+                              <button
+                                onClick={() => handleAdjustDuration(r.id, -1)}
+                                className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-all font-bold"
+                                title="Restar 1 día"
+                              >
+                                <Minus size={11} />
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={dur}
+                                onChange={(e) => handleTaskFieldChange(r.id, 'duracion_dias', e.target.value)}
+                                className="w-10 text-center bg-transparent text-white font-mono font-black text-xs outline-none"
+                              />
+                              <span className="text-[10px] text-slate-400 pr-1">d</span>
+                              <button
+                                onClick={() => handleAdjustDuration(r.id, 1)}
+                                className="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-all font-bold"
+                                title="Sumar 1 día"
+                              >
+                                <Plus size={11} />
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Comienzo (Date Picker) */}
+                          <td className="py-2 px-2.5 border-r border-slate-800">
+                            <input
+                              type="date"
+                              value={startStr}
+                              onChange={(e) => handleTaskFieldChange(r.id, 'fecha_inicio', e.target.value)}
+                              className="bg-slate-950 border border-slate-700 text-white font-mono text-[11px] rounded px-2 py-1 outline-none w-full cursor-pointer focus:border-indigo-500 font-bold"
+                            />
+                          </td>
+
+                          {/* Fin (Calculada) */}
+                          <td className="py-2 px-2.5 font-mono text-slate-300 text-[11px] font-bold border-r border-slate-800">
+                            {endStr}
+                          </td>
+
+                          {/* Predecesoras (Dropdown Selector) */}
+                          <td className="py-2 px-2.5 border-r border-slate-800">
+                            <select
+                              value={r.predecesores || ""}
+                              onChange={(e) => handleTaskFieldChange(r.id, 'predecesores', e.target.value || null)}
+                              className="bg-slate-950 border border-slate-700 text-slate-200 text-[11px] rounded px-2 py-1 outline-none w-full cursor-pointer focus:border-indigo-500"
+                            >
+                              <option value="">Sin predecesora (Hito de inicio)</option>
+                              {localRubros.filter(p => p.id !== r.id).map((p, pIdx) => (
+                                <option key={p.id} value={p.id}>
+                                  {pIdx + 1}. {p.nombre_rubro?.slice(0, 32)}... (FS)
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* Nombres de Recursos (APU) */}
+                          <td className="py-2 px-2.5 border-r border-slate-800">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {mo.length > 0 && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-950/70 text-cyan-300 border border-cyan-800/40 flex items-center gap-1" title={mo.map((m: any) => m.insumo?.nombre).join(', ')}>
+                                  <Users size={10} /> {mo.length} MO
+                                </span>
+                              )}
+                              {mats.length > 0 && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/70 text-amber-300 border border-amber-800/40 flex items-center gap-1" title={mats.map((m: any) => m.insumo?.nombre).join(', ')}>
+                                  <Box size={10} /> {mats.length} Mat
+                                </span>
+                              )}
+                              {eq.length > 0 && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-950/70 text-rose-300 border border-rose-800/40 flex items-center gap-1" title={eq.map((e: any) => e.insumo?.nombre).join(', ')}>
+                                  <Wrench size={10} /> {eq.length} Eq
+                                </span>
+                              )}
+                              {insumos.length === 0 && (
+                                <span className="text-slate-500 text-[10px] italic">Recursos estándar</span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Holgura / Estado */}
+                          <td className="py-2 px-2 text-center border-r border-slate-800">
+                            {isCrit ? (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase animate-pulse">
+                                RUTA CRÍTICA (0d)
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
+                                Holgura &gt; 0
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Variación Línea Base */}
+                          <td className="py-2 px-2 text-center font-mono font-bold text-[11px] border-r border-slate-800">
+                            {durDiff === null ? (
+                              <span className="text-slate-500">-</span>
+                            ) : durDiff === 0 ? (
+                              <span className="text-emerald-400">±0d</span>
+                            ) : durDiff > 0 ? (
+                              <span className="text-rose-400">+{durDiff}d</span>
+                            ) : (
+                              <span className="text-cyan-400">{durDiff}d</span>
+                            )}
+                          </td>
+
+                          {/* Costo ($) */}
+                          <td className="py-2 px-3 text-right font-mono font-black text-slate-100 text-[11px]">
+                            ${Number(r.subtotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={12} className="py-12 text-center text-slate-400">
+                        No se encontraron tareas con los filtros actuales.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: DIAGRAMA GANTT */}
+        {activeTab === 'gantt' && (
           <div className="flex-1 overflow-auto p-3 flex flex-col bg-slate-950">
             <div className="text-[11px] text-slate-400 mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -1378,8 +1950,118 @@ export default function GanttModal({
               )}
             </div>
           </div>
-        ) : (
-          /* TAB 2: INFORME DESCRIPTIVO Y DETALLADO (LOOKAHEAD OPERATIVO) */
+        )}
+
+        {/* TAB 3: CURVA S (EVM - PLANNED VALUE) */}
+        {activeTab === 'curva_s' && (
+          <div className="flex-1 overflow-auto p-4 flex flex-col bg-slate-950 space-y-4">
+            <div className="flex items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-800">
+              <div>
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <TrendingUp className="text-cyan-400" size={18} />
+                  Curva S de Avance Financiero & Control EVM (Earned Value Management)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Proyección acumulada del Valor Planificado (PV). Monitorea el flujo de desembolsos contractuales a lo largo del plazo de ejecución.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 uppercase font-black block">Inversión Total Programada</span>
+                  <span className="text-base font-black text-emerald-400 font-mono">
+                    ${Number(kpis.costoTotal).toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* GRÁFICO SVG INTERACTIVO CURVA S */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
+                <span>100% Inversión ($)</span>
+                <span className="text-cyan-400 flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-full bg-cyan-400 inline-block shadow-sm"></span>
+                  Línea de Valor Planificado Acumulado (PV)
+                </span>
+                <span>Plazo: {kpis.totalDias} días</span>
+              </div>
+
+              <div className="relative w-full h-80 bg-slate-950 rounded-xl border border-slate-800 p-4 overflow-hidden">
+                <svg viewBox="0 0 1000 300" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="curvaSGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Grid Lines Horizontales */}
+                  {[0, 25, 50, 75, 100].map((pct) => {
+                    const y = 260 - (pct * 2.2)
+                    return (
+                      <g key={pct}>
+                        <line x1="40" y1={y} x2="980" y2={y} stroke="#1e293b" strokeDasharray="3 3" strokeWidth="1" />
+                        <text x="32" y={y + 4} fill="#64748b" fontSize="10" fontWeight="bold" textAnchor="end">
+                          {pct}%
+                        </text>
+                      </g>
+                    )
+                  })}
+
+                  {/* Curva S Path */}
+                  {curvaSData.points.length > 1 && (() => {
+                    const pts = curvaSData.points.map((p, idx) => {
+                      const sx = 40 + (p.x * 9.4)
+                      const sy = 260 - (p.pctCost * 2.2)
+                      return { sx, sy, ...p }
+                    })
+
+                    const pathD = pts.reduce((acc, p, idx) => {
+                      return idx === 0 ? `M ${p.sx} ${p.sy}` : `${acc} L ${p.sx} ${p.sy}`
+                    }, "")
+
+                    const areaD = `${pathD} L ${pts[pts.length - 1].sx} 260 L ${pts[0].sx} 260 Z`
+
+                    return (
+                      <>
+                        <path d={areaD} fill="url(#curvaSGrad)" />
+                        <path d={pathD} fill="none" stroke="#22d3ee" strokeWidth="3" strokeLinecap="round" />
+                        {pts.map((pt, i) => (
+                          <g key={i} className="cursor-pointer group">
+                            <circle cx={pt.sx} cy={pt.sy} r="5" fill="#0891b2" stroke="#ffffff" strokeWidth="2" className="group-hover:r-7 transition-all" />
+                            <title>{`${pt.dateStr}: $${pt.costAccum.toLocaleString('en-US')} (${pt.pctCost}%)`}</title>
+                          </g>
+                        ))}
+                      </>
+                    )
+                  })()}
+                </svg>
+              </div>
+
+              {/* Hitos Financieros Inferiores */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                {curvaSData.points.length > 0 && [
+                  { label: "Arranque (0%)", pt: curvaSData.points[0] },
+                  { label: "Primer Tercio (~33%)", pt: curvaSData.points[Math.floor(curvaSData.points.length * 0.33)] },
+                  { label: "Pico de Producción (~66%)", pt: curvaSData.points[Math.floor(curvaSData.points.length * 0.66)] },
+                  { label: "Cierre Contractual (100%)", pt: curvaSData.points[curvaSData.points.length - 1] },
+                ].map((hito, hIdx) => (
+                  <div key={hIdx} className="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase block">{hito.label}</span>
+                    <span className="text-xs font-mono font-black text-cyan-300 block">{hito.pt?.dateStr || '-'}</span>
+                    <span className="text-sm font-mono font-black text-white mt-1 block">
+                      ${hito.pt?.costAccum ? hito.pt.costAccum.toLocaleString('en-US') : '0'} USD
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-400 block">{hito.pt?.pctCost || 0}% Acumulado</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: INFORME DESCRIPTIVO Y DETALLADO (LOOKAHEAD OPERATIVO) */}
+        {activeTab === 'informe' && (
           <div className="flex-1 overflow-auto p-4 flex flex-col bg-slate-950 space-y-4">
             <div className="flex items-center justify-between bg-slate-900 p-3.5 rounded-xl border border-slate-800">
               <div>

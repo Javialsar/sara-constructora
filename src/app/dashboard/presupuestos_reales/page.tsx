@@ -85,6 +85,7 @@ export default function PresupuestosRealesPage() {
   const [isGanttModalOpen, setIsGanttModalOpen] = useState(false)
   const [isTakeOffModalOpen, setIsTakeOffModalOpen] = useState(false)
   const [isIndirectosModalOpen, setIsIndirectosModalOpen] = useState(false)
+  const [isSyncingAllInsumos, setIsSyncingAllInsumos] = useState(false)
 
   // Duplicar Presupuesto
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false)
@@ -953,8 +954,6 @@ export default function PresupuestosRealesPage() {
     await recalcAndSaveRubroUnitario(currentRecipeRubro.id, currentRecipeRubro.cantidad_obra, currentRecipeRubro.rubro_id);
     await fetchPresupuestoRubros(currentPresupuesto.id);
   };
-
-  const [isSyncingAllInsumos, setIsSyncingAllInsumos] = useState(false);
 
   // Sincronizar masivamente las recetas e insumos de todos los rubros del presupuesto
   const handleSyncAllInsumos = async () => {

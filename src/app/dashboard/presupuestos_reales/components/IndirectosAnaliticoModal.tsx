@@ -29,8 +29,6 @@ export default function IndirectosAnaliticoModal({
   onApplyPercentages,
   projectName
 }: IndirectosAnaliticoModalProps) {
-  if (!isOpen) return null
-
   // Partidas analíticas de costos indirectos estándar SERCOP
   const [items, setItems] = useState<IndirectoItem[]>([
     { id: '1', categoria: 'personal_tecnico', descripcion: 'Ingeniero Residente de Obra (Sueldo + Cargas IESS)', unidad: 'mes', cantidad: 3, costo_unitario: 1400 },
@@ -145,6 +143,8 @@ export default function IndirectosAnaliticoModal({
 
     doc.save(`Anexo_Indirectos_${projectName}.pdf`)
   }
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
