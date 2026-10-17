@@ -254,6 +254,69 @@ export default function GanttModal({
   const [msChapterFilter, setMsChapterFilter] = useState<string>("todos")
   const [onlyCriticalFilter, setOnlyCriticalFilter] = useState<boolean>(false)
 
+  // Referencia y altura computada para el contenedor del Gantt y barra horizontal
+  const ganttContainerRef = React.useRef<HTMLDivElement>(null)
+  const [computedGanttHeight, setComputedGanttHeight] = useState<number>(460)
+  const [timelineScrollPct, setTimelineScrollPct] = useState<number>(0)
+
+  // Medir dinámicamente el alto disponible para que la barra horizontal quede visible en la parte inferior
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'gantt') return
+    const updateHeight = () => {
+      if (ganttContainerRef.current) {
+        const h = ganttContainerRef.current.clientHeight
+        if (h > 120) {
+          setComputedGanttHeight(Math.max(260, h - 70))
+        }
+      }
+    }
+    const t = setTimeout(updateHeight, 200)
+    window.addEventListener('resize', updateHeight)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('resize', updateHeight)
+    }
+  }, [isOpen, activeTab, viewMode])
+
+  // Sincronizar el scrubber horizontal con el scroll del Gantt
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'gantt') return
+    const timer = setTimeout(() => {
+      const scrollEl = document.querySelector('.gantt-root-contrast [class*="_2k9Ys"]') as HTMLDivElement 
+        || document.querySelector('.gantt-root-contrast div[class*="scrollWrapper"]') as HTMLDivElement
+      if (scrollEl) {
+        const handleScroll = () => {
+          const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth
+          if (maxScroll > 0) {
+            setTimelineScrollPct(Math.round((scrollEl.scrollLeft / maxScroll) * 100))
+          }
+        }
+        scrollEl.addEventListener('scroll', handleScroll)
+        return () => scrollEl.removeEventListener('scroll', handleScroll)
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [isOpen, activeTab, viewMode, localRubros])
+
+  const scrollGanttHorizontal = (direction: 'start' | 'prev' | 'next' | 'end' | number) => {
+    const scrollEl = document.querySelector('.gantt-root-contrast [class*="_2k9Ys"]') as HTMLDivElement 
+      || document.querySelector('.gantt-root-contrast div[class*="scrollWrapper"]') as HTMLDivElement
+    if (!scrollEl) return
+
+    const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth
+    if (typeof direction === 'number') {
+      scrollEl.scrollLeft = (direction / 100) * maxScroll
+    } else if (direction === 'start') {
+      scrollEl.scrollLeft = 0
+    } else if (direction === 'end') {
+      scrollEl.scrollLeft = maxScroll
+    } else if (direction === 'prev') {
+      scrollEl.scrollLeft = Math.max(0, scrollEl.scrollLeft - 240)
+    } else if (direction === 'next') {
+      scrollEl.scrollLeft = Math.min(maxScroll, scrollEl.scrollLeft + 240)
+    }
+  }
+
   useEffect(() => {
     if (presupuestoRubros && presupuestoRubros.length > 0) {
       const sorted = [...presupuestoRubros].sort((a, b) => {
@@ -1378,13 +1441,40 @@ export default function GanttModal({
             fill: #0f172a !important;
             font-weight: 700 !important;
           }
-          /* Texto interno en barras de actividades */
-          .gantt-root-contrast svg g[class*="bar"] text,
-          .gantt-root-contrast svg g text[dominant-baseline="central"],
-          .gantt-root-contrast svg g text[alignment-baseline="central"] {
-            fill: #ffffff !important;
-            font-weight: 800 !important;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8) !important;
+          /* BARRA DE DESPLAZAMIENTO HORIZONTAL (PARTE INFERIOR) */
+          .gantt-root-contrast div[class*="scrollWrapper"],
+          .gantt-root-contrast [class*="_2k9Ys"] {
+            background-color: #f1f5f9 !important;
+            border-top: 2px solid #64748b !important;
+            border-bottom: 1px solid #cbd5e1 !important;
+            height: 22px !important;
+            min-height: 22px !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: sticky !important;
+            bottom: 0 !important;
+            z-index: 40 !important;
+          }
+          .gantt-root-contrast div[class*="scrollWrapper"]::-webkit-scrollbar,
+          .gantt-root-contrast [class*="_2k9Ys"]::-webkit-scrollbar {
+            height: 14px !important;
+            background-color: #e2e8f0 !important;
+          }
+          .gantt-root-contrast div[class*="scrollWrapper"]::-webkit-scrollbar-track,
+          .gantt-root-contrast [class*="_2k9Ys"]::-webkit-scrollbar-track {
+            background-color: #e2e8f0 !important;
+            border-radius: 4px !important;
+          }
+          .gantt-root-contrast div[class*="scrollWrapper"]::-webkit-scrollbar-thumb,
+          .gantt-root-contrast [class*="_2k9Ys"]::-webkit-scrollbar-thumb {
+            background-color: #2563eb !important;
+            border-radius: 6px !important;
+            border: 2px solid #e2e8f0 !important;
+          }
+          .gantt-root-contrast div[class*="scrollWrapper"]::-webkit-scrollbar-thumb:hover,
+          .gantt-root-contrast [class*="_2k9Ys"]::-webkit-scrollbar-thumb:hover {
+            background-color: #1d4ed8 !important;
           }
         `}} />
 
@@ -1918,8 +2008,8 @@ export default function GanttModal({
 
         {/* TAB 2: DIAGRAMA GANTT */}
         {activeTab === 'gantt' && (
-          <div className="flex-1 overflow-auto p-3 flex flex-col bg-slate-950">
-            <div className="text-[11px] text-slate-400 mb-2 flex items-center justify-between">
+          <div className="flex-1 overflow-hidden p-3 flex flex-col bg-slate-950">
+            <div className="text-[11px] text-slate-400 mb-2 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-1.5">
                 <Info size={13} className="text-purple-400" />
                 Haz clic en cualquier barra o fila de actividad para inspeccionar su Ficha Técnica, Procedimiento, Materiales y Mano de Obra.
@@ -1929,7 +2019,10 @@ export default function GanttModal({
               </span>
             </div>
 
-            <div className="gantt-root-contrast border border-slate-800 rounded-xl bg-white flex-1 overflow-auto p-1 shadow-inner">
+            <div 
+              ref={ganttContainerRef}
+              className="gantt-root-contrast border border-slate-800 rounded-xl bg-white flex-1 overflow-hidden p-1 shadow-inner flex flex-col min-h-0"
+            >
               {tasks.length > 0 ? (
                 <Gantt
                   tasks={tasks}
@@ -1940,6 +2033,7 @@ export default function GanttModal({
                   onProgressChange={() => {}}
                   listCellWidth="340px"
                   columnWidth={viewMode === ViewMode.Day ? 60 : viewMode === ViewMode.Week ? 120 : 180}
+                  ganttHeight={computedGanttHeight}
                   locale="es"
                 />
               ) : (
@@ -1948,6 +2042,75 @@ export default function GanttModal({
                   <p className="font-bold text-slate-300">No hay rubros cargados en el presupuesto.</p>
                 </div>
               )}
+            </div>
+
+            {/* BARRA INFERIOR DE NAVEGACIÓN Y DESPLAZAMIENTO HORIZONTAL DEL CRONOGRAMA */}
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-md mt-2 shrink-0">
+              {/* Botones de Navegación Rápida */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => scrollGanttHorizontal('start')}
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                  title="Ir al inicio de la obra"
+                >
+                  <span>⏪ Inicio</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollGanttHorizontal('prev')}
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                  title="Desplazar a la izquierda (-1 mes)"
+                >
+                  <span>◀ Anterior</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollGanttHorizontal('next')}
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                  title="Desplazar a la derecha (+1 mes)"
+                >
+                  <span>Siguiente ▶</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollGanttHorizontal('end')}
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                  title="Ir al fin de la obra"
+                >
+                  <span>Fin ⏩</span>
+                </button>
+              </div>
+
+              {/* Scrubber / Slider de Tiempo Horizontal */}
+              <div className="flex-1 max-w-md flex items-center gap-3 px-2">
+                <span className="text-[11px] font-bold text-slate-400 shrink-0">Línea de Tiempo:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={timelineScrollPct}
+                  onChange={(e) => {
+                    const val = Number(e.target.value)
+                    setTimelineScrollPct(val)
+                    scrollGanttHorizontal(val)
+                  }}
+                  className="w-full accent-blue-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+                  title="Arrastra para desplazarte horizontalmente a lo largo del cronograma"
+                />
+                <span className="text-[11px] font-mono font-bold text-blue-400 shrink-0 w-10 text-right">
+                  {timelineScrollPct}%
+                </span>
+              </div>
+
+              {/* Rango de Fechas */}
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <span className="text-slate-300 font-bold">Plazo:</span>
+                <span className="font-mono text-white">{kpis.totalDias} días</span>
+                <span className="text-slate-500">·</span>
+                <span className="text-slate-300 font-bold">Entrega:</span>
+                <span className="font-mono text-cyan-300">{kpis.fechaFin || 'Por calcular'}</span>
+              </div>
             </div>
           </div>
         )}
