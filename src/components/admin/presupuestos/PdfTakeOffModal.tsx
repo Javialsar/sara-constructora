@@ -31,6 +31,7 @@ import {
   Keyboard,
   Focus,
   MousePointer,
+  Crosshair,
   Compass,
   Boxes,
   Maximize,
@@ -152,48 +153,34 @@ export default function PdfTakeOffModal({
   const [isMagnifierActive, setIsMagnifierActive] = useState<boolean>(false) // Lupa de precisión
   const [snappedPoint, setSnappedPoint] = useState<Point2D | null>(null)
 
-  // Mediciones confirmadas
-  const [mediciones, setMediciones] = useState<TakeOffMeasurement[]>([
-    {
-      id: "med-demo-1",
-      nombre: "Contrapiso Sala - Comedor",
-      tipo: "area",
-      color: "#2563eb",
-      puntos: [{ x: 120, y: 140 }, { x: 480, y: 140 }, { x: 480, y: 380 }, { x: 120, y: 380 }],
-      resultado: 38.80,
-      unidad: "m²",
-      rubro_id: presupuestoRubros.find(r => (r.nombre_rubro || '').toLowerCase().includes('contrapiso'))?.id || undefined,
-      rubro_nombre: "Contrapiso de hormigón simple e=10cm",
-      precioUnitario: 14.50,
-      costoTotal: 562.60,
-      visible: true
-    },
-    {
-      id: "med-demo-2",
-      nombre: "Paredes Eje A (Mampostería)",
-      tipo: "pared",
-      color: "#d97706",
-      puntos: [{ x: 120, y: 140 }, { x: 480, y: 140 }],
-      alturaPared: 2.60,
-      areaVanos: 0,
-      longitudLineal: 5.94,
-      resultado: 15.44, // 5.94m * 2.60m
-      unidad: "m²",
-      rubro_id: presupuestoRubros.find(r => (r.nombre_rubro || '').toLowerCase().includes('mamposteria') || (r.nombre_rubro || '').toLowerCase().includes('ladrillo'))?.id || undefined,
-      rubro_nombre: "Mampostería de ladrillo panelón e=12cm",
-      precioUnitario: 16.50,
-      costoTotal: 254.76,
-      visible: true
-    }
-  ])
+  // Mediciones confirmadas (inicia en blanco para planos reales)
+  const [mediciones, setMediciones] = useState<TakeOffMeasurement[]>([])
 
   // Pila de historial para Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y)
-  const [history, setHistory] = useState<TakeOffMeasurement[][]>([])
-  const [historyIndex, setHistoryIndex] = useState<number>(-1)
+  const [history, setHistory] = useState<TakeOffMeasurement[][]>([[]])
+  const [historyIndex, setHistoryIndex] = useState<number>(0)
 
   // Capa seleccionada en lienzo o panel
   const [selectedMedicionId, setSelectedMedicionId] = useState<string | null>(null)
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false)
+
+  // Herramientas de Precisión Arquitectónica (Especialista Revit / AutoCAD)
+  const [showCrosshair, setShowCrosshair] = useState<boolean>(true) // Mira en cruz infinita
+  const [quickMeasurePoints, setQuickMeasurePoints] = useState<Point2D[]>([]) // Cinta métrica rápida
+  const [quickMeasureResult, setQuickMeasureResult] = useState<{
+    p1: Point2D
+    p2: Point2D
+    distanceM: number
+    deltaXM: number
+    deltaYM: number
+    angleDeg: number
+  } | null>(null)
+
+  // Dimensiones del contenedor del lienzo para las Barras de Navegación (Scrollbars)
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null)
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({ width: 900, height: 600 })
+  const [isDraggingScrollX, setIsDraggingScrollX] = useState<boolean>(false)
+  const [isDraggingScrollY, setIsDraggingScrollY] = useState<boolean>(false)
 
   // Notificaciones y diálogos
   const [toastMsg, setToastMsg] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null)
@@ -217,12 +204,21 @@ export default function PdfTakeOffModal({
     setTimeout(() => setToastMsg(null), 4000)
   }
 
-  // Inicializar historial con estado por defecto
+  // Medir tamaño del contenedor del lienzo para las barras de navegación
   useEffect(() => {
-    if (history.length === 0 && mediciones.length > 0) {
-      setHistory([mediciones])
-      setHistoryIndex(0)
-    }
+    if (!canvasContainerRef.current) return
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+          setContainerSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height
+          })
+        }
+      }
+    })
+    ro.observe(canvasContainerRef.current)
+    return () => ro.disconnect()
   }, [])
 
   // Actualizar mediciones registrando snapshot en el historial
@@ -284,9 +280,129 @@ export default function PdfTakeOffModal({
     }))
   }
 
-  // Zoom enfocado en el cursor con la rueda del ratón
+  // Parámetros geométricos para las Barras de Navegación (Scrollbars X & Y)
+  const scaledBlueprintW = (blueprintDimensions.width || 1000) * zoom
+  const scaledBlueprintH = (blueprintDimensions.height || 700) * zoom
+
+  // Rango dinámico de navegación para las barras de scroll
+  const maxPanRangeX = Math.max(containerSize.width * 0.8, scaledBlueprintW)
+  const maxPanRangeY = Math.max(containerSize.height * 0.8, scaledBlueprintH)
+
+  // Fracción normalizada [0, 1] de la barra X y Y
+  const scrollFractionX = useMemo(() => {
+    const raw = (-panOffset.x + maxPanRangeX) / (2 * maxPanRangeX || 1)
+    return Math.max(0, Math.min(1, raw))
+  }, [panOffset.x, maxPanRangeX])
+
+  const scrollFractionY = useMemo(() => {
+    const raw = (-panOffset.y + maxPanRangeY) / (2 * maxPanRangeY || 1)
+    return Math.max(0, Math.min(1, raw))
+  }, [panOffset.y, maxPanRangeY])
+
+  // Porcentaje del ancho y alto del Thumb
+  const thumbWidthPercent = useMemo(() => {
+    const ratio = containerSize.width / Math.max(containerSize.width, scaledBlueprintW + 200)
+    return Math.max(8, Math.min(80, ratio * 100))
+  }, [containerSize.width, scaledBlueprintW])
+
+  const thumbHeightPercent = useMemo(() => {
+    const ratio = containerSize.height / Math.max(containerSize.height, scaledBlueprintH + 200)
+    return Math.max(8, Math.min(80, ratio * 100))
+  }, [containerSize.height, scaledBlueprintH])
+
+  // Pasos de navegación para botones de flechas (◄ ► ▲ ▼)
+  const stepPanX = (delta: number) => {
+    setPanOffset(prev => ({ ...prev, x: prev.x + delta }))
+  }
+  const stepPanY = (delta: number) => {
+    setPanOffset(prev => ({ ...prev, y: prev.y + delta }))
+  }
+
+  // Interacción en la barra de desplazamiento X
+  const handleScrollTrackXPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const fraction = Math.max(0, Math.min(1, clickX / rect.width))
+    const targetPanX = maxPanRangeX - fraction * (2 * maxPanRangeX)
+    setPanOffset(prev => ({ ...prev, x: targetPanX }))
+  }
+
+  const handleScrollThumbXPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    const target = e.currentTarget
+    target.setPointerCapture(e.pointerId)
+    setIsDraggingScrollX(true)
+
+    const startClientX = e.clientX
+    const startPanX = panOffset.x
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const deltaPx = moveEv.clientX - startClientX
+      const trackWidth = containerSize.width - 40
+      const fractionDelta = deltaPx / (trackWidth || 1)
+      const panDelta = -fractionDelta * (2 * maxPanRangeX)
+      setPanOffset(prev => ({ ...prev, x: startPanX + panDelta }))
+    }
+
+    const onPointerUp = (upEv: PointerEvent) => {
+      target.releasePointerCapture(upEv.pointerId)
+      setIsDraggingScrollX(false)
+      target.removeEventListener('pointermove', onPointerMove)
+      target.removeEventListener('pointerup', onPointerUp)
+    }
+
+    target.addEventListener('pointermove', onPointerMove)
+    target.addEventListener('pointerup', onPointerUp)
+  }
+
+  // Interacción en la barra de desplazamiento Y
+  const handleScrollTrackYPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickY = e.clientY - rect.top
+    const fraction = Math.max(0, Math.min(1, clickY / rect.height))
+    const targetPanY = maxPanRangeY - fraction * (2 * maxPanRangeY)
+    setPanOffset(prev => ({ ...prev, y: targetPanY }))
+  }
+
+  const handleScrollThumbYPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    const target = e.currentTarget
+    target.setPointerCapture(e.pointerId)
+    setIsDraggingScrollY(true)
+
+    const startClientY = e.clientY
+    const startPanY = panOffset.y
+
+    const onPointerMove = (moveEv: PointerEvent) => {
+      const deltaPx = moveEv.clientY - startClientY
+      const trackHeight = containerSize.height - 40
+      const fractionDelta = deltaPx / (trackHeight || 1)
+      const panDelta = -fractionDelta * (2 * maxPanRangeY)
+      setPanOffset(prev => ({ ...prev, y: startPanY + panDelta }))
+    }
+
+    const onPointerUp = (upEv: PointerEvent) => {
+      target.releasePointerCapture(upEv.pointerId)
+      setIsDraggingScrollY(false)
+      target.removeEventListener('pointermove', onPointerMove)
+      target.removeEventListener('pointerup', onPointerUp)
+    }
+
+    target.addEventListener('pointermove', onPointerMove)
+    target.addEventListener('pointerup', onPointerUp)
+  }
+
+  // Zoom y desplazamiento con la rueda del ratón
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault()
+
+    // Si mantiene Shift: desplazamiento horizontal
+    if (e.shiftKey) {
+      setPanOffset(prev => ({ ...prev, x: prev.x - e.deltaY * 0.9 }))
+      return
+    }
+
+    // Zoom continuo enfocado al cursor
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87
     const newZoom = Math.min(4.0, Math.max(0.25, Number((zoom * zoomFactor).toFixed(2))))
     
@@ -366,10 +482,12 @@ export default function PdfTakeOffModal({
         return
       }
 
-      // Escape: cancelar trazado o calibración activa
+      // Escape: cancelar trazado, calibración o cinta métrica
       if (e.key === 'Escape') {
         setCurrentPoints([])
         setSelectedMedicionId(null)
+        setQuickMeasurePoints([])
+        setQuickMeasureResult(null)
         if (isCalibrating) {
           setIsCalibrating(false)
           setCalibrationPoints([])
@@ -479,6 +597,37 @@ export default function PdfTakeOffModal({
         setCalibrationPendingPoints([p1, p2])
         setMeasuredPixels(distPx)
         setIsCalibrationModalOpen(true)
+      }
+      return
+    }
+
+    // 1.5. Cinta Métrica Rápida de Precisión (Estilo Revit / AutoCAD Measure)
+    if (activeTool === 'distancia') {
+      if (quickMeasurePoints.length !== 1) {
+        setQuickMeasurePoints([pt])
+        setQuickMeasureResult(null)
+        showToast("Extremo A fijado. Haz clic en el Extremo B para medir la distancia.", "info")
+      } else {
+        const p1 = quickMeasurePoints[0]
+        const p2 = pt
+        const distPx = calculateDistancePx(p1, p2)
+        const distM = Number((distPx * scaleRatio).toFixed(3))
+        const deltaXM = Number((Math.abs(p2.x - p1.x) * scaleRatio).toFixed(3))
+        const deltaYM = Number((Math.abs(p2.y - p1.y) * scaleRatio).toFixed(3))
+        const angleRad = Math.atan2(p2.y - p1.y, p2.x - p1.x)
+        let angleDeg = Number((angleRad * (180 / Math.PI)).toFixed(1))
+        if (angleDeg < 0) angleDeg += 360
+
+        setQuickMeasureResult({
+          p1,
+          p2,
+          distanceM: distM,
+          deltaXM,
+          deltaYM,
+          angleDeg
+        })
+        setQuickMeasurePoints([p1, p2])
+        showToast(`📏 Distancia: ${distM} m | ΔX: ${deltaXM} m | ΔY: ${deltaYM} m | Ángulo: ${angleDeg}°`, "success")
       }
       return
     }
@@ -1171,6 +1320,22 @@ export default function PdfTakeOffModal({
             <span>Calibrar Escala</span>
           </button>
 
+          {/* Cinta Métrica Rápida (Revit / AutoCAD Measure) */}
+          <button
+            onClick={() => {
+              setActiveTool('distancia')
+              setQuickMeasurePoints([])
+              setQuickMeasureResult(null)
+              setCurrentPoints([])
+              showToast("Cinta Métrica: Haz clic en 2 puntos para medir distancia directa, ΔX, ΔY y ángulo.", "info")
+            }}
+            className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition ${activeTool === 'distancia' ? 'bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-300' : 'text-slate-400 hover:text-white'}`}
+            title="Cinta métrica rápida entre 2 referencias (sin alterar presupuesto)"
+          >
+            <Compass size={14} className="text-cyan-300" />
+            <span>Cinta Métrica</span>
+          </button>
+
           {/* Área Poligonal */}
           <button
             onClick={() => { setActiveTool('area'); setCurrentPoints([]) }}
@@ -1284,6 +1449,20 @@ export default function PdfTakeOffModal({
             </div>
           )}
 
+          {/* Cruz de Mira Ortogonal Revit / AutoCAD */}
+          <button
+            onClick={() => setShowCrosshair(!showCrosshair)}
+            className={`p-1.5 rounded-xl border text-xs font-bold flex items-center gap-1 transition ${
+              showCrosshair 
+                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+            }`}
+            title="Alternar cruz ortogonal continua estilo Revit / AutoCAD"
+          >
+            <Crosshair size={14} className={showCrosshair ? "text-cyan-400" : ""} />
+            <span className="hidden sm:inline">Cruz Revit</span>
+          </button>
+
           {/* Lupa de Precisión */}
           <button
             onClick={() => setIsMagnifierActive(!isMagnifierActive)}
@@ -1368,14 +1547,20 @@ export default function PdfTakeOffModal({
       {/* 3. ÁREA DE TRABAJO: LIENZO (CANVAS) + PANEL LATERAL */}
       <div className="flex-1 flex overflow-hidden relative">
         
-        {/* LIENZO DE VISUALIZACIÓN Y MEDICIÓN */}
+        {/* LIENZO DE VISUALIZACIÓN Y MEDICIÓN CON BARRAS DE NAVEGACIÓN */}
         <div 
-          className="flex-1 bg-slate-950 relative overflow-hidden flex items-center justify-center select-none"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove as any}
-          onMouseUp={handleMouseUp}
-          onWheel={handleWheel}
+          ref={canvasContainerRef}
+          className="flex-1 flex flex-col overflow-hidden relative bg-slate-950 select-none"
         >
+          {/* ÁREA SUPERIOR: SVG + BARRA DE DESPLAZAMIENTO VERTICAL (SCROLLBAR Y) */}
+          <div className="flex-1 flex overflow-hidden relative">
+            <div 
+              className="flex-1 bg-slate-950 relative overflow-hidden flex items-center justify-center"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove as any}
+              onMouseUp={handleMouseUp}
+              onWheel={handleWheel}
+            >
           {/* Toast informativo flotante */}
           {toastMsg && (
             <div className={`absolute top-3 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-xl border text-xs font-bold shadow-xl animate-in slide-in-from-top-3 flex items-center gap-2 ${
@@ -1866,6 +2051,119 @@ export default function PdfTakeOffModal({
                 </g>
               )}
 
+              {/* 7. CINTA MÉTRICA RÁPIDA: TRAZO EN PROGRESO (REVIT MEASURE) */}
+              {activeTool === 'distancia' && quickMeasurePoints.length === 1 && cursorPos && (
+                <g id="quick-measure-rubberband" pointerEvents="none">
+                  <line 
+                    x1={quickMeasurePoints[0].x} 
+                    y1={quickMeasurePoints[0].y} 
+                    x2={cursorPos.x} 
+                    y2={cursorPos.y} 
+                    stroke="#22d3ee" 
+                    strokeWidth={2} 
+                    strokeDasharray="4 3" 
+                  />
+                  <circle cx={quickMeasurePoints[0].x} cy={quickMeasurePoints[0].y} r={5} fill="#0891b2" stroke="#ffffff" strokeWidth={2} />
+                  <circle cx={cursorPos.x} cy={cursorPos.y} r={5} fill="#22d3ee" stroke="#ffffff" strokeWidth={2} />
+                  {(() => {
+                    const distPx = calculateDistancePx(quickMeasurePoints[0], cursorPos)
+                    const distM = (distPx * scaleRatio).toFixed(3)
+                    const midX = (quickMeasurePoints[0].x + cursorPos.x) / 2
+                    const midY = (quickMeasurePoints[0].y + cursorPos.y) / 2
+                    return (
+                      <g transform={`translate(${midX}, ${midY - 14})`}>
+                        <rect x={-45} y={-10} width={90} height={20} rx={4} fill="#020617" fillOpacity={0.94} stroke="#22d3ee" strokeWidth={1} />
+                        <text x={0} y={4} fill="#67e8f9" fontSize={10} fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                          📏 {distM} m
+                        </text>
+                      </g>
+                    )
+                  })()}
+                </g>
+              )}
+
+              {/* 8. CINTA MÉTRICA RÁPIDA: COTA CONFIRMADA ENTRE 2 REFERENCIAS */}
+              {quickMeasureResult && (
+                <g id="quick-measure-confirmed" pointerEvents="none">
+                  <line
+                    x1={quickMeasureResult.p1.x}
+                    y1={quickMeasureResult.p1.y}
+                    x2={quickMeasureResult.p2.x}
+                    y2={quickMeasureResult.p2.y}
+                    stroke="#06b6d4"
+                    strokeWidth={2.5}
+                  />
+                  {/* Ticks arquitectónicos de 45° en extremos */}
+                  <line
+                    x1={quickMeasureResult.p1.x - 7}
+                    y1={quickMeasureResult.p1.y + 7}
+                    x2={quickMeasureResult.p1.x + 7}
+                    y2={quickMeasureResult.p1.y - 7}
+                    stroke="#06b6d4"
+                    strokeWidth={2.5}
+                  />
+                  <line
+                    x1={quickMeasureResult.p2.x - 7}
+                    y1={quickMeasureResult.p2.y + 7}
+                    x2={quickMeasureResult.p2.x + 7}
+                    y2={quickMeasureResult.p2.y - 7}
+                    stroke="#06b6d4"
+                    strokeWidth={2.5}
+                  />
+                  <circle cx={quickMeasureResult.p1.x} cy={quickMeasureResult.p1.y} r={3} fill="#ffffff" />
+                  <circle cx={quickMeasureResult.p2.x} cy={quickMeasureResult.p2.y} r={3} fill="#ffffff" />
+
+                  {/* Etiqueta dimensional arquitectónica con distancias y ángulos */}
+                  {(() => {
+                    const midX = (quickMeasureResult.p1.x + quickMeasureResult.p2.x) / 2
+                    const midY = (quickMeasureResult.p1.y + quickMeasureResult.p2.y) / 2
+                    return (
+                      <g transform={`translate(${midX}, ${midY - 18})`}>
+                        <rect x={-75} y={-14} width={150} height={28} rx={6} fill="#090d16" fillOpacity={0.96} stroke="#06b6d4" strokeWidth={1.5} />
+                        <text x={0} y={-1} fill="#ffffff" fontSize={11} fontWeight="900" fontFamily="monospace" textAnchor="middle">
+                          📏 {quickMeasureResult.distanceM} m
+                        </text>
+                        <text x={0} y={10} fill="#94a3b8" fontSize={8.5} fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                          ΔX: {quickMeasureResult.deltaXM}m · ΔY: {quickMeasureResult.deltaYM}m · {quickMeasureResult.angleDeg}°
+                        </text>
+                      </g>
+                    )
+                  })()}
+                </g>
+              )}
+
+              {/* 9. MIRA EN CRUZ ORTOGONAL CONTINUA (REVIT / AUTOCAD CROSSHAIRS) */}
+              {showCrosshair && cursorPos && (
+                <g id="revit-infinite-crosshairs" pointerEvents="none" opacity={0.65}>
+                  <line
+                    x1={-10000}
+                    y1={cursorPos.y}
+                    x2={10000}
+                    y2={cursorPos.y}
+                    stroke="#38bdf8"
+                    strokeWidth={0.8}
+                    strokeDasharray="6 4"
+                  />
+                  <line
+                    x1={cursorPos.x}
+                    y1={-10000}
+                    x2={cursorPos.x}
+                    y2={10000}
+                    stroke="#38bdf8"
+                    strokeWidth={0.8}
+                    strokeDasharray="6 4"
+                  />
+                  <circle
+                    cx={cursorPos.x}
+                    cy={cursorPos.y}
+                    r={5}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeWidth={1}
+                  />
+                </g>
+              )}
+
             </g>
           </svg>
 
@@ -1984,6 +2282,97 @@ export default function PdfTakeOffModal({
           </div>
 
         </div>
+
+        {/* BARRA DE DESPLAZAMIENTO VERTICAL (SCROLLBAR Y) */}
+        <div className="w-4 bg-slate-900 border-l border-slate-800 flex flex-col justify-between items-center py-0.5 select-none shrink-0 z-20">
+          {/* Botón arriba ▲ */}
+          <button
+            type="button"
+            onClick={() => stepPanY(50)}
+            className="w-3.5 h-3.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded flex items-center justify-center text-[9px] transition cursor-pointer"
+            title="Desplazar hacia arriba"
+          >
+            ▲
+          </button>
+
+          {/* Pista Vertical (Track Y) */}
+          <div 
+            className="flex-1 w-full relative cursor-pointer my-0.5 flex justify-center"
+            onPointerDown={handleScrollTrackYPointerDown}
+          >
+            {/* Deslizador (Thumb Y) */}
+            <div
+              onPointerDown={handleScrollThumbYPointerDown}
+              className={`w-2.5 rounded-full transition-colors cursor-grab active:cursor-grabbing absolute ${
+                isDraggingScrollY ? 'bg-cyan-400' : 'bg-slate-600 hover:bg-slate-500'
+              }`}
+              style={{
+                height: `${thumbHeightPercent}%`,
+                top: `${scrollFractionY * (100 - thumbHeightPercent)}%`
+              }}
+              title="Arrastrar para navegar verticalmente"
+            />
+          </div>
+
+          {/* Botón abajo ▼ */}
+          <button
+            type="button"
+            onClick={() => stepPanY(-50)}
+            className="w-3.5 h-3.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded flex items-center justify-center text-[9px] transition cursor-pointer"
+            title="Desplazar hacia abajo"
+          >
+            ▼
+          </button>
+        </div>
+      </div>
+
+      {/* ÁREA INFERIOR: BARRA DE DESPLAZAMIENTO HORIZONTAL (SCROLLBAR X) + ESQUINA */}
+      <div className="h-4 bg-slate-900 border-t border-slate-800 flex items-center select-none shrink-0 z-20">
+        {/* Botón izquierda ◄ */}
+        <button
+          type="button"
+          onClick={() => stepPanX(50)}
+          className="w-3.5 h-3.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded flex items-center justify-center text-[9px] transition cursor-pointer ml-0.5"
+          title="Desplazar a la izquierda"
+        >
+          ◄
+        </button>
+
+        {/* Pista Horizontal (Track X) */}
+        <div 
+          className="flex-1 h-full relative cursor-pointer mx-1 flex items-center"
+          onPointerDown={handleScrollTrackXPointerDown}
+        >
+          {/* Deslizador (Thumb X) */}
+          <div
+            onPointerDown={handleScrollThumbXPointerDown}
+            className={`h-2.5 rounded-full transition-colors cursor-grab active:cursor-grabbing absolute ${
+              isDraggingScrollX ? 'bg-cyan-400' : 'bg-slate-600 hover:bg-slate-500'
+            }`}
+            style={{
+              width: `${thumbWidthPercent}%`,
+              left: `${scrollFractionX * (100 - thumbWidthPercent)}%`
+            }}
+            title="Arrastrar para navegar horizontalmente"
+          />
+        </div>
+
+        {/* Botón derecha ► */}
+        <button
+          type="button"
+          onClick={() => stepPanX(-50)}
+          className="w-3.5 h-3.5 text-slate-400 hover:text-cyan-300 hover:bg-slate-800 rounded flex items-center justify-center text-[9px] transition cursor-pointer mr-0.5"
+          title="Desplazar a la derecha"
+        >
+          ►
+        </button>
+
+        {/* Esquina de unión */}
+        <div className="w-4 h-full bg-slate-950 border-l border-slate-800 shrink-0 flex items-center justify-center text-[8px] text-slate-600 select-none">
+          ◰
+        </div>
+      </div>
+    </div>
 
         {/* PANEL LATERAL: CÓMPUTOS MÉTRICOS & APUS */}
         <div className="w-80 md:w-96 bg-slate-900 border-l border-slate-800 flex flex-col justify-between shrink-0 overflow-hidden">

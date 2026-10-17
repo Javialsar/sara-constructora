@@ -12,6 +12,7 @@ export interface Point2D {
 export type TakeOffToolType = 
   | 'pan' 
   | 'calibrate' 
+  | 'distancia'
   | 'area' 
   | 'rectangulo' 
   | 'longitud' 
