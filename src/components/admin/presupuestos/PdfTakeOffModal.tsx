@@ -3,6 +3,10 @@
 import React, { useState, useRef, useEffect, useMemo } from "react"
 import { 
   X, 
+  FileBox, 
+  ChevronLeft, 
+  Info, 
+  HelpCircle, 
   Upload, 
   Maximize2, 
   ZoomIn, 
@@ -38,6 +42,7 @@ import {
   detectArchitecturalRoomsFromBlueprint
 } from "@/lib/takeoff/geometry"
 import jsPDF from "jspdf"
+import { loadPdfDocument, renderPdfPageToDataUrl } from "@/lib/takeoff/pdfRenderer"
 import autoTable from "jspdf-autotable"
 
 interface PdfTakeOffModalProps {
@@ -91,6 +96,16 @@ export default function PdfTakeOffModal({
   const [activeTool, setActiveTool] = useState<'pan' | 'calibrate' | 'area' | 'wall' | 'count'>('area')
   const [selectedBlueprint, setSelectedBlueprint] = useState<string>("planta-baja")
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [isRenderingPdf, setIsRenderingPdf] = useState<boolean>(false)
+  const [pdfTotalPages, setPdfTotalPages] = useState<number>(1)
+  const [pdfCurrentPage, setPdfCurrentPage] = useState<number>(1)
+  const [blueprintDimensions, setBlueprintDimensions] = useState<{ width: number; height: number }>({ width: 1000, height: 700 })
+  const [cadFormatNotice, setCadFormatNotice] = useState<{
+    format: string
+    title: string
+    message: string
+    type: 'bim' | 'info'
+  } | null>(null)
 
   // Escala y Calibración
   const [scaleRatio, setScaleRatio] = useState<number>(0.0165) // metros por pixel
@@ -330,23 +345,121 @@ export default function PdfTakeOffModal({
     setIsDragging(false)
   }
 
-  // Subir imagen de plano
-  const handleUploadBlueprint = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Subir imagen o plano en PDF / Detección de formatos BIM
+  const handleUploadBlueprint = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setUploadedImage(event.target.result as string)
+    e.target.value = '' // Reset para permitir volver a cargar el mismo archivo
+
+    const fileName = file.name.toLowerCase()
+
+    // A) DETECCIÓN DE FORMATOS BIM NATIVOS (Revit / Archicad / IFC)
+    if (fileName.endsWith('.rvt')) {
+      setCadFormatNotice({
+        format: 'Autodesk Revit (.rvt)',
+        title: 'Modelo Nativo de Autodesk Revit (.rvt) Detectado',
+        type: 'bim',
+        message: 'Los archivos .rvt son modelos tridimensionales complejos de Revit y no láminas 2D directas.\n\n' +
+          '• Para medir aquí en 2D Take-Off: Abre tu lámina de planta en Revit y elije: Archivo > Exportar > PDF (o Imprimir a PDF en formato A1/A0). Sube ese archivo PDF aquí y podrás calibrar y medir con total nitidez.\n' +
+          '• Para visualizar en 3D: Exporta a formato IFC (.ifc) e ingrésalo en el módulo SARA-BIM 3D.'
+      })
+      return
+    }
+
+    if (fileName.endsWith('.pln') || fileName.endsWith('.pla')) {
+      setCadFormatNotice({
+        format: 'Graphisoft Archicad (.pln)',
+        title: 'Modelo Nativo de Archicad (.pln) Detectado',
+        type: 'bim',
+        message: 'Los archivos .pln son proyectos de Archicad.\n\n' +
+          '• Para medir aquí en 2D Take-Off: En Archicad, ve a Archivo > Guardar como... > Documento PDF (o publica tu juego de planos en PDF). Sube ese archivo PDF y el lienzo lo renderizará en alta resolución.\n' +
+          '• Para cómputos 3D: Exporta en formato IFC (.ifc) para el visor SARA-BIM 3D.'
+      })
+      return
+    }
+
+    if (fileName.endsWith('.ifc')) {
+      setCadFormatNotice({
+        format: 'Modelo IFC 3D (.ifc)',
+        title: 'Archivo IFC (BIM 3D) Detectado',
+        type: 'bim',
+        message: 'El archivo IFC es un modelo volumétrico 3D. El módulo actual (SARA Take-Off) está especializado en planos 2D y láminas PDF.\n\nPuedes cargar tu modelo IFC en el módulo SARA-BIM (/dashboard/bim) para extraer cantidades de hormigón y acero de vigas, columnas y losas automáticamente.'
+      })
+      return
+    }
+
+    // B) RENDERIZADO NATIVO DE PLANOS EN FORMATO PDF (PDF.js)
+    if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+      setIsRenderingPdf(true)
+      try {
+        const { totalPages } = await loadPdfDocument(file)
+        setPdfTotalPages(totalPages)
+        setPdfCurrentPage(1)
+
+        // Renderizar la página 1 en alta resolución (2x scale)
+        const rendered = await renderPdfPageToDataUrl(1, 2.0)
+        setUploadedImage(rendered.dataUrl)
+        setBlueprintDimensions({ width: rendered.width, height: rendered.height })
         setSelectedBlueprint("custom")
-        // Invitar a calibrar
+
         setIsCalibrating(true)
         setActiveTool('calibrate')
         setCalibrationPoints([])
-        alert("Plano cargado con éxito. Ahora por favor haz clic en 2 puntos con una distancia conocida para calibrar la escala.")
+        alert("¡Plano PDF cargado con éxito! Se ha renderizado en alta resolución. Haz clic en 2 puntos de una cota conocida para calibrar la escala.")
+      } catch (err: any) {
+        console.error("Error al renderizar plano PDF:", err)
+        alert("No se pudo renderizar el PDF: " + (err.message || err))
+      } finally {
+        setIsRenderingPdf(false)
       }
+      return
     }
-    reader.readAsDataURL(file)
+
+    // C) IMÁGENES RASTERIZADAS (PNG, JPG, JPEG, WEBP, SVG)
+    if (file.type.startsWith('image/') || /\.(png|jpe?g|webp|svg)$/i.test(fileName)) {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const imgStr = event.target.result as string
+          const img = new Image()
+          img.onload = () => {
+            setBlueprintDimensions({
+              width: img.naturalWidth || 1000,
+              height: img.naturalHeight || 700
+            })
+            setUploadedImage(imgStr)
+            setPdfTotalPages(1)
+            setSelectedBlueprint("custom")
+            setIsCalibrating(true)
+            setActiveTool('calibrate')
+            setCalibrationPoints([])
+            alert("Imagen cargada con éxito. Por favor calibra la escala marcando 2 puntos con distancia conocida.")
+          }
+          img.src = imgStr
+        }
+      }
+      reader.readAsDataURL(file)
+      return
+    }
+
+    alert("Formato no reconocido. Por favor sube un plano en PDF o una imagen (PNG, JPG, WEBP).")
+  }
+
+  // Cambio de página en PDFs multi-página
+  const handleChangePdfPage = async (newPage: number) => {
+    if (newPage < 1 || newPage > pdfTotalPages || isRenderingPdf) return
+    setIsRenderingPdf(true)
+    try {
+      const rendered = await renderPdfPageToDataUrl(newPage, 2.0)
+      setUploadedImage(rendered.dataUrl)
+      setPdfCurrentPage(newPage)
+      setBlueprintDimensions({ width: rendered.width, height: rendered.height })
+    } catch (err: any) {
+      console.error("Error al cambiar de página:", err)
+      alert("Error al cargar la página: " + (err.message || err))
+    } finally {
+      setIsRenderingPdf(false)
+    }
   }
 
   // Asignar rubro a una medición
@@ -498,6 +611,33 @@ export default function PdfTakeOffModal({
 
           {/* ACCIONES SUPERIORES */}
           <div className="flex items-center gap-2.5">
+            {/* Paginación para PDF multipágina */}
+            {uploadedImage && pdfTotalPages > 1 && (
+              <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-xl px-2 py-1 text-xs text-white">
+                <button
+                  type="button"
+                  disabled={pdfCurrentPage <= 1 || isRenderingPdf}
+                  onClick={() => handleChangePdfPage(pdfCurrentPage - 1)}
+                  className="p-1 hover:bg-slate-700 rounded disabled:opacity-30 cursor-pointer"
+                  title="Página anterior"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="font-mono text-[11px] px-1 font-bold">
+                  {pdfCurrentPage} / {pdfTotalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={pdfCurrentPage >= pdfTotalPages || isRenderingPdf}
+                  onClick={() => handleChangePdfPage(pdfCurrentPage + 1)}
+                  className="p-1 hover:bg-slate-700 rounded disabled:opacity-30 cursor-pointer"
+                  title="Página siguiente"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+
             {/* Selector de Plano */}
             <select
               value={selectedBlueprint}
@@ -510,14 +650,14 @@ export default function PdfTakeOffModal({
               {BLUEPRINTS_DEMO.map(b => (
                 <option key={b.id} value={b.id}>{b.nombre}</option>
               ))}
-              {uploadedImage && <option value="custom">📄 Plano Subido por Usuario</option>}
+              {uploadedImage && <option value="custom">📄 Plano Subido {pdfTotalPages > 1 ? `(Pág. ${pdfCurrentPage}/${pdfTotalPages})` : ''}</option>}
             </select>
 
             {/* Botón Subir Archivo */}
             <input 
               type="file" 
               ref={fileInputRef} 
-              accept="image/*,application/pdf" 
+              accept=".pdf,image/png,image/jpeg,image/webp,image/jpg,.rvt,.pln,.pla,.ifc,.dwg" 
               className="hidden" 
               onChange={handleUploadBlueprint} 
             />
@@ -745,7 +885,13 @@ export default function PdfTakeOffModal({
                 
                 {/* 1. PLANO DE FONDO (Si es imagen subida o vectorial demo) */}
                 {uploadedImage ? (
-                  <image href={uploadedImage} x={50} y={50} width={900} height={600} />
+                  <image 
+                    href={uploadedImage} 
+                    x={0} 
+                    y={0} 
+                    width={blueprintDimensions.width} 
+                    height={blueprintDimensions.height} 
+                  />
                 ) : selectedBlueprint === 'planta-baja' ? (
                   /* PLANO ARQUITECTÓNICO VECTORIAL DEMO (Villa 120m²) */
                   <g id="plano-arquitectura" className="opacity-95">
@@ -1092,6 +1238,73 @@ export default function PdfTakeOffModal({
           </div>
         </div>
 
+
+        {/* MODAL DE ORIENTACIÓN: FORMATOS BIM NATIVOS (REVIT / ARCHICAD / IFC) */}
+        {cadFormatNotice && (
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 text-white shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                    <FileBox size={24} />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400 block">
+                      {cadFormatNotice.format}
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      {cadFormatNotice.title}
+                    </h3>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setCadFormatNotice(null)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 leading-relaxed whitespace-pre-line space-y-2">
+                {cadFormatNotice.message}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-2 justify-end">
+                <a
+                  href="/dashboard/bim"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center justify-center gap-1.5"
+                >
+                  <span>Ir al Visor SARA-BIM 3D</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCadFormatNotice(null)
+                    fileInputRef.current?.click()
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-xs font-black bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <span>Cargar Plano en PDF / Imagen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* OVERLAY DE RENDERIZADO EN ALTA RESOLUCIÓN */}
+        {isRenderingPdf && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-cyan-500/30 p-6 rounded-3xl max-w-sm w-full text-center space-y-3 shadow-2xl">
+              <Loader2 size={36} className="animate-spin text-cyan-400 mx-auto" />
+              <h4 className="text-sm font-black text-white">Renderizando Plano Arquitectónico...</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Procesando cotas vectoriales y convirtiendo lámina a máxima resolución para calibración 2D.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
