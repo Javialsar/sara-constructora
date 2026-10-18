@@ -72,6 +72,30 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    // 1. Verificación de Seguridad: Requiere Token o Sesión Activa
+    const authHeader = req.headers.get("authorization")
+    if (!authHeader) {
+      const { createServerClient } = await import("@supabase/ssr")
+      const { cookies } = await import("next/headers")
+      const cookieStore = await cookies()
+      const client = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() { return cookieStore.getAll() },
+            setAll(cookiesToSet) {
+              try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {}
+            }
+          }
+        }
+      )
+      const { data: { user } } = await client.auth.getUser()
+      if (!user) {
+        return NextResponse.json({ success: false, error: "No autorizado. Sesión de administrador requerida." }, { status: 401 })
+      }
+    }
+
     const body: Partial<LogosEmpresa> = await req.json()
     if (!body) {
       return NextResponse.json({ success: false, error: "Datos de logos no proporcionados" }, { status: 400 })
