@@ -38,10 +38,12 @@ import { KardexMultibodegaService, DistributionSlipInput } from '@/lib/services/
 import { IessPayrollService, DailyTareoInput } from '@/lib/services/iessPayrollService';
 import { PredictivePurchaseService, SupplierCatalogItem } from '@/lib/services/predictivePurchaseService';
 import { VectorKnowledgeService, CollectiveLearningCascadeResult } from '@/lib/services/vectorKnowledgeService';
+import { MisProyectosSection } from '@/components/constructora/MisProyectosSection';
+import { DirectorioRecursosSection } from '@/components/constructora/DirectorioRecursosSection';
 
 export default function EcosistemaAvanzadoPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'match' | 'kardex' | 'nomina' | 'procura' | 'conocimiento'>('match');
+  const [activeTab, setActiveTab] = useState<'proyectos' | 'directorio' | 'match' | 'kardex' | 'nomina' | 'procura' | 'conocimiento'>('proyectos');
   const [selectedAgent, setSelectedAgent] = useState<string>('ORCHESTRATOR');
   const [authLoading, setAuthLoading] = useState(true);
   const [professionalUser, setProfessionalUser] = useState<any>(null);
@@ -578,16 +580,42 @@ export default function EcosistemaAvanzadoPage() {
 
         {/* 2. BARRA DE NAVEGACIÓN DE PESTAÑAS */}
         <div className="flex items-center border-b border-slate-200 dark:border-slate-800 overflow-x-auto space-x-1">
+          {/* PESTAÑA 1: MIS PROYECTOS */}
+          <button
+            onClick={() => setActiveTab('proyectos')}
+            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'proyectos'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-400 dark:border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Building2 className="w-4 h-4 text-amber-500" />
+            🏗️ Mis Proyectos (Obras, Avances & Planos)
+          </button>
+
+          {/* PESTAÑA 2: DIRECTORIO Y RECURSOS */}
+          <button
+            onClick={() => setActiveTab('directorio')}
+            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'directorio'
+                ? 'border-amber-500 text-amber-600 dark:text-amber-400 dark:border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Users className="w-4 h-4 text-amber-500" />
+            👥 Directorio & Recursos (Personal, Proveedores & Clientes)
+          </button>
+
           <button
             onClick={() => setActiveTab('match')}
             className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'match'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20 font-bold'
                 : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <Receipt className="w-4 h-4" />
-            1. Three-Way Match SRI (XML vs OC)
+            Three-Way Match SRI
           </button>
 
           <button
@@ -638,6 +666,20 @@ export default function EcosistemaAvanzadoPage() {
             5. Aprendizaje Colectivo Continuo
           </button>
         </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* PESTAÑA A: MIS PROYECTOS (OBRAS, AVANCES Y PLANOS)            */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'proyectos' && (
+          <MisProyectosSection user={professionalUser} />
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* PESTAÑA B: DIRECTORIO & RECURSOS CONECTADOS                   */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'directorio' && (
+          <DirectorioRecursosSection user={professionalUser} />
+        )}
 
         {/* ------------------------------------------------------------- */}
         {/* PESTAÑA 1: THREE-WAY MATCH SRI */}

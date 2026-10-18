@@ -96,12 +96,12 @@ export default function HeaderConstructora() {
 
           {/* 2. Ecosistema Avanzado PRO */}
           <Link 
-            href="/ecosistema-avanzado"
-            className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider text-indigo-300 hover:text-white hover:bg-indigo-500/10 transition-all duration-200 ease-out active:scale-[0.98] flex items-center gap-1.5 border border-indigo-500/20"
+            href="/constructora/suite"
+            className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider text-amber-400 hover:text-white hover:bg-amber-500/10 transition-all duration-200 ease-out active:scale-[0.98] flex items-center gap-1.5 border border-amber-500/30"
           >
-            <Brain size={15} className="text-indigo-400 shrink-0" />
+            <Brain size={15} className="text-amber-400 shrink-0" />
             <span>Ecosistema Avanzado</span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300">PRO</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">PRO</span>
           </Link>
 
           {/* 3. Portal Clientes */}
@@ -156,15 +156,15 @@ export default function HeaderConstructora() {
           </Link>
 
           <Link
-            href="/ecosistema-avanzado"
+            href="/constructora/suite"
             onClick={() => setMobileMenuOpen(false)}
-            className="min-h-[48px] px-4 rounded-xl flex items-center justify-between text-sm font-semibold tracking-wide text-indigo-300 hover:text-white bg-indigo-500/10 border border-indigo-500/20 active:scale-[0.98] transition-all duration-200 ease-out"
+            className="min-h-[48px] px-4 rounded-xl flex items-center justify-between text-sm font-semibold tracking-wide text-amber-400 hover:text-white bg-amber-500/10 border border-amber-500/30 active:scale-[0.98] transition-all duration-200 ease-out"
           >
             <div className="flex items-center gap-3">
-              <Brain size={17} className="text-indigo-400 shrink-0" />
+              <Brain size={17} className="text-amber-400 shrink-0" />
               <span>Ecosistema Avanzado</span>
             </div>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300">PRO</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300">PRO</span>
           </Link>
 
           <Link

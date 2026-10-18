@@ -161,22 +161,24 @@ export function canAccessModule(metadata: any, targetModule: SaraModule): boolea
     return role === 'admin' || role === 'superadmin'
   }
 
-  // 3. Revisar array de módulos autorizados si existe
-  if (Array.isArray(metadata.modulos_autorizados)) {
-    if (metadata.modulos_autorizados.includes(targetModule)) {
-      return true
-    }
+  // 3. Revisar array explícito de módulos autorizados si existe
+  if (Array.isArray(metadata.modulos_autorizados) && metadata.modulos_autorizados.length > 0) {
+    return metadata.modulos_autorizados.includes(targetModule)
   }
 
-  // 4. Comparar con módulo de origen
+  // 4. Comparar estrictamente contra módulo de origen
   const originModule = getUserModule(metadata)
   if (originModule === targetModule) {
     return true
   }
 
-  // 5. Comparar rol contra allowedRoles del módulo target
+  // 5. Comparar rol contra allowedRoles del módulo target SOLO si no tiene modulo_origen discrepante
   const targetDef = SARA_MODULES[targetModule]
   if (targetDef && targetDef.allowedRoles.includes(role)) {
+    // Si tiene modulo_origen explícito y no coincide con el target, denegar acceso
+    if (metadata.modulo_origen && metadata.modulo_origen !== targetModule) {
+      return false
+    }
     return true
   }
 
