@@ -120,49 +120,30 @@ export default function ConstructoraAuthPage() {
           throw new Error('La identificación (Cédula o RUC ecuatoriano) debe tener 10 o 13 dígitos.');
         }
 
-        const roleMap: Record<string, string> = {
-          ingeniero: 'ingeniero_residente',
-          arquitecto: 'arquitecto_bim',
-          contador: 'contador_constructora',
-          bodeguero: 'bodeguero_constructora',
-          tecnico_apoyo: 'tecnico_apoyo_obra',
-          cliente: 'cliente_constructora',
-        };
-
-        const selectedRole = roleMap[tipoProfesional] || 'profesional_constructora';
-
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: password.trim(),
-          options: {
-            data: {
-              full_name: fullName.trim(),
-              nombre: fullName.trim(),
-              phone: phone.trim(),
-              tipo_profesional: tipoProfesional,
-              role: selectedRole,
-              identificacion: identificacionRuc.trim(),
-              ruc: identificacionRuc.trim(),
-              registro_profesional: registroSenescyt.trim() || null,
-              senescyt: registroSenescyt.trim() || null,
-              razon_social: razonSocial.trim() || fullName.trim(),
-              empresa: razonSocial.trim() || fullName.trim(),
-              codigo_contrato_obra: codigoContratoObra.trim() || null,
-              modulo_origen: 'sara_constructora',
-              modulos_autorizados: ['sara_constructora'],
-              created_at: new Date().toISOString(),
-            },
-          },
+        // Llamada a la API de registro profesional seguro (Server-side con Service Role)
+        const response = await fetch('/api/auth/register-professional', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim(),
+            password: password.trim(),
+            fullName: fullName.trim(),
+            phone: phone.trim(),
+            tipoProfesional,
+            identificacionRuc: identificacionRuc.trim(),
+            registroSenescyt: registroSenescyt.trim() || null,
+            razonSocial: razonSocial.trim() || fullName.trim(),
+            codigoContratoObra: codigoContratoObra.trim() || null,
+          }),
         });
 
-        if (signUpError) {
-          if (signUpError.message.includes('already registered')) {
-            throw new Error('Este correo electrónico corporativo ya está registrado en GRUPO SARA.');
-          }
-          throw signUpError;
+        const resData = await response.json();
+
+        if (!response.ok || !resData.success) {
+          throw new Error(resData.error || 'Error al procesar el registro profesional.');
         }
 
-        // Intento de inicio automático
+        // Inicio de sesión automático inmediato
         const { error: autoSignInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password: password.trim(),
@@ -171,7 +152,7 @@ export default function ConstructoraAuthPage() {
         if (!autoSignInError) {
           router.push('/constructora/suite');
         } else {
-          setSuccessMsg('Registro exitoso. Inicie sesión con sus nuevas credenciales corporativas.');
+          setSuccessMsg('Registro profesional completado. Por favor ingrese con su contraseña.');
           setIsLogin(true);
         }
       }
