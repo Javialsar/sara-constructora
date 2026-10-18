@@ -63,10 +63,18 @@ import { MisProyectosSection } from '@/components/constructora/MisProyectosSecti
 import { DirectorioRecursosSection } from '@/components/constructora/DirectorioRecursosSection';
 import { ConstructoraDashboardView } from '@/components/constructora/ConstructoraDashboardView';
 import { BodegaKardexSection } from '@/components/constructora/BodegaKardexSection';
+import { ConfiguracionEmpresaSection } from '@/components/constructora/ConfiguracionEmpresaSection';
+import { PlanesSuscripcionSection } from '@/components/constructora/PlanesSuscripcionSection';
+import { 
+  ConstructoraSubscriptionService, 
+  AccesoSubscriptionResult 
+} from '@/lib/services/constructoraSubscriptionService';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export type SuiteTab = 
   | 'dashboard'
+  | 'planes'
+  | 'configuracion'
   | 'proyectos'
   | 'avances'
   | 'documentos'
@@ -167,6 +175,44 @@ export default function EcosistemaAvanzadoPage() {
 
     verifyAuth();
   }, [router]);
+
+  // -------------------------------------------------------------
+  // AGENTE GUARDIÁN: CONTROL DE ACCESO Y VIGENCIA DE SUSCRIPCIÓN
+  // -------------------------------------------------------------
+  const [suscripcionActual, setSuscripcionActual] = useState<AccesoSubscriptionResult | null>(null);
+
+  const verificarSuscripcion = () => {
+    const sub = ConstructoraSubscriptionService.verificarAccesoModulos(
+      professionalUser?.email || professionalUser?.id
+    );
+    setSuscripcionActual(sub);
+  };
+
+  useEffect(() => {
+    if (professionalUser) {
+      verificarSuscripcion();
+    }
+    const handler = () => verificarSuscripcion();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('constructora_subscription_changed', handler);
+      return () => window.removeEventListener('constructora_subscription_changed', handler);
+    }
+  }, [professionalUser]);
+
+  // Módulos operativos de Imagen 5 que requieren plan activo
+  const MODULOS_IMAGEN_5: SuiteTab[] = [
+    'dashboard',
+    'proyectos',
+    'avances',
+    'documentos',
+    'kardex',
+    'procura',
+    'match',
+    'nomina',
+    'directorio',
+    'talento',
+    'fletes'
+  ];
 
   // -------------------------------------------------------------
   // TAB 1: THREE-WAY MATCH STATE & DATA
@@ -453,6 +499,7 @@ export default function EcosistemaAvanzadoPage() {
       title: "PANEL PRINCIPAL",
       items: [
         { id: "dashboard", label: "Dashboard General", icon: LayoutDashboard },
+        { id: "planes", label: "Planes - Suscripción", icon: Sparkles },
       ]
     },
     {
@@ -503,7 +550,12 @@ export default function EcosistemaAvanzadoPage() {
   };
 
   const handleNavigate = (tab: any) => {
-    if (tab === 'obras' || tab === 'proyectos') {
+    if (tab === 'planes' || tab === 'suscripcion') {
+      setActiveTab('planes');
+      setOpenGroup('PANEL PRINCIPAL');
+    } else if (tab === 'configuracion' || tab === 'empresa') {
+      setActiveTab('configuracion');
+    } else if (tab === 'obras' || tab === 'proyectos') {
       setActiveTab('proyectos');
       setOpenGroup('MIS PROYECTOS');
     } else if (tab === 'avances') {
@@ -543,6 +595,10 @@ export default function EcosistemaAvanzadoPage() {
     switch (activeTab) {
       case 'dashboard':
         return { group: 'PANEL PRINCIPAL', title: 'Dashboard General de Operaciones' };
+      case 'planes':
+        return { group: 'PANEL PRINCIPAL', title: 'Planes Oficiales & Suscripción SaaS Constructora' };
+      case 'configuracion':
+        return { group: 'CONFIGURACIÓN', title: 'Configuración Oficial de la Empresa (Identidad, Membrete & Firmas)' };
       case 'proyectos':
         return { group: 'MIS PROYECTOS', title: 'Obras y Proyectos Activos' };
       case 'avances':
@@ -679,18 +735,26 @@ export default function EcosistemaAvanzadoPage() {
                       {group.items.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeTab === item.id;
+                        const isLocked = !suscripcionActual?.hasAccess && MODULOS_IMAGEN_5.includes(item.id as SuiteTab);
                         return (
                           <button 
                             key={item.id}
                             onClick={() => handleTabClick(item.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all text-left ${
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-bold transition-all text-left ${
                               isActive 
                                 ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20 ring-1 ring-amber-400/50" 
-                                : "text-slate-300 hover:bg-slate-900 hover:text-white font-medium"
+                                : isLocked
+                                  ? "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200 font-medium"
+                                  : "text-slate-300 hover:bg-slate-900 hover:text-white font-medium"
                             }`}
                           >
-                            <Icon size={18} className="shrink-0" />
-                            <span className="whitespace-nowrap overflow-hidden text-xs">{item.label}</span>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Icon size={18} className="shrink-0" />
+                              <span className="whitespace-nowrap overflow-hidden text-xs truncate">{item.label}</span>
+                            </div>
+                            {isLocked && (
+                              <Lock size={12} className="text-amber-500/70 shrink-0 ml-1.5" />
+                            )}
                           </button>
                         );
                       })}
@@ -705,12 +769,16 @@ export default function EcosistemaAvanzadoPage() {
         {/* Footer del Sidebar */}
         <div className="p-3 border-t border-slate-800">
           <button 
-            onClick={() => handleTabClick('dashboard')}
-            title="Inicio Suite" 
-            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors text-xs mb-1`}
+            onClick={() => handleTabClick('configuracion')}
+            title="Configuración de la Empresa" 
+            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl transition-colors text-xs mb-1 ${
+              activeTab === 'configuracion' 
+                ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20 ring-1 ring-amber-400/50" 
+                : "text-slate-400 hover:text-white hover:bg-slate-900"
+            }`}
           >
             <Settings size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración de Obra</span>}
+            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración de la Empresa</span>}
           </button>
           <button 
             title="Cerrar Sesión Profesional"
@@ -764,6 +832,33 @@ export default function EcosistemaAvanzadoPage() {
               <span className="text-indigo-600 dark:text-indigo-400 font-bold">&le; 1.0%</span>
             </div>
 
+            {/* Chip de Estado de Suscripción Oficial */}
+            {suscripcionActual && (
+              <button
+                onClick={() => setActiveTab('planes')}
+                title="Ver Planes y Estado de Suscripción"
+                className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                  suscripcionActual.hasAccess
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/20'
+                    : suscripcionActual.motivoBloqueo === 'PENDIENTE_ACTIVACION'
+                      ? 'bg-amber-950/40 text-amber-300 border border-amber-500/50 hover:bg-amber-950/60'
+                      : 'bg-rose-950/40 text-rose-300 border border-rose-500/50 hover:bg-rose-950/60'
+                }`}
+              >
+                {suscripcionActual.hasAccess ? (
+                  <>
+                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                    <span>{suscripcionActual.cliente?.planNombre || 'Plan Pro'} ({suscripcionActual.diasRestantes}d)</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={13} className="text-amber-500 shrink-0" />
+                    <span>{suscripcionActual.motivoBloqueo === 'PENDIENTE_ACTIVACION' ? 'Plan Pendiente' : 'Suscripción Vencida'}</span>
+                  </>
+                )}
+              </button>
+            )}
+
             {/* Theme Toggle */}
             <ThemeToggle />
 
@@ -787,8 +882,77 @@ export default function EcosistemaAvanzadoPage() {
         {/* Contenido scrolleable del Dashboard */}
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
           
+          {/* PANTALLA DE BLOQUEO DE SUSCRIPCIÓN PARA MÓDULOS DE IMAGEN 5 */}
+          {!suscripcionActual?.hasAccess && MODULOS_IMAGEN_5.includes(activeTab) && (
+            <div className="bg-slate-900/90 backdrop-blur-md rounded-3xl border border-amber-500/30 p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 space-y-6 shadow-2xl animate-in fade-in zoom-in-95">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto">
+                <Lock size={32} />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 inline-block">
+                  Control de Acceso • Agente Guardián de Suscripción
+                </span>
+                <h3 className="text-2xl font-black text-white">
+                  Módulo Operativo Bloqueado
+                </h3>
+                <p className="text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                  {suscripcionActual?.mensaje || "Para acceder a este módulo se requiere una suscripción activa a SARA Constructora."}
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800 text-xs text-slate-400 space-y-1.5 font-mono text-left max-w-md mx-auto">
+                <div className="flex justify-between">
+                  <span>Estado Actual:</span>
+                  <span className="font-bold text-amber-400">{suscripcionActual?.cliente?.estado || 'SIN PLAN'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Plan Contratado:</span>
+                  <span className="text-white">{suscripcionActual?.cliente?.planNombre || 'Ninguno'}</span>
+                </div>
+                {suscripcionActual?.cliente?.fechaVencimiento && (
+                  <div className="flex justify-between">
+                    <span>Fecha de Vencimiento:</span>
+                    <span className="text-rose-400">{suscripcionActual?.cliente?.fechaVencimiento}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => setActiveTab('planes')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition-all hover:scale-102 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles size={16} />
+                  <span>Ver Planes y Métodos de Pago</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('configuracion')}
+                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Settings size={16} />
+                  <span>Configuración de la Empresa</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* VISTA: PLANES - SUSCRIPCIÓN */}
+          {activeTab === 'planes' && (
+            <PlanesSuscripcionSection 
+              user={professionalUser}
+              onPlanChanged={verificarSuscripcion}
+            />
+          )}
+
+          {/* VISTA: CONFIGURACIÓN DE LA EMPRESA (Viñeta 1 + Viñeta 2) */}
+          {activeTab === 'configuracion' && (
+            <ConfiguracionEmpresaSection />
+          )}
+
           {/* VISTA 1: DASHBOARD GENERAL (Idéntico a Imagen 1) */}
-          {activeTab === 'dashboard' && (
+          {activeTab === 'dashboard' && suscripcionActual?.hasAccess && (
             <ConstructoraDashboardView 
               user={professionalUser}
               onNavigate={handleNavigate}
@@ -796,35 +960,35 @@ export default function EcosistemaAvanzadoPage() {
           )}
 
           {/* VISTA 2: MIS PROYECTOS */}
-          {activeTab === 'proyectos' && (
+          {activeTab === 'proyectos' && suscripcionActual?.hasAccess && (
             <MisProyectosSection user={professionalUser} initialSubTab="obras" />
           )}
 
-          {activeTab === 'avances' && (
+          {activeTab === 'avances' && suscripcionActual?.hasAccess && (
             <MisProyectosSection user={professionalUser} initialSubTab="avances" />
           )}
 
-          {activeTab === 'documentos' && (
+          {activeTab === 'documentos' && suscripcionActual?.hasAccess && (
             <MisProyectosSection user={professionalUser} initialSubTab="documentos" />
           )}
 
           {/* VISTA 3: DIRECTORIO Y RECURSOS */}
-          {activeTab === 'directorio' && (
+          {activeTab === 'directorio' && suscripcionActual?.hasAccess && (
             <DirectorioRecursosSection user={professionalUser} initialSubTab="clientes" />
           )}
 
-          {activeTab === 'talento' && (
+          {activeTab === 'talento' && suscripcionActual?.hasAccess && (
             <DirectorioRecursosSection user={professionalUser} initialSubTab="trabajadores" />
           )}
 
-          {activeTab === 'fletes' && (
+          {activeTab === 'fletes' && suscripcionActual?.hasAccess && (
             <DirectorioRecursosSection user={professionalUser} initialSubTab="proveedores" />
           )}
 
         {/* ------------------------------------------------------------- */}
         {/* PESTAÑA 1: THREE-WAY MATCH SRI */}
         {/* ------------------------------------------------------------- */}
-        {activeTab === 'match' && (
+        {activeTab === 'match' && suscripcionActual?.hasAccess && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
@@ -1302,14 +1466,14 @@ export default function EcosistemaAvanzadoPage() {
         {/* ------------------------------------------------------------- */}
         {/* PESTAÑA 2: BODEGA, INVENTARIOS & KARDEX OPERATIVO */}
         {/* ------------------------------------------------------------- */}
-        {activeTab === 'kardex' && (
+        {activeTab === 'kardex' && suscripcionActual?.hasAccess && (
           <BodegaKardexSection user={professionalUser} />
         )}
 
         {/* ------------------------------------------------------------- */}
         {/* PESTAÑA 3: NÓMINA IESS CONSTRUCCIÓN & TAREO */}
         {/* ------------------------------------------------------------- */}
-        {activeTab === 'nomina' && (
+        {activeTab === 'nomina' && suscripcionActual?.hasAccess && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1412,7 +1576,7 @@ export default function EcosistemaAvanzadoPage() {
         {/* ------------------------------------------------------------- */}
         {/* PESTAÑA 4: PROCURAMIENTO PREDICTIVO (LANDED COST) */}
         {/* ------------------------------------------------------------- */}
-        {activeTab === 'procura' && (
+        {activeTab === 'procura' && suscripcionActual?.hasAccess && (
           <div className="space-y-6">
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

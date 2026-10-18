@@ -34,6 +34,7 @@ import {
   ClienteSuscritoConstructora, 
   PlanConstructora 
 } from '@/lib/services/constructoraAdminService';
+import { ConstructoraSubscriptionService } from '@/lib/services/constructoraSubscriptionService';
 import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 
 export default function AdminConstructoraClientesPage() {
@@ -170,8 +171,15 @@ export default function AdminConstructoraClientesPage() {
     }
   };
 
+  const handleActivarPorAdmin = (id: string, nombre: string) => {
+    if (confirm(`¿Aprobar y activar suscripción oficial para "${nombre}"?\nEl periodo inicia hoy y tendrá acceso completo e inmediato a todos los módulos de la constructora.`)) {
+      ConstructoraSubscriptionService.activarPlanPorAdmin(id);
+      cargarDatos();
+    }
+  };
+
   const handleCambiarEstadoRapido = (id: string, nuevoEstado: any) => {
-    ConstructoraAdminService.cambiarEstadoCliente(id, nuevoEstado);
+    ConstructoraSubscriptionService.cambiarEstadoPorAdmin(id, nuevoEstado);
     cargarDatos();
   };
 
@@ -446,6 +454,25 @@ export default function AdminConstructoraClientesPage() {
                       </td>
 
                       <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                        {cli.estado !== 'ACTIVO' ? (
+                          <button
+                            onClick={() => handleActivarPorAdmin(cli.id, cli.razonSocialOProfesional)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] shadow-sm cursor-pointer transition-all"
+                            title="Aprobar pago y activar mes/año de servicio a partir de HOY"
+                          >
+                            <ShieldCheck size={12} />
+                            <span>Aprobar & Activar</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleCambiarEstadoRapido(cli.id, 'VENCIDO')}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-bold text-[10px] cursor-pointer transition-all"
+                            title="Marcar como VENCIDO (para probar bloqueo de acceso)"
+                          >
+                            <Clock size={11} />
+                            <span>Vencer</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => setModalDetalle(cli)}
                           className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer"
@@ -811,12 +838,13 @@ export default function AdminConstructoraClientesPage() {
                 ) : (
                   <button
                     onClick={() => {
-                      handleCambiarEstadoRapido(modalDetalle.id, 'ACTIVO');
+                      handleActivarPorAdmin(modalDetalle.id, modalDetalle.razonSocialOProfesional);
                       setModalDetalle(null);
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-500 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-500 cursor-pointer flex items-center gap-1.5"
                   >
-                    Activar Suscripción
+                    <ShieldCheck size={14} />
+                    <span>Aprobar & Activar (Inicia Hoy)</span>
                   </button>
                 )}
               </div>
