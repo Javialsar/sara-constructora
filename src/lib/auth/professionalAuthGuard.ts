@@ -63,6 +63,9 @@ export async function authenticateProfessionalRequest(
       'ingeniero_residente',
       'arquitecto_bim',
       'contratista_general',
+      'contador_constructora',
+      'bodeguero_constructora',
+      'tecnico_apoyo_obra',
     ];
 
     const hasPermission = ALLOWED_SUITE_ROLES.includes(role) || meta.modulos_autorizados?.includes('sara_constructora');

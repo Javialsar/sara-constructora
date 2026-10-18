@@ -70,6 +70,9 @@ export default function EcosistemaAvanzadoPage() {
           'ingeniero_residente',
           'arquitecto_bim',
           'contratista_general',
+          'contador_constructora',
+          'bodeguero_constructora',
+          'tecnico_apoyo_obra',
         ];
 
         const hasAccess = ALLOWED_ROLES.includes(role) || meta.modulos_autorizados?.includes('sara_constructora');
@@ -79,12 +82,35 @@ export default function EcosistemaAvanzadoPage() {
           return;
         }
 
+        // Apertura adaptativa de pestaña según el perfil
+        if (role === 'bodeguero_constructora') {
+          setActiveTab('kardex');
+        } else if (role === 'contador_constructora') {
+          setActiveTab('match');
+        } else if (role === 'cliente_constructora') {
+          setActiveTab('proyectos');
+        } else if (role === 'arquitecto_bim') {
+          setActiveTab('proyectos');
+        } else {
+          setActiveTab('proyectos');
+        }
+
+        const roleLabels: Record<string, string> = {
+          ingeniero_residente: 'Ingeniero Residente',
+          arquitecto_bim: 'Arquitecto BIM',
+          contador_constructora: 'Contador(a) Tributario',
+          bodeguero_constructora: 'Jefe de Bodega & Kardex',
+          tecnico_apoyo_obra: 'Técnico de Obra & Topógrafo',
+          cliente_constructora: 'Cliente Titular de Obra',
+          admin: 'Master Admin',
+        };
+
         setProfessionalUser({
           id: user.id,
           email: user.email,
           nombre: meta.nombre || meta.full_name || 'Profesional de Obra',
           empresa: meta.razon_social || meta.empresa || 'Constructora Verificada',
-          tipo: meta.tipo_profesional || (role === 'admin' ? 'Master Admin' : 'Ingeniero Residente'),
+          tipo: roleLabels[role] || meta.tipo_profesional || 'Ingeniero de Obra',
           identificacion: meta.identificacion || meta.ruc || 'Ecuador',
           senescyt: meta.registro_profesional || meta.senescyt || 'SENESCYT Validada',
         });

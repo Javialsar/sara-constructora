@@ -23,7 +23,11 @@ import {
   Phone,
   User as UserIcon,
   Loader2,
-  FileText
+  FileText,
+  Receipt,
+  Warehouse,
+  Wrench,
+  Briefcase
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { canAccessModule, getUserModule, SARA_MODULES, getUserPortalUrl } from '@/lib/auth/moduleGuards';
@@ -38,8 +42,10 @@ export default function ConstructoraAuthPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null);
 
-  // Form Fields
-  const [tipoProfesional, setTipoProfesional] = useState<'ingeniero' | 'arquitecto' | 'constructora'>('ingeniero');
+  // Form Fields: 6 Perfiles Especializados de Constructora
+  const [tipoProfesional, setTipoProfesional] = useState<
+    'ingeniero' | 'arquitecto' | 'contador' | 'bodeguero' | 'tecnico_apoyo' | 'cliente'
+  >('ingeniero');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -117,7 +123,10 @@ export default function ConstructoraAuthPage() {
         const roleMap: Record<string, string> = {
           ingeniero: 'ingeniero_residente',
           arquitecto: 'arquitecto_bim',
-          constructora: 'contratista_general',
+          contador: 'contador_constructora',
+          bodeguero: 'bodeguero_constructora',
+          tecnico_apoyo: 'tecnico_apoyo_obra',
+          cliente: 'cliente_constructora',
         };
 
         const selectedRole = roleMap[tipoProfesional] || 'profesional_constructora';
@@ -251,48 +260,104 @@ export default function ConstructoraAuthPage() {
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
             
-            {/* Si es REGISTRO: Selector de Perfil Profesional */}
+            {/* Si es REGISTRO: Selector de Perfil Profesional (6 Roles de Obra) */}
             {!isLogin && (
               <div className="space-y-1.5 pb-1">
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Perfil de Obra
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Tipo de Usuario & Perfil en la Empresa
+                  </label>
+                  <span className="text-[10px] text-amber-500 font-mono">Define permisos en la Suite</span>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
+                  {/* 1. Ingeniero */}
                   <button
                     type="button"
                     onClick={() => setTipoProfesional('ingeniero')}
                     className={`p-2 rounded-xl border text-center transition-all ${
                       tipoProfesional === 'ingeniero'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 text-xs'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
                     }`}
                   >
-                    <HardHat size={14} className="mx-auto mb-1" />
-                    <span className="text-[11px] block">Ingeniero</span>
+                    <HardHat size={15} className="mx-auto mb-1 text-amber-500" />
+                    <span className="text-[11px] block font-semibold">Ingeniero</span>
+                    <span className="text-[9px] text-slate-400 block font-mono">Residente</span>
                   </button>
+
+                  {/* 2. Arquitecto */}
                   <button
                     type="button"
                     onClick={() => setTipoProfesional('arquitecto')}
                     className={`p-2 rounded-xl border text-center transition-all ${
                       tipoProfesional === 'arquitecto'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 text-xs'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
                     }`}
                   >
-                    <Compass size={14} className="mx-auto mb-1" />
-                    <span className="text-[11px] block">Arquitecto</span>
+                    <Compass size={15} className="mx-auto mb-1 text-amber-500" />
+                    <span className="text-[11px] block font-semibold">Arquitecto</span>
+                    <span className="text-[9px] text-slate-400 block font-mono">BIM & Diseño</span>
                   </button>
+
+                  {/* 3. Contador */}
                   <button
                     type="button"
-                    onClick={() => setTipoProfesional('constructora')}
+                    onClick={() => setTipoProfesional('contador')}
                     className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'constructora'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 text-xs'
+                      tipoProfesional === 'contador'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
                     }`}
                   >
-                    <Building2 size={14} className="mx-auto mb-1" />
-                    <span className="text-[11px] block">Constructora</span>
+                    <Receipt size={15} className="mx-auto mb-1 text-emerald-500" />
+                    <span className="text-[11px] block font-semibold">Contador(a)</span>
+                    <span className="text-[9px] text-slate-400 block font-mono">SRI & IESS</span>
+                  </button>
+
+                  {/* 4. Bodeguero */}
+                  <button
+                    type="button"
+                    onClick={() => setTipoProfesional('bodeguero')}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      tipoProfesional === 'bodeguero'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
+                    }`}
+                  >
+                    <Warehouse size={15} className="mx-auto mb-1 text-amber-500" />
+                    <span className="text-[11px] block font-semibold">Bodeguero</span>
+                    <span className="text-[9px] text-slate-400 block font-mono">Kardex Matriz</span>
+                  </button>
+
+                  {/* 5. Técnico de Apoyo */}
+                  <button
+                    type="button"
+                    onClick={() => setTipoProfesional('tecnico_apoyo')}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      tipoProfesional === 'tecnico_apoyo'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
+                    }`}
+                  >
+                    <Wrench size={15} className="mx-auto mb-1 text-sky-500" />
+                    <span className="text-[11px] block font-semibold">Técnico Apoyo</span>
+                    <span className="text-[9px] text-slate-400 block font-mono">Topógrafo / Tareo</span>
+                  </button>
+
+                  {/* 6. Cliente de la Empresa */}
+                  <button
+                    type="button"
+                    onClick={() => setTipoProfesional('cliente')}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      tipoProfesional === 'cliente'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
+                    }`}
+                  >
+                    <Briefcase size={15} className="mx-auto mb-1 text-purple-500" />
+                    <span className="text-[11px] block font-semibold">Cliente Obra</span>
+                    <span className="text-[9px] text-slate-400 block font-mono">Supervisión</span>
                   </button>
                 </div>
               </div>

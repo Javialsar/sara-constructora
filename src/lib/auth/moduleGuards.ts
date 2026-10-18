@@ -66,7 +66,10 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
       'profesional_constructora', 
       'ingeniero_residente', 
       'arquitecto_bim', 
-      'contratista_general', 
+      'contratista_general',
+      'contador_constructora',
+      'bodeguero_constructora',
+      'tecnico_apoyo_obra',
       'admin', 
       'superadmin', 
       'tecnico'
@@ -133,7 +136,10 @@ export function getUserModule(metadata: any): SaraModule {
     role === 'profesional_constructora' || 
     role === 'ingeniero_residente' || 
     role === 'arquitecto_bim' || 
-    role === 'contratista_general'
+    role === 'contratista_general' ||
+    role === 'contador_constructora' ||
+    role === 'bodeguero_constructora' ||
+    role === 'tecnico_apoyo_obra'
   ) return 'sara_constructora'
   if (role === 'propietario_inmobiliaria' || role === 'comprador_inmobiliaria' || role === 'broker') return 'sara_inmobiliaria'
   if (role === 'huesped' || role === 'anfitrion') return 'sara_stays'

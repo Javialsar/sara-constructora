@@ -62,7 +62,14 @@ export async function registerProfessionalAction(formData: FormData): Promise<Pr
   const email = (formData.get('email') as string)?.trim();
   const telefono = (formData.get('telefono') as string)?.trim();
   const password = (formData.get('password') as string)?.trim();
-  const tipoProfesional = formData.get('tipoProfesional') as 'ingeniero' | 'arquitecto' | 'constructora';
+  const tipoProfesional = formData.get('tipoProfesional') as 
+    | 'ingeniero' 
+    | 'arquitecto' 
+    | 'contador' 
+    | 'bodeguero' 
+    | 'tecnico_apoyo' 
+    | 'cliente' 
+    | 'constructora';
   const identificacionRuc = (formData.get('identificacionRuc') as string)?.trim();
   const registroSenescyt = (formData.get('registroSenescyt') as string)?.trim();
   const razonSocial = (formData.get('razonSocial') as string)?.trim();
@@ -84,6 +91,10 @@ export async function registerProfessionalAction(formData: FormData): Promise<Pr
   const roleMap: Record<string, string> = {
     ingeniero: 'ingeniero_residente',
     arquitecto: 'arquitecto_bim',
+    contador: 'contador_constructora',
+    bodeguero: 'bodeguero_constructora',
+    tecnico_apoyo: 'tecnico_apoyo_obra',
+    cliente: 'cliente_constructora',
     constructora: 'contratista_general',
   };
 
