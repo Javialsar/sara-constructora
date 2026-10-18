@@ -28,10 +28,57 @@ app.post('/api/freight/offer', uberFreightService.submitDriverOffer.bind(uberFre
 // 3. Gemelo Digital / Compras Predictivas (Importador)
 app.post('/api/twin/import-schedule', predictiveService.processSchedule.bind(predictiveService));
 
+// 4. Módulo Ecosistema Avanzado v1 (Orquestación, Three-Way Match, Kardex Multibodega, Nómina IESS)
+app.post('/api/v1/compras/parse-xml', async (req, res) => {
+  try {
+    const { ComprasController } = await import('../../src/lib/controllers/saraAdvancedControllers');
+    const result = await ComprasController.parseXml(req.body);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/v1/bodega/distribuir', async (req, res) => {
+  try {
+    const { BodegaController } = await import('../../src/lib/controllers/saraAdvancedControllers');
+    const result = await BodegaController.transferir(req.body);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/v1/nominas/calcular', async (req, res) => {
+  try {
+    const { NominaController } = await import('../../src/lib/controllers/saraAdvancedControllers');
+    const result = await NominaController.calcular(req.body);
+    res.status(200).json(result);
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/v1/conocimiento/simular-impacto', async (req, res) => {
+  try {
+    const { VectorKnowledgeService } = await import('../../src/lib/services/vectorKnowledgeService');
+    const { itemKey, nuevoPrecio, origen } = req.body;
+    const result = await VectorKnowledgeService.registerPriceMutationFromSri(
+      itemKey,
+      Number(nuevoPrecio),
+      origen
+    );
+    res.status(200).json({ success: true, resultado: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Healthcheck
-app.get('/health', (req, res) => res.status(200).json({ status: 'SARA Ecosystem Online' }));
+app.get('/health', (req, res) => res.status(200).json({ status: 'SARA Ecosystem Online', version: '2.0-Advanced' }));
 
 // Inicio de Servidor
 app.listen(PORT, () => {
     console.log(`[🚀 Grupo SARA] Backend orquestado y ejecutándose en puerto ${PORT}`);
 });
+

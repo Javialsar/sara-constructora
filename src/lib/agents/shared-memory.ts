@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SharedMemoryEntry, EvolutionaryKnowledge, EvolutionLog, SaraAgentId } from './types';
 
 // Cache en memoria rápida para invocaciones serverless y edge
@@ -121,7 +121,7 @@ export class SaraSharedMemory {
 
     // Persistencia asíncrona no bloqueante en Supabase
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       await supabase.from('sara_agent_memory').upsert(
         {
           correlation_id: correlationId,
@@ -153,7 +153,7 @@ export class SaraSharedMemory {
     }
 
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       const { data, error } = await supabase
         .from('sara_agent_memory')
         .select('memory_value')
@@ -188,7 +188,7 @@ export class SaraSharedMemory {
 
     // 2. Complementar con Supabase
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       const { data, error } = await supabase
         .from('sara_agent_memory')
         .select('*')
@@ -217,7 +217,7 @@ export class SaraSharedMemory {
     }
 
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       const { data, error } = await supabase
         .from('sara_agent_knowledge_base')
         .select('*')
@@ -281,7 +281,7 @@ export class SaraSharedMemory {
 
     // Registro asíncrono en DB
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       await supabase.from('sara_agent_knowledge_base').upsert(
         {
           domain,

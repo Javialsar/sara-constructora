@@ -229,6 +229,24 @@ const SERVICIOS_GRUPO_SARA: ServicioSara[] = [
 
   // ECOSISTEMA DIGITAL SARA
   {
+    id: "sara-constructora-suite",
+    titulo: "SARA-CONSTRUCTORA (Suite Operativa Avanzada)",
+    categoria: "ecosistema",
+    categoriaLabel: "Ecosistema SARA",
+    icono: Sparkles,
+    descripcion: "Núcleo agéntico empresarial: 3-Way Match SRI con retenciones automáticas, Kardex Multibodega, Nómina IESS Construcción y Procuramiento Predictivo con landed cost.",
+    highlights: ["3-Way Match SRI (≤1%)", "Kardex Multibodega CPP", "Nómina IESS & Décimos", "Procuramiento 24 Provincias"],
+    badge: "Módulo Estrella",
+    href: "/constructora/suite",
+    color: {
+      bgLight: "bg-amber-500/10 dark:bg-amber-500/20",
+      text: "text-amber-500 dark:text-amber-400",
+      border: "border-amber-500/30 dark:border-amber-500/40",
+      badgeBg: "bg-amber-500/20 dark:bg-amber-500/30",
+      badgeText: "text-amber-600 dark:text-amber-300",
+    }
+  },
+  {
     id: "sara-inmobiliaria",
     titulo: "SARA Inmobiliaria (Portal & Asesoría)",
     categoria: "ecosistema",

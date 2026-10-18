@@ -5,6 +5,7 @@ import ProcesoTimeline from "@/components/sections/ProcesoTimeline"
 import HeroConstructora from "@/components/sections/HeroConstructora"
 import ContactoSection from "@/components/sections/ContactoSection"
 import ConstructoraIntro from "@/components/constructora/ConstructoraIntro"
+import ConstructoraSuiteSection from "@/components/constructora/ConstructoraSuiteSection"
 
 export const metadata = {
   title: "SARA Constructora | Obras Civiles & Arquitectura en Ecuador",
@@ -25,9 +26,14 @@ export default function ConstructoraLanding() {
         <HeroConstructora />
       </div>
 
-      {/* Trayectoria y servicios */}
+      {/* Trayectoria y métricas */}
       <div id="servicios">
         <Trayectoria />
+      </div>
+
+      {/* Suite Operativa Avanzada de SARA-CONSTRUCTORA (Módulo Estrella) */}
+      <div id="suite-operativa">
+        <ConstructoraSuiteSection />
       </div>
 
       {/* Galería y Marquesina de Nuestros Proyectos */}

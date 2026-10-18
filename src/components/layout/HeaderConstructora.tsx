@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, X, ArrowRight, Building2, User, Sparkles, ChevronLeft } from "lucide-react"
+import { Menu, X, ArrowRight, Building2, User, Sparkles, ChevronLeft, Brain } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getLogosEmpresa } from "@/lib/services/logosService"
 
@@ -94,7 +94,17 @@ export default function HeaderConstructora() {
             <span>Nuestros Proyectos</span>
           </Link>
 
-          {/* 2. Portal Clientes */}
+          {/* 2. Ecosistema Avanzado PRO */}
+          <Link 
+            href="/ecosistema-avanzado"
+            className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider text-indigo-300 hover:text-white hover:bg-indigo-500/10 transition-all duration-200 ease-out active:scale-[0.98] flex items-center gap-1.5 border border-indigo-500/20"
+          >
+            <Brain size={15} className="text-indigo-400 shrink-0" />
+            <span>Ecosistema Avanzado</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300">PRO</span>
+          </Link>
+
+          {/* 3. Portal Clientes */}
           <Link 
             href="/portal"
             className="min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-semibold uppercase tracking-wider text-slate-300 hover:text-white hover:bg-white/[0.05] transition-all duration-200 ease-out active:scale-[0.98] flex items-center gap-2"
@@ -143,6 +153,18 @@ export default function HeaderConstructora() {
           >
             <Building2 size={17} className="text-brand-sage shrink-0" />
             <span>Nuestros Proyectos</span>
+          </Link>
+
+          <Link
+            href="/ecosistema-avanzado"
+            onClick={() => setMobileMenuOpen(false)}
+            className="min-h-[48px] px-4 rounded-xl flex items-center justify-between text-sm font-semibold tracking-wide text-indigo-300 hover:text-white bg-indigo-500/10 border border-indigo-500/20 active:scale-[0.98] transition-all duration-200 ease-out"
+          >
+            <div className="flex items-center gap-3">
+              <Brain size={17} className="text-indigo-400 shrink-0" />
+              <span>Ecosistema Avanzado</span>
+            </div>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-500/20 text-indigo-300">PRO</span>
           </Link>
 
           <Link

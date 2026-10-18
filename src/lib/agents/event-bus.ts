@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SaraAgentEvent, SaraEventType, SaraAgentId } from './types';
 
 type EventHandler = (event: SaraAgentEvent) => Promise<void> | void;
@@ -70,7 +70,7 @@ export class SaraEventBus {
 
     // Persistencia asíncrona en Supabase (Auditoría y Realtime)
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       await supabase.from('sara_agent_events').insert({
         id: event.id,
         correlation_id: correlationId,
