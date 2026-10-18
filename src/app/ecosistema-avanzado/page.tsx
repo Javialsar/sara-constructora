@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Network, 
   FileCheck2, 
@@ -24,8 +25,13 @@ import {
   Receipt,
   Boxes,
   Compass,
-  Zap
+  Zap,
+  Lock,
+  LogOut,
+  HardHat,
+  UserCheck
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import { SriXmlService } from '@/lib/services/sriXmlService';
 import { ThreeWayMatchService, PurchaseOrder } from '@/lib/services/threeWayMatchService';
 import { KardexMultibodegaService, DistributionSlipInput } from '@/lib/services/kardexMultibodegaService';
@@ -34,8 +40,60 @@ import { PredictivePurchaseService, SupplierCatalogItem } from '@/lib/services/p
 import { VectorKnowledgeService, CollectiveLearningCascadeResult } from '@/lib/services/vectorKnowledgeService';
 
 export default function EcosistemaAvanzadoPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'match' | 'kardex' | 'nomina' | 'procura' | 'conocimiento'>('match');
   const [selectedAgent, setSelectedAgent] = useState<string>('ORCHESTRATOR');
+  const [authLoading, setAuthLoading] = useState(true);
+  const [professionalUser, setProfessionalUser] = useState<any>(null);
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.replace('/constructora/auth');
+          return;
+        }
+
+        const meta = user.user_metadata || {};
+        const role = meta.role || (meta.es_admin ? 'admin' : '');
+        const ALLOWED_ROLES = [
+          'admin',
+          'superadmin',
+          'tecnico',
+          'profesional_constructora',
+          'cliente_constructora',
+          'ingeniero_residente',
+          'arquitecto_bim',
+          'contratista_general',
+        ];
+
+        const hasAccess = ALLOWED_ROLES.includes(role) || meta.modulos_autorizados?.includes('sara_constructora');
+
+        if (!hasAccess) {
+          router.replace('/constructora/auth');
+          return;
+        }
+
+        setProfessionalUser({
+          id: user.id,
+          email: user.email,
+          nombre: meta.nombre || meta.full_name || 'Profesional de Obra',
+          empresa: meta.razon_social || meta.empresa || 'Constructora Verificada',
+          tipo: meta.tipo_profesional || (role === 'admin' ? 'Master Admin' : 'Ingeniero Residente'),
+          identificacion: meta.identificacion || meta.ruc || 'Ecuador',
+          senescyt: meta.registro_profesional || meta.senescyt || 'SENESCYT Validada',
+        });
+        setAuthLoading(false);
+      } catch (err) {
+        router.replace('/constructora/auth');
+      }
+    };
+
+    verifyAuth();
+  }, [router]);
 
   // -------------------------------------------------------------
   // TAB 1: THREE-WAY MATCH STATE & DATA
@@ -277,18 +335,40 @@ export default function EcosistemaAvanzadoPage() {
     }, 400);
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100 font-mono">
+        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 animate-pulse">
+          <Lock className="w-6 h-6" />
+        </div>
+        <h2 className="text-sm font-bold tracking-wider uppercase text-slate-200">
+          Autenticando Credenciales Profesionales...
+        </h2>
+        <p className="text-xs text-slate-500 mt-1">
+          Verificando perfil de Ingeniero / Arquitecto / Constructora con contrato activo
+        </p>
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace('/constructora/auth');
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-24 selection:bg-indigo-500 selection:text-white">
-      {/* Top Banner Contextual */}
+      {/* Top Banner Contextual con Identidad Profesional B2B */}
       <div className="border-b border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-sm shadow-indigo-500/20 text-white font-bold text-sm tracking-wider">
-              SARA
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center shadow-sm shadow-amber-500/20 text-slate-950 font-bold text-sm tracking-wider">
+              <HardHat className="w-5 h-5 text-slate-950" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 uppercase tracking-wider">
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/30 uppercase tracking-wider">
                   Módulo Oficial SARA-CONSTRUCTORA
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
@@ -306,6 +386,15 @@ export default function EcosistemaAvanzadoPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
+            {/* Badge de Profesional Verificado */}
+            {professionalUser && (
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
+                <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-slate-300 font-semibold">{professionalUser.nombre}</span>
+                <span className="text-slate-500">({professionalUser.empresa})</span>
+              </div>
+            )}
+
             <div className="hidden sm:flex items-center gap-4 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs font-mono tabular-nums">
               <span className="text-slate-500">Latencia Bus:</span>
               <span className="text-emerald-600 dark:text-emerald-400 font-semibold">142ms</span>
@@ -313,18 +402,15 @@ export default function EcosistemaAvanzadoPage() {
               <span className="text-slate-500">Tolerancia SRI:</span>
               <span className="text-indigo-600 dark:text-indigo-400 font-semibold">&le; 1.0%</span>
             </div>
-            <Link
-              href="/constructora"
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-brand-sage/90 hover:bg-brand-sage transition-colors border border-brand-sage/40 shadow-sm"
+
+            <button
+              onClick={handleLogout}
+              title="Cerrar Sesión Profesional"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-700/60 transition-colors flex items-center gap-1.5"
             >
-              ← SARA Constructora
-            </Link>
-            <Link
-              href="/"
-              className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
-            >
-              Portal Matriz
-            </Link>
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
           </div>
         </div>
       </div>

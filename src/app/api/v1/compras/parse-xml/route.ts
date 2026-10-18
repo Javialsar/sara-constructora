@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ComprasController } from '@/lib/controllers/saraAdvancedControllers';
+import { authenticateProfessionalRequest } from '@/lib/auth/professionalAuthGuard';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Verificación de Seguridad y Sesión Profesional
+    const auth = await authenticateProfessionalRequest(req);
+    if (!auth.user) {
+      return NextResponse.json(
+        { success: false, error: auth.error || 'No autorizado' },
+        { status: auth.status || 401 }
+      );
+    }
     const contentType = req.headers.get('content-type') || '';
     let body: any;
 

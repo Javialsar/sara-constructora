@@ -59,9 +59,18 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
     name: 'SARA Constructora - Portal de Clientes de Obra',
     shortName: 'Constructora',
     description: 'Avance de obra en tiempo real, planos y fiscalización para clientes.',
-    loginUrl: '/portal',
-    portalUrl: '/portal/dashboard',
-    allowedRoles: ['cliente_constructora', 'admin', 'superadmin', 'tecnico'],
+    loginUrl: '/constructora/auth',
+    portalUrl: '/constructora/suite',
+    allowedRoles: [
+      'cliente_constructora', 
+      'profesional_constructora', 
+      'ingeniero_residente', 
+      'arquitecto_bim', 
+      'contratista_general', 
+      'admin', 
+      'superadmin', 
+      'tecnico'
+    ],
     color: 'emerald'
   },
   sara_fletes: {
@@ -119,7 +128,13 @@ export function getUserModule(metadata: any): SaraModule {
   }
 
   // Deducir por rol
-  if (role === 'cliente_constructora') return 'sara_constructora'
+  if (
+    role === 'cliente_constructora' || 
+    role === 'profesional_constructora' || 
+    role === 'ingeniero_residente' || 
+    role === 'arquitecto_bim' || 
+    role === 'contratista_general'
+  ) return 'sara_constructora'
   if (role === 'propietario_inmobiliaria' || role === 'comprador_inmobiliaria' || role === 'broker') return 'sara_inmobiliaria'
   if (role === 'huesped' || role === 'anfitrion') return 'sara_stays'
   if (role === 'transportista') return 'sara_fletes'
