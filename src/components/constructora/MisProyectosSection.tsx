@@ -28,9 +28,52 @@ import {
   Video,
   FileCheck2,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  Film,
+  Camera,
+  Upload,
+  ArrowRight,
+  ArrowLeft,
+  ShieldCheck,
+  Check,
+  UserCheck,
+  FileSpreadsheet
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { EmpresaConfigService, ProfesionalStaff } from '@/lib/services/empresaConfigService';
+
+export type AvanceTabType = 'datos' | 'fotos' | 'videos' | 'tecnico';
+
+export interface FotoItem {
+  id: string;
+  url: string;
+  nombre: string;
+  peso?: string;
+}
+
+export interface VideoItem {
+  id: string;
+  url: string;
+  titulo: string;
+  tipo?: 'archivo' | 'enlace';
+  duracion?: string;
+}
+
+export interface TecnicoResponsable {
+  nombre: string;
+  cargo: string;
+  senescyt: string;
+  telefono: string;
+  observaciones?: string;
+}
+
+export interface ArchivoDocItem {
+  id: string;
+  nombre: string;
+  peso: string;
+  tipo: string;
+  url?: string;
+}
 
 export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: any; initialSubTab?: 'obras' | 'avances' | 'documentos' }) {
   const [subTab, setSubTab] = useState<'obras' | 'avances' | 'documentos'>(initialSubTab);
@@ -64,29 +107,63 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   const [modalVisualizarAvance, setModalVisualizarAvance] = useState<any | null>(null);
   const [editingAvance, setEditingAvance] = useState<any | null>(null);
 
-  // Form State para Registro / Edición de Avance (Imagen 1)
-  const [avanceForm, setAvanceForm] = useState({
+  // Viñeta Activa en Modal Registrar Avance
+  const [modalAvanceTab, setModalAvanceTab] = useState<AvanceTabType>('datos');
+
+  // Form State para Registro / Edición de Avance (con Viñetas)
+  const [avanceForm, setAvanceForm] = useState<{
+    proyecto_id: string;
+    titulo: string;
+    descripcion: string;
+    tipo: string;
+    url: string;
+    porcentajeAnterior: number;
+    porcentaje: number;
+    fecha: string;
+    hora: string;
+    fotos: FotoItem[];
+    videos: VideoItem[];
+    tecnico: TecnicoResponsable;
+    notificar_cliente: boolean;
+  }>({
     proyecto_id: '',
     titulo: '',
     descripcion: '',
     tipo: 'foto',
     url: '',
+    porcentajeAnterior: 0,
     porcentaje: 0,
     fecha: new Date().toISOString().split('T')[0],
     hora: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    fotos: [],
+    videos: [],
+    tecnico: {
+      nombre: '',
+      cargo: 'Residente de Obra',
+      senescyt: '',
+      telefono: '',
+      observaciones: '',
+    },
     notificar_cliente: true,
   });
 
-  // Form State para Gestor Documental (Imagen 3)
-  const [docForm, setDocForm] = useState({
+  // Campos auxiliares para URLs
+  const [nuevaFotoUrl, setNuevaFotoUrl] = useState('');
+  const [nuevoVideoUrl, setNuevoVideoUrl] = useState('');
+  const [nuevoVideoTitulo, setNuevoVideoTitulo] = useState('');
+
+  // Form State para Gestor Documental (con subida múltiple y eliminación)
+  const [docForm, setDocForm] = useState<{
+    proyecto_id: string;
+    titulo: string;
+    descripcion: string;
+    archivos: ArchivoDocItem[];
+    notificar_cliente: boolean;
+  }>({
     proyecto_id: '',
     titulo: '',
     descripcion: '',
-    tipo: 'PDF',
-    archivo_url: '',
-    peso: '4.8 MB',
-    fecha: new Date().toISOString().split('T')[0],
-    hora: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    archivos: [],
     notificar_cliente: true,
   });
 
@@ -425,25 +502,140 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   });
 
   // ============================================================================
-  // HANDLERS: MODAL REGISTRAR AVANCE (IMAGEN 1)
+  // HANDLERS: MODAL REGISTRAR AVANCE (IMAGEN 1 - EN VIÑETAS)
   // ============================================================================
   const handleAbrirModalAvance = (proyectoTarget?: any) => {
     const pId = proyectoTarget ? proyectoTarget.id : (proyectos[0]?.id || '');
     const pActual = proyectos.find(p => p.id === pId);
+    const staff = EmpresaConfigService.getStaff();
+    const tecnicoDefault = staff[0] || {
+      nombre: user?.nombre || 'Ing. Residente Juan',
+      cargo: 'Ing. Residente de Obra',
+      senescyt: '1005-2016-189423',
+      telefono: '+593 99 481 2938',
+      email: ''
+    };
 
     setEditingAvance(null);
+    setModalAvanceTab('datos');
+    setNuevaFotoUrl('');
+    setNuevoVideoUrl('');
+    setNuevoVideoTitulo('');
+
+    const ahora = new Date();
+    const fechaSistema = ahora.toISOString().split('T')[0];
+    const horaSistema = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+
     setAvanceForm({
       proyecto_id: pId,
       titulo: '',
       descripcion: '',
       tipo: 'foto',
       url: '',
-      porcentaje: pActual ? pActual.avance : 0,
-      fecha: new Date().toISOString().split('T')[0],
-      hora: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      porcentajeAnterior: pActual ? Number(pActual.avance) : 0,
+      porcentaje: pActual ? Number(pActual.avance) : 0,
+      fecha: fechaSistema,
+      hora: horaSistema,
+      fotos: [
+        {
+          id: `foto-${Date.now()}-1`,
+          url: 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?auto=format&fit=crop&w=800&q=80',
+          nombre: 'Vista general del frente de trabajo.jpg',
+          peso: '2.4 MB'
+        }
+      ],
+      videos: [],
+      tecnico: {
+        nombre: tecnicoDefault.nombre,
+        cargo: tecnicoDefault.cargo,
+        senescyt: tecnicoDefault.senescyt,
+        telefono: tecnicoDefault.telefono,
+        observaciones: 'Inspección física y verificación de especificaciones técnicas NEC.'
+      },
       notificar_cliente: true,
     });
     setModalAvanceOpen(true);
+  };
+
+  // Subida múltiple de fotografías
+  const handleSubirFotosInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArr = Array.from(e.target.files);
+      const nuevasFotos: FotoItem[] = filesArr.map((f, idx) => ({
+        id: `foto-${Date.now()}-${idx}`,
+        url: URL.createObjectURL(f),
+        nombre: f.name,
+        peso: `${(f.size / (1024 * 1024)).toFixed(2)} MB`
+      }));
+      setAvanceForm(prev => ({
+        ...prev,
+        fotos: [...prev.fotos, ...nuevasFotos]
+      }));
+    }
+  };
+
+  const handleAgregarFotoUrl = () => {
+    if (!nuevaFotoUrl.trim()) return;
+    const nueva: FotoItem = {
+      id: `foto-${Date.now()}`,
+      url: nuevaFotoUrl.trim(),
+      nombre: `Foto_Avance_${avanceForm.fotos.length + 1}.jpg`,
+      peso: '1.8 MB'
+    };
+    setAvanceForm(prev => ({
+      ...prev,
+      fotos: [...prev.fotos, nueva]
+    }));
+    setNuevaFotoUrl('');
+  };
+
+  const handleEliminarFoto = (fotoId: string) => {
+    setAvanceForm(prev => ({
+      ...prev,
+      fotos: prev.fotos.filter(f => f.id !== fotoId)
+    }));
+  };
+
+  // Subida de videos
+  const handleSubirVideosInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArr = Array.from(e.target.files);
+      const nuevosVideos: VideoItem[] = filesArr.map((v, idx) => ({
+        id: `vid-${Date.now()}-${idx}`,
+        url: URL.createObjectURL(v),
+        titulo: v.name,
+        tipo: 'archivo',
+        duracion: '1:45 min'
+      }));
+      setAvanceForm(prev => ({
+        ...prev,
+        videos: [...prev.videos, ...nuevosVideos]
+      }));
+    }
+  };
+
+  const handleAgregarVideoUrl = () => {
+    if (!nuevoVideoUrl.trim()) return;
+    const nuevo: VideoItem = {
+      id: `vid-${Date.now()}`,
+      url: nuevoVideoUrl.trim(),
+      titulo: nuevoVideoTitulo.trim() || `Video de Obra ${avanceForm.videos.length + 1}`,
+      tipo: 'enlace',
+      duracion: 'Enlace HD'
+    };
+    setAvanceForm(prev => ({
+      ...prev,
+      videos: [...prev.videos, nuevo]
+    }));
+    setNuevoVideoUrl('');
+    setNuevoVideoTitulo('');
+  };
+
+  const handleEliminarVideo = (vidId: string) => {
+    setAvanceForm(prev => ({
+      ...prev,
+      videos: prev.videos.filter(v => v.id !== vidId)
+    }));
   };
 
   const handleGuardarAvance = async (e: React.FormEvent) => {
@@ -454,7 +646,14 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
     }
 
     const proySelected = proyectos.find(p => p.id === avanceForm.proyecto_id);
-    const fechaIsoCompleta = `${avanceForm.fecha}T${avanceForm.hora}:00`;
+
+    // FECHA Y HORA DEL SISTEMA (TOMADAS AUTOMÁTICAMENTE)
+    const now = new Date();
+    const fechaSistema = now.toISOString().split('T')[0];
+    const horaSistema = now.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const fechaIsoCompleta = now.toISOString();
+
+    const fotoPrincipalUrl = avanceForm.fotos[0]?.url || 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?auto=format&fit=crop&w=800&q=80';
 
     if (editingAvance) {
       // Actualizar Avance Existente
@@ -464,17 +663,21 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
         proyecto_nombre: proySelected?.nombre || editingAvance.proyecto_nombre,
         titulo: avanceForm.titulo,
         descripcion: avanceForm.descripcion,
+        porcentajeAnterior: Number(avanceForm.porcentajeAnterior),
         porcentaje: Number(avanceForm.porcentaje),
         fecha: fechaIsoCompleta,
-        fecha_str: avanceForm.fecha,
-        hora_str: avanceForm.hora,
-        tipo: avanceForm.tipo,
-        url: avanceForm.url || editingAvance.url,
+        fecha_str: fechaSistema,
+        hora_str: horaSistema,
+        fotos: avanceForm.fotos,
+        videos: avanceForm.videos,
+        tecnico: avanceForm.tecnico,
+        fiscalizador: avanceForm.tecnico.nombre,
+        url: fotoPrincipalUrl,
       };
 
       setAvances(prev => prev.map(a => a.id === editingAvance.id ? updated : a));
 
-      // Actualizar también porcentaje en la obra
+      // Actualizar porcentaje en la obra
       setProyectos(prev => prev.map(p => {
         if (p.id === avanceForm.proyecto_id) {
           return { ...p, avance: Number(avanceForm.porcentaje) };
@@ -482,7 +685,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
         return p;
       }));
 
-      alert('¡Avance de obra actualizado correctamente!');
+      alert('¡Avance de obra actualizado correctamente con fecha y hora del sistema!');
     } else {
       // Crear Nuevo Avance
       const nuevoAvance = {
@@ -491,14 +694,18 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
         proyecto_nombre: proySelected?.nombre || 'Obra SARA',
         titulo: avanceForm.titulo,
         descripcion: avanceForm.descripcion || 'Inspección técnica física certificada en obra.',
+        porcentajeAnterior: Number(avanceForm.porcentajeAnterior),
         porcentaje: Number(avanceForm.porcentaje),
         fecha: fechaIsoCompleta,
-        fecha_str: avanceForm.fecha,
-        hora_str: avanceForm.hora,
-        fiscalizador: user?.nombre || 'Ing. Residente Juan',
+        fecha_str: fechaSistema,
+        hora_str: horaSistema,
+        fiscalizador: avanceForm.tecnico.nombre,
+        tecnico: avanceForm.tecnico,
+        fotos: avanceForm.fotos,
+        videos: avanceForm.videos,
         estado_aprobacion: 'Registrado con Firma Digital',
-        tipo: avanceForm.tipo,
-        url: avanceForm.url || 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?auto=format&fit=crop&w=800&q=80',
+        tipo: avanceForm.videos.length > 0 ? 'video' : 'foto',
+        url: fotoPrincipalUrl,
       };
 
       // Guardar en Supabase si está disponible
@@ -507,8 +714,8 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
           proyecto_id: avanceForm.proyecto_id,
           titulo: avanceForm.titulo,
           descripcion: avanceForm.descripcion,
-          tipo: avanceForm.tipo,
-          url: nuevoAvance.url,
+          tipo: nuevoAvance.tipo,
+          url: fotoPrincipalUrl,
           porcentaje: Number(avanceForm.porcentaje),
           fecha: fechaIsoCompleta
         }]);
@@ -527,7 +734,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
         return p;
       }));
 
-      alert(`¡Avance registrado exitosamente con fecha ${avanceForm.fecha} a las ${avanceForm.hora}!`);
+      alert(`¡Avance registrado exitosamente con fecha ${fechaSistema} a las ${horaSistema} (Tomada automáticamente del sistema)!`);
     }
 
     setModalAvanceOpen(false);
@@ -536,16 +743,34 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
 
   const handleEditarAvance = (av: any) => {
     setEditingAvance(av);
-    const parsed = formatFechaHora(av.fecha || av.fecha_str, av.hora_str);
+    setModalAvanceTab('datos');
+    const pActual = proyectos.find(p => p.id === av.proyecto_id);
+
+    const fotosExistentes: FotoItem[] = av.fotos && Array.isArray(av.fotos) && av.fotos.length > 0
+      ? av.fotos
+      : (av.url ? [{ id: `f-${Date.now()}`, url: av.url, nombre: 'Fotografía principal.jpg', peso: '2.1 MB' }] : []);
+
+    const videosExistentes: VideoItem[] = av.videos && Array.isArray(av.videos) ? av.videos : [];
+
     setAvanceForm({
       proyecto_id: av.proyecto_id || proyectos[0]?.id || '',
       titulo: av.titulo || '',
       descripcion: av.descripcion || '',
       tipo: av.tipo || 'foto',
       url: av.url || '',
+      porcentajeAnterior: av.porcentajeAnterior !== undefined ? Number(av.porcentajeAnterior) : (pActual ? Number(pActual.avance) : av.porcentaje),
       porcentaje: av.porcentaje || 0,
       fecha: av.fecha_str || new Date().toISOString().split('T')[0],
       hora: av.hora_str || '12:00',
+      fotos: fotosExistentes,
+      videos: videosExistentes,
+      tecnico: av.tecnico || {
+        nombre: av.fiscalizador || 'Ing. Residente Juan',
+        cargo: 'Residente de Obra',
+        senescyt: '1005-2016-189423',
+        telefono: '+593 99 481 2938',
+        observaciones: ''
+      },
       notificar_cliente: false,
     });
     setModalVisualizarAvance(null);
@@ -563,7 +788,8 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   };
 
   // ============================================================================
-  // HANDLERS: MODAL SUBIR DOCUMENTO (IMAGEN 3)
+  // HANDLERS: MODAL SUBIR DOCUMENTO PRIVADO (GESTOR DOCUMENTAL - IMAGEN 2)
+  // Subida múltiple, eliminación de archivos incorrectos y fecha/hora automática
   // ============================================================================
   const handleAbrirModalDoc = (proyectoTarget?: any) => {
     const pId = proyectoTarget ? proyectoTarget.id : (proyectos[0]?.id || '');
@@ -571,57 +797,95 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       proyecto_id: pId,
       titulo: '',
       descripcion: '',
-      tipo: 'PDF',
-      archivo_url: '',
-      peso: '5.2 MB',
-      fecha: new Date().toISOString().split('T')[0],
-      hora: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false }),
+      archivos: [],
       notificar_cliente: true,
     });
     setModalDocOpen(true);
   };
 
+  const handleSeleccionarArchivosDoc = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArr = Array.from(e.target.files);
+      const nuevosArchivos: ArchivoDocItem[] = filesArr.map((f, idx) => {
+        const ext = f.name.split('.').pop()?.toUpperCase() || 'PDF';
+        const pesoMb = (f.size / (1024 * 1024)).toFixed(2);
+        return {
+          id: `arch-${Date.now()}-${idx}`,
+          nombre: f.name,
+          peso: `${pesoMb} MB`,
+          tipo: ext,
+          url: URL.createObjectURL(f)
+        };
+      });
+
+      setDocForm(prev => ({
+        ...prev,
+        archivos: [...prev.archivos, ...nuevosArchivos],
+        titulo: prev.titulo || (filesArr.length === 1 ? filesArr[0].name.split('.')[0] : `Lote de ${filesArr.length} Documentos Técnicos`)
+      }));
+    }
+  };
+
+  const handleEliminarArchivoDoc = (archId: string) => {
+    setDocForm(prev => ({
+      ...prev,
+      archivos: prev.archivos.filter(a => a.id !== archId)
+    }));
+  };
+
   const handleGuardarDoc = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!docForm.proyecto_id || !docForm.titulo) {
-      alert('Por favor selecciona una obra y especifica el título del documento.');
+    if (!docForm.proyecto_id) {
+      alert('Por favor selecciona una obra destino.');
+      return;
+    }
+
+    if (docForm.archivos.length === 0) {
+      alert('Por favor selecciona al menos un archivo para subir.');
       return;
     }
 
     const proySelected = proyectos.find(p => p.id === docForm.proyecto_id);
-    const fechaIsoCompleta = `${docForm.fecha}T${docForm.hora}:00`;
 
-    const nuevoDoc = {
-      id: `doc-${Date.now()}`,
+    // FECHA Y HORA DEL SISTEMA (TOMADAS AUTOMÁTICAMENTE SIN MOSTRAR EN PÁGINA)
+    const now = new Date();
+    const fechaSistema = now.toISOString().split('T')[0];
+    const horaSistema = now.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', hour12: false });
+    const fechaIsoCompleta = now.toISOString();
+
+    const nuevosDocs = docForm.archivos.map((arch, idx) => ({
+      id: `doc-${Date.now()}-${idx}`,
       proyecto_id: docForm.proyecto_id,
       proyecto_nombre: proySelected?.nombre || 'Obra SARA',
-      titulo: docForm.titulo,
-      nombre_archivo: `${docForm.titulo.replace(/ /g, '_')}.${docForm.tipo.toLowerCase()}`,
+      titulo: docForm.archivos.length === 1 && docForm.titulo ? docForm.titulo : arch.nombre.replace(/\.[^/.]+$/, ""),
+      nombre_archivo: arch.nombre,
       descripcion: docForm.descripcion || 'Planos y memorias técnicas oficiales con validación.',
-      tipo: docForm.tipo,
-      peso: docForm.peso || '4.8 MB',
+      tipo: arch.tipo,
+      peso: arch.peso,
       fecha_subida: fechaIsoCompleta,
-      fecha_str: docForm.fecha,
-      hora_str: docForm.hora,
-    };
+      fecha_str: fechaSistema,
+      hora_str: horaSistema,
+    }));
 
     try {
-      await supabase.from('documentos_proyecto').insert([{
-        proyecto_id: docForm.proyecto_id,
-        titulo: docForm.titulo,
-        descripcion: docForm.descripcion,
-        tipo: docForm.tipo,
-        archivo_url: docForm.archivo_url || 'https://sara-constructora.vercel.app/documento-demo.pdf',
-        peso: docForm.peso,
-        fecha_subida: fechaIsoCompleta
-      }]);
+      for (const d of nuevosDocs) {
+        await supabase.from('documentos_proyecto').insert([{
+          proyecto_id: d.proyecto_id,
+          titulo: d.titulo,
+          descripcion: d.descripcion,
+          tipo: d.tipo,
+          archivo_url: d.nombre_archivo,
+          peso: d.peso,
+          fecha_subida: fechaIsoCompleta
+        }]);
+      }
     } catch (err) {
       console.warn('Persistencia offline activa para documento:', err);
     }
 
-    setDocumentos(prev => [nuevoDoc, ...prev]);
+    setDocumentos(prev => [...nuevosDocs, ...prev]);
     setModalDocOpen(false);
-    alert(`¡Documento guardado exitosamente con fecha ${docForm.fecha} ${docForm.hora}!`);
+    alert(`¡Se han cargado ${nuevosDocs.length} archivo(s) exitosamente con fecha y hora automática del sistema (${fechaSistema} ${horaSistema})!`);
   };
 
   const handleEliminarDoc = async (id: string, titulo: string) => {
@@ -1213,209 +1477,637 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       )}
 
       {/* ==================================================================== */}
-      {/* MODAL: REGISTRAR NUEVO AVANCE (IDÉNTICO A IMAGEN 1)                  */}
+      {/* MODAL: REGISTRAR NUEVO AVANCE (MODAL EN VIÑETAS - IMAGEN 1 MODIFICADA)*/}
       {/* ==================================================================== */}
       {modalAvanceOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-4 my-auto">
             
+            {/* Cabecera del Modal */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                {editingAvance ? 'Editar Avance de Obra' : 'Registrar Nuevo Avance'}
-              </h3>
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase text-amber-600 dark:text-amber-400">
+                  Control & Fiscalización de Obra
+                </span>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  {editingAvance ? 'Editar Avance de Obra' : 'Registrar Nuevo Avance de Obra'}
+                </h3>
+              </div>
               <button 
                 onClick={() => setModalAvanceOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
+            {/* Selector de Viñetas (Tabs) */}
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 overflow-x-auto text-xs">
+              <button
+                type="button"
+                onClick={() => setModalAvanceTab('datos')}
+                className={`flex-1 min-w-[130px] py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  modalAvanceTab === 'datos'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <FileText size={14} />
+                <span>1. Datos del Avance</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalAvanceTab('fotos')}
+                className={`flex-1 min-w-[120px] py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  modalAvanceTab === 'fotos'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Camera size={14} />
+                <span>2. Fotografías ({avanceForm.fotos.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalAvanceTab('videos')}
+                className={`flex-1 min-w-[110px] py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  modalAvanceTab === 'videos'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Film size={14} />
+                <span>3. Videos ({avanceForm.videos.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalAvanceTab('tecnico')}
+                className={`flex-1 min-w-[140px] py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  modalAvanceTab === 'tecnico'
+                    ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <HardHat size={14} />
+                <span>4. Técnico Responsable</span>
+              </button>
+            </div>
+
             <form onSubmit={handleGuardarAvance} className="space-y-4 text-xs">
               
-              {/* Seleccionar Proyecto */}
-              <div>
-                <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Seleccionar Proyecto *
-                </label>
-                <select
-                  value={avanceForm.proyecto_id}
-                  onChange={(e) => {
-                    const pId = e.target.value;
-                    const p = proyectos.find(x => x.id === pId);
-                    setAvanceForm(prev => ({
-                      ...prev,
-                      proyecto_id: pId,
-                      porcentaje: p ? p.avance : prev.porcentaje
-                    }));
-                  }}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
-                  required
-                >
-                  <option value="">-- Elige una obra --</option>
-                  {proyectos.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} ({p.ubicacion})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* ============================================================== */}
+              {/* VIÑETA 1: DATOS DEL AVANCE DE LA OBRA                         */}
+              {/* ============================================================== */}
+              {modalAvanceTab === 'datos' && (
+                <div className="space-y-3.5 animate-in fade-in duration-150">
+                  
+                  {/* Seleccionar Proyecto */}
+                  <div>
+                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                      Seleccionar Proyecto Destino *
+                    </label>
+                    <select
+                      value={avanceForm.proyecto_id}
+                      onChange={(e) => {
+                        const pId = e.target.value;
+                        const p = proyectos.find(x => x.id === pId);
+                        setAvanceForm(prev => ({
+                          ...prev,
+                          proyecto_id: pId,
+                          porcentajeAnterior: p ? Number(p.avance) : 0,
+                          porcentaje: p ? Number(p.avance) : prev.porcentaje
+                        }));
+                      }}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
+                      required
+                    >
+                      <option value="">-- Elige una obra --</option>
+                      {proyectos.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre} ({p.ubicacion}) • Actual: {p.avance}%
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Fecha y Hora de Registro Obligatorias e Indispensables */}
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40">
-                <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1 flex items-center gap-1">
-                    <Calendar size={12} className="text-amber-500" />
-                    <span>Fecha de Registro *</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={avanceForm.fecha}
-                    onChange={(e) => setAvanceForm(prev => ({ ...prev, fecha: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
+                  {/* Badge de Fecha y Hora del Sistema (Asignadas Automáticamente) */}
+                  <div className="p-2.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-semibold">
+                      <Clock size={13} className="text-amber-600" />
+                      <span>Fecha y hora oficial del sistema:</span>
+                    </span>
+                    <span className="font-mono font-bold text-amber-900 dark:text-amber-200 bg-white dark:bg-slate-900 px-2.5 py-0.5 rounded-lg border border-amber-300 dark:border-amber-700">
+                      {new Date().toLocaleDateString('es-EC')} a las {new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
 
-                <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1 flex items-center gap-1">
-                    <Clock size={12} className="text-amber-500" />
-                    <span>Hora Exacta *</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={avanceForm.hora}
-                    onChange={(e) => setAvanceForm(prev => ({ ...prev, hora: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Título de la Actualización */}
-              <div>
-                <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Título de la actualización *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Fundición de losa del segundo piso terminada"
-                  value={avanceForm.titulo}
-                  onChange={(e) => setAvanceForm(prev => ({ ...prev, titulo: e.target.value }))}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
-                />
-              </div>
-
-              {/* Descripción Opcional */}
-              <div>
-                <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Descripción (Opcional)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Detalles técnicos o mensaje para el cliente..."
-                  value={avanceForm.descripcion}
-                  onChange={(e) => setAvanceForm(prev => ({ ...prev, descripcion: e.target.value }))}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              {/* Tipo de Archivo & Subir Archivo o URL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                    Tipo de Archivo
-                  </label>
-                  <select
-                    value={avanceForm.tipo}
-                    onChange={(e) => setAvanceForm(prev => ({ ...prev, tipo: e.target.value }))}
-                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
-                  >
-                    <option value="foto">Fotografía</option>
-                    <option value="video">Video de Obra</option>
-                    <option value="reporte">Acta de Fiscalización / Reporte</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                    Subir Archivo o URL
-                  </label>
-                  <div className="flex gap-1.5">
-                    <label className="px-3 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xl cursor-pointer shrink-0 text-center text-xs">
-                      Seleccionar archivo
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const f = e.target.files[0];
-                            setAvanceForm(prev => ({ ...prev, url: f.name }));
-                          }
-                        }}
-                      />
+                  {/* Título de la Actualización */}
+                  <div>
+                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                      Título de la actualización *
                     </label>
                     <input
                       type="text"
-                      placeholder="O ingresa un enlace: https://..."
-                      value={avanceForm.url}
-                      onChange={(e) => setAvanceForm(prev => ({ ...prev, url: e.target.value }))}
-                      className="flex-1 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs"
+                      required
+                      placeholder="Ej. Fundición de losa de entrepiso y colocación de acero estructural"
+                      value={avanceForm.titulo}
+                      onChange={(e) => setAvanceForm(prev => ({ ...prev, titulo: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                    />
+                  </div>
+
+                  {/* Descripción Opcional */}
+                  <div>
+                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                      Descripción Técnica de la Inspección
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Detalles técnicos de resistencia de hormigón, ensayos de probetas, personal en obra o mensaje para el cliente..."
+                      value={avanceForm.descripcion}
+                      onChange={(e) => setAvanceForm(prev => ({ ...prev, descripcion: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  {/* ========================================================== */}
+                  {/* COMPARATIVA DE PORCENTAJES: ANTERIOR Y ACTUAL              */}
+                  {/* ========================================================== */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-3">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
+                        <TrendingUp size={15} className="text-amber-500" />
+                        <span>Evolución del Porcentaje Global de la Obra</span>
+                      </div>
+                      <span className="text-[11px] font-mono font-bold">
+                        {avanceForm.porcentaje >= avanceForm.porcentajeAnterior ? (
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            +{avanceForm.porcentaje - avanceForm.porcentajeAnterior}% de incremento físico
+                          </span>
+                        ) : (
+                          <span className="text-rose-600 dark:text-rose-400">
+                            {avanceForm.porcentaje - avanceForm.porcentajeAnterior}% de ajuste
+                          </span>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Porcentaje Anterior */}
+                      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
+                        <span className="text-[10px] font-mono uppercase text-slate-400 block mb-0.5">
+                          Porcentaje Anterior
+                        </span>
+                        <div className="text-2xl font-black font-mono text-slate-600 dark:text-slate-400">
+                          {avanceForm.porcentajeAnterior}%
+                        </div>
+                        <span className="text-[10px] text-slate-400">Último corte de obra</span>
+                      </div>
+
+                      {/* Porcentaje Actual */}
+                      <div className="p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/40 text-center">
+                        <span className="text-[10px] font-mono uppercase text-amber-700 dark:text-amber-300 font-bold block mb-0.5">
+                          Nuevo Porcentaje Actual
+                        </span>
+                        <div className="text-2xl font-black font-mono text-amber-500">
+                          {avanceForm.porcentaje}%
+                        </div>
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">
+                          Estado tras este avance
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Barra de Progreso Comparativa y Slider */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden flex">
+                        <div 
+                          className="bg-slate-400 dark:bg-slate-500 h-full transition-all duration-300" 
+                          style={{ width: `${Math.min(avanceForm.porcentajeAnterior, avanceForm.porcentaje)}%` }}
+                          title={`Avance anterior: ${avanceForm.porcentajeAnterior}%`}
+                        />
+                        {avanceForm.porcentaje > avanceForm.porcentajeAnterior && (
+                          <div 
+                            className="bg-amber-500 h-full transition-all duration-300 animate-pulse" 
+                            style={{ width: `${avanceForm.porcentaje - avanceForm.porcentajeAnterior}%` }}
+                            title={`Incremento: +${avanceForm.porcentaje - avanceForm.porcentajeAnterior}%`}
+                          />
+                        )}
+                      </div>
+
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={avanceForm.porcentaje}
+                        onChange={(e) => setAvanceForm(prev => ({ ...prev, porcentaje: Number(e.target.value) }))}
+                        className="w-full accent-amber-500 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Checkbox Notificar Cliente */}
+                  <label className="flex items-center gap-2 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={avanceForm.notificar_cliente}
+                      onChange={(e) => setAvanceForm(prev => ({ ...prev, notificar_cliente: e.target.checked }))}
+                      className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                      Notificar al cliente por WhatsApp/Email sobre este avance
+                    </span>
+                  </label>
+
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* VIÑETA 2: FOTOGRAFÍAS (SUBIDA MÚLTIPLE Y ELIMINACIÓN)          */}
+              {/* ============================================================== */}
+              {modalAvanceTab === 'fotos' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Camera size={14} className="text-amber-500" />
+                        <span>Fotografías de Obra ({avanceForm.fotos.length})</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Sube una o varias fotografías de la ejecución física de la obra.
+                      </p>
+                    </div>
+
+                    <label className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl cursor-pointer text-xs flex items-center gap-1.5 shrink-0 shadow-sm transition-all">
+                      <Upload size={13} />
+                      <span>Subir Fotografías</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleSubirFotosInput}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Agregar por URL opcional */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="O ingresa un enlace directo de imagen (https://...)"
+                      value={nuevaFotoUrl}
+                      onChange={(e) => setNuevaFotoUrl(e.target.value)}
+                      className="flex-1 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAgregarFotoUrl}
+                      className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-white font-bold rounded-xl text-xs cursor-pointer"
+                    >
+                      + Agregar
+                    </button>
+                  </div>
+
+                  {/* Galería de Fotos Subidas con Opción de Eliminar */}
+                  {avanceForm.fotos.length === 0 ? (
+                    <div className="py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-2">
+                      <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                      <p className="text-slate-500 text-xs font-semibold">No se han subido fotografías todavía.</p>
+                      <span className="text-[11px] text-slate-400 block">
+                        Usa el botón "Subir Fotografías" para seleccionar uno o varios archivos de tu dispositivo.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {avanceForm.fotos.map((f, idx) => (
+                        <div key={f.id} className="relative group rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shadow-sm">
+                          <img
+                            src={f.url}
+                            alt={f.nombre}
+                            className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="p-2 bg-white dark:bg-slate-900 flex items-center justify-between text-[10px]">
+                            <span className="truncate font-mono font-medium text-slate-700 dark:text-slate-300 flex-1 pr-1">
+                              {f.nombre}
+                            </span>
+                            <span className="text-slate-400 shrink-0">{f.peso || 'Foto'}</span>
+                          </div>
+
+                          {/* Botón Eliminar Foto Individual */}
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarFoto(f.id)}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-rose-600/90 text-white hover:bg-rose-700 shadow-md transition-all cursor-pointer"
+                            title="Eliminar esta fotografía"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* VIÑETA 3: VIDEOS (SUBIDA Y ENLACES CON ELIMINACIÓN)           */}
+              {/* ============================================================== */}
+              {modalAvanceTab === 'videos' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <Film size={14} className="text-amber-500" />
+                        <span>Videos de Recorrido de Obra ({avanceForm.videos.length})</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400">
+                        Adjunta grabaciones aéreas con dron, recorridos o enlaces de YouTube/Drive.
+                      </p>
+                    </div>
+
+                    <label className="px-4 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl cursor-pointer text-xs flex items-center gap-1.5 shrink-0 shadow-sm transition-all">
+                      <Upload size={13} />
+                      <span>Subir Video MP4</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="video/*"
+                        className="hidden"
+                        onChange={handleSubirVideosInput}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Agregar Video por Enlace */}
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 block">
+                      O agregar enlace de video en línea (YouTube / Vimeo / Google Drive):
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Título del video (Ej: Vuelo Dron Losa)"
+                        value={nuevoVideoTitulo}
+                        onChange={(e) => setNuevoVideoTitulo(e.target.value)}
+                        className="sm:col-span-1 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                      />
+                      <input
+                        type="text"
+                        placeholder="URL: https://youtube.com/watch?v=..."
+                        value={nuevoVideoUrl}
+                        onChange={(e) => setNuevoVideoUrl(e.target.value)}
+                        className="sm:col-span-1 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAgregarVideoUrl}
+                        className="sm:col-span-1 px-3 py-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl text-xs cursor-pointer"
+                      >
+                        + Adjuntar Video
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Lista de Videos Cargados con Opción de Eliminar */}
+                  {avanceForm.videos.length === 0 ? (
+                    <div className="py-10 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-2">
+                      <Video className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                      <p className="text-slate-500 text-xs font-semibold">No se han adjuntado videos para este avance.</p>
+                      <span className="text-[11px] text-slate-400 block">
+                        Puedes subir archivos de video o ingresar enlaces directos.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {avanceForm.videos.map((v) => (
+                        <div key={v.id} className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 shadow-sm">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                              <Film size={16} />
+                            </div>
+                            <div className="truncate">
+                              <h5 className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                                {v.titulo}
+                              </h5>
+                              <span className="text-[10px] font-mono text-slate-400 block truncate">
+                                {v.url}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                              {v.duracion || 'Video'}
+                            </span>
+                            {/* Botón Eliminar Video Individual */}
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarVideo(v.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                              title="Eliminar este video"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ============================================================== */}
+              {/* VIÑETA 4: TÉCNICO RESPONSABLE DE LA SUBIDA                     */}
+              {/* ============================================================== */}
+              {modalAvanceTab === 'tecnico' && (
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 flex items-start gap-3">
+                    <ShieldCheck size={18} className="text-emerald-600 mt-0.5 shrink-0" />
+                    <div className="text-xs">
+                      <strong className="text-emerald-900 dark:text-emerald-200 block">
+                        Certificación Técnica de Responsabilidad
+                      </strong>
+                      <p className="text-emerald-700 dark:text-emerald-300 text-[11px] mt-0.5">
+                        Registra los datos del profesional o técnico colegiado que efectuó la inspección y subida de las fotografías y videos de este avance.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Selector Rápido del Staff de la Empresa */}
+                  <div>
+                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                      Cargar Datos desde Staff Registrado en la Empresa:
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const staffList = EmpresaConfigService.getStaff();
+                        const s = staffList.find(x => x.id === e.target.value);
+                        if (s) {
+                          setAvanceForm(prev => ({
+                            ...prev,
+                            tecnico: {
+                              ...prev.tecnico,
+                              nombre: s.nombre,
+                              cargo: s.cargo,
+                              senescyt: s.senescyt,
+                              telefono: s.telefono,
+                            }
+                          }));
+                        }
+                      }}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white text-xs"
+                    >
+                      <option value="">-- Seleccionar profesional del staff --</option>
+                      {EmpresaConfigService.getStaff().map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.nombre} ({s.cargo})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Campos del Técnico */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                        Nombre Completo del Técnico Responsable *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={avanceForm.tecnico.nombre}
+                        onChange={(e) => setAvanceForm(prev => ({
+                          ...prev,
+                          tecnico: { ...prev.tecnico, nombre: e.target.value }
+                        }))}
+                        placeholder="Ej. Ing. David Sarango Malacatus"
+                        className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                        Cargo / Rol en la Obra *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={avanceForm.tecnico.cargo}
+                        onChange={(e) => setAvanceForm(prev => ({
+                          ...prev,
+                          tecnico: { ...prev.tecnico, cargo: e.target.value }
+                        }))}
+                        placeholder="Ej. Ing. Residente de Obra / Fiscalizador"
+                        className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                        Registro SENESCYT / Colegiatura / CI
+                      </label>
+                      <input
+                        type="text"
+                        value={avanceForm.tecnico.senescyt}
+                        onChange={(e) => setAvanceForm(prev => ({
+                          ...prev,
+                          tecnico: { ...prev.tecnico, senescyt: e.target.value }
+                        }))}
+                        placeholder="1005-2016-189423"
+                        className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                        Teléfono / WhatsApp de Contacto
+                      </label>
+                      <input
+                        type="text"
+                        value={avanceForm.tecnico.telefono}
+                        onChange={(e) => setAvanceForm(prev => ({
+                          ...prev,
+                          tecnico: { ...prev.tecnico, telefono: e.target.value }
+                        }))}
+                        placeholder="+593 99 481 2938"
+                        className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-xs text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Observaciones del Técnico */}
+                  <div>
+                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                      Observaciones de Inspección y Conformidad Técnica
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={avanceForm.tecnico.observaciones || ''}
+                      onChange={(e) => setAvanceForm(prev => ({
+                        ...prev,
+                        tecnico: { ...prev.tecnico, observaciones: e.target.value }
+                      }))}
+                      placeholder="Conformidad con ensayos de resistencia, trazado de cotas y normas de seguridad industrial..."
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Slider Porcentaje Global de Avance de la Obra */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                      %
-                    </span>
-                    <span className="text-slate-800 dark:text-slate-200">Porcentaje Global de Avance de la Obra</span>
-                  </div>
-                  <span className="text-base font-black font-mono text-amber-500">{avanceForm.porcentaje}%</span>
+              {/* Botones de Navegación y Guardado */}
+              <div className="pt-3 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-1.5">
+                  {modalAvanceTab !== 'datos' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (modalAvanceTab === 'fotos') setModalAvanceTab('datos');
+                        else if (modalAvanceTab === 'videos') setModalAvanceTab('fotos');
+                        else if (modalAvanceTab === 'tecnico') setModalAvanceTab('videos');
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 cursor-pointer flex items-center gap-1"
+                    >
+                      <ArrowLeft size={13} />
+                      <span>Anterior</span>
+                    </button>
+                  )}
+
+                  {modalAvanceTab !== 'tecnico' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (modalAvanceTab === 'datos') setModalAvanceTab('fotos');
+                        else if (modalAvanceTab === 'fotos') setModalAvanceTab('videos');
+                        else if (modalAvanceTab === 'videos') setModalAvanceTab('tecnico');
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Siguiente</span>
+                      <ArrowRight size={13} />
+                    </button>
+                  )}
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={avanceForm.porcentaje}
-                  onChange={(e) => setAvanceForm(prev => ({ ...prev, porcentaje: Number(e.target.value) }))}
-                  className="w-full accent-emerald-600 cursor-pointer"
-                />
-              </div>
 
-              {/* Checkbox Notificar Cliente */}
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={avanceForm.notificar_cliente}
-                  onChange={(e) => setAvanceForm(prev => ({ ...prev, notificar_cliente: e.target.checked }))}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500"
-                />
-                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  Notificar al cliente por WhatsApp/Email sobre este avance
-                </span>
-              </label>
-
-              {/* Botones de Acción */}
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setModalAvanceOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-200 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-bold shadow-md cursor-pointer"
-                >
-                  {editingAvance ? 'Guardar Cambios' : 'Guardar y Notificar al Cliente'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setModalAvanceOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-200 cursor-pointer text-xs"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 font-bold shadow-md cursor-pointer text-xs flex items-center gap-1.5"
+                  >
+                    <CheckCircle2 size={14} />
+                    <span>{editingAvance ? 'Guardar Cambios' : 'Guardar y Notificar al Cliente'}</span>
+                  </button>
+                </div>
               </div>
 
             </form>
@@ -1424,19 +2116,25 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       )}
 
       {/* ==================================================================== */}
-      {/* MODAL: SUBIR DOCUMENTO PRIVADO (IDÉNTICO A IMAGEN 3)                 */}
+      {/* MODAL: SUBIR DOCUMENTO PRIVADO (GESTOR DOCUMENTAL - IMAGEN 2)        */}
+      {/* Subida múltiple, eliminación de archivos y fecha/hora automática     */}
       {/* ==================================================================== */}
       {modalDocOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4 my-auto">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-4 my-auto">
             
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Subir Documento Privado
-              </h3>
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase text-amber-600 dark:text-amber-400">
+                  Gestor Documental Técnico
+                </span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Subir Documento Privado
+                </h3>
+              </div>
               <button 
                 onClick={() => setModalDocOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
               >
                 <X size={20} />
               </button>
@@ -1447,7 +2145,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
               {/* Proyecto Destino */}
               <div>
                 <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Proyecto Destino
+                  Proyecto Destino *
                 </label>
                 <select
                   value={docForm.proyecto_id}
@@ -1464,77 +2162,76 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                 </select>
               </div>
 
-              {/* Archivo PDF / Doc */}
+              {/* Subir Uno o Varios Archivos (Multi-Upload) */}
               <div>
                 <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Archivo PDF / Doc
+                  Archivos PDF / Planos DWG / Memorias / Excel *
                 </label>
-                <div className="flex items-center gap-2">
-                  <label className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xl cursor-pointer text-xs shrink-0">
-                    Seleccionar archivo
+                
+                <div className="flex flex-col sm:flex-row items-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700">
+                  <label className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold rounded-xl cursor-pointer text-xs shrink-0 shadow-sm flex items-center gap-1.5 transition-all">
+                    <Upload size={14} />
+                    <span>Seleccionar Archivos</span>
                     <input
                       type="file"
+                      multiple
+                      accept=".pdf,.dwg,.doc,.docx,.xls,.xlsx,.zip,.rar"
                       className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const f = e.target.files[0];
-                          setDocForm(prev => ({
-                            ...prev,
-                            titulo: prev.titulo || f.name.split('.')[0],
-                            archivo_url: f.name,
-                            peso: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
-                            tipo: f.name.split('.').pop()?.toUpperCase() || 'PDF'
-                          }));
-                        }
-                      }}
+                      onChange={handleSeleccionarArchivosDoc}
                     />
                   </label>
-                  <span className="text-slate-500 font-mono text-xs truncate">
-                    {docForm.archivo_url || 'Sin archivos seleccionados'}
+                  <span className="text-slate-400 text-[11px] text-center sm:text-left">
+                    Puedes subir uno o varios archivos simultáneamente.
                   </span>
                 </div>
               </div>
 
-              {/* Fecha y Hora de Subida del Documento */}
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-                <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1 flex items-center gap-1">
-                    <Calendar size={12} className="text-amber-500" />
-                    <span>Fecha de Emisión *</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={docForm.fecha}
-                    onChange={(e) => setDocForm(prev => ({ ...prev, fecha: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
+              {/* Lista Interactiva de Archivos Seleccionados con Opción de Eliminar */}
+              {docForm.archivos.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                    <span>Archivos listos para guardar ({docForm.archivos.length}):</span>
+                    <span className="text-slate-400 font-mono text-[10px]">Verifica antes de confirmar</span>
+                  </div>
 
-                <div>
-                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1 flex items-center gap-1">
-                    <Clock size={12} className="text-amber-500" />
-                    <span>Hora *</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={docForm.hora}
-                    onChange={(e) => setDocForm(prev => ({ ...prev, hora: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
-              </div>
+                  <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {docForm.archivos.map((arch) => (
+                      <div key={arch.id} className="pt-1.5 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 font-bold shrink-0">
+                            {arch.tipo}
+                          </span>
+                          <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                            {arch.nombre}
+                          </span>
+                        </div>
 
-              {/* Título del Documento */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-mono text-slate-400">{arch.peso}</span>
+                          {/* Botón para eliminar archivo subido de forma incorrecta */}
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarArchivoDoc(arch.id)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                            title="Eliminar este archivo seleccionado"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Título del Documento / Asunto */}
               <div>
                 <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Título del Documento
+                  Título / Asunto General del Documento
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Ej. Planos Estructurales Finales"
+                  placeholder="Ej. Planos Estructurales Finales Aprobados"
                   value={docForm.titulo}
                   onChange={(e) => setDocForm(prev => ({ ...prev, titulo: e.target.value }))}
                   className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
@@ -1548,7 +2245,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Notas adicionales..."
+                  placeholder="Notas adicionales, revisión técnica o firmas digitales asociadas..."
                   value={docForm.descripcion}
                   onChange={(e) => setDocForm(prev => ({ ...prev, descripcion: e.target.value }))}
                   className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
@@ -1579,9 +2276,10 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-white font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 font-bold shadow-md cursor-pointer flex items-center gap-1.5"
                 >
-                  Guardar Documento
+                  <CheckCircle2 size={14} />
+                  <span>Guardar Documento{docForm.archivos.length > 1 ? 's' : ''}</span>
                 </button>
               </div>
 
@@ -1592,9 +2290,20 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
 
       {/* ==================================================================== */}
       {/* MODAL: VISUALIZAR AVANCE DE OBRA (IMAGEN 5)                           */}
+      {/* Muestra galería de fotos, videos, técnico y porcentaje comparativo   */}
       {/* ==================================================================== */}
       {modalVisualizarAvance && (() => {
         const { fecha, hora } = formatFechaHora(modalVisualizarAvance.fecha || modalVisualizarAvance.fecha_str, modalVisualizarAvance.hora_str);
+        const fotos = modalVisualizarAvance.fotos && Array.isArray(modalVisualizarAvance.fotos) && modalVisualizarAvance.fotos.length > 0
+          ? modalVisualizarAvance.fotos
+          : (modalVisualizarAvance.url ? [{ id: 'f-1', url: modalVisualizarAvance.url, nombre: 'Foto principal' }] : []);
+        const videos = modalVisualizarAvance.videos && Array.isArray(modalVisualizarAvance.videos) ? modalVisualizarAvance.videos : [];
+        const tecnico = modalVisualizarAvance.tecnico || {
+          nombre: modalVisualizarAvance.fiscalizador || 'Ing. Residente de Obra',
+          cargo: 'Residente / Fiscalizador',
+          senescyt: '1005-2016-189423',
+          telefono: '+593 99 481 2938'
+        };
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
@@ -1608,7 +2317,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                     </span>
                     <span className="text-xs font-mono text-slate-400 flex items-center gap-1">
                       <Clock size={12} className="text-amber-500" />
-                      {fecha} a las {hora}
+                      {fecha} a las {hora} (Sistema)
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1">
@@ -1618,23 +2327,84 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
 
                 <button 
                   onClick={() => setModalVisualizarAvance(null)}
-                  className="text-slate-400 hover:text-white"
+                  className="text-slate-400 hover:text-white cursor-pointer"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              {/* Imagen o Preview de Archivo */}
-              {modalVisualizarAvance.url && (
-                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-64 bg-slate-950 flex items-center justify-center">
-                  <img
-                    src={modalVisualizarAvance.url}
-                    alt={modalVisualizarAvance.titulo}
-                    className="w-full h-full object-cover max-h-64"
-                    onError={(e: any) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
+              {/* Comparativa de Porcentajes */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                <div>
+                  <span className="text-[10px] uppercase font-mono text-slate-400 block">Porcentaje Anterior</span>
+                  <span className="text-lg font-mono font-bold text-slate-600 dark:text-slate-400">
+                    {modalVisualizarAvance.porcentajeAnterior !== undefined ? modalVisualizarAvance.porcentajeAnterior : 0}%
+                  </span>
+                </div>
+
+                <div className="text-center px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">
+                  ➔ {modalVisualizarAvance.porcentajeAnterior !== undefined && modalVisualizarAvance.porcentaje >= modalVisualizarAvance.porcentajeAnterior 
+                    ? `+${modalVisualizarAvance.porcentaje - modalVisualizarAvance.porcentajeAnterior}%` 
+                    : `${modalVisualizarAvance.porcentaje}%`}
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-mono text-amber-600 dark:text-amber-400 font-bold block">Nuevo Porcentaje</span>
+                  <span className="text-xl font-mono font-black text-amber-500">
+                    {modalVisualizarAvance.porcentaje}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Galería de Fotografías Subidas */}
+              {fotos.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase font-mono flex items-center gap-1">
+                    <Camera size={13} className="text-amber-500" />
+                    <span>Fotografías del Avance ({fotos.length}):</span>
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-1">
+                    {fotos.map((f: any, i: number) => (
+                      <div key={f.id || i} className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950 max-h-28 group relative">
+                        <img
+                          src={f.url}
+                          alt={f.nombre || `Foto ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-white font-mono text-[9px] truncate max-w-[90%]">
+                          {f.nombre || `Foto ${i + 1}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Videos Adjuntos */}
+              {videos.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase font-mono flex items-center gap-1">
+                    <Film size={13} className="text-amber-500" />
+                    <span>Videos de Obra ({videos.length}):</span>
+                  </span>
+                  <div className="space-y-1.5">
+                    {videos.map((v: any, i: number) => (
+                      <div key={v.id || i} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 truncate">
+                          <Film size={14} className="text-amber-500 shrink-0" />
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{v.titulo || `Video ${i + 1}`}</span>
+                        </div>
+                        <a 
+                          href={v.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-[11px] font-mono text-amber-600 dark:text-amber-400 underline shrink-0 hover:text-amber-500"
+                        >
+                          Ver Video
+                        </a>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1642,19 +2412,24 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase font-mono">Detalle Técnico de la Actualización:</span>
                 <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-                  {modalVisualizarAvance.descripcion}
+                  {modalVisualizarAvance.descripcion || 'Sin descripción adicional registrada.'}
                 </p>
               </div>
 
-              {/* Métricas y Fiscalizador */}
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-xs">
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Fiscalizador Responsable:</span>
-                  <strong className="text-slate-800 dark:text-slate-200">{modalVisualizarAvance.fiscalizador || 'Ing. Residente Juan'}</strong>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">Avance Acumulado:</span>
-                  <span className="text-xl font-mono font-black text-amber-500">{modalVisualizarAvance.porcentaje}%</span>
+              {/* Datos del Técnico Responsable */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1">
+                  Técnico que Realizó la Inspección y Subida:
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <strong className="text-slate-900 dark:text-white block font-semibold">{tecnico.nombre}</strong>
+                    <span className="text-[11px] text-slate-500 block">{tecnico.cargo}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[11px] font-mono text-slate-600 dark:text-slate-400 block">SENESCYT: {tecnico.senescyt || 'N/A'}</span>
+                    <span className="text-[11px] text-slate-500 block">{tecnico.telefono || ''}</span>
+                  </div>
                 </div>
               </div>
 
