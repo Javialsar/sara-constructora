@@ -453,7 +453,7 @@ export function DirectorioRecursosSection({ user }: { user: any }) {
                     <div className="text-right font-mono">
                       <span className="text-[10px] text-slate-400 block">Monto Contractual</span>
                       <strong className="text-sm text-slate-900 dark:text-white">
-                        ${c.monto_contrato.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
+                        ${Number(c.monto_contrato ?? 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })}
                       </strong>
                     </div>
                   </div>

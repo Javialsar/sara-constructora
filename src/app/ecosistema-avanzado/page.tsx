@@ -950,21 +950,21 @@ export default function EcosistemaAvanzadoPage() {
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
                     <span className="text-slate-500 block text-[11px]">Stock Varilla 12mm:</span>
                     <span className="text-base font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                      {bodegaCentralStock.saldoCantidad.toLocaleString()} kg
+                      {Number(bodegaCentralStock?.saldoCantidad ?? 0).toLocaleString()} kg
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
                     <span className="text-slate-500 block text-[11px]">Costo Prom. (CPP):</span>
                     <span className="text-base font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-                      ${bodegaCentralStock.cpp.toFixed(4)}
+                      ${Number(bodegaCentralStock?.cpp ?? 0).toFixed(4)}
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
                     <span className="text-slate-500 block text-[11px]">Valor en Custodia:</span>
                     <span className="text-base font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
-                      ${bodegaCentralStock.costoTotal.toLocaleString()}
+                      ${Number(bodegaCentralStock?.costoTotal ?? 0).toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -977,15 +977,15 @@ export default function EcosistemaAvanzadoPage() {
                   <div className="grid grid-cols-3 gap-2 font-mono text-[11px] tabular-nums">
                     <div>
                       <span className="text-slate-500 block">Punto Reorden (ROP):</span>
-                      <span className="font-bold">{bodegaCentralStock.rop.toLocaleString()} kg</span>
+                      <span className="font-bold">{Number(bodegaCentralStock?.rop ?? 0).toLocaleString()} kg</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">Lote Óptimo (EOQ):</span>
-                      <span className="font-bold">{bodegaCentralStock.eoq.toLocaleString()} kg</span>
+                      <span className="font-bold">{Number(bodegaCentralStock?.eoq ?? 0).toLocaleString()} kg</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block">Stock Seguridad:</span>
-                      <span className="font-bold text-emerald-600">{bodegaCentralStock.stockSeguridad.toLocaleString()} kg</span>
+                      <span className="font-bold text-emerald-600">{Number(bodegaCentralStock?.stockSeguridad ?? 0).toLocaleString()} kg</span>
                     </div>
                   </div>
                 </div>
@@ -1037,14 +1037,14 @@ export default function EcosistemaAvanzadoPage() {
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
                     <span className="text-slate-500 block text-[11px]">Stock en Frente de Obra:</span>
                     <span className="text-base font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                      {obraCariamangaStock.saldoCantidad.toLocaleString()} kg
+                      {Number(obraCariamangaStock?.saldoCantidad ?? 0).toLocaleString()} kg
                     </span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
                     <span className="text-slate-500 block text-[11px]">Costo Imputado a Obra:</span>
                     <span className="text-base font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
-                      ${obraCariamangaStock.costoTotal.toLocaleString()}
+                      ${Number(obraCariamangaStock?.costoTotal ?? 0).toLocaleString()}
                     </span>
                   </div>
                 </div>
