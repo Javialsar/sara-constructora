@@ -24,7 +24,7 @@ import {
   Building2,
   Sparkles,
   CreditCard, DollarSign
-, ShieldAlert, Trash2 , Activity, Bell , Send, Truck } from "lucide-react"
+, ShieldAlert, Trash2 , Activity, Bell , Send, Truck, UserCheck } from "lucide-react"
 import ThemeToggle from "@/components/ThemeToggle"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -134,6 +134,13 @@ export default function AdminLayout({
         { href: "/admin/clientes", label: "Clientes (CRM)", icon: Users },
         { href: "/admin/proveedores", label: "Proveedores", icon: Briefcase },
         { href: "/admin/trabajadores", label: "Personal de Obra", icon: Wrench },
+      ]
+    },
+    {
+      title: "GESTIÓN CONSTRUCTORA",
+      items: [
+        { href: "/admin/constructora/clientes", label: "Clientes Suscritos", icon: UserCheck },
+        { href: "/admin/constructora/planes", label: "Planes Constructora", icon: CreditCard },
       ]
     },
     {
