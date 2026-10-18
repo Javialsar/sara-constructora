@@ -27,7 +27,8 @@ import {
   Receipt,
   Warehouse,
   Wrench,
-  Briefcase
+  Briefcase,
+  ChevronDown
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { canAccessModule, getUserModule, SARA_MODULES, getUserPortalUrl } from '@/lib/auth/moduleGuards';
@@ -42,10 +43,10 @@ export default function ConstructoraAuthPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null);
 
-  // Form Fields: 6 Perfiles Especializados de Constructora
+  // Form Fields: Perfiles de Constructora (Cliente por defecto)
   const [tipoProfesional, setTipoProfesional] = useState<
-    'ingeniero' | 'arquitecto' | 'contador' | 'bodeguero' | 'tecnico_apoyo' | 'cliente'
-  >('ingeniero');
+    'cliente' | 'ingeniero' | 'arquitecto' | 'contador' | 'bodeguero' | 'tecnico_apoyo'
+  >('cliente');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -201,12 +202,12 @@ export default function ConstructoraAuthPage() {
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mb-1 tracking-tight">
-            {isLogin ? 'Bienvenido a la Suite' : 'Registro de Profesional'}
+            {isLogin ? 'Bienvenido a la Suite' : 'Registro en la Suite'}
           </h2>
           <p className="text-slate-500 dark:text-slate-400 mb-6 text-xs leading-relaxed">
             {isLogin 
-              ? 'Ingresa tus credenciales profesionales para acceder a la consola agéntica de obras.' 
-              : 'Acceso exclusivo para Ingenieros Civiles, Arquitectos BIM y Constructoras con contrato.'}
+              ? 'Ingresa tus credenciales para acceder a la consola operativa y agéntica de obras.' 
+              : 'Acceso para Clientes de Obra, Ingenieros Residentes, Arquitectos BIM y Equipo Técnico.'}
           </p>
 
           {/* Alerta de Error con Redirección Inter-Módulo */}
@@ -241,105 +242,39 @@ export default function ConstructoraAuthPage() {
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
             
-            {/* Si es REGISTRO: Selector de Perfil Profesional (6 Roles de Obra) */}
+            {/* Si es REGISTRO: Selector Desplegable de Perfil de Usuario (Cliente por defecto) */}
             {!isLogin && (
               <div className="space-y-1.5 pb-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Tipo de Usuario & Perfil en la Empresa
+                  <label htmlFor="tipoProfesional" className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Tipo de Usuario en la Empresa
                   </label>
-                  <span className="text-[10px] text-amber-500 font-mono">Define permisos en la Suite</span>
+                  <span className="text-[10px] text-amber-500 font-mono font-medium">
+                    {tipoProfesional === 'cliente' && 'Acceso: Mis Proyectos & Fiscalización'}
+                    {tipoProfesional === 'ingeniero' && 'Acceso: Cronograma & Cuadrillas'}
+                    {tipoProfesional === 'arquitecto' && 'Acceso: Visor BIM & Modelos 3D'}
+                    {tipoProfesional === 'contador' && 'Acceso: 3-Way Match & Costos'}
+                    {tipoProfesional === 'bodeguero' && 'Acceso: Kardex Multibodega'}
+                    {tipoProfesional === 'tecnico_apoyo' && 'Acceso: Topografía & Tareo'}
+                  </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {/* 1. Ingeniero */}
-                  <button
-                    type="button"
-                    onClick={() => setTipoProfesional('ingeniero')}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'ingeniero'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
-                    }`}
+                <div className="relative">
+                  <select
+                    id="tipoProfesional"
+                    value={tipoProfesional}
+                    onChange={(e) => setTipoProfesional(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none appearance-none cursor-pointer pr-10 shadow-sm transition-all"
                   >
-                    <HardHat size={15} className="mx-auto mb-1 text-amber-500" />
-                    <span className="text-[11px] block font-semibold">Ingeniero</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">Residente</span>
-                  </button>
-
-                  {/* 2. Arquitecto */}
-                  <button
-                    type="button"
-                    onClick={() => setTipoProfesional('arquitecto')}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'arquitecto'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
-                    }`}
-                  >
-                    <Compass size={15} className="mx-auto mb-1 text-amber-500" />
-                    <span className="text-[11px] block font-semibold">Arquitecto</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">BIM & Diseño</span>
-                  </button>
-
-                  {/* 3. Contador */}
-                  <button
-                    type="button"
-                    onClick={() => setTipoProfesional('contador')}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'contador'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
-                    }`}
-                  >
-                    <Receipt size={15} className="mx-auto mb-1 text-emerald-500" />
-                    <span className="text-[11px] block font-semibold">Contador(a)</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">SRI & IESS</span>
-                  </button>
-
-                  {/* 4. Bodeguero */}
-                  <button
-                    type="button"
-                    onClick={() => setTipoProfesional('bodeguero')}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'bodeguero'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
-                    }`}
-                  >
-                    <Warehouse size={15} className="mx-auto mb-1 text-amber-500" />
-                    <span className="text-[11px] block font-semibold">Bodeguero</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">Kardex Matriz</span>
-                  </button>
-
-                  {/* 5. Técnico de Apoyo */}
-                  <button
-                    type="button"
-                    onClick={() => setTipoProfesional('tecnico_apoyo')}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'tecnico_apoyo'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
-                    }`}
-                  >
-                    <Wrench size={15} className="mx-auto mb-1 text-sky-500" />
-                    <span className="text-[11px] block font-semibold">Técnico Apoyo</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">Topógrafo / Tareo</span>
-                  </button>
-
-                  {/* 6. Cliente de la Empresa */}
-                  <button
-                    type="button"
-                    onClick={() => setTipoProfesional('cliente')}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      tipoProfesional === 'cliente'
-                        ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-sm ring-1 ring-amber-500/30'
-                        : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700 text-xs'
-                    }`}
-                  >
-                    <Briefcase size={15} className="mx-auto mb-1 text-purple-500" />
-                    <span className="text-[11px] block font-semibold">Cliente Obra</span>
-                    <span className="text-[9px] text-slate-400 block font-mono">Supervisión</span>
-                  </button>
+                    <option value="cliente">🏢 Cliente de la empresa (Supervisión y avance de obras)</option>
+                    <option value="ingeniero">🏗️ Ingeniero Residente (Control de obra y cuadrillas)</option>
+                    <option value="arquitecto">📐 Arquitecto BIM (Modelos 3D, planos y diseño)</option>
+                    <option value="contador">💼 Contador(a) Tributario (3-Way Match SRI y costos)</option>
+                    <option value="bodeguero">📦 Bodeguero de Obra (Kardex matriz y despacho)</option>
+                    <option value="tecnico_apoyo">🛠️ Técnico de Apoyo (Topografía y fiscalización de campo)</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                    <ChevronDown size={16} />
+                  </div>
                 </div>
               </div>
             )}
@@ -393,27 +328,41 @@ export default function ConstructoraAuthPage() {
               </div>
             )}
 
-            {/* Si es REGISTRO: Registro SENESCYT y Razón Social */}
+            {/* Si es REGISTRO: Registro Profesional o Código de Obra y Razón Social */}
             {!isLogin && (
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Matrícula SENESCYT</label>
-                  <input 
-                    type="text" 
-                    value={registroSenescyt}
-                    onChange={(e) => setRegistroSenescyt(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-100 outline-none font-mono" 
-                    placeholder="1005-2018-9923"
-                  />
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {tipoProfesional === 'cliente' ? 'Código Obra / Contrato' : 'Matrícula SENESCYT'}
+                  </label>
+                  {tipoProfesional === 'cliente' ? (
+                    <input 
+                      type="text" 
+                      value={codigoContratoObra}
+                      onChange={(e) => setCodigoContratoObra(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-100 outline-none font-mono" 
+                      placeholder="OBRA-2026-01 (Opcional)"
+                    />
+                  ) : (
+                    <input 
+                      type="text" 
+                      value={registroSenescyt}
+                      onChange={(e) => setRegistroSenescyt(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-100 outline-none font-mono" 
+                      placeholder="1005-2018-9923"
+                    />
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Empresa / Razón Social</label>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {tipoProfesional === 'cliente' ? 'Empresa / Referencia' : 'Empresa / Razón Social'}
+                  </label>
                   <input 
                     type="text" 
                     value={razonSocial}
                     onChange={(e) => setRazonSocial(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-amber-500 text-xs text-slate-800 dark:text-slate-100 outline-none" 
-                    placeholder="Constructora S.A."
+                    placeholder={tipoProfesional === 'cliente' ? 'Particular / Empresa' : 'Constructora S.A.'}
                   />
                 </div>
               </div>
