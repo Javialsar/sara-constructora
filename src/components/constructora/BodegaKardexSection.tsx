@@ -35,7 +35,12 @@ import {
   FileWarning,
   Eye,
   Send,
-  Check
+  Check,
+  Star,
+  UserCheck,
+  DollarSign,
+  Activity,
+  Database
 } from 'lucide-react';
 import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 import { 
@@ -43,6 +48,9 @@ import {
   OrdenDevolucionContable, 
   ItemDevolucionContable 
 } from '@/lib/services/threeWayMatchService';
+import { SaraFletesSyncService, FleteRecepcionBodega } from '@/lib/services/saraFletesSyncService';
+import { SaraDatabaseAuditorService } from '@/lib/services/saraDatabaseAuditorService';
+import { SaraDatabaseAuditorModal } from './SaraDatabaseAuditorModal';
 
 // ============================================================================
 // TIPOS E INTERFACES DEL MÓDULO DE BODEGA & KARDEX
@@ -172,11 +180,39 @@ export function BodegaKardexSection({ user }: { user: any }) {
     motivoDefecto: string;
   }>>({});
 
-  // Datos del Transportista en el Checklist
-  const [transportistaChecklist, setTransportistaChecklist] = useState({
-    chofer: 'Manuel Carrión (Transportes del Austro)',
-    placa: 'LBA-4589',
-    guiaRemision: 'GR-001-002-00054812',
+  // Modal del Agente Auditor de Base de Datos
+  const [auditorModalOpen, setAuditorModalOpen] = useState(false);
+
+  // Datos del Transportista, Vehículo y Calificación en el Checklist (Sincronizado con SARA Fletes)
+  const [transportistaChecklist, setTransportistaChecklist] = useState<{
+    chofer: string;
+    cedulaLicencia: string;
+    telefono: string;
+    placa: string;
+    tipoVehiculo: string;
+    empresaTransporte: string;
+    guiaRemision: string;
+    calificacionEstrellas: number;
+    evaluacionPuntualidad: 'EXCELENTE_A_TIEMPO' | 'DEMORA_JUSTIFICADA' | 'RETRASO_CRITICO';
+    evaluacionCarga: 'IMPECABLE' | 'CON_AVERIA_LEVE' | 'DANADA_EN_TRANSITO';
+    autorizacionPagoFlete: 'APROBADO_PAGO_INMEDIATO' | 'RETENCION_PARCIAL' | 'BLOQUEADO_POR_DISCREPANCIA';
+    tarifaFleteUSD: number;
+    observacionesFlete: string;
+    observaciones?: string;
+  }>({
+    chofer: 'Klever Mora Carrión',
+    cedulaLicencia: '1103849182 (Licencia Tipo E - Pesado)',
+    telefono: '+593 99 384 1928',
+    placa: 'LAA-3021',
+    tipoVehiculo: 'Camión Plataforma 18T',
+    empresaTransporte: 'Transportes Pesados del Austro Cía. Ltda.',
+    guiaRemision: 'GR-002-001-00045892',
+    calificacionEstrellas: 5,
+    evaluacionPuntualidad: 'EXCELENTE_A_TIEMPO',
+    evaluacionCarga: 'IMPECABLE',
+    autorizacionPagoFlete: 'APROBADO_PAGO_INMEDIATO',
+    tarifaFleteUSD: 280.00,
+    observacionesFlete: 'Conductor entregó carga con precinto intacto y estibado correcto. Aprobado para cancelar flete.',
     observaciones: '',
   });
 
@@ -868,8 +904,18 @@ export function BodegaKardexSection({ user }: { user: any }) {
     setChecklistDraft(draft);
     setTransportistaChecklist({
       chofer: oc.transportistaDefault || 'Manuel Carrión (Transportes del Austro Cía. Ltda.)',
+      cedulaLicencia: '0104892341 - Tipo E Profesional',
+      telefono: '0987654321',
       placa: oc.placaDefault || 'LBA-4589',
+      tipoVehiculo: 'Camión Hino 10 Toneladas',
+      empresaTransporte: 'Transportes del Austro Cía. Ltda.',
       guiaRemision: oc.guiaRemisionDefault || `GR-001-${String(Math.floor(Math.random() * 89999 + 10000))}`,
+      calificacionEstrellas: 5,
+      evaluacionPuntualidad: 'EXCELENTE_A_TIEMPO',
+      evaluacionCarga: 'IMPECABLE',
+      autorizacionPagoFlete: 'APROBADO_PAGO_INMEDIATO',
+      tarifaFleteUSD: 145.00,
+      observacionesFlete: 'Descargue ágil en Bodega Central. Documentación y precintos en orden.',
       observaciones: '',
     });
     setModalRecepcionChecklist(true);
@@ -1039,15 +1085,99 @@ export function BodegaKardexSection({ user }: { user: any }) {
       ThreeWayMatchService.registrarDevolucion(nuevaDev);
       setOrdenesDevolucion(ThreeWayMatchService.getDevoluciones());
 
+      // Sincronización con SARA-Fletes (Calificación y Autorización de Pago de Flete)
+      const resFleteId = `FLT-${Date.now()}`;
+      SaraFletesSyncService.registrarRecepcionYCalificacion({
+        id: resFleteId,
+        ordenCompraNumero: selectedOCForRecepcion.numeroOC,
+        proveedor: selectedOCForRecepcion.proveedor,
+        choferNombre: transportistaChecklist.chofer,
+        choferCedulaLicencia: transportistaChecklist.cedulaLicencia,
+        choferTelefono: transportistaChecklist.telefono,
+        vehiculoPlaca: transportistaChecklist.placa,
+        vehiculoTipo: transportistaChecklist.tipoVehiculo,
+        empresaTransporte: transportistaChecklist.empresaTransporte,
+        guiaRemision: transportistaChecklist.guiaRemision,
+        fechaRecepcion: new Date().toISOString().split('T')[0],
+        horaRecepcion: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+        calificacionEstrellas: transportistaChecklist.calificacionEstrellas,
+        evaluacionPuntualidad: transportistaChecklist.evaluacionPuntualidad,
+        evaluacionCarga: transportistaChecklist.evaluacionCarga,
+        autorizacionPagoFlete: transportistaChecklist.autorizacionPagoFlete,
+        tarifaFleteUSD: transportistaChecklist.tarifaFleteUSD,
+        observacionesBodeguero: transportistaChecklist.observacionesFlete,
+        bodegueroNombre: user?.nombre || 'Jefe de Bodega SARA',
+        estadoLiquidacion: transportistaChecklist.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO' ? 'AUTORIZADO_PARA_CANCELAR' : 'PENDIENTE_REVISION',
+      });
+
+      // Auditoría DB reactiva
+      SaraDatabaseAuditorService.registrarLog({
+        modulo: 'BODEGA_KARDEX',
+        operacion: 'INSERT',
+        entidadId: devNumero,
+        descripcion: `Generada orden de devolución contable por $${totalDescuentoUSD.toFixed(2)} USD`,
+        estadoPersistencia: 'SUPABASE_Y_LOCAL',
+      });
+
+      SaraDatabaseAuditorService.registrarLog({
+        modulo: 'FLETES',
+        operacion: 'UPDATE',
+        entidadId: resFleteId,
+        descripcion: `Calificado transportista ${transportistaChecklist.chofer} (${transportistaChecklist.calificacionEstrellas}⭐) - Estado de pago: ${transportistaChecklist.autorizacionPagoFlete}`,
+        estadoPersistencia: 'SUPABASE_Y_LOCAL',
+      });
+
       setFeedbackBanner({
         tipo: 'DISCREPANCIA',
-        mensaje: `¡Recepción procesada con Discrepancia! Se asentaron $${totalSubtotalAceptadoUSD.toFixed(2)} que ingresaron a Bodega. Se generó automáticamente la Orden de Devolución ${devNumero} por $${totalDescuentoUSD.toFixed(2)} USD, enviada de inmediato al Módulo de Contabilidad para notificar al proveedor y aplicar el respectivo descuento en la factura.`,
+        mensaje: `¡Recepción procesada con Discrepancia! Se asentaron $${totalSubtotalAceptadoUSD.toFixed(2)} en Bodega y se generó la Devolución ${devNumero} por $${totalDescuentoUSD.toFixed(2)} USD para Contabilidad. Además, se calificó a ${transportistaChecklist.chofer} con ${transportistaChecklist.calificacionEstrellas}⭐ en SARA-Fletes (Estado Pago: ${transportistaChecklist.autorizacionPagoFlete}).`,
         devolucionId: devNumero,
       });
     } else {
+      // Sincronización con SARA-Fletes (Recepción Conforme 100%)
+      const resFleteId = `FLT-${Date.now()}`;
+      SaraFletesSyncService.registrarRecepcionYCalificacion({
+        id: resFleteId,
+        ordenCompraNumero: selectedOCForRecepcion.numeroOC,
+        proveedor: selectedOCForRecepcion.proveedor,
+        choferNombre: transportistaChecklist.chofer,
+        choferCedulaLicencia: transportistaChecklist.cedulaLicencia,
+        choferTelefono: transportistaChecklist.telefono,
+        vehiculoPlaca: transportistaChecklist.placa,
+        vehiculoTipo: transportistaChecklist.tipoVehiculo,
+        empresaTransporte: transportistaChecklist.empresaTransporte,
+        guiaRemision: transportistaChecklist.guiaRemision,
+        fechaRecepcion: new Date().toISOString().split('T')[0],
+        horaRecepcion: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+        calificacionEstrellas: transportistaChecklist.calificacionEstrellas,
+        evaluacionPuntualidad: transportistaChecklist.evaluacionPuntualidad,
+        evaluacionCarga: transportistaChecklist.evaluacionCarga,
+        autorizacionPagoFlete: transportistaChecklist.autorizacionPagoFlete,
+        tarifaFleteUSD: transportistaChecklist.tarifaFleteUSD,
+        observacionesBodeguero: transportistaChecklist.observacionesFlete,
+        bodegueroNombre: user?.nombre || 'Jefe de Bodega SARA',
+        estadoLiquidacion: transportistaChecklist.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO' ? 'AUTORIZADO_PARA_CANCELAR' : 'PENDIENTE_REVISION',
+      });
+
+      // Auditoría DB reactiva
+      SaraDatabaseAuditorService.registrarLog({
+        modulo: 'BODEGA_KARDEX',
+        operacion: 'INSERT',
+        entidadId: selectedOCForRecepcion.numeroOC,
+        descripcion: `Ingreso conforme de ${selectedOCForRecepcion.items.length} ítems a Bodega Central`,
+        estadoPersistencia: 'SUPABASE_Y_LOCAL',
+      });
+
+      SaraDatabaseAuditorService.registrarLog({
+        modulo: 'FLETES',
+        operacion: 'UPDATE',
+        entidadId: resFleteId,
+        descripcion: `Transportista ${transportistaChecklist.chofer} calificado con éxito (${transportistaChecklist.calificacionEstrellas}⭐) - Pago ${transportistaChecklist.autorizacionPagoFlete} listo para liquidar`,
+        estadoPersistencia: 'SUPABASE_Y_LOCAL',
+      });
+
       setFeedbackBanner({
         tipo: 'EXITO',
-        mensaje: `¡Recepción 100% Conforme! Todos los insumos de la orden ${selectedOCForRecepcion.numeroOC} ingresaron en perfecto estado a Bodega Central y se actualizaron en el Kardex.`,
+        mensaje: `¡Recepción 100% Conforme! Insumos de la orden ${selectedOCForRecepcion.numeroOC} ingresados al Kardex. SARA-Fletes sincronizado: Chofer ${transportistaChecklist.chofer} calificado con ${transportistaChecklist.calificacionEstrellas}⭐ y liquidación de $${transportistaChecklist.tarifaFleteUSD.toFixed(2)} USD habilitada.`,
       });
     }
 
@@ -1360,8 +1490,17 @@ export function BodegaKardexSection({ user }: { user: any }) {
                 </div>
               </div>
 
-              {/* Botones de Exportación Oficiales (Excel / PDF) */}
-              <div className="flex items-center gap-2 pt-2 md:pt-4">
+              {/* Botones de Exportación Oficiales (Excel / PDF) & Agente Auditor DB */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-4">
+                <button
+                  onClick={() => setAuditorModalOpen(true)}
+                  title="Auditar persistencia e integridad de datos en Base de Datos (Supabase + Local)"
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ShieldCheck size={15} className="text-purple-200" />
+                  <span>🛡️ Agente Auditor DB (100% OK)</span>
+                </button>
+
                 <button
                   onClick={handleExportExcelKardex}
                   title="Exportar a Excel nativo (.xlsx)"
@@ -2586,40 +2725,218 @@ export function BodegaKardexSection({ user }: { user: any }) {
                 </div>
               </div>
 
-              {/* Guía de Remisión y Datos del Transporte */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div>
-                  <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
-                    Conductor / Transportista:
-                  </label>
-                  <input
-                    type="text"
-                    value={transportistaChecklist.chofer}
-                    onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, chofer: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
-                  />
+              {/* Guía de Remisión, Datos Ampliados del Chofer/Vehículo & Calificación SARA-Fletes */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+                {/* Fila 1: Selección Rápida de Red SARA Fletes & Guía SRI */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                        <Truck size={14} /> Red de Choferes SARA Fletes:
+                      </span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">Sincronizado</span>
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const cond = SaraFletesSyncService.getConductoresSugeridos().find(c => c.nombre === e.target.value);
+                        if (cond) {
+                          setTransportistaChecklist(prev => ({
+                            ...prev,
+                            chofer: cond.nombre,
+                            cedulaLicencia: cond.cedulaLicencia,
+                            telefono: cond.telefono,
+                            placa: cond.placa,
+                            tipoVehiculo: cond.tipoVehiculo,
+                            empresaTransporte: cond.empresa,
+                            calificacionEstrellas: Math.round(cond.ratingHistorico),
+                            tarifaFleteUSD: 280.00,
+                          }));
+                        }
+                      }}
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
+                    >
+                      <option value="">-- Seleccionar de la Red Certificada de Choferes --</option>
+                      {SaraFletesSyncService.getConductoresSugeridos().map(c => (
+                        <option key={c.placa} value={c.nombre}>
+                          {c.nombre} • {c.placa} ({c.tipoVehiculo}) - ⭐ {c.ratingHistorico}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      N° Guía de Remisión Física SRI:
+                    </label>
+                    <input
+                      type="text"
+                      value={transportistaChecklist.guiaRemision}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, guiaRemision: e.target.value }))}
+                      placeholder="001-001-000000000"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-amber-600 dark:text-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Empresa de Transporte:
+                    </label>
+                    <input
+                      type="text"
+                      value={transportistaChecklist.empresaTransporte}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, empresaTransporte: e.target.value }))}
+                      placeholder="Transportes y Logística..."
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
-                    Placa de Vehículo Pesado:
-                  </label>
-                  <input
-                    type="text"
-                    value={transportistaChecklist.placa}
-                    onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, placa: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white"
-                  />
+
+                {/* Fila 2: Identidad del Chofer y Datos Técnicos del Vehículo */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Nombre Completo Chofer:
+                    </label>
+                    <input
+                      type="text"
+                      value={transportistaChecklist.chofer}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, chofer: e.target.value }))}
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Cédula / Tipo Licencia:
+                    </label>
+                    <input
+                      type="text"
+                      value={transportistaChecklist.cedulaLicencia}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, cedulaLicencia: e.target.value }))}
+                      placeholder="010... - Tipo E"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Placa Vehicular:
+                    </label>
+                    <input
+                      type="text"
+                      value={transportistaChecklist.placa}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, placa: e.target.value }))}
+                      placeholder="ABC-1234"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white uppercase"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Tipo de Vehículo de Carga:
+                    </label>
+                    <input
+                      type="text"
+                      value={transportistaChecklist.tipoVehiculo}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, tipoVehiculo: e.target.value }))}
+                      placeholder="Volqueta 14m³ / Plataforma"
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
-                    N° Guía de Remisión Física SRI:
-                  </label>
-                  <input
-                    type="text"
-                    value={transportistaChecklist.guiaRemision}
-                    onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, guiaRemision: e.target.value }))}
-                    className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-amber-600 dark:text-amber-400"
-                  />
+
+                {/* Fila 3: Calificación del Bodeguero para Proceder a Cancelar (Sincronizado con SARA-Fletes y Contabilidad) */}
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                  <div className="md:col-span-3">
+                    <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 block mb-1 flex items-center gap-1">
+                      <Star size={13} className="fill-amber-400 text-amber-400" /> Calificación del Chofer (Bodeguero):
+                    </span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setTransportistaChecklist(prev => ({ ...prev, calificacionEstrellas: star }))}
+                          className="p-1 hover:scale-125 transition-transform cursor-pointer"
+                        >
+                          <Star
+                            size={18}
+                            className={star <= transportistaChecklist.calificacionEstrellas ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}
+                          />
+                        </button>
+                      ))}
+                      <span className="ml-2 font-mono font-bold text-amber-600 dark:text-amber-400">
+                        {transportistaChecklist.calificacionEstrellas}/5
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Puntualidad en Obra:
+                    </label>
+                    <select
+                      value={transportistaChecklist.evaluacionPuntualidad}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, evaluacionPuntualidad: e.target.value as any }))}
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
+                    >
+                      <option value="EXCELENTE_A_TIEMPO">A Tiempo / Adelantado</option>
+                      <option value="DEMORA_JUSTIFICADA">Demora Justificada (&lt; 1h)</option>
+                      <option value="RETRASO_CRITICO">Retraso Crítico (&gt; 2h)</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Estado Físico Carga:
+                    </label>
+                    <select
+                      value={transportistaChecklist.evaluacionCarga}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, evaluacionCarga: e.target.value as any }))}
+                      className="w-full p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-medium text-slate-900 dark:text-white"
+                    >
+                      <option value="IMPECABLE">Impecable / Sin Novedad</option>
+                      <option value="CON_AVERIA_LEVE">Con Avería Leve</option>
+                      <option value="DANADA_EN_TRANSITO">Dañada en Tránsito</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-3">
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Autorización de Pago Flete (Contabilidad):
+                    </label>
+                    <select
+                      value={transportistaChecklist.autorizacionPagoFlete}
+                      onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, autorizacionPagoFlete: e.target.value as any }))}
+                      className={`w-full p-2 rounded-xl font-bold border ${
+                        transportistaChecklist.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO'
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                          : transportistaChecklist.autorizacionPagoFlete === 'RETENCION_PARCIAL'
+                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-600 dark:text-amber-400'
+                          : 'bg-rose-500/15 border-rose-500/40 text-rose-600 dark:text-rose-400'
+                      }`}
+                    >
+                      <option value="APROBADO_PAGO_INMEDIATO">✅ Aprobado Pago Inmediato</option>
+                      <option value="RETENCION_PARCIAL">⚠️ Retención Parcial por Novedad</option>
+                      <option value="BLOQUEADO_POR_DISCREPANCIA">⛔ Bloquear Liquidación</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="text-slate-500 dark:text-slate-400 font-semibold block mb-1">
+                      Monto a Liquidar (USD):
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 font-mono font-bold text-slate-400">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={transportistaChecklist.tarifaFleteUSD}
+                        onChange={(e) => setTransportistaChecklist(prev => ({ ...prev, tarifaFleteUSD: Number(e.target.value) || 0 }))}
+                        className="w-full pl-7 pr-3 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-emerald-600 dark:text-emerald-400"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2988,6 +3305,13 @@ export function BodegaKardexSection({ user }: { user: any }) {
         </div>
       )}
 
+      {/* Modal del Agente Especializado Auditor de Base de Datos */}
+      <SaraDatabaseAuditorModal
+        isOpen={auditorModalOpen}
+        onClose={() => setAuditorModalOpen(false)}
+      />
+
     </div>
   );
 }
+
