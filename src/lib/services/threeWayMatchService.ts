@@ -359,4 +359,163 @@ export class ThreeWayMatchService {
       detalles,
     };
   }
+
+  // =========================================================================
+  // GESTIÓN DE ÓRDENES DE DEVOLUCIÓN & DISCREPANCIAS DE BODEGA PARA CONTABILIDAD
+  // =========================================================================
+  private static mockDevolucionesMemoria: OrdenDevolucionContable[] = [
+    {
+      id: 'DEV-001',
+      numeroDevolucion: 'DEV-PROV-2026-004',
+      numeroOCReferencia: 'OC-2026-068',
+      numeroFacturaSRI: '001-002-000849301',
+      proveedor: 'HOLCIM ECUADOR S.A.',
+      rucProveedor: '0990004589001',
+      guiaRemision: 'GR-001-09845',
+      fecha: '2026-10-12',
+      hora: '10:45',
+      responsableBodega: 'Ing. David Sarango (Jefe de Bodega)',
+      transportista: 'Transportes Pesados del Austro Cía. Ltda. (Chofer: Wilson Loaiza)',
+      placaVehiculo: 'LBA-8842',
+      items: [
+        {
+          insumoCodigo: 'INS-CEM-001',
+          insumoNombre: 'Cemento Holcim Fuerte 50kg',
+          unidad: 'Saco',
+          cantidadPedida: 800,
+          cantidadIngresada: 740,
+          cantidadFaltante: 20,
+          cantidadDefectuosa: 40,
+          motivo: '40 sacos con endurecimiento/fraguado previo por humedad en plataforma de camión + 20 sacos faltantes en fardo.',
+          costoUnitario: 7.45,
+          subtotalDescuento: 447.00,
+        }
+      ],
+      totalDescuentoUSD: 447.00,
+      totalSubtotalAceptadoUSD: 5513.00,
+      estado: 'DESCUENTO_APLICADO_FACTURA',
+      accionContable: {
+        fechaAplicacion: '2026-10-13 14:30',
+        facturaOriginalMonto: 5960.00,
+        descuentoAplicado: 447.00,
+        facturaAjustadaMonto: 5513.00,
+        observacionContador: 'Descuento ejecutado contra Factura SRI 001-002-000849301 según Acta de Devolución DEV-PROV-2026-004. Se retuvo el pago de $447.00 no ingresados.',
+        asientoDescuentoGenerado: true
+      }
+    }
+  ];
+
+  public static getDevoluciones(): OrdenDevolucionContable[] {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('sara_ordenes_devolucion_contabilidad');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      } catch (e) {
+        console.error('Error al leer devoluciones de localStorage:', e);
+      }
+    }
+    return this.mockDevolucionesMemoria;
+  }
+
+  public static registrarDevolucion(dev: OrdenDevolucionContable): void {
+    const list = this.getDevoluciones();
+    const updated = [dev, ...list.filter(d => d.id !== dev.id)];
+    this.mockDevolucionesMemoria = updated;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sara_ordenes_devolucion_contabilidad', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Error al guardar devolución en localStorage:', e);
+      }
+    }
+  }
+
+  public static aplicarDescuentoContable(
+    devId: string, 
+    observacionContador: string,
+    facturaOriginalMonto: number
+  ): OrdenDevolucionContable | null {
+    const list = this.getDevoluciones();
+    const dev = list.find(d => d.id === devId);
+    if (!dev) return null;
+
+    dev.estado = 'DESCUENTO_APLICADO_FACTURA';
+    dev.accionContable = {
+      fechaAplicacion: new Date().toLocaleString('es-EC'),
+      facturaOriginalMonto: facturaOriginalMonto,
+      descuentoAplicado: dev.totalDescuentoUSD,
+      facturaAjustadaMonto: Math.max(0, facturaOriginalMonto - dev.totalDescuentoUSD),
+      observacionContador: observacionContador || `Descuento de $${dev.totalDescuentoUSD.toFixed(2)} aplicado formalmente a la factura del proveedor por mercadería no ingresada.`,
+      asientoDescuentoGenerado: true
+    };
+
+    this.mockDevolucionesMemoria = list;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sara_ordenes_devolucion_contabilidad', JSON.stringify(list));
+      } catch (e) {
+        console.error('Error actualizando devolución en localStorage:', e);
+      }
+    }
+    return dev;
+  }
+
+  public static notificarProveedor(devId: string): OrdenDevolucionContable | null {
+    const list = this.getDevoluciones();
+    const dev = list.find(d => d.id === devId);
+    if (!dev) return null;
+
+    dev.estado = 'NOTIFICADO_PROVEEDOR';
+    this.mockDevolucionesMemoria = list;
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sara_ordenes_devolucion_contabilidad', JSON.stringify(list));
+      } catch (e) {
+        console.error('Error actualizando devolución en localStorage:', e);
+      }
+    }
+    return dev;
+  }
+}
+
+export interface ItemDevolucionContable {
+  insumoCodigo: string;
+  insumoNombre: string;
+  unidad: string;
+  cantidadPedida: number;
+  cantidadIngresada: number;
+  cantidadFaltante: number;
+  cantidadDefectuosa: number;
+  motivo: string;
+  costoUnitario: number;
+  subtotalDescuento: number;
+}
+
+export interface OrdenDevolucionContable {
+  id: string;
+  numeroDevolucion: string;
+  numeroOCReferencia: string;
+  numeroFacturaSRI?: string;
+  proveedor: string;
+  rucProveedor: string;
+  guiaRemision: string;
+  fecha: string;
+  hora: string;
+  responsableBodega: string;
+  transportista: string;
+  placaVehiculo: string;
+  items: ItemDevolucionContable[];
+  totalDescuentoUSD: number;
+  totalSubtotalAceptadoUSD: number;
+  estado: 'PENDIENTE_NOTIFICACION' | 'NOTIFICADO_PROVEEDOR' | 'DESCUENTO_APLICADO_FACTURA';
+  accionContable?: {
+    fechaAplicacion: string;
+    facturaOriginalMonto: number;
+    descuentoAplicado: number;
+    facturaAjustadaMonto: number;
+    observacionContador: string;
+    asientoDescuentoGenerado: boolean;
+  };
 }

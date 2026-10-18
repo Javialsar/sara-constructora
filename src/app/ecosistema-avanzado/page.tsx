@@ -41,11 +41,20 @@ import {
   ShoppingCart,
   Image as ImageIcon,
   FileText,
-  ExternalLink
+  ExternalLink,
+  RotateCcw,
+  Send,
+  Mail,
+  FileSpreadsheet,
+  Eye
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { SriXmlService } from '@/lib/services/sriXmlService';
-import { ThreeWayMatchService, PurchaseOrder } from '@/lib/services/threeWayMatchService';
+import { 
+  ThreeWayMatchService, 
+  PurchaseOrder, 
+  OrdenDevolucionContable 
+} from '@/lib/services/threeWayMatchService';
 import { KardexMultibodegaService, DistributionSlipInput } from '@/lib/services/kardexMultibodegaService';
 import { IessPayrollService, DailyTareoInput } from '@/lib/services/iessPayrollService';
 import { PredictivePurchaseService, SupplierCatalogItem } from '@/lib/services/predictivePurchaseService';
@@ -255,6 +264,51 @@ export default function EcosistemaAvanzadoPage() {
     } catch (e: any) {
       alert(`Error en XML: ${e.message}`);
     }
+  };
+
+  // -------------------------------------------------------------
+  // DEVOLUCIONES DE BODEGA & DESCUENTOS A PROVEEDOR (CONTABILIDAD)
+  // -------------------------------------------------------------
+  const [contabilidadDevoluciones, setContabilidadDevoluciones] = useState<OrdenDevolucionContable[]>([]);
+  const [facturaConDescuento, setFacturaConDescuento] = useState<{
+    descuentoAplicado: number;
+    nuevoNetoAPagar: number;
+    devolucionRef: string;
+  } | null>(null);
+  const [descuentoAplicadoAlert, setDescuentoAplicadoAlert] = useState<string | null>(null);
+  const [selectedDevolucionModal, setSelectedDevolucionModal] = useState<OrdenDevolucionContable | null>(null);
+
+  // Sincronizar devoluciones activas desde el servicio central
+  useEffect(() => {
+    setContabilidadDevoluciones(ThreeWayMatchService.getDevoluciones());
+  }, [activeTab]);
+
+  const handleNotificarProveedor = (devId: string) => {
+    ThreeWayMatchService.notificarProveedor(devId);
+    setContabilidadDevoluciones(ThreeWayMatchService.getDevoluciones());
+    alert('¡Notificación formal enviada al proveedor! Se remitió el Acta de Discrepancia Física de Bodega y el requerimiento de reposición o nota de crédito.');
+  };
+
+  const handleAplicarDescuentoContable = (dev: OrdenDevolucionContable) => {
+    ThreeWayMatchService.aplicarDescuentoContable(
+      dev.id,
+      `Deducción automática por faltantes/defectos según Acta ${dev.numeroDevolucion}`,
+      matchResult.resumenFinanciero.totalFactura
+    );
+    setContabilidadDevoluciones(ThreeWayMatchService.getDevoluciones());
+
+    const netoActual = matchResult.retencionPropuesta.valorNetoAPagar;
+    const nuevoNeto = Math.max(0, netoActual - dev.totalDescuentoUSD);
+
+    setFacturaConDescuento({
+      descuentoAplicado: dev.totalDescuentoUSD,
+      nuevoNetoAPagar: nuevoNeto,
+      devolucionRef: dev.numeroDevolucion,
+    });
+
+    setDescuentoAplicadoAlert(
+      `¡Descuento de $${dev.totalDescuentoUSD.toFixed(2)} USD aplicado con éxito en la Factura del Proveedor (${dev.numeroFacturaSRI})! La cuenta por pagar se redujo a $${nuevoNeto.toFixed(2)} USD para evitar pagos indebidos.`
+    );
   };
 
   // -------------------------------------------------------------
@@ -982,6 +1036,266 @@ export default function EcosistemaAvanzadoPage() {
 
               </div>
             </div>
+
+            {/* Banner de Descuento Contable Aplicado */}
+            {descuentoAplicadoAlert && (
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between text-emerald-900 dark:text-emerald-200 animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <span className="p-2 rounded-xl bg-emerald-600 text-white shrink-0">
+                    <CheckCircle2 size={18} />
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider">
+                      Liquidación Contable Ajustada por Discrepancia de Bodega
+                    </h4>
+                    <p className="text-xs mt-0.5">{descuentoAplicadoAlert}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setDescuentoAplicadoAlert(null)}
+                  className="p-1.5 text-emerald-600 hover:text-emerald-800"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* SECCIÓN DEDICADA: ÓRDENES DE DEVOLUCIÓN Y DESCUENTOS POR DISCREPANCIA */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center font-bold shrink-0">
+                    <RotateCcw size={20} />
+                  </span>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Órdenes de Devolución & Descuentos por Discrepancia Física de Bodega</span>
+                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                        {contabilidadDevoluciones.length} Actas
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Liquidación cruzada en tiempo real: Insumos rechazados o faltantes en bodega central se notifican al proveedor y se descuentan de la factura antes de ordenar la transferencia.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                    <span className="text-slate-400 block text-[10px]">Total Valor a Descontar:</span>
+                    <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-sm">
+                      ${contabilidadDevoluciones.reduce((acc, d) => acc + d.totalDescuentoUSD, 0).toFixed(2)} USD
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Lista de Órdenes de Devolución */}
+              {contabilidadDevoluciones.length === 0 ? (
+                <div className="p-8 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-700">
+                  <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2 opacity-60" />
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    No existen órdenes de devolución pendientes
+                  </p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Todas las recepciones físicas de insumos en bodega han ingresado 100% conformes con sus facturas del SRI.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {contabilidadDevoluciones.map((dev) => (
+                    <div 
+                      key={dev.id}
+                      className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 hover:border-slate-300 dark:hover:border-slate-700 transition-all space-y-4"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <span className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-amber-500 shrink-0 font-mono font-bold text-xs">
+                            {dev.numeroDevolucion}
+                          </span>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-slate-900 dark:text-white text-sm">
+                                {dev.proveedor}
+                              </span>
+                              <span className="font-mono text-xs text-slate-400">
+                                (RUC: {dev.rucProveedor})
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                                dev.estado === 'DESCUENTO_APLICADO_FACTURA'
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300'
+                                  : dev.estado === 'NOTIFICADO_PROVEEDOR'
+                                    ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300 border-sky-300'
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300'
+                              }`}>
+                                {dev.estado === 'DESCUENTO_APLICADO_FACTURA'
+                                  ? '✓ Descuento Aplicado a Factura'
+                                  : dev.estado === 'NOTIFICADO_PROVEEDOR'
+                                    ? '✉ Notificado al Proveedor'
+                                    : '⏳ Pendiente en Contabilidad'}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-1 font-mono">
+                              <span>OC Ref: <strong className="text-amber-600 dark:text-amber-400">{dev.numeroOCReferencia}</strong></span>
+                              <span>•</span>
+                              <span>Factura SRI: <strong className="text-slate-700 dark:text-slate-300">{dev.numeroFacturaSRI}</strong></span>
+                              <span>•</span>
+                              <span>Guía Remisión: <strong className="text-slate-700 dark:text-slate-300">{dev.guiaRemision}</strong></span>
+                              <span>•</span>
+                              <span>Fecha: {dev.fecha} {dev.hora}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Valor y Acciones */}
+                        <div className="flex items-center gap-3 self-end lg:self-center">
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-400 uppercase font-mono block">Valor a Descontar</span>
+                            <span className="text-lg font-mono font-bold text-rose-600 dark:text-rose-400">
+                              -${dev.totalDescuentoUSD.toFixed(2)} USD
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {dev.estado === 'PENDIENTE_NOTIFICACION' && (
+                              <button
+                                onClick={() => handleNotificarProveedor(dev.id)}
+                                className="px-3 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-md shadow-sky-600/20 flex items-center gap-1.5 cursor-pointer transition-all"
+                                title="Enviar notificación formal con Acta de Discrepancia al Proveedor"
+                              >
+                                <Mail size={14} />
+                                <span>Notificar Proveedor</span>
+                              </button>
+                            )}
+
+                            {dev.estado !== 'DESCUENTO_APLICADO_FACTURA' && (
+                              <button
+                                onClick={() => handleAplicarDescuentoContable(dev)}
+                                className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer transition-all"
+                                title="Aplicar deducción directa en cuenta por pagar de la factura del SRI"
+                              >
+                                <Receipt size={14} />
+                                <span>Aplicar Descuento a Factura</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => setSelectedDevolucionModal(dev)}
+                              className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
+                              title="Ver Acta de Discrepancia de Bodega"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tabla de Productos con Discrepancia */}
+                      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-800/70 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                              <th className="py-2 px-3 font-semibold">Código</th>
+                              <th className="py-2 px-3 font-semibold">Insumo Rechazado / Faltante</th>
+                              <th className="py-2 px-2 font-semibold text-center">Unidad</th>
+                              <th className="py-2 px-2 font-semibold text-center">Cant. Pedida</th>
+                              <th className="py-2 px-2 font-semibold text-center text-emerald-600">Ingresada</th>
+                              <th className="py-2 px-2 font-semibold text-center text-rose-600">Faltante/Dañada</th>
+                              <th className="py-2 px-3 font-semibold">Motivo Legal</th>
+                              <th className="py-2 px-2 font-semibold text-right">C. Unit</th>
+                              <th className="py-2 px-3 font-semibold text-right text-rose-600">Total Descuento</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-sans">
+                            {dev.items.map((it, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                <td className="py-2 px-3 font-mono text-slate-600 dark:text-slate-400">{it.insumoCodigo}</td>
+                                <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white">{it.insumoNombre}</td>
+                                <td className="py-2 px-2 text-center text-slate-500">{it.unidad}</td>
+                                <td className="py-2 px-2 text-center font-mono">{it.cantidadPedida}</td>
+                                <td className="py-2 px-2 text-center font-mono text-emerald-600 font-bold">{it.cantidadIngresada}</td>
+                                <td className="py-2 px-2 text-center font-mono text-rose-600 font-bold">{it.cantidadFaltante + it.cantidadDefectuosa}</td>
+                                <td className="py-2 px-3 text-slate-600 dark:text-slate-400 text-[11px]">{it.motivo}</td>
+                                <td className="py-2 px-2 text-right font-mono">${it.costoUnitario.toFixed(2)}</td>
+                                <td className="py-2 px-3 text-right font-mono font-bold text-rose-600">-${it.subtotalDescuento.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal de Detalle de Devolución para Contabilidad */}
+            {selectedDevolucionModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+                <div className="w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Expediente de Discrepancia Contable</span>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        Acta de Devolución {selectedDevolucionModal.numeroDevolucion}
+                      </h3>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedDevolucionModal(null)}
+                      className="p-1.5 text-slate-400 hover:text-white"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-xs">
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Proveedor:</span>
+                      <strong className="text-slate-900 dark:text-white">{selectedDevolucionModal.proveedor}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Factura SRI:</span>
+                      <span className="font-mono">{selectedDevolucionModal.numeroFacturaSRI}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Orden de Compra:</span>
+                      <span className="font-mono text-amber-500 font-bold">{selectedDevolucionModal.numeroOCReferencia}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Guía Remisión:</span>
+                      <span className="font-mono">{selectedDevolucionModal.guiaRemision}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Transportista:</span>
+                      <span>{selectedDevolucionModal.transportista} ({selectedDevolucionModal.placaVehiculo})</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block text-[10px]">Responsable Bodega:</span>
+                      <span>{selectedDevolucionModal.responsableBodega}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 flex justify-between items-center text-xs">
+                    <span className="font-semibold text-rose-800 dark:text-rose-200">
+                      Monto Total Descontado / Retenido al Proveedor:
+                    </span>
+                    <span className="text-xl font-mono font-bold text-rose-600 dark:text-rose-400">
+                      -${selectedDevolucionModal.totalDescuentoUSD.toFixed(2)} USD
+                    </span>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={() => setSelectedDevolucionModal(null)}
+                      className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 cursor-pointer"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
