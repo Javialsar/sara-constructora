@@ -49,15 +49,23 @@ export async function POST(req: NextRequest) {
     const selectedRole = roleMap[tipoProfesional] || 'profesional_constructora';
     const adminClient = await createSupabaseAdminClient();
 
-    // 1. Crear el usuario en auth.users con permisos de Admin (evita problemas de confirmación de email y RLS de registro)
+    // Extraer nombre y apellido de forma limpia para satisfacer la restricción NOT NULL del trigger handle_new_user
+    const nameParts = fullName.trim().split(/\s+/);
+    const nombre = nameParts[0] || 'Usuario';
+    const apellido = nameParts.slice(1).join(' ') || nameParts[0] || 'Constructora';
+    const cleanPhone = phone?.trim() || '';
+
+    // 1. Crear el usuario en auth.users con permisos de Admin (con metadata requerida por el trigger on_auth_user_created)
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: email.trim(),
       password: password.trim(),
       email_confirm: true,
       user_metadata: {
+        nombre: nombre,
+        apellido: apellido,
+        telefono: cleanPhone,
         full_name: fullName.trim(),
-        nombre: fullName.trim(),
-        phone: phone?.trim() || null,
+        phone: cleanPhone,
         tipo_profesional: tipoProfesional,
         role: selectedRole,
         identificacion: identificacionRuc.trim(),
@@ -78,6 +86,8 @@ export async function POST(req: NextRequest) {
       let msg = authError.message;
       if (msg.includes('already been registered') || msg.includes('already registered')) {
         msg = 'Este correo electrónico corporativo ya está registrado en GRUPO SARA.';
+      } else if (msg.includes('Database error') || msg.includes('creating new user')) {
+        msg = 'Error al registrar usuario en la base de datos. Por favor verifique sus datos.';
       }
       return NextResponse.json({ success: false, error: msg }, { status: 400 });
     }
@@ -90,15 +100,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Upsert idempotente en la tabla pública 'clientes' para garantizar integridad referencial
-    const [nombrePart, ...apellidoParts] = fullName.trim().split(' ');
-    const apellidoPart = apellidoParts.join(' ') || '';
-
     const { error: dbError } = await adminClient.from('clientes').upsert({
       id: authData.user.id,
-      nombre: nombrePart || fullName.trim(),
-      apellido: apellidoPart || '',
+      nombre: nombre,
+      apellido: apellido,
       email: email.trim(),
-      telefono: phone?.trim() || null,
+      telefono: cleanPhone || null,
       es_admin: false,
       estado: 'activo',
     }, { onConflict: 'id' });

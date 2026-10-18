@@ -153,6 +153,34 @@ async function runTestSuite() {
       if (usersData?.users) {
         console.log(`  ${CYAN}ℹ [INFO]${RESET} Usuarios en auth.users auditados (${usersData.users.length} inspeccionados)`);
       }
+
+      // Probar creación real de usuario profesional con nombre, apellido y teléfono (Trigger on_auth_user_created)
+      const testEmail = `suite_test_user_${Date.now()}@gruposara.ec`;
+      const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
+        email: testEmail,
+        password: 'Password123!',
+        email_confirm: true,
+        user_metadata: {
+          nombre: 'Juan',
+          apellido: 'Fiel',
+          telefono: '0909090909',
+          full_name: 'Juan Fiel',
+          phone: '0909090909',
+          tipo_profesional: 'ingeniero',
+          role: 'ingeniero_residente',
+          identificacion: '1122334455',
+          ruc: '1122334455',
+          modulo_origen: 'sara_constructora',
+          modulos_autorizados: ['sara_constructora'],
+        }
+      });
+
+      assert(!createErr, 'Creación de usuario en vivo sin Database error creating new user', createErr?.message);
+      if (newUser?.user) {
+        // Limpiar usuario de prueba
+        await adminClient.auth.admin.deleteUser(newUser.user.id);
+        console.log(`  ${CYAN}ℹ [INFO]${RESET} Creación y eliminación de usuario en vivo auditada con éxito`);
+      }
     } catch (err: any) {
       assert(false, 'Excepción en prueba de Supabase Service-Role', err.message);
     }
