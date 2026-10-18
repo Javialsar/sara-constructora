@@ -53,6 +53,7 @@ import { VectorKnowledgeService, CollectiveLearningCascadeResult } from '@/lib/s
 import { MisProyectosSection } from '@/components/constructora/MisProyectosSection';
 import { DirectorioRecursosSection } from '@/components/constructora/DirectorioRecursosSection';
 import { ConstructoraDashboardView } from '@/components/constructora/ConstructoraDashboardView';
+import { BodegaKardexSection } from '@/components/constructora/BodegaKardexSection';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export type SuiteTab = 
@@ -66,8 +67,7 @@ export type SuiteTab =
   | 'nomina'
   | 'directorio'
   | 'talento'
-  | 'fletes'
-  | 'red_agentica';
+  | 'fletes';
 
 export default function EcosistemaAvanzadoPage() {
   const router = useRouter();
@@ -76,7 +76,6 @@ export default function EcosistemaAvanzadoPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string>("PANEL PRINCIPAL");
   const [logo, setLogo] = useState<string>('/logo-grupo-sara.png');
-  const [selectedAgent, setSelectedAgent] = useState<string>('ORCHESTRATOR');
   const [authLoading, setAuthLoading] = useState(true);
   const [professionalUser, setProfessionalUser] = useState<any>(null);
 
@@ -372,33 +371,6 @@ export default function EcosistemaAvanzadoPage() {
     ]
   );
 
-  // -------------------------------------------------------------
-  // TAB 5: APRENDIZAJE COLECTIVO CONTINUO & CASCADA
-  // -------------------------------------------------------------
-  const [learningSimulationInput, setLearningSimulationInput] = useState({
-    itemKey: 'cemento_holcim_fuerte_50kg',
-    nuevoPrecio: 7.85,
-  });
-
-  const [cascadeResult, setCascadeResult] = useState<CollectiveLearningCascadeResult | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
-
-  const handleRunSimulation = async () => {
-    setIsSimulating(true);
-    setTimeout(async () => {
-      const res = await VectorKnowledgeService.registerPriceMutationFromSri(
-        learningSimulationInput.itemKey,
-        learningSimulationInput.nuevoPrecio,
-        {
-          numeroComprobante: '001-002-000849301',
-          rucEmisor: '0990004589001',
-          razonSocial: 'HOLCIM DISTRIBUCION INDUSTRIAL',
-        }
-      );
-      setCascadeResult(res);
-      setIsSimulating(false);
-    }, 400);
-  };
 
   if (authLoading) {
     return (
@@ -427,7 +399,6 @@ export default function EcosistemaAvanzadoPage() {
       title: "PANEL PRINCIPAL",
       items: [
         { id: "dashboard", label: "Dashboard General", icon: LayoutDashboard },
-        { id: "red_agentica", label: "Red Agéntica (8 Agentes)", icon: Brain },
       ]
     },
     {
@@ -439,7 +410,7 @@ export default function EcosistemaAvanzadoPage() {
       ]
     },
     {
-      title: "BODEGA Y COMPRAS",
+      title: "BODEGA E INVENTARIO",
       items: [
         { id: "kardex", label: "Bodega & Kardex", icon: Warehouse },
         { id: "procura", label: "Compras Predictivas", icon: ShoppingCart },
@@ -498,19 +469,16 @@ export default function EcosistemaAvanzadoPage() {
       setOpenGroup('DIRECTORIO Y RECURSOS');
     } else if (tab === 'kardex' || tab === 'bodega') {
       setActiveTab('kardex');
-      setOpenGroup('BODEGA Y COMPRAS');
+      setOpenGroup('BODEGA E INVENTARIO');
     } else if (tab === 'procura' || tab === 'compras') {
       setActiveTab('procura');
-      setOpenGroup('BODEGA Y COMPRAS');
+      setOpenGroup('BODEGA E INVENTARIO');
     } else if (tab === 'match' || tab === 'contabilidad') {
       setActiveTab('match');
       setOpenGroup('CONTABILIDAD Y FINANZAS');
     } else if (tab === 'nomina') {
       setActiveTab('nomina');
       setOpenGroup('CONTABILIDAD Y FINANZAS');
-    } else if (tab === 'red_agentica' || tab === 'conocimiento') {
-      setActiveTab('red_agentica');
-      setOpenGroup('PANEL PRINCIPAL');
     } else {
       setActiveTab('dashboard');
       setOpenGroup('PANEL PRINCIPAL');
@@ -528,9 +496,9 @@ export default function EcosistemaAvanzadoPage() {
       case 'documentos':
         return { group: 'MIS PROYECTOS', title: 'Gestor Documental (Planos & Memorias)' };
       case 'kardex':
-        return { group: 'BODEGA Y COMPRAS', title: 'Kardex Multibodega & Distribución a Frentes' };
+        return { group: 'BODEGA E INVENTARIO', title: 'Gestión de Bodega, Inventarios & Kardex' };
       case 'procura':
-        return { group: 'BODEGA Y COMPRAS', title: 'Procuramiento Predictivo & Cotizador B2B' };
+        return { group: 'BODEGA E INVENTARIO', title: 'Procuramiento Predictivo & Cotizador B2B' };
       case 'match':
         return { group: 'CONTABILIDAD Y FINANZAS', title: 'Three-Way Match SRI (XML vs OC vs Bodega)' };
       case 'nomina':
@@ -541,8 +509,6 @@ export default function EcosistemaAvanzadoPage() {
         return { group: 'DIRECTORIO Y RECURSOS', title: 'Gestión de Talento Humano (SARA Talento)' };
       case 'fletes':
         return { group: 'DIRECTORIO Y RECURSOS', title: 'Logística de Carga Pesada (SARA Fletes)' };
-      case 'red_agentica':
-        return { group: 'PANEL PRINCIPAL', title: 'Red Agéntica EDA & Memoria Colectiva' };
       default:
         return { group: 'SARA CONSTRUCTORA', title: 'Consola Técnica Profesional' };
     }
@@ -563,14 +529,14 @@ export default function EcosistemaAvanzadoPage() {
         />
       )}
 
-      {/* Sidebar estilo Imagen 1 */}
-      <aside className={`fixed md:static inset-y-0 left-0 z-50 bg-[#062419] dark:bg-[#03140e] text-white flex flex-col h-full shadow-2xl transition-all duration-300 ${
+      {/* Sidebar estilo Imagen 1 con paleta Constructora (Slate-950 y Ámbar-500) */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 bg-slate-950 dark:bg-black text-white flex flex-col h-full shadow-2xl border-r border-slate-800 transition-all duration-300 ${
         mobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0"
       } ${isSidebarCollapsed ? "md:w-20" : "md:w-64"}`}>
         {/* Header del Sidebar */}
-        <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
+        <div className={`p-4 border-b border-slate-800 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+            <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm ring-1 ring-amber-500/30">
               <img 
                 src={logo} 
                 alt="SARA Logo" 
@@ -583,14 +549,14 @@ export default function EcosistemaAvanzadoPage() {
                 <h1 className="font-bold tracking-wider text-sm uppercase text-white truncate max-w-[130px]">
                   {professionalUser?.tipo || "CONSTRUCTORA"}
                 </h1>
-                <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">SARA CONSTRUCTORA</p>
+                <p className="text-[10px] text-amber-400 uppercase font-bold tracking-wider">SARA CONSTRUCTORA</p>
               </div>
             )}
           </div>
           {!isSidebarCollapsed && (
             <button 
               onClick={() => setIsSidebarCollapsed(true)} 
-              className="hidden md:flex text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="hidden md:flex text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-900 transition-colors"
               title="Colapsar menú (modo compacto)"
             >
               <ChevronRight className="rotate-180" size={16} />
@@ -598,7 +564,7 @@ export default function EcosistemaAvanzadoPage() {
           )}
           <button 
             onClick={() => setMobileMenuOpen(false)} 
-            className="md:hidden text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+            className="md:hidden text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-900 transition-colors"
           >
             <X size={18} />
           </button>
@@ -611,7 +577,7 @@ export default function EcosistemaAvanzadoPage() {
             <div className="hidden md:flex flex-col items-center gap-1">
               {allNavGroups.map((group, gIdx) => (
                 <div key={gIdx} className="w-full">
-                  {gIdx > 0 && <div className="border-t border-white/10 my-2 mx-2" />}
+                  {gIdx > 0 && <div className="border-t border-slate-800 my-2 mx-2" />}
                   {group.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id;
@@ -622,8 +588,8 @@ export default function EcosistemaAvanzadoPage() {
                         title={item.label}
                         className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition-all my-1 ${
                           isActive 
-                            ? "bg-[#1F422F] text-emerald-300 shadow-lg ring-2 ring-emerald-500/40" 
-                            : "text-gray-400 hover:text-white hover:bg-white/10"
+                            ? "bg-amber-500 text-slate-950 font-bold shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/50" 
+                            : "text-slate-400 hover:text-white hover:bg-slate-900"
                         }`}
                       >
                         <Icon size={20} />
@@ -644,10 +610,10 @@ export default function EcosistemaAvanzadoPage() {
                     onClick={() => toggleGroup(group.title)}
                     className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
                       hasActiveItem
-                        ? "text-emerald-400 font-bold bg-white/5"
+                        ? "text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20"
                         : isOpen 
-                          ? "bg-white/10 text-white" 
-                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                          ? "bg-slate-900 text-white" 
+                          : "text-slate-400 hover:bg-slate-900 hover:text-white"
                     }`}
                   >
                     <span>{group.title}</span>
@@ -665,8 +631,8 @@ export default function EcosistemaAvanzadoPage() {
                             onClick={() => handleTabClick(item.id)}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all text-left ${
                               isActive 
-                                ? "bg-[#1F422F] text-emerald-300 shadow-md shadow-black/30 ring-1 ring-emerald-500/30" 
-                                : "text-gray-300 hover:bg-white/10 hover:text-white font-medium"
+                                ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20 ring-1 ring-amber-400/50" 
+                                : "text-slate-300 hover:bg-slate-900 hover:text-white font-medium"
                             }`}
                           >
                             <Icon size={18} className="shrink-0" />
@@ -683,11 +649,11 @@ export default function EcosistemaAvanzadoPage() {
         </nav>
 
         {/* Footer del Sidebar */}
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-slate-800">
           <button 
             onClick={() => handleTabClick('dashboard')}
             title="Inicio Suite" 
-            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs mb-1`}
+            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 transition-colors text-xs mb-1`}
           >
             <Settings size={18} className="shrink-0" />
             {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración de Obra</span>}
@@ -723,7 +689,7 @@ export default function EcosistemaAvanzadoPage() {
               <Menu size={22} />
             </button>
             <div>
-              <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <div className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
                 <span>{breadcrumb.group}</span>
                 <span>•</span>
                 <span className="hidden sm:inline">GRUPO SARA HOLDING</span>
@@ -749,7 +715,7 @@ export default function EcosistemaAvanzadoPage() {
 
             {/* Chip de Usuario Profesional */}
             <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-slate-800">
-              <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs shadow-sm ring-1 ring-amber-400/50">
                 {userInitials}
               </div>
               <div className="hidden sm:block text-left">
@@ -1020,162 +986,10 @@ export default function EcosistemaAvanzadoPage() {
         )}
 
         {/* ------------------------------------------------------------- */}
-        {/* PESTAÑA 2: KARDEX MULTIBODEGA & TRAZABILIDAD */}
+        {/* PESTAÑA 2: BODEGA, INVENTARIOS & KARDEX OPERATIVO */}
         {/* ------------------------------------------------------------- */}
         {activeTab === 'kardex' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* Bodega Matriz (Activo Central) */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-semibold text-indigo-600 uppercase">Activo Capitalizado Central</span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                      Bodega Central Matriz GRUPO SARA
-                    </h3>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                    BOD-MATRIZ-01
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <span className="text-slate-500 block text-[11px]">Stock Varilla 12mm:</span>
-                    <span className="text-base font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                      {Number(bodegaCentralStock?.saldoCantidad ?? 0).toLocaleString()} kg
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <span className="text-slate-500 block text-[11px]">Costo Prom. (CPP):</span>
-                    <span className="text-base font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-                      ${Number(bodegaCentralStock?.cpp ?? 0).toFixed(4)}
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <span className="text-slate-500 block text-[11px]">Valor en Custodia:</span>
-                    <span className="text-base font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
-                      ${Number(bodegaCentralStock?.costoTotal ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Modelado Matemático de Almacén */}
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-2">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300 block text-[11px] uppercase tracking-wider">
-                    Modelos Matemáticos de Abastecimiento (SARA-KARDEX)
-                  </span>
-                  <div className="grid grid-cols-3 gap-2 font-mono text-[11px] tabular-nums">
-                    <div>
-                      <span className="text-slate-500 block">Punto Reorden (ROP):</span>
-                      <span className="font-bold">{Number(bodegaCentralStock?.rop ?? 0).toLocaleString()} kg</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">Lote Óptimo (EOQ):</span>
-                      <span className="font-bold">{Number(bodegaCentralStock?.eoq ?? 0).toLocaleString()} kg</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block">Stock Seguridad:</span>
-                      <span className="font-bold text-emerald-600">{Number(bodegaCentralStock?.stockSeguridad ?? 0).toLocaleString()} kg</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Formulario de Despacho / Vale de Distribución */}
-                <div className="pt-2 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Emitir Vale de Distribución hacia Obra
-                  </h4>
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={transferTransferAmount}
-                      onChange={(e) => setTransferAmount(Number(e.target.value))}
-                      className="w-32 px-3 py-1.5 text-xs font-mono bg-slate-50 dark:bg-slate-950 border rounded-lg"
-                      placeholder="Cantidad kg"
-                    />
-                    <button
-                      onClick={handleTransfer}
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all inline-flex items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <ArrowRight className="w-3.5 h-3.5" />
-                      Despachar a Obra Cariamanga
-                    </button>
-                  </div>
-                  {transferSuccessLog && (
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs text-emerald-800 dark:text-emerald-300">
-                      {transferSuccessLog}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Sub-bodega Obra Cariamanga (Costo Proyecto) */}
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-semibold text-emerald-600 uppercase">Sub-bodega de Proyecto (Obra en Curso)</span>
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                      Obra Residencial Cariamanga Plaza (Loja)
-                    </h3>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                    SUB-OBRA-CAR-01
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <span className="text-slate-500 block text-[11px]">Stock en Frente de Obra:</span>
-                    <span className="text-base font-bold font-mono tabular-nums text-slate-900 dark:text-white">
-                      {Number(obraCariamangaStock?.saldoCantidad ?? 0).toLocaleString()} kg
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-                    <span className="text-slate-500 block text-[11px]">Costo Imputado a Obra:</span>
-                    <span className="text-base font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
-                      ${Number(obraCariamangaStock?.costoTotal ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Trazabilidad Inversa a Factura SRI */}
-                <div className="p-3.5 bg-slate-900 text-slate-200 rounded-xl border border-slate-800 text-xs space-y-2">
-                  <span className="font-semibold text-emerald-400 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    Trazabilidad Inversa Certificada (Reverse Traceability)
-                  </span>
-                  <div className="text-[11px] font-mono space-y-1 text-slate-300">
-                    <div>Lote Físico: <span className="text-white">LOT-ADELCA-2026-X1</span></div>
-                    <div>Factura SRI Origen: <span className="text-sky-300">001-001-000045892</span></div>
-                    <div>RUC Proveedor: <span className="text-slate-400">1790012345001 (ADELCA C.A.)</span></div>
-                    <div>Asiento Imputado: <span className="text-emerald-300">CTA 1.1.05.01 (Obras en Curso)</span></div>
-                  </div>
-                </div>
-
-                {/* Auditoría de Mermas de Construcción */}
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 text-xs space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-[11px] uppercase">
-                      Auditoría de Despunte y Merma Técnica (Acero)
-                    </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-600">
-                      Tolerancia: &le;6.0%
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center font-mono text-[11px] tabular-nums">
-                    <span className="text-slate-500">Merma registrada en cortes:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">4.2% (Dentro de tolerancia legal)</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
+          <BodegaKardexSection user={professionalUser} />
         )}
 
         {/* ------------------------------------------------------------- */}
@@ -1396,291 +1210,6 @@ export default function EcosistemaAvanzadoPage() {
           </div>
         )}
 
-        {/* ------------------------------------------------------------- */}
-        {/* PESTAÑA 5: RED AGÉNTICA (8 AGENTES) & APRENDIZAJE COLECTIVO */}
-        {/* ------------------------------------------------------------- */}
-        {(activeTab === 'red_agentica' || (activeTab as any) === 'conocimiento') && (
-          <div className="space-y-6">
-            
-            {/* Topología Multi-Agente & Orquestación EDA */}
-            <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div>
-                  <span className="text-[11px] font-semibold tracking-wider uppercase text-emerald-600 dark:text-emerald-400">
-                    Arquitectura Basada en Eventos (EDA) & Saga Transaccional
-                  </span>
-                  <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-0.5">
-                    Red Coreográfica de Agentes Autónomos
-                  </h2>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Memoria Unificada:</span>
-                  <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    SharedMemory: 100% Sincronizada
-                  </span>
-                </div>
-              </div>
-
-              {/* Diagrama Interactivo de Nodos */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
-                {/* Nodo 1: Master Orchestrator */}
-                <div 
-                  onClick={() => setSelectedAgent('ORCHESTRATOR')}
-                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                    selectedAgent === 'ORCHESTRATOR'
-                      ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                      🤖
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
-                      Core Bus
-                    </span>
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                    SARA_MASTER_ORCHESTRATOR
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                    Director general, transacciones atómicas distribuidas y prevención de corrupción de datos.
-                  </p>
-                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-                    <span>ESTADO: ACTIVO</span>
-                    <span>0.00% ERRORES</span>
-                  </div>
-                </div>
-
-                {/* Nodo 2: Financial Quant */}
-                <div 
-                  onClick={() => setSelectedAgent('FINANCIAL')}
-                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                    selectedAgent === 'FINANCIAL'
-                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-1 ring-emerald-500'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                      ⚖️
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                      SRI & IESS
-                    </span>
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                    SARA_FINANCIAL_QUANT
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                    Auditor tributario (Cód 312/344), 3-Way Match con tolerancia 1%, firma XAdES-BES y rol de pagos.
-                  </p>
-                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-                    <span>TOLERANCIA: &le;1%</span>
-                    <span>MATCH: 99.4%</span>
-                  </div>
-                </div>
-
-                {/* Nodo 3: Kardex Inventory */}
-                <div 
-                  onClick={() => setSelectedAgent('KARDEX')}
-                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                    selectedAgent === 'KARDEX'
-                      ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 ring-1 ring-amber-500'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                      📦
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
-                      Multibodega
-                    </span>
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                    SARA_KARDEX_INVENTORY
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                    CPP automático, transferencias por vale, stock dinámico acoplado a Gantt y auditoría de mermas.
-                  </p>
-                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-amber-600 dark:text-amber-400">
-                    <span>MÉTODO: CPP</span>
-                    <span>TRAZA: INVERSA</span>
-                  </div>
-                </div>
-
-                {/* Nodo 4: Predictive Purchase */}
-                <div 
-                  onClick={() => setSelectedAgent('PURCHASE')}
-                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                    selectedAgent === 'PURCHASE'
-                      ? 'border-sky-500 bg-sky-50/50 dark:bg-sky-950/30 ring-1 ring-sky-500'
-                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                      🚚
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
-                      24 Provincias
-                    </span>
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                    SARA_PREDICTIVE_PURCHASE
-                  </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                    Landed Cost (Material + Flete), consolidación por volumen y explosión de materiales BIM/Takeoff.
-                  </p>
-                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-sky-600 dark:text-sky-400">
-                    <span>RUTEO: HAVERSINE</span>
-                    <span>AHORRO: +12%</span>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Simulador de Mutación SRI y Cascada de Aprendizaje Colectivo */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-5">
-              <div>
-                <span className="text-[11px] font-semibold text-violet-600 uppercase">Inteligencia Adaptativa en Tiempo Real</span>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Simulador de Mutación SRI y Cascada de Aprendizaje Colectivo
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Demuestra cómo la detección de una variación de precio en un XML del SRI propaga el conocimiento vectorial hacia el generador de APU, optimizador de compras y márgenes contables.
-                </p>
-              </div>
-
-              {/* Panel de Disparo */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border flex flex-wrap items-center gap-4 text-xs">
-                <div>
-                  <label className="text-slate-500 block text-[11px] mb-1 font-medium">Insumo a Mutar:</label>
-                  <select
-                    value={learningSimulationInput.itemKey}
-                    onChange={(e) => setLearningSimulationInput(prev => ({ ...prev, itemKey: e.target.value }))}
-                    className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border text-xs font-semibold"
-                  >
-                    <option value="cemento_holcim_fuerte_50kg">Cemento Holcim Fuerte 50kg (Ref: $7.45)</option>
-                    <option value="acero_adelca_corrugado_12mm">Acero Adelca 12mm x 12m (Ref: $1.18/kg)</option>
-                    <option value="hormigon_premezclado_210">Hormigón Premezclado f'c=210 (Ref: $94.50/m3)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-slate-500 block text-[11px] mb-1 font-medium">Nuevo Precio Facturado SRI (USD):</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    value={learningSimulationInput.nuevoPrecio}
-                    onChange={(e) => setLearningSimulationInput(prev => ({ ...prev, nuevoPrecio: Number(e.target.value) }))}
-                    className="w-32 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border text-xs font-mono font-bold"
-                  />
-                </div>
-
-                <div className="pt-4 sm:pt-0">
-                  <button
-                    onClick={handleRunSimulation}
-                    disabled={isSimulating}
-                    className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isSimulating ? 'animate-spin' : ''}`} />
-                    Disparar Mutación SRI y Cascada
-                  </button>
-                </div>
-              </div>
-
-              {/* Cascada de Resultados */}
-              {cascadeResult && (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  
-                  {/* Banner de Varianza */}
-                  <div className={`p-4 rounded-xl border flex items-center justify-between text-xs ${
-                    cascadeResult.alertaVolatilidad
-                      ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-500/40 text-amber-900 dark:text-amber-200'
-                      : 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-500/40 text-emerald-900 dark:text-emerald-200'
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-violet-500" />
-                      <span className="font-bold">
-                        Mutación Detectada: {cascadeResult.itemKey}
-                      </span>
-                      <span>(${cascadeResult.precioAnterior.toFixed(2)} &rarr; ${cascadeResult.precioNuevo.toFixed(2)})</span>
-                    </div>
-                    <span className="font-mono font-bold px-2 py-0.5 rounded bg-white dark:bg-slate-900 border">
-                      Varianza: {cascadeResult.varianzaPct > 0 ? `+${cascadeResult.varianzaPct}%` : `${cascadeResult.varianzaPct}%`}
-                    </span>
-                  </div>
-
-                  {/* 3 Pasos de la Cascada */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    
-                    {/* Paso 1: Agente APU */}
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold">
-                          1. SARA-APU
-                        </span>
-                        <span className="text-emerald-500 text-xs font-bold">✓ Calibrado</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        Presupuestos Futuros Ajustados
-                      </h4>
-                      <p className="text-[11px] text-slate-500">
-                        Se actualizaron las matrices analíticas de {cascadeResult.cascadaAcciones.apuAjuste.nuevasRecetasActualizadas} recetas estándar.
-                      </p>
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[11px] tabular-nums text-slate-600 dark:text-slate-300">
-                        Incremento Costo Unitario: +${cascadeResult.cascadaAcciones.apuAjuste.incrementoCostoDirectoUnitarioUSD.toFixed(4)}
-                      </div>
-                    </div>
-
-                    {/* Paso 2: Agente Compras */}
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-50 dark:bg-sky-950 text-sky-600 dark:text-sky-400 font-bold">
-                          2. SARA-COMPRAS
-                        </span>
-                        <span className="text-emerald-500 text-xs font-bold">✓ Optimizado</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        Proformas Predictivas Regeneradas
-                      </h4>
-                      <p className="text-[11px] text-slate-500">
-                        {cascadeResult.cascadaAcciones.comprasOptimizacion.sugerenciaConsolidacionVolumen}
-                      </p>
-                    </div>
-
-                    {/* Paso 3: Agente Contable */}
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 font-bold">
-                          3. SARA-FINANZAS
-                        </span>
-                        <span className="text-emerald-500 text-xs font-bold">✓ Recalculado</span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                        Márgenes de Obras Activas
-                      </h4>
-                      <div className="space-y-1 pt-1 font-mono text-[10px] tabular-nums">
-                        {cascadeResult.cascadaAcciones.contableRecalculoMargenes.proyectosRecalculados.map((p, i) => (
-                          <div key={i} className="flex justify-between border-b border-slate-100 dark:border-slate-800/60 pb-0.5 last:border-0">
-                            <span className="text-slate-500 font-sans truncate max-w-[130px]">{p.proyectoNombre}</span>
-                            <span className="text-slate-800 dark:text-slate-200 font-bold">
-                              {p.margenPrevioPct}% &rarr; {p.margenProyectadoNuevoPct}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
-        )}
 
         </div>
       </main>

@@ -40,11 +40,11 @@ export function ConstructoraDashboardView({
   bodegaTotal = 8320
 }: ConstructoraDashboardViewProps) {
 
-  // Datos para el gráfico Donut de Estado de Proyectos (Idéntico a Imagen 1)
+  // Datos para el gráfico Donut de Estado de Proyectos con colores oficiales de SARA Constructora
   const projectStatusData = [
-    { name: 'En Diseño', value: 2, color: '#83A881' },
-    { name: 'En Construcción', value: 7, color: '#1F422F' },
-    { name: 'Finalizados', value: 0, color: '#0D0D0D' },
+    { name: 'En Construcción', value: 7, color: '#f59e0b' }, // Ámbar Constructora
+    { name: 'En Diseño', value: 2, color: '#fbbf24' },       // Oro
+    { name: 'Finalizados', value: 0, color: '#0f172a' },     // Slate profundo
   ];
 
   // Actividad reciente de obras y personal (Idéntico a Imagen 1)
@@ -336,11 +336,11 @@ export function ConstructoraDashboardView({
             </h3>
           </div>
           <button 
-            onClick={() => onNavigate('red_agentica')}
-            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 self-start sm:self-auto"
+            onClick={() => onNavigate('kardex')}
+            className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 self-start sm:self-auto cursor-pointer"
           >
-            <Sparkles size={14} />
-            <span>Ver Cascada de 8 Agentes</span>
+            <Warehouse size={14} />
+            <span>Ir a Bodega & Kardex</span>
           </button>
         </div>
 
