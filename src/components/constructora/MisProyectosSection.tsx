@@ -22,8 +22,13 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-export function MisProyectosSection({ user }: { user: any }) {
-  const [subTab, setSubTab] = useState<'obras' | 'avances' | 'documentos'>('obras');
+export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: any; initialSubTab?: 'obras' | 'avances' | 'documentos' }) {
+  const [subTab, setSubTab] = useState<'obras' | 'avances' | 'documentos'>(initialSubTab);
+
+  useEffect(() => {
+    if (initialSubTab) setSubTab(initialSubTab);
+  }, [initialSubTab]);
+
   const [proyectos, setProyectos] = useState<any[]>([]);
   const [avances, setAvances] = useState<any[]>([]);
   const [documentos, setDocumentos] = useState<any[]>([]);

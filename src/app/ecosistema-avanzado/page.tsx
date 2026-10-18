@@ -29,7 +29,19 @@ import {
   Lock,
   LogOut,
   HardHat,
-  UserCheck
+  UserCheck,
+  LayoutDashboard,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Bell,
+  Settings,
+  Search,
+  ShoppingCart,
+  Image as ImageIcon,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { SriXmlService } from '@/lib/services/sriXmlService';
@@ -40,10 +52,30 @@ import { PredictivePurchaseService, SupplierCatalogItem } from '@/lib/services/p
 import { VectorKnowledgeService, CollectiveLearningCascadeResult } from '@/lib/services/vectorKnowledgeService';
 import { MisProyectosSection } from '@/components/constructora/MisProyectosSection';
 import { DirectorioRecursosSection } from '@/components/constructora/DirectorioRecursosSection';
+import { ConstructoraDashboardView } from '@/components/constructora/ConstructoraDashboardView';
+import ThemeToggle from '@/components/ThemeToggle';
+
+export type SuiteTab = 
+  | 'dashboard'
+  | 'proyectos'
+  | 'avances'
+  | 'documentos'
+  | 'kardex'
+  | 'procura'
+  | 'match'
+  | 'nomina'
+  | 'directorio'
+  | 'talento'
+  | 'fletes'
+  | 'red_agentica';
 
 export default function EcosistemaAvanzadoPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'proyectos' | 'directorio' | 'match' | 'kardex' | 'nomina' | 'procura' | 'conocimiento'>('proyectos');
+  const [activeTab, setActiveTab] = useState<SuiteTab>('dashboard');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string>("PANEL PRINCIPAL");
+  const [logo, setLogo] = useState<string>('/logo-grupo-sara.png');
   const [selectedAgent, setSelectedAgent] = useState<string>('ORCHESTRATOR');
   const [authLoading, setAuthLoading] = useState(true);
   const [professionalUser, setProfessionalUser] = useState<any>(null);
@@ -82,17 +114,22 @@ export default function EcosistemaAvanzadoPage() {
           return;
         }
 
-        // Apertura adaptativa de pestaña según el perfil
+        // Apertura adaptativa de pestaña según el perfil (Dashboard General por defecto)
         if (role === 'bodeguero_constructora') {
           setActiveTab('kardex');
+          setOpenGroup('BODEGA Y COMPRAS');
         } else if (role === 'contador_constructora') {
           setActiveTab('match');
+          setOpenGroup('CONTABILIDAD Y FINANZAS');
         } else if (role === 'cliente_constructora') {
-          setActiveTab('proyectos');
+          setActiveTab('dashboard');
+          setOpenGroup('PANEL PRINCIPAL');
         } else if (role === 'arquitecto_bim') {
           setActiveTab('proyectos');
+          setOpenGroup('MIS PROYECTOS');
         } else {
-          setActiveTab('proyectos');
+          setActiveTab('dashboard');
+          setOpenGroup('PANEL PRINCIPAL');
         }
 
         const roleLabels: Record<string, string> = {
@@ -101,7 +138,7 @@ export default function EcosistemaAvanzadoPage() {
           contador_constructora: 'Contador(a) Tributario',
           bodeguero_constructora: 'Jefe de Bodega & Kardex',
           tecnico_apoyo_obra: 'Técnico de Obra & Topógrafo',
-          cliente_constructora: 'Cliente Titular de Obra',
+          cliente_constructora: 'Cliente de la Empresa',
           admin: 'Master Admin',
         };
 
@@ -385,327 +422,384 @@ export default function EcosistemaAvanzadoPage() {
     router.replace('/constructora/auth');
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-24 selection:bg-indigo-500 selection:text-white">
-      {/* Top Banner Contextual con Identidad Profesional B2B */}
-      <div className="border-b border-slate-200 dark:border-slate-800/80 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center shadow-sm shadow-amber-500/20 text-slate-950 font-bold text-sm tracking-wider">
-              <HardHat className="w-5 h-5 text-slate-950" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/30 uppercase tracking-wider">
-                  Módulo Oficial SARA-CONSTRUCTORA
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Módulo Estrella Online
-                </span>
-              </div>
-              <h1 className="text-base font-bold tracking-tight text-slate-900 dark:text-white mt-0.5">
-                SARA-CONSTRUCTORA: Consola Técnica & Ecosistema Agéntico
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
-                Servicios Operativos de Obra: Three-Way Match SRI • Kardex Multibodega • Nómina IESS • Procuramiento Predictivo • Aprendizaje Colectivo
-              </p>
-            </div>
-          </div>
+  const allNavGroups = [
+    {
+      title: "PANEL PRINCIPAL",
+      items: [
+        { id: "dashboard", label: "Dashboard General", icon: LayoutDashboard },
+        { id: "red_agentica", label: "Red Agéntica (8 Agentes)", icon: Brain },
+      ]
+    },
+    {
+      title: "MIS PROYECTOS",
+      items: [
+        { id: "proyectos", label: "Proyectos (Obras)", icon: HardHat },
+        { id: "avances", label: "Avances de Obra", icon: ImageIcon },
+        { id: "documentos", label: "Gestor Documental", icon: FileText },
+      ]
+    },
+    {
+      title: "BODEGA Y COMPRAS",
+      items: [
+        { id: "kardex", label: "Bodega & Kardex", icon: Warehouse },
+        { id: "procura", label: "Compras Predictivas", icon: ShoppingCart },
+      ]
+    },
+    {
+      title: "CONTABILIDAD Y FINANZAS",
+      items: [
+        { id: "match", label: "Contabilidad SRI (3-Way)", icon: Receipt },
+        { id: "nomina", label: "Nómina CICS & IESS", icon: Scale },
+      ]
+    },
+    {
+      title: "DIRECTORIO Y RECURSOS",
+      items: [
+        { id: "directorio", label: "Directorio Central", icon: Users },
+        { id: "talento", label: "SARA Talento", icon: HardHat },
+        { id: "fletes", label: "SARA Fletes (Transporte)", icon: Truck },
+      ]
+    }
+  ];
 
-          <div className="flex items-center gap-2.5">
-            {/* Badge de Profesional Verificado */}
-            {professionalUser && (
-              <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono">
-                <UserCheck className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-slate-300 font-semibold">{professionalUser.nombre}</span>
-                <span className="text-slate-500">({professionalUser.empresa})</span>
+  const toggleGroup = (title: string) => {
+    setOpenGroup(prev => prev === title ? "" : title);
+  };
+
+  const handleTabClick = (tabId: string) => {
+    setActiveTab(tabId as SuiteTab);
+    setMobileMenuOpen(false);
+    for (const group of allNavGroups) {
+      if (group.items.some(i => i.id === tabId)) {
+        setOpenGroup(group.title);
+        break;
+      }
+    }
+  };
+
+  const handleNavigate = (tab: any) => {
+    if (tab === 'obras' || tab === 'proyectos') {
+      setActiveTab('proyectos');
+      setOpenGroup('MIS PROYECTOS');
+    } else if (tab === 'avances') {
+      setActiveTab('avances');
+      setOpenGroup('MIS PROYECTOS');
+    } else if (tab === 'documentos') {
+      setActiveTab('documentos');
+      setOpenGroup('MIS PROYECTOS');
+    } else if (tab === 'talento') {
+      setActiveTab('talento');
+      setOpenGroup('DIRECTORIO Y RECURSOS');
+    } else if (tab === 'fletes') {
+      setActiveTab('fletes');
+      setOpenGroup('DIRECTORIO Y RECURSOS');
+    } else if (tab === 'directorio') {
+      setActiveTab('directorio');
+      setOpenGroup('DIRECTORIO Y RECURSOS');
+    } else if (tab === 'kardex' || tab === 'bodega') {
+      setActiveTab('kardex');
+      setOpenGroup('BODEGA Y COMPRAS');
+    } else if (tab === 'procura' || tab === 'compras') {
+      setActiveTab('procura');
+      setOpenGroup('BODEGA Y COMPRAS');
+    } else if (tab === 'match' || tab === 'contabilidad') {
+      setActiveTab('match');
+      setOpenGroup('CONTABILIDAD Y FINANZAS');
+    } else if (tab === 'nomina') {
+      setActiveTab('nomina');
+      setOpenGroup('CONTABILIDAD Y FINANZAS');
+    } else if (tab === 'red_agentica' || tab === 'conocimiento') {
+      setActiveTab('red_agentica');
+      setOpenGroup('PANEL PRINCIPAL');
+    } else {
+      setActiveTab('dashboard');
+      setOpenGroup('PANEL PRINCIPAL');
+    }
+  };
+
+  const getBreadcrumb = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return { group: 'PANEL PRINCIPAL', title: 'Dashboard General de Operaciones' };
+      case 'proyectos':
+        return { group: 'MIS PROYECTOS', title: 'Obras y Proyectos Activos' };
+      case 'avances':
+        return { group: 'MIS PROYECTOS', title: 'Avances de Obra & Fiscalización Fotográfica' };
+      case 'documentos':
+        return { group: 'MIS PROYECTOS', title: 'Gestor Documental (Planos & Memorias)' };
+      case 'kardex':
+        return { group: 'BODEGA Y COMPRAS', title: 'Kardex Multibodega & Distribución a Frentes' };
+      case 'procura':
+        return { group: 'BODEGA Y COMPRAS', title: 'Procuramiento Predictivo & Cotizador B2B' };
+      case 'match':
+        return { group: 'CONTABILIDAD Y FINANZAS', title: 'Three-Way Match SRI (XML vs OC vs Bodega)' };
+      case 'nomina':
+        return { group: 'CONTABILIDAD Y FINANZAS', title: 'Nómina CICS / IESS & Tareo Diario' };
+      case 'directorio':
+        return { group: 'DIRECTORIO Y RECURSOS', title: 'Directorio Central (Clientes & Proveedores)' };
+      case 'talento':
+        return { group: 'DIRECTORIO Y RECURSOS', title: 'Gestión de Talento Humano (SARA Talento)' };
+      case 'fletes':
+        return { group: 'DIRECTORIO Y RECURSOS', title: 'Logística de Carga Pesada (SARA Fletes)' };
+      case 'red_agentica':
+        return { group: 'PANEL PRINCIPAL', title: 'Red Agéntica EDA & Memoria Colectiva' };
+      default:
+        return { group: 'SARA CONSTRUCTORA', title: 'Consola Técnica Profesional' };
+    }
+  };
+
+  const breadcrumb = getBreadcrumb();
+  const userInitials = professionalUser?.nombre
+    ? professionalUser.nombre.split(' ').map((p: string) => p[0]).slice(0, 2).join('').toUpperCase()
+    : 'CO';
+
+  return (
+    <div className="flex h-screen bg-slate-100 dark:bg-slate-950 overflow-hidden font-sans">
+      {/* Backdrop para mobile */}
+      {mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-200"
+        />
+      )}
+
+      {/* Sidebar estilo Imagen 1 */}
+      <aside className={`fixed md:static inset-y-0 left-0 z-50 bg-[#062419] dark:bg-[#03140e] text-white flex flex-col h-full shadow-2xl transition-all duration-300 ${
+        mobileMenuOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0"
+      } ${isSidebarCollapsed ? "md:w-20" : "md:w-64"}`}>
+        {/* Header del Sidebar */}
+        <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
+              <img 
+                src={logo} 
+                alt="SARA Logo" 
+                onError={() => setLogo("/logo-hero.png")}
+                className="w-full h-full object-contain" 
+              />
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="overflow-hidden whitespace-nowrap">
+                <h1 className="font-bold tracking-wider text-sm uppercase text-white truncate max-w-[130px]">
+                  {professionalUser?.tipo || "CONSTRUCTORA"}
+                </h1>
+                <p className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider">SARA CONSTRUCTORA</p>
               </div>
             )}
-
-            <div className="hidden sm:flex items-center gap-4 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-xs font-mono tabular-nums">
-              <span className="text-slate-500">Latencia Bus:</span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">142ms</span>
-              <span className="text-slate-300 dark:text-slate-700">|</span>
-              <span className="text-slate-500">Tolerancia SRI:</span>
-              <span className="text-indigo-600 dark:text-indigo-400 font-semibold">&le; 1.0%</span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              title="Cerrar Sesión Profesional"
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-700/60 transition-colors flex items-center gap-1.5"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
           </div>
+          {!isSidebarCollapsed && (
+            <button 
+              onClick={() => setIsSidebarCollapsed(true)} 
+              className="hidden md:flex text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+              title="Colapsar menú (modo compacto)"
+            >
+              <ChevronRight className="rotate-180" size={16} />
+            </button>
+          )}
+          <button 
+            onClick={() => setMobileMenuOpen(false)} 
+            className="md:hidden text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors"
+          >
+            <X size={18} />
+          </button>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
-        
-        {/* 1. TOPOLOGÍA MULTI-AGENTE & ORQUESTACIÓN */}
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        {/* Navegación del Sidebar */}
+        <nav className="flex-1 py-4 px-2 overflow-y-auto">
+          {isSidebarCollapsed ? (
+            /* Modo Colapsado (Solo Iconos) */
+            <div className="hidden md:flex flex-col items-center gap-1">
+              {allNavGroups.map((group, gIdx) => (
+                <div key={gIdx} className="w-full">
+                  {gIdx > 0 && <div className="border-t border-white/10 my-2 mx-2" />}
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleTabClick(item.id)}
+                        title={item.label}
+                        className={`w-11 h-11 mx-auto flex items-center justify-center rounded-xl transition-all my-1 ${
+                          isActive 
+                            ? "bg-[#1F422F] text-emerald-300 shadow-lg ring-2 ring-emerald-500/40" 
+                            : "text-gray-400 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        <Icon size={20} />
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Modo Expandido con Acordeones */
+            allNavGroups.map((group, groupIdx) => {
+              const isOpen = openGroup === group.title;
+              const hasActiveItem = group.items.some(i => i.id === activeTab);
+              return (
+                <div key={groupIdx} className="mb-2">
+                  <button 
+                    onClick={() => toggleGroup(group.title)}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
+                      hasActiveItem
+                        ? "text-emerald-400 font-bold bg-white/5"
+                        : isOpen 
+                          ? "bg-white/10 text-white" 
+                          : "text-gray-400 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{group.title}</span>
+                    {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </button>
+                  
+                  {isOpen && (
+                    <div className="space-y-1 mt-1 pl-1">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                          <button 
+                            key={item.id}
+                            onClick={() => handleTabClick(item.id)}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-bold transition-all text-left ${
+                              isActive 
+                                ? "bg-[#1F422F] text-emerald-300 shadow-md shadow-black/30 ring-1 ring-emerald-500/30" 
+                                : "text-gray-300 hover:bg-white/10 hover:text-white font-medium"
+                            }`}
+                          >
+                            <Icon size={18} className="shrink-0" />
+                            <span className="whitespace-nowrap overflow-hidden text-xs">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </nav>
+
+        {/* Footer del Sidebar */}
+        <div className="p-3 border-t border-white/10">
+          <button 
+            onClick={() => handleTabClick('dashboard')}
+            title="Inicio Suite" 
+            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-colors text-xs mb-1`}
+          >
+            <Settings size={18} className="shrink-0" />
+            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración de Obra</span>}
+          </button>
+          <button 
+            title="Cerrar Sesión Profesional"
+            onClick={handleLogout} 
+            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors text-xs`}
+          >
+            <LogOut size={18} className="shrink-0" />
+            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Cerrar Sesión</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100 dark:bg-slate-950">
+        {/* Top Header estilo Imagen 1 */}
+        <header className="h-16 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-6 z-10 shrink-0">
+          <div className="flex items-center gap-3">
+            {/* Botón hamburguesa */}
+            <button 
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  setMobileMenuOpen(prev => !prev);
+                } else {
+                  setIsSidebarCollapsed(prev => !prev);
+                }
+              }}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors focus:outline-none"
+              title="Alternar menú lateral"
+            >
+              <Menu size={22} />
+            </button>
             <div>
-              <span className="text-[11px] font-semibold tracking-wider uppercase text-indigo-600 dark:text-indigo-400">
-                Arquitectura Basada en Eventos (EDA) & Saga Transaccional
-              </span>
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-0.5">
-                Red Coreográfica de Agentes Autónomos
+              <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span>{breadcrumb.group}</span>
+                <span>•</span>
+                <span className="hidden sm:inline">GRUPO SARA HOLDING</span>
+              </div>
+              <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white leading-tight">
+                {breadcrumb.title}
               </h2>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 dark:text-slate-400">Memoria Unificada:</span>
-              <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                SharedMemory: 100% Sincronizada
-              </span>
-            </div>
           </div>
 
-          {/* Diagrama Interactivo de Nodos */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
-            {/* Nodo 1: Master Orchestrator */}
-            <div 
-              onClick={() => setSelectedAgent('ORCHESTRATOR')}
-              className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                selectedAgent === 'ORCHESTRATOR'
-                  ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500'
-                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                  🤖
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
-                  Core Bus
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                SARA_MASTER_ORCHESTRATOR
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                Director general, transacciones atómicas distribuidas y prevención de corrupción de datos.
-              </p>
-              <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-                <span>ESTADO: ACTIVO</span>
-                <span>0.00% ERRORES</span>
-              </div>
+          <div className="flex items-center gap-3">
+            {/* Latencia & SRI metrics */}
+            <div className="hidden lg:flex items-center gap-3 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono tabular-nums">
+              <span className="text-slate-400">Latencia Bus:</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold">142ms</span>
+              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <span className="text-slate-400">Tolerancia SRI:</span>
+              <span className="text-indigo-600 dark:text-indigo-400 font-bold">&le; 1.0%</span>
             </div>
 
-            {/* Nodo 2: Financial Quant */}
-            <div 
-              onClick={() => setSelectedAgent('FINANCIAL')}
-              className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                selectedAgent === 'FINANCIAL'
-                  ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-1 ring-emerald-500'
-                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                  ⚖️
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                  SRI & IESS
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                SARA_FINANCIAL_QUANT
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                Auditor tributario (Cód 312/344), 3-Way Match con tolerancia 1%, firma XAdES-BES y rol de pagos.
-              </p>
-              <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
-                <span>TOLERANCIA: &le;1%</span>
-                <span>MATCH: 99.4%</span>
-              </div>
-            </div>
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
-            {/* Nodo 3: Kardex Inventory */}
-            <div 
-              onClick={() => setSelectedAgent('KARDEX')}
-              className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                selectedAgent === 'KARDEX'
-                  ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 ring-1 ring-amber-500'
-                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                  📦
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
-                  Multibodega
-                </span>
+            {/* Chip de Usuario Profesional */}
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-slate-800">
+              <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                {userInitials}
               </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                SARA_KARDEX_INVENTORY
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                CPP automático, transferencias por vale, stock dinámico acoplado a Gantt y auditoría de mermas.
-              </p>
-              <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-amber-600 dark:text-amber-400">
-                <span>MÉTODO: CPP</span>
-                <span>TRAZA: INVERSA</span>
-              </div>
-            </div>
-
-            {/* Nodo 4: Predictive Purchase */}
-            <div 
-              onClick={() => setSelectedAgent('PURCHASE')}
-              className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
-                selectedAgent === 'PURCHASE'
-                  ? 'border-sky-500 bg-sky-50/50 dark:bg-sky-950/30 ring-1 ring-sky-500'
-                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                  🚚
-                </span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
-                  24 Provincias
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                SARA_PREDICTIVE_PURCHASE
-              </h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                Landed Cost (Material + Flete), consolidación por volumen y explosión de materiales BIM/Takeoff.
-              </p>
-              <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-sky-600 dark:text-sky-400">
-                <span>RUTEO: HAVERSINE</span>
-                <span>AHORRO: +12%</span>
+              <div className="hidden sm:block text-left">
+                <div className="text-xs font-bold text-gray-900 dark:text-white leading-tight truncate max-w-[120px]">
+                  {professionalUser?.nombre || "Profesional"}
+                </div>
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[120px]">
+                  {professionalUser?.empresa || "Constructora"}
+                </div>
               </div>
             </div>
           </div>
+        </header>
 
-          {/* Base de Conocimiento Vectorial Compartida */}
-          <div className="mt-4 p-3.5 rounded-xl bg-slate-900 text-slate-200 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2.5">
-              <span className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center text-white text-xs font-bold">
-                🧠
-              </span>
-              <div>
-                <span className="font-semibold text-white">Base de Conocimiento Vectorial Compartida (Collective Learning)</span>
-                <p className="text-slate-400 text-[11px]">Cualquier variación en XML del SRI ajusta APU, Proformas de Compra y Márgenes de Proyecto automáticamente.</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setActiveTab('conocimiento')}
-              className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs transition-colors self-start sm:self-auto inline-flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Ver Cascada en Vivo
-            </button>
-          </div>
-        </section>
+        {/* Contenido scrolleable del Dashboard */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
+          
+          {/* VISTA 1: DASHBOARD GENERAL (Idéntico a Imagen 1) */}
+          {activeTab === 'dashboard' && (
+            <ConstructoraDashboardView 
+              user={professionalUser}
+              onNavigate={handleNavigate}
+            />
+          )}
 
-        {/* 2. BARRA DE NAVEGACIÓN DE PESTAÑAS */}
-        <div className="flex items-center border-b border-slate-200 dark:border-slate-800 overflow-x-auto space-x-1">
-          {/* PESTAÑA 1: MIS PROYECTOS */}
-          <button
-            onClick={() => setActiveTab('proyectos')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'proyectos'
-                ? 'border-amber-500 text-amber-600 dark:text-amber-400 dark:border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Building2 className="w-4 h-4 text-amber-500" />
-            🏗️ Mis Proyectos (Obras, Avances & Planos)
-          </button>
+          {/* VISTA 2: MIS PROYECTOS */}
+          {activeTab === 'proyectos' && (
+            <MisProyectosSection user={professionalUser} initialSubTab="obras" />
+          )}
 
-          {/* PESTAÑA 2: DIRECTORIO Y RECURSOS */}
-          <button
-            onClick={() => setActiveTab('directorio')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'directorio'
-                ? 'border-amber-500 text-amber-600 dark:text-amber-400 dark:border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Users className="w-4 h-4 text-amber-500" />
-            👥 Directorio & Recursos (Personal, Proveedores & Clientes)
-          </button>
+          {activeTab === 'avances' && (
+            <MisProyectosSection user={professionalUser} initialSubTab="avances" />
+          )}
 
-          <button
-            onClick={() => setActiveTab('match')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'match'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20 font-bold'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Receipt className="w-4 h-4" />
-            Three-Way Match SRI
-          </button>
+          {activeTab === 'documentos' && (
+            <MisProyectosSection user={professionalUser} initialSubTab="documentos" />
+          )}
 
-          <button
-            onClick={() => setActiveTab('kardex')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'kardex'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Boxes className="w-4 h-4" />
-            2. Kardex Multibodega & Trazabilidad
-          </button>
+          {/* VISTA 3: DIRECTORIO Y RECURSOS */}
+          {activeTab === 'directorio' && (
+            <DirectorioRecursosSection user={professionalUser} initialSubTab="clientes" />
+          )}
 
-          <button
-            onClick={() => setActiveTab('nomina')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'nomina'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            3. Nómina IESS Construcción & Tareo
-          </button>
+          {activeTab === 'talento' && (
+            <DirectorioRecursosSection user={professionalUser} initialSubTab="trabajadores" />
+          )}
 
-          <button
-            onClick={() => setActiveTab('procura')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'procura'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-            4. Procuramiento Predictivo (Landed Cost)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('conocimiento')}
-            className={`px-4 py-3 text-xs font-semibold border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'conocimiento'
-                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-950/20'
-                : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            5. Aprendizaje Colectivo Continuo
-          </button>
-        </div>
-
-        {/* ------------------------------------------------------------- */}
-        {/* PESTAÑA A: MIS PROYECTOS (OBRAS, AVANCES Y PLANOS)            */}
-        {/* ------------------------------------------------------------- */}
-        {activeTab === 'proyectos' && (
-          <MisProyectosSection user={professionalUser} />
-        )}
-
-        {/* ------------------------------------------------------------- */}
-        {/* PESTAÑA B: DIRECTORIO & RECURSOS CONECTADOS                   */}
-        {/* ------------------------------------------------------------- */}
-        {activeTab === 'directorio' && (
-          <DirectorioRecursosSection user={professionalUser} />
-        )}
+          {activeTab === 'fletes' && (
+            <DirectorioRecursosSection user={professionalUser} initialSubTab="proveedores" />
+          )}
 
         {/* ------------------------------------------------------------- */}
         {/* PESTAÑA 1: THREE-WAY MATCH SRI */}
@@ -1303,10 +1397,151 @@ export default function EcosistemaAvanzadoPage() {
         )}
 
         {/* ------------------------------------------------------------- */}
-        {/* PESTAÑA 5: APRENDIZAJE COLECTIVO CONTINUO & CASCADA */}
+        {/* PESTAÑA 5: RED AGÉNTICA (8 AGENTES) & APRENDIZAJE COLECTIVO */}
         {/* ------------------------------------------------------------- */}
-        {activeTab === 'conocimiento' && (
+        {(activeTab === 'red_agentica' || (activeTab as any) === 'conocimiento') && (
           <div className="space-y-6">
+            
+            {/* Topología Multi-Agente & Orquestación EDA */}
+            <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <span className="text-[11px] font-semibold tracking-wider uppercase text-emerald-600 dark:text-emerald-400">
+                    Arquitectura Basada en Eventos (EDA) & Saga Transaccional
+                  </span>
+                  <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white mt-0.5">
+                    Red Coreográfica de Agentes Autónomos
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Memoria Unificada:</span>
+                  <span className="px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                    SharedMemory: 100% Sincronizada
+                  </span>
+                </div>
+              </div>
+
+              {/* Diagrama Interactivo de Nodos */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative">
+                {/* Nodo 1: Master Orchestrator */}
+                <div 
+                  onClick={() => setSelectedAgent('ORCHESTRATOR')}
+                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    selectedAgent === 'ORCHESTRATOR'
+                      ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                      🤖
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300">
+                      Core Bus
+                    </span>
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    SARA_MASTER_ORCHESTRATOR
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    Director general, transacciones atómicas distribuidas y prevención de corrupción de datos.
+                  </p>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                    <span>ESTADO: ACTIVO</span>
+                    <span>0.00% ERRORES</span>
+                  </div>
+                </div>
+
+                {/* Nodo 2: Financial Quant */}
+                <div 
+                  onClick={() => setSelectedAgent('FINANCIAL')}
+                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    selectedAgent === 'FINANCIAL'
+                      ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 ring-1 ring-emerald-500'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                      ⚖️
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                      SRI & IESS
+                    </span>
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    SARA_FINANCIAL_QUANT
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    Auditor tributario (Cód 312/344), 3-Way Match con tolerancia 1%, firma XAdES-BES y rol de pagos.
+                  </p>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+                    <span>TOLERANCIA: &le;1%</span>
+                    <span>MATCH: 99.4%</span>
+                  </div>
+                </div>
+
+                {/* Nodo 3: Kardex Inventory */}
+                <div 
+                  onClick={() => setSelectedAgent('KARDEX')}
+                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    selectedAgent === 'KARDEX'
+                      ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/30 ring-1 ring-amber-500'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="w-7 h-7 rounded-lg bg-amber-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                      📦
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                      Multibodega
+                    </span>
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    SARA_KARDEX_INVENTORY
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    CPP automático, transferencias por vale, stock dinámico acoplado a Gantt y auditoría de mermas.
+                  </p>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-amber-600 dark:text-amber-400">
+                    <span>MÉTODO: CPP</span>
+                    <span>TRAZA: INVERSA</span>
+                  </div>
+                </div>
+
+                {/* Nodo 4: Predictive Purchase */}
+                <div 
+                  onClick={() => setSelectedAgent('PURCHASE')}
+                  className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    selectedAgent === 'PURCHASE'
+                      ? 'border-sky-500 bg-sky-50/50 dark:bg-sky-950/30 ring-1 ring-sky-500'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="w-7 h-7 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                      🚚
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-sky-100 dark:bg-sky-900/50 text-sky-700 dark:text-sky-300">
+                      24 Provincias
+                    </span>
+                  </div>
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                    SARA_PREDICTIVE_PURCHASE
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    Landed Cost (Material + Flete), consolidación por volumen y explosión de materiales BIM/Takeoff.
+                  </p>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[10px] font-mono text-sky-600 dark:text-sky-400">
+                    <span>RUTEO: HAVERSINE</span>
+                    <span>AHORRO: +12%</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Simulador de Mutación SRI y Cascada de Aprendizaje Colectivo */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-5">
               <div>
                 <span className="text-[11px] font-semibold text-violet-600 uppercase">Inteligencia Adaptativa en Tiempo Real</span>
@@ -1447,7 +1682,8 @@ export default function EcosistemaAvanzadoPage() {
           </div>
         )}
 
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

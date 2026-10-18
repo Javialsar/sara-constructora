@@ -24,8 +24,13 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-export function DirectorioRecursosSection({ user }: { user: any }) {
-  const [subTab, setSubTab] = useState<'trabajadores' | 'proveedores' | 'clientes'>('trabajadores');
+export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores' }: { user: any; initialSubTab?: 'trabajadores' | 'proveedores' | 'clientes' }) {
+  const [subTab, setSubTab] = useState<'trabajadores' | 'proveedores' | 'clientes'>(initialSubTab);
+
+  useEffect(() => {
+    if (initialSubTab) setSubTab(initialSubTab);
+  }, [initialSubTab]);
+
   const [trabajadores, setTrabajadores] = useState<any[]>([]);
   const [proveedores, setProveedores] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
