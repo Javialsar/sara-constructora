@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Star,
   Eye,
+  EyeOff,
   UserCheck,
   FileText,
   X,
@@ -37,9 +38,15 @@ import {
   Info,
   Boxes,
   HelpCircle,
-  CheckCircle
+  CheckCircle,
+  FileSpreadsheet,
+  Download,
+  Key,
+  Copy,
+  Lock
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 
 // -----------------------------------------------------------------------------
 // INTERFACES DEL MODELO DE DATOS
@@ -96,6 +103,21 @@ export interface ProveedorCompleto {
   contacto: string;
   calificacion: string;
   productos: ProductoProveedor[];
+}
+
+export interface ClienteCompleto {
+  id: string;
+  nombre: string;
+  representante: string;
+  identificacion: string;
+  email: string;
+  clave_acceso: string;
+  obra_asignada: string;
+  monto_contrato: number;
+  estado: 'activo' | 'suspendido' | 'finalizado';
+  telefono: string;
+  fecha_registro?: string;
+  acceso_portal_habilitado: boolean;
 }
 
 // -----------------------------------------------------------------------------
@@ -403,11 +425,29 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
 
   const [trabajadores, setTrabajadores] = useState<TrabajadorCompleto[]>([]);
   const [proveedores, setProveedores] = useState<ProveedorCompleto[]>([]);
-  const [clientes, setClientes] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<ClienteCompleto[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estados de interacción Agéntica
   const [agentNotice, setAgentNotice] = useState<string | null>(null);
+
+  // Estados para Creación de Clientes y Credenciales de Acceso al Portal
+  const [modalNuevoClienteOpen, setModalNuevoClienteOpen] = useState(false);
+  const [showPasswordNewClient, setShowPasswordNewClient] = useState(false);
+  const [showPasswordCard, setShowPasswordCard] = useState<Record<string, boolean>>({});
+  const [credencialCopiadaId, setCredencialCopiadaId] = useState<string | null>(null);
+  const [filtroCliente, setFiltroCliente] = useState('');
+  const [formNuevoCliente, setFormNuevoCliente] = useState({
+    nombre: '',
+    identificacion: '',
+    representante: '',
+    email: '',
+    clave_acceso: '',
+    telefono: '',
+    obra_asignada: 'Edificio Residencial El Mirador (Loja)',
+    monto_contrato: '',
+    enviarNotificacion: true
+  });
 
   // ---------------------------------------------------------------------------
   // ESTADOS PARA MODALES
@@ -722,27 +762,35 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
 
       setProveedores(provsDefault);
 
-      // 3. Clientes
-      const clisDefault = [
+      // 3. Clientes Titulares con Credenciales Autenticadas Directas
+      const clisDefault: ClienteCompleto[] = [
         {
           id: 'cl-01',
           nombre: 'Fideicomiso Inmobiliario El Mirador',
           representante: 'Dra. María Elena Carrión',
           identificacion: '1191728394001',
+          email: 'elmirador.fideicomiso@gruposara.ec',
+          clave_acceso: 'Sara-Mirador2026*',
           obra_asignada: 'Edificio Residencial El Mirador (Loja)',
           monto_contrato: 485200.0,
           estado: 'activo',
           telefono: '0998127364',
+          fecha_registro: '2026-02-15',
+          acceso_portal_habilitado: true
         },
         {
           id: 'cl-02',
           nombre: 'Asociación de Empleados de Calvas',
           representante: 'Ing. Gonzalo Benítez',
           identificacion: '1102938471',
+          email: 'asoc.calvas@empleados.ec',
+          clave_acceso: 'Sara-Calvas2026#',
           obra_asignada: 'Conjunto Habitacional Las Acacias (Cariamanga)',
           monto_contrato: 215000.0,
           estado: 'activo',
           telefono: '0981928374',
+          fecha_registro: '2026-04-10',
+          acceso_portal_habilitado: true
         },
       ];
       setClientes(clisDefault);
@@ -827,6 +875,198 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
     }, 1200);
   };
 
+  // ===========================================================================
+  // GESTIÓN DE CLIENTES & GENERACIÓN DE CLAVES DE ACCESO AL PORTAL
+  // ===========================================================================
+  const generarClaveAleatoria = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let rand = '';
+    for (let i = 0; i < 6; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const clave = `Sara-${new Date().getFullYear()}-${rand}`;
+    setFormNuevoCliente(prev => ({ ...prev, clave_acceso: clave }));
+  };
+
+  const handleAbrirModalNuevoCliente = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let rand = '';
+    for (let i = 0; i < 6; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const claveInicial = `Sara-${new Date().getFullYear()}-${rand}`;
+    setFormNuevoCliente({
+      nombre: '',
+      identificacion: '',
+      representante: '',
+      email: '',
+      clave_acceso: claveInicial,
+      telefono: '',
+      obra_asignada: 'Edificio Residencial El Mirador (Loja)',
+      monto_contrato: '',
+      enviarNotificacion: true
+    });
+    setShowPasswordNewClient(true);
+    setModalNuevoClienteOpen(true);
+  };
+
+  const handleGuardarNuevoCliente = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formNuevoCliente.nombre.trim() || !formNuevoCliente.identificacion.trim() || !formNuevoCliente.email.trim() || !formNuevoCliente.clave_acceso.trim()) {
+      alert('Por favor completa los campos obligatorios: Razón Social, RUC/Cédula, Email y Clave de acceso.');
+      return;
+    }
+
+    const nuevoId = `cl-${Date.now().toString().slice(-4)}`;
+    const nuevoCliente: ClienteCompleto = {
+      id: nuevoId,
+      nombre: formNuevoCliente.nombre.trim(),
+      identificacion: formNuevoCliente.identificacion.trim(),
+      representante: formNuevoCliente.representante.trim() || formNuevoCliente.nombre.trim(),
+      email: formNuevoCliente.email.trim(),
+      clave_acceso: formNuevoCliente.clave_acceso.trim(),
+      telefono: formNuevoCliente.telefono.trim() || '0990000000',
+      obra_asignada: formNuevoCliente.obra_asignada,
+      monto_contrato: Number(formNuevoCliente.monto_contrato) || 0,
+      estado: 'activo',
+      fecha_registro: new Date().toLocaleDateString('es-EC'),
+      acceso_portal_habilitado: true
+    };
+
+    setClientes(prev => [nuevoCliente, ...prev]);
+    setModalNuevoClienteOpen(false);
+
+    setAgentNotice(`🏛 SARA CLIENTES: Cliente "${nuevoCliente.nombre}" dado de alta con éxito. Usuario: ${nuevoCliente.email} | Clave: ${nuevoCliente.clave_acceso}. Ingreso directo activo al Portal de Clientes sin necesidad de autoregistro.`);
+    alert(`¡Cliente "${nuevoCliente.nombre}" registrado exitosamente!\n\nCredenciales generadas para el portal:\n• Usuario (Email): ${nuevoCliente.email}\n• Contraseña de Acceso: ${nuevoCliente.clave_acceso}\n• Obra Asignada: ${nuevoCliente.obra_asignada}\n\nCon estos datos el cliente puede ingresar directamente al portal y no requiere realizar ningún proceso de registro.`);
+  };
+
+  const handleCopiarCredenciales = (c: ClienteCompleto) => {
+    const texto = `🏛 CREDENCIALES OFICIALES DE ACCESO - PORTAL GRUPO SARA\n` +
+      `==================================================\n` +
+      `Cliente: ${c.nombre}\n` +
+      `Representante: ${c.representante}\n` +
+      `Identificación / RUC: ${c.identificacion}\n` +
+      `Obra Asignada: ${c.obra_asignada}\n` +
+      `Portal Web: https://sara-constructora.vercel.app/portal\n` +
+      `Usuario (Email): ${c.email}\n` +
+      `Clave de Acceso: ${c.clave_acceso}\n` +
+      `Estado: Acceso Inmediato Activo (Sin registro previo)\n` +
+      `==================================================`;
+
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(texto).then(() => {
+        setCredencialCopiadaId(c.id);
+        setTimeout(() => setCredencialCopiadaId(null), 2500);
+      }).catch(() => {
+        alert(texto);
+      });
+    } else {
+      alert(texto);
+    }
+  };
+
+  const handleToggleVerPassword = (clienteId: string) => {
+    setShowPasswordCard(prev => ({
+      ...prev,
+      [clienteId]: !prev[clienteId]
+    }));
+  };
+
+  // ===========================================================================
+  // REPORTES OFICIALES EXCEL & PDF CON FIRMAS DE EMPRESA CONFIGURADAS
+  // ===========================================================================
+  const handleExportarPersonal = (formato: 'excel' | 'pdf') => {
+    if (trabajadores.length === 0) return alert('No hay trabajadores para exportar.');
+    if (formato === 'excel') {
+      const datosExcel = trabajadores.map(t => ({
+        'ID': t.id,
+        'Nombre Completo': t.nombre_completo,
+        'Cédula / Identificación': t.cedula,
+        'Categoría Ocupacional': t.categoria_ocupacional,
+        'Especialidad': t.especialidad,
+        'Jornal Real ($)': t.jornal_real.toFixed(2),
+        'Costo Hora ($)': t.costo_horario.toFixed(2),
+        'Calificación (Estrellas)': `${t.calificacion} / 5.0`,
+        'Total Obras': t.total_obras,
+        'Años Experiencia': t.anios_experiencia,
+        'Estado IESS / SECAP': t.estado_iess
+      }));
+      exportarAExcel(datosExcel, 'Nomina_Personal_Obra_SARA', 'Personal_Obra', 'obras');
+    } else {
+      const encabezados = ['Nombre', 'Categoría', 'Especialidad', 'Jornal ($)', 'Costo/H', 'Calificación', 'Acreditación'];
+      const filas = trabajadores.map(t => [
+        t.nombre_completo,
+        t.categoria_ocupacional,
+        t.especialidad,
+        `$${t.jornal_real.toFixed(2)}`,
+        `$${t.costo_horario.toFixed(2)}`,
+        `★ ${t.calificacion}`,
+        t.estado_iess
+      ]);
+      exportarAPDF('NÓMINA OFICIAL DE PERSONAL CALIFICADO DE OBRA', encabezados, filas, 'Nomina_Personal_Obra_SARA', 'Directorio de Especialistas, Cuadrillas y Homologación Laboral SECAP/IESS', 'obras');
+    }
+  };
+
+  const handleExportarProveedores = (formato: 'excel' | 'pdf') => {
+    if (proveedores.length === 0) return alert('No hay proveedores para exportar.');
+    if (formato === 'excel') {
+      const datosExcel = proveedores.map(p => ({
+        'ID': p.id,
+        'Razón Social': p.razon_social,
+        'RUC': p.ruc,
+        'Categoría / Rubro': p.categoria,
+        'Ciudad / Planta': p.ciudad,
+        'Días Crédito': p.dias_credito,
+        'Contacto': p.contacto,
+        'Calificación Homologada': p.calificacion,
+        'Catálogo Insumos': `${p.productos.length} productos`
+      }));
+      exportarAExcel(datosExcel, 'Directorio_Proveedores_SARA', 'Proveedores', 'compras');
+    } else {
+      const encabezados = ['Razón Social', 'RUC', 'Categoría', 'Ciudad', 'Crédito', 'Calificación Homologada'];
+      const filas = proveedores.map(p => [
+        p.razon_social,
+        p.ruc,
+        p.categoria,
+        p.ciudad,
+        `${p.dias_credito} días`,
+        p.calificacion
+      ]);
+      exportarAPDF('DIRECTORIO OFICIAL DE PROVEEDORES HOMOLOGADOS', encabezados, filas, 'Directorio_Proveedores_SARA', 'Red de Suministros Pesados, Aceros, Hormigones y Acabados de la Construcción', 'compras');
+    }
+  };
+
+  const handleExportarClientes = (formato: 'excel' | 'pdf') => {
+    if (clientes.length === 0) return alert('No hay clientes para exportar.');
+    if (formato === 'excel') {
+      const datosExcel = clientes.map(c => ({
+        'ID': c.id,
+        'Cliente / Razón Social': c.nombre,
+        'Identificación / RUC': c.identificacion,
+        'Representante Legal': c.representante,
+        'Email (Usuario Portal)': c.email || 'cliente@portal.ec',
+        'Teléfono / WhatsApp': c.telefono,
+        'Obra Asignada': c.obra_asignada,
+        'Monto Contractual ($)': Number(c.monto_contrato ?? 0).toFixed(2),
+        'Acceso al Portal': c.acceso_portal_habilitado ? 'Habilitado (Directo)' : 'Inactivo',
+        'Estado': c.estado
+      }));
+      exportarAExcel(datosExcel, 'Directorio_Clientes_Contratos_SARA', 'Clientes_Contratos', 'contabilidad');
+    } else {
+      const encabezados = ['Cliente / Titular', 'RUC / Cédula', 'Representante', 'Obra Asignada', 'Monto Contractual', 'Usuario Portal', 'Estado'];
+      const filas = clientes.map(c => [
+        c.nombre,
+        c.identificacion,
+        c.representante,
+        c.obra_asignada,
+        `$${Number(c.monto_contrato ?? 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })}`,
+        c.email || 'cliente@portal.ec',
+        c.estado === 'activo' ? 'Activo' : c.estado
+      ]);
+      exportarAPDF('CATASTRO OFICIAL DE CLIENTES Y CONTRATOS CIVILES', encabezados, filas, 'Directorio_Clientes_Contratos_SARA', 'Titulares de Obra, Credenciales de Acceso al Portal y Garantías Contractuales', 'contabilidad');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ------------------------------------------------------------------- */}
@@ -883,6 +1123,34 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
             <span>Clientes & Contratos ({clientes.length})</span>
           </button>
         </div>
+
+        {/* Botones Oficiales de Descarga Excel y PDF */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (subTab === 'trabajadores') handleExportarPersonal('excel');
+              else if (subTab === 'proveedores') handleExportarProveedores('excel');
+              else handleExportarClientes('excel');
+            }}
+            className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Descargar datos en formato Excel con membrete y firmas oficiales"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Descargar Excel</span>
+          </button>
+          <button
+            onClick={() => {
+              if (subTab === 'trabajadores') handleExportarPersonal('pdf');
+              else if (subTab === 'proveedores') handleExportarProveedores('pdf');
+              else handleExportarClientes('pdf');
+            }}
+            className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Descargar informe en formato PDF con membrete y firmas oficiales"
+          >
+            <Download className="w-4 h-4" />
+            <span>Descargar PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* Notificación Agéntica Reactiva */}
@@ -922,15 +1190,34 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setAgentNotice(`🤖 SARA_TALENTO: Escaneando base nacional de 142 operarios calificados con certificación SECAP vigente.`);
-              }}
-              className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-sm flex items-center gap-2 transition-all self-start md:self-auto shrink-0"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Sincronizar Base SARA Talento</span>
-            </button>
+            <div className="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
+              <button
+                onClick={() => handleExportarPersonal('excel')}
+                className="px-2.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar nómina a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExportarPersonal('pdf')}
+                className="px-2.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar nómina a PDF"
+              >
+                <Download className="w-3.5 h-3.5 text-rose-600" />
+                <span>PDF</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setAgentNotice(`🤖 SARA_TALENTO: Escaneando base nacional de 142 operarios calificados con certificación SECAP vigente.`);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-sm flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Sincronizar SARA Talento</span>
+              </button>
+            </div>
           </div>
 
           {/* Tabla de Profesionales */}
@@ -1058,8 +1345,23 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
               </span>
             </div>
 
-            <div className="text-xs text-slate-400 font-mono">
-              Presiona <strong className="text-amber-500">"Mis Productos"</strong> para ver códigos, especificaciones técnicas y precios unitarios.
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleExportarProveedores('excel')}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar directorio de proveedores a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExportarProveedores('pdf')}
+                className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar directorio de proveedores a PDF"
+              >
+                <Download className="w-3.5 h-3.5 text-rose-600" />
+                <span>PDF</span>
+              </button>
             </div>
           </div>
 
@@ -1131,43 +1433,199 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
       )}
 
       {/* ------------------------------------------------------------------- */}
-      {/* VISTA 3: CLIENTES Y CONTRATOS                                       */}
+      {/* VISTA 3: CLIENTES TITULARES & ACCESO DIRECTO AL PORTAL              */}
       {/* ------------------------------------------------------------------- */}
       {subTab === 'clientes' && (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-            <div className="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-mono font-bold uppercase text-slate-700 dark:text-slate-300">
-                Clientes Titulares de Obra & Contratos Civiles
+          
+          {/* Barra de Filtros, Búsqueda y Botón para Crear Cliente con Claves */}
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2 flex-1">
+              <div className="relative w-full sm:w-72">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={filtroCliente}
+                  onChange={(e) => setFiltroCliente(e.target.value)}
+                  placeholder="Buscar por cliente, RUC, email u obra..."
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200"
+                />
+              </div>
+
+              <span className="text-slate-400 text-[11px] font-mono hidden sm:inline">
+                Mostrando {clientes.filter(c => 
+                  c.nombre.toLowerCase().includes(filtroCliente.toLowerCase()) ||
+                  c.identificacion.toLowerCase().includes(filtroCliente.toLowerCase()) ||
+                  c.obra_asignada.toLowerCase().includes(filtroCliente.toLowerCase()) ||
+                  (c.email || '').toLowerCase().includes(filtroCliente.toLowerCase())
+                ).length} cliente(s)
               </span>
-              <span className="text-xs font-mono text-emerald-500">Garantías Bancarias Activas</span>
             </div>
 
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {clientes.map((c) => (
-                <div key={c.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">{c.nombre}</span>
-                      <span className="text-slate-300 dark:text-slate-700">•</span>
-                      <span className="text-xs font-mono text-slate-400">RUC: {c.identificacion}</span>
-                    </div>
-                    <p className="text-xs text-amber-500 font-medium">Obra: {c.obra_asignada}</p>
-                    <p className="text-[11px] text-slate-400 font-mono">Representante Legal: {c.representante} • Contacto Institucional SARA</p>
-                  </div>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
+                onClick={() => handleExportarClientes('excel')}
+                className="px-2.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar clientes y contratos a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExportarClientes('pdf')}
+                className="px-2.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar clientes y contratos a PDF"
+              >
+                <Download className="w-3.5 h-3.5 text-rose-600" />
+                <span>PDF</span>
+              </button>
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-right font-mono">
-                      <span className="text-[10px] text-slate-400 block">Monto Contractual</span>
-                      <strong className="text-sm text-slate-900 dark:text-white">
-                        ${Number(c.monto_contrato ?? 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <button
+                onClick={handleAbrirModalNuevoCliente}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>+ Crear Nuevo Cliente & Generar Acceso</span>
+              </button>
             </div>
           </div>
+
+          {/* Banner Explicativo de Autenticación de Clientes */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 flex items-center justify-between text-xs font-mono">
+            <span className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 font-semibold">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Gobernanza de Acceso al Portal: Los clientes dados de alta ingresan directamente con su Usuario y Contraseña generada. No requieren proceso de autoregistro.</span>
+            </span>
+          </div>
+
+          {/* Grid de Tarjetas de Clientes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {clientes
+              .filter(c => 
+                c.nombre.toLowerCase().includes(filtroCliente.toLowerCase()) ||
+                c.identificacion.toLowerCase().includes(filtroCliente.toLowerCase()) ||
+                c.obra_asignada.toLowerCase().includes(filtroCliente.toLowerCase()) ||
+                (c.email || '').toLowerCase().includes(filtroCliente.toLowerCase())
+              )
+              .map((c) => {
+                const isPasswordVisible = !!showPasswordCard[c.id];
+                const isCopiado = credencialCopiadaId === c.id;
+
+                return (
+                  <div 
+                    key={c.id} 
+                    className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-4"
+                  >
+                    <div>
+                      {/* Encabezado del Cliente */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20 inline-flex items-center gap-1 mb-1">
+                            <ShieldCheck size={11} />
+                            <span>CLIENTE TITULAR CERTIFICADO</span>
+                          </span>
+                          <h3 className="text-sm font-extrabold text-slate-900 dark:text-white leading-tight">
+                            {c.nombre}
+                          </h3>
+                        </div>
+                        <span className="text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded shrink-0">
+                          RUC: {c.identificacion}
+                        </span>
+                      </div>
+
+                      {/* Obra y Representante */}
+                      <div className="space-y-1 text-xs">
+                        <p className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                          <Building2 size={13} />
+                          <span>Obra: {c.obra_asignada}</span>
+                        </p>
+                        <p className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+                          Representante Legal: <strong>{c.representante}</strong> • Tel: {c.telefono}
+                        </p>
+                      </div>
+
+                      {/* Recuadro de Credenciales de Autenticación al Portal */}
+                      <div className="mt-3.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-850/70 border border-slate-200 dark:border-slate-800 font-mono text-xs space-y-2">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200/60 dark:border-slate-800 pb-1.5">
+                          <span className="flex items-center gap-1 text-slate-700 dark:text-slate-200 font-bold">
+                            <Key size={12} className="text-amber-500" />
+                            <span>Credenciales de Autenticación al Portal</span>
+                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                            ● Ingreso Directo Habilitado
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">Usuario (Email):</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate block select-all">
+                              {c.email || 'cliente@portal.ec'}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">Contraseña de Acceso:</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-amber-600 dark:text-amber-400 select-all">
+                                {isPasswordVisible ? c.clave_acceso : '••••••••••••'}
+                              </span>
+                              <button
+                                onClick={() => handleToggleVerPassword(c.id)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded cursor-pointer"
+                                title={isPasswordVisible ? 'Ocultar contraseña' : 'Ver contraseña'}
+                              >
+                                {isPasswordVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botón Copiar Credenciales */}
+                        <div className="pt-1.5 flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400">
+                            El cliente no requiere registrarse
+                          </span>
+                          <button
+                            onClick={() => handleCopiarCredenciales(c)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                              isCopiado
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            {isCopiado ? <Check size={12} /> : <Copy size={12} />}
+                            <span>{isCopiado ? '¡Credenciales Copiadas!' : 'Copiar Credenciales'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer de la tarjeta con Monto Contractual */}
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-mono">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Monto Contractual</span>
+                        <strong className="text-sm font-extrabold text-slate-900 dark:text-white">
+                          ${Number(c.monto_contrato ?? 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })}
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
+                          Contrato Activo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {clientes.length === 0 && (
+            <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
+              No hay clientes registrados en este momento. Presiona <strong>"+ Crear Nuevo Cliente & Generar Acceso"</strong> para dar de alta al primer cliente.
+            </div>
+          )}
         </div>
       )}
 
@@ -1849,6 +2307,216 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================== */}
+      {/* MODAL 5: "CREAR NUEVO CLIENTE & GENERAR ACCESO AL PORTAL"           */}
+      {/* =================================================================== */}
+      {modalNuevoClienteOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
+            {/* Encabezado del Modal */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-850/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Registrar Nuevo Cliente & Generar Acceso
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Alta directa en la empresa con credenciales para el Portal sin autoregistro.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setModalNuevoClienteOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-200/60 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Formulario de Alta y Generación de Credenciales */}
+            <form onSubmit={handleGuardarNuevoCliente} className="flex-1 overflow-y-auto p-5 space-y-4 text-xs font-mono">
+              
+              {/* Razón Social / Nombre */}
+              <div>
+                <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                  Razón Social / Nombre del Cliente Titular *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Consorcio Inmobiliario Los Rosales"
+                  value={formNuevoCliente.nombre}
+                  onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, nombre: e.target.value }))}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+
+              {/* RUC / Cédula y Representante */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                    RUC o Cédula de Identidad *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={13}
+                    placeholder="1191728394001"
+                    value={formNuevoCliente.identificacion}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, identificacion: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                    Representante Legal
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Ing. Patricio Cárdenas"
+                    value={formNuevoCliente.representante}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, representante: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Email (Usuario) y Teléfono */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                    Correo Electrónico (Usuario del Portal) *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="cliente@empresa.ec"
+                    value={formNuevoCliente.email}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                    Teléfono / WhatsApp
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="0994812938"
+                    value={formNuevoCliente.telefono}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, telefono: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Obra Asignada y Monto Contractual */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                    Obra Asignada de la Empresa *
+                  </label>
+                  <select
+                    value={formNuevoCliente.obra_asignada}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, obra_asignada: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
+                  >
+                    <option value="Edificio Residencial El Mirador (Loja)">Edificio Residencial El Mirador (Loja)</option>
+                    <option value="Conjunto Habitacional Las Acacias (Cariamanga)">Conjunto Habitacional Las Acacias (Cariamanga)</option>
+                    <option value="Torre Diamante Corporativa">Torre Diamante Corporativa</option>
+                    <option value="Centro Logístico SARA Fletes Sur">Centro Logístico SARA Fletes Sur</option>
+                    <option value="Rincón Campestre JV">Rincón Campestre JV</option>
+                    <option value="Puente Paso Lateral Loja - Tramo II">Puente Paso Lateral Loja - Tramo II</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                    Monto Contractual ($ USD)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="150000.00"
+                    value={formNuevoCliente.monto_contrato}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, monto_contrato: e.target.value }))}
+                    className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* BLOQUE DE GENERACIÓN DE CLAVE PARA AUTENTICACIÓN */}
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                    <Key size={14} className="text-amber-500" />
+                    <span>Generación de Claves para Autenticación Directa *</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={generarClaveAleatoria}
+                    className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                  >
+                    <Sparkles size={12} />
+                    <span>Generar Otra Clave</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showPasswordNewClient ? 'text' : 'password'}
+                    required
+                    value={formNuevoCliente.clave_acceso}
+                    onChange={(e) => setFormNuevoCliente(prev => ({ ...prev, clave_acceso: e.target.value }))}
+                    className="w-full pr-10 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white font-bold tracking-wider"
+                    placeholder="Contraseña segura"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordNewClient(!showPasswordNewClient)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                    title={showPasswordNewClient ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  >
+                    {showPasswordNewClient ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+
+                <div className="text-[11px] text-amber-900/80 dark:text-amber-300/80 flex items-start gap-1.5">
+                  <ShieldCheck size={14} className="text-emerald-500 shrink-0 mt-0.5" />
+                  <span>
+                    Con estos datos ingresa el cliente directamente y ya no tiene que realizar ningún proceso de autoregistro. Sus accesos quedan activados en la base de datos de Grupo SARA.
+                  </span>
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div className="flex items-center gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setModalNuevoClienteOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold font-mono text-xs cursor-pointer hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-xs shadow-md shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Dar de Alta & Generar Acceso</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

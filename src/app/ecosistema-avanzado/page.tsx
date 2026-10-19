@@ -69,6 +69,7 @@ import {
   ConstructoraSubscriptionService, 
   AccesoSubscriptionResult 
 } from '@/lib/services/constructoraSubscriptionService';
+import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export type SuiteTab = 
@@ -355,6 +356,75 @@ export default function EcosistemaAvanzadoPage() {
     setDescuentoAplicadoAlert(
       `¡Descuento de $${dev.totalDescuentoUSD.toFixed(2)} USD aplicado con éxito en la Factura del Proveedor (${dev.numeroFacturaSRI})! La cuenta por pagar se redujo a $${nuevoNeto.toFixed(2)} USD para evitar pagos indebidos.`
     );
+  };
+
+  const handleExportarContabilidad = (formato: 'excel' | 'pdf') => {
+    const diffSubtotalPct = matchResult.resumenFinanciero.subtotalOrden > 0
+      ? ((Math.abs(matchResult.resumenFinanciero.subtotalFactura - matchResult.resumenFinanciero.subtotalOrden) / matchResult.resumenFinanciero.subtotalOrden) * 100).toFixed(2)
+      : '0.00';
+    const diffTotalPct = matchResult.resumenFinanciero.totalOrden > 0
+      ? ((Math.abs(matchResult.resumenFinanciero.totalFactura - matchResult.resumenFinanciero.totalOrden) / matchResult.resumenFinanciero.totalOrden) * 100).toFixed(2)
+      : '0.00';
+    const esAprobado = matchResult.status === 'MATCHED_SUCCESS';
+
+    if (formato === 'excel') {
+      const datosExcel = [
+        {
+          'Concepto': 'Subtotal Comprobante SRI',
+          'Factura Proveedor ($)': matchResult.resumenFinanciero.subtotalFactura.toFixed(2),
+          'Orden de Compra ($)': matchResult.resumenFinanciero.subtotalOrden.toFixed(2),
+          'Discrepancia': `${diffSubtotalPct}%`,
+          'Dictamen': esAprobado ? 'Aprobado' : 'Rechazado'
+        },
+        {
+          'Concepto': 'IVA 15%',
+          'Factura Proveedor ($)': matchResult.resumenFinanciero.ivaFactura.toFixed(2),
+          'Orden de Compra ($)': (matchResult.resumenFinanciero.subtotalOrden * 0.15).toFixed(2),
+          'Discrepancia': '0.00%',
+          'Dictamen': 'Permitido'
+        },
+        {
+          'Concepto': 'Total Factura / OC',
+          'Factura Proveedor ($)': matchResult.resumenFinanciero.totalFactura.toFixed(2),
+          'Orden de Compra ($)': matchResult.resumenFinanciero.totalOrden.toFixed(2),
+          'Discrepancia': `${diffTotalPct}%`,
+          'Dictamen': esAprobado ? 'Liquidado para Pago' : 'Pendiente'
+        },
+        {
+          'Concepto': 'Retención Renta Código 312 (1.75%)',
+          'Factura Proveedor ($)': matchResult.retencionPropuesta.valorRetenidoRenta.toFixed(2),
+          'Orden de Compra ($)': '-',
+          'Discrepancia': '-',
+          'Dictamen': 'Retenido al Proveedor'
+        },
+        {
+          'Concepto': 'Retención IVA 30%',
+          'Factura Proveedor ($)': matchResult.retencionPropuesta.valorRetenidoIva.toFixed(2),
+          'Orden de Compra ($)': '-',
+          'Discrepancia': '-',
+          'Dictamen': 'Retenido al Proveedor'
+        },
+        {
+          'Concepto': 'Valor Neto a Transferir al Proveedor',
+          'Factura Proveedor ($)': (matchResult.resumenFinanciero.totalFactura - matchResult.retencionPropuesta.totalRetenido).toFixed(2),
+          'Orden de Compra ($)': '-',
+          'Discrepancia': '-',
+          'Dictamen': 'Neto Pagable'
+        }
+      ];
+      exportarAExcel(datosExcel, 'Liquidacion_Contable_3WayMatch_SARA', 'Contabilidad_SRI', 'contabilidad');
+    } else {
+      const encabezados = ['Concepto Contable', 'Factura SRI ($)', 'Orden Compra ($)', 'Discrepancia', 'Dictamen Fiscal'];
+      const filas = [
+        ['Subtotal Bienes y Servicios', `$${matchResult.resumenFinanciero.subtotalFactura.toFixed(2)}`, `$${matchResult.resumenFinanciero.subtotalOrden.toFixed(2)}`, `${diffSubtotalPct}%`, esAprobado ? 'Aprobado' : 'Rechazado'],
+        ['IVA 15%', `$${matchResult.resumenFinanciero.ivaFactura.toFixed(2)}`, `$${(matchResult.resumenFinanciero.subtotalOrden * 0.15).toFixed(2)}`, '0.00%', 'Conforme'],
+        ['Total Comprobante', `$${matchResult.resumenFinanciero.totalFactura.toFixed(2)}`, `$${matchResult.resumenFinanciero.totalOrden.toFixed(2)}`, `${diffTotalPct}%`, 'Aprobado SRI'],
+        ['Retención Renta (1.75%)', `$${matchResult.retencionPropuesta.valorRetenidoRenta.toFixed(2)}`, '-', '-', 'Retenido'],
+        ['Retención IVA (30%)', `$${matchResult.retencionPropuesta.valorRetenidoIva.toFixed(2)}`, '-', '-', 'Retenido'],
+        ['VALOR LÍQUIDO A PAGAR', `$${(matchResult.resumenFinanciero.totalFactura - matchResult.retencionPropuesta.totalRetenido).toFixed(2)}`, '-', '-', 'Autorizado']
+      ];
+      exportarAPDF('LIQUIDACIÓN CONTABLE Y FISCAL 3-WAY MATCH SRI', encabezados, filas, 'Liquidacion_Contable_3WayMatch_SARA', 'Auditoría Cruzada Factura SRI vs Orden de Compra vs Bodega con Retenciones LRTI', 'contabilidad');
+    }
   };
 
   // -------------------------------------------------------------
@@ -990,6 +1060,39 @@ export default function EcosistemaAvanzadoPage() {
         {/* ------------------------------------------------------------- */}
         {activeTab === 'match' && suscripcionActual?.hasAccess && (
           <div className="space-y-6">
+
+            {/* Barra Superior de Contabilidad con Botones de Exportar Oficiales */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-indigo-500" />
+                  <span>Auditoría Contable & Retenciones del SRI (Ecuador)</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Conciliación 3-Way Match con tolerancia automática &le; 1% y cálculo de retenciones en la fuente.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleExportarContabilidad('excel')}
+                  className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Descargar liquidación contable en Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Descargar Excel</span>
+                </button>
+                <button
+                  onClick={() => handleExportarContabilidad('pdf')}
+                  className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Descargar informe contable y tributario en PDF"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Descargar PDF</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               
               {/* Columna Izquierda: Visor XML y Controles */}

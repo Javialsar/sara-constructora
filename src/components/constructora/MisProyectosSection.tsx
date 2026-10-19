@@ -37,10 +37,12 @@ import {
   ShieldCheck,
   Check,
   UserCheck,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { EmpresaConfigService, ProfesionalStaff } from '@/lib/services/empresaConfigService';
+import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 
 export type AvanceTabType = 'datos' | 'fotos' | 'videos' | 'tecnico';
 
@@ -901,6 +903,132 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
     alert(`Descargando archivo oficial "${doc.nombre_archivo || doc.titulo}" (${doc.peso || '4.5 MB'}) del proyecto "${doc.proyecto_nombre}".`);
   };
 
+  // ============================================================================
+  // EXPORTACIÓN DE REPORTES OFICIALES (EXCEL Y PDF) CON MEMBRETE Y FIRMAS
+  // ============================================================================
+  const handleExportarProyectos = (formato: 'excel' | 'pdf') => {
+    if (filteredProyectos.length === 0) {
+      alert('No hay obras para exportar con los filtros actuales.');
+      return;
+    }
+
+    if (formato === 'excel') {
+      const datosExcel = filteredProyectos.map(p => ({
+        'ID Obra': p.id,
+        'Nombre del Proyecto': p.nombre,
+        'Ubicación': p.ubicacion,
+        'Tipo de Obra': p.tipo_obra || 'Edificación Sismorresistente',
+        'Avance Físico (%)': `${p.avance ?? 0}%`,
+        'Presupuesto Total ($)': Number(p.presupuesto_total || 0).toFixed(2),
+        'Ingeniero Residente': p.ingeniero_residente || user?.nombre || 'Ing. Residente de Obra',
+        'Estado': p.estado || 'En Construcción',
+        'Área (m²)': p.area_m2 || 850
+      }));
+      exportarAExcel(datosExcel, 'Reporte_Obras_SARA_Constructora', 'Obras_Activas', 'obras');
+    } else {
+      const encabezados = ['ID Obra', 'Proyecto', 'Ubicación', 'Tipo', 'Avance', 'Presupuesto ($)', 'Residente', 'Estado'];
+      const filas = filteredProyectos.map(p => [
+        p.id,
+        p.nombre,
+        p.ubicacion,
+        p.tipo_obra || 'Edificación Civil',
+        `${p.avance ?? 0}%`,
+        `$${Number(p.presupuesto_total || 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })}`,
+        p.ingeniero_residente || user?.nombre || 'Ing. Residente',
+        p.estado || 'En Ejecución'
+      ]);
+      exportarAPDF(
+        'REPORTE OFICIAL DE OBRAS Y PROYECTOS CIVILES',
+        encabezados,
+        filas,
+        'Reporte_Obras_SARA_Constructora',
+        'Catastro Consolidado de Proyectos en Ejecución, Planificación y Culminados',
+        'obras'
+      );
+    }
+  };
+
+  const handleExportarAvances = (formato: 'excel' | 'pdf') => {
+    if (filteredAvances.length === 0) {
+      alert('No hay registros de avance para exportar con los filtros seleccionados.');
+      return;
+    }
+
+    if (formato === 'excel') {
+      const datosExcel = filteredAvances.map(a => ({
+        'ID Avance': a.id,
+        'Proyecto Destino': a.proyecto_nombre,
+        'Fecha Oficial': a.fecha_str,
+        'Hora Oficial': a.hora_str,
+        'Avance Físico (%)': `${a.porcentaje}%`,
+        'Actividad Ejecutada': a.titulo,
+        'Descripción Técnica': a.descripcion,
+        'Fiscalizador / Responsable': a.tecnico?.nombre || a.fiscalizador || 'Ing. de Obra',
+        'Estado Aprobación': a.estado_aprobacion || 'Certificado con Firma Digital'
+      }));
+      exportarAExcel(datosExcel, 'Bitacora_Avances_Obra_SARA', 'Bitacora_Avances', 'obras');
+    } else {
+      const encabezados = ['ID', 'Proyecto', 'Fecha / Hora', 'Avance', 'Actividad Ejecutada', 'Técnico Responsable', 'Dictamen'];
+      const filas = filteredAvances.map(a => [
+        a.id,
+        a.proyecto_nombre,
+        `${a.fecha_str} ${a.hora_str}`,
+        `${a.porcentaje}%`,
+        a.titulo,
+        a.tecnico?.nombre || a.fiscalizador || 'Ing. Responsable',
+        a.estado_aprobacion || 'Certificado'
+      ]);
+      exportarAPDF(
+        'BITÁCORA TÉCNICA OFICIAL DE AVANCES DE OBRA',
+        encabezados,
+        filas,
+        'Bitacora_Avances_Obra_SARA',
+        'Registro Cronológico Certificado con Estampilla de Tiempo Oficial y Firma Digital',
+        'obras'
+      );
+    }
+  };
+
+  const handleExportarDocumentos = (formato: 'excel' | 'pdf') => {
+    if (filteredDocumentos.length === 0) {
+      alert('No hay planos o documentos para exportar con los filtros seleccionados.');
+      return;
+    }
+
+    if (formato === 'excel') {
+      const datosExcel = filteredDocumentos.map(d => ({
+        'ID Documento': d.id,
+        'Proyecto Destino': d.proyecto_nombre,
+        'Título Documental': d.titulo,
+        'Nombre del Archivo': d.nombre_archivo || `${d.titulo}.pdf`,
+        'Tipo / Extensión': d.tipo || 'PDF',
+        'Peso Archivo': d.peso || '4.2 MB',
+        'Fecha Subida': d.fecha_str,
+        'Hora Subida': d.hora_str
+      }));
+      exportarAExcel(datosExcel, 'Gestor_Documental_Planos_SARA', 'Documentos_Planos', 'obras');
+    } else {
+      const encabezados = ['ID', 'Proyecto Destino', 'Título Documental', 'Archivo', 'Tipo', 'Peso', 'Fecha / Hora'];
+      const filas = filteredDocumentos.map(d => [
+        d.id,
+        d.proyecto_nombre,
+        d.titulo,
+        d.nombre_archivo || `${d.titulo}.pdf`,
+        d.tipo || 'PDF',
+        d.peso || '4.2 MB',
+        `${d.fecha_str} ${d.hora_str}`
+      ]);
+      exportarAPDF(
+        'REPOSITORIO DOCUMENTAL TÉCNICO & PLANOS DE OBRA',
+        encabezados,
+        filas,
+        'Gestor_Documental_Planos_SARA',
+        'Control de Memorias Técnicas, Planos Estructurales e Hidrosanitarios',
+        'obras'
+      );
+    }
+  };
+
   return (
     <div className="space-y-6">
       
@@ -955,6 +1083,34 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Gestor Documental ({documentos.length})</span>
+          </button>
+        </div>
+
+        {/* Botones Oficiales de Descarga Excel y PDF (Con Membrete y Firmas Oficiales) */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (subTab === 'obras') handleExportarProyectos('excel');
+              else if (subTab === 'avances') handleExportarAvances('excel');
+              else handleExportarDocumentos('excel');
+            }}
+            className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Descargar datos actuales en formato Excel con membrete y firmas"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Descargar Excel</span>
+          </button>
+          <button
+            onClick={() => {
+              if (subTab === 'obras') handleExportarProyectos('pdf');
+              else if (subTab === 'avances') handleExportarAvances('pdf');
+              else handleExportarDocumentos('pdf');
+            }}
+            className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Descargar informe oficial en formato PDF con membrete y firmas"
+          >
+            <Download className="w-4 h-4" />
+            <span>Descargar PDF</span>
           </button>
         </div>
       </div>
@@ -1048,6 +1204,26 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                   {countDiseno}
                 </span>
               </button>
+
+              {/* Botones de Descarga en Obras */}
+              <div className="flex items-center gap-1.5 ml-auto pl-2 border-l border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => handleExportarProyectos('excel')}
+                  className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 text-xs font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  title="Exportar obras a Excel"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Excel</span>
+                </button>
+                <button
+                  onClick={() => handleExportarProyectos('pdf')}
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-xs font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  title="Exportar obras a PDF"
+                >
+                  <Download className="w-3.5 h-3.5 text-rose-600" />
+                  <span>PDF</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1222,13 +1398,32 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
               </div>
             </div>
 
-            <button
-              onClick={() => handleAbrirModalAvance()}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer shrink-0"
-            >
-              <Plus size={16} />
-              <span>Registrar Nuevo Avance</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => handleExportarAvances('excel')}
+                className="px-2.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar bitácora de avances a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExportarAvances('pdf')}
+                className="px-2.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar bitácora de avances a PDF"
+              >
+                <Download className="w-3.5 h-3.5 text-rose-600" />
+                <span>PDF</span>
+              </button>
+
+              <button
+                onClick={() => handleAbrirModalAvance()}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>Registrar Nuevo Avance</span>
+              </button>
+            </div>
           </div>
 
           {/* Lista de Avances (Con Fecha, Hora, Proyecto, Descripción, %, Visualizar, Editar, Eliminar) */}
@@ -1386,13 +1581,32 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
               </div>
             </div>
 
-            <button
-              onClick={() => handleAbrirModalDoc()}
-              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
-            >
-              <Plus size={16} />
-              <span>Subir Documento</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => handleExportarDocumentos('excel')}
+                className="px-2.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-300 dark:border-emerald-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar inventario de planos y memorias a Excel"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={() => handleExportarDocumentos('pdf')}
+                className="px-2.5 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/60 border border-rose-300 dark:border-rose-800 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Exportar inventario de planos y memorias a PDF"
+              >
+                <Download className="w-3.5 h-3.5 text-rose-600" />
+                <span>PDF</span>
+              </button>
+
+              <button
+                onClick={() => handleAbrirModalDoc()}
+                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>Subir Documento</span>
+              </button>
+            </div>
           </div>
 
           {/* Tabla / Lista de Documentos Oficiales (Con Fecha, Hora, Proyecto, Archivo, Descargar) */}
@@ -1564,34 +1778,74 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
               {modalAvanceTab === 'datos' && (
                 <div className="space-y-3.5 animate-in fade-in duration-150">
                   
-                  {/* Seleccionar Proyecto */}
-                  <div>
-                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                      Seleccionar Proyecto Destino *
-                    </label>
-                    <select
-                      value={avanceForm.proyecto_id}
-                      onChange={(e) => {
-                        const pId = e.target.value;
-                        const p = proyectos.find(x => x.id === pId);
-                        setAvanceForm(prev => ({
-                          ...prev,
-                          proyecto_id: pId,
-                          porcentajeAnterior: p ? Number(p.avance) : 0,
-                          porcentaje: p ? Number(p.avance) : prev.porcentaje
-                        }));
-                      }}
-                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
-                      required
-                    >
-                      <option value="">-- Elige una obra --</option>
-                      {proyectos.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.nombre} ({p.ubicacion}) • Actual: {p.avance}%
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Proyecto Destino Oficial: Presentación fija cuando ya fue seleccionado desde la obra */}
+                  {(() => {
+                    const proyActual = proyectos.find(x => x.id === avanceForm.proyecto_id);
+                    if (proyActual) {
+                      return (
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-slate-100 to-transparent dark:from-amber-950/30 dark:via-slate-800/60 dark:to-slate-800/20 border border-amber-500/30 dark:border-amber-700/50 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                              <Building2 size={13} />
+                              <span>Proyecto Oficial Seleccionado</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-800">
+                              <Lock size={10} />
+                              <span>Obra Vinculada & Bloqueada</span>
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                {proyActual.nombre}
+                              </h4>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
+                                <MapPin size={12} className="text-amber-500 shrink-0" />
+                                <span>{proyActual.ubicacion || 'Ecuador'} • {proyActual.tipo_obra || 'Edificación Civil'}</span>
+                              </p>
+                            </div>
+                            <div className="bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-right shrink-0">
+                              <span className="text-[10px] font-mono text-slate-400 block">Avance Certificado Anterior</span>
+                              <span className="text-xs font-mono font-bold text-amber-600 dark:text-amber-400">
+                                {proyActual.avance ?? 0}%
+                              </span>
+                            </div>
+                          </div>
+                          <input type="hidden" name="proyecto_id" value={avanceForm.proyecto_id} />
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div>
+                        <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                          Seleccionar Proyecto Destino *
+                        </label>
+                        <select
+                          value={avanceForm.proyecto_id}
+                          onChange={(e) => {
+                            const pId = e.target.value;
+                            const p = proyectos.find(x => x.id === pId);
+                            setAvanceForm(prev => ({
+                              ...prev,
+                              proyecto_id: pId,
+                              porcentajeAnterior: p ? Number(p.avance) : 0,
+                              porcentaje: p ? Number(p.avance) : prev.porcentaje
+                            }));
+                          }}
+                          className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
+                          required
+                        >
+                          <option value="">-- Elige una obra --</option>
+                          {proyectos.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.nombre} ({p.ubicacion}) • Actual: {p.avance}%
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })()}
 
                   {/* Badge de Fecha y Hora del Sistema (Asignadas Automáticamente) */}
                   <div className="p-2.5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 flex items-center justify-between text-xs">
@@ -2142,25 +2396,59 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
 
             <form onSubmit={handleGuardarDoc} className="space-y-4 text-xs">
               
-              {/* Proyecto Destino */}
-              <div>
-                <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
-                  Proyecto Destino *
-                </label>
-                <select
-                  value={docForm.proyecto_id}
-                  onChange={(e) => setDocForm(prev => ({ ...prev, proyecto_id: e.target.value }))}
-                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
-                  required
-                >
-                  <option value="">Selecciona un proyecto...</option>
-                  {proyectos.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} ({p.ubicacion})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Proyecto Destino Oficial: Presentación fija cuando ya fue seleccionado desde la obra */}
+              {(() => {
+                const proyDocActual = proyectos.find(x => x.id === docForm.proyecto_id);
+                if (proyDocActual) {
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-slate-100 to-transparent dark:from-amber-950/30 dark:via-slate-800/60 dark:to-slate-800/20 border border-amber-500/30 dark:border-amber-700/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                          <Building2 size={13} />
+                          <span>Obra Destino de Planos & Memorias</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-800">
+                          <Lock size={10} />
+                          <span>Obra Asignada Fija</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            {proyDocActual.nombre}
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
+                            <MapPin size={12} className="text-amber-500 shrink-0" />
+                            <span>{proyDocActual.ubicacion || 'Ecuador'} • {proyDocActual.tipo_obra || 'Edificación Civil'}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <input type="hidden" name="proyecto_id" value={docForm.proyecto_id} />
+                    </div>
+                  );
+                }
+
+                return (
+                  <div>
+                    <label className="text-slate-700 dark:text-slate-300 font-bold block mb-1">
+                      Proyecto Destino *
+                    </label>
+                    <select
+                      value={docForm.proyecto_id}
+                      onChange={(e) => setDocForm(prev => ({ ...prev, proyecto_id: e.target.value }))}
+                      className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
+                      required
+                    >
+                      <option value="">Selecciona un proyecto...</option>
+                      {proyectos.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre} ({p.ubicacion})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              })()}
 
               {/* Subir Uno o Varios Archivos (Multi-Upload) */}
               <div>

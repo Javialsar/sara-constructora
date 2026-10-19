@@ -1305,8 +1305,47 @@ export function BodegaKardexSection({ user }: { user: any }) {
       encabezados,
       filas,
       `Kardex_Oficial_${currentInsumo.codigo}`,
-      `Código: ${currentInsumo.codigo} • Unidad: ${currentInsumo.unidad} • Bodega Matriz SARA • Método: Costo Promedio Ponderado (CPP)`
+      `Código: ${currentInsumo.codigo} • Unidad: ${currentInsumo.unidad} • Bodega Matriz SARA • Método: Costo Promedio Ponderado (CPP)`,
+      'bodega'
     );
+  };
+
+  const handleExportarInventarioCompleto = (formato: 'excel' | 'pdf') => {
+    if (formato === 'excel') {
+      const datosExcel = insumos.map(i => ({
+        'Código Insumo': i.codigo,
+        'Descripción del Material': i.nombre,
+        'Categoría': i.categoria,
+        'Unidad': i.unidad,
+        'Stock Actual': i.stockActual,
+        'Stock Seguridad': i.stockSeguridad,
+        'Costo Promedio Unitario ($)': i.cppActual.toFixed(4),
+        'Valor Total en Bodega ($)': (i.stockActual * i.cppActual).toFixed(2),
+        'Ubicación en Bodega': i.bodegaUbicacion,
+        'Estado': i.stockActual <= i.puntoReorden ? 'CRÍTICO / REORDEN' : 'NORMAL'
+      }));
+      exportarAExcel(datosExcel, 'Inventario_General_Bodega_SARA', 'Inventario_Bodega', 'bodega');
+    } else {
+      const encabezados = ['Código', 'Material / Insumo', 'Unidad', 'Stock', 'Costo Prom ($)', 'Valor Total ($)', 'Ubicación', 'Estado'];
+      const filas = insumos.map(i => [
+        i.codigo,
+        i.nombre,
+        i.unidad,
+        i.stockActual.toLocaleString(),
+        `$${i.cppActual.toFixed(2)}`,
+        `$${(i.stockActual * i.cppActual).toLocaleString('es-EC', { minimumFractionDigits: 2 })}`,
+        i.bodegaUbicacion,
+        i.stockActual <= i.puntoReorden ? 'CRÍTICO' : 'NORMAL'
+      ]);
+      exportarAPDF(
+        'INVENTARIO VALORADO GENERAL DE BODEGA & KARDEX',
+        encabezados,
+        filas,
+        'Inventario_General_Bodega_SARA',
+        'Consolidado de Existencias Físicas y Valorización CPP en Almacén Central',
+        'bodega'
+      );
+    }
   };
 
   return (
@@ -1336,6 +1375,24 @@ export function BodegaKardexSection({ user }: { user: any }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Botones Oficiales de Descarga Excel y PDF */}
+            <button
+              onClick={() => handleExportarInventarioCompleto('excel')}
+              className="px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Descargar inventario valorado general en Excel"
+            >
+              <FileSpreadsheet size={15} />
+              <span>Descargar Excel</span>
+            </button>
+            <button
+              onClick={() => handleExportarInventarioCompleto('pdf')}
+              className="px-3.5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs font-mono shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Descargar informe valorado de bodega en PDF con firmas oficiales"
+            >
+              <FileText size={15} />
+              <span>Descargar PDF</span>
+            </button>
+
             <button
               onClick={() => setModalNuevoDespacho(true)}
               className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer"
