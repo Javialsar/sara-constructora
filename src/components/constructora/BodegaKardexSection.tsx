@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Warehouse, 
   Package, 
@@ -157,6 +157,14 @@ export function BodegaKardexSection({ user }: { user: any }) {
   const [activeSubTab, setActiveSubTab] = useState<'kardex' | 'recepcion' | 'despacho' | 'stock_critico' | 'mermas'>('kardex');
   const [selectedInsumoId, setSelectedInsumoId] = useState<string>('cemento_holcim');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Estados para Filtros Avanzados de Kardex (Imagen 3: Todos, Por Categorías, Por Proveedores, Por Proyecto)
+  type FiltroKardexTipo = 'todos' | 'categoria' | 'proveedor' | 'proyecto';
+  const [modoFiltroKardex, setModoFiltroKardex] = useState<FiltroKardexTipo>('todos');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('TODAS');
+  const [proveedorSeleccionado, setProveedorSeleccionado] = useState<string>('TODOS');
+  const [proyectoSeleccionado, setProyectoSeleccionado] = useState<string>('TODOS');
+  const [vistaKardexConsolidada, setVistaKardexConsolidada] = useState<boolean>(false);
 
   // Sub-vista dentro de Recepción
   const [subVistaRecepcion, setSubVistaRecepcion] = useState<'ordenes' | 'devoluciones'>('ordenes');
@@ -771,8 +779,92 @@ export function BodegaKardexSection({ user }: { user: any }) {
     setOrdenesDevolucion(ThreeWayMatchService.getDevoluciones());
   }, []);
 
+  // ----------------------------------------------------------------------------
+  // LISTAS DE FILTRADO PARA KARDEX (IMAGEN 3)
+  // ----------------------------------------------------------------------------
+  const categoriasKardex = [
+    { id: 'TODAS', label: 'Todas las Familias', icon: '📦' },
+    { id: 'CEMENTO', label: 'Cementos & Aglomerantes', icon: '🧱' },
+    { id: 'ACERO', label: 'Aceros & Mallas', icon: '🔩' },
+    { id: 'ARIDOS', label: 'Áridos & Minas', icon: '🏔️' },
+    { id: 'MAMPOSTERIA', label: 'Mampostería & Bloques', icon: '🧱' },
+    { id: 'HORMIGON', label: 'Hormigones & Mixers', icon: '🚛' },
+    { id: 'TUBERIA', label: 'Tuberías & Accesorios', icon: '🔧' },
+  ];
+
+  const proveedoresKardex: { id: string; nombre: string; ruc?: string }[] = [
+    { id: 'TODOS', nombre: 'Todos los Proveedores' },
+    { id: 'HOLCIM ECUADOR S.A.', nombre: 'HOLCIM ECUADOR S.A.', ruc: '0990004589001' },
+    { id: 'ADELCA ACEROS DEL ECUADOR C.A.', nombre: 'ADELCA ACEROS DEL ECUADOR C.A.', ruc: '1790012345001' },
+    { id: 'CANTERA & MATERIALES SUR LOJA CÍA. LTDA.', nombre: 'CANTERA & MATERIALES SUR LOJA', ruc: '1190045612001' },
+    { id: 'INDUSTRIA BLOQUERA LOJANA CÍA. LTDA.', nombre: 'INDUSTRIA BLOQUERA LOJANA', ruc: '1190054321001' },
+    { id: 'HORMIGONERA SUR ECUADOR HORMISUR', nombre: 'HORMIGONERA SUR ECUADOR', ruc: '1190088990001' },
+    { id: 'RIVAL TUBERÍAS & PLASTIGAMA', nombre: 'RIVAL TUBERÍAS & PLASTIGAMA', ruc: '0190022334001' },
+  ];
+
+  const proyectosKardex = [
+    { id: 'TODOS', nombre: 'Todos los Proyectos / Obras' },
+    { id: 'Torre SARA Loja (Pisos 1-3)', nombre: 'Torre SARA Loja (Pisos 1-3)' },
+    { id: 'Torre SARA Loja (Pisos 4-8)', nombre: 'Torre SARA Loja (Pisos 4-8)' },
+    { id: 'Residencial Cariamanga Plaza', nombre: 'Residencial Cariamanga Plaza' },
+    { id: 'Edificio Residencial El Mirador', nombre: 'Edificio Residencial El Mirador' },
+    { id: 'Conjunto Habitacional Las Acacias', nombre: 'Conjunto Habitacional Las Acacias' },
+  ];
+
+  // Insumos filtrados dinámicamente según la opción elegida (Imagen 3)
+  const insumosFiltrados = useMemo(() => {
+    return insumos.filter(ins => {
+      if (modoFiltroKardex === 'categoria') {
+        if (categoriaSeleccionada !== 'TODAS' && ins.categoria !== categoriaSeleccionada) {
+          return false;
+        }
+      } else if (modoFiltroKardex === 'proveedor') {
+        if (proveedorSeleccionado !== 'TODOS') {
+          const provUpper = proveedorSeleccionado.toUpperCase();
+          const tieneOC = ordenesCompra.some(oc => 
+            oc.proveedor.toUpperCase().includes(provUpper) &&
+            oc.items.some(it => it.insumoId === ins.id)
+          );
+          const tieneMov = movimientos.some(m => 
+            m.insumoId === ins.id && 
+            m.solicitanteOProveedor.toUpperCase().includes(provUpper)
+          );
+          const esProvHolcim = provUpper.includes('HOLCIM') && ins.id === 'cemento_holcim';
+          const esProvAdelca = provUpper.includes('ADELCA') && ins.id === 'acero_adelca_12';
+          const esProvCantera = provUpper.includes('CANTERA') && ins.id === 'arena_gruesa';
+          const esProvBloque = provUpper.includes('BLOQUERA') && ins.id === 'bloque_15';
+          const esProvHormigon = provUpper.includes('HORMIGONERA') && ins.id === 'hormigon_210';
+          const esProvTuberia = provUpper.includes('RIVAL') && ins.id === 'tuberia_pvc_110';
+          if (!tieneOC && !tieneMov && !esProvHolcim && !esProvAdelca && !esProvCantera && !esProvBloque && !esProvHormigon && !esProvTuberia) {
+            return false;
+          }
+        }
+      } else if (modoFiltroKardex === 'proyecto') {
+        if (proyectoSeleccionado !== 'TODOS') {
+          const proyUpper = proyectoSeleccionado.toUpperCase();
+          const tieneSalidaAProyecto = movimientos.some(m => 
+            m.insumoId === ins.id && 
+            m.proyectoDestino && 
+            m.proyectoDestino.toUpperCase().includes(proyUpper)
+          );
+          if (!tieneSalidaAProyecto) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+  }, [insumos, modoFiltroKardex, categoriaSeleccionada, proveedorSeleccionado, proyectoSeleccionado, ordenesCompra, movimientos]);
+
+  // Si el insumo seleccionado ya no está en la lista filtrada, seleccionar el primero disponible
+  useEffect(() => {
+    if (insumosFiltrados.length > 0 && !insumosFiltrados.some(i => i.id === selectedInsumoId)) {
+      setSelectedInsumoId(insumosFiltrados[0].id);
+    }
+  }, [insumosFiltrados, selectedInsumoId]);
+
   // Insumo actualmente seleccionado en el Kardex
-  const currentInsumo = insumos.find(i => i.id === selectedInsumoId) || insumos[0];
+  const currentInsumo = insumos.find(i => i.id === selectedInsumoId) || insumosFiltrados[0] || insumos[0];
   const currentMovimientos = movimientos.filter(m => m.insumoId === currentInsumo.id);
 
   // Insumos que están por agotarse
@@ -1246,8 +1338,22 @@ export function BodegaKardexSection({ user }: { user: any }) {
     exportarAExcel(datos, `Devolucion_${dev.numeroDevolucion}_${dev.proveedor.replace(/ /g, '_')}`, 'Acta Devolucion');
   };
 
-  // 3. Exportar Kardex a Excel
+  // 3. Exportar Kardex a Excel con Bloque de KPIs Oficiales (Imagen 2)
   const handleExportExcelKardex = () => {
+    const esCritico = currentInsumo.stockActual <= currentInsumo.stockSeguridad;
+    const esAlerta = currentInsumo.stockActual <= currentInsumo.puntoReorden;
+    const estadoTexto = esCritico ? 'CRÍTICO / AGOTÁNDOSE' : esAlerta ? 'REORDENAR INMEDIATO' : 'ÓPTIMO';
+
+    const kpisExcel = [
+      { etiqueta: 'Stock Actual en Bodega', valor: `${currentInsumo.stockActual.toLocaleString()} ${currentInsumo.unidad}` },
+      { etiqueta: 'Costo Promedio (CPP)', valor: `$${currentInsumo.cppActual.toFixed(4)} USD` },
+      { etiqueta: 'Punto de Reorden (ROP)', valor: `${currentInsumo.puntoReorden} ${currentInsumo.unidad}` },
+      { etiqueta: 'Stock de Seguridad', valor: `${currentInsumo.stockSeguridad} ${currentInsumo.unidad}` },
+      { etiqueta: 'Estado de Abastecimiento', valor: estadoTexto },
+      { etiqueta: 'Ubicación en Bodega', valor: currentInsumo.bodegaUbicacion },
+      { etiqueta: 'Lote Activo', valor: currentInsumo.lote }
+    ];
+
     const dataExport = currentMovimientos.map(m => ({
       'Fecha': m.fecha,
       'Hora': m.hora,
@@ -1267,10 +1373,16 @@ export function BodegaKardexSection({ user }: { user: any }) {
       'Observaciones': m.observacion || ''
     }));
 
-    exportarAExcel(dataExport, `Kardex_${currentInsumo.codigo}_${currentInsumo.nombre.replace(/ /g, '_')}`, 'Kardex Oficial');
+    exportarAExcel(
+      dataExport, 
+      `Kardex_${currentInsumo.codigo}_${currentInsumo.nombre.replace(/ /g, '_')}`, 
+      'Kardex Oficial',
+      'bodega',
+      kpisExcel
+    );
   };
 
-  // 4. Exportar Kardex a PDF
+  // 4. Exportar Kardex a PDF con Bloque de KPIs Oficiales (Imagen 2)
   const handleExportPdfKardex = () => {
     const encabezados = [
       'Fecha',
@@ -1300,14 +1412,123 @@ export function BodegaKardexSection({ user }: { user: any }) {
       `$${m.saldoTotal.toFixed(2)}`
     ]);
 
+    const esCritico = currentInsumo.stockActual <= currentInsumo.stockSeguridad;
+    const esAlerta = currentInsumo.stockActual <= currentInsumo.puntoReorden;
+    const estadoTexto = esCritico ? '🔴 CRÍTICO / AGOTÁNDOSE' : esAlerta ? '🟡 REORDENAR' : '🟢 ÓPTIMO';
+
+    const kpisPdf = [
+      {
+        etiqueta: 'Stock Actual en Bodega',
+        valor: `${currentInsumo.stockActual.toLocaleString()} ${currentInsumo.unidad}`,
+        color: esCritico ? ('danger' as const) : esAlerta ? ('warning' as const) : ('success' as const)
+      },
+      {
+        etiqueta: 'Costo Promedio (CPP)',
+        valor: `$${currentInsumo.cppActual.toFixed(4)} USD`,
+        color: 'default' as const
+      },
+      {
+        etiqueta: 'Punto de Reorden (ROP)',
+        valor: `${currentInsumo.puntoReorden} ${currentInsumo.unidad}`,
+        color: 'default' as const
+      },
+      {
+        etiqueta: 'Stock de Seguridad',
+        valor: `${currentInsumo.stockSeguridad} ${currentInsumo.unidad}`,
+        color: 'default' as const
+      },
+      {
+        etiqueta: 'Estado de Abastecimiento',
+        valor: estadoTexto,
+        color: esCritico ? ('danger' as const) : esAlerta ? ('warning' as const) : ('success' as const)
+      }
+    ];
+
     exportarAPDF(
       `TARJETA OFICIAL DE KARDEX: ${currentInsumo.nombre.toUpperCase()}`,
       encabezados,
       filas,
       `Kardex_Oficial_${currentInsumo.codigo}`,
-      `Código: ${currentInsumo.codigo} • Unidad: ${currentInsumo.unidad} • Bodega Matriz SARA • Método: Costo Promedio Ponderado (CPP)`,
-      'bodega'
+      `Código: ${currentInsumo.codigo} • Unidad: ${currentInsumo.unidad} • Bodega Matriz SARA • Ubicación: ${currentInsumo.bodegaUbicacion} • Lote: ${currentInsumo.lote}`,
+      'bodega',
+      kpisPdf
     );
+  };
+
+  // 4.1 Exportar Consumos por Proyecto de Obra
+  const handleExportarConsumoProyecto = (formato: 'excel' | 'pdf') => {
+    const despachosProyecto = movimientos.filter(m => 
+      m.tipo === 'DESPACHO_OBRA' && 
+      m.proyectoDestino && 
+      (proyectoSeleccionado === 'TODOS' || m.proyectoDestino.toUpperCase().includes(proyectoSeleccionado.toUpperCase()))
+    );
+
+    const totalCostoDespachado = despachosProyecto.reduce((acc, m) => acc + (m.salidaTotal || 0), 0);
+
+    if (formato === 'excel') {
+      const datosExcel = despachosProyecto.map(m => {
+        const mat = insumos.find(i => i.id === m.insumoId);
+        return {
+          'Fecha': m.fecha,
+          'Hora': m.hora,
+          'Proyecto Destino': m.proyectoDestino,
+          'Vale de Salida': m.documentoRef,
+          'Material / Insumo': mat?.nombre || m.insumoId,
+          'Código': mat?.codigo || '',
+          'Unidad': mat?.unidad || '',
+          'Cantidad Despachada': m.salidaCant,
+          'Costo Unitario CPP ($)': m.salidaCostoUnit.toFixed(4),
+          'Costo Total Despacho ($)': m.salidaTotal.toFixed(2),
+          'Solicitado Por': m.solicitanteOProveedor,
+          'Observaciones': m.observacion || ''
+        };
+      });
+
+      const kpisExcel = [
+        { etiqueta: 'Proyecto de Obra', valor: proyectoSeleccionado },
+        { etiqueta: 'Vales Despachados', valor: `${despachosProyecto.length} vales` },
+        { etiqueta: 'Costo Total Despachado', valor: `$${totalCostoDespachado.toLocaleString('es-EC', { minimumFractionDigits: 2 })} USD` }
+      ];
+
+      exportarAExcel(
+        datosExcel, 
+        `Consumo_Obra_${proyectoSeleccionado.replace(/ /g, '_')}`, 
+        'Consumos Obra', 
+        'bodega', 
+        kpisExcel
+      );
+    } else {
+      const encabezados = ['Fecha', 'Vale Respaldo', 'Material / Insumo', 'Cant.', 'Unid.', 'CPP ($)', 'Total USD', 'Solicitante'];
+      const filas = despachosProyecto.map(m => {
+        const mat = insumos.find(i => i.id === m.insumoId);
+        return [
+          m.fecha,
+          m.documentoRef.split('/')[0].trim(),
+          (mat?.nombre || m.insumoId).substring(0, 22),
+          m.salidaCant.toLocaleString(),
+          mat?.unidad || '',
+          `$${m.salidaCostoUnit.toFixed(2)}`,
+          `$${m.salidaTotal.toFixed(2)}`,
+          m.solicitanteOProveedor.substring(0, 18)
+        ];
+      });
+
+      const kpisPdf = [
+        { etiqueta: 'Proyecto Destino', valor: proyectoSeleccionado.substring(0, 24), color: 'default' as const },
+        { etiqueta: 'Vales de Salida', valor: `${despachosProyecto.length} vales`, color: 'default' as const },
+        { etiqueta: 'Costo Total Obra', valor: `$${totalCostoDespachado.toLocaleString('es-EC', { minimumFractionDigits: 2 })} USD`, color: 'success' as const }
+      ];
+
+      exportarAPDF(
+        `INFORME OFICIAL DE CONSUMOS Y DESPACHOS: ${proyectoSeleccionado.toUpperCase()}`,
+        encabezados,
+        filas,
+        `Consumo_Obra_${proyectoSeleccionado.replace(/ /g, '_')}`,
+        `Imputación presupuestaria a centro de costo de obra • Bodega & Logística SARA`,
+        'bodega',
+        kpisPdf
+      );
+    }
   };
 
   const handleExportarInventarioCompleto = (formato: 'excel' | 'pdf') => {
@@ -1525,238 +1746,554 @@ export function BodegaKardexSection({ user }: { user: any }) {
       {activeSubTab === 'kardex' && (
         <div className="space-y-6">
           
-          {/* Barra de Filtros & Selector de Insumos */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex-1 max-w-md">
-                <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
-                  Seleccionar Insumo para Tarjeta de Kardex:
-                </label>
-                <div className="relative">
+          {/* Barra de Filtros & Selector de Insumos (Imagen 3: Todos | Por Categorías | Por Proveedores | Por Proyecto) */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+            
+            {/* 1. Selector Superior de Modo de Vista (Imagen 3) */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => { setModoFiltroKardex('todos'); setVistaKardexConsolidada(false); }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    modoFiltroKardex === 'todos'
+                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Warehouse size={14} />
+                  <span>Todos</span>
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    {insumos.length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setModoFiltroKardex('categoria'); setVistaKardexConsolidada(false); }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    modoFiltroKardex === 'categoria'
+                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Package size={14} />
+                  <span>Por Categorías</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setModoFiltroKardex('proveedor'); setVistaKardexConsolidada(false); }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    modoFiltroKardex === 'proveedor'
+                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Truck size={14} />
+                  <span>Por Proveedores</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setModoFiltroKardex('proyecto'); setVistaKardexConsolidada(false); }}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    modoFiltroKardex === 'proyecto'
+                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Building2 size={14} />
+                  <span>Por Proyecto</span>
+                </button>
+              </div>
+
+              {/* Botón Alternar Matriz Consolidada en modo 'todos' */}
+              {modoFiltroKardex === 'todos' && (
+                <button
+                  type="button"
+                  onClick={() => setVistaKardexConsolidada(!vistaKardexConsolidada)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                    vistaKardexConsolidada
+                      ? 'bg-amber-500 text-slate-950 border-amber-600 shadow-sm'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <Activity size={14} />
+                  <span>{vistaKardexConsolidada ? 'Ver Ficha Kardex Individual' : '📊 Ver Matriz Consolidada Multibodega'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* 2. Filtros Específicos según el Modo Seleccionado */}
+            {modoFiltroKardex === 'categoria' && (
+              <div className="p-3.5 bg-amber-500/10 rounded-xl border border-amber-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                    <Filter size={13} />
+                    <span>Familia de Insumo:</span>
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {categoriasKardex.map(cat => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setCategoriaSeleccionada(cat.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          categoriaSeleccionada === cat.id
+                            ? 'bg-amber-600 text-white shadow-sm'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-amber-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="font-mono text-[11px] text-amber-900 dark:text-amber-300 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/60 shrink-0">
+                  <span>{insumosFiltrados.length} Insumos</span> • Valorizado: <span className="font-bold">${insumosFiltrados.reduce((acc, i) => acc + (i.stockActual * i.cppActual), 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })} USD</span>
+                </div>
+              </div>
+            )}
+
+            {modoFiltroKardex === 'proveedor' && (
+              <div className="p-3.5 bg-sky-500/10 rounded-xl border border-sky-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                <div className="flex-1 max-w-md">
+                  <label className="font-bold text-sky-900 dark:text-sky-300 block mb-1 flex items-center gap-1.5">
+                    <Truck size={13} />
+                    <span>Seleccionar Proveedor Calificado:</span>
+                  </label>
                   <select
-                    value={selectedInsumoId}
-                    onChange={(e) => setSelectedInsumoId(e.target.value)}
-                    className="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    value={proveedorSeleccionado}
+                    onChange={(e) => setProveedorSeleccionado(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-sky-300 dark:border-sky-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
-                    {insumos.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.codigo} - {i.nombre} ({i.stockActual} {i.unidad} en stock)
+                    {proveedoresKardex.map(prov => (
+                      <option key={prov.id} value={prov.id}>
+                        {prov.nombre} {prov.ruc !== 'TODOS' ? `(RUC: ${prov.ruc})` : ''}
                       </option>
                     ))}
                   </select>
                 </div>
+                <div className="font-mono text-[11px] text-sky-900 dark:text-sky-300 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-sky-200 dark:border-sky-900/60 shrink-0">
+                  <div>Insumos Suministrados: <span className="font-bold">{insumosFiltrados.length}</span></div>
+                  <div>Recepciones registradas en Kardex</div>
+                </div>
               </div>
+            )}
 
-              {/* Botones de Exportación Oficiales (Excel / PDF) & Agente Auditor DB */}
-              <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-4">
-                <button
-                  onClick={() => setAuditorModalOpen(true)}
-                  title="Auditar persistencia e integridad de datos en Base de Datos (Supabase + Local)"
-                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <ShieldCheck size={15} className="text-purple-200" />
-                  <span>🛡️ Agente Auditor DB (100% OK)</span>
-                </button>
+            {modoFiltroKardex === 'proyecto' && (
+              <div className="p-3.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                <div className="flex-1 max-w-md">
+                  <label className="font-bold text-emerald-900 dark:text-emerald-300 block mb-1 flex items-center gap-1.5">
+                    <Building2 size={13} />
+                    <span>Seleccionar Frente / Proyecto de Obra:</span>
+                  </label>
+                  <select
+                    value={proyectoSeleccionado}
+                    onChange={(e) => setProyectoSeleccionado(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {proyectosKardex.map(proy => (
+                      <option key={proy.id} value={proy.id}>
+                        {proy.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                <button
-                  onClick={handleExportExcelKardex}
-                  title="Exportar a Excel nativo (.xlsx)"
-                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FileSpreadsheet size={15} />
-                  <span>Exportar a Excel</span>
-                </button>
+                {/* Resumen de Consumo de la Obra y Descargas */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="font-mono text-[11px] text-emerald-900 dark:text-emerald-300 bg-white dark:bg-slate-900 px-3 py-2 rounded-lg border border-emerald-200 dark:border-emerald-900/60">
+                    <div>Vales a Obra: <span className="font-bold">{movimientos.filter(m => m.tipo === 'DESPACHO_OBRA' && (proyectoSeleccionado === 'TODOS' || (m.proyectoDestino && m.proyectoDestino.toUpperCase().includes(proyectoSeleccionado.toUpperCase())))).length}</span></div>
+                    <div>Costo Despachado: <span className="font-bold text-emerald-600 dark:text-emerald-400">${movimientos.filter(m => m.tipo === 'DESPACHO_OBRA' && (proyectoSeleccionado === 'TODOS' || (m.proyectoDestino && m.proyectoDestino.toUpperCase().includes(proyectoSeleccionado.toUpperCase())))).reduce((acc, m) => acc + (m.salidaTotal || 0), 0).toLocaleString('es-EC', { minimumFractionDigits: 2 })} USD</span></div>
+                  </div>
 
-                <button
-                  onClick={handleExportPdfKardex}
-                  title="Descargar Ficha Oficial en PDF"
-                  className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FileText size={15} className="text-amber-400" />
-                  <span>Descargar PDF</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportarConsumoProyecto('excel')}
+                    title="Exportar consumos de la obra a Excel"
+                    className="px-2.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <FileSpreadsheet size={13} />
+                    <span>Excel Obra</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleExportarConsumoProyecto('pdf')}
+                    title="Exportar informe de consumos de la obra a PDF"
+                    className="px-2.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all flex items-center gap-1 cursor-pointer border border-slate-700"
+                  >
+                    <FileText size={13} className="text-amber-400" />
+                    <span>PDF Obra</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Ficha Resumen del Insumo Seleccionado */}
-            <div className="mt-5 p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs font-mono">
-              <div>
-                <span className="text-[10px] text-slate-500 font-sans block">Stock Actual en Bodega:</span>
-                <span className={`text-base font-bold tabular-nums ${currentInsumo.stockActual <= currentInsumo.puntoReorden ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-                  {currentInsumo.stockActual.toLocaleString()} {currentInsumo.unidad}
-                </span>
+            {/* 3. Selector de Insumos & Botones de Exportación Oficiales (Excel / PDF) */}
+            {!vistaKardexConsolidada && (
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+                <div className="flex-1 max-w-md">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                    Seleccionar Insumo para Tarjeta de Kardex:
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedInsumoId}
+                      onChange={(e) => setSelectedInsumoId(e.target.value)}
+                      className="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      {insumosFiltrados.length === 0 ? (
+                        <option value="">No hay insumos para este filtro</option>
+                      ) : (
+                        insumosFiltrados.map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {i.codigo} - {i.nombre} ({i.stockActual} {i.unidad} en stock)
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Botones de Exportación Oficiales (Excel / PDF) & Agente Auditor DB */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-4">
+                  <button
+                    onClick={() => setAuditorModalOpen(true)}
+                    title="Auditar persistencia e integridad de datos en Base de Datos (Supabase + Local)"
+                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <ShieldCheck size={15} className="text-purple-200" />
+                    <span>🛡️ Agente Auditor DB (100% OK)</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportExcelKardex}
+                    title="Exportar a Excel nativo (.xlsx) con los KPIs oficiales de la Ficha"
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileSpreadsheet size={15} />
+                    <span>Exportar a Excel</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportPdfKardex}
+                    title="Descargar Ficha Oficial en PDF con los KPIs y firmas corporativas"
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileText size={15} className="text-amber-400" />
+                    <span>Descargar PDF</span>
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div>
-                <span className="text-[10px] text-slate-500 font-sans block">Costo Promedio (CPP):</span>
-                <span className="text-base font-bold text-slate-900 dark:text-white tabular-nums">
-                  ${currentInsumo.cppActual.toFixed(4)} USD
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[10px] text-slate-500 font-sans block">Punto de Reorden (ROP):</span>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
-                  {currentInsumo.puntoReorden} {currentInsumo.unidad}
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[10px] text-slate-500 font-sans block">Stock de Seguridad:</span>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
-                  {currentInsumo.stockSeguridad} {currentInsumo.unidad}
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[10px] text-slate-500 font-sans block">Estado de Abastecimiento:</span>
-                {currentInsumo.stockActual <= currentInsumo.stockSeguridad ? (
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-300">
-                    🔴 Crítico / Agotándose
+            {/* 4. Ficha Resumen del Insumo Seleccionado (Imagen 2: KPIs Oficiales) */}
+            {!vistaKardexConsolidada && currentInsumo && (
+              <div className="mt-3 p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs font-mono">
+                <div>
+                  <span className="text-[10px] text-slate-500 font-sans block">Stock Actual en Bodega:</span>
+                  <span className={`text-base font-bold tabular-nums ${currentInsumo.stockActual <= currentInsumo.puntoReorden ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
+                    {currentInsumo.stockActual.toLocaleString()} {currentInsumo.unidad}
                   </span>
-                ) : currentInsumo.stockActual <= currentInsumo.puntoReorden ? (
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-300">
-                    🟡 Reordenar Inmediato
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-slate-500 font-sans block">Costo Promedio (CPP):</span>
+                  <span className="text-base font-bold text-slate-900 dark:text-white tabular-nums">
+                    ${currentInsumo.cppActual.toFixed(4)} USD
                   </span>
-                ) : (
-                  <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300">
-                    🟢 Óptimo
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-slate-500 font-sans block">Punto de Reorden (ROP):</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                    {currentInsumo.puntoReorden} {currentInsumo.unidad}
                   </span>
-                )}
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-slate-500 font-sans block">Stock de Seguridad:</span>
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                    {currentInsumo.stockSeguridad} {currentInsumo.unidad}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-slate-500 font-sans block">Estado de Abastecimiento:</span>
+                  {currentInsumo.stockActual <= currentInsumo.stockSeguridad ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 border border-rose-300">
+                      🔴 Crítico / Agotándose
+                    </span>
+                  ) : currentInsumo.stockActual <= currentInsumo.puntoReorden ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-300">
+                      🟡 Reordenar Inmediato
+                    </span>
+                  ) : (
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300">
+                      🟢 Óptimo
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Tabla de Movimientos del Kardex (Formato Normativo) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Historial de Transacciones de Kardex: {currentInsumo.nombre}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Trazabilidad cronológica de entradas por OC, salidas por vale a obra y saldos valorizados.
-                </p>
+          {/* VISTA A: MATRIZ CONSOLIDADA DE TODO EL INVENTARIO MULTIBODEGA */}
+          {vistaKardexConsolidada ? (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Activity size={16} className="text-amber-500" />
+                    <span>Matriz Consolidada de Todo el Inventario Multibodega Valorado</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Corte valorizado oficial de existencias bajo Costo Promedio Ponderado (CPP) según NIIF / SRI Ecuador.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleExportarInventarioCompleto('excel')}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Descargar Matriz Excel</span>
+                  </button>
+                  <button
+                    onClick={() => handleExportarInventarioCompleto('pdf')}
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <FileText size={14} className="text-amber-400" />
+                    <span>Descargar Matriz PDF</span>
+                  </button>
+                </div>
               </div>
-              <span className="text-xs font-mono text-slate-500">
-                {currentMovimientos.length} Movimientos Registrados
-              </span>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse font-mono">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                      <th className="py-3 px-3 font-bold">Código</th>
+                      <th className="py-3 px-3 font-bold">Material / Insumo</th>
+                      <th className="py-3 px-2 font-bold">Categoría</th>
+                      <th className="py-3 px-2 font-bold">Unidad</th>
+                      <th className="py-3 px-3 font-bold text-right">Stock Actual</th>
+                      <th className="py-3 px-3 font-bold text-right">CPP Unitario ($)</th>
+                      <th className="py-3 px-3 font-bold text-right text-amber-600 dark:text-amber-400">Valor Total ($)</th>
+                      <th className="py-3 px-3 font-bold text-right">ROP</th>
+                      <th className="py-3 px-3 font-bold text-right">Seguridad</th>
+                      <th className="py-3 px-3 font-bold text-center">Estado</th>
+                      <th className="py-3 px-2 font-bold text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 tabular-nums">
+                    {insumos.map((i) => {
+                      const esCritico = i.stockActual <= i.stockSeguridad;
+                      const esAlerta = i.stockActual <= i.puntoReorden;
+                      const totalVal = i.stockActual * i.cppActual;
+                      return (
+                        <tr key={i.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">{i.codigo}</td>
+                          <td className="py-3 px-3 font-sans font-semibold text-slate-800 dark:text-slate-200">
+                            <div>{i.nombre}</div>
+                            <span className="text-[10px] text-slate-400 block font-mono">{i.bodegaUbicacion}</span>
+                          </td>
+                          <td className="py-3 px-2 font-sans text-slate-600 dark:text-slate-400">{i.categoria}</td>
+                          <td className="py-3 px-2 text-slate-600 dark:text-slate-400">{i.unidad}</td>
+                          <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white">
+                            {i.stockActual.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-600 dark:text-slate-400">
+                            ${i.cppActual.toFixed(4)}
+                          </td>
+                          <td className="py-3 px-3 text-right font-bold text-amber-600 dark:text-amber-400">
+                            ${totalVal.toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="py-3 px-3 text-right text-slate-500">{i.puntoReorden}</td>
+                          <td className="py-3 px-3 text-right text-slate-500">{i.stockSeguridad}</td>
+                          <td className="py-3 px-3 text-center">
+                            {esCritico ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border border-rose-300">
+                                🔴 Crítico
+                              </span>
+                            ) : esAlerta ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border border-amber-300">
+                                🟡 Reorden
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border border-emerald-300">
+                                🟢 Normal
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedInsumoId(i.id);
+                                setVistaKardexConsolidada(false);
+                              }}
+                              className="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[10px] transition-all cursor-pointer"
+                              title="Ver ficha individual de Kardex"
+                            >
+                              Ver Ficha
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-slate-100/80 dark:bg-slate-800/70 font-bold border-t border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white">
+                      <td colSpan={6} className="py-3 px-4 text-right">
+                        TOTAL GENERAL INVENTARIO VALORIZADO BODEGA MATRIZ SARA:
+                      </td>
+                      <td className="py-3 px-3 text-right text-amber-600 dark:text-amber-400 font-bold text-sm">
+                        ${valorTotalBodega.toLocaleString('es-EC', { minimumFractionDigits: 2 })} USD
+                      </td>
+                      <td colSpan={4} className="py-3 px-3 text-right text-xs text-slate-500">
+                        {insumos.length} Ítems Activos
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
+          ) : (
+            /* VISTA B: TABLA DE MOVIMIENTOS INDIVIDUALES DEL KARDEX */
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Historial de Transacciones de Kardex: {currentInsumo.nombre}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Trazabilidad cronológica de entradas por OC, salidas por vale a obra y saldos valorizados.
+                  </p>
+                </div>
+                <span className="text-xs font-mono text-slate-500">
+                  {currentMovimientos.length} Movimientos Registrados
+                </span>
+              </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-mono text-slate-500 dark:text-slate-400 tracking-wider">
-                    <th className="py-3 px-3.5 font-bold" rowSpan={2}>Fecha / Hora</th>
-                    <th className="py-3 px-3 font-bold" rowSpan={2}>Tipo & Referencia</th>
-                    <th className="py-3 px-3 font-bold" rowSpan={2}>Destino / Proveedor</th>
-                    <th className="py-2 px-3 font-bold text-center border-l border-r border-slate-200 dark:border-slate-700 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400" colSpan={3}>
-                      ENTRADAS
-                    </th>
-                    <th className="py-2 px-3 font-bold text-center border-r border-slate-200 dark:border-slate-700 bg-sky-50/50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400" colSpan={3}>
-                      SALIDAS (DESPACHOS)
-                    </th>
-                    <th className="py-2 px-3 font-bold text-center bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" colSpan={3}>
-                      SALDO EN BODEGA
-                    </th>
-                  </tr>
-                  <tr className="bg-slate-100/70 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[9px] uppercase font-mono text-slate-500">
-                    <th className="py-1.5 px-2 text-right border-l border-slate-200 dark:border-slate-700">Cant.</th>
-                    <th className="py-1.5 px-2 text-right">C. Unit</th>
-                    <th className="py-1.5 px-2.5 text-right border-r border-slate-200 dark:border-slate-700">Total $</th>
-                    <th className="py-1.5 px-2 text-right">Cant.</th>
-                    <th className="py-1.5 px-2 text-right">C. Unit</th>
-                    <th className="py-1.5 px-2.5 text-right border-r border-slate-200 dark:border-slate-700">Total $</th>
-                    <th className="py-1.5 px-2 text-right">Cant.</th>
-                    <th className="py-1.5 px-2 text-right">CPP ($)</th>
-                    <th className="py-1.5 px-2.5 text-right font-bold text-slate-900 dark:text-white">Total $</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-xs tabular-nums">
-                  {currentMovimientos.map((m) => {
-                    const esEntrada = m.entradaCant > 0;
-                    const esSalida = m.salidaCant > 0;
-                    return (
-                      <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="py-3 px-3.5 whitespace-nowrap text-slate-600 dark:text-slate-300">
-                          <div>{m.fecha}</div>
-                          <span className="text-[10px] text-slate-400">{m.hora}</span>
-                        </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-mono text-slate-500 dark:text-slate-400 tracking-wider">
+                      <th className="py-3 px-3.5 font-bold" rowSpan={2}>Fecha / Hora</th>
+                      <th className="py-3 px-3 font-bold" rowSpan={2}>Tipo & Referencia</th>
+                      <th className="py-3 px-3 font-bold" rowSpan={2}>Destino / Proveedor</th>
+                      <th className="py-2 px-3 font-bold text-center border-l border-r border-slate-200 dark:border-slate-700 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400" colSpan={3}>
+                        ENTRADAS
+                      </th>
+                      <th className="py-2 px-3 font-bold text-center border-r border-slate-200 dark:border-slate-700 bg-sky-50/50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-400" colSpan={3}>
+                        SALIDAS (DESPACHOS)
+                      </th>
+                      <th className="py-2 px-3 font-bold text-center bg-amber-50/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" colSpan={3}>
+                        SALDO EN BODEGA
+                      </th>
+                    </tr>
+                    <tr className="bg-slate-100/70 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[9px] uppercase font-mono text-slate-500">
+                      <th className="py-1.5 px-2 text-right border-l border-slate-200 dark:border-slate-700">Cant.</th>
+                      <th className="py-1.5 px-2 text-right">C. Unit</th>
+                      <th className="py-1.5 px-2.5 text-right border-r border-slate-200 dark:border-slate-700">Total $</th>
+                      <th className="py-1.5 px-2 text-right">Cant.</th>
+                      <th className="py-1.5 px-2 text-right">C. Unit</th>
+                      <th className="py-1.5 px-2.5 text-right border-r border-slate-200 dark:border-slate-700">Total $</th>
+                      <th className="py-1.5 px-2 text-right">Cant.</th>
+                      <th className="py-1.5 px-2 text-right">CPP ($)</th>
+                      <th className="py-1.5 px-2.5 text-right font-bold text-slate-900 dark:text-white">Total $</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono text-xs tabular-nums">
+                    {currentMovimientos.map((m) => {
+                      const esEntrada = m.entradaCant > 0;
+                      const esSalida = m.salidaCant > 0;
+                      return (
+                        <tr key={m.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
+                          <td className="py-3 px-3.5 whitespace-nowrap text-slate-600 dark:text-slate-300">
+                            <div>{m.fecha}</div>
+                            <span className="text-[10px] text-slate-400">{m.hora}</span>
+                          </td>
 
-                        <td className="py-3 px-3 whitespace-nowrap">
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-0.5 ${
-                            m.tipo === 'RECEPCION_OC' 
-                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                              : m.tipo === 'DESPACHO_OBRA'
-                                ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                                : m.tipo === 'DEVOLUCION_PROVEEDOR'
-                                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
-                                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
-                          }`}>
-                            {m.tipo.replace('_', ' ')}
-                          </span>
-                          <div className="font-semibold text-slate-900 dark:text-white truncate max-w-[170px]" title={m.documentoRef}>
-                            {m.documentoRef}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-3 text-slate-600 dark:text-slate-300 font-sans text-xs max-w-[180px] truncate" title={m.proyectoDestino || m.solicitanteOProveedor}>
-                          <div className="font-semibold text-slate-800 dark:text-slate-200">
-                            {m.proyectoDestino || m.solicitanteOProveedor}
-                          </div>
-                          {m.observacion && (
-                            <span className="text-[10px] text-slate-400 block truncate" title={m.observacion}>
-                              {m.observacion}
+                          <td className="py-3 px-3 whitespace-nowrap">
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mb-0.5 ${
+                              m.tipo === 'RECEPCION_OC' 
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                : m.tipo === 'DESPACHO_OBRA'
+                                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
+                                  : m.tipo === 'DEVOLUCION_PROVEEDOR'
+                                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                            }`}>
+                              {m.tipo.replace('_', ' ')}
                             </span>
-                          )}
-                        </td>
+                            <div className="font-semibold text-slate-900 dark:text-white truncate max-w-[170px]" title={m.documentoRef}>
+                              {m.documentoRef}
+                            </div>
+                          </td>
 
-                        {/* Entradas */}
-                        <td className="py-3 px-2 text-right border-l border-slate-200 dark:border-slate-800 text-emerald-600 dark:text-emerald-400 font-bold">
-                          {esEntrada ? m.entradaCant.toLocaleString() : '-'}
-                        </td>
-                        <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
-                          {esEntrada ? `$${m.entradaCostoUnit.toFixed(2)}` : '-'}
-                        </td>
-                        <td className="py-3 px-2.5 text-right border-r border-slate-200 dark:border-slate-800 text-emerald-600 dark:text-emerald-400 font-bold">
-                          {esEntrada ? `$${m.entradaTotal.toFixed(2)}` : '-'}
-                        </td>
+                          <td className="py-3 px-3 text-slate-600 dark:text-slate-300 font-sans text-xs max-w-[180px] truncate" title={m.proyectoDestino || m.solicitanteOProveedor}>
+                            <div className="font-semibold text-slate-800 dark:text-slate-200">
+                              {m.proyectoDestino || m.solicitanteOProveedor}
+                            </div>
+                            {m.observacion && (
+                              <span className="text-[10px] text-slate-400 block truncate" title={m.observacion}>
+                                {m.observacion}
+                              </span>
+                            )}
+                          </td>
 
-                        {/* Salidas */}
-                        <td className="py-3 px-2 text-right text-sky-600 dark:text-sky-400 font-bold">
-                          {esSalida ? m.salidaCant.toLocaleString() : '-'}
-                        </td>
-                        <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
-                          {esSalida ? `$${m.salidaCostoUnit.toFixed(2)}` : '-'}
-                        </td>
-                        <td className="py-3 px-2.5 text-right border-r border-slate-200 dark:border-slate-800 text-sky-600 dark:text-sky-400 font-bold">
-                          {esSalida ? `$${m.salidaTotal.toFixed(2)}` : '-'}
-                        </td>
+                          {/* Entradas */}
+                          <td className="py-3 px-2 text-right border-l border-slate-200 dark:border-slate-800 text-emerald-600 dark:text-emerald-400 font-bold">
+                            {esEntrada ? m.entradaCant.toLocaleString() : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
+                            {esEntrada ? `$${m.entradaCostoUnit.toFixed(2)}` : '-'}
+                          </td>
+                          <td className="py-3 px-2.5 text-right border-r border-slate-200 dark:border-slate-800 text-emerald-600 dark:text-emerald-400 font-bold">
+                            {esEntrada ? `$${m.entradaTotal.toFixed(2)}` : '-'}
+                          </td>
 
-                        {/* Saldos */}
-                        <td className="py-3 px-2 text-right font-bold text-slate-900 dark:text-white">
-                          {m.saldoCant.toLocaleString()}
-                        </td>
-                        <td className="py-3 px-2 text-right text-amber-600 dark:text-amber-400 font-semibold">
-                          ${m.saldoCpp.toFixed(2)}
-                        </td>
-                        <td className="py-3 px-2.5 text-right font-bold text-amber-600 dark:text-amber-400">
-                          ${m.saldoTotal.toFixed(2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          {/* Salidas */}
+                          <td className="py-3 px-2 text-right text-sky-600 dark:text-sky-400 font-bold">
+                            {esSalida ? m.salidaCant.toLocaleString() : '-'}
+                          </td>
+                          <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
+                            {esSalida ? `$${m.salidaCostoUnit.toFixed(2)}` : '-'}
+                          </td>
+                          <td className="py-3 px-2.5 text-right border-r border-slate-200 dark:border-slate-800 text-sky-600 dark:text-sky-400 font-bold">
+                            {esSalida ? `$${m.salidaTotal.toFixed(2)}` : '-'}
+                          </td>
+
+                          {/* Saldos */}
+                          <td className="py-3 px-2 text-right font-bold text-slate-900 dark:text-white">
+                            {m.saldoCant.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-2 text-right text-amber-600 dark:text-amber-400 font-semibold">
+                            ${m.saldoCpp.toFixed(2)}
+                          </td>
+                          <td className="py-3 px-2.5 text-right font-bold text-amber-600 dark:text-amber-400">
+                            ${m.saldoTotal.toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 font-sans">
+                <span>Método Oficial: Costo Promedio Ponderado (CPP) según NIIF / SRI Ecuador.</span>
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                  Saldo Valorizado Actual: ${currentInsumo.stockActual * currentInsumo.cppActual} USD
+                </span>
+              </div>
             </div>
-
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 font-sans">
-              <span>Método Oficial: Costo Promedio Ponderado (CPP) según NIIF / SRI Ecuador.</span>
-              <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                Saldo Valorizado Actual: ${currentInsumo.stockActual * currentInsumo.cppActual} USD
-              </span>
-            </div>
-          </div>
+          )}
 
         </div>
       )}
