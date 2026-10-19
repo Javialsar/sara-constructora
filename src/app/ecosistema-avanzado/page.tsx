@@ -65,6 +65,7 @@ import { ConstructoraDashboardView } from '@/components/constructora/Constructor
 import { BodegaKardexSection } from '@/components/constructora/BodegaKardexSection';
 import { ConfiguracionEmpresaSection } from '@/components/constructora/ConfiguracionEmpresaSection';
 import { PlanesSuscripcionSection } from '@/components/constructora/PlanesSuscripcionSection';
+import { EquipoAccesosSection } from '@/components/constructora/EquipoAccesosSection';
 import { 
   ConstructoraSubscriptionService, 
   AccesoSubscriptionResult 
@@ -85,7 +86,8 @@ export type SuiteTab =
   | 'nomina'
   | 'directorio'
   | 'talento'
-  | 'fletes';
+  | 'fletes'
+  | 'equipo';
 
 export default function EcosistemaAvanzadoPage() {
   const router = useRouter();
@@ -114,6 +116,8 @@ export default function EcosistemaAvanzadoPage() {
           'admin',
           'superadmin',
           'tecnico',
+          'representante_legal',
+          'gerente',
           'profesional_constructora',
           'cliente_constructora',
           'ingeniero_residente',
@@ -131,16 +135,16 @@ export default function EcosistemaAvanzadoPage() {
           return;
         }
 
-        // Apertura adaptativa de pestaña según el perfil (Dashboard General por defecto)
-        if (role === 'bodeguero_constructora') {
+        // Apertura adaptativa de pestaña según el perfil
+        if (role === 'cliente_constructora') {
+          setActiveTab('avances');
+          setOpenGroup('MI PROYECTO');
+        } else if (role === 'bodeguero_constructora') {
           setActiveTab('kardex');
-          setOpenGroup('BODEGA Y COMPRAS');
+          setOpenGroup('BODEGA E INVENTARIO');
         } else if (role === 'contador_constructora') {
           setActiveTab('match');
           setOpenGroup('CONTABILIDAD Y FINANZAS');
-        } else if (role === 'cliente_constructora') {
-          setActiveTab('dashboard');
-          setOpenGroup('PANEL PRINCIPAL');
         } else if (role === 'arquitecto_bim') {
           setActiveTab('proyectos');
           setOpenGroup('MIS PROYECTOS');
@@ -150,6 +154,8 @@ export default function EcosistemaAvanzadoPage() {
         }
 
         const roleLabels: Record<string, string> = {
+          representante_legal: 'Representante Legal / Gerente',
+          gerente: 'Gerente General',
           ingeniero_residente: 'Ingeniero Residente',
           arquitecto_bim: 'Arquitecto BIM',
           contador_constructora: 'Contador(a) Tributario',
@@ -162,9 +168,10 @@ export default function EcosistemaAvanzadoPage() {
         setProfessionalUser({
           id: user.id,
           email: user.email,
+          role: role,
           nombre: meta.nombre || meta.full_name || 'Profesional de Obra',
           empresa: meta.razon_social || meta.empresa || 'Constructora Verificada',
-          tipo: roleLabels[role] || meta.tipo_profesional || 'Ingeniero de Obra',
+          tipo: roleLabels[role] || meta.tipo_profesional || 'Representante Legal',
           identificacion: meta.identificacion || meta.ruc || 'Ecuador',
           senescyt: meta.registro_profesional || meta.senescyt || 'SENESCYT Validada',
         });
@@ -212,7 +219,8 @@ export default function EcosistemaAvanzadoPage() {
     'nomina',
     'directorio',
     'talento',
-    'fletes'
+    'fletes',
+    'equipo'
   ];
 
   // -------------------------------------------------------------
@@ -564,7 +572,17 @@ export default function EcosistemaAvanzadoPage() {
     router.replace('/constructora/auth');
   };
 
-  const allNavGroups = [
+  const isCliente = professionalUser?.role === 'cliente_constructora';
+
+  const allNavGroups = isCliente ? [
+    {
+      title: "MI PROYECTO",
+      items: [
+        { id: "avances", label: "Mi Avance de Obra", icon: ImageIcon },
+        { id: "documentos", label: "Mis Planos & Documentos", icon: FileText },
+      ]
+    }
+  ] : [
     {
       title: "PANEL PRINCIPAL",
       items: [
@@ -601,6 +619,12 @@ export default function EcosistemaAvanzadoPage() {
         { id: "talento", label: "SARA Talento", icon: HardHat },
         { id: "fletes", label: "SARA Fletes (Transporte)", icon: Truck },
       ]
+    },
+    {
+      title: "ADMINISTRACIÓN & EQUIPO",
+      items: [
+        { id: "equipo", label: "Equipo & Accesos", icon: UserCheck },
+      ]
     }
   ];
 
@@ -609,6 +633,9 @@ export default function EcosistemaAvanzadoPage() {
   };
 
   const handleTabClick = (tabId: string) => {
+    if (isCliente && tabId !== 'avances' && tabId !== 'documentos') {
+      return;
+    }
     setActiveTab(tabId as SuiteTab);
     setMobileMenuOpen(false);
     for (const group of allNavGroups) {
@@ -623,6 +650,9 @@ export default function EcosistemaAvanzadoPage() {
     if (tab === 'planes' || tab === 'suscripcion') {
       setActiveTab('planes');
       setOpenGroup('PANEL PRINCIPAL');
+    } else if (tab === 'equipo' || tab === 'accesos' || tab === 'colaboradores' || tab === 'usuarios') {
+      setActiveTab('equipo');
+      setOpenGroup('ADMINISTRACIÓN & EQUIPO');
     } else if (tab === 'configuracion' || tab === 'empresa') {
       setActiveTab('configuracion');
     } else if (tab === 'obras' || tab === 'proyectos') {
@@ -689,6 +719,8 @@ export default function EcosistemaAvanzadoPage() {
         return { group: 'DIRECTORIO Y RECURSOS', title: 'Gestión de Talento Humano (SARA Talento)' };
       case 'fletes':
         return { group: 'DIRECTORIO Y RECURSOS', title: 'Logística de Carga Pesada (SARA Fletes)' };
+      case 'equipo':
+        return { group: 'ADMINISTRACIÓN & EQUIPO', title: 'Equipo & Accesos de la Constructora (RBAC Multi-Tenant)' };
       default:
         return { group: 'SARA CONSTRUCTORA', title: 'Consola Técnica Profesional' };
     }
@@ -838,18 +870,20 @@ export default function EcosistemaAvanzadoPage() {
 
         {/* Footer del Sidebar */}
         <div className="p-3 border-t border-slate-800">
-          <button 
-            onClick={() => handleTabClick('configuracion')}
-            title="Configuración de la Empresa" 
-            className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl transition-colors text-xs mb-1 ${
-              activeTab === 'configuracion' 
-                ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20 ring-1 ring-amber-400/50" 
-                : "text-slate-400 hover:text-white hover:bg-slate-900"
-            }`}
-          >
-            <Settings size={18} className="shrink-0" />
-            {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración de la Empresa</span>}
-          </button>
+          {!isCliente && (
+            <button 
+              onClick={() => handleTabClick('configuracion')}
+              title="Configuración de la Empresa" 
+              className={`w-full flex items-center ${isSidebarCollapsed ? "justify-center w-11 h-11 mx-auto" : "gap-3 px-3 py-2"} rounded-xl transition-colors text-xs mb-1 ${
+                activeTab === 'configuracion' 
+                  ? "bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20 ring-1 ring-amber-400/50" 
+                  : "text-slate-400 hover:text-white hover:bg-slate-900"
+              }`}
+            >
+              <Settings size={18} className="shrink-0" />
+              {!isSidebarCollapsed && <span className="whitespace-nowrap overflow-hidden font-medium">Configuración de la Empresa</span>}
+            </button>
+          )}
           <button 
             title="Cerrar Sesión Profesional"
             onClick={handleLogout} 
@@ -903,7 +937,12 @@ export default function EcosistemaAvanzadoPage() {
             </div>
 
             {/* Chip de Estado de Suscripción Oficial */}
-            {suscripcionActual && (
+            {isCliente ? (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                <CheckCircle2 size={13} className="text-teal-500 shrink-0" />
+                <span>Cliente de Obra Verificado</span>
+              </div>
+            ) : suscripcionActual && (
               <button
                 onClick={() => setActiveTab('planes')}
                 title="Ver Planes y Estado de Suscripción"
@@ -953,7 +992,7 @@ export default function EcosistemaAvanzadoPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6">
           
           {/* PANTALLA DE BLOQUEO DE SUSCRIPCIÓN PARA MÓDULOS DE IMAGEN 5 */}
-          {!suscripcionActual?.hasAccess && MODULOS_IMAGEN_5.includes(activeTab) && (
+          {!isCliente && !suscripcionActual?.hasAccess && MODULOS_IMAGEN_5.includes(activeTab) && (
             <div className="bg-slate-900/90 backdrop-blur-md rounded-3xl border border-amber-500/30 p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 space-y-6 shadow-2xl animate-in fade-in zoom-in-95">
               <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500 mx-auto">
                 <Lock size={32} />
@@ -1034,11 +1073,11 @@ export default function EcosistemaAvanzadoPage() {
             <MisProyectosSection user={professionalUser} initialSubTab="obras" />
           )}
 
-          {activeTab === 'avances' && suscripcionActual?.hasAccess && (
+          {activeTab === 'avances' && (isCliente || suscripcionActual?.hasAccess) && (
             <MisProyectosSection user={professionalUser} initialSubTab="avances" />
           )}
 
-          {activeTab === 'documentos' && suscripcionActual?.hasAccess && (
+          {activeTab === 'documentos' && (isCliente || suscripcionActual?.hasAccess) && (
             <MisProyectosSection user={professionalUser} initialSubTab="documentos" />
           )}
 
@@ -1053,6 +1092,14 @@ export default function EcosistemaAvanzadoPage() {
 
           {activeTab === 'fletes' && suscripcionActual?.hasAccess && (
             <DirectorioRecursosSection user={professionalUser} initialSubTab="proveedores" />
+          )}
+
+          {/* VISTA 4: EQUIPO & ACCESOS DE LA CONSTRUCTORA (RBAC MULTI-TENANT) */}
+          {activeTab === 'equipo' && (suscripcionActual?.hasAccess || professionalUser?.role === 'admin' || professionalUser?.role === 'representante_legal') && (
+            <EquipoAccesosSection 
+              user={professionalUser}
+              planInfo={suscripcionActual?.cliente?.planNombre}
+            />
           )}
 
         {/* ------------------------------------------------------------- */}

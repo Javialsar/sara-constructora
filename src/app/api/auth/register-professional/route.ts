@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     const roleMap: Record<string, string> = {
+      representante_legal: 'representante_legal',
       ingeniero: 'ingeniero_residente',
       arquitecto: 'arquitecto_bim',
       contador: 'contador_constructora',
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
       cliente: 'cliente_constructora',
     };
 
-    const selectedRole = roleMap[tipoProfesional] || 'profesional_constructora';
+    const selectedRole = roleMap[tipoProfesional] || 'representante_legal';
     const adminClient = await createSupabaseAdminClient();
 
     // Extraer nombre y apellido de forma limpia para satisfacer la restricción NOT NULL del trigger handle_new_user

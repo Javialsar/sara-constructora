@@ -78,11 +78,21 @@ export interface ArchivoDocItem {
 }
 
 export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: any; initialSubTab?: 'obras' | 'avances' | 'documentos' }) {
-  const [subTab, setSubTab] = useState<'obras' | 'avances' | 'documentos'>(initialSubTab);
+  const isCliente = user?.role === 'cliente_constructora';
+  const [subTab, setSubTab] = useState<'obras' | 'avances' | 'documentos'>(() => {
+    if (user?.role === 'cliente_constructora') {
+      return initialSubTab === 'documentos' ? 'documentos' : 'avances';
+    }
+    return initialSubTab;
+  });
 
   useEffect(() => {
-    if (initialSubTab) setSubTab(initialSubTab);
-  }, [initialSubTab]);
+    if (user?.role === 'cliente_constructora' && initialSubTab === 'obras') {
+      setSubTab('avances');
+    } else if (initialSubTab) {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab, user?.role]);
 
   const [proyectos, setProyectos] = useState<any[]>([]);
   const [avances, setAvances] = useState<any[]>([]);
@@ -465,6 +475,13 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   // FILTRADO DE AVANCES (IMAGEN 5)
   // ============================================================================
   const filteredAvances = avances.filter((av) => {
+    // Si es cliente y tiene proyecto asignado, aislar estrictamente a su proyecto
+    if (isCliente && user?.proyectoAsignado && user.proyectoAsignado !== 'Todos los Proyectos') {
+      const pNorm = String(user.proyectoAsignado).toLowerCase();
+      const matchAsignado = (av.proyecto_nombre || '').toLowerCase().includes(pNorm) || (av.proyecto_id || '').toLowerCase().includes(pNorm);
+      if (!matchAsignado) return false;
+    }
+
     const matchSearch = 
       av.titulo?.toLowerCase().includes(searchAvanceTerm.toLowerCase()) ||
       av.descripcion?.toLowerCase().includes(searchAvanceTerm.toLowerCase()) ||
@@ -486,6 +503,13 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   // FILTRADO DE DOCUMENTOS (IMAGEN 4)
   // ============================================================================
   const filteredDocumentos = documentos.filter((doc) => {
+    // Si es cliente y tiene proyecto asignado, aislar estrictamente a su proyecto
+    if (isCliente && user?.proyectoAsignado && user.proyectoAsignado !== 'Todos los Proyectos') {
+      const pNorm = String(user.proyectoAsignado).toLowerCase();
+      const matchAsignado = (doc.proyecto_nombre || '').toLowerCase().includes(pNorm) || (doc.proyecto_id || '').toLowerCase().includes(pNorm);
+      if (!matchAsignado) return false;
+    }
+
     const matchSearch = 
       doc.titulo?.toLowerCase().includes(searchDocTerm.toLowerCase()) ||
       doc.nombre_archivo?.toLowerCase().includes(searchDocTerm.toLowerCase()) ||
@@ -1038,30 +1062,34 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-500">
-            MÓDULO DE ADMINISTRACIÓN DE OBRAS CIVILES
+            {isCliente ? 'PORTAL EXCLUSIVO DE SEGUIMIENTO AL CLIENTE' : 'MÓDULO DE ADMINISTRACIÓN DE OBRAS CIVILES'}
           </span>
           <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 mt-0.5">
             <Building2 className="w-5 h-5 text-amber-500" />
-            Mis Proyectos & Gobernanza de Obra
+            {isCliente ? 'Avance Físico & Documentos de Mi Proyecto' : 'Mis Proyectos & Gobernanza de Obra'}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Control de obras activas, curvas de avance físico-financiero y repositorio documental con firma técnica.
+            {isCliente 
+              ? 'Supervisión en tiempo real del cronograma, reportes fotográficos certificados y memorias técnicas de su propiedad.'
+              : 'Control de obras activas, curvas de avance físico-financiero y repositorio documental con firma técnica.'}
           </p>
         </div>
 
         {/* Selector de Sub-Pestañas con Contadores */}
         <div className="flex flex-wrap bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold gap-1">
-          <button
-            onClick={() => setSubTab('obras')}
-            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
-              subTab === 'obras'
-                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Obras Activas ({proyectos.length})</span>
-          </button>
+          {!isCliente && (
+            <button
+              onClick={() => setSubTab('obras')}
+              className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                subTab === 'obras'
+                  ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Obras Activas ({proyectos.length})</span>
+            </button>
+          )}
           <button
             onClick={() => setSubTab('avances')}
             className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -1071,7 +1099,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Avances de Obra ({avances.length})</span>
+            <span>{isCliente ? 'Mi Avance de Obra' : 'Avances de Obra'} ({filteredAvances.length})</span>
           </button>
           <button
             onClick={() => setSubTab('documentos')}
@@ -1082,7 +1110,7 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>Gestor Documental ({documentos.length})</span>
+            <span>{isCliente ? 'Planos & Documentos' : 'Gestor Documental'} ({filteredDocumentos.length})</span>
           </button>
         </div>
 
@@ -1416,13 +1444,15 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                 <span>PDF</span>
               </button>
 
-              <button
-                onClick={() => handleAbrirModalAvance()}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus size={16} />
-                <span>Registrar Nuevo Avance</span>
-              </button>
+              {!isCliente && (
+                <button
+                  onClick={() => handleAbrirModalAvance()}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={16} />
+                  <span>Registrar Nuevo Avance</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1499,21 +1529,25 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                             <span>Visualizar</span>
                           </button>
 
-                          <button
-                            onClick={() => handleEditarAvance(av)}
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
-                            title="Editar avance"
-                          >
-                            <Edit size={14} />
-                          </button>
+                          {!isCliente && (
+                            <>
+                              <button
+                                onClick={() => handleEditarAvance(av)}
+                                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
+                                title="Editar avance"
+                              >
+                                <Edit size={14} />
+                              </button>
 
-                          <button
-                            onClick={() => handleEliminarAvance(av.id, av.titulo)}
-                            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
-                            title="Eliminar avance"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                              <button
+                                onClick={() => handleEliminarAvance(av.id, av.titulo)}
+                                className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 cursor-pointer transition-colors"
+                                title="Eliminar avance"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1599,13 +1633,15 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                 <span>PDF</span>
               </button>
 
-              <button
-                onClick={() => handleAbrirModalDoc()}
-                className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Plus size={16} />
-                <span>Subir Documento</span>
-              </button>
+              {!isCliente && (
+                <button
+                  onClick={() => handleAbrirModalDoc()}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 font-bold text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={16} />
+                  <span>Subir Documento</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -1673,13 +1709,15 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                           <span>Descargar</span>
                         </button>
 
-                        <button
-                          onClick={() => handleEliminarDoc(doc.id, doc.titulo)}
-                          className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 cursor-pointer"
-                          title="Eliminar documento"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        {!isCliente && (
+                          <button
+                            onClick={() => handleEliminarDoc(doc.id, doc.titulo)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Eliminar documento"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

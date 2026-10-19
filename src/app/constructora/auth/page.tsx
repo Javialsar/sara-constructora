@@ -43,10 +43,10 @@ export default function ConstructoraAuthPage() {
   const [successMsg, setSuccessMsg] = useState('');
   const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null);
 
-  // Form Fields: Perfiles de Constructora (Cliente por defecto)
+  // Form Fields: Perfiles de Constructora (Representante Legal por defecto)
   const [tipoProfesional, setTipoProfesional] = useState<
-    'cliente' | 'ingeniero' | 'arquitecto' | 'contador' | 'bodeguero' | 'tecnico_apoyo'
-  >('cliente');
+    'representante_legal' | 'cliente' | 'ingeniero' | 'arquitecto' | 'contador' | 'bodeguero' | 'tecnico_apoyo'
+  >('representante_legal');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -250,7 +250,8 @@ export default function ConstructoraAuthPage() {
                     Tipo de Usuario en la Empresa
                   </label>
                   <span className="text-[10px] text-amber-500 font-mono font-medium">
-                    {tipoProfesional === 'cliente' && 'Acceso: Mis Proyectos & Fiscalización'}
+                    {tipoProfesional === 'representante_legal' && 'Acceso: Administración Total, Suscripción SaaS & Gestión de Equipo'}
+                    {tipoProfesional === 'cliente' && 'Acceso: Supervisión Exclusiva de Avance de Obra'}
                     {tipoProfesional === 'ingeniero' && 'Acceso: Cronograma & Cuadrillas'}
                     {tipoProfesional === 'arquitecto' && 'Acceso: Visor BIM & Modelos 3D'}
                     {tipoProfesional === 'contador' && 'Acceso: 3-Way Match & Costos'}
@@ -265,6 +266,7 @@ export default function ConstructoraAuthPage() {
                     onChange={(e) => setTipoProfesional(e.target.value as any)}
                     className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-xs font-semibold text-slate-800 dark:text-slate-100 outline-none appearance-none cursor-pointer pr-10 shadow-sm transition-all"
                   >
+                    <option value="representante_legal">👔 Representante Legal / Gerente General (Contratante de la Empresa)</option>
                     <option value="cliente">🏢 Cliente de la empresa (Supervisión y avance de obras)</option>
                     <option value="ingeniero">🏗️ Ingeniero Residente (Control de obra y cuadrillas)</option>
                     <option value="arquitecto">📐 Arquitecto BIM (Modelos 3D, planos y diseño)</option>
