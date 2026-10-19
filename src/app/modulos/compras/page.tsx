@@ -2,8 +2,9 @@
 import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 
 import React, { useState, useEffect } from "react"
-import { Search, ShoppingCart, Filter, Star, Truck, Building2, PackageCheck, CheckCircle2, Loader2, X, Plus, Minus, ArrowRight } from "lucide-react"
+import { Search, ShoppingCart, Filter, Star, Truck, Building2, PackageCheck, CheckCircle2, Loader2, X, Plus, Minus, ArrowRight, Sparkles, Layers } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser"
+import { ApuRequisitionComprasWorkflow } from '@/components/compras/ApuRequisitionComprasWorkflow'
 
 interface ProductItem {
   id: string | number
@@ -31,6 +32,7 @@ export default function MarketplacePage() {
   const supabase = createSupabaseBrowserClient()
   const [products, setProducts] = useState<ProductItem[]>(FALLBACK_PRODUCTS)
   const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState<'apu_workflow' | 'marketplace'>('apu_workflow')
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas")
   
@@ -268,9 +270,42 @@ export default function MarketplacePage() {
             </div>
           </div>
         </div>
+
+        {/* Switcher de Vistas: Requisiciones APU vs Marketplace */}
+        <div className="max-w-7xl mx-auto mt-6 flex flex-wrap gap-3 border-t border-white/10 pt-5">
+          <button
+            type="button"
+            onClick={() => setActiveView('apu_workflow')}
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs font-mono transition-all flex items-center gap-2 ${
+              activeView === 'apu_workflow'
+                ? 'bg-amber-500 text-slate-950 shadow-lg ring-2 ring-amber-400'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Requisiciones APU & Compras Agénticas</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveView('marketplace')}
+            className={`px-5 py-2.5 rounded-xl font-bold text-xs font-mono transition-all flex items-center gap-2 ${
+              activeView === 'marketplace'
+                ? 'bg-amber-500 text-slate-950 shadow-lg ring-2 ring-amber-400'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            <span>Marketplace & Catálogo B2B</span>
+          </button>
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 mt-8 flex flex-col lg:flex-row gap-8">
+      {activeView === 'apu_workflow' ? (
+        <div className="max-w-7xl mx-auto px-6 mt-8">
+          <ApuRequisitionComprasWorkflow />
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto px-6 mt-8 flex flex-col lg:flex-row gap-8">
         
         {/* Sidebar Filters */}
         <aside className="w-full lg:w-64 shrink-0 space-y-6">
@@ -419,6 +454,7 @@ export default function MarketplacePage() {
           )}
         </div>
       </div>
+      )}
 
       {/* MODAL / DRAWER DEL CARRITO Y ORDEN REAL */}
       {isCartOpen && (
