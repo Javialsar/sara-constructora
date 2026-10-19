@@ -1,8 +1,17 @@
 'use client';
-import React, { useState } from 'react';
-import { ShieldCheck, XCircle, Crown, Search, FileText, CheckCircle, Receipt, MapPin, Eye } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  ShieldCheck, XCircle, Crown, Search, FileText, CheckCircle, Receipt, MapPin, Eye, 
+  Building2, User, Clock, Phone, Mail, MessageSquare, AlertCircle, Sparkles, Plus, 
+  FileSpreadsheet, FileDown, Lock, Unlock, Send, Check, Briefcase, Calendar, Star,
+  Shield, ArrowRight, ExternalLink
+} from 'lucide-react';
 import { getTalentsFromDB } from '@/lib/services/talentoService';
-import { createSupabaseBrowserClient } from '@/lib/supabase-browser';
+import { 
+  SaraTalentoRequestsService, 
+  SolicitudPersonalEmpresa 
+} from '@/lib/services/saraTalentoRequestsService';
+import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 
 interface Candidate {
   id: string;
@@ -11,11 +20,46 @@ interface Candidate {
   plan: 'VIP' | 'Estandar' | 'Basico';
   status: 'pending' | 'approved';
   paymentId: string;
-  documents: { type: string, status: string }[];
+  documents: { type: string; status: string }[];
   rating?: number;
 }
 
 export default function AdminTalento() {
+  const [activeTab, setActiveTab] = useState<'requerimientos' | 'ingresos'>('requerimientos');
+
+  // ---------------------------------------------------------------------------
+  // ESTADOS PARA REQUERIMIENTOS DE PERSONAL POR EMPRESAS
+  // ---------------------------------------------------------------------------
+  const [solicitudes, setSolicitudes] = useState<SolicitudPersonalEmpresa[]>([]);
+  const [searchReq, setSearchReq] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'pendiente' | 'aceptado'>('todos');
+  const [notificacionExito, setNotificacionExito] = useState<string | null>(null);
+
+  // Modal para Enviar Nueva Solicitud
+  const [modalNuevaSolicitudOpen, setModalNuevaSolicitudOpen] = useState(false);
+  const [formNuevaSolicitud, setFormNuevaSolicitud] = useState({
+    empresa_razon_social: 'CONSTRUCTORA EL MIRADOR S.A.S.',
+    empresa_ruc: '1190048291001',
+    empresa_representante: 'Arq. Carlos Benítez',
+    empresa_cargo: 'Director de Obra y Residencia',
+    empresa_telefono: '+593 99 876 5432',
+    empresa_email: 'contrataciones@elmirador.ec',
+    empresa_ciudad: 'Loja, Ecuador',
+    trabajador_nombre: 'Ing. Ana Gómez',
+    trabajador_especialidad: 'Ingeniero Residente de Obra',
+    trabajador_jornal: 42.50,
+    trabajador_telefono: '+593 98 421 8973',
+    trabajador_email: 'ana.gomez@profesional.sara.ec',
+    obra_destino: 'Edificio Residencial El Mirador (Loja)',
+    duracion: '3 meses (Fase Estructuras)',
+    fecha_inicio: new Date().toISOString().split('T')[0],
+    epp_requerido: true,
+    notas_adicionales: 'Supervisión técnica de encofrados y vaciado de losas postensadas.'
+  });
+
+  // ---------------------------------------------------------------------------
+  // ESTADOS PARA CANDIDATOS / INGRESOS A LA RED
+  // ---------------------------------------------------------------------------
   const [candidates, setCandidates] = useState<Candidate[]>([
     { 
       id: '1', name: 'Ing. Ana Gómez', role: 'Ingeniera Civil', plan: 'VIP', status: 'pending', 
@@ -36,7 +80,20 @@ export default function AdminTalento() {
 
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
 
-  React.useEffect(() => {
+  // ---------------------------------------------------------------------------
+  // CARGA INICIAL Y LISTENERS REACTIVOS
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    // Cargar requerimientos de empresas
+    setSolicitudes(SaraTalentoRequestsService.getSolicitudes());
+
+    const handleActualizacion = () => {
+      setSolicitudes(SaraTalentoRequestsService.getSolicitudes());
+    };
+
+    window.addEventListener('sara_talento_solicitudes_cambio', handleActualizacion);
+
+    // Cargar candidatos a la red
     getTalentsFromDB().then(data => {
       if (data && data.length > 0) {
         setCandidates(data.map(d => ({
@@ -51,79 +108,977 @@ export default function AdminTalento() {
         })));
       }
     });
+
+    return () => {
+      window.removeEventListener('sara_talento_solicitudes_cambio', handleActualizacion);
+    };
   }, []);
 
-  const handleAction = (id: string, newStatus: 'pending' | 'approved') => {
+  // ---------------------------------------------------------------------------
+  // ACCIONES DE REQUERIMIENTOS DE PERSONAL
+  // ---------------------------------------------------------------------------
+  const handleAceptarDisponibilidad = (id: string, nombreTrabajador: string, empresa: string) => {
+    const actualizada = SaraTalentoRequestsService.aceptarSolicitud(id);
+    if (actualizada) {
+      setSolicitudes(SaraTalentoRequestsService.getSolicitudes());
+      setNotificacionExito(
+        `✅ DISPONIBILIDAD ACEPTADA: SARA Talento ha notificado a ${empresa}. Se han habilitado bidireccionalmente los números de contacto y correos para ${nombreTrabajador} y el contratista.`
+      );
+      setTimeout(() => setNotificacionExito(null), 8000);
+    }
+  };
+
+  const handleFormalizarContrato = (id: string) => {
+    SaraTalentoRequestsService.formalizarContrato(id);
+    setSolicitudes(SaraTalentoRequestsService.getSolicitudes());
+    setNotificacionExito(`📜 Contrato formalizado con éxito para la solicitud ${id}.`);
+    setTimeout(() => setNotificacionExito(null), 5000);
+  };
+
+  const handleEnviarNuevaSolicitud = (e: React.FormEvent) => {
+    e.preventDefault();
+    const nueva = SaraTalentoRequestsService.crearSolicitud({
+      empresa_solicitante: {
+        razon_social: formNuevaSolicitud.empresa_razon_social,
+        ruc: formNuevaSolicitud.empresa_ruc,
+        representante: formNuevaSolicitud.empresa_representante,
+        cargo: formNuevaSolicitud.empresa_cargo,
+        telefono: formNuevaSolicitud.empresa_telefono,
+        email: formNuevaSolicitud.empresa_email,
+        ciudad: formNuevaSolicitud.empresa_ciudad
+      },
+      trabajador: {
+        id: `tr-custom-${Date.now().toString().slice(-4)}`,
+        nombre_completo: formNuevaSolicitud.trabajador_nombre,
+        cedula: '110******',
+        categoria_ocupacional: formNuevaSolicitud.trabajador_especialidad,
+        calificacion: 5.0,
+        jornal_real: Number(formNuevaSolicitud.trabajador_jornal) || 40,
+        costo_horario: Number((Number(formNuevaSolicitud.trabajador_jornal) / 8).toFixed(2)) || 5,
+        telefono: formNuevaSolicitud.trabajador_telefono,
+        email: formNuevaSolicitud.trabajador_email
+      },
+      obra_destino: formNuevaSolicitud.obra_destino,
+      duracion: formNuevaSolicitud.duracion,
+      fecha_inicio: formNuevaSolicitud.fecha_inicio,
+      epp_requerido: formNuevaSolicitud.epp_requerido,
+      notas_adicionales: formNuevaSolicitud.notas_adicionales
+    });
+
+    setSolicitudes(SaraTalentoRequestsService.getSolicitudes());
+    setModalNuevaSolicitudOpen(false);
+    setNotificacionExito(`🚀 Solicitud formal ${nueva.id} enviada exitosamente a SARA Talento.`);
+    setTimeout(() => setNotificacionExito(null), 6000);
+  };
+
+  // ---------------------------------------------------------------------------
+  // ACCIONES DE CANDIDATOS
+  // ---------------------------------------------------------------------------
+  const handleActionCandidate = (id: string, newStatus: 'pending' | 'approved') => {
     setCandidates(candidates.map(c => c.id === id ? { ...c, status: newStatus } : c));
     setSelectedCandidate(null);
   };
 
-  return (
-    <div className="p-8 font-sans text-slate-800 max-w-6xl mx-auto relative h-screen overflow-y-auto">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Administración: SARA Talento</h1>
-        <p className="text-slate-500">Revisa documentos, verifica pagos y da de alta a profesionales en la red SARA.</p>
-      </header>
+  // ---------------------------------------------------------------------------
+  // FILTRADO DE SOLICITUDES
+  // ---------------------------------------------------------------------------
+  const solicitudesFiltradas = solicitudes.filter(s => {
+    const coincideTexto = 
+      s.empresa_solicitante.razon_social.toLowerCase().includes(searchReq.toLowerCase()) ||
+      s.empresa_solicitante.representante.toLowerCase().includes(searchReq.toLowerCase()) ||
+      s.trabajador.nombre_completo.toLowerCase().includes(searchReq.toLowerCase()) ||
+      s.trabajador.categoria_ocupacional.toLowerCase().includes(searchReq.toLowerCase()) ||
+      s.obra_destino.toLowerCase().includes(searchReq.toLowerCase()) ||
+      s.id.toLowerCase().includes(searchReq.toLowerCase());
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-          <h2 className="font-bold">Solicitudes de Ingreso a la Red</h2>
-          <div className="relative">
-             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-             <input type="text" placeholder="Buscar profesional..." className="pl-9 pr-4 py-1.5 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-500" />
+    if (!coincideTexto) return false;
+    if (filtroEstado === 'todos') return true;
+    if (filtroEstado === 'pendiente') return s.estado === 'pendiente';
+    if (filtroEstado === 'aceptado') return s.estado === 'aceptado' || s.estado === 'formalizado';
+    return true;
+  });
+
+  const totalPendientes = solicitudes.filter(s => s.estado === 'pendiente').length;
+
+  // ---------------------------------------------------------------------------
+  // EXPORTACIONES A EXCEL Y PDF
+  // ---------------------------------------------------------------------------
+  const exportarRequerimientosExcel = () => {
+    const datosExcel = solicitudesFiltradas.map(s => ({
+      'Código Solicitud': s.id,
+      'Empresa Solicitante': s.empresa_solicitante.razon_social,
+      'RUC Solicitante': s.empresa_solicitante.ruc,
+      'Representante': s.empresa_solicitante.representante,
+      'Teléfono Empresa': s.contactos_desbloqueados ? s.empresa_solicitante.telefono : 'En Custodia SARA',
+      'Email Empresa': s.contactos_desbloqueados ? s.empresa_solicitante.email : 'En Custodia SARA',
+      'Profesional Requerido': s.trabajador.nombre_completo,
+      'Especialidad': s.trabajador.categoria_ocupacional,
+      'Teléfono Profesional': s.contactos_desbloqueados ? s.trabajador.telefono : 'En Custodia SARA',
+      'Email Profesional': s.contactos_desbloqueados ? s.trabajador.email : 'En Custodia SARA',
+      'Obra de Destino': s.obra_destino,
+      'Tiempo / Duración': s.duracion,
+      'Fecha Inicio': s.fecha_inicio,
+      'Jornal Acordado ($)': s.trabajador.jornal_real.toFixed(2),
+      'Estado Solicitud': s.estado.toUpperCase(),
+      'Contactos Desbloqueados': s.contactos_desbloqueados ? 'SI (Mutuos)' : 'NO (Custodia)'
+    }));
+
+    exportarAExcel(
+      datosExcel, 
+      'Requerimientos_Personal_SARA_Talento', 
+      'Requerimientos Obra', 
+      'talento'
+    );
+  };
+
+  const exportarRequerimientosPDF = () => {
+    const encabezados = [
+      'Código',
+      'Empresa Solicitante',
+      'Profesional',
+      'Especialidad',
+      'Tiempo / Duración',
+      'Obra Destino',
+      'Estado',
+      'Contacto Desbloqueado'
+    ];
+
+    const filas = solicitudesFiltradas.map(s => [
+      s.id,
+      `${s.empresa_solicitante.razon_social}\nRep: ${s.empresa_solicitante.representante}`,
+      s.trabajador.nombre_completo,
+      s.trabajador.categoria_ocupacional,
+      `${s.duracion}\nInicio: ${s.fecha_inicio}`,
+      s.obra_destino,
+      s.estado.toUpperCase(),
+      s.contactos_desbloqueados ? `HABILITADO\nTel: ${s.trabajador.telefono}` : 'EN CUSTODIA SARA'
+    ]);
+
+    exportarAPDF(
+      'REPORTE OFICIAL DE REQUERIMIENTOS Y MATCHMAKING LABORAL SARA TALENTO',
+      encabezados,
+      filas,
+      'SARA_Talento_Requerimientos_Obras',
+      'Control de intermediación formal de personal de obra y habilitación de datos de contacto entre empresas y trabajadores',
+      'talento'
+    );
+  };
+
+  return (
+    <div className="p-4 sm:p-8 font-sans text-slate-800 max-w-7xl mx-auto relative min-h-screen">
+      
+      {/* ===================================================================== */}
+      {/* ENCABEZADO PRINCIPAL & BOTONES OFICIALES                             */}
+      {/* ===================================================================== */}
+      <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase tracking-wider">
+              Plataforma de Talento Humano & Obra Civil
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-600 font-bold border border-emerald-500/20">
+              Custodia Institucional Activa
+            </span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+            Administración: SARA Talento
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-3xl">
+            Gestión de solicitudes de personal emitidas por constructoras, confirmación de disponibilidad técnica y desbloqueo bidireccional seguro de números de contacto y correos para formalizar contratos.
+          </p>
         </div>
 
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
-              <th className="p-4 font-medium">Profesional</th>
-              <th className="p-4 font-medium">Especialidad</th>
-              <th className="p-4 font-medium">Plan (Comisión)</th>
-              <th className="p-4 font-medium">Estado</th>
-              <th className="p-4 font-medium text-right">Acción Requerida</th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map(candidate => (
-              <tr key={candidate.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                <td className="p-4 font-bold">{candidate.name}</td>
-                <td className="p-4 text-slate-600">{candidate.role}</td>
-                <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center w-max ${
-                    candidate.plan === 'VIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
-                    candidate.plan === 'Estandar' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
-                  }`}>
-                    {candidate.plan === 'VIP' && <Crown className="w-3 h-3 mr-1" />}
-                    {candidate.plan} 
-                    <span className="font-normal opacity-70 ml-1">
-                      ({candidate.plan === 'VIP' ? '50%' : candidate.plan === 'Estandar' ? '20%' : '10%'})
-                    </span>
-                  </span>
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 text-xs font-medium rounded ${
-                    candidate.status === 'approved' ? 'text-emerald-700 bg-emerald-100' : 'text-amber-700 bg-amber-100'
-                  }`}>
-                    {candidate.status === 'approved' ? 'Alta (Visible)' : 'Pendiente Revisión'}
-                  </span>
-                </td>
-                <td className="p-4 text-right space-x-2">
-                  <button 
-                    onClick={() => setSelectedCandidate(candidate)} 
-                    className="text-blue-600 hover:bg-blue-50 px-3 py-1 rounded border border-blue-200 text-sm font-medium transition-colors inline-flex items-center"
-                  >
-                    <Eye className="w-4 h-4 mr-1" />
-                    {candidate.status === 'pending' ? 'Revisar para Alta' : 'Ver Expediente'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Botones de Exportación Corporativa */}
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
+          <button
+            onClick={exportarRequerimientosExcel}
+            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            title="Descargar reporte completo en formato Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span>Excel</span>
+          </button>
+          <button
+            onClick={exportarRequerimientosPDF}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            title="Descargar reporte en formato PDF membretado con firmas oficiales"
+          >
+            <FileDown className="w-4 h-4" />
+            <span>PDF</span>
+          </button>
+        </div>
+      </header>
+
+      {/* BANNER DE NOTIFICACIÓN AGÉNTICA TEMPORAL */}
+      {notificacionExito && (
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-semibold flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
+          <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="flex-1 leading-relaxed">
+            {notificacionExito}
+          </div>
+          <button 
+            onClick={() => setNotificacionExito(null)}
+            className="text-emerald-700 hover:text-emerald-900 font-bold text-base leading-none"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* SELECTOR DE PESTAÑAS PRINCIPALES                                    */}
+      {/* ===================================================================== */}
+      <div className="flex gap-2 border-b border-slate-200 mb-6 pb-px">
+        <button
+          onClick={() => setActiveTab('requerimientos')}
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === 'requerimientos'
+              ? 'border-amber-500 text-amber-600 bg-amber-50/50 rounded-t-xl'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Building2 className="w-4 h-4" />
+          <span>Solicitudes de Personal por Empresas (Matchmaking)</span>
+          {totalPendientes > 0 && (
+            <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-slate-950 font-extrabold shadow-sm">
+              {totalPendientes} pendientes
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ingresos')}
+          className={`px-5 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+            activeTab === 'ingresos'
+              ? 'border-blue-600 text-blue-600 bg-blue-50/50 rounded-t-xl'
+              : 'border-transparent text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          <Crown className="w-4 h-4" />
+          <span>Solicitudes de Ingreso a la Red (Altas & Pagos)</span>
+          <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs bg-slate-200 text-slate-700 font-bold">
+            {candidates.length}
+          </span>
+        </button>
       </div>
 
-      {/* MODAL DE REVISIÓN Y ALTA */}
+      {/* ===================================================================== */}
+      {/* VISTA 1: REQUERIMIENTOS DE PERSONAL POR EMPRESAS                     */}
+      {/* ===================================================================== */}
+      {activeTab === 'requerimientos' && (
+        <div className="space-y-6">
+          
+          {/* Barra de Filtros y Botón para Enviar Nueva Solicitud */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[260px]">
+                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar empresa, profesional u obra..."
+                  value={searchReq}
+                  onChange={(e) => setSearchReq(e.target.value)}
+                  className="pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs w-full outline-none focus:border-amber-500 font-medium"
+                />
+              </div>
+
+              {/* Filtro por estado */}
+              <div className="flex items-center gap-1 text-xs">
+                <button
+                  onClick={() => setFiltroEstado('todos')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    filtroEstado === 'todos' 
+                      ? 'bg-slate-900 text-white' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Todos ({solicitudes.length})
+                </button>
+                <button
+                  onClick={() => setFiltroEstado('pendiente')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    filtroEstado === 'pendiente' 
+                      ? 'bg-amber-500 text-slate-950' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Pendientes ({totalPendientes})
+                </button>
+                <button
+                  onClick={() => setFiltroEstado('aceptado')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    filtroEstado === 'aceptado' 
+                      ? 'bg-emerald-600 text-white' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Disponibles / Aceptados ({solicitudes.filter(s => s.estado === 'aceptado' || s.estado === 'formalizado').length})
+                </button>
+              </div>
+            </div>
+
+            {/* Botón para abrir modal de solicitud directa */}
+            <button
+              onClick={() => setModalNuevaSolicitudOpen(true)}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nueva Solicitud de Personal (Empresa)</span>
+            </button>
+          </div>
+
+          {/* Protocolo Institucional de Custodia y Desbloqueo */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-md border border-slate-700/60">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+                    Regla de Intermediación & Desbloqueo Seguro de Contactos
+                  </h3>
+                  <p className="text-slate-300 text-xs mt-1 leading-relaxed max-w-3xl">
+                    1. Mientras la solicitud esté <strong className="text-amber-400">Pendiente</strong>, los teléfonos y correos directos de ambas partes permanecen custodiados.<br />
+                    2. Al presionar <strong className="text-emerald-400">"Aceptar y Notificar Disponibilidad a la Empresa"</strong>, se produce el match formal: se le habilitan al contratista los datos de contacto del trabajador, y al trabajador le llegan el número y correo de la empresa para ponerse en contacto y formalizar el contrato.
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-[11px] font-mono text-slate-400 block">SARA Talento Humano</span>
+                <span className="text-xs font-bold text-amber-400">Matchmaking Bidireccional</span>
+              </div>
+            </div>
+          </div>
+
+          {/* LISTA DE TARJETAS DE SOLICITUDES DE PERSONAL */}
+          {solicitudesFiltradas.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-400 space-y-2">
+              <Building2 className="w-10 h-10 mx-auto text-slate-300" />
+              <p className="text-sm font-bold text-slate-600">No se encontraron solicitudes con el criterio indicado.</p>
+              <p className="text-xs">Usa el botón "Nueva Solicitud de Personal (Empresa)" para emitir un requerimiento.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {solicitudesFiltradas.map((sol) => {
+                const esAceptado = sol.estado === 'aceptado' || sol.estado === 'formalizado';
+
+                return (
+                  <div 
+                    key={sol.id}
+                    className={`bg-white rounded-2xl border transition-all p-5 shadow-sm space-y-4 ${
+                      esAceptado 
+                        ? 'border-emerald-300 bg-emerald-50/20 shadow-emerald-500/5' 
+                        : 'border-slate-200 hover:border-amber-400'
+                    }`}
+                  >
+                    {/* Encabezado de la Tarjeta */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-extrabold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
+                          {sol.id}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono">
+                          Emitido: {sol.fecha_solicitud}
+                        </span>
+                        {sol.fecha_aceptacion && (
+                          <span className="text-xs text-emerald-600 font-mono font-bold">
+                            • Aceptado: {sol.fecha_aceptacion}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Badge de Estado */}
+                      <div>
+                        {sol.estado === 'pendiente' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>Pendiente de Aceptación (Disponibilidad)</span>
+                          </span>
+                        )}
+                        {sol.estado === 'aceptado' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span>✅ Disponibilidad Aceptada (Contactos Habilitados)</span>
+                          </span>
+                        )}
+                        {sol.estado === 'formalizado' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300 flex items-center gap-1.5">
+                            <Briefcase className="w-3.5 h-3.5" />
+                            <span>Contrato Formalizado en Obra</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Contenido Principal: Quién Solicita + Trabajador + Tiempo */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                      
+                      {/* COLUMNA 1: ¿QUIÉN SOLICITA? (EMPRESA SOLICITANTE) */}
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                            <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                            Quién Solicita (Empresa / Contratista)
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">RUC: {sol.empresa_solicitante.ruc}</span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900">
+                            {sol.empresa_solicitante.razon_social}
+                          </h4>
+                          <p className="text-slate-600 font-medium mt-0.5">
+                            Rep: {sol.empresa_solicitante.representante} ({sol.empresa_solicitante.cargo})
+                          </p>
+                          <p className="text-slate-400 text-[11px] flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            {sol.empresa_solicitante.ciudad}
+                          </p>
+                        </div>
+
+                        {/* DATOS DE CONTACTO DE LA EMPRESA (LLEGAN AL PERSONAL AL ACEPTAR) */}
+                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                            Contacto Directo de la Empresa:
+                          </span>
+                          
+                          {sol.contactos_desbloqueados ? (
+                            <div className="p-2.5 rounded-lg bg-emerald-100/60 border border-emerald-300 space-y-1 text-emerald-950 font-medium">
+                              <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-1 text-[11px] font-bold">
+                                  <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                                  {sol.empresa_solicitante.telefono}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <a
+                                    href={`https://wa.me/${sol.empresa_solicitante.telefono.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] hover:bg-emerald-700 flex items-center gap-0.5"
+                                  >
+                                    <MessageSquare className="w-2.5 h-2.5" />
+                                    WhatsApp
+                                  </a>
+                                  <a
+                                    href={`tel:${sol.empresa_solicitante.telefono}`}
+                                    className="px-2 py-0.5 rounded bg-slate-900 text-white font-bold text-[10px] hover:bg-slate-800"
+                                  >
+                                    Llamar
+                                  </a>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="flex items-center gap-1 text-[11px] text-slate-700">
+                                  <Mail className="w-3.5 h-3.5 text-slate-500" />
+                                  {sol.empresa_solicitante.email}
+                                </span>
+                                <a
+                                  href={`mailto:${sol.empresa_solicitante.email}?subject=Aceptacion%20Plaza%20Laboral%20${sol.id}`}
+                                  className="text-blue-700 hover:underline text-[10px] font-bold"
+                                >
+                                  Enviar Correo
+                                </a>
+                              </div>
+                              <p className="text-[9px] text-emerald-800 font-mono pt-0.5">
+                                ✓ Este contacto fue enviado al personal de obra para coordinar la firma del contrato.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-lg bg-slate-200/60 border border-slate-300 text-slate-500 flex items-center gap-2">
+                              <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span className="text-[10px] font-mono leading-tight">
+                                Teléfono y correo en custodia institucional. Se habilitarán al aceptar la disponibilidad.
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* COLUMNA 2: PROFESIONAL / PERSONAL REQUERIDO */}
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                            <User className="w-3.5 h-3.5 text-amber-500" />
+                            Personal Técnico Requerido
+                          </span>
+                          <span className="text-amber-500 font-extrabold flex items-center gap-0.5">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            {sol.trabajador.calificacion.toFixed(1)} SARA Score
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-extrabold text-sm text-slate-900">
+                            {sol.trabajador.nombre_completo}
+                          </h4>
+                          <p className="text-slate-600 font-medium mt-0.5">
+                            {sol.trabajador.categoria_ocupacional}
+                          </p>
+                          <p className="text-slate-500 text-[11px] font-mono mt-0.5">
+                            Jornal: ${sol.trabajador.jornal_real.toFixed(2)} USD | Costo/h: ${sol.trabajador.costo_horario.toFixed(2)} USD
+                          </p>
+                        </div>
+
+                        {/* DATOS DE CONTACTO DEL TRABAJADOR (SE HABILITAN AL CONTRATISTA) */}
+                        <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                            Contacto Directo del Profesional:
+                          </span>
+
+                          {sol.contactos_desbloqueados ? (
+                            <div className="p-2.5 rounded-lg bg-emerald-100/60 border border-emerald-300 space-y-1 text-emerald-950 font-medium">
+                              <div className="flex items-center justify-between">
+                                <span className="flex items-center gap-1 text-[11px] font-bold">
+                                  <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                                  {sol.trabajador.telefono}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <a
+                                    href={`https://wa.me/${sol.trabajador.telefono.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="px-2 py-0.5 rounded bg-emerald-600 text-white font-bold text-[10px] hover:bg-emerald-700 flex items-center gap-0.5"
+                                  >
+                                    <MessageSquare className="w-2.5 h-2.5" />
+                                    WhatsApp
+                                  </a>
+                                  <a
+                                    href={`tel:${sol.trabajador.telefono}`}
+                                    className="px-2 py-0.5 rounded bg-slate-900 text-white font-bold text-[10px] hover:bg-slate-800"
+                                  >
+                                    Llamar
+                                  </a>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-1">
+                                <span className="flex items-center gap-1 text-[11px] text-slate-700">
+                                  <Mail className="w-3.5 h-3.5 text-slate-500" />
+                                  {sol.trabajador.email}
+                                </span>
+                                <a
+                                  href={`mailto:${sol.trabajador.email}?subject=Contacto%20de%20Contratacion%20-%20${sol.obra_destino}`}
+                                  className="text-blue-700 hover:underline text-[10px] font-bold"
+                                >
+                                  Enviar Correo
+                                </a>
+                              </div>
+                              <p className="text-[9px] text-emerald-800 font-mono pt-0.5">
+                                ✓ Habilitado para el contratista para ponerse de acuerdo y formalizar el contrato.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-lg bg-slate-200/60 border border-slate-300 text-slate-500 flex items-center gap-2">
+                              <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span className="text-[10px] font-mono leading-tight">
+                                Teléfono y correo en custodia institucional SARA Talento. Se desbloquearán al confirmar disponibilidad.
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* COLUMNA 3: ¿PARA QUÉ TIEMPO? (DURACIÓN & DESTINO) */}
+                      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col justify-between space-y-3">
+                        <div className="space-y-2">
+                          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-purple-600" />
+                            Para qué Tiempo & Obra Destino
+                          </span>
+
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex justify-between border-b border-slate-200 pb-1">
+                              <span className="text-slate-500">Obra / Proyecto:</span>
+                              <strong className="text-slate-900 text-right">{sol.obra_destino}</strong>
+                            </div>
+                            <div className="flex justify-between border-b border-slate-200 pb-1">
+                              <span className="text-slate-500">Tiempo Requerido:</span>
+                              <strong className="text-purple-700 font-extrabold">{sol.duracion}</strong>
+                            </div>
+                            <div className="flex justify-between border-b border-slate-200 pb-1">
+                              <span className="text-slate-500">Fecha Estimada Inicio:</span>
+                              <strong className="text-slate-900">{sol.fecha_inicio}</strong>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">EPP Homologado:</span>
+                              <span className={sol.epp_requerido ? 'text-emerald-600 font-bold' : 'text-slate-400'}>
+                                {sol.epp_requerido ? 'Exigido en Obra' : 'Opcional'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {sol.notas_adicionales && (
+                            <p className="text-[11px] text-slate-500 italic bg-white p-2 rounded-lg border border-slate-200">
+                              "{sol.notas_adicionales}"
+                            </p>
+                          )}
+                        </div>
+
+                        {/* BOTÓN PRINCIPAL DE ACCIÓN: ACEPTACIÓN & NOTIFICACIÓN */}
+                        <div className="pt-2">
+                          {sol.estado === 'pendiente' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAceptarDisponibilidad(sol.id, sol.trabajador.nombre_completo, sol.empresa_solicitante.razon_social)}
+                              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all"
+                            >
+                              <Unlock className="w-4 h-4 text-amber-300" />
+                              <span>Aceptar y Notificar Disponibilidad a la Empresa</span>
+                            </button>
+                          ) : sol.estado === 'aceptado' ? (
+                            <div className="space-y-2">
+                              <div className="p-2 rounded-lg bg-emerald-50 text-emerald-800 text-[10px] font-bold text-center border border-emerald-200">
+                                Disponibilidad notificada • Contactos habilitados
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleFormalizarContrato(sol.id)}
+                                className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                              >
+                                <Briefcase className="w-3.5 h-3.5 text-amber-400" />
+                                <span>Formalizar Contrato Laboral</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-lg bg-blue-50 text-blue-800 text-xs font-bold text-center border border-blue-200 flex items-center justify-center gap-1.5">
+                              <Check className="w-4 h-4 text-blue-600" />
+                              <span>Contrato Civil / Laboral Formalizado</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* VISTA 2: SOLICITUDES DE INGRESO A LA RED (PLANES VIP/BÁSICO & AUDITORÍA) */}
+      {/* ===================================================================== */}
+      {activeTab === 'ingresos' && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-slate-50">
+            <div>
+              <h2 className="font-bold text-base text-slate-900">Postulantes e Ingresos a la Red SARA</h2>
+              <p className="text-xs text-slate-500">Revisión de documentos habilitantes, asignación de estrellas de confianza y comprobantes de suscripción.</p>
+            </div>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Buscar postulante..." 
+                className="pl-9 pr-4 py-1.5 border border-slate-300 rounded-lg text-sm outline-none focus:border-blue-500" 
+              />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-xs border-b border-slate-200 uppercase font-mono">
+                  <th className="p-4 font-bold">Profesional</th>
+                  <th className="p-4 font-bold">Especialidad</th>
+                  <th className="p-4 font-bold">Plan (Comisión)</th>
+                  <th className="p-4 font-bold">Estado</th>
+                  <th className="p-4 font-bold text-right">Acción Requerida</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidates.map(candidate => (
+                  <tr key={candidate.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="p-4 font-bold text-slate-900">{candidate.name}</td>
+                    <td className="p-4 text-slate-600">{candidate.role}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center w-max ${
+                        candidate.plan === 'VIP' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                        candidate.plan === 'Estandar' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {candidate.plan === 'VIP' && <Crown className="w-3 h-3 mr-1" />}
+                        {candidate.plan} 
+                        <span className="font-normal opacity-70 ml-1">
+                          ({candidate.plan === 'VIP' ? '50%' : candidate.plan === 'Estandar' ? '20%' : '10%'})
+                        </span>
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded ${
+                        candidate.status === 'approved' ? 'text-emerald-700 bg-emerald-100 font-bold' : 'text-amber-700 bg-amber-100 font-bold'
+                      }`}>
+                        {candidate.status === 'approved' ? 'Alta (Visible en Red)' : 'Pendiente Revisión'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right space-x-2">
+                      <button 
+                        onClick={() => setSelectedCandidate(candidate)} 
+                        className="text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 text-xs font-bold transition-colors inline-flex items-center"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        {candidate.status === 'pending' ? 'Revisar para Alta' : 'Ver Expediente'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL: EMITIR NUEVA SOLICITUD DE PERSONAL (EMPRESA SOLICITANTE)        */}
+      {/* ===================================================================== */}
+      {modalNuevaSolicitudOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header Modal */}
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">
+                    Nueva Solicitud de Personal por Empresa
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    Registra la empresa solicitante, el tiempo requerido y el personal buscado
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setModalNuevaSolicitudOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-200/60 text-slate-500 hover:text-slate-900 flex items-center justify-center"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleEnviarNuevaSolicitud} className="p-6 overflow-y-auto space-y-4 text-xs font-mono">
+              
+              {/* Sección 1: Quién Solicita */}
+              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-3">
+                <span className="font-bold text-blue-900 text-xs block uppercase flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  1. ¿Quién Solicita? (Datos de la Empresa / Contratista)
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Razón Social / Constructora *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.empresa_razon_social}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, empresa_razon_social: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">RUC de la Empresa *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.empresa_ruc}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, empresa_ruc: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Representante / Director de Obra *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.empresa_representante}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, empresa_representante: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Teléfono Corporativo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.empresa_telefono}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, empresa_telefono: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-700 font-bold block mb-1">Correo Electrónico Corporativo *</label>
+                  <input
+                    type="email"
+                    required
+                    value={formNuevaSolicitud.empresa_email}
+                    onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, empresa_email: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    🔒 Este correo y teléfono se mantendrán protegidos y sólo se habilitarán al trabajador cuando éste acepte la disponibilidad.
+                  </p>
+                </div>
+              </div>
+
+              {/* Sección 2: Personal Solicitado */}
+              <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 space-y-3">
+                <span className="font-bold text-amber-900 text-xs block uppercase flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-amber-600" />
+                  2. Profesional o Personal Técnico Requerido
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Nombre del Profesional / Trabajador *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.trabajador_nombre}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, trabajador_nombre: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Especialidad / Cargo en Obra *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.trabajador_especialidad}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, trabajador_especialidad: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Jornal Diario ($ USD) *</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={formNuevaSolicitud.trabajador_jornal}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, trabajador_jornal: Number(e.target.value) })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Teléfono Profesional *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formNuevaSolicitud.trabajador_telefono}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, trabajador_telefono: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Email Profesional *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formNuevaSolicitud.trabajador_email}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, trabajador_email: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección 3: ¿Para qué tiempo? & Obra */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <span className="font-bold text-slate-800 text-xs block uppercase flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-purple-600" />
+                  3. ¿Para qué Tiempo? & Obra Destino
+                </span>
+
+                <div>
+                  <label className="text-slate-700 font-bold block mb-1">Proyecto / Obra Destino *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formNuevaSolicitud.obra_destino}
+                    onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, obra_destino: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Duración Prevista *</label>
+                    <select
+                      value={formNuevaSolicitud.duracion}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, duracion: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900 bg-white"
+                    >
+                      <option value="1 mes (Fase Cimentación)">1 mes (Fase Cimentación)</option>
+                      <option value="3 meses (Fase Estructuras)">3 meses (Fase Estructuras)</option>
+                      <option value="6 meses (Obra Gruesa)">6 meses (Obra Gruesa)</option>
+                      <option value="Proyecto Completo (12 meses)">Proyecto Completo (12 meses)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-slate-700 font-bold block mb-1">Fecha Estimada de Inicio *</label>
+                    <input
+                      type="date"
+                      required
+                      value={formNuevaSolicitud.fecha_inicio}
+                      onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, fecha_inicio: e.target.value })}
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-medium text-slate-900 bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="modal-epp-req"
+                    checked={formNuevaSolicitud.epp_requerido}
+                    onChange={(e) => setFormNuevaSolicitud({ ...formNuevaSolicitud, epp_requerido: e.target.checked })}
+                    className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 border-slate-300"
+                  />
+                  <label htmlFor="modal-epp-req" className="text-slate-700 text-xs cursor-pointer font-medium">
+                    Exigir Kit de EPP Homologado (Casco, Calzado Dieléctrico con Punta de Acero y Chaleco)
+                  </label>
+                </div>
+              </div>
+
+              {/* Botones del Modal */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setModalNuevaSolicitudOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Enviar la Solicitud a SARA Talento</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL EXISTENTE: REVISIÓN Y ALTA DE CANDIDATOS (DOCUMENTOS & PAGOS)  */}
+      {/* ===================================================================== */}
       {selectedCandidate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -225,7 +1180,7 @@ export default function AdminTalento() {
               
               {selectedCandidate.status === 'pending' ? (
                 <button 
-                  onClick={() => handleAction(selectedCandidate.id, 'approved')}
+                  onClick={() => handleActionCandidate(selectedCandidate.id, 'approved')}
                   className="px-6 py-2 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 flex items-center shadow-md shadow-blue-500/20"
                 >
                   <CheckCircle className="w-5 h-5 mr-2" />
@@ -233,7 +1188,7 @@ export default function AdminTalento() {
                 </button>
               ) : (
                 <button 
-                  onClick={() => handleAction(selectedCandidate.id, 'pending')}
+                  onClick={() => handleActionCandidate(selectedCandidate.id, 'pending')}
                   className="px-6 py-2 rounded-lg bg-amber-600 text-white font-bold hover:bg-amber-700 flex items-center shadow-md shadow-amber-500/20"
                 >
                   <XCircle className="w-5 h-5 mr-2" />

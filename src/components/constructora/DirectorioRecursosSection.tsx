@@ -43,10 +43,16 @@ import {
   Download,
   Key,
   Copy,
-  Lock
+  Lock,
+  Unlock,
+  MessageSquare
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
+import { 
+  SaraTalentoRequestsService, 
+  SolicitudPersonalEmpresa 
+} from '@/lib/services/saraTalentoRequestsService';
 
 // -----------------------------------------------------------------------------
 // INTERFACES DEL MODELO DE DATOS
@@ -79,6 +85,8 @@ export interface TrabajadorCompleto {
   id: string;
   nombre_completo: string;
   cedula: string;
+  telefono?: string;
+  email?: string;
   categoria_ocupacional: string;
   jornal_real: number;
   costo_horario: number;
@@ -473,6 +481,14 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
   // 4. Modal "Requerir en Obra" (Conexión con SARA Talento)
   const [modalRequerirOpen, setModalRequerirOpen] = useState(false);
   const [trabajadorParaRequerir, setTrabajadorParaRequerir] = useState<TrabajadorCompleto | null>(null);
+  const [empresaSolicitante, setEmpresaSolicitante] = useState({
+    razon_social: 'GRUPO SARA Constructora S.A.',
+    ruc: '1191782341001',
+    representante: 'Ing. David Sarango Malacatus',
+    cargo: 'Director General de Obra',
+    telefono: '+593 99 876 5432',
+    email: 'contrataciones@gruposara.ec'
+  });
   const [obraDestinoRequerimiento, setObraDestinoRequerimiento] = useState('Edificio Residencial El Mirador (Loja)');
   const [fechaInicioRequerimiento, setFechaInicioRequerimiento] = useState('2026-11-01');
   const [duracionRequerimiento, setDuracionRequerimiento] = useState('3 meses (Fase Estructuras)');
@@ -484,6 +500,21 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
 
   useEffect(() => {
     fetchDirectorioData();
+
+    const handleActualizacionTalento = () => {
+      setTrabajadores(prev => prev.map(t => {
+        const info = SaraTalentoRequestsService.obtenerEstadoRequerimientoTrabajador(t.id);
+        return {
+          ...t,
+          estado_requerimiento: info.estado
+        };
+      }));
+    };
+
+    window.addEventListener('sara_talento_solicitudes_cambio', handleActualizacionTalento);
+    return () => {
+      window.removeEventListener('sara_talento_solicitudes_cambio', handleActualizacionTalento);
+    };
   }, []);
 
   const fetchDirectorioData = async () => {
@@ -495,6 +526,8 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
           id: 'tr-01',
           nombre_completo: 'Ing. Luis Castro',
           cedula: '112548****',
+          telefono: '+593 98 421 8973',
+          email: 'luis.castro@profesional.sara.ec',
           categoria_ocupacional: 'Residente de Obra / Ing. Civil',
           jornal_real: 39.12,
           costo_horario: 4.89,
@@ -544,6 +577,8 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
           id: 'tr-02',
           nombre_completo: 'Ing. Marcelo Valarezo',
           cedula: '123456****',
+          telefono: '+593 99 555 7788',
+          email: 'marcelo.valarezo@profesional.sara.ec',
           categoria_ocupacional: 'Ingeniero Eléctrico / Redes Obra',
           jornal_real: 39.12,
           costo_horario: 4.89,
@@ -593,6 +628,8 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
           id: 'tr-03',
           nombre_completo: 'Andrea Tamayo',
           cedula: '111202****',
+          telefono: '+593 99 123 4567',
+          email: 'andrea.tamayo@profesional.sara.ec',
           categoria_ocupacional: 'Maestro de Obra General',
           jornal_real: 35.15,
           costo_horario: 4.39,
@@ -642,6 +679,8 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
           id: 'tr-04',
           nombre_completo: 'Carlos Morocho',
           cedula: '110398****',
+          telefono: '+593 98 901 2345',
+          email: 'carlos.morocho@profesional.sara.ec',
           categoria_ocupacional: 'Fierrero Especialista / Armador',
           jornal_real: 28.50,
           costo_horario: 3.56,
@@ -688,7 +727,15 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
         }
       ];
 
-      setTrabajadores(trabsDefault);
+      const trabsSincronizados = trabsDefault.map(t => {
+        const info = SaraTalentoRequestsService.obtenerEstadoRequerimientoTrabajador(t.id);
+        return {
+          ...t,
+          estado_requerimiento: info.estado
+        };
+      });
+
+      setTrabajadores(trabsSincronizados);
 
       // 2. Proveedores con Catálogo Enlazado
       const provsDefault: ProveedorCompleto[] = [
@@ -852,8 +899,33 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
     setEnviandoRequerimiento(true);
 
     setTimeout(() => {
-      const nuevoIdReq = `REQ-TAL-${Date.now().toString().slice(-6)}`;
-      const fechaActual = new Date().toLocaleString('es-EC', { dateStyle: 'short', timeStyle: 'short' });
+      const nueva = SaraTalentoRequestsService.crearSolicitud({
+        empresa_solicitante: {
+          razon_social: empresaSolicitante.razon_social,
+          ruc: empresaSolicitante.ruc,
+          representante: empresaSolicitante.representante,
+          cargo: empresaSolicitante.cargo,
+          telefono: empresaSolicitante.telefono,
+          email: empresaSolicitante.email,
+          ciudad: 'Loja, Ecuador'
+        },
+        trabajador: {
+          id: trabajadorParaRequerir.id,
+          nombre_completo: trabajadorParaRequerir.nombre_completo,
+          cedula: trabajadorParaRequerir.cedula,
+          categoria_ocupacional: trabajadorParaRequerir.categoria_ocupacional,
+          calificacion: trabajadorParaRequerir.calificacion,
+          jornal_real: trabajadorParaRequerir.jornal_real,
+          costo_horario: trabajadorParaRequerir.costo_horario,
+          telefono: trabajadorParaRequerir.telefono || '+593 98 421 8973',
+          email: trabajadorParaRequerir.email || 'profesional@sara.ec'
+        },
+        obra_destino: obraDestinoRequerimiento,
+        duracion: duracionRequerimiento,
+        fecha_inicio: fechaInicioRequerimiento,
+        epp_requerido: eppRequerido,
+        notas_adicionales: `Requerimiento emitido por ${empresaSolicitante.razon_social} para la obra ${obraDestinoRequerimiento}.`
+      });
 
       // Actualizar estado en el listado local de trabajadores
       setTrabajadores(prev => prev.map(t => {
@@ -864,15 +936,15 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
       }));
 
       setRequerimientoConfirmado({
-        id: nuevoIdReq,
-        fecha: fechaActual
+        id: nueva.id,
+        fecha: nueva.fecha_solicitud
       });
 
       setEnviandoRequerimiento(false);
 
       // Notificación agéntica global
-      setAgentNotice(`📡 EVENTO SARA_TALENTO: Emitido requerimiento ${nuevoIdReq} para "${trabajadorParaRequerir.nombre_completo}" con destino a "${obraDestinoRequerimiento}". Mensaje SMS/WhatsApp institucional enviado al profesional para confirmación de plaza laboral.`);
-    }, 1200);
+      setAgentNotice(`📡 EVENTO SARA_TALENTO: Emitido requerimiento ${nueva.id} por "${empresaSolicitante.razon_social}" para "${trabajadorParaRequerir.nombre_completo}" (${duracionRequerimiento}) con destino a "${obraDestinoRequerimiento}". Mensaje SMS/WhatsApp institucional enviado al profesional para confirmación de disponibilidad.`);
+    }, 1000);
   };
 
   // ===========================================================================
@@ -1241,19 +1313,33 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                       <td className="px-5 py-3.5">
                         <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                           <span>{t.nombre_completo}</span>
+                          {t.estado_requerimiento === 'confirmado' && (
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1">
+                              <CheckCircle className="w-2.5 h-2.5" />
+                              <span>Disponibilidad Aceptada</span>
+                            </span>
+                          )}
                           {t.estado_requerimiento === 'requerido' && (
-                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20">
-                              Requerimiento Emitido
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 font-bold border border-amber-500/20 flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>Requerimiento Emitido</span>
                             </span>
                           )}
                         </div>
                         <span className="block text-[10px] text-slate-400 font-normal mt-0.5">
                           {t.especialidad}
                         </span>
-                        <div className="flex items-center gap-1.5 mt-1 text-[10px] text-emerald-600 dark:text-emerald-400">
-                          <ShieldCheck className="w-3 h-3" />
-                          <span>Contacto protegido por SARA Talento</span>
-                        </div>
+                        {t.estado_requerimiento === 'confirmado' ? (
+                          <div className="flex items-center gap-1.5 mt-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                            <Phone className="w-3 h-3 text-emerald-500" />
+                            <span>Contacto Habilitado: {t.telefono || '+593 98 421 8973'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400">
+                            <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                            <span>Contacto protegido por SARA Talento</span>
+                          </div>
+                        )}
                       </td>
 
                       {/* Calificación por Estrellas */}
@@ -1310,14 +1396,22 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                           <button
                             onClick={() => handleAbrirRequerirEnObra(t)}
                             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm ${
-                              t.estado_requerimiento === 'requerido'
+                              t.estado_requerimiento === 'confirmado'
                                 ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 font-extrabold'
+                                : t.estado_requerimiento === 'requerido'
+                                ? 'bg-amber-500/20 text-amber-500 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 font-bold'
                                 : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold'
                             }`}
                             title="Contratar y notificar a SARA Talento"
                           >
                             <UserCheck className="w-3 h-3" />
-                            <span>{t.estado_requerimiento === 'requerido' ? 'Requerido en Obra' : 'Requerir en Obra'}</span>
+                            <span>
+                              {t.estado_requerimiento === 'confirmado' 
+                                ? '✅ Aceptado / En Obra' 
+                                : t.estado_requerimiento === 'requerido' 
+                                ? '🟡 Esperando Aceptación' 
+                                : 'Requerir en Obra'}
+                            </span>
                           </button>
                         </div>
                       </td>
@@ -1983,18 +2077,62 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
               {/* ------------------------------------------------------------- */}
               {/* VIÑETA 1: DATOS PERSONALES & FICHA TÉCNICA (SIN TELÉFONO/EMAIL) */}
               {/* ------------------------------------------------------------- */}
-              {vinetaPerfil === 'ficha_tecnica' && (
+              {vinetaPerfil === 'ficha_tecnica' && (() => {
+                const reqInfo = SaraTalentoRequestsService.obtenerEstadoRequerimientoTrabajador(trabajadorSeleccionado.id);
+                const esConfirmado = trabajadorSeleccionado.estado_requerimiento === 'confirmado' || reqInfo.estado === 'confirmado';
+                const esRequerido = trabajadorSeleccionado.estado_requerimiento === 'requerido' || reqInfo.estado === 'requerido';
+
+                return (
                 <div className="space-y-4">
-                  {/* Banner de Protección de Datos */}
-                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-start gap-3">
-                    <Shield className="w-4 h-4 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="block font-bold">Privacidad & Intermediación Segura SARA Talento:</strong>
-                      <span className="text-[11px] text-slate-400">
-                        Los teléfonos celulares directos y correos personales no se exponen al contratista para garantizar el cumplimiento de la ley laboral y la contratación mediante la red formal de GRUPO SARA.
-                      </span>
+                  {/* Banner de Estado y Desbloqueo Bidireccional */}
+                  {esConfirmado ? (
+                    <div className="p-3.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 space-y-1.5 animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <strong className="text-sm font-bold text-white">Disponibilidad Aceptada — Contactos Habilitados Bidireccionalmente</strong>
+                      </div>
+                      <p className="text-[11px] text-slate-200">
+                        El profesional aceptó la plaza laboral. Se han habilitado sus datos de contacto directos para el contratista, y al trabajador le han llegado los datos de la empresa solicitante para formalizar el contrato.
+                      </p>
                     </div>
-                  </div>
+                  ) : esRequerido ? (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 space-y-2 animate-in fade-in">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                          <strong className="text-sm font-bold text-white">Requerimiento Emitido — Esperando Aceptación en SARA Talento</strong>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (reqInfo.solicitud?.id) {
+                              SaraTalentoRequestsService.aceptarSolicitud(reqInfo.solicitud.id);
+                              setTrabajadores(prev => prev.map(t => t.id === trabajadorSeleccionado.id ? { ...t, estado_requerimiento: 'confirmado' } : t));
+                              setTrabajadorSeleccionado({ ...trabajadorSeleccionado, estado_requerimiento: 'confirmado' });
+                              setAgentNotice(`✅ DISPONIBILIDAD ACEPTADA: El profesional ${trabajadorSeleccionado.nombre_completo} ha confirmado disponibilidad. Contactos habilitados.`);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px] flex items-center gap-1 shadow-sm shrink-0"
+                        >
+                          <Unlock className="w-3 h-3 text-amber-300" />
+                          <span>Aceptar Disponibilidad</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-slate-300">
+                        SARA Talento notificó al profesional para confirmar su disponibilidad. Los números y correos directos permanecen custodiados hasta su aceptación.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-start gap-3">
+                      <Shield className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block font-bold">Privacidad & Intermediación Segura SARA Talento:</strong>
+                        <span className="text-[11px] text-slate-400">
+                          Los teléfonos celulares directos y correos se mantienen protegidos bajo custodia institucional. Al presionar <strong>"Requerir en Obra"</strong> y aceptarse la disponibilidad, se habilitan automáticamente a ambas partes para formalizar el contrato.
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
@@ -2011,10 +2149,57 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                         <span className="text-slate-500">Afiliación IESS:</span>
                         <span className="text-emerald-500 font-bold">{trabajadorSeleccionado.estado_iess}</span>
                       </div>
-                      <div className="flex justify-between py-1">
-                        <span className="text-slate-500">Canal de Contacto:</span>
-                        <span className="text-amber-500 font-bold">SARA Talento Humano</span>
-                      </div>
+
+                      {/* CANAL DE CONTACTO / DESBLOQUEO */}
+                      {esConfirmado ? (
+                        <>
+                          <div className="flex justify-between items-center py-1.5 border-b border-slate-200 dark:border-slate-700">
+                            <span className="text-slate-500 font-bold">Teléfono / WhatsApp:</span>
+                            <div className="flex items-center gap-1.5">
+                              <strong className="text-emerald-500 dark:text-emerald-400 font-mono font-bold">
+                                {trabajadorSeleccionado.telefono || '+593 98 421 8973'}
+                              </strong>
+                              <a
+                                href={`https://wa.me/${(trabajadorSeleccionado.telefono || '593984218973').replace(/[^0-9]/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[9px] flex items-center gap-0.5"
+                              >
+                                <MessageSquare className="w-2.5 h-2.5" />
+                                WA
+                              </a>
+                              <a
+                                href={`tel:${trabajadorSeleccionado.telefono || '+593984218973'}`}
+                                className="px-2 py-0.5 rounded bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-[9px]"
+                              >
+                                Llamar
+                              </a>
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <span className="text-slate-500 font-bold">Correo Electrónico:</span>
+                            <div className="flex items-center gap-1.5">
+                              <strong className="text-blue-500 dark:text-blue-400 font-mono text-[11px]">
+                                {trabajadorSeleccionado.email || 'profesional@sara.ec'}
+                              </strong>
+                              <a
+                                href={`mailto:${trabajadorSeleccionado.email || 'profesional@sara.ec'}?subject=Contrato%20de%20Obra%20SARA`}
+                                className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-bold text-[9px]"
+                              >
+                                Email
+                              </a>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex justify-between py-1">
+                          <span className="text-slate-500">Canal de Contacto:</span>
+                          <span className="text-amber-500 font-bold flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-amber-500" />
+                            <span>Custodiado por SARA Talento</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
@@ -2037,6 +2222,33 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                       </div>
                     </div>
                   </div>
+
+                  {/* CAJA DE DATOS MUTUOS: EMPRESA SOLICITANTE LLEGA AL TRABAJADOR */}
+                  {esConfirmado && (
+                    <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-slate-200 space-y-2">
+                      <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5" />
+                        Datos de la Empresa Solicitante Entregados al Trabajador:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-1">
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Empresa Contratante:</span>
+                          <strong className="text-white">{reqInfo.solicitud?.empresa_solicitante.razon_social || empresaSolicitante.razon_social}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Teléfono / WhatsApp Empresa:</span>
+                          <strong className="text-emerald-400">{reqInfo.solicitud?.empresa_solicitante.telefono || empresaSolicitante.telefono}</strong>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-[10px]">Correo Empresa:</span>
+                          <span className="text-blue-300 font-mono">{reqInfo.solicitud?.empresa_solicitante.email || empresaSolicitante.email}</span>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-400 italic pt-0.5">
+                        ✓ Ambas partes disponen de sus canales de contacto mutuos para la firma inmediata del contrato civil o laboral.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Certificaciones y Acreditaciones */}
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
@@ -2069,7 +2281,8 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                     </ul>
                   </div>
                 </div>
-              )}
+              );
+            })()}
 
               {/* ------------------------------------------------------------- */}
               {/* VIÑETA 2: HISTORIAL DE TRABAJOS ANTERIORES EN GRUPO SARA      */}
@@ -2185,10 +2398,13 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-2">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-                    <span className="font-bold text-sm">¡Requerimiento Emitido con Éxito!</span>
+                    <span className="font-bold text-sm">¡Requerimiento Formal Emitido con Éxito!</span>
                   </div>
                   <p className="text-xs text-slate-300 font-mono leading-relaxed">
-                    Se generó la solicitud formal <strong className="text-white">{requerimientoConfirmado.id}</strong>. SARA Talento ha notificado al profesional mediante el canal institucional para su aceptación de la plaza laboral en <strong className="text-white">{obraDestinoRequerimiento}</strong>.
+                    Se generó la solicitud formal <strong className="text-white">{requerimientoConfirmado.id}</strong>. SARA Talento ha notificado al profesional mediante el canal institucional para su aceptación de la plaza laboral en <strong className="text-white">{obraDestinoRequerimiento}</strong> ({duracionRequerimiento}).
+                  </p>
+                  <p className="text-[11px] text-emerald-300 font-mono">
+                    ✓ Una vez que el profesional confirme su disponibilidad, se habilitarán automáticamente sus números de teléfono y correo para la empresa, y al trabajador le llegarán los datos de contacto de {empresaSolicitante.razon_social} para formalizar el contrato.
                   </p>
                   <div className="text-[10px] font-mono text-slate-400 pt-1">
                     Fecha y Hora del Sistema: {requerimientoConfirmado.fecha}
@@ -2206,47 +2422,112 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
             ) : (
               /* Formulario de Requerimiento */
               <div className="space-y-4 text-xs font-mono">
-                <div>
-                  <label className="text-slate-500 dark:text-slate-400 block mb-1">
-                    Proyecto / Obra de Destino:
-                  </label>
-                  <select
-                    value={obraDestinoRequerimiento}
-                    onChange={(e) => setObraDestinoRequerimiento(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
-                  >
-                    <option value="Edificio Residencial El Mirador (Loja)">Edificio Residencial El Mirador (Loja)</option>
-                    <option value="Conjunto Habitacional Las Acacias (Cariamanga)">Conjunto Habitacional Las Acacias (Cariamanga)</option>
-                    <option value="Torre San Sebastián (Loja Centro)">Torre San Sebastián (Loja Centro)</option>
-                  </select>
+                
+                {/* 1. ¿QUIÉN SOLICITA? (EMPRESA / CONTRATISTA) */}
+                <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-slate-800 dark:text-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 dark:text-blue-400 flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5" />
+                      1. ¿Quién Solicita? (Empresa / Contratista)
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">RUC: {empresaSolicitante.ruc}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Empresa Solicitante:</label>
+                      <input
+                        type="text"
+                        value={empresaSolicitante.razon_social}
+                        onChange={(e) => setEmpresaSolicitante({ ...empresaSolicitante, razon_social: e.target.value })}
+                        className="w-full p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-[11px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Representante / Director:</label>
+                      <input
+                        type="text"
+                        value={empresaSolicitante.representante}
+                        onChange={(e) => setEmpresaSolicitante({ ...empresaSolicitante, representante: e.target.value })}
+                        className="w-full p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-[11px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Teléfono Corporativo:</label>
+                      <input
+                        type="text"
+                        value={empresaSolicitante.telefono}
+                        onChange={(e) => setEmpresaSolicitante({ ...empresaSolicitante, telefono: e.target.value })}
+                        className="w-full p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-[11px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 dark:text-slate-400 block mb-0.5">Correo Corporativo:</label>
+                      <input
+                        type="email"
+                        value={empresaSolicitante.email}
+                        onChange={(e) => setEmpresaSolicitante({ ...empresaSolicitante, email: e.target.value })}
+                        className="w-full p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-medium text-[11px]"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400">
+                    🔒 Estos datos de contacto se transferirán al profesional una vez acepte la plaza laboral para que se comunique con la constructora.
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* 2. ¿PARA QUÉ TIEMPO? & OBRA */}
+                <div className="p-3.5 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-slate-800 dark:text-slate-200 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-purple-500 dark:text-purple-400 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    2. ¿Para qué Tiempo? & Proyecto Destino
+                  </span>
+
                   <div>
                     <label className="text-slate-500 dark:text-slate-400 block mb-1">
-                      Fecha Estimada de Inicio:
-                    </label>
-                    <input
-                      type="date"
-                      value={fechaInicioRequerimiento}
-                      onChange={(e) => setFechaInicioRequerimiento(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-500 dark:text-slate-400 block mb-1">
-                      Duración Prevista:
+                      Proyecto / Obra de Destino:
                     </label>
                     <select
-                      value={duracionRequerimiento}
-                      onChange={(e) => setDuracionRequerimiento(e.target.value)}
+                      value={obraDestinoRequerimiento}
+                      onChange={(e) => setObraDestinoRequerimiento(e.target.value)}
                       className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
                     >
-                      <option value="1 mes (Fase Cimentación)">1 mes (Fase Cimentación)</option>
-                      <option value="3 meses (Fase Estructuras)">3 meses (Fase Estructuras)</option>
-                      <option value="6 meses (Obra Gruesa)">6 meses (Obra Gruesa)</option>
-                      <option value="Proyecto Completo (12 meses)">Proyecto Completo (12 meses)</option>
+                      <option value="Edificio Residencial El Mirador (Loja)">Edificio Residencial El Mirador (Loja)</option>
+                      <option value="Conjunto Habitacional Las Acacias (Cariamanga)">Conjunto Habitacional Las Acacias (Cariamanga)</option>
+                      <option value="Torre San Sebastián (Loja Centro)">Torre San Sebastián (Loja Centro)</option>
                     </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-slate-500 dark:text-slate-400 block mb-1">
+                        Fecha Estimada de Inicio:
+                      </label>
+                      <input
+                        type="date"
+                        value={fechaInicioRequerimiento}
+                        onChange={(e) => setFechaInicioRequerimiento(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-500 dark:text-slate-400 block mb-1">
+                        Duración Prevista:
+                      </label>
+                      <select
+                        value={duracionRequerimiento}
+                        onChange={(e) => setDuracionRequerimiento(e.target.value)}
+                        className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono"
+                      >
+                        <option value="1 mes (Fase Cimentación)">1 mes (Fase Cimentación)</option>
+                        <option value="3 meses (Fase Estructuras)">3 meses (Fase Estructuras)</option>
+                        <option value="6 meses (Obra Gruesa)">6 meses (Obra Gruesa)</option>
+                        <option value="Proyecto Completo (12 meses)">Proyecto Completo (12 meses)</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -2295,12 +2576,12 @@ export function DirectorioRecursosSection({ user, initialSubTab = 'trabajadores'
                     {enviandoRequerimiento ? (
                       <>
                         <Sparkles className="w-3.5 h-3.5 animate-spin" />
-                        <span>Notificando a SARA Talento...</span>
+                        <span>Enviando Solicitud a SARA Talento...</span>
                       </>
                     ) : (
                       <>
                         <Send className="w-3.5 h-3.5" />
-                        <span>Confirmar & Notificar</span>
+                        <span>Enviar la Solicitud a SARA Talento</span>
                       </>
                     )}
                   </button>

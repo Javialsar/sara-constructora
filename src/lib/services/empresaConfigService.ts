@@ -64,6 +64,7 @@ export interface ReportesConfig {
     bodega: ModuloFirmaConfig;
     compras: ModuloFirmaConfig;
     contabilidad: ModuloFirmaConfig;
+    talento?: ModuloFirmaConfig;
   };
 }
 
@@ -187,6 +188,18 @@ const DEFAULT_REPORTES: ReportesConfig = {
       firma2_nombre: 'Ing. David Sarango Malacatus',
       firma2_cargo: 'Representante Legal',
       firma2_documento: 'C.I. 1102978630'
+    },
+    talento: {
+      titulo_bloque: 'Firmas para Requerimientos de Personal, Contratos Laborales & SARA Talento',
+      firma1_titulo: 'EMITIDO POR (DIRECTOR DE TALENTO HUMANO / RESIDENCIA)',
+      firma1_nombre: 'Ing. David Sarango Malacatus',
+      firma1_cargo: 'Director General & Contratante',
+      firma1_documento: 'RUC: 1191728394001',
+      firma2_habilitada: true,
+      firma2_titulo: 'AUDITADO POR (COORDINACIÓN SARA TALENTO & SECAP)',
+      firma2_nombre: 'Ing. Elena Valdivieso',
+      firma2_cargo: 'Supervisora de Calificación Técnica & IESS',
+      firma2_documento: 'REG. SENESCYT: 1008-2020-741258'
     }
   }
 };

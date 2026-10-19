@@ -4,7 +4,7 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { EmpresaConfigService } from "./empresaConfigService"
 
-export type ModuloReporteTipo = 'obras' | 'bodega' | 'compras' | 'contabilidad';
+export type ModuloReporteTipo = 'obras' | 'bodega' | 'compras' | 'contabilidad' | 'talento';
 
 /**
  * Exporta un array de objetos a un archivo Excel (.xlsx) nativo
