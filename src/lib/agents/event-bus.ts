@@ -6,6 +6,26 @@ type EventHandler = (event: SaraAgentEvent) => Promise<void> | void;
 export class SaraEventBus {
   private static subscribers = new Map<SaraEventType, Set<EventHandler>>();
   private static eventHistory: SaraAgentEvent[] = [];
+  private static suppressReactiveHandlers = false;
+  private static imperativeCorrelations = new Set<string>();
+
+  /**
+   * Activa o desactiva globalmente el disparo de suscriptores reactivos durante ejecuciones imperativas
+   */
+  static setSuppressReactiveHandlers(suppress: boolean): void {
+    this.suppressReactiveHandlers = suppress;
+  }
+
+  /**
+   * Registra un correlationId en modo imperativo para evitar doble disparo en concurrencia
+   */
+  static setImperativeCorrelation(correlationId: string, active: boolean): void {
+    if (active) {
+      this.imperativeCorrelations.add(correlationId);
+    } else {
+      this.imperativeCorrelations.delete(correlationId);
+    }
+  }
 
   /**
    * Suscribe un handler asíncrono a un tipo de evento global
@@ -30,7 +50,8 @@ export class SaraEventBus {
     targetAgents: SaraAgentId[],
     payload: T,
     correlationId: string,
-    proyectoId?: string
+    proyectoId?: string,
+    options?: { suppressSubscribers?: boolean }
   ): Promise<SaraAgentEvent<T>> {
     const startTime = Date.now();
     const event: SaraAgentEvent<T> = {
@@ -53,9 +74,14 @@ export class SaraEventBus {
 
     console.log(`[SARA EventBus] 🚀 Evento emitido: ${eventType} desde [${originAgent}] hacia [${targetAgents.join(', ')}] (Corr: ${correlationId})`);
 
-    // Despacho no bloqueante a los agentes suscriptores
+    const shouldSuppress =
+      options?.suppressSubscribers === true ||
+      this.suppressReactiveHandlers ||
+      this.imperativeCorrelations.has(correlationId);
+
+    // Despacho no bloqueante a los agentes suscriptores (solo si no está suprimido por flujo imperativo)
     const handlers = this.subscribers.get(eventType);
-    if (handlers && handlers.size > 0) {
+    if (!shouldSuppress && handlers && handlers.size > 0) {
       // Disparar en micro-tarea para no retener la respuesta HTTP
       queueMicrotask(async () => {
         for (const handler of Array.from(handlers)) {

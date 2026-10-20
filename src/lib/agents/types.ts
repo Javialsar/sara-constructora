@@ -95,6 +95,12 @@ export interface ProyectoCreadoPayload {
     contacto: string;
     email: string;
   };
+  parametrosSismicosNec15?: {
+    zonaSismica: string;
+    factorZ: number;
+    perfilSuelo: string;
+    coeficienteImportanciaI: number;
+  };
 }
 
 export interface ApuConsolidadoPayload {
@@ -121,6 +127,12 @@ export interface ApuConsolidadoPayload {
     materialCargaTon: number;
   };
   factorRendimientoAplicado: number;
+  formulaPolinomicaInec?: {
+    coeficientes: Record<string, number>;
+    sumaCoeficientes: number;
+    cumpleNormaSercop: boolean;
+  };
+  vaePorcentajeEstimado?: number;
 }
 
 export interface SuministrosAsignadosPayload {
@@ -135,6 +147,13 @@ export interface SuministrosAsignadosPayload {
     ahorroObtenidoUSD: number;
   }>;
   costoTotalSuministros: number;
+  ahorroTotalObtenidoUSD?: number;
+  desgloseIvaMateriales?: {
+    baseIva5PctUSD: number;
+    iva5PctUSD: number;
+    baseIva15PctUSD: number;
+    iva15PctUSD: number;
+  };
   prediccionAlzaPrecios: {
     alertaCompraAnticipada: boolean;
     materialesEnRiesgo: string[];
@@ -161,6 +180,12 @@ export interface LogisticaProcesadaPayload {
   }>;
   costoLogisticoTotalUSD: number;
   alertasViales: string[];
+  cumplimientoMtop?: {
+    configuracionesValidas: boolean;
+    certificadoRequerido: 'COR' | 'COE';
+    ahorroBackhaulUSD: number;
+    peajesEstimadosUSD: number;
+  };
 }
 
 export interface ConvocatoriaTalentoEmitidaPayload {
@@ -179,6 +204,11 @@ export interface ConvocatoriaTalentoEmitidaPayload {
   }>;
   requiereAlojamientoTecnico: boolean;
   personalForaneoCount: number;
+  cumplimientoSstDecreto255?: {
+    sbuAplicadoUSD: number;
+    reglamentoSstVigente: string;
+    certificacionesSecapVerificadas: boolean;
+  };
 }
 
 export interface AnalisisInmobiliarioCompletoPayload {
@@ -192,6 +222,13 @@ export interface AnalisisInmobiliarioCompletoPayload {
   roiProyectadoPct: number;
   velocidadAbsorcionMeses: number;
   viabilidadComercial: 'EXCELENTE' | 'ALTA' | 'MODERADA' | 'RIESGOSA';
+  metricasIvsBiess?: {
+    vanProyectadoUSD: number;
+    tirAnualizadaPct: number;
+    segmentoHipotecarioSugerido: string;
+    tasaHipotecariaReferencialPct: number;
+    cuotaMensualEstimadaUSD: number;
+  };
 }
 
 export interface AlojamientosLogisticosReservadosPayload {
@@ -206,6 +243,12 @@ export interface AlojamientosLogisticosReservadosPayload {
   totalAlojamientoUSD: number;
   checkInAutonomoPIN: string;
   optimizacionTarifaDinamicaPct: number;
+  metricasUsaliTurismo?: {
+    adrUSD: number;
+    revParUSD: number;
+    ocupacionProyectadaPct: number;
+    ivaTuristicoAplicadoPct: 8 | 15;
+  };
 }
 
 export interface EcosistemaFinanciadoPayload {
@@ -229,6 +272,12 @@ export interface EcosistemaFinanciadoPayload {
   }>;
   scoreRiesgoLiquidez: 'BAJO' | 'MODERADO' | 'CRITICO';
   estadoFinanciero: 'BLINDADO_Y_ACTIVO';
+  cumplimientoUafeSri?: {
+    requiereReporteResuUafe: boolean;
+    umbralResuUSD: number;
+    estadoDiligenciaUafe: string;
+    sumaPorcentajesHitosPct: number;
+  };
 }
 
 export interface CicloAprendizajePayload {

@@ -51,7 +51,12 @@ export async function POST(request: Request) {
     const apiKey = request.headers.get("x-sara-bim-key")
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user && apiKey !== process.env.SARA_BIM_ADDIN_SECRET && apiKey !== "sara_bim_dev_2026") {
+    const isValidAddinKey = Boolean(
+      (process.env.SARA_BIM_ADDIN_SECRET && apiKey === process.env.SARA_BIM_ADDIN_SECRET) ||
+      (process.env.NODE_ENV !== "production" && apiKey === "sara_bim_dev_2026")
+    )
+
+    if (!user && !isValidAddinKey) {
       return NextResponse.json({ 
         error: "Acceso no autorizado. Provea cabecera 'x-sara-bim-key' válida o sesión de usuario." 
       }, { status: 401 })

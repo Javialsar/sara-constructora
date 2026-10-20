@@ -84,8 +84,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Proyecto no encontrado en la base maestra" }, { status: 404 })
     }
 
-    // 2. Calcular montos ejecutados en el día
+    // 2. Calcular montos ejecutados en el día y verificar si ya existía un reporte para esa misma fecha (idempotencia)
     const montoDia = items.reduce((acc, it) => acc + (it.cantidad_ejecutada_dia * it.precio_unitario), 0)
+
+    const { data: reporteExistente } = await supabase
+      .from('sara_fiscalizacion_diaria')
+      .select('id, porcentaje_avance_dia, monto_ejecutado_dia')
+      .eq('proyecto_id', reporteData.proyecto_id)
+      .eq('fecha_reporte', reporteData.fecha_reporte)
+      .maybeSingle()
+
+    const avanceDiaPrevio = reporteExistente ? Number(reporteExistente.porcentaje_avance_dia) || 0 : 0
+    const montoDiaPrevio = reporteExistente ? Number(reporteExistente.monto_ejecutado_dia) || 0 : 0
 
     // 3. Obtener monto total de presupuesto para calcular delta de avance %
     let df = proyecto.datos_financieros || {}
@@ -95,7 +105,7 @@ export async function POST(request: Request) {
     const presupuestoTotal = Number(df.presupuesto_total) || 50000
     const deltaAvancePct = presupuestoTotal > 0 ? (montoDia / presupuestoTotal) * 100 : 1.0
 
-    const avanceAnterior = Number(proyecto.avance) || 0
+    const avanceAnterior = Math.max(0, (Number(proyecto.avance) || 0) - avanceDiaPrevio)
     const nuevoAvancePct = Math.min(100, Number((avanceAnterior + deltaAvancePct).toFixed(2)))
 
     // 4. Insertar reporte de fiscalización diario
@@ -137,8 +147,9 @@ export async function POST(request: Request) {
       console.warn("Advertencia al guardar items fiscalizados:", itemsError.message)
     }
 
-    // 6. Actualizar avance global del proyecto y alimentar SARA-PAGOS
-    const nuevoMontoEjecutado = Number(((Number(df.monto_ejecutado) || 0) + montoDia).toFixed(2))
+    // 6. Actualizar avance global del proyecto y alimentar SARA-PAGOS (descontando monto previo si es re-sincronización)
+    const baseMontoEjecutado = Math.max(0, (Number(df.monto_ejecutado) || 0) - montoDiaPrevio)
+    const nuevoMontoEjecutado = Number((baseMontoEjecutado + montoDia).toFixed(2))
     const nuevosDatosFinancieros = {
       ...df,
       presupuesto_total: presupuestoTotal,

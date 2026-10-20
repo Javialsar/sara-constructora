@@ -50,8 +50,10 @@ export async function authenticateProfessionalRequest(
       };
     }
 
-    const meta = user.user_metadata || {};
-    const role = meta.role || (meta.es_admin ? 'admin' : '');
+    const appMeta = user.app_metadata || {};
+    const userMeta = user.user_metadata || {};
+    const meta = { ...userMeta, ...appMeta };
+    const role = appMeta.role || userMeta.role || (appMeta.es_admin || userMeta.es_admin ? 'admin' : '');
 
     // 3. Validar roles autorizados para la Suite de Ingeniería & Construcción
     const ALLOWED_SUITE_ROLES = [
@@ -68,7 +70,8 @@ export async function authenticateProfessionalRequest(
       'tecnico_apoyo_obra',
     ];
 
-    const hasPermission = ALLOWED_SUITE_ROLES.includes(role) || meta.modulos_autorizados?.includes('sara_constructora');
+    const modulosAutorizados = appMeta.modulos_autorizados || userMeta.modulos_autorizados || [];
+    const hasPermission = ALLOWED_SUITE_ROLES.includes(role) || modulosAutorizados.includes('sara_constructora');
 
     if (!hasPermission) {
       return {
@@ -86,7 +89,7 @@ export async function authenticateProfessionalRequest(
       ruc: meta.ruc || meta.identificacion,
       registroProfesional: meta.registro_profesional || meta.senescyt,
       empresa: meta.razon_social || meta.empresa,
-      proyectosAutorizados: meta.proyectos_autorizados || [],
+      proyectosAutorizados: appMeta.proyectos_autorizados || userMeta.proyectos_autorizados || [],
     };
 
     return { user: professional };

@@ -160,8 +160,8 @@ html.dark {
   --color-sara-black: #f8fafc; /* Slate 50 */
 
   /* Override Tailwind Colors for Dark Mode */
-  --color-white: #0f172a;
-  --color-black: #ffffff;
+
+
   
   /* Invert Grays (Slate) */
   --color-gray-50: #1e293b;

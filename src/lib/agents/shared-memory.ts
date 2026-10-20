@@ -3,6 +3,7 @@ import { SharedMemoryEntry, EvolutionaryKnowledge, EvolutionLog, SaraAgentId } f
 
 // Cache en memoria rápida para invocaciones serverless y edge
 const memoryCache = new Map<string, SharedMemoryEntry>();
+const syncedFromDbKeys = new Set<string>();
 
 // Base de conocimiento evolutiva inicial en memoria
 const knowledgeCache = new Map<string, EvolutionaryKnowledge>([
@@ -212,7 +213,7 @@ export class SaraSharedMemory {
    */
   static async getKnowledge(domain: string, entityKey: string): Promise<EvolutionaryKnowledge | null> {
     const key = `${domain}:${entityKey}`;
-    if (knowledgeCache.has(key)) {
+    if (syncedFromDbKeys.has(key) && knowledgeCache.has(key)) {
       return knowledgeCache.get(key)!;
     }
 
@@ -224,6 +225,8 @@ export class SaraSharedMemory {
         .eq('domain', domain)
         .eq('entity_key', entityKey)
         .maybeSingle();
+
+      syncedFromDbKeys.add(key);
 
       if (data && !error) {
         const item: EvolutionaryKnowledge = {
@@ -240,10 +243,10 @@ export class SaraSharedMemory {
         return item;
       }
     } catch (e) {
-      // Ignorar
+      syncedFromDbKeys.add(key);
     }
 
-    return null;
+    return knowledgeCache.get(key) ?? null;
   }
 
   /**

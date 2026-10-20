@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -44,29 +45,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    // 1. Verificación de Seguridad: Requiere Token o Sesión Activa
-    const authHeader = req.headers.get("authorization")
-    if (!authHeader) {
-      // Verificar si hay cookie de sesión
-      const { createServerClient } = await import("@supabase/ssr")
-      const { cookies } = await import("next/headers")
-      const cookieStore = await cookies()
-      const client = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() { return cookieStore.getAll() },
-            setAll(cookiesToSet) {
-              try { cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options)) } catch {}
-            }
-          }
-        }
-      )
-      const { data: { user } } = await client.auth.getUser()
-      if (!user) {
-        return NextResponse.json({ success: false, error: "No autorizado. Sesión requerida." }, { status: 401 })
-      }
+    // 1. Verificación de Seguridad Zero-Trust: Requiere Sesión Activa de Administrador
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ success: false, error: "No autorizado. Sesión de administrador requerida." }, { status: 401 })
+    }
+    const role = user.app_metadata?.role || user.user_metadata?.role || ""
+    const isAdmin = Boolean(user.app_metadata?.es_admin || user.user_metadata?.es_admin || role === "admin" || role === "superadmin" || role === "tecnico")
+    if (!isAdmin) {
+      return NextResponse.json({ success: false, error: "Acceso denegado. Se requieren privilegios de administrador." }, { status: 403 })
     }
 
     const { tema } = await req.json()

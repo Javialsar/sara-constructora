@@ -18,6 +18,20 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { planId, returnUrl } = body
 
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "")
+    let safeReturnUrl = `${siteUrl}/dashboard`
+
+    if (typeof returnUrl === "string" && returnUrl.trim() !== "") {
+      const trimmedUrl = returnUrl.trim()
+      if (trimmedUrl.startsWith("/") && !trimmedUrl.startsWith("//")) {
+        safeReturnUrl = `${siteUrl}${trimmedUrl}`
+      } else if (process.env.NEXT_PUBLIC_SITE_URL && trimmedUrl.startsWith(process.env.NEXT_PUBLIC_SITE_URL)) {
+        safeReturnUrl = trimmedUrl
+      } else {
+        return NextResponse.json({ error: "returnUrl inválida. Solo se permiten rutas internas o del dominio oficial." }, { status: 400 })
+      }
+    }
+
     // 1. Fetch dynamic plan details from DB
     const { data: plan, error: planError } = await supabase
       .from('planes_suscripcion')
@@ -76,8 +90,8 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl}?canceled=true`,
+      success_url: `${safeReturnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${safeReturnUrl}?canceled=true`,
     })
 
     return NextResponse.json({ url: session.url })

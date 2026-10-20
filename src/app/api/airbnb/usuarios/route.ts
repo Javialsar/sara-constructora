@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -56,10 +57,16 @@ const USUARIOS_BASE = [
 
 // GET: Listar todos los usuarios/huéspedes registrados
 export async function GET() {
+  const sanitizeUser = (u: any) => {
+    const { clave, password, ...safeUser } = u
+    return safeUser
+  }
+
   try {
     const supabase = getSupabaseAdmin()
     if (!supabase) {
-      return NextResponse.json({ usuarios: USUARIOS_BASE, count: USUARIOS_BASE.length })
+      const sanitizedBase = USUARIOS_BASE.map(sanitizeUser)
+      return NextResponse.json({ usuarios: sanitizedBase, count: sanitizedBase.length })
     }
 
     const { data, error } = await supabase
@@ -70,7 +77,8 @@ export async function GET() {
 
     if (error) {
       console.warn("Aviso leyendo usuarios en Supabase:", error.message)
-      return NextResponse.json({ usuarios: USUARIOS_BASE, count: USUARIOS_BASE.length })
+      const sanitizedBase = USUARIOS_BASE.map(sanitizeUser)
+      return NextResponse.json({ usuarios: sanitizedBase, count: sanitizedBase.length })
     }
 
     const dbUsers = (data || []).map((row: any) => {
@@ -81,7 +89,7 @@ export async function GET() {
         det = {}
       }
 
-      return {
+      return sanitizeUser({
         id: row.id,
         created_at: row.created_at,
         nombre: det.nombre || row.nombre || "Usuario",
@@ -89,22 +97,22 @@ export async function GET() {
         cedula: det.cedula || "",
         telefono: det.telefono || row.telefono || "+593",
         email: det.email || row.email || "",
-        clave: det.clave || det.password || "••••••••",
         estado: (det.estado || (row.estado === "bloqueado" ? "bloqueado" : "activo")) as "activo" | "bloqueado",
         ciudadPais: det.ciudadPais || "Ecuador"
-      }
+      })
     })
 
     // Unir sin duplicar correos electrónicos
     const emailsInDB = new Set(dbUsers.map(u => u.email.toLowerCase()))
-    const baseRestantes = USUARIOS_BASE.filter(u => !emailsInDB.has(u.email.toLowerCase()))
+    const baseRestantes = USUARIOS_BASE.filter(u => !emailsInDB.has(u.email.toLowerCase())).map(sanitizeUser)
 
     const listaCompleta = [...dbUsers, ...baseRestantes]
 
     return NextResponse.json({ usuarios: listaCompleta, count: listaCompleta.length })
   } catch (err: any) {
     console.error("Error en GET /api/airbnb/usuarios:", err)
-    return NextResponse.json({ usuarios: USUARIOS_BASE, error: err.message }, { status: 500 })
+    const sanitizedBase = USUARIOS_BASE.map(sanitizeUser)
+    return NextResponse.json({ usuarios: sanitizedBase, error: err.message }, { status: 500 })
   }
 }
 
@@ -168,6 +176,12 @@ export async function POST(request: Request) {
 // PATCH: Bloquear, activar o generar nueva clave
 export async function PATCH(request: Request) {
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado. Sesión activa requerida." }, { status: 401 })
+    }
+
     const body = await request.json()
     const { id, accion, nuevaClave } = body
 
@@ -185,6 +199,7 @@ export async function PATCH(request: Request) {
       .from("solicitudes_servicio")
       .select("*")
       .eq("id", id)
+      .eq("tipo_servicio", "usuario_airbnb")
       .single()
 
     if (fetchErr || !record) {
@@ -217,12 +232,14 @@ export async function PATCH(request: Request) {
         mensaje: JSON.stringify(det, null, 2)
       })
       .eq("id", id)
+      .eq("tipo_servicio", "usuario_airbnb")
 
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, det, estado: nuevoEstado })
+    const { clave, password, ...safeDet } = det
+    return NextResponse.json({ success: true, det: safeDet, estado: nuevoEstado })
   } catch (err: any) {
     console.error("Error en PATCH /api/airbnb/usuarios:", err)
     return NextResponse.json({ error: err.message }, { status: 500 })
@@ -232,6 +249,12 @@ export async function PATCH(request: Request) {
 // DELETE: Eliminar usuario
 export async function DELETE(request: Request) {
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado. Sesión activa requerida." }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
@@ -248,6 +271,7 @@ export async function DELETE(request: Request) {
       .from("solicitudes_servicio")
       .delete()
       .eq("id", id)
+      .eq("tipo_servicio", "usuario_airbnb")
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

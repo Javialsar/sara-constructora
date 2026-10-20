@@ -89,6 +89,12 @@ export class SaraMarketplaceAgent {
       };
     });
 
+    // Desglose Tributario SRI: Resolución NAC-DGERCGC24-00000013 (IVA 5% en materiales de construcción: acero, cemento, áridos, ladrillos/bloques)
+    const baseIva5PctUSD = costoTotalSuministros;
+    const iva5PctUSD = +(baseIva5PctUSD * 0.05).toFixed(2);
+    const baseIva15PctUSD = 0;
+    const iva15PctUSD = 0;
+
     // Predicción de alza de precios y blindaje de compra anticipada
     const prediccionAlzaPrecios = {
       alertaCompraAnticipada: aceroEnRiesgo,
@@ -100,6 +106,13 @@ export class SaraMarketplaceAgent {
       proyectoId: apuData.proyectoId,
       proveedoresSeleccionados,
       costoTotalSuministros,
+      ahorroTotalObtenidoUSD: ahorroTotalObtenido,
+      desgloseIvaMateriales: {
+        baseIva5PctUSD,
+        iva5PctUSD,
+        baseIva15PctUSD,
+        iva15PctUSD
+      },
       prediccionAlzaPrecios
     };
 

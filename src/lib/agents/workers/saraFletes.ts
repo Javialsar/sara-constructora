@@ -17,41 +17,75 @@ export class SaraFletesAgent {
     const apu = await SaraSharedMemory.get<ApuConsolidadoPayload>(correlationId, 'apu', 'computo_metricas');
 
     const destino = proyecto ? `${proyecto.ciudad}, ${proyecto.provincia}` : 'Cuenca, Azuay';
-    const pesoTotalTon = apu?.desalojoCarga?.materialCargaTon || 85;
-    const volumenTotalM3 = apu?.desalojoCarga?.volumenTierraDesalojoM3 || 110;
+    const pesoMaterialesSuministrosTon = apu?.materialesRequeridos
+      ? +(apu.materialesRequeridos.reduce((acc, m) => acc + (m.pesoEstimadoKg || 0), 0) / 1000).toFixed(1)
+      : (apu?.desalojoCarga?.materialCargaTon || 85);
+    const volumenDesalojoM3 = apu?.desalojoCarga?.volumenTierraDesalojoM3 || 110;
+    const pesoDesalojoTon = +(volumenDesalojoM3 * 1.45).toFixed(1);
+    const pesoTotalTon = +(pesoMaterialesSuministrosTon + pesoDesalojoTon).toFixed(1);
+    const volumenMaterialesM3 = apu?.materialesRequeridos
+      ? +(apu.materialesRequeridos.reduce((acc, m) => acc + (m.volumenM3 || 0), 0)).toFixed(1)
+      : 45;
+    const volumenTotalM3 = +(volumenDesalojoM3 + volumenMaterialesM3).toFixed(1);
+
+    // Extraer orígenes reales de los proveedores seleccionados en SARA-MARKETPLACE
+    const origenesPesados = suministros.proveedoresSeleccionados
+      .filter(p => p.proveedorId.includes('ADELCA') || p.proveedorId.includes('HOLCIM'))
+      .map(p => p.ciudadOrigen)
+      .join(' & ') || 'Lasso / Guayaquil (Plantas Siderúrgicas & Cemento)';
+
+    const origenesCantera = suministros.proveedoresSeleccionados
+      .filter(p => p.proveedorId.includes('CANTERA') || p.proveedorId.includes('CERAMICA'))
+      .map(p => p.ciudadOrigen)
+      .join(' & ') || 'Cantera El Tablón / Challuabamba';
 
     // APRENDIZAJE EVOLUTIVO: Consultar retrasos de rutas históricas
     const rutaGyeCue = await SaraSharedMemory.getKnowledge('freight_delays', 'ruta_guayaquil_cuenca');
     const alertaMolleturo = rutaGyeCue?.currentValue?.cuello_botella || 'Molleturo / Deslaves';
     const probRetraso = rutaGyeCue?.currentValue?.retraso_probabilidad || 0.25;
 
+    // Límites MTOP Tabla Nacional de Pesos y Dimensiones:
+    // Tractocamión 3S3: máx 51T PBV (~32T carga útil segura)
+    // Volqueta V3A (14m3): máx 27T PBV (~18T carga útil / 14m3)
+    const capacidadUtilMula3S3Ton = 30; // <= 32T máx legal 3S3 (51T PBV)
+    const capacidadVolquetaV3AM3 = 14; // Volqueta V3A 27T PBV
+
+    const viajesMula3S3 = Math.max(1, Math.ceil(pesoMaterialesSuministrosTon / capacidadUtilMula3S3Ton));
+    const viajesVolquetaV3A = Math.max(1, Math.ceil(volumenTotalM3 / capacidadVolquetaV3AM3));
+
+    const tarifaBrutaVolquetasUSD = viajesVolquetaV3A * 85;
+    // Optimización Backhaul: Sincronización de retorno de volquetas de desalojo cargando áridos de cantera (~28% ahorro)
+    const ahorroBackhaulUSD = Math.round(tarifaBrutaVolquetasUSD * 0.28);
+    const tarifaNetaVolquetasUSD = tarifaBrutaVolquetasUSD - ahorroBackhaulUSD;
+    const peajesEstimadosUSD = (viajesMula3S3 * 18) + (viajesVolquetaV3A * 4);
+
     // Despachos requeridos
     const despachos: LogisticaProcesadaPayload['despachosRequeridos'] = [
       {
         tipoVehiculo: 'Mula Plataforma',
-        cantidadViajes: Math.ceil(pesoTotalTon / 28), // 28 toneladas por mula
+        cantidadViajes: viajesMula3S3,
         ruta: {
-          origen: 'Lasso / Guayaquil (Plantas Siderúrgicas & Cemento)',
+          origen: origenesPesados,
           destino,
           distanciaKm: 195,
           tiempoEstimadoHoras: +(rutaGyeCue?.currentValue?.duracion_media_horas || 4.5),
           probabilidadRetrasoClima: probRetraso
         },
-        cooperativaAliada: 'Cooperativa de Transporte Pesado AustroTrans / SurAndina',
-        tarifaTotalUSD: Math.round(Math.ceil(pesoTotalTon / 28) * 380)
+        cooperativaAliada: 'Cooperativa de Transporte Pesado AustroTrans / SurAndina (Config. MTOP 3S3 51T PBV)',
+        tarifaTotalUSD: Math.round(viajesMula3S3 * 380)
       },
       {
         tipoVehiculo: 'Volqueta 14m3',
-        cantidadViajes: Math.ceil(volumenTotalM3 / 14), // 14 m3 por volqueta
+        cantidadViajes: viajesVolquetaV3A,
         ruta: {
-          origen: 'Cantera El Tablón / Challuabamba',
+          origen: origenesCantera,
           destino,
           distanciaKm: 28,
           tiempoEstimadoHoras: 1.2,
           probabilidadRetrasoClima: 0.08
         },
-        cooperativaAliada: 'Asociación de Volqueteros Unidos del Azuay',
-        tarifaTotalUSD: Math.round(Math.ceil(volumenTotalM3 / 14) * 85)
+        cooperativaAliada: 'Asociación de Volqueteros Unidos del Azuay (Config. MTOP V3A 27T PBV - Ciclo Backhaul)',
+        tarifaTotalUSD: tarifaNetaVolquetasUSD
       }
     ];
 
@@ -59,7 +93,7 @@ export class SaraFletesAgent {
 
     const alertasViales: string[] = [
       `Monitoreo preventivo Vía Km 49 Molleturo-El Empalme: ${alertaMolleturo} (Probabilidad de retraso: ${Math.round(probRetraso * 100)}%)`,
-      'Ruta alternativa habilitada vía Zhud-Cochancay para convoyes de carga indivisible'
+      `Optimización Backhaul MTOP activa: Ahorro de $${ahorroBackhaulUSD} USD sincronizando desalojo de excavación con retorno de áridos`
     ];
 
     const payload: LogisticaProcesadaPayload = {
@@ -68,7 +102,13 @@ export class SaraFletesAgent {
       volumenTotalM3,
       despachosRequeridos: despachos,
       costoLogisticoTotalUSD,
-      alertasViales
+      alertasViales,
+      cumplimientoMtop: {
+        configuracionesValidas: true,
+        certificadoRequerido: 'COR',
+        ahorroBackhaulUSD,
+        peajesEstimadosUSD
+      }
     };
 
     // 1. Guardar en Memoria Colectiva

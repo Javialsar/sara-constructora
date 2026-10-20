@@ -1,10 +1,12 @@
 "use server"
 
 import { createClient } from "@supabase/supabase-js"
+import { requireMasterAdmin } from "@/lib/auth/serverAuthGuard"
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function fetchPapelera(tabla: string) {
+  await requireMasterAdmin()
   // Solo tablas permitidas
   const allowed = ["clientes", "proveedores", "trabajadores", "proyectos", "presupuestos_reales"]
   if (!allowed.includes(tabla)) return []
@@ -23,6 +25,7 @@ export async function fetchPapelera(tabla: string) {
 }
 
 export async function restaurarRegistro(tabla: string, id: string) {
+  await requireMasterAdmin()
   const allowed = ["clientes", "proveedores", "trabajadores", "proyectos", "presupuestos_reales"]
   if (!allowed.includes(tabla)) return { success: false }
 

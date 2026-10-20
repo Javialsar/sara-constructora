@@ -99,7 +99,13 @@ export default async function ArticuloPage({ params }: { params: Promise<{ slug:
 
         <div 
           className="prose prose-lg prose-headings:font-bold prose-headings:text-brand-dark prose-a:text-brand-sage prose-img:rounded-xl max-w-none text-gray-600 leading-relaxed"
-          dangerouslySetInnerHTML={{ __html: articulo.contenido }}
+          dangerouslySetInnerHTML={{
+            __html: String(articulo.contenido || '')
+              .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+              .replace(/<(iframe|object|embed|form)\b[^>]*>/gi, '')
+              .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+              .replace(/javascript\s*:/gi, '')
+          }}
         />
       </div>
     </div>

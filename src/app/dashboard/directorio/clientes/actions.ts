@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
+import { requireServerAuth } from "@/lib/auth/serverAuthGuard"
 
 // Inicializar un cliente Supabase con el Service Role Key (Admin API)
 // Esto es importante para crear usuarios sin cerrar la sesión actual del administrador
@@ -25,6 +26,12 @@ export async function createClientAccount(data: {
   password: string
 }) {
   try {
+    const { user, isAdmin } = await requireServerAuth()
+    if (!isAdmin && data.userId !== user.id) {
+      throw new Error("Acceso denegado: No puede crear cuentas de cliente en nombre de otro usuario.")
+    }
+    const effectiveUserId = isAdmin ? (data.userId || user.id) : user.id
+
     // 1. Crear el usuario en Auth (Supabase)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -62,7 +69,7 @@ export async function createClientAccount(data: {
       email: data.email,
       telefono: data.telefono,
       estado: 'activo',
-      user_id: data.userId
+      user_id: effectiveUserId
     })
 
     if (dbError) {

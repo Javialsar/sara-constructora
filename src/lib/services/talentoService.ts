@@ -103,10 +103,10 @@ export async function getTalentsFromDB(): Promise<TalentDB[]> {
 
     // Si hay perfiles en la base de datos, unificarlos
     if (!error && dbProfiles && dbProfiles.length > 0) {
-      const mapped = dbProfiles.map((p, idx) => ({
+      const mapped = dbProfiles.map((p: any, idx: number) => ({
         id: p.id,
-        name: p.profession?.includes('Ing') || p.profession?.includes('Arq') ? `Profesional ${idx + 1}` : `Especialista ${idx + 1}`,
-        role: p.profession,
+        name: p.nombre || p.full_name || p.specialty || p.profession || 'Especialista Certificado SARA',
+        role: p.profession || p.specialty || 'Especialista Técnico',
         hourlyRate: Number(p.hourly_rate) || 25,
         certifications: Array.isArray(p.certifications) ? p.certifications : ['Certificado Verificado SARA'],
         distanceKm: 3.5 + (idx * 2),

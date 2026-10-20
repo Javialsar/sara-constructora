@@ -247,10 +247,10 @@ export class ThreeWayMatchService {
 
     if (tipoBienServicio === 'CONTRATO_OBRA_CIVIL') {
       codigoRenta = '344';
-      descRenta = 'Contratos de construcción de obra material inmueble';
-      pctRenta = 1.75;
-      pctIva = 70.0;
-      descIva = 'Retención 70% IVA Servicios de Construcción';
+      descRenta = 'Contratos de construcción de obra material inmueble (Art. 28 LRTI)';
+      pctRenta = 2.00;
+      pctIva = 30.0;
+      descIva = 'Retención 30% IVA Contratos de Construcción';
     } else if (tipoBienServicio === 'HONORARIOS_TECNICOS') {
       codigoRenta = '303';
       descRenta = 'Honorarios profesionales y consultoría técnica';
@@ -259,10 +259,22 @@ export class ThreeWayMatchService {
       descIva = 'Retención 100% IVA Honorarios Profesionales';
     }
 
-    // Regla especial: Si el emisor es Contribuyente Especial y el agente comprador también, no se retiene IVA
+    // Reglas especiales según régimen tributario del emisor (SRI Ecuador)
     if (factura.tipoEmisor === 'CONTRIBUYENTE_ESPECIAL' || factura.tipoEmisor === 'GRAN_CONTRIBUYENTE') {
       pctIva = 0.0;
       descIva = 'Exento de retención de IVA (Emisor Calificado Especial/Gran Contribuyente)';
+    } else if (factura.tipoEmisor === 'RIMPE_EMPRENDEDOR') {
+      codigoRenta = '343';
+      descRenta = 'Actividades empresariales sujetas a Régimen RIMPE Emprendedor';
+      pctRenta = 1.00;
+      pctIva = 0.0;
+      descIva = 'Retención 0% IVA Régimen RIMPE Emprendedor';
+    } else if (factura.tipoEmisor === 'RIMPE_POPULAR') {
+      codigoRenta = '332';
+      descRenta = 'Negocio Popular RIMPE (Retención 0% IR e IVA)';
+      pctRenta = 0.0;
+      pctIva = 0.0;
+      descIva = 'Retención 0% IVA Negocio Popular RIMPE';
     }
 
     const baseImponibleRenta = factura.subtotalSinImpuestos;

@@ -346,7 +346,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Parámetros inválidos", details: validation.error.flatten() }, { status: 400 })
     }
 
-    const { categoria, subcategoria, cantidad, provincia_referencia, normativa_base, es_privado, proyecto_id } = validation.data
+    const { categoria, subcategoria, cantidad, provincia_referencia, normativa_base, es_privado: requestedPrivado, proyecto_id } = validation.data
+    const appMeta = user.app_metadata || {}
+    const userMeta = user.user_metadata || {}
+    const role = appMeta.role || userMeta.role || ""
+    const es_admin = Boolean(appMeta.es_admin || userMeta.es_admin)
+    const isAdminUser = role === "admin" || role === "superadmin" || es_admin
+    const es_privado = !isAdminUser ? true : requestedPrivado
+
     const adminSupabase = createAdminClient()
 
     // 1. Obtener o crear la Familia / Grupo correspondiente

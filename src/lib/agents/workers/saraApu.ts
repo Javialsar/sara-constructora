@@ -1,6 +1,7 @@
 import { SaraSharedMemory } from '../shared-memory';
 import { SaraEventBus } from '../event-bus';
 import { ApuConsolidadoPayload, ProyectoCreadoPayload } from '../types';
+import { calcularFormulaPolinomicaINEC } from '../../calculadoras/presupuestos';
 
 export class SaraApuAgent {
   static readonly AGENT_ID = 'SARA-APU';
@@ -43,13 +44,16 @@ export class SaraApuAgent {
     const horasBaseFierrero = Math.round((m2 * 1.8) / factorFinal);
 
     // Cómputo de Costos Unitarios
+    const costoCemento = cementoSacos * 7.50;
+    const costoAcero = aceroKg * 1.18;
+    const costoAridos = arenaM3 * 18.0 + ripioM3 * 21.0;
+    const costoOtrosMateriales = ladrillosUnidades * 0.35 + m2 * 65; // Acabados, tuberías, instalaciones
+
     const costoMateriales = Math.round(
-      cementoSacos * 7.50 +
-      aceroKg * 1.18 +
-      arenaM3 * 18.0 +
-      ripioM3 * 21.0 +
-      ladrillosUnidades * 0.35 +
-      m2 * 65 // Acabados, tuberías, instalaciones
+      costoCemento +
+      costoAcero +
+      costoAridos +
+      costoOtrosMateriales
     );
 
     const costoManoObra = Math.round(
@@ -64,6 +68,19 @@ export class SaraApuAgent {
     const costoDirectoTotal = costoMateriales + costoManoObra + costoEquiposDesalojo;
     const costoIndirectoTotal = Math.round(costoDirectoTotal * 0.18); // 18% Indirectos y Utilidad técnica
     const costoTotalObra = costoDirectoTotal + costoIndirectoTotal;
+
+    // Fórmula Polinómica INEC / SERCOP (sum(p_i) === 1.000, px <= 0.200)
+    const formulaPolinomicaInec = calcularFormulaPolinomicaINEC({
+      manoObra: costoManoObra,
+      cemento: costoCemento,
+      acero: costoAcero,
+      aridos: costoAridos,
+      equipos: costoEquiposDesalojo,
+      otros: costoOtrosMateriales,
+    });
+
+    // Valor Agregado Ecuatoriano (VAE) estimado según proporción de mano de obra nacional e insumos locales
+    const vaePorcentajeEstimado = +(((costoManoObra + costoCemento + costoAridos + costoEquiposDesalojo * 0.7 + costoAcero * 0.65) / costoDirectoTotal) * 100).toFixed(2);
 
     const payload: ApuConsolidadoPayload = {
       proyectoId: proyecto.proyectoId,
@@ -88,7 +105,9 @@ export class SaraApuAgent {
         volumenTierraDesalojoM3,
         materialCargaTon
       },
-      factorRendimientoAplicado: factorFinal
+      factorRendimientoAplicado: factorFinal,
+      formulaPolinomicaInec,
+      vaePorcentajeEstimado
     };
 
     // 1. Guardar en Memoria Colectiva

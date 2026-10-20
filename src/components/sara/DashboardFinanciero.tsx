@@ -23,6 +23,12 @@ export default function DashboardFinanciero() {
   const [showFundModal, setShowFundModal] = useState<boolean>(false);
   const [fundAmount, setFundAmount] = useState<string>('25000');
   const [isFunding, setIsFunding] = useState<boolean>(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
+  };
 
   useEffect(() => {
     fetchEscrowAndInvoices();
@@ -123,6 +129,10 @@ export default function DashboardFinanciero() {
   };
 
   const handleApproveInvoice = async (invoiceId: string, invoiceAmount: number) => {
+    if (releasedFunds + invoiceAmount > totalEscrow) {
+      showToast('error', `Fondos insuficientes en el Fideicomiso Escrow ($${(totalEscrow - releasedFunds).toLocaleString()} disponibles) para liberar $${invoiceAmount.toLocaleString()}. Fondea la cuenta primero.`);
+      return;
+    }
     try {
       // 1. Actualizar estado de aprobación en Supabase
       const { error: invErr } = await supabase
@@ -146,15 +156,15 @@ export default function DashboardFinanciero() {
 
       setReleasedFunds(newReleased);
       setInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status: 'approved' } : inv));
-      alert(`Factura aprobada y persistida en Supabase. Fondos de $${invoiceAmount.toLocaleString()} liberados exitosamente.`);
+      showToast('success', `Factura aprobada y persistida en Supabase. Fondos de $${invoiceAmount.toLocaleString()} liberados exitosamente.`);
     } catch (err: any) {
-      alert('Error aprobando factura: ' + err.message);
+      showToast('error', 'Error aprobando factura: ' + err.message);
     }
   };
 
   const handleFundEscrow = async () => {
     const val = parseFloat(fundAmount);
-    if (isNaN(val) || val <= 0) return alert('Ingresa un monto válido.');
+    if (isNaN(val) || val <= 0) return showToast('error', 'Ingresa un monto válido mayor a cero.');
 
     try {
       setIsFunding(true);
@@ -174,9 +184,9 @@ export default function DashboardFinanciero() {
       setTotalEscrow(newTotal);
       setShowFundModal(false);
       setFundAmount('');
-      alert(`Fondos acreditados: $${val.toLocaleString()} añadidos al fideicomiso en Supabase.`);
+      showToast('success', `Fondos acreditados: $${val.toLocaleString()} añadidos al fideicomiso en Supabase.`);
     } catch (err: any) {
-      alert('Error fondeando escrow: ' + err.message);
+      showToast('error', 'Error fondeando escrow: ' + err.message);
     } finally {
       setIsFunding(false);
     }
@@ -208,6 +218,17 @@ export default function DashboardFinanciero() {
             Fondear Cuenta Escrow
           </button>
         </header>
+
+        {notification && (
+          <div className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 text-sm font-bold shadow-sm transition-all ${
+            notification.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            {notification.type === 'success' ? <CheckCircle2 size={18} className="text-emerald-600 shrink-0" /> : <AlertCircle size={18} className="text-red-600 shrink-0" />}
+            <span>{notification.message}</span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center py-24">

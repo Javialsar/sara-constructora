@@ -374,7 +374,7 @@ export default function DashboardPage() {
   }
 
   const generarEnlaceWhatsApp = (servicio: ServicioSara | null) => {
-    const telefono = "593987654321" // Número oficial de atención corporativa
+    const telefono = "593981804023" // Número oficial de atención corporativa
     const texto = encodeURIComponent(
       `Hola Grupo SARA, me interesa solicitar información técnica y cotización para el servicio: *${servicio?.titulo || "Servicios Generales"}*. Por favor, me gustaría coordinar una reunión técnica.`
     )
@@ -714,7 +714,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
             <a 
-              href="https://wa.me/593987654321?text=Hola%20Grupo%20SARA%2C%20deseo%20agendar%20una%20reuni%C3%B3n%20para%20un%20proyecto%20integral"
+              href="https://wa.me/593981804023?text=Hola%20Grupo%20SARA%2C%20deseo%20agendar%20una%20reuni%C3%B3n%20para%20un%20proyecto%20integral"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold text-xs shadow-lg transition-all hover:scale-105"

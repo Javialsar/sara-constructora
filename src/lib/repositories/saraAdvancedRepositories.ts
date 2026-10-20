@@ -46,13 +46,21 @@ export class KardexRepository {
   public static async transferirStock(input: DistributionSlipInput): Promise<DistributionSlipResult> {
     const supabase = createAdminClient();
 
-    // 1. Verificar stock suficiente en bodega origen
-    const { data: stockOrigen, error: errStock } = await supabase
-      .from('kardex_multibodega')
-      .select('*')
-      .eq('bodega_id', input.bodegaOrigenId)
-      .eq('insumo_id', input.insumoId)
-      .single();
+    // 1. Verificar stock suficiente en bodega origen y saldo actual en bodega destino
+    const [{ data: stockOrigen, error: errStock }, { data: stockDestino }] = await Promise.all([
+      supabase
+        .from('kardex_multibodega')
+        .select('*')
+        .eq('bodega_id', input.bodegaOrigenId)
+        .eq('insumo_id', input.insumoId)
+        .single(),
+      supabase
+        .from('kardex_multibodega')
+        .select('*')
+        .eq('bodega_id', input.bodegaDestinoId)
+        .eq('insumo_id', input.insumoId)
+        .maybeSingle(),
+    ]);
 
     if (errStock && errStock.code !== 'PGRST116') {
       throw new Error(`Error consultando stock de origen: ${errStock.message}`);
@@ -60,6 +68,7 @@ export class KardexRepository {
 
     const saldoDisponible = stockOrigen ? Number(stockOrigen.saldo_cantidad) : 0;
     const cppOrigen = stockOrigen ? Number(stockOrigen.costo_promedio_ponderado) : 0;
+    const saldoDestinoAnterior = stockDestino ? Number(stockDestino.saldo_cantidad) : 0;
 
     if (saldoDisponible < input.cantidad) {
       throw new Error(`Stock insuficiente en Bodega Origen. Disponible: ${saldoDisponible}, Requerido: ${input.cantidad}`);
@@ -141,8 +150,8 @@ export class KardexRepository {
       },
       bodegaDestino: {
         id: input.bodegaDestinoId,
-        saldoAnterior: 0,
-        saldoNuevo: input.cantidad,
+        saldoAnterior: saldoDestinoAnterior,
+        saldoNuevo: +(saldoDestinoAnterior + input.cantidad).toFixed(4),
       },
       trazabilidadInversa: {
         facturaSriId: input.referenciaFacturaSriId,
@@ -263,7 +272,7 @@ export class NominaRepository {
       proyecto_id: result.proyectoId || null,
       mes: result.periodo.mes,
       anio: result.periodo.anio,
-      sueldo_basico_unificado: 470.0,
+      sueldo_basico_unificado: result.periodo.anio === 2025 ? 470.0 : 482.0,
       dias_laborados: d.diasLaborados,
       ingreso_horas_ordinarias: d.ingresoHorasNormales,
       ingreso_horas_suplementarias: d.ingresoHorasSuplementarias,

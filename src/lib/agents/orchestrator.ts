@@ -47,6 +47,7 @@ export interface ChoreographyExecutionResult {
 
 export class SaraAgentOrchestrator {
   private static isInitialized = false;
+  private static pagosTriggeredCorrelations = new Set<string>();
 
   /**
    * Inicializa la suscripción reactiva de todos los agentes del ecosistema
@@ -57,20 +58,19 @@ export class SaraAgentOrchestrator {
 
     console.log('[SaraAgentOrchestrator] 🌐 Red Agéntica SARA iniciada en producción.');
 
-    // Suscripción reactiva 1: PROYECTO_CREADO -> Despierta a APU e INMOBILIARIA
+    // Suscripción reactiva 1: PROYECTO_CREADO -> Despierta primero a SARA-APU
     SaraEventBus.subscribe('PROYECTO_CREADO', async (event: SaraAgentEvent<ProyectoCreadoPayload>) => {
-      console.log(`[Orchestrator Trigger] PROYECTO_CREADO recibido. Despertando SARA-APU y SARA-INMOBILIARIA...`);
-      // Ejecución asíncrona no bloqueante
-      Promise.all([
-        SaraApuAgent.computarApu(event.payload, event.correlationId),
-        SaraInmobiliariaAgent.evaluarViabilidadInmobiliaria(event.payload, event.correlationId)
-      ]).catch(err => console.error('[Orchestrator Error en fase 1]:', err));
+      console.log(`[Orchestrator Trigger] PROYECTO_CREADO recibido. Despertando SARA-APU...`);
+      SaraApuAgent.computarApu(event.payload, event.correlationId)
+        .catch(err => console.error('[Orchestrator Error en fase 1 - APU]:', err));
     });
 
-    // Suscripción reactiva 2: APU_CONSOLIDADO -> Despierta a MARKETPLACE, FLETES y TALENTOHUMANO
+    // Suscripción reactiva 2: APU_CONSOLIDADO -> Despierta en paralelo a INMOBILIARIA (con costo real de obra listo), MARKETPLACE y TALENTOHUMANO
     SaraEventBus.subscribe('APU_CONSOLIDADO', async (event: SaraAgentEvent<ApuConsolidadoPayload>) => {
-      console.log(`[Orchestrator Trigger] APU_CONSOLIDADO recibido. Despertando SARA-MARKETPLACE y SARA-TALENTOHUMANO...`);
+      console.log(`[Orchestrator Trigger] APU_CONSOLIDADO recibido. Despertando SARA-INMOBILIARIA, SARA-MARKETPLACE y SARA-TALENTOHUMANO...`);
+      const proyecto = await SaraSharedMemory.get<ProyectoCreadoPayload>(event.correlationId, 'constructora', 'proyecto_raiz');
       Promise.all([
+        proyecto ? SaraInmobiliariaAgent.evaluarViabilidadInmobiliaria(proyecto, event.correlationId) : Promise.resolve(),
         SaraMarketplaceAgent.optimizarSuministros(event.payload, event.correlationId),
         SaraTalentoHumanoAgent.reclutarPersonal(event.payload, event.correlationId)
       ]).catch(err => console.error('[Orchestrator Error en fase 2]:', err));
@@ -83,20 +83,32 @@ export class SaraAgentOrchestrator {
         .catch(err => console.error('[Orchestrator Error en fase 3]:', err));
     });
 
-    // Suscripción reactiva 4: CONVOCATORIA_TALENTO_EMITIDA -> Despierta a SARA-ALOJAMIENTO si hay foráneos
+    // Suscripción reactiva 4: CONVOCATORIA_TALENTO_EMITIDA -> Despierta a SARA-ALOJAMIENTO
     SaraEventBus.subscribe('CONVOCATORIA_TALENTO_EMITIDA', async (event: SaraAgentEvent<ConvocatoriaTalentoEmitidaPayload>) => {
-      if (event.payload.requiereAlojamientoTecnico) {
-        console.log(`[Orchestrator Trigger] Personal foráneo detectado. Despertando SARA-ALOJAMIENTO...`);
-        SaraAlojamientoAgent.gestionarAlojamiento(event.correlationId)
-          .catch(err => console.error('[Orchestrator Error en alojamiento]:', err));
-      }
+      console.log(`[Orchestrator Trigger] Convocatoria de talento emitida. Gestionando SARA-ALOJAMIENTO...`);
+      SaraAlojamientoAgent.gestionarAlojamiento(event.correlationId)
+        .catch(err => console.error('[Orchestrator Error en alojamiento]:', err));
     });
 
-    // Suscripción reactiva 5: LOGISTICA_PROCESADA y ALOJAMIENTOS -> Activa SARA-PAGOS
+    // Barrera de Sincronización (Join Barrier): LOGISTICA_PROCESADA + ALOJAMIENTOS_LOGISTICOS_RESERVADOS -> SARA-PAGOS
+    const tryTriggerPagosJoinBarrier = async (correlationId: string) => {
+      if (this.pagosTriggeredCorrelations.has(correlationId)) return;
+      const logistica = await SaraSharedMemory.get<LogisticaProcesadaPayload>(correlationId, 'fletes', 'logistica_despachos');
+      const alojamiento = await SaraSharedMemory.get<AlojamientosLogisticosReservadosPayload>(correlationId, 'alojamiento', 'reserva_logistica');
+      if (logistica && alojamiento) {
+        this.pagosTriggeredCorrelations.add(correlationId);
+        console.log(`[Orchestrator Trigger] Join Barrier completada (Logística + Alojamiento). Activando SARA-PAGOS...`);
+        SaraPagosAgent.blindarFinanciamientoEscrow(correlationId)
+          .catch(err => console.error('[Orchestrator Error en Pagos]:', err));
+      }
+    };
+
     SaraEventBus.subscribe('LOGISTICA_PROCESADA', async (event: SaraAgentEvent<LogisticaProcesadaPayload>) => {
-      console.log(`[Orchestrator Trigger] Logística completada. Verificando condiciones para SARA-PAGOS...`);
-      SaraPagosAgent.blindarFinanciamientoEscrow(event.correlationId)
-        .catch(err => console.error('[Orchestrator Error en Pagos]:', err));
+      await tryTriggerPagosJoinBarrier(event.correlationId);
+    });
+
+    SaraEventBus.subscribe('ALOJAMIENTOS_LOGISTICOS_RESERVADOS', async (event: SaraAgentEvent<AlojamientosLogisticosReservadosPayload>) => {
+      await tryTriggerPagosJoinBarrier(event.correlationId);
     });
   }
 
@@ -116,108 +128,122 @@ export class SaraAgentOrchestrator {
   }): Promise<ChoreographyExecutionResult> {
     const trace: ChoreographyExecutionResult['executionTrace'] = [];
 
-    // Paso 1: SARA-CONSTRUCTORA
-    let t0 = Date.now();
-    const { correlationId, payload: constructoraPayload } = await SaraConstructoraAgent.estructurarProyecto(input);
-    trace.push({
-      step: 1,
-      agent: SaraConstructoraAgent.AGENT_ID,
-      action: 'Estructuración raíz y geolocalización de obra',
-      eventEmitted: 'PROYECTO_CREADO',
-      durationMs: Date.now() - t0
-    });
+    // Suprimir suscriptores reactivos durante el flujo imperativo para evitar doble disparo
+    SaraEventBus.setSuppressReactiveHandlers(true);
 
-    // Paso 2: SARA-APU y SARA-INMOBILIARIA (Paralelo)
-    t0 = Date.now();
-    const [apuPayload, inmobiliariaPayload] = await Promise.all([
-      SaraApuAgent.computarApu(constructoraPayload, correlationId),
-      SaraInmobiliariaAgent.evaluarViabilidadInmobiliaria(constructoraPayload, correlationId)
-    ]);
-    trace.push({
-      step: 2,
-      agent: SaraApuAgent.AGENT_ID,
-      action: 'Cómputo volumétrico, materiales y horas/hombre provinciales',
-      eventEmitted: 'APU_CONSOLIDADO',
-      durationMs: Date.now() - t0
-    });
-    trace.push({
-      step: 3,
-      agent: SaraInmobiliariaAgent.AGENT_ID,
-      action: 'Tasación de activo, análisis de plusvalía y proyección de ROI',
-      eventEmitted: 'ANALISIS_INMOBILIARIO_COMPLETO',
-      durationMs: Date.now() - t0
-    });
+    try {
+      // Paso 1: SARA-CONSTRUCTORA
+      let t0 = Date.now();
+      const { correlationId, payload: constructoraPayload } = await SaraConstructoraAgent.estructurarProyecto(input);
+      SaraEventBus.setImperativeCorrelation(correlationId, true);
 
-    // Paso 3: SARA-MARKETPLACE y SARA-TALENTOHUMANO (Paralelo)
-    t0 = Date.now();
-    const [marketplacePayload, talentoPayload] = await Promise.all([
-      SaraMarketplaceAgent.optimizarSuministros(apuPayload, correlationId),
-      SaraTalentoHumanoAgent.reclutarPersonal(apuPayload, correlationId)
-    ]);
-    trace.push({
-      step: 4,
-      agent: SaraMarketplaceAgent.AGENT_ID,
-      action: 'Cruce con proveedores mayoristas y predicción de volatilidad',
-      eventEmitted: 'SUMINISTROS_ASIGNADOS',
-      durationMs: Date.now() - t0
-    });
-    trace.push({
-      step: 5,
-      agent: SaraTalentoHumanoAgent.AGENT_ID,
-      action: 'Push-to-Work geolocalizado y conformación de terna certificada',
-      eventEmitted: 'CONVOCATORIA_TALENTO_EMITIDA',
-      durationMs: Date.now() - t0
-    });
+      trace.push({
+        step: 1,
+        agent: SaraConstructoraAgent.AGENT_ID,
+        action: 'Estructuración raíz, zonificación sísmica NEC-15 y geolocalización de obra',
+        eventEmitted: 'PROYECTO_CREADO',
+        durationMs: Date.now() - t0
+      });
 
-    // Paso 4: SARA-FLETES y SARA-ALOJAMIENTO (Paralelo)
-    t0 = Date.now();
-    const [fletesPayload, alojamientoPayload] = await Promise.all([
-      SaraFletesAgent.procesarLogistica(marketplacePayload, correlationId),
-      SaraAlojamientoAgent.gestionarAlojamiento(correlationId)
-    ]);
-    trace.push({
-      step: 6,
-      agent: SaraFletesAgent.AGENT_ID,
-      action: 'Cubicación, selección de transporte pesado y trazado de rutas',
-      eventEmitted: 'LOGISTICA_PROCESADA',
-      durationMs: Date.now() - t0
-    });
-    trace.push({
-      step: 7,
-      agent: SaraAlojamientoAgent.AGENT_ID,
-      action: 'Bloqueo de suites ejecutivas con cerraduras inteligentes y tarifa dinámica',
-      eventEmitted: 'ALOJAMIENTOS_LOGISTICOS_RESERVADOS',
-      durationMs: Date.now() - t0
-    });
+      try {
+        // Paso 2A: SARA-APU (Primero para consolidar el costo real de obra en Memoria Compartida)
+        t0 = Date.now();
+        const apuPayload = await SaraApuAgent.computarApu(constructoraPayload, correlationId);
+        trace.push({
+          step: 2,
+          agent: SaraApuAgent.AGENT_ID,
+          action: 'Cómputo volumétrico, Fórmula Polinómica INEC y horas/hombre provinciales',
+          eventEmitted: 'APU_CONSOLIDADO',
+          durationMs: Date.now() - t0
+        });
 
-    // Paso 5: SARA-PAGOS (Consolidación y Fideicomiso Escrow)
-    t0 = Date.now();
-    const pagosPayload = await SaraPagosAgent.blindarFinanciamientoEscrow(correlationId);
-    trace.push({
-      step: 8,
-      agent: SaraPagosAgent.AGENT_ID,
-      action: 'Apertura de cuenta custodia Escrow y reglas de liberación por hitos',
-      eventEmitted: 'ECOSISTEMA_FINANCIADO_Y_BLINDADO',
-      durationMs: Date.now() - t0
-    });
+        // Paso 2B: SARA-INMOBILIARIA (Con el costoTotalObra real de SARA-APU ya disponible en memoria)
+        t0 = Date.now();
+        const inmobiliariaPayload = await SaraInmobiliariaAgent.evaluarViabilidadInmobiliaria(constructoraPayload, correlationId);
+        trace.push({
+          step: 3,
+          agent: SaraInmobiliariaAgent.AGENT_ID,
+          action: 'Tasación IVS 2025, VAN/TIR y precalificación hipotecaria BIESS',
+          eventEmitted: 'ANALISIS_INMOBILIARIO_COMPLETO',
+          durationMs: Date.now() - t0
+        });
 
-    return {
-      correlationId,
-      proyectoId: constructoraPayload.proyectoId,
-      timestamp: new Date().toISOString(),
-      status: 'EXITOSO',
-      executionTrace: trace,
-      resultados: {
-        constructora: constructoraPayload,
-        apu: apuPayload,
-        marketplace: marketplacePayload,
-        fletes: fletesPayload,
-        talento: talentoPayload,
-        inmobiliaria: inmobiliariaPayload,
-        alojamiento: alojamientoPayload,
-        pagos: pagosPayload
+        // Paso 3: SARA-MARKETPLACE y SARA-TALENTOHUMANO (Paralelo)
+        t0 = Date.now();
+        const [marketplacePayload, talentoPayload] = await Promise.all([
+          SaraMarketplaceAgent.optimizarSuministros(apuPayload, correlationId),
+          SaraTalentoHumanoAgent.reclutarPersonal(apuPayload, correlationId)
+        ]);
+        trace.push({
+          step: 4,
+          agent: SaraMarketplaceAgent.AGENT_ID,
+          action: 'Cruce con proveedores mayoristas, IVA 5% construcción y predicción de volatilidad',
+          eventEmitted: 'SUMINISTROS_ASIGNADOS',
+          durationMs: Date.now() - t0
+        });
+        trace.push({
+          step: 5,
+          agent: SaraTalentoHumanoAgent.AGENT_ID,
+          action: 'Push-to-Work geolocalizado, validación SST Decreto 255 y SBU 2026',
+          eventEmitted: 'CONVOCATORIA_TALENTO_EMITIDA',
+          durationMs: Date.now() - t0
+        });
+
+        // Paso 4: SARA-FLETES y SARA-ALOJAMIENTO (Paralelo)
+        t0 = Date.now();
+        const [fletesPayload, alojamientoPayload] = await Promise.all([
+          SaraFletesAgent.procesarLogistica(marketplacePayload, correlationId),
+          SaraAlojamientoAgent.gestionarAlojamiento(correlationId)
+        ]);
+        trace.push({
+          step: 6,
+          agent: SaraFletesAgent.AGENT_ID,
+          action: 'Cubicación MTOP, optimización Backhaul y trazado de rutas',
+          eventEmitted: 'LOGISTICA_PROCESADA',
+          durationMs: Date.now() - t0
+        });
+        trace.push({
+          step: 7,
+          agent: SaraAlojamientoAgent.AGENT_ID,
+          action: 'Gestión de alojamiento corporativo USALI, PIN autónomo e IVA turístico',
+          eventEmitted: 'ALOJAMIENTOS_LOGISTICOS_RESERVADOS',
+          durationMs: Date.now() - t0
+        });
+
+        // Paso 5: SARA-PAGOS (Consolidación, Fideicomiso Escrow y UAFE)
+        t0 = Date.now();
+        const pagosPayload = await SaraPagosAgent.blindarFinanciamientoEscrow(correlationId);
+        trace.push({
+          step: 8,
+          agent: SaraPagosAgent.AGENT_ID,
+          action: 'Apertura de cuenta custodia Escrow 100%, validación UAFE y liberación por hitos',
+          eventEmitted: 'ECOSISTEMA_FINANCIADO_Y_BLINDADO',
+          durationMs: Date.now() - t0
+        });
+
+        return {
+          correlationId,
+          proyectoId: constructoraPayload.proyectoId,
+          timestamp: new Date().toISOString(),
+          status: 'EXITOSO',
+          executionTrace: trace,
+          resultados: {
+            constructora: constructoraPayload,
+            apu: apuPayload,
+            marketplace: marketplacePayload,
+            fletes: fletesPayload,
+            talento: talentoPayload,
+            inmobiliaria: inmobiliariaPayload,
+            alojamiento: alojamientoPayload,
+            pagos: pagosPayload
+          }
+        };
+      } finally {
+        SaraEventBus.setImperativeCorrelation(correlationId, false);
       }
-    };
+    } finally {
+      SaraEventBus.setSuppressReactiveHandlers(false);
+    }
   }
 
   /**

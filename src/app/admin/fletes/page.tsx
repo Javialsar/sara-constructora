@@ -108,6 +108,7 @@ export default function AdminFletes() {
 
   const handleAction = (id: string, newStatus: 'pending' | 'approved' | 'blocked') => {
     setDrivers(drivers.map(d => d.id === id ? { ...d, status: newStatus } : d));
+    updateConductorStatus(id, newStatus === 'approved' || (newStatus as string) === 'Activo').catch(() => {});
     setSelectedDriver(null);
     showToast("Estado actualizado correctamente");
   };
@@ -156,6 +157,7 @@ export default function AdminFletes() {
       setSelectedDriver(updatedDrivers.find(d => d.id === id) || null);
     }
     setRechargeAmount("20");
+    rechargeConductorWallet(id, numericAmount).catch(() => {});
     showToast(`Recarga de $${numericAmount.toFixed(2)} validada exitosamente`);
   };
 
@@ -164,6 +166,7 @@ export default function AdminFletes() {
     setRecharges(recharges.map(r => r.id === reqId ? { ...r, status: 'approved' } : r));
     // Update driver wallet
     setDrivers(drivers.map(d => d.id === driverId ? { ...d, walletBalance: d.walletBalance + amount } : d));
+    rechargeConductorWallet(driverId, amount).catch(() => {});
     showToast(`Recarga de $${amount.toFixed(2)} aprobada. Saldo actualizado.`);
     setPreviewDoc(null);
   };

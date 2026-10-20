@@ -71,8 +71,9 @@ export interface PayrollBatchResult {
 }
 
 export class IessPayrollService {
-  // Salario Básico Unificado Ecuador 2026 (Referencial oficial)
-  public static readonly SBU_2026 = 470.0;
+  // Salario Básico Unificado Ecuador (Acuerdo Ministerial MDT-2025-195 vigente 2026: $482.00; 2025: $470.00)
+  public static readonly SBU_2026 = 482.0;
+  public static readonly SBU_2025 = 470.0;
 
   // Tarifas horarias mínimas sectoriales de construcción CICS (Comisión Sectorial de la Construcción)
   public static readonly TABLA_SECTORIAL_CONSTRUCCION: Record<string, { salarioMinimoMes: number; tarifaHora: number }> = {
@@ -81,7 +82,7 @@ export class IessPayrollService {
     'Albañil': { salarioMinimoMes: 535.0, tarifaHora: 3.34 },
     'Encofrador': { salarioMinimoMes: 535.0, tarifaHora: 3.34 },
     'Topógrafo': { salarioMinimoMes: 680.0, tarifaHora: 4.25 },
-    'Peón': { salarioMinimoMes: 470.0, tarifaHora: 2.94 },
+    'Peón': { salarioMinimoMes: 482.0, tarifaHora: 3.01 },
     'Residente': { salarioMinimoMes: 1200.0, tarifaHora: 7.50 },
   };
 
@@ -134,9 +135,11 @@ export class IessPayrollService {
     let acumProvisiones = 0;
     let acumCostoDirecto = 0;
 
+    const sbuVigente = periodo.anio === 2025 ? this.SBU_2025 : this.SBU_2026;
+
     agrupado.forEach((val, trabajadorId) => {
       const cat = val.info.categoriaOcupacional;
-      const tarifa = this.TABLA_SECTORIAL_CONSTRUCCION[cat]?.tarifaHora || 3.0;
+      const tarifa = this.TABLA_SECTORIAL_CONSTRUCCION[cat]?.tarifaHora || 3.01;
 
       // 1. Ingresos
       const ingNormal = +(val.horasNormales * tarifa).toFixed(2);
@@ -153,7 +156,10 @@ export class IessPayrollService {
 
       // 4. Beneficios y Provisiones Sociales
       const decimoTercero = +(totalIngresos * this.PCT_DECIMO_TERCERO).toFixed(2);
-      const decimoCuarto = +( (this.SBU_2026 / 360) * (val.dias.size * 8 / 8) ).toFixed(2); // Proporcional mensual/días
+      const factorHorasOrdinariasMes = val.horasNormales > 0
+        ? Math.min(val.horasNormales, 160) / 160
+        : (val.dias.size * 8) / 240;
+      const decimoCuarto = +((sbuVigente / 12) * factorHorasOrdinariasMes).toFixed(2);
       const fondoReserva = +(totalIngresos * this.PCT_FONDO_RESERVA).toFixed(2);
       const vacaciones = +(totalIngresos * this.PCT_VACACIONES).toFixed(2);
 

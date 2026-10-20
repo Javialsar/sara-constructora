@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -111,6 +112,12 @@ export async function GET() {
 // POST: Registrar nuevo alojamiento en Supabase
 export async function POST(request: Request) {
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado. Inicie sesión para gestionar alojamientos." }, { status: 401 })
+    }
+
     const supabase = getSupabaseAdmin()
     if (!supabase) {
       return NextResponse.json({ error: "Credenciales de Supabase no configuradas" }, { status: 500 })
@@ -307,6 +314,12 @@ export async function POST(request: Request) {
 // DELETE: Eliminar alojamiento por código o ID
 export async function DELETE(request: Request) {
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado. Inicie sesión para eliminar alojamientos." }, { status: 401 })
+    }
+
     const supabase = getSupabaseAdmin()
     if (!supabase) {
       return NextResponse.json({ error: "Credenciales de Supabase no configuradas" }, { status: 500 })

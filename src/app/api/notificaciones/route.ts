@@ -42,6 +42,21 @@ export async function POST(request: Request) {
     if (cliente.email) {
       // Instanciamos aquí para que lea la variable de entorno correctamente
       const resend = new Resend(process.env.RESEND_API_KEY || 're_dummy')
+      const escapeHtml = (val: unknown) =>
+        String(val ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      const safeClienteNombre = escapeHtml(cliente.nombre);
+      const safeProyectoNombre = escapeHtml(proyecto_nombre);
+      const safeTipoNotificacion = escapeHtml(tipo_notificacion);
+      const safeTituloAvance = escapeHtml(titulo_avance || 'Nuevo archivo disponible');
+      const safeEnlacePortal =
+        typeof enlace_portal === 'string' && /^https?:\/\//i.test(enlace_portal)
+          ? escapeHtml(enlace_portal)
+          : 'https://sara-constructora.vercel.app/portal';
       
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eaeaea; border-radius: 8px; overflow: hidden;">
@@ -49,17 +64,17 @@ export async function POST(request: Request) {
             <h1 style="color: white; margin: 0; font-size: 22px;">SARA Constructora</h1>
           </div>
           <div style="padding: 30px;">
-            <p style="font-size: 16px; color: #333;">Hola <strong>${cliente.nombre}</strong>,</p>
-            <p style="font-size: 16px; color: #333;">Tenemos una nueva actualización importante en tu proyecto: <strong>${proyecto_nombre}</strong>.</p>
+            <p style="font-size: 16px; color: #333;">Hola <strong>${safeClienteNombre}</strong>,</p>
+            <p style="font-size: 16px; color: #333;">Tenemos una nueva actualización importante en tu proyecto: <strong>${safeProyectoNombre}</strong>.</p>
             
             <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #8B9D8B; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px; color: #555;"><strong>${tipo_notificacion}:</strong> ${titulo_avance || 'Nuevo archivo disponible'}</p>
+              <p style="margin: 0; font-size: 14px; color: #555;"><strong>${safeTipoNotificacion}:</strong> ${safeTituloAvance}</p>
             </div>
             
             <p style="font-size: 16px; color: #333;">Puedes revisar los detalles, fotografías y documentos ingresando a tu portal privado:</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${enlace_portal || 'https://sara-constructora.vercel.app/portal'}" style="background-color: #8B9D8B; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Acceder al Portal</a>
+              <a href="${safeEnlacePortal}" style="background-color: #8B9D8B; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Acceder al Portal</a>
             </div>
             
             <p style="font-size: 14px; color: #777; border-top: 1px solid #eee; padding-top: 20px;">

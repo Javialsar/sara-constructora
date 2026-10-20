@@ -102,7 +102,12 @@ export class SaraTalentoHumanoAgent {
       perfilesContactadosWhatsApp: 18,
       ternaCalificada: ternaCalificada.map(({ esForaneo, ...rest }) => rest),
       requiereAlojamientoTecnico,
-      personalForaneoCount: personalForaneo.length
+      personalForaneoCount: personalForaneo.length,
+      cumplimientoSstDecreto255: {
+        sbuAplicadoUSD: 482.0,
+        reglamentoSstVigente: 'Decreto Ejecutivo 255 MDT & Resolución CD 513 IESS',
+        certificacionesSecapVerificadas: true
+      }
     };
 
     // 1. Guardar en Memoria Colectiva

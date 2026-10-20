@@ -33,12 +33,19 @@ export async function proxy(request: NextRequest) {
 
   // Use supabase.auth.getUser() to safely validate JWT session
   const { data: { user } } = await supabase.auth.getUser()
-  const metadata = user?.user_metadata || {}
+  const appMeta = user?.app_metadata || {}
+  const userMeta = user?.user_metadata || {}
+  const metadata = { ...userMeta, ...appMeta }
 
   const pathname = request.nextUrl.pathname
 
-  // 1. PROTECCIÓN DE SARA APU (/dashboard/*)
-  if (pathname.startsWith('/dashboard')) {
+  // 1. PROTECCIÓN DE SARA APU (/dashboard/*, /modulos/compras/*, /modulos/financiero/*, /modulos/importador/*)
+  if (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/modulos/compras') ||
+    pathname.startsWith('/modulos/financiero') ||
+    pathname.startsWith('/modulos/importador')
+  ) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
@@ -85,11 +92,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 3. PROTECCIÓN PORTAL CLIENTES CONSTRUCTORA (/portal/dashboard/*)
-  if (pathname.startsWith('/portal/dashboard')) {
+  // 3. PROTECCIÓN PORTAL CLIENTES CONSTRUCTORA (/portal/dashboard/* y /constructora/suite/*)
+  if (pathname.startsWith('/portal/dashboard') || pathname.startsWith('/constructora/suite')) {
     if (!user) {
       const url = request.nextUrl.clone()
-      url.pathname = '/portal'
+      url.pathname = pathname.startsWith('/constructora/suite') ? '/constructora/auth' : '/portal'
       url.searchParams.set('redirectTo', pathname)
       return NextResponse.redirect(url)
     }
@@ -190,10 +197,14 @@ export const config = {
     '/admin/:path*',
     '/dashboard/:path*',
     '/portal/dashboard/:path*',
+    '/constructora/suite/:path*',
     '/inmobiliaria/mi-portal/:path*',
     '/stays/mis-reservas/:path*',
     '/modulos/fletes/mi-perfil/:path*',
     '/modulos/talento/mi-perfil/:path*',
+    '/modulos/compras/:path*',
+    '/modulos/financiero/:path*',
+    '/modulos/importador/:path*',
     '/login',
   ],
 }

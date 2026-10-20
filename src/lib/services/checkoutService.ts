@@ -41,11 +41,6 @@ export async function processPayment(details: PaymentDetails): Promise<PaymentRe
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
-            await recordPaymentInDatabase({
-              ...details,
-              transactionId: data.transactionId || transactionId,
-              status: 'APPROVED'
-            });
             return {
               success: true,
               transactionId: data.transactionId || transactionId,

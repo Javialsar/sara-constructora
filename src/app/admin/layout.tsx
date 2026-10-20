@@ -58,10 +58,12 @@ export default function AdminLayout({
     }
   }, [])
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Auto-expandir el grupo correspondiente a la ruta activa
   useEffect(() => {
     if (!pathname) return
+    setMobileMenuOpen(false)
     for (const group of allNavGroups) {
       if (group.items.some(i => i.href === pathname)) {
         setOpenGroup(group.title)
@@ -231,7 +233,13 @@ export default function AdminLayout({
         <div className="flex h-screen bg-slate-100 overflow-hidden print:h-auto print:block print:bg-white">
       
       {/* Sidebar */}
-      <aside className={`bg-brand-dark text-white flex flex-col h-full shadow-2xl z-20 print:hidden transition-all duration-300 ${isSidebarCollapsed ? "w-20" : "w-64"}`}>
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-xs"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      <aside className={`fixed md:static inset-y-0 left-0 bg-brand-dark text-white flex flex-col h-full shadow-2xl z-40 print:hidden transition-all duration-300 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"} ${isSidebarCollapsed ? "md:w-20 w-64" : "w-64"}`}>
         {/* Header del sidebar */}
         <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
           <div className="flex items-center gap-3 overflow-hidden">
@@ -370,7 +378,13 @@ export default function AdminLayout({
           <div className="flex items-center gap-3">
             {/* Botón Menú Hamburguesa */}
             <button 
-              onClick={() => setIsSidebarCollapsed(prev => !prev)}
+              onClick={() => {
+                if (typeof window !== "undefined" && window.innerWidth < 768) {
+                  setMobileMenuOpen(prev => !prev)
+                } else {
+                  setIsSidebarCollapsed(prev => !prev)
+                }
+              }}
               className="p-2 rounded-lg text-gray-600 hover:text-brand-dark hover:bg-gray-100 transition-colors focus:outline-none"
               title={isSidebarCollapsed ? "Expandir menú lateral" : "Colapsar menú lateral (más espacio)"}
             >

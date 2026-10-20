@@ -48,7 +48,7 @@ export interface SriFacturaParsed {
 
 export class SriXmlService {
   /**
-   * Sanitiza el XML previniendo ataques XXE (XML External Entity)
+   * Sanitiza el XML previniendo ataques XXE (XML External Entity) y eliminando comentarios XML
    */
   private static sanitizeXml(xmlContent: string): string {
     // Prohibir declaraciones DTD, entidades externas y SYSTEM/PUBLIC
@@ -65,7 +65,30 @@ export class SriXmlService {
       }
     }
 
-    return xmlContent.trim();
+    // Eliminar comentarios XML para evitar falsos positivos en detección de firmas o tags comentados
+    return xmlContent.replace(/<!--[\s\S]*?-->/g, '').trim();
+  }
+
+  /**
+   * Valida el dígito verificador de la Clave de Acceso de 49 dígitos del SRI mediante el algoritmo oficial Módulo 11 (pesos 2..7)
+   */
+  public static validarModulo11ClaveAcceso(clave: string): boolean {
+    if (!/^\d{49}$/.test(clave)) return false;
+    const digitoVerificadorRecibido = parseInt(clave[48], 10);
+    let factor = 2;
+    let suma = 0;
+
+    for (let i = 47; i >= 0; i--) {
+      suma += parseInt(clave[i], 10) * factor;
+      factor = factor === 7 ? 2 : factor + 1;
+    }
+
+    const residuo = suma % 11;
+    let digitoCalculado = 11 - residuo;
+    if (digitoCalculado === 11) digitoCalculado = 0;
+    else if (digitoCalculado === 10) digitoCalculado = 1;
+
+    return digitoCalculado === digitoVerificadorRecibido;
   }
 
   /**
@@ -146,7 +169,8 @@ export class SriXmlService {
       const baseImponible = parseFloat(this.getTagValue(block, 'baseImponible') || '0');
       const valor = parseFloat(this.getTagValue(block, 'valor') || '0');
 
-      if (codigoPorcentaje === '4') {
+      if (codigoPorcentaje === '4' || codigoPorcentaje === '8') {
+        // 4: IVA 15% general | 8: IVA 8% diferenciado turístico en feriados nacionales
         subtotal15 += baseImponible;
         ivaTotal += valor;
       } else if (codigoPorcentaje === '5') {
@@ -217,6 +241,10 @@ export class SriXmlService {
       });
     }
 
+    // Extraer dinámicamente el atributo version de <factura version="...">
+    const versionMatch = cleanXml.match(/<factura[^>]*\bversion=["']([^"']+)["']/i);
+    const version = versionMatch ? versionMatch[1] : '2.21';
+
     return {
       claveAcceso,
       numeroComprobante,
@@ -237,7 +265,7 @@ export class SriXmlService {
       detalles,
       xmlHash,
       firmaDigitalValida,
-      version: '2.21',
+      version,
     };
   }
 }

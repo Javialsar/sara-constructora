@@ -114,10 +114,24 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
 export const UNIVERSAL_ACCESS_ROLES = ['admin', 'superadmin', 'tecnico']
 
 /**
+ * Extrae y normaliza los metadatos del usuario priorizando `app_metadata` sobre `user_metadata`
+ */
+function resolveMetadata(input: any): any {
+  if (!input) return {}
+  if (input.app_metadata || input.user_metadata) {
+    const appMeta = input.app_metadata || {}
+    const userMeta = input.user_metadata || {}
+    return { ...userMeta, ...appMeta }
+  }
+  return input
+}
+
+/**
  * Determina el módulo principal al que pertenece un usuario
  */
-export function getUserModule(metadata: any): SaraModule {
-  if (!metadata) return 'sara_apu'
+export function getUserModule(rawMetadata: any): SaraModule {
+  if (!rawMetadata) return 'sara_apu'
+  const metadata = resolveMetadata(rawMetadata)
 
   // Si es admin o tecnico, pertenece al ecosistema global
   const role = metadata.role || (metadata.es_admin ? 'admin' : '')
@@ -152,8 +166,9 @@ export function getUserModule(metadata: any): SaraModule {
 /**
  * Verifica si un usuario tiene autorización para ingresar a un módulo específico
  */
-export function canAccessModule(metadata: any, targetModule: SaraModule): boolean {
-  if (!metadata) return false
+export function canAccessModule(rawMetadata: any, targetModule: SaraModule): boolean {
+  if (!rawMetadata) return false
+  const metadata = resolveMetadata(rawMetadata)
 
   const role = metadata.role || (metadata.es_admin ? 'admin' : '')
 

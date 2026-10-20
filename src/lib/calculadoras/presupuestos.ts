@@ -194,3 +194,93 @@ export function calcularTotalesPresupuesto({
     totalGastosGenerales, cnet, simp, sutil
   }
 }
+
+/**
+ * Calcula los coeficientes de la Fórmula Polinómica de Reajuste de Precios (LOSNCP / SERCOP / INEC)
+ * Garantiza invariante matemática estricta: sum(p_i) === 1.000 y p_x <= 0.200
+ */
+export function calcularFormulaPolinomicaINEC(costos: {
+  manoObra: number;
+  cemento: number;
+  acero: number;
+  aridos: number;
+  equipos: number;
+  otros: number;
+}): {
+  coeficientes: Record<string, number>;
+  sumaCoeficientes: number;
+  cumpleNormaSercop: boolean;
+} {
+  const total =
+    Math.max(0, costos.manoObra) +
+    Math.max(0, costos.cemento) +
+    Math.max(0, costos.acero) +
+    Math.max(0, costos.aridos) +
+    Math.max(0, costos.equipos) +
+    Math.max(0, costos.otros);
+
+  if (total <= 0) {
+    return {
+      coeficientes: {
+        p1_mano_obra: 0.350,
+        p2_acero: 0.220,
+        p3_cemento: 0.160,
+        p4_aridos: 0.080,
+        p5_equipos: 0.070,
+        px_otros: 0.120,
+      },
+      sumaCoeficientes: 1.000,
+      cumpleNormaSercop: true,
+    };
+  }
+
+  let rawP1 = Math.max(0, costos.manoObra) / total;
+  let rawP2 = Math.max(0, costos.acero) / total;
+  let rawP3 = Math.max(0, costos.cemento) / total;
+  let rawP4 = Math.max(0, costos.aridos) / total;
+  let rawP5 = Math.max(0, costos.equipos) / total;
+  let rawPx = Math.max(0, costos.otros) / total;
+
+  // Regla SERCOP: el coeficiente de residuo/varios (px) no puede superar 0.200
+  if (rawPx > 0.200) {
+    const exceso = rawPx - 0.200;
+    rawPx = 0.200;
+    const basePrincipales = rawP1 + rawP2 + rawP3 + rawP4 + rawP5;
+    if (basePrincipales > 0) {
+      rawP1 += exceso * (rawP1 / basePrincipales);
+      rawP2 += exceso * (rawP2 / basePrincipales);
+      rawP3 += exceso * (rawP3 / basePrincipales);
+      rawP4 += exceso * (rawP4 / basePrincipales);
+      rawP5 += exceso * (rawP5 / basePrincipales);
+    } else {
+      rawP1 += exceso;
+    }
+  }
+
+  let p1 = Math.round(rawP1 * 1000) / 1000;
+  const p2 = Math.round(rawP2 * 1000) / 1000;
+  const p3 = Math.round(rawP3 * 1000) / 1000;
+  const p4 = Math.round(rawP4 * 1000) / 1000;
+  const p5 = Math.round(rawP5 * 1000) / 1000;
+  const px = Math.min(0.200, Math.round(rawPx * 1000) / 1000);
+
+  // Ajuste de milésima sobre p1 (mano de obra) para garantizar suma exacta = 1.000
+  const sumaParcial = +(p1 + p2 + p3 + p4 + p5 + px).toFixed(3);
+  const delta = +(1.000 - sumaParcial).toFixed(3);
+  p1 = +(p1 + delta).toFixed(3);
+
+  const sumaCoeficientes = +(p1 + p2 + p3 + p4 + p5 + px).toFixed(3);
+
+  return {
+    coeficientes: {
+      p1_mano_obra: p1,
+      p2_acero: p2,
+      p3_cemento: p3,
+      p4_aridos: p4,
+      p5_equipos: p5,
+      px_otros: px,
+    },
+    sumaCoeficientes,
+    cumpleNormaSercop: sumaCoeficientes === 1.000 && px <= 0.200,
+  };
+}

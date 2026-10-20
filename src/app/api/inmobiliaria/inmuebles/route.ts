@@ -231,8 +231,8 @@ export async function GET(req: Request) {
   try {
     const serverClient = await createSupabaseServerClient()
     const { data: { user } } = await serverClient.auth.getUser()
-    const role = user?.user_metadata?.role
-    const isAdmin = role === "admin" || role === "tecnico"
+    const role = user?.app_metadata?.role || user?.user_metadata?.role
+    const isAdmin = Boolean(user?.app_metadata?.es_admin || user?.user_metadata?.es_admin || role === "admin" || role === "superadmin" || role === "tecnico")
 
     const { data, error } = await supabase
       .from("parametros_globales")
@@ -299,8 +299,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "No autorizado. Inicie sesión para guardar propiedades." }, { status: 401 })
   }
 
-  const role = user.user_metadata?.role
-  const isAdmin = role === "admin" || role === "tecnico"
+  const role = user.app_metadata?.role || user.user_metadata?.role
+  const isAdmin = Boolean(user.app_metadata?.es_admin || user.user_metadata?.es_admin || role === "admin" || role === "superadmin" || role === "tecnico")
 
   const supabase = getSupabaseAdmin()
   if (!supabase) {
@@ -358,6 +358,9 @@ export async function POST(req: Request) {
       }
       const idx = listaActual.findIndex(item => item.id === target.id || item.codigo === target.codigo)
       if (idx >= 0) {
+        if (!isAdmin && listaActual[idx].propietario?.email?.toLowerCase() !== user.email?.toLowerCase()) {
+          return NextResponse.json({ success: false, error: "No autorizado para sobrescribir un inmueble que pertenece a otro propietario." }, { status: 403 })
+        }
         listaActual[idx] = { ...listaActual[idx], ...target }
       } else {
         listaActual = [target, ...listaActual]
@@ -399,8 +402,8 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: false, error: "No autorizado para eliminar inmuebles." }, { status: 401 })
   }
 
-  const role = user.user_metadata?.role
-  const isAdmin = role === "admin" || role === "tecnico"
+  const role = user.app_metadata?.role || user.user_metadata?.role
+  const isAdmin = Boolean(user.app_metadata?.es_admin || user.user_metadata?.es_admin || role === "admin" || role === "superadmin" || role === "tecnico")
 
   const supabase = getSupabaseAdmin()
   if (!supabase) {

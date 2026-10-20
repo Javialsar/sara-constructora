@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 import { SaraModule } from "@/lib/auth/moduleGuards"
+import { requireMasterAdmin } from "@/lib/auth/serverAuthGuard"
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,6 +18,7 @@ const supabaseAdmin = createClient(
 
 export async function getAuthUsersAction() {
   try {
+    await requireMasterAdmin()
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({
       perPage: 1000
     })
@@ -25,7 +27,9 @@ export async function getAuthUsersAction() {
     return {
       success: true,
       users: data.users.map(u => {
-        const meta = u.user_metadata || {}
+        const appMeta = u.app_metadata || {}
+        const userMeta = u.user_metadata || {}
+        const meta = { ...userMeta, ...appMeta }
         return {
           id: u.id,
           email: u.email || '',
@@ -46,14 +50,27 @@ export async function getAuthUsersAction() {
 
 export async function updateUserModulesAction(userId: string, modulos: SaraModule[]) {
   try {
+    await requireMasterAdmin()
     const { data: user, error: fetchErr } = await supabaseAdmin.auth.admin.getUserById(userId)
     if (fetchErr) throw fetchErr
 
     const currentMeta = user.user.user_metadata || {}
+    const currentAppMeta = user.user.app_metadata || {}
+    const role = currentAppMeta.role || currentMeta.role || (currentMeta.es_admin ? 'admin' : 'cliente')
+    const esAdmin = Boolean(currentAppMeta.es_admin ?? currentMeta.es_admin ?? (role === 'admin' || role === 'superadmin'))
+    const proyectosAutorizados = currentAppMeta.proyectos_autorizados || currentMeta.proyectos_autorizados || []
+
     const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       user_metadata: {
         ...currentMeta,
         modulos_autorizados: modulos
+      },
+      app_metadata: {
+        ...currentAppMeta,
+        role,
+        es_admin: esAdmin,
+        modulos_autorizados: modulos,
+        proyectos_autorizados: proyectosAutorizados
       }
     })
     if (error) throw error
@@ -71,6 +88,7 @@ export async function updateUserStatusAction(
   nuevoEstado: 'activo' | 'inactivo' | 'bloqueado'
 ) {
   try {
+    await requireMasterAdmin()
     if (table === 'clientes') {
       const { error } = await supabaseAdmin
         .from('clientes')
@@ -95,6 +113,7 @@ export async function updateUserStatusAction(
 
 export async function deleteUserAction(id: string, table: 'clientes' | 'trabajadores') {
   try {
+    await requireMasterAdmin()
     if (table === 'clientes') {
       // 1. Borrar de clientes
       const { error: dbError } = await supabaseAdmin.from('clientes').delete().eq('id', id)
@@ -121,6 +140,7 @@ export async function deleteUserAction(id: string, table: 'clientes' | 'trabajad
 
 export async function changeUserPasswordAction(userId: string, newPassword: string) {
   try {
+    await requireMasterAdmin()
     if (!newPassword || newPassword.length < 6) {
       return { success: false, error: "La contraseña debe tener al menos 6 caracteres." }
     }
@@ -151,6 +171,7 @@ export async function createUserAccessAction(data: {
   modulo_origen?: SaraModule
 }) {
   try {
+    await requireMasterAdmin()
     if (!data.nombre || !data.email || !data.password || !data.rol) {
       return { success: false, error: "Todos los campos principales son obligatorios." }
     }
@@ -160,6 +181,8 @@ export async function createUserAccessAction(data: {
     }
 
     const modOrigen = data.modulo_origen || (data.rol === 'Administrador' || data.rol === 'Técnico' ? undefined : 'sara_apu')
+    const assignedRole = data.rol === 'Administrador' ? 'admin' : (data.rol === 'Técnico' ? 'tecnico' : 'cliente')
+    const esAdmin = data.rol === 'Administrador'
 
     // 1. Crear el usuario en Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -170,11 +193,18 @@ export async function createUserAccessAction(data: {
         nombre: data.nombre,
         apellido: data.apellido || '',
         full_name: `${data.nombre} ${data.apellido || ''}`.trim(),
-        role: data.rol === 'Administrador' ? 'admin' : (data.rol === 'Técnico' ? 'tecnico' : 'cliente'),
+        role: assignedRole,
+        es_admin: esAdmin,
         ...(modOrigen ? {
           modulo_origen: modOrigen,
           modulos_autorizados: [modOrigen]
         } : {})
+      },
+      app_metadata: {
+        role: assignedRole,
+        es_admin: esAdmin,
+        modulos_autorizados: modOrigen ? [modOrigen] : [],
+        proyectos_autorizados: []
       }
     })
 

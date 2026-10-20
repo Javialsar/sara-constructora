@@ -66,6 +66,11 @@ import { BodegaKardexSection } from '@/components/constructora/BodegaKardexSecti
 import { ConfiguracionEmpresaSection } from '@/components/constructora/ConfiguracionEmpresaSection';
 import { PlanesSuscripcionSection } from '@/components/constructora/PlanesSuscripcionSection';
 import { EquipoAccesosSection } from '@/components/constructora/EquipoAccesosSection';
+import { PedidosMaterialesResidenteSection } from '@/components/constructora/PedidosMaterialesResidenteSection';
+import {
+  ObraMaterialRequestService,
+  SolicitudCompraDesdeBodega,
+} from '@/lib/services/obraMaterialRequestService';
 import { 
   ConstructoraSubscriptionService, 
   AccesoSubscriptionResult 
@@ -80,6 +85,7 @@ export type SuiteTab =
   | 'proyectos'
   | 'avances'
   | 'documentos'
+  | 'pedidos_obra'
   | 'kardex'
   | 'procura'
   | 'match'
@@ -213,6 +219,7 @@ export default function EcosistemaAvanzadoPage() {
     'proyectos',
     'avances',
     'documentos',
+    'pedidos_obra',
     'kardex',
     'procura',
     'match',
@@ -490,9 +497,42 @@ export default function EcosistemaAvanzadoPage() {
   const payrollResult = IessPayrollService.calculatePayroll(sampleTareos, { mes: 10, anio: 2026 }, 'proj-cariamanga');
 
   // -------------------------------------------------------------
-  // TAB 4: PROCURAMIENTO PREDICTIVO GEORREFERENCIADO
+  // TAB 4: PROCURAMIENTO PREDICTIVO GEORREFERENCIADO & SOLICITUDES DE BODEGA
   // -------------------------------------------------------------
   const [selectedCanton, setSelectedCanton] = useState<'Cariamanga' | 'Loja' | 'Cuenca'>('Cariamanga');
+  const [solicitudesCompraBodega, setSolicitudesCompraBodega] = useState<SolicitudCompraDesdeBodega[]>([]);
+  const [proveedorSeleccionadoOC, setProveedorSeleccionadoOC] = useState<Record<string, string>>({});
+  const [ocEmitidaBanner, setOcEmitidaBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
+    const syncSol = () => setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sara_pedidos_obra_updated', syncSol);
+      return () => window.removeEventListener('sara_pedidos_obra_updated', syncSol);
+    }
+  }, [activeTab]);
+
+  const handleEmitirOCDesdeSolicitudBodega = (sol: SolicitudCompraDesdeBodega) => {
+    const provElegido =
+      proveedorSeleccionadoOC[sol.id] || 'HOLCIM ECUADOR S.A. / ADELCA DISTRIBUCIÓN MAYORISTA';
+    const rucElegido = provElegido.includes('ADELCA')
+      ? '1790012345001'
+      : provElegido.includes('DISENSA')
+        ? '1102938475001'
+        : '0990004589001';
+
+    const { numeroOC } = ObraMaterialRequestService.emitirOrdenCompraDesdeSolicitud({
+      solicitudId: sol.id,
+      proveedorNombre: provElegido,
+      rucProveedor: rucElegido,
+    });
+
+    setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
+    setOcEmitidaBanner(
+      `¡Orden de Compra ${numeroOC} emitida exitosamente a ${provElegido} para cubrir el faltante reportado por el Bodeguero (Solicitud ${sol.numeroSolicitudCompra} • Obra: ${sol.proyectoDestino})!`
+    );
+  };
   const mockSupplierCatalog: SupplierCatalogItem[] = [
     {
       proveedorId: 'prov-holcim-gye',
@@ -601,6 +641,7 @@ export default function EcosistemaAvanzadoPage() {
     {
       title: "BODEGA E INVENTARIO",
       items: [
+        { id: "pedidos_obra", label: "Pedidos de Materiales (Obra)", icon: Boxes },
         { id: "kardex", label: "Bodega & Kardex", icon: Warehouse },
         { id: "procura", label: "Compras Predictivas", icon: ShoppingCart },
       ]
@@ -658,6 +699,9 @@ export default function EcosistemaAvanzadoPage() {
     } else if (tab === 'obras' || tab === 'proyectos') {
       setActiveTab('proyectos');
       setOpenGroup('MIS PROYECTOS');
+    } else if (tab === 'pedidos_obra' || tab === 'pedidos') {
+      setActiveTab('pedidos_obra');
+      setOpenGroup('BODEGA E INVENTARIO');
     } else if (tab === 'avances') {
       setActiveTab('avances');
       setOpenGroup('MIS PROYECTOS');
@@ -701,6 +745,8 @@ export default function EcosistemaAvanzadoPage() {
         return { group: 'CONFIGURACIÓN', title: 'Configuración Oficial de la Empresa (Identidad, Membrete & Firmas)' };
       case 'proyectos':
         return { group: 'MIS PROYECTOS', title: 'Obras y Proyectos Activos' };
+      case 'pedidos_obra':
+        return { group: 'BODEGA E INVENTARIO', title: 'Pedidos de Materiales del Residente a Bodega (APU & Manual)' };
       case 'avances':
         return { group: 'MIS PROYECTOS', title: 'Avances de Obra & Fiscalización Fotográfica' };
       case 'documentos':
@@ -1071,6 +1117,13 @@ export default function EcosistemaAvanzadoPage() {
           {/* VISTA 2: MIS PROYECTOS */}
           {activeTab === 'proyectos' && suscripcionActual?.hasAccess && (
             <MisProyectosSection user={professionalUser} initialSubTab="obras" />
+          )}
+
+          {activeTab === 'pedidos_obra' && suscripcionActual?.hasAccess && (
+            <PedidosMaterialesResidenteSection
+              user={professionalUser}
+              onNavigate={handleNavigate}
+            />
           )}
 
           {activeTab === 'avances' && (isCliente || suscripcionActual?.hasAccess) && (
@@ -1617,7 +1670,7 @@ export default function EcosistemaAvanzadoPage() {
         {/* PESTAÑA 2: BODEGA, INVENTARIOS & KARDEX OPERATIVO */}
         {/* ------------------------------------------------------------- */}
         {activeTab === 'kardex' && suscripcionActual?.hasAccess && (
-          <BodegaKardexSection user={professionalUser} />
+          <BodegaKardexSection user={professionalUser} onNavigate={handleNavigate} />
         )}
 
         {/* ------------------------------------------------------------- */}
@@ -1635,7 +1688,7 @@ export default function EcosistemaAvanzadoPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border">
-                    SBU 2026: $470.00 USD
+                    SBU 2026: $482.00 USD
                   </span>
                 </div>
               </div>
@@ -1728,6 +1781,152 @@ export default function EcosistemaAvanzadoPage() {
         {/* ------------------------------------------------------------- */}
         {activeTab === 'procura' && suscripcionActual?.hasAccess && (
           <div className="space-y-6">
+            {ocEmitidaBanner && (
+              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 flex items-center justify-between gap-4 text-emerald-900 dark:text-emerald-200 animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  <span className="p-2 rounded-xl bg-emerald-600 text-white shrink-0">
+                    <CheckCircle2 size={18} />
+                  </span>
+                  <p className="text-xs font-semibold">{ocEmitidaBanner}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOcEmitidaBanner(null)}
+                  className="p-1.5 rounded-lg hover:bg-black/10 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* BANDEJA DE SOLICITUDES DE COMPRA REMITIDAS POR EL BODEGUERO (POR FALTA DE STOCK) */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
+                    Escalamiento Bodega → Área de Compras
+                  </span>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
+                    Solicitudes de Compra Remitidas por el Bodeguero (Faltantes de Stock en Obra)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Materiales solicitados por el Ingeniero Residente que no tuvieron disponibilidad en Bodega Central y requieren emisión de Orden de Compra (OC).
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300">
+                  {solicitudesCompraBodega.filter(s => s.estado === 'PENDIENTE_COTIZACION_COMPRAS').length} Pendientes de OC
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {solicitudesCompraBodega.map(sol => (
+                  <div
+                    key={sol.id}
+                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3"
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-rose-600 text-white">
+                            {sol.numeroSolicitudCompra}
+                          </span>
+                          <span className="font-mono text-xs text-amber-600 dark:text-amber-400 font-bold">
+                            Origen: {sol.numeroPedidoOrigen}
+                          </span>
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">
+                            • {sol.proyectoDestino} ({sol.frenteObra})
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Solicitado por Residente: <strong>{sol.residenteSolicitante}</strong> • Certificado sin stock por: <strong>{sol.bodegueroSolicitante}</strong> ({sol.fechaSolicitud} {sol.horaSolicitud})
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {sol.estado === 'PENDIENTE_COTIZACION_COMPRAS' ? (
+                          <>
+                            <select
+                              value={
+                                proveedorSeleccionadoOC[sol.id] ||
+                                'HOLCIM ECUADOR S.A. / ADELCA DISTRIBUCIÓN MAYORISTA'
+                              }
+                              onChange={e =>
+                                setProveedorSeleccionadoOC(prev => ({
+                                  ...prev,
+                                  [sol.id]: e.target.value,
+                                }))
+                              }
+                              className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                            >
+                              <option value="HOLCIM ECUADOR S.A. / ADELCA DISTRIBUCIÓN MAYORISTA">
+                                Planta Mayorista (Holcim / Adelca - Mejor Precio)
+                              </option>
+                              <option value="DISENSA DISTRIBUIDORA SUR LOJA">
+                                Distribuidor Local Disensa (Entrega 3 Horas)
+                              </option>
+                              <option value="CANTERA & MATERIALES SUR LOJA CÍA. LTDA.">
+                                Cantera & Suministros Sur Loja
+                              </option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => handleEmitirOCDesdeSolicitudBodega(sol)}
+                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <ShoppingCart size={14} />
+                              <span>Generar Orden de Compra (OC)</span>
+                            </button>
+                          </>
+                        ) : (
+                          <span className="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-mono font-bold border border-emerald-300 flex items-center gap-1.5">
+                            <CheckCircle2 size={14} />
+                            <span>OC Emitida: {sol.numeroOCGenerada} ({sol.proveedorSeleccionado})</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-800/80 text-[10px] font-mono uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                            <th className="py-2 px-3">Código</th>
+                            <th className="py-2 px-3">Material Faltante en Bodega</th>
+                            <th className="py-2 px-2 text-center">Pedido Residente</th>
+                            <th className="py-2 px-2 text-center text-emerald-600">Atendido Bodega</th>
+                            <th className="py-2 px-2 text-center text-rose-600">Cantidad a Comprar (OC)</th>
+                            <th className="py-2 px-3 text-right">Subtotal Est. ($)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                          {sol.itemsAComprar.map((it, idx) => (
+                            <tr key={idx}>
+                              <td className="py-2 px-3 text-slate-500">{it.codigo}</td>
+                              <td className="py-2 px-3 font-sans font-bold text-slate-900 dark:text-white">
+                                {it.nombre}
+                              </td>
+                              <td className="py-2 px-2 text-center">
+                                {it.cantidadSolicitadaResidente} {it.unidad}
+                              </td>
+                              <td className="py-2 px-2 text-center text-emerald-600 font-bold">
+                                {it.cantidadDespachadaDesdeBodega} {it.unidad}
+                              </td>
+                              <td className="py-2 px-2 text-center text-rose-600 font-bold">
+                                {it.cantidadAComprar} {it.unidad}
+                              </td>
+                              <td className="py-2 px-3 text-right font-bold text-slate-900 dark:text-white">
+                                ${it.subtotalEstimadoUSD.toFixed(2)} USD
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>

@@ -51,6 +51,10 @@ import {
 import { SaraFletesSyncService, FleteRecepcionBodega } from '@/lib/services/saraFletesSyncService';
 import { SaraDatabaseAuditorService } from '@/lib/services/saraDatabaseAuditorService';
 import { SaraDatabaseAuditorModal } from './SaraDatabaseAuditorModal';
+import {
+  ObraMaterialRequestService,
+  PedidoMaterialObra,
+} from '@/lib/services/obraMaterialRequestService';
 
 // ============================================================================
 // TIPOS E INTERFACES DEL MÓDULO DE BODEGA & KARDEX
@@ -153,10 +157,22 @@ export interface OrdenDevolucion {
   totalDescuentoUSD?: number;
 }
 
-export function BodegaKardexSection({ user }: { user: any }) {
-  const [activeSubTab, setActiveSubTab] = useState<'kardex' | 'recepcion' | 'despacho' | 'stock_critico' | 'mermas'>('kardex');
+export function BodegaKardexSection({
+  user,
+  onNavigate,
+}: {
+  user: any;
+  onNavigate?: (tab: string) => void;
+}) {
+  const [activeSubTab, setActiveSubTab] = useState<
+    'kardex' | 'pedidos_residentes' | 'recepcion' | 'despacho' | 'stock_critico' | 'mermas'
+  >('kardex');
   const [selectedInsumoId, setSelectedInsumoId] = useState<string>('cemento_holcim');
   const [searchTerm, setSearchTerm] = useState('');
+  const [pedidosResidentes, setPedidosResidentes] = useState<PedidoMaterialObra[]>([]);
+  const [transportistaDespachoPedido, setTransportistaDespachoPedido] = useState<string>(
+    'Manuel Carrión (Volqueta Hino H-14 • Placa LBA-4589)'
+  );
 
   // Estados para Filtros Avanzados de Kardex (Imagen 3: Todos, Por Categorías, Por Proveedores, Por Proyecto)
   type FiltroKardexTipo = 'todos' | 'categoria' | 'proveedor' | 'proyecto';
@@ -775,8 +791,12 @@ export function BodegaKardexSection({ user }: { user: any }) {
   const [ordenesDevolucion, setOrdenesDevolucion] = useState<OrdenDevolucionContable[]>([]);
 
   useEffect(() => {
-    // Sincronizar devoluciones con el servicio contable
+    // Sincronizar devoluciones con el servicio contable y pedidos de residentes
     setOrdenesDevolucion(ThreeWayMatchService.getDevoluciones());
+    setPedidosResidentes(ObraMaterialRequestService.getPedidos());
+    const syncPedidos = () => setPedidosResidentes(ObraMaterialRequestService.getPedidos());
+    window.addEventListener('sara_pedidos_obra_updated', syncPedidos);
+    return () => window.removeEventListener('sara_pedidos_obra_updated', syncPedidos);
   }, []);
 
   // ----------------------------------------------------------------------------
@@ -948,7 +968,129 @@ export function BodegaKardexSection({ user }: { user: any }) {
     setMovimientos(prev => [nuevoMov, ...prev]);
     setValesDespacho(prev => [nuevoVale, ...prev]);
     setModalNuevoDespacho(false);
-    alert(`¡Vale ${nuevoValeNumero} generado y legalizado exitosamente!`);
+    setFeedbackBanner({
+      tipo: 'EXITO',
+      mensaje: `¡Vale ${nuevoValeNumero} generado y legalizado exitosamente hacia ${despachoForm.proyectoDestino}!`,
+    });
+  };
+
+  // 1.1 Procesar Pedido del Residente en Bodega (Despacho automático de stock disponible + Escalamiento de faltantes a Compras)
+  const handleAtenderPedidoResidente = (pedido: PedidoMaterialObra) => {
+    const stockMap: Record<string, number> = {};
+    insumos.forEach(i => {
+      stockMap[i.id] = i.stockActual;
+    });
+
+    const nuevosValesEmitidos: ValeDespacho[] = [];
+    const nuevosMovimientos: MovimientoKardex[] = [];
+    const valesNumeros: string[] = [];
+
+    // Clonar estado actual de insumos para ir descontando ítem por ítem
+    const insumosActualizados = insumos.map(i => ({ ...i }));
+
+    const itemsResultado = pedido.items.map((it, idx) => {
+      const insRef = insumosActualizados.find(
+        k => k.id === it.insumoKardexId || k.codigo === it.codigo
+      );
+      const stockDisponible = insRef ? insRef.stockActual : 0;
+      const cppUnitario = insRef ? insRef.cppActual : it.costoUnitarioEstimadoUSD;
+
+      const cantADespachar = Math.min(stockDisponible, it.cantidadSolicitada);
+      const cantFaltante = Math.max(0, it.cantidadSolicitada - cantADespachar);
+
+      if (cantADespachar > 0 && insRef) {
+        insRef.stockActual -= cantADespachar;
+        const numVale = `VALE-OBRA-2026-${valesDespacho.length + nuevosValesEmitidos.length + 129}`;
+        valesNumeros.push(numVale);
+        const costoImputado = +(cantADespachar * cppUnitario).toFixed(2);
+
+        nuevosValesEmitidos.push({
+          id: `VALE-PED-${Date.now()}-${idx}`,
+          numeroVale: numVale,
+          fecha: new Date().toISOString().split('T')[0],
+          hora: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+          proyectoDestino: pedido.proyectoNombre,
+          solicitadoPor: pedido.residenteNombre,
+          cargoSolicitante: pedido.residenteCargo,
+          transportista: transportistaDespachoPedido.split('•')[0].trim(),
+          placaVehiculo: 'LBA-4589',
+          insumoNombre: it.nombre,
+          cantidad: cantADespachar,
+          unidad: it.unidad,
+          costoUnitarioCpp: cppUnitario,
+          costoTotalImputado: costoImputado,
+          motivoImputacion: `${pedido.numeroPedido} • ${pedido.frenteObraEspecifico}`,
+          estadoLegalizacion: 'LEGALIZADO',
+        });
+
+        nuevosMovimientos.push({
+          id: `MOV-PED-${Date.now()}-${idx}`,
+          insumoId: insRef.id,
+          fecha: new Date().toISOString().split('T')[0],
+          hora: new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }),
+          tipo: 'DESPACHO_OBRA',
+          documentoRef: `${numVale} (${pedido.numeroPedido})`,
+          solicitanteOProveedor: pedido.residenteNombre,
+          proyectoDestino: pedido.proyectoNombre,
+          entradaCant: 0,
+          entradaCostoUnit: 0,
+          entradaTotal: 0,
+          salidaCant: cantADespachar,
+          salidaCostoUnit: cppUnitario,
+          salidaTotal: costoImputado,
+          saldoCant: insRef.stockActual,
+          saldoCpp: cppUnitario,
+          saldoTotal: +(insRef.stockActual * cppUnitario).toFixed(2),
+          observacion: `Atención de ${pedido.numeroPedido} (${it.origenItem}) hacia ${pedido.frenteObraEspecifico}`,
+        });
+      }
+
+      return {
+        itemId: it.id,
+        insumoKardexId: it.insumoKardexId,
+        codigo: it.codigo,
+        nombre: it.nombre,
+        categoria: it.categoria,
+        unidad: it.unidad,
+        Solicitado: it.cantidadSolicitada,
+        StockBodega: stockDisponible,
+        DespachadoBodega: cantADespachar,
+        FaltanteCompra: cantFaltante,
+        costoUnitarioUSD: cppUnitario,
+        rubroApuOrigen: it.rubroApuCodigo,
+      };
+    });
+
+    if (nuevosValesEmitidos.length > 0) {
+      setInsumos(insumosActualizados);
+      setValesDespacho(prev => [...nuevosValesEmitidos, ...prev]);
+      setMovimientos(prev => [...nuevosMovimientos, ...prev]);
+    }
+
+    const resProceso = ObraMaterialRequestService.procesarPedidoEnBodega({
+      pedidoId: pedido.id,
+      bodegueroNombre: user?.nombre || 'Jefe de Bodega & Kardex SARA',
+      stockActualPorInsumo: stockMap,
+      valesEmitidosNumeros: valesNumeros,
+      itemsResultado,
+    });
+
+    setPedidosResidentes(ObraMaterialRequestService.getPedidos());
+
+    if (resProceso.solicitudCompraCreada) {
+      setFeedbackBanner({
+        tipo: 'DISCREPANCIA',
+        mensaje:
+          valesNumeros.length > 0
+            ? `¡Atención Mixta Completada! Se despachó el stock disponible con Vale (${valesNumeros.join(', ')}) y por los materiales sin disponibilidad en Bodega se generó automáticamente la Solicitud de Compra ${resProceso.solicitudCompraCreada.numeroSolicitudCompra} hacia el Área de Compras.`
+            : `¡Sin Existencias en Bodega! Se generó y envió automáticamente la Solicitud de Compra ${resProceso.solicitudCompraCreada.numeroSolicitudCompra} al Área de Compras por la totalidad de los materiales solicitados por el Residente.`,
+      });
+    } else {
+      setFeedbackBanner({
+        tipo: 'EXITO',
+        mensaje: `¡Despacho 100% Cubierto con Stock de Bodega! Se emitieron los Vales (${valesNumeros.join(', ')}) para el Pedido ${pedido.numeroPedido} y se actualizó el Kardex al CPP.`,
+      });
+    }
   };
 
   // 2. Generar Orden de Devolución por Material Defectuoso o Faltante
@@ -1692,6 +1834,21 @@ export function BodegaKardexSection({ user }: { user: any }) {
         </button>
 
         <button
+          onClick={() => setActiveSubTab('pedidos_residentes')}
+          className={`px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+            activeSubTab === 'pedidos_residentes'
+              ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <HardHat size={16} className={pedidosResidentes.some(p => p.estado === 'PENDIENTE_BODEGA') ? 'text-amber-500' : ''} />
+          <span>Pedidos de Residentes ({pedidosResidentes.filter(p => p.estado === 'PENDIENTE_BODEGA').length})</span>
+          {pedidosResidentes.some(p => p.estado === 'PENDIENTE_BODEGA') && (
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+          )}
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('recepcion')}
           className={`px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer ${
             activeSubTab === 'recepcion'
@@ -1739,6 +1896,252 @@ export function BodegaKardexSection({ user }: { user: any }) {
           <span>Mermas Técnicas & Trazabilidad</span>
         </button>
       </div>
+
+      {/* ==================================================================== */}
+      {/* BANNER DE FEEDBACK OPERATIVO EN BODEGA                               */}
+      {/* ==================================================================== */}
+      {feedbackBanner && (
+        <div
+          className={`p-4 rounded-2xl border flex items-center justify-between gap-4 animate-in fade-in ${
+            feedbackBanner.tipo === 'EXITO'
+              ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+              : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span
+              className={`p-2 rounded-xl text-white shrink-0 ${
+                feedbackBanner.tipo === 'EXITO' ? 'bg-emerald-600' : 'bg-amber-600'
+              }`}
+            >
+              {feedbackBanner.tipo === 'EXITO' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+            </span>
+            <p className="text-xs font-medium leading-relaxed">{feedbackBanner.mensaje}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {onNavigate && feedbackBanner.tipo === 'DISCREPANCIA' && (
+              <button
+                type="button"
+                onClick={() => onNavigate('procura')}
+                className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs cursor-pointer"
+              >
+                Ir a Área de Compras →
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setFeedbackBanner(null)}
+              className="p-1.5 rounded-lg hover:bg-black/10 cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* SUBTAB NUEVA: BANDEJA DE PEDIDOS DE RESIDENTES DE OBRA               */}
+      {/* ==================================================================== */}
+      {activeSubTab === 'pedidos_residentes' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-5">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">
+                    Control de Existencias Bodeguero → Obra / Compras
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
+                  Bandeja de Pedidos de Materiales Solicitados por los Residentes de Obra
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Verifica automáticamente cada ítem contra el stock real del Kardex: lo disponible se despacha con <strong>Vale de Obra</strong> y lo que no tenga stock genera automáticamente una <strong>Solicitud / Orden de Compra al Área de Compras</strong>.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-xs">
+                  <label className="text-[10px] text-slate-400 font-mono block">Vehículo / Chofer para Vales:</label>
+                  <input
+                    type="text"
+                    value={transportistaDespachoPedido}
+                    onChange={e => setTransportistaDespachoPedido(e.target.value)}
+                    className="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white w-72"
+                  />
+                </div>
+                {onNavigate && (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('pedidos_obra')}
+                    className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus size={14} className="text-amber-400" />
+                    <span>Nuevo Pedido (Vista Residente)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {pedidosResidentes.map(ped => {
+                const esPendiente = ped.estado === 'PENDIENTE_BODEGA';
+                return (
+                  <div
+                    key={ped.id}
+                    className={`p-5 rounded-2xl border transition-all space-y-4 ${
+                      esPendiente
+                        ? 'bg-amber-50/20 dark:bg-amber-950/10 border-amber-300 dark:border-amber-800/70'
+                        : 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-slate-900 text-amber-400">
+                            {ped.numeroPedido}
+                          </span>
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">
+                            {ped.proyectoNombre}
+                          </span>
+                          <span className="text-xs text-slate-500">• {ped.frenteObraEspecifico}</span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                              ped.prioridad === 'EMERGENCIA_CRITICA'
+                                ? 'bg-rose-600 text-white'
+                                : ped.prioridad === 'URGENTE_24H'
+                                  ? 'bg-amber-500 text-slate-950'
+                                  : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'
+                            }`}
+                          >
+                            {ped.prioridad.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          Solicitado por: <strong className="text-slate-800 dark:text-slate-200">{ped.residenteNombre}</strong> ({ped.fechaEmision} {ped.horaEmision}) • Justificación: <em>"{ped.justificacionGeneral}"</em>
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {esPendiente ? (
+                          <button
+                            type="button"
+                            onClick={() => handleAtenderPedidoResidente(ped)}
+                            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition-all"
+                          >
+                            <ClipboardCheck size={16} />
+                            <span>Despachar Stock Disponible y Solicitar Faltantes a Compras</span>
+                          </button>
+                        ) : (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {ped.valesGeneradosRef.length > 0 && (
+                              <span className="px-3 py-1 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-mono font-bold border border-emerald-300">
+                                ✓ Vales Emitidos: {ped.valesGeneradosRef.join(', ')}
+                              </span>
+                            )}
+                            {ped.solicitudCompraRef && (
+                              <button
+                                type="button"
+                                onClick={() => onNavigate && onNavigate('procura')}
+                                className="px-3 py-1 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 text-xs font-mono font-bold border border-rose-300 hover:bg-rose-200 cursor-pointer flex items-center gap-1.5"
+                              >
+                                <span>🛒 Solicitud a Compras: {ped.solicitudCompraRef}</span>
+                                <ExternalLink size={12} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tabla comparativa en vivo: Solicitado vs Stock en Bodega vs A Despachar vs A Comprar */}
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-100 dark:bg-slate-800/80 text-[10px] font-mono uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                            <th className="py-2.5 px-3">Origen</th>
+                            <th className="py-2.5 px-3">Material Solicitado por Residente</th>
+                            <th className="py-2.5 px-2 text-center">Pedido Obra</th>
+                            <th className="py-2.5 px-2 text-center">Stock Actual Bodega</th>
+                            <th className="py-2.5 px-2 text-center text-emerald-600">Se Despacha (Vale)</th>
+                            <th className="py-2.5 px-2 text-center text-rose-600">Faltante → A Compras</th>
+                            <th className="py-2.5 px-3 text-center">Dictamen de Disponibilidad</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                          {ped.items.map(it => {
+                            const insBodega = insumos.find(
+                              k => k.id === it.insumoKardexId || k.codigo === it.codigo
+                            );
+                            const stockDisp = insBodega ? insBodega.stockActual : 0;
+                            const aDespachar = esPendiente
+                              ? Math.min(stockDisp, it.cantidadSolicitada)
+                              : it.cantidadDespachadaBodega;
+                            const aComprar = esPendiente
+                              ? Math.max(0, it.cantidadSolicitada - aDespachar)
+                              : it.cantidadFaltanteParaCompra;
+
+                            return (
+                              <tr key={it.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
+                                <td className="py-2.5 px-3">
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      it.origenItem === 'APU'
+                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                        : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
+                                    }`}
+                                  >
+                                    {it.origenItem}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 font-sans">
+                                  <div className="font-bold text-slate-900 dark:text-white">{it.nombre}</div>
+                                  <span className="text-[10px] font-mono text-slate-400">
+                                    {it.codigo} {it.rubroApuCodigo ? `• Rubro: ${it.rubroApuCodigo}` : '• Solicitud Manual'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-2 text-center font-bold text-slate-900 dark:text-white">
+                                  {it.cantidadSolicitada.toLocaleString()} {it.unidad}
+                                </td>
+                                <td className="py-2.5 px-2 text-center">
+                                  <span className={stockDisp === 0 ? 'text-rose-500 font-bold' : 'text-slate-700 dark:text-slate-300'}>
+                                    {stockDisp.toLocaleString()} {it.unidad}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-2 text-center font-bold text-emerald-600 dark:text-emerald-400">
+                                  {aDespachar > 0 ? `${aDespachar.toLocaleString()} ${it.unidad}` : '0'}
+                                </td>
+                                <td className="py-2.5 px-2 text-center font-bold text-rose-600 dark:text-rose-400">
+                                  {aComprar > 0 ? `${aComprar.toLocaleString()} ${it.unidad}` : '0'}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-sans">
+                                  {aComprar === 0 ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                      ✅ 100% en Stock (Vale Directo)
+                                    </span>
+                                  ) : aDespachar > 0 ? (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                      ⚠️ Stock Parcial (Vale + Compra)
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                                      🚨 Sin Stock (Generar OC en Compras)
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ==================================================================== */}
       {/* 3. SUBTAB 1: KARDEX EXCLUSIVO POR INSUMO                             */}

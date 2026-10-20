@@ -27,14 +27,48 @@ export class SaraConstructoraAgent {
       : `proy_${Date.now()}`;
 
     // APRENDIZAJE EVOLUTIVO: Consultar qué sistema constructivo genera menos retrasos históricos
-    const delayKnowledge = await SaraSharedMemory.getKnowledge('apu_yields', `rendimiento_mano_obra_${input.provincia.toLowerCase()}`);
+    const provKey = input.provincia.toLowerCase();
+    const delayKnowledge = await SaraSharedMemory.getKnowledge('apu_yields', `rendimiento_mano_obra_${provKey}`);
+    const factorRendimientoHist = delayKnowledge?.currentValue?.factor_rendimiento ?? 1.0;
+    const climaAjusteHist = delayKnowledge?.currentValue?.clima_ajuste ?? 1.0;
     let sistemaSugerido: 'Hormigón Armado' | 'Estructura de Acero' | 'Mampostería Portante' | 'Mixto' = 'Hormigón Armado';
 
     if (input.tipologia === 'Comercial' || input.tipologia === 'Estructura Metálica') {
       sistemaSugerido = 'Estructura de Acero';
-    } else if (input.provincia.toLowerCase() === 'guayas' && input.areaM2 > 200) {
-      sistemaSugerido = 'Mixto'; // Mitiga retrasos por alta temperatura y fraguado rápido
+    } else if ((provKey === 'guayas' || factorRendimientoHist < 0.95 || climaAjusteHist > 1.10) && input.areaM2 > 200) {
+      sistemaSugerido = 'Mixto'; // Mitiga retrasos históricos detectados en knowledge base por clima/fraguado
+    } else if (input.areaM2 <= 120 && (input.niveles || 1) === 1 && factorRendimientoHist >= 1.02) {
+      sistemaSugerido = 'Mampostería Portante';
     }
+
+    // Zonificación Sísmica NEC-15 (NEC-SE-DS Peligro Sísmico Ecuador)
+    const mapaSismicoNec15: Record<string, { zonaSismica: string; factorZ: number; perfilSuelo: string }> = {
+      esmeraldas: { zonaSismica: 'VI (Muy Alta - Costa Subducción)', factorZ: 0.50, perfilSuelo: 'SD' },
+      manabi: { zonaSismica: 'VI (Muy Alta - Costa Subducción)', factorZ: 0.50, perfilSuelo: 'SD' },
+      santa_elena: { zonaSismica: 'VI (Muy Alta - Costa Subducción)', factorZ: 0.50, perfilSuelo: 'SD' },
+      pichincha: { zonaSismica: 'V (Alta - Sierra Interandina)', factorZ: 0.40, perfilSuelo: 'SD' },
+      guayas: { zonaSismica: 'V (Alta - Cuenca Baja Guayas)', factorZ: 0.40, perfilSuelo: 'SE' },
+      tungurahua: { zonaSismica: 'V (Alta - Sierra Central)', factorZ: 0.40, perfilSuelo: 'SD' },
+      chimborazo: { zonaSismica: 'V (Alta - Sierra Central)', factorZ: 0.40, perfilSuelo: 'SD' },
+      imbabura: { zonaSismica: 'V (Alta - Sierra Norte)', factorZ: 0.40, perfilSuelo: 'SD' },
+      cotopaxi: { zonaSismica: 'V (Alta - Sierra Central)', factorZ: 0.40, perfilSuelo: 'SD' },
+      galapagos: { zonaSismica: 'III (Moderada Insular)', factorZ: 0.30, perfilSuelo: 'SC' },
+      azuay: { zonaSismica: 'II (Intermedia - Austro)', factorZ: 0.25, perfilSuelo: 'SC' },
+      loja: { zonaSismica: 'II (Intermedia - Sur)', factorZ: 0.25, perfilSuelo: 'SC' }
+    };
+
+    const sismicaProv = mapaSismicoNec15[provKey] || {
+      zonaSismica: 'V (Alta - Estándar Nacional NEC-15)',
+      factorZ: 0.40,
+      perfilSuelo: 'SD'
+    };
+
+    const parametrosSismicosNec15 = {
+      zonaSismica: sismicaProv.zonaSismica,
+      factorZ: sismicaProv.factorZ,
+      perfilSuelo: sismicaProv.perfilSuelo,
+      coeficienteImportanciaI: input.tipologia === 'Comercial' || input.tipologia === 'Vial' ? 1.3 : 1.0
+    };
 
     // Coordenadas por defecto en Ecuador si no vienen dadas
     const coordenadasDefecto: Record<string, { lat: number; lng: number }> = {
@@ -45,7 +79,6 @@ export class SaraConstructoraAgent {
       galapagos: { lat: -0.7432, lng: -90.3135 } // Puerto Ayora
     };
 
-    const provKey = input.provincia.toLowerCase();
     const coords = input.coordenadas || coordenadasDefecto[provKey] || { lat: -2.9001, lng: -79.0059 };
 
     // Estimación paramétrica inicial (promedio $480/m2 para residencial estándar)
@@ -63,7 +96,8 @@ export class SaraConstructoraAgent {
       niveles: input.niveles || (input.areaM2 > 180 ? 2 : 1),
       coordenadas: coords,
       presupuestoEstimadoReferencial,
-      cliente: input.cliente
+      cliente: input.cliente,
+      parametrosSismicosNec15
     };
 
     // 1. Guardar en la Memoria Colectiva

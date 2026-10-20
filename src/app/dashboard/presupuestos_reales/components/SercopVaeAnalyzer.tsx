@@ -50,7 +50,8 @@ export default function SercopVaeAnalyzer({
       const insId = iObj.id
       if (!consolidado[insId]) {
         // Por defecto: Mano de obra es 100% nacional. Equipos y materiales se asumen nacionales salvo importados comunes
-        const defaultNacional = iObj.tipo === 'mano_de_obra' ? true : true
+        const isLikelyImported = iObj.tipo === 'equipo' && /cat|komatsu|importad|dron|estaci[oó]n total|software/i.test(iObj.nombre || '')
+        const defaultNacional = iObj.tipo === 'mano_de_obra' ? true : !isLikelyImported
         consolidado[insId] = {
           id: insId,
           nombre: iObj.nombre || "Insumo",
@@ -66,7 +67,9 @@ export default function SercopVaeAnalyzer({
 
   const insumosArray = Object.values(consolidado).map(ins => {
     const override = insumoNacionalOverrides[ins.id]
-    const esNacional = override !== undefined ? override : (ins.tipo === 'mano_de_obra' ? true : true)
+    const isLikelyImported = ins.tipo === 'equipo' && /cat|komatsu|importad|dron|estaci[oó]n total|software/i.test(ins.nombre || '')
+    const defaultNacional = ins.tipo === 'mano_de_obra' ? true : !isLikelyImported
+    const esNacional: boolean = override !== undefined ? override : (ins.es_nacional ?? defaultNacional)
     return {
       ...ins,
       es_nacional: esNacional

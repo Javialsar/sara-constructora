@@ -3,6 +3,11 @@ import Stripe from "stripe"
 import { createClient } from "@supabase/supabase-js"
 
 export async function POST(req: Request) {
+  if (process.env.NODE_ENV === "production" && !process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error("Webhook Error: STRIPE_WEBHOOK_SECRET no está configurado en producción")
+    return NextResponse.json({ error: "Configuración de webhook inválida en producción" }, { status: 500 })
+  }
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
     apiVersion: "2026-09-30.endive",
   })
