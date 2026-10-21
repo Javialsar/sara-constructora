@@ -94,7 +94,7 @@ const crearIconoVehiculo = (tipoVehiculo: CategoriaVehiculo, isFiltered: boolean
   });
 };
 
-// Controlador de cámara automática que ajusta zoom y vista según los puntos activos
+// Controlador de cámara automática que ajusta zoom y vista sin movimientos bruscos al arrastrar
 function MapCameraController({
   userLocation,
   origenCoords,
@@ -107,32 +107,68 @@ function MapCameraController({
   rutaCoordenadas?: [number, number][];
 }) {
   const map = useMap();
-  const initialCenteredRef = useRef(false);
+  const initialFittedRef = useRef(false);
+  const lastFittedCoordsRef = useRef<string>('');
 
-  // 1. Ajustar límites si existen origen y destino
   useEffect(() => {
-    if (origenCoords && destinoCoords) {
-      const bounds = L.latLngBounds([origenCoords, destinoCoords]);
-      if (rutaCoordenadas && rutaCoordenadas.length > 0) {
-        rutaCoordenadas.forEach(coord => bounds.extend(coord));
+    // Si no tenemos ambos puntos, centrar en usuario la primera vez
+    if (!origenCoords && !destinoCoords) {
+      if (userLocation && !initialFittedRef.current) {
+        map.flyTo(userLocation, 14, { animate: true, duration: 1 });
+        initialFittedRef.current = true;
       }
-      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16, animate: true });
       return;
     }
 
-    if (origenCoords) {
-      map.flyTo(origenCoords, 15, { animate: true, duration: 1 });
-      return;
-    }
-
-    // Centrar en ubicación del usuario la primera vez
-    if (userLocation && !initialCenteredRef.current) {
-      map.flyTo(userLocation, 14, { animate: true, duration: 1.2 });
-      initialCenteredRef.current = true;
+    // Solo reajustar límites la primera vez o si cambia radicalmente de cantón/ciudad
+    if (origenCoords && destinoCoords) {
+      const coordKey = `${origenCoords[0].toFixed(2)},${origenCoords[1].toFixed(2)}-${destinoCoords[0].toFixed(2)},${destinoCoords[1].toFixed(2)}`;
+      if (!initialFittedRef.current || lastFittedCoordsRef.current !== coordKey) {
+        const bounds = L.latLngBounds([origenCoords, destinoCoords]);
+        if (rutaCoordenadas && rutaCoordenadas.length > 0) {
+          rutaCoordenadas.forEach(coord => bounds.extend(coord));
+        }
+        map.fitBounds(bounds, { padding: [65, 65], maxZoom: 15, animate: true });
+        initialFittedRef.current = true;
+        lastFittedCoordsRef.current = coordKey;
+      }
     }
   }, [map, userLocation, origenCoords, destinoCoords, rutaCoordenadas]);
 
   return null;
+}
+
+// Botón flotante para recentrar la vista completa de la ruta
+function CentrarRutaBoton({
+  origenCoords,
+  destinoCoords,
+  rutaCoordenadas
+}: {
+  origenCoords: [number, number] | null;
+  destinoCoords: [number, number] | null;
+  rutaCoordenadas?: [number, number][];
+}) {
+  const map = useMap();
+  if (!origenCoords || !destinoCoords) return null;
+
+  return (
+    <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 1000 }}>
+      <button
+        type="button"
+        onClick={() => {
+          const bounds = L.latLngBounds([origenCoords, destinoCoords]);
+          if (rutaCoordenadas && rutaCoordenadas.length > 0) {
+            rutaCoordenadas.forEach(coord => bounds.extend(coord));
+          }
+          map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15, animate: true });
+        }}
+        className="bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 shadow-2xl flex items-center gap-1.5 transition-all backdrop-blur-md cursor-pointer"
+      >
+        <span>🎯</span>
+        <span>Centrar Ruta</span>
+      </button>
+    </div>
+  );
 }
 
 // Controlador de clics en el mapa
@@ -372,6 +408,13 @@ export default function SaraFletesMap({
             </Marker>
           );
         })}
+
+        {/* Botón flotante para recentrar la ruta si el usuario se alejó */}
+        <CentrarRutaBoton
+          origenCoords={origenCoords}
+          destinoCoords={destinoCoords}
+          rutaCoordenadas={rutaCoordenadas}
+        />
       </MapContainer>
     </div>
   );

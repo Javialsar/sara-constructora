@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   Truck, 
@@ -93,6 +93,11 @@ export default function SaraFletesEngine() {
   const [originPoint, setOriginPoint] = useState<GeocodedPoint | null>(null);
   const [destinationPoint, setDestinationPoint] = useState<GeocodedPoint | null>(null);
   const [rutaCalculada, setRutaCalculada] = useState<RutaVialCalculada | null>(null);
+
+  // Candados y estado interactivo de mapa para evitar desfasaje y saltos
+  const originLockedByMapRef = useRef<boolean>(false);
+  const destLockedByMapRef = useRef<boolean>(false);
+  const [mapClickMode, setMapClickMode] = useState<'origen' | 'destino' | null>(null);
 
   // 3. Parámetros de la Carga (Flete)
   const [vehicleType, setVehicleType] = useState<CategoriaVehiculo>('PICKUP_1T');
@@ -226,17 +231,25 @@ export default function SaraFletesEngine() {
   ) => {
     setIsCalculatingRoute(true);
     try {
-      const puntoOrig = await SaraFreightRoutingService.geocodificarDireccion(
-        origenTxt,
-        userLocation || undefined
-      );
-      const puntoDest = await SaraFreightRoutingService.geocodificarDireccion(
-        destinoTxt,
-        puntoOrig ? [puntoOrig.lat, puntoOrig.lng] : userLocation || undefined
-      );
+      let puntoOrig = originPoint;
+      // Solo geocodificar desde texto si el punto no fue fijado manualmente en el mapa
+      if (!originLockedByMapRef.current || !puntoOrig) {
+        puntoOrig = await SaraFreightRoutingService.geocodificarDireccion(
+          origenTxt,
+          userLocation || undefined
+        );
+        if (puntoOrig) setOriginPoint(puntoOrig);
+      }
 
-      if (puntoOrig) setOriginPoint(puntoOrig);
-      if (puntoDest) setDestinationPoint(puntoDest);
+      let puntoDest = destinationPoint;
+      // Solo geocodificar desde texto si el punto no fue fijado manualmente en el mapa
+      if (!destLockedByMapRef.current || !puntoDest) {
+        puntoDest = await SaraFreightRoutingService.geocodificarDireccion(
+          destinoTxt,
+          puntoOrig ? [puntoOrig.lat, puntoOrig.lng] : userLocation || undefined
+        );
+        if (puntoDest) setDestinationPoint(puntoDest);
+      }
 
       if (puntoOrig && puntoDest) {
         const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(puntoOrig, puntoDest);
@@ -259,7 +272,7 @@ export default function SaraFletesEngine() {
     } finally {
       setIsCalculatingRoute(false);
     }
-  }, [userLocation]);
+  }, [userLocation, originPoint, destinationPoint]);
 
   useEffect(() => {
     if (originText && destinationText && serviceType === 'flete') {
@@ -272,6 +285,7 @@ export default function SaraFletesEngine() {
 
   const handleUsarMiUbicacionComoOrigen = () => {
     if (userLocation) {
+      originLockedByMapRef.current = true;
       setOriginPoint({
         nombre: 'Mi Ubicación Actual (GPS)',
         lat: userLocation[0],
@@ -283,14 +297,15 @@ export default function SaraFletesEngine() {
 
   // Manejador de arrastre manual de Punto de Carga (Origen)
   const handleOriginDragEnd = async (lat: number, lng: number) => {
-    const coordTexto = `Ubicación mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    originLockedByMapRef.current = true;
+    const exactLat = +lat.toFixed(5);
+    const exactLng = +lng.toFixed(5);
     const newPoint: GeocodedPoint = {
-      nombre: coordTexto,
-      lat,
-      lng
+      nombre: `Punto exacto (${exactLat}, ${exactLng})`,
+      lat: exactLat,
+      lng: exactLng
     };
     setOriginPoint(newPoint);
-    setOriginText(coordTexto);
 
     if (destinationPoint) {
       setIsCalculatingRoute(true);
@@ -311,25 +326,27 @@ export default function SaraFletesEngine() {
       }
     }
 
-    // Resolver nombre de calle en segundo plano
-    SaraFreightRoutingService.reverseGeocodificar(lat, lng).then((dir) => {
+    // Resolver nombre de calle en segundo plano sin mover el pin fijado
+    SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
       if (dir) {
         setOriginText(dir);
-        setOriginPoint(prev => prev ? { ...prev, nombre: dir } : prev);
+      } else {
+        setOriginText(`Coord: ${exactLat}, ${exactLng}`);
       }
     });
   };
 
   // Manejador de arrastre manual de Punto de Descarga (Destino)
   const handleDestinationDragEnd = async (lat: number, lng: number) => {
-    const coordTexto = `Ubicación mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    destLockedByMapRef.current = true;
+    const exactLat = +lat.toFixed(5);
+    const exactLng = +lng.toFixed(5);
     const newPoint: GeocodedPoint = {
-      nombre: coordTexto,
-      lat,
-      lng
+      nombre: `Punto exacto (${exactLat}, ${exactLng})`,
+      lat: exactLat,
+      lng: exactLng
     };
     setDestinationPoint(newPoint);
-    setDestinationText(coordTexto);
 
     if (originPoint) {
       setIsCalculatingRoute(true);
@@ -350,13 +367,25 @@ export default function SaraFletesEngine() {
       }
     }
 
-    // Resolver nombre de calle en segundo plano
-    SaraFreightRoutingService.reverseGeocodificar(lat, lng).then((dir) => {
+    // Resolver nombre de calle en segundo plano sin mover el pin fijado
+    SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
       if (dir) {
         setDestinationText(dir);
-        setDestinationPoint(prev => prev ? { ...prev, nombre: dir } : prev);
+      } else {
+        setDestinationText(`Coord: ${exactLat}, ${exactLng}`);
       }
     });
+  };
+
+  // Manejador de clics directos sobre el mapa
+  const handleMapClick = (lat: number, lng: number) => {
+    if (mapClickMode === 'origen') {
+      handleOriginDragEnd(lat, lng);
+      setMapClickMode(null);
+    } else if (mapClickMode === 'destino') {
+      handleDestinationDragEnd(lat, lng);
+      setMapClickMode(null);
+    }
   };
 
   // Solicitar el flete (Modo Flete Directo)
@@ -602,6 +631,8 @@ export default function SaraFletesEngine() {
                     <button
                       type="button"
                       onClick={() => {
+                        originLockedByMapRef.current = false;
+                        destLockedByMapRef.current = false;
                         setOriginText('MAtecons Chile, Cariamanga');
                         setDestinationText('El Dorado, Cariamanga');
                         setWeight(1);
@@ -617,7 +648,7 @@ export default function SaraFletesEngine() {
                   <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
                     <div className="bg-amber-500/10 border border-amber-500/25 p-2 rounded-lg text-[11px] text-amber-300 flex items-center gap-2 font-medium">
                       <span className="text-sm">📍</span>
-                      <span>Puedes <strong>arrastrar los iconos 🟢 CARGA o 🚩 DESCARGA</strong> directamente en el mapa para ubicar el punto con precisión.</span>
+                      <span><strong>Arrastra los pines 🟢 CARGA o 🚩 DESCARGA</strong> en el mapa o escribe la dirección para fijar la ubicación exacta.</span>
                     </div>
 
                     <div>
@@ -626,33 +657,69 @@ export default function SaraFletesEngine() {
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
                           Punto de Carga (Origen)
                         </label>
-                        <button
-                          type="button"
-                          onClick={handleUsarMiUbicacionComoOrigen}
-                          className="text-[10px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1"
-                        >
-                          <Crosshair className="w-3 h-3" />
-                          Usar mi GPS
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded transition-all flex items-center gap-1 ${
+                              mapClickMode === 'origen'
+                                ? 'bg-emerald-500 text-slate-950 animate-pulse font-black shadow-md'
+                                : 'text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-500/30'
+                            }`}
+                            title="Haz clic para activar selección en el mapa"
+                          >
+                            <span>📍</span>
+                            <span>{mapClickMode === 'origen' ? 'Clic en mapa...' : 'Clic en Mapa'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleUsarMiUbicacionComoOrigen}
+                            className="text-[10px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 bg-blue-950/40 border border-blue-500/30 px-2 py-0.5 rounded"
+                          >
+                            <Crosshair className="w-3 h-3" />
+                            GPS
+                          </button>
+                        </div>
                       </div>
                       <input
                         type="text"
                         value={originText}
-                        onChange={(e) => setOriginText(e.target.value)}
+                        onChange={(e) => {
+                          originLockedByMapRef.current = false;
+                          setOriginText(e.target.value);
+                        }}
                         placeholder="Ej. MAtecons Chile, Cariamanga"
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
-                        Punto de Descarga (Destino)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+                          Punto de Descarga (Destino)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setMapClickMode(mapClickMode === 'destino' ? null : 'destino')}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded transition-all flex items-center gap-1 ${
+                            mapClickMode === 'destino'
+                              ? 'bg-amber-500 text-slate-950 animate-pulse font-black shadow-md'
+                              : 'text-amber-400 hover:text-amber-300 bg-amber-950/40 border border-amber-500/30'
+                          }`}
+                          title="Haz clic para activar selección en el mapa"
+                        >
+                          <span>📍</span>
+                          <span>{mapClickMode === 'destino' ? 'Clic en mapa...' : 'Clic en Mapa'}</span>
+                        </button>
+                      </div>
                       <input
                         type="text"
                         value={destinationText}
-                        onChange={(e) => setDestinationText(e.target.value)}
+                        onChange={(e) => {
+                          destLockedByMapRef.current = false;
+                          setDestinationText(e.target.value);
+                        }}
                         placeholder="Ej. El Dorado, Cariamanga"
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
                       />
@@ -1179,6 +1246,21 @@ export default function SaraFletesEngine() {
             </div>
           </div>
 
+          {/* Banner indicador cuando el usuario activa "Clic en Mapa" */}
+          {mapClickMode && (
+            <div className="absolute top-20 left-4 z-20 bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-xl text-xs flex items-center gap-2.5 shadow-2xl border-2 border-slate-950 animate-pulse">
+              <span className="text-base">📍</span>
+              <span>Haz clic en cualquier calle o punto del mapa para ubicar <strong>{mapClickMode === 'origen' ? '🟢 CARGA (Origen)' : '🚩 DESCARGA (Destino)'}</strong></span>
+              <button
+                type="button"
+                onClick={() => setMapClickMode(null)}
+                className="ml-2 bg-slate-950 hover:bg-slate-800 text-white font-bold px-2 py-0.5 rounded text-[10px] transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
           <SaraFletesMap
             userLocation={userLocation}
             origenCoords={originPoint ? [originPoint.lat, originPoint.lng] : null}
@@ -1190,6 +1272,7 @@ export default function SaraFletesEngine() {
             vehiculoSeleccionado={vehicleType}
             onOriginDragEnd={handleOriginDragEnd}
             onDestinationDragEnd={handleDestinationDragEnd}
+            onMapClick={handleMapClick}
             onSelectVehiculo={(veh) => {
               setVehicleType(veh.tipoVehiculo);
             }}
