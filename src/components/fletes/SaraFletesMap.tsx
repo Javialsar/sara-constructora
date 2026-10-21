@@ -6,32 +6,34 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CategoriaVehiculo, CATALOGO_VEHICULOS_SARA } from '@/lib/services/saraFreightPricingService';
 
-export type MapLayerType = 'voyager' | 'satellite' | 'dark' | 'streets';
+export type MapLayerType = 'google_streets' | 'google_hybrid' | 'esri_satellite' | 'osm_streets';
 
-export const MAP_TILE_PROVIDERS: Record<MapLayerType, { name: string; url: string; maxZoom: number; icon: string }> = {
-  voyager: {
-    name: 'Vial & Tráfico',
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    maxZoom: 19,
-    icon: '🚦'
+export const MAP_TILE_PROVIDERS: Record<MapLayerType, { name: string; url: string; subdomains?: string[]; maxZoom: number; icon: string }> = {
+  google_streets: {
+    name: 'Google Maps (Calles & Tráfico)',
+    url: 'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20,
+    icon: '🗺️'
   },
-  satellite: {
-    name: 'Satelital HD',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    maxZoom: 19,
+  google_hybrid: {
+    name: 'Google Satélite HD (Con Calles)',
+    url: 'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    maxZoom: 20,
     icon: '🛰️'
   },
-  dark: {
-    name: 'SARA Night',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  esri_satellite: {
+    name: 'Esri Satelital Mundial',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     maxZoom: 19,
-    icon: '🌙'
+    icon: '🌍'
   },
-  streets: {
-    name: 'OpenStreetMap',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  osm_streets: {
+    name: 'OpenStreetMap Oficial',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     maxZoom: 19,
-    icon: '🗺️'
+    icon: '🌐'
   }
 };
 
@@ -288,7 +290,7 @@ export default function SaraFletesMap({
   onOriginDragEnd,
   onDestinationDragEnd
 }: SaraFletesMapProps) {
-  const [activeLayer, setActiveLayer] = useState<MapLayerType>('voyager');
+  const [activeLayer, setActiveLayer] = useState<MapLayerType>('google_streets');
 
   // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Loja/Cariamanga (-4.3285, -79.5560) o Cuenca (-2.8974, -79.0044)
   const defaultCenter: [number, number] = userLocation || origenCoords || [-4.3285, -79.5560];
@@ -302,10 +304,11 @@ export default function SaraFletesMap({
         style={{ width: '100%', height: '100%', zIndex: 1 }}
         attributionControl={false}
       >
-        {/* Capa de Cartografía Dinámica Seleccionada (Vial Voyager / Satelital HD / Dark Night / OSM) */}
+        {/* Capa de Cartografía Dinámica Seleccionada (Google Maps / Google Satélite / Esri / OSM) */}
         <TileLayer
           key={activeLayer}
           url={MAP_TILE_PROVIDERS[activeLayer].url}
+          subdomains={MAP_TILE_PROVIDERS[activeLayer].subdomains || ['a', 'b', 'c']}
           maxZoom={MAP_TILE_PROVIDERS[activeLayer].maxZoom}
         />
 
