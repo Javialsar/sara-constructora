@@ -1,17 +1,30 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Truck, Mail, Lock, User, ChevronRight, AlertCircle } from 'lucide-react';
+import { 
+  Truck, 
+  Mail, 
+  Lock, 
+  User, 
+  ChevronRight, 
+  AlertCircle, 
+  ShieldCheck, 
+  Package, 
+  Building2,
+  CheckCircle2
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { canAccessModule, getUserModule, getUserPortalUrl, SARA_MODULES } from '@/lib/auth/moduleGuards';
 
 export default function FletesAuth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [userRole, setUserRole] = useState<'transportista' | 'cliente_fletes'>('transportista');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nombre, setNombre] = useState('');
   const [placa, setPlaca] = useState('');
+  const [empresa, setEmpresa] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null);
@@ -27,32 +40,47 @@ export default function FletesAuth() {
 
     try {
       if (isLogin) {
+        // 1. Autenticar credenciales
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
         if (signInError) throw signInError;
 
-        // Guard de segregación de módulo
-        const userMeta = data.user.user_metadata || {};
+        // 2. VERIFICACIÓN ESTRICTA: SOLO USUARIOS Y CLIENTES DE SARA_FLETES
+        const userMeta = { ...(data.user.user_metadata || {}), ...(data.user.app_metadata || {}) };
+        
         if (!canAccessModule(userMeta, 'sara_fletes')) {
+          // Desconectar inmediatamente la sesión por violación de módulo
           await supabase.auth.signOut();
+          
           const userMod = getUserModule(userMeta);
           const modDef = SARA_MODULES[userMod];
           const portalUrl = getUserPortalUrl(userMeta);
+          
           setRedirectPortal({
             url: portalUrl,
-            name: modDef?.name || 'tu módulo correspondiente'
+            name: modDef?.name || 'tu módulo asignado'
           });
+
           throw new Error(
-            `Acceso restringido: Esta cuenta está registrada en "${modDef?.name || 'otro módulo'}". Para ingresar al Radar de Fletes debes usar una cuenta de Transportista o acceder desde tu portal correspondiente.`
+            `Acceso restringido: Esta cuenta pertenece al módulo "${modDef?.name || 'otro módulo'}". Por políticas de gobernanza y segregación de GRUPO SARA, únicamente los clientes y transportistas registrados en SARA FLETES pueden autenticarse en este portal.`
           );
         }
 
-        router.push('/modulos/fletes/mi-perfil');
+        // Si es cliente, redirigir al cotizador/despacho; si es transportista, al radar/perfil
+        if (userMeta.role === 'cliente_fletes') {
+          router.push('/modulos/fletes');
+        } else {
+          router.push('/modulos/fletes/mi-perfil');
+        }
       } else {
-        if (!nombre || !placa) {
-          throw new Error('Por favor completa todos los campos del vehículo.');
+        // REGISTRO EXCLUSIVO PARA SARA_FLETES
+        if (userRole === 'transportista' && (!nombre || !placa)) {
+          throw new Error('Por favor ingresa tu nombre completo y la placa del vehículo.');
+        }
+        if (userRole === 'cliente_fletes' && !nombre) {
+          throw new Error('Por favor ingresa tu nombre o razón social.');
         }
 
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -61,8 +89,9 @@ export default function FletesAuth() {
           options: {
             data: {
               full_name: nombre,
-              placa: placa.toUpperCase(),
-              role: 'transportista',
+              empresa: empresa || undefined,
+              placa: userRole === 'transportista' ? placa.toUpperCase() : undefined,
+              role: userRole,
               modulo_origen: 'sara_fletes',
               modulos_autorizados: ['sara_fletes']
             }
@@ -72,7 +101,12 @@ export default function FletesAuth() {
 
         // Iniciar sesión inmediatamente
         await supabase.auth.signInWithPassword({ email, password });
-        router.push('/modulos/fletes/mi-perfil');
+        
+        if (userRole === 'cliente_fletes') {
+          router.push('/modulos/fletes');
+        } else {
+          router.push('/modulos/fletes/mi-perfil');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Error de autenticación');
@@ -82,51 +116,68 @@ export default function FletesAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-slate-100">
+      <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
         
-        {/* Lado Izquierdo: Branding */}
-        <div className="w-full md:w-5/12 bg-amber-500 p-10 text-slate-900 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/3 -translate-y-1/3">
-             <Truck className="w-96 h-96" />
+        {/* LADO IZQUIERDO: BRANDING Y POLÍTICA DE SEGREGACIÓN */}
+        <div className="w-full md:w-5/12 bg-gradient-to-br from-amber-500 to-amber-600 p-8 md:p-10 text-slate-950 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
+            <Truck className="w-96 h-96" />
           </div>
           
           <div className="relative z-10">
-            <Link href="/" className="inline-flex items-center gap-2 font-black text-2xl mb-12">
-              <div className="bg-slate-900 p-2 rounded-lg">
-                <Truck className="w-6 h-6 text-amber-500" />
+            <Link href="/" className="inline-flex items-center gap-2 font-black text-2xl mb-8">
+              <div className="bg-slate-950 p-2 rounded-xl text-amber-500 shadow-lg">
+                <Truck className="w-6 h-6" />
               </div>
-              SARA Fletes
+              <span>SARA <span className="text-slate-950">Fletes</span></span>
             </Link>
             
-            <h2 className="text-4xl font-black mb-4 leading-tight">Únete a la Red Logística Más Grande.</h2>
-            <p className="font-medium text-amber-900/80 mb-8">
-              Recibe viajes directamente a tu celular. Cero intermediarios, tarifas transparentes y pagos seguros.
+            <h2 className="text-3xl font-black mb-3 leading-tight text-slate-950">
+              Red Logística & Renta Multimodal.
+            </h2>
+            <p className="font-semibold text-amber-950/80 text-sm mb-6 leading-relaxed">
+              Plataforma especializada de transporte pesado, fletes locales y renta temporal de vehículos en Ecuador.
             </p>
+
+            <div className="bg-slate-950/10 border border-slate-950/20 p-3.5 rounded-2xl mb-6 backdrop-blur-sm">
+              <p className="text-xs font-bold text-slate-950 flex items-center gap-1.5 mb-1">
+                <ShieldCheck className="w-4 h-4 text-slate-950" />
+                Segregación Zero-Trust SARA
+              </p>
+              <p className="text-[11px] text-slate-900 leading-tight">
+                Acceso restringido exclusivamente a clientes y transportistas registrados en este módulo.
+              </p>
+            </div>
           </div>
 
-          <div className="relative z-10 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-900 text-amber-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
-              <p className="font-bold">Sube tus documentos</p>
+          <div className="relative z-10 space-y-3 pt-4 border-t border-amber-600/30">
+            <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
+              <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
+              <span>Fletes con precios justos y mapa satelital en vivo</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-900 text-amber-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
-              <p className="font-bold">Elige tu plan (7%, 15% o 25%)</p>
+            <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
+              <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
+              <span>Alquiler de vehículos de trabajo por horas o días</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-slate-900 text-amber-500 rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
-              <p className="font-bold">¡Empieza a facturar!</p>
+            <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
+              <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
+              <span>Custodia de pagos blindada con Escrow</span>
             </div>
           </div>
         </div>
 
-        {/* Lado Derecho: Formulario */}
-        <div className="w-full md:w-7/12 p-10 bg-white">
-          <div className="flex justify-between items-center mb-10">
-            <h3 className="text-2xl font-bold text-slate-800">
-              {isLogin ? 'Iniciar Sesión' : 'Registro de Vehículo'}
-            </h3>
+        {/* LADO DERECHO: FORMULARIO */}
+        <div className="w-full md:w-7/12 p-8 md:p-10 bg-slate-900 flex flex-col justify-center">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-2xl font-black text-white">
+                {isLogin ? 'Acceso a SARA Fletes' : 'Crear Cuenta en Fletes'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isLogin ? 'Ingresa con tus credenciales autorizadas' : 'Registra tu perfil de cliente o transportista'}
+              </p>
+            </div>
             <button 
               type="button"
               onClick={() => {
@@ -134,23 +185,24 @@ export default function FletesAuth() {
                 setError(null);
                 setRedirectPortal(null);
               }}
-              className="text-sm font-bold text-blue-600 hover:text-blue-800"
+              className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
             >
-              {isLogin ? 'Crear una cuenta' : 'Ya tengo cuenta'}
+              {isLogin ? '¿No tienes cuenta? Regístrate' : 'Ya tengo cuenta'}
             </button>
           </div>
 
+          {/* ALERTA DE ERROR O REDIRECCIÓN DE MÓDULO */}
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex flex-col gap-2">
+            <div className="mb-5 p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex flex-col gap-2.5 animate-in fade-in">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600 mt-0.5" />
-                <span>{error}</span>
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
               </div>
               {redirectPortal && (
-                <div className="pt-2">
+                <div className="pt-2 border-t border-rose-900/60">
                   <Link
                     href={redirectPortal.url}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-lg transition-colors shadow-md"
                   >
                     Ir a {redirectPortal.name} →
                   </Link>
@@ -159,65 +211,125 @@ export default function FletesAuth() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* SELECTOR DE TIPO DE CUENTA EN REGISTRO */}
             {!isLogin && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Tipo de Cuenta en este Módulo
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUserRole('transportista')}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 ${
+                      userRole === 'transportista'
+                        ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Truck className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs text-white leading-tight">Transportista</p>
+                      <p className="text-[10px] text-slate-400">Dueño o chofer</p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUserRole('cliente_fletes')}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 ${
+                      userRole === 'cliente_fletes'
+                        ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Package className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-xs text-white leading-tight">Cliente / Empresa</p>
+                      <p className="text-[10px] text-slate-400">Pide fletes o renta</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nombre Completo</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre Completo</label>
                   <div className="relative">
-                    <User className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
+                    <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
                     <input 
                       required 
                       type="text" 
                       value={nombre}
                       onChange={(e) => setNombre(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" 
-                      placeholder="Juan Pérez" 
+                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                      placeholder="Juan Pérez o Empresa S.A." 
                     />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Placa del Vehículo</label>
-                  <div className="relative">
-                    <Truck className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                    <input 
-                      required 
-                      type="text" 
-                      value={placa}
-                      onChange={(e) => setPlaca(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none uppercase font-mono" 
-                      placeholder="ABC-1234" 
-                    />
+
+                {userRole === 'transportista' ? (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Placa del Vehículo</label>
+                    <div className="relative">
+                      <Truck className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <input 
+                        required 
+                        type="text" 
+                        value={placa}
+                        onChange={(e) => setPlaca(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none uppercase font-mono" 
+                        placeholder="LBA-1234" 
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Empresa / Proyecto (Opcional)</label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <input 
+                        type="text" 
+                        value={empresa}
+                        onChange={(e) => setEmpresa(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                        placeholder="Constructora o Particular" 
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Correo Electrónico</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
               <div className="relative">
-                <Mail className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
+                <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
                 <input 
                   required 
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" 
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
                   placeholder="correo@ejemplo.com" 
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
               <div className="relative">
-                <Lock className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
+                <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
                 <input 
                   required 
                   type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:border-amber-500 outline-none" 
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
                   placeholder="••••••••" 
                 />
               </div>
@@ -226,12 +338,28 @@ export default function FletesAuth() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold py-3 rounded-lg flex items-center justify-center transition-colors"
+              className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black py-3 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-amber-500/20 text-xs mt-2"
             >
-              {loading ? 'Procesando...' : (isLogin ? 'Ingresar al Radar' : 'Registrar Vehículo y Comenzar')}
-              <ChevronRight className="w-5 h-5 ml-2" />
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2"></span>
+                  Verificando Credenciales y Módulo...
+                </>
+              ) : (
+                <>
+                  {isLogin ? 'Ingresar a SARA Fletes' : 'Crear Cuenta en Fletes'}
+                  <ChevronRight className="w-4 h-4 ml-1.5" />
+                </>
+              )}
             </button>
           </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+            <span>¿Perteneces a otro módulo SARA?</span>
+            <Link href="/login" className="text-amber-400 hover:underline font-bold">
+              Portal Maestro SARA →
+            </Link>
+          </div>
 
         </div>
       </div>

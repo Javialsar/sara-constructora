@@ -10,7 +10,42 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { canAccessModule } from '@/lib/auth/moduleGuards';
+
 export default function MiPerfilFletes() {
+  const router = useRouter();
+  const supabase = createClient();
+  const [authLoading, setAuthLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Guard estricto: Solo usuarios de SARA-FLETES pueden acceder
+  React.useEffect(() => {
+    async function verifyFletesAccess() {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          router.replace('/modulos/fletes/auth');
+          return;
+        }
+
+        const userMeta = user.user_metadata || {};
+        if (!canAccessModule(userMeta, 'sara_fletes')) {
+          await supabase.auth.signOut();
+          router.replace('/modulos/fletes/auth?error=unauthorized');
+          return;
+        }
+
+        setCurrentUser(user);
+        setAuthLoading(false);
+      } catch (e) {
+        router.replace('/modulos/fletes/auth');
+      }
+    }
+    verifyFletesAccess();
+  }, [router, supabase]);
+
   const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
   const [planesList, setPlanesList] = useState<any[]>([]);
 

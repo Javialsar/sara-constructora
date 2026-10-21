@@ -78,12 +78,12 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
   },
   sara_fletes: {
     id: 'sara_fletes',
-    name: 'SARA Fletes - Logística & Transporte Pesado',
+    name: 'SARA Fletes - Logística, Carga & Renta Vehicular',
     shortName: 'SARA Fletes',
-    description: 'Bolsa de carga, viajes pesados y backhaul para transportistas.',
+    description: 'Bolsa de carga, viajes pesados, backhaul y renta temporal de vehículos.',
     loginUrl: '/modulos/fletes/auth',
     portalUrl: '/modulos/fletes/mi-perfil',
-    allowedRoles: ['transportista', 'admin', 'superadmin'],
+    allowedRoles: ['transportista', 'cliente_fletes', 'usuario_fletes', 'chofer', 'propietario_vehiculo', 'admin', 'superadmin'],
     color: 'amber'
   },
   sara_talento: {
@@ -157,7 +157,13 @@ export function getUserModule(rawMetadata: any): SaraModule {
   ) return 'sara_constructora'
   if (role === 'propietario_inmobiliaria' || role === 'comprador_inmobiliaria' || role === 'broker') return 'sara_inmobiliaria'
   if (role === 'huesped' || role === 'anfitrion') return 'sara_stays'
-  if (role === 'transportista') return 'sara_fletes'
+  if (
+    role === 'transportista' || 
+    role === 'cliente_fletes' || 
+    role === 'usuario_fletes' || 
+    role === 'chofer' || 
+    role === 'propietario_vehiculo'
+  ) return 'sara_fletes'
   if (role === 'cuadrilla' || role === 'trabajador' || role === 'obrero') return 'sara_talento'
 
   return 'sara_apu'
