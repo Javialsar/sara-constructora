@@ -24,6 +24,22 @@ export interface RutaVialCalculada {
 const REFERENCIAS_ECUADOR: Array<{ keywords: string[]; point: GeocodedPoint }> = [
   // Loja / Cariamanga (Zona de Calvas)
   {
+    keywords: ['gimaga'],
+    point: { nombre: 'GIMAGA Materiales de Construcción, Cariamanga', lat: -4.3258, lng: -79.5542, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['atahualpa', 'cariamanga'],
+    point: { nombre: 'Calle Atahualpa y Cristóbal Colón, Cariamanga', lat: -4.3315, lng: -79.5575, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['cristobal colon'],
+    point: { nombre: 'Calle Cristóbal Colón y Atahualpa, Cariamanga', lat: -4.3315, lng: -79.5575, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['atahualpa'],
+    point: { nombre: 'Calle Atahualpa, Cariamanga', lat: -4.3312, lng: -79.5570, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
     keywords: ['matecons'],
     point: { nombre: 'MAtecons Chile, Atahualpa y Carrera Chile, Cariamanga', lat: -4.3292, lng: -79.5548, ciudad: 'Cariamanga', provincia: 'Loja' }
   },
@@ -38,6 +54,22 @@ const REFERENCIAS_ECUADOR: Array<{ keywords: string[]; point: GeocodedPoint }> =
   {
     keywords: ['mercado', 'cariamanga'],
     point: { nombre: 'Mercado Central Cariamanga', lat: -4.3270, lng: -79.5555, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['18 de noviembre', 'cariamanga'],
+    point: { nombre: 'Calle 18 de Noviembre, Cariamanga', lat: -4.3265, lng: -79.5560, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['bernardo valdivieso'],
+    point: { nombre: 'Av. Bernardo Valdivieso, Cariamanga', lat: -4.3268, lng: -79.5552, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['sucre', 'cariamanga'],
+    point: { nombre: 'Calle Antonio José de Sucre, Cariamanga', lat: -4.3280, lng: -79.5570, ciudad: 'Cariamanga', provincia: 'Loja' }
+  },
+  {
+    keywords: ['bolivar', 'cariamanga'],
+    point: { nombre: 'Calle Simón Bolívar, Cariamanga', lat: -4.3275, lng: -79.5565, ciudad: 'Cariamanga', provincia: 'Loja' }
   },
   {
     keywords: ['san vicente', 'cariamanga'],
@@ -228,9 +260,19 @@ export class SaraFreightRoutingService {
     origen: GeocodedPoint,
     destino: GeocodedPoint
   ): Promise<RutaVialCalculada> {
+    // Si ambos puntos tienen coordenadas idénticas o superpuestas, separamos el destino 350m para visualización clara
+    let pDest = destino;
+    if (Math.abs(origen.lat - destino.lat) < 0.0002 && Math.abs(origen.lng - destino.lng) < 0.0002) {
+      pDest = {
+        ...destino,
+        lat: +(destino.lat + 0.0035).toFixed(5),
+        lng: +(destino.lng + 0.0028).toFixed(5)
+      };
+    }
+
     // 1. Intentar obtener ruta real con OSRM (Open Source Routing Machine)
     try {
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${destino.lng},${destino.lat}?overview=full&geometries=geojson`;
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson`;
       const res = await fetch(osrmUrl);
       if (res.ok) {
         const json = await res.json();
@@ -246,8 +288,8 @@ export class SaraFreightRoutingService {
 
           return {
             origen,
-            destino,
-            distanciaKm: distKm,
+            destino: pDest,
+            distanciaKm: Math.max(0.8, distKm),
             duracionMinutos: Math.max(2, durMin),
             coordenadasRuta: coords
           };

@@ -70,9 +70,9 @@ const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario') => {
     return L.divIcon({
       className: 'sara-map-marker-user',
       html: `
-        <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background: rgba(59, 130, 246, 0.35); animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-          <div style="width: 18px; height: 18px; border-radius: 50%; background: #2563eb; border: 3px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10;"></div>
+        <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background: rgba(59, 130, 246, 0.35); animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; pointer-events: none;"></div>
+          <div style="width: 18px; height: 18px; border-radius: 50%; background: #2563eb; border: 3px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 10; pointer-events: none;"></div>
         </div>
       `,
       iconSize: [32, 32],
@@ -88,18 +88,18 @@ const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario') => {
   return L.divIcon({
     className: `sara-map-marker-${tipo}`,
     html: `
-      <div style="display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
-        <div style="background: ${color}; color: #ffffff; font-weight: 900; font-size: 14px; width: 34px; height: 34px; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 3px solid #ffffff;">
-          <span style="transform: rotate(45deg);">${texto}</span>
+      <div style="display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45)); cursor: grab; user-select: none; -webkit-user-drag: none; pointer-events: none;">
+        <div style="background: ${color}; color: #ffffff; font-weight: 900; font-size: 14px; width: 36px; height: 36px; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 3px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.35); pointer-events: none;">
+          <span style="transform: rotate(45deg); pointer-events: none;">${texto}</span>
         </div>
-        <div style="margin-top: 2px; background: #0f172a; color: ${color}; font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid ${color}80; letter-spacing: 0.5px; white-space: nowrap;">
+        <div style="margin-top: 3px; background: #0f172a; color: ${color}; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 6px; border: 1.5px solid ${color}; letter-spacing: 0.5px; white-space: nowrap; box-shadow: 0 3px 6px rgba(0,0,0,0.5); pointer-events: none;">
           ${label}
         </div>
       </div>
     `,
-    iconSize: [36, 48],
-    iconAnchor: [18, 44],
-    popupAnchor: [0, -44]
+    iconSize: [38, 52],
+    iconAnchor: [19, 48],
+    popupAnchor: [0, -48]
   });
 };
 
@@ -138,31 +138,52 @@ function MapCameraController({
   rutaCoordenadas?: [number, number][];
 }) {
   const map = useMap();
-  const initialFittedRef = useRef(false);
   const lastFittedCoordsRef = useRef<string>('');
 
   useEffect(() => {
-    // Si no tenemos ambos puntos, centrar en usuario la primera vez
+    // Si no tenemos ambos puntos, centrar en usuario
     if (!origenCoords && !destinoCoords) {
-      if (userLocation && !initialFittedRef.current) {
-        map.flyTo(userLocation, 14, { animate: true, duration: 1 });
-        initialFittedRef.current = true;
+      if (userLocation && !lastFittedCoordsRef.current) {
+        map.flyTo(userLocation, 16, { animate: true, duration: 1.2 });
+        lastFittedCoordsRef.current = 'user_init';
       }
       return;
     }
 
-    // Solo reajustar límites la primera vez o si cambia radicalmente de cantón/ciudad
     if (origenCoords && destinoCoords) {
-      const coordKey = `${origenCoords[0].toFixed(2)},${origenCoords[1].toFixed(2)}-${destinoCoords[0].toFixed(2)},${destinoCoords[1].toFixed(2)}`;
-      if (!initialFittedRef.current || lastFittedCoordsRef.current !== coordKey) {
-        const bounds = L.latLngBounds([origenCoords, destinoCoords]);
-        if (rutaCoordenadas && rutaCoordenadas.length > 0) {
-          rutaCoordenadas.forEach(coord => bounds.extend(coord));
-        }
-        map.fitBounds(bounds, { padding: [65, 65], maxZoom: 15, animate: true });
-        initialFittedRef.current = true;
+      const coordKey = `${origenCoords[0].toFixed(4)},${origenCoords[1].toFixed(4)}-${destinoCoords[0].toFixed(4)},${destinoCoords[1].toFixed(4)}`;
+      if (lastFittedCoordsRef.current !== coordKey) {
         lastFittedCoordsRef.current = coordKey;
+
+        const dLat = Math.abs(origenCoords[0] - destinoCoords[0]);
+        const dLng = Math.abs(origenCoords[1] - destinoCoords[1]);
+        const approxKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+
+        if (approxKm < 0.05) {
+          // Si son prácticamente el mismo punto o < 50m, centrar directo a nivel de calle
+          map.flyTo(origenCoords, 16, { animate: true, duration: 1 });
+        } else {
+          const bounds = L.latLngBounds([origenCoords, destinoCoords]);
+          if (rutaCoordenadas && rutaCoordenadas.length > 0) {
+            rutaCoordenadas.forEach(coord => bounds.extend(coord));
+          }
+
+          // Zoom dinámico de alta fidelidad:
+          // Si es urbano / cantonal (< 4 km como Cariamanga), zoom 15 a 17 para ver perfectamente calles y esquinas
+          const maxZ = approxKm < 4 ? 17 : approxKm < 25 ? 15 : 13;
+          const minZ = approxKm < 4 ? 15 : approxKm < 25 ? 12 : 7;
+          const calculatedZoom = map.getBoundsZoom(bounds, false, L.point(60, 60));
+          const targetZoom = Math.max(minZ, Math.min(maxZ, calculatedZoom));
+
+          map.setView(bounds.getCenter(), targetZoom, {
+            animate: true
+          });
+        }
       }
+    } else if (origenCoords && !destinoCoords) {
+      map.flyTo(origenCoords, 16, { animate: true, duration: 1 });
+    } else if (!origenCoords && destinoCoords) {
+      map.flyTo(destinoCoords, 16, { animate: true, duration: 1 });
     }
   }, [map, userLocation, origenCoords, destinoCoords, rutaCoordenadas]);
 
@@ -203,7 +224,7 @@ function MapFloatingControls({
         </button>
 
         {showLayerMenu && (
-          <div className="absolute right-0 mt-2 w-44 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-1.5 backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95">
+          <div className="absolute right-0 mt-2 w-48 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-1.5 backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95">
             <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 py-1">Capas de Mapa</p>
             {(Object.keys(MAP_TILE_PROVIDERS) as MapLayerType[]).map((key) => {
               const prov = MAP_TILE_PROVIDERS[key];
@@ -223,7 +244,7 @@ function MapFloatingControls({
                   }`}
                 >
                   <span>{prov.icon}</span>
-                  <span>{prov.name}</span>
+                  <span className="truncate">{prov.name}</span>
                 </button>
               );
             })}
@@ -243,7 +264,7 @@ function MapFloatingControls({
         </button>
       )}
 
-      {/* Botón Centrar Ruta Completa */}
+      {/* Botón Centrar y Zoom a la Ruta */}
       {origenCoords && destinoCoords && (
         <button
           type="button"
@@ -252,12 +273,20 @@ function MapFloatingControls({
             if (rutaCoordenadas && rutaCoordenadas.length > 0) {
               rutaCoordenadas.forEach(coord => bounds.extend(coord));
             }
-            map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15, animate: true });
+            const dLat = Math.abs(origenCoords[0] - destinoCoords[0]);
+            const dLng = Math.abs(origenCoords[1] - destinoCoords[1]);
+            const approxKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+            const maxZ = approxKm < 4 ? 17 : approxKm < 25 ? 15 : 13;
+            const minZ = approxKm < 4 ? 15 : approxKm < 25 ? 12 : 7;
+            const calculatedZoom = map.getBoundsZoom(bounds, false, L.point(75, 75));
+            const targetZoom = Math.max(minZ, Math.min(maxZ, calculatedZoom));
+            map.setView(bounds.getCenter(), targetZoom, { animate: true });
           }}
-          title="Centrar toda la ruta"
-          className="bg-slate-900/90 hover:bg-slate-800 text-amber-400 hover:text-amber-300 p-2.5 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10"
+          title="Zoom a la ruta detallada"
+          className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-2 rounded-xl shadow-2xl transition-all cursor-pointer flex items-center gap-1.5 text-xs active:scale-95 border border-amber-400"
         >
-          <span className="text-base">🛣️</span>
+          <span className="text-sm">🔍</span>
+          <span className="hidden sm:inline font-bold">Zoom Ruta</span>
         </button>
       )}
     </div>
@@ -354,6 +383,7 @@ export default function SaraFletesMap({
             position={origenCoords}
             icon={crearIconoPunto('origen')}
             draggable={Boolean(onOriginDragEnd)}
+            autoPan={true}
             eventHandlers={{
               dragend: (e) => {
                 const marker = e.target;
@@ -366,25 +396,11 @@ export default function SaraFletesMap({
               }
             }}
           >
-            <Tooltip direction="top" offset={[0, -42]} opacity={0.95}>
-              <div className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded shadow">
-                🟢 Punto de Carga (Arrastra para afinar)
+            <Tooltip direction="top" offset={[0, -48]} opacity={0.95} interactive={false}>
+              <div className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded shadow pointer-events-none">
+                🟢 Punto de Carga (Arrastra a la calle exacta)
               </div>
             </Tooltip>
-            <Popup>
-              <div className="text-xs p-1 text-slate-800">
-                <p className="font-bold text-emerald-700">🟢 Punto de Carga (Origen)</p>
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                  💡 Arrastra este pin en el mapa para ajustar la ubicación exacta
-                </p>
-                <p className="font-semibold text-slate-700 text-xs mt-1">
-                  {origenNombre || 'Origen Seleccionado'}
-                </p>
-                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                  Coord: {origenCoords[0].toFixed(5)}, {origenCoords[1].toFixed(5)}
-                </p>
-              </div>
-            </Popup>
           </Marker>
         )}
 
@@ -394,6 +410,7 @@ export default function SaraFletesMap({
             position={destinoCoords}
             icon={crearIconoPunto('destino')}
             draggable={Boolean(onDestinationDragEnd)}
+            autoPan={true}
             eventHandlers={{
               dragend: (e) => {
                 const marker = e.target;
@@ -406,25 +423,11 @@ export default function SaraFletesMap({
               }
             }}
           >
-            <Tooltip direction="top" offset={[0, -42]} opacity={0.95}>
-              <div className="text-[11px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded shadow">
-                🚩 Punto de Descarga (Arrastra para afinar)
+            <Tooltip direction="top" offset={[0, -48]} opacity={0.95} interactive={false}>
+              <div className="text-[11px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded shadow pointer-events-none">
+                🚩 Punto de Descarga (Arrastra a la calle exacta)
               </div>
             </Tooltip>
-            <Popup>
-              <div className="text-xs p-1 text-slate-800">
-                <p className="font-bold text-amber-700">🚩 Punto de Descarga (Destino)</p>
-                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                  💡 Arrastra este pin en el mapa para ajustar la ubicación exacta
-                </p>
-                <p className="font-semibold text-slate-700 text-xs mt-1">
-                  {destinoNombre || 'Destino Seleccionado'}
-                </p>
-                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                  Coord: {destinoCoords[0].toFixed(5)}, {destinoCoords[1].toFixed(5)}
-                </p>
-              </div>
-            </Popup>
           </Marker>
         )}
 

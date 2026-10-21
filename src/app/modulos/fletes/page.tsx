@@ -257,6 +257,16 @@ export default function SaraFletesEngine() {
       }
 
       if (puntoOrig && puntoDest) {
+        // Si ambos puntos tienen coordenadas idénticas o solapadas, desfasamos ligeramente el destino 350m para diferenciarlos
+        if (Math.abs(puntoOrig.lat - puntoDest.lat) < 0.0002 && Math.abs(puntoOrig.lng - puntoDest.lng) < 0.0002) {
+          puntoDest = {
+            ...puntoDest,
+            lat: +(puntoDest.lat + 0.0035).toFixed(5),
+            lng: +(puntoDest.lng + 0.0028).toFixed(5)
+          };
+          setDestinationPoint(puntoDest);
+        }
+
         const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(puntoOrig, puntoDest);
         setRutaCalculada(ruta);
 
@@ -351,10 +361,11 @@ export default function SaraFletesEngine() {
     }
 
     SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
+      originLockedByMapRef.current = true;
       if (dir) {
         setOriginText(dir);
       } else {
-        setOriginText(`Coord: ${exactLat}, ${exactLng}`);
+        setOriginText(`Punto exacto (${exactLat}, ${exactLng})`);
       }
     });
   };
@@ -392,10 +403,11 @@ export default function SaraFletesEngine() {
     }
 
     SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
+      destLockedByMapRef.current = true;
       if (dir) {
         setDestinationText(dir);
       } else {
-        setDestinationText(`Coord: ${exactLat}, ${exactLng}`);
+        setDestinationText(`Punto exacto (${exactLat}, ${exactLng})`);
       }
     });
   };
