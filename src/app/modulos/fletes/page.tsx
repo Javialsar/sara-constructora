@@ -117,7 +117,18 @@ export default function SaraFletesEngine() {
   // Candados y estado interactivo de mapa para evitar desfasaje y saltos
   const originLockedByMapRef = useRef<boolean>(false);
   const destLockedByMapRef = useRef<boolean>(false);
+  const originPointRef = useRef<GeocodedPoint | null>(null);
+  const destinationPointRef = useRef<GeocodedPoint | null>(null);
   const [mapClickMode, setMapClickMode] = useState<'origen' | 'destino' | null>(null);
+
+  // Sincronizar referencias para evitar recreación de callbacks
+  useEffect(() => {
+    originPointRef.current = originPoint;
+  }, [originPoint]);
+
+  useEffect(() => {
+    destinationPointRef.current = destinationPoint;
+  }, [destinationPoint]);
 
   // 3. Parámetros de la Carga (Flete) y Subasta inDrive
   const [vehicleType, setVehicleType] = useState<CategoriaVehiculo>('PICKUP_1T');
@@ -351,22 +362,31 @@ export default function SaraFletesEngine() {
   ) => {
     setIsCalculatingRoute(true);
     try {
-      let puntoOrig = originPoint;
+      let puntoOrig = originPointRef.current;
       if (!originLockedByMapRef.current || !puntoOrig) {
         puntoOrig = await SaraFreightRoutingService.geocodificarDireccion(
           origenTxt,
           userLocation || undefined
         );
-        if (puntoOrig) setOriginPoint(puntoOrig);
+        if (puntoOrig) {
+          originPointRef.current = puntoOrig;
+          setOriginPoint(puntoOrig);
+        }
       }
 
-      let puntoDest = destinationPoint;
+      // Pequeña pausa de serialización para evitar colisiones de peticiones geoespaciales
+      await new Promise(r => setTimeout(r, 180));
+
+      let puntoDest = destinationPointRef.current;
       if (!destLockedByMapRef.current || !puntoDest) {
         puntoDest = await SaraFreightRoutingService.geocodificarDireccion(
           destinoTxt,
           puntoOrig ? [puntoOrig.lat, puntoOrig.lng] : userLocation || undefined
         );
-        if (puntoDest) setDestinationPoint(puntoDest);
+        if (puntoDest) {
+          destinationPointRef.current = puntoDest;
+          setDestinationPoint(puntoDest);
+        }
       }
 
       if (puntoOrig && puntoDest) {
@@ -377,6 +397,7 @@ export default function SaraFletesEngine() {
             lat: +(puntoDest.lat + 0.0035).toFixed(5),
             lng: +(puntoDest.lng + 0.0028).toFixed(5)
           };
+          destinationPointRef.current = puntoDest;
           setDestinationPoint(puntoDest);
         }
 
@@ -402,7 +423,7 @@ export default function SaraFletesEngine() {
     } finally {
       setIsCalculatingRoute(false);
     }
-  }, [userLocation, originPoint, destinationPoint]);
+  }, [userLocation]);
 
   useEffect(() => {
     if (originText && destinationText && serviceType === 'flete') {
