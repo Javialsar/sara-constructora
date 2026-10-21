@@ -1,10 +1,39 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CategoriaVehiculo, CATALOGO_VEHICULOS_SARA } from '@/lib/services/saraFreightPricingService';
+
+export type MapLayerType = 'voyager' | 'satellite' | 'dark' | 'streets';
+
+export const MAP_TILE_PROVIDERS: Record<MapLayerType, { name: string; url: string; maxZoom: number; icon: string }> = {
+  voyager: {
+    name: 'Vial & Tráfico',
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    maxZoom: 19,
+    icon: '🚦'
+  },
+  satellite: {
+    name: 'Satelital HD',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    maxZoom: 19,
+    icon: '🛰️'
+  },
+  dark: {
+    name: 'SARA Night',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    maxZoom: 19,
+    icon: '🌙'
+  },
+  streets: {
+    name: 'OpenStreetMap',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    maxZoom: 19,
+    icon: '🗺️'
+  }
+};
 
 export interface VehiculoMapa {
   id: string;
@@ -138,35 +167,97 @@ function MapCameraController({
   return null;
 }
 
-// Botón flotante para recentrar la vista completa de la ruta
-function CentrarRutaBoton({
+// Controles flotantes integrados en el mapa (Capas, GPS, Recentrado de Ruta)
+function MapFloatingControls({
+  userLocation,
+  activeLayer,
+  onSelectLayer,
   origenCoords,
   destinoCoords,
   rutaCoordenadas
 }: {
+  userLocation: [number, number] | null;
+  activeLayer: MapLayerType;
+  onSelectLayer: (layer: MapLayerType) => void;
   origenCoords: [number, number] | null;
   destinoCoords: [number, number] | null;
   rutaCoordenadas?: [number, number][];
 }) {
   const map = useMap();
-  if (!origenCoords || !destinoCoords) return null;
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
 
   return (
-    <div style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 1000 }}>
-      <button
-        type="button"
-        onClick={() => {
-          const bounds = L.latLngBounds([origenCoords, destinoCoords]);
-          if (rutaCoordenadas && rutaCoordenadas.length > 0) {
-            rutaCoordenadas.forEach(coord => bounds.extend(coord));
-          }
-          map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15, animate: true });
-        }}
-        className="bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 shadow-2xl flex items-center gap-1.5 transition-all backdrop-blur-md cursor-pointer"
-      >
-        <span>🎯</span>
-        <span>Centrar Ruta</span>
-      </button>
+    <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 1000 }} className="flex flex-col items-end gap-2 pointer-events-auto">
+      {/* Selector de Capas Satélite / Tráfico / Noche */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowLayerMenu(!showLayerMenu)}
+          className="bg-slate-900/90 hover:bg-slate-800 text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-700 shadow-2xl flex items-center gap-2 backdrop-blur-xl transition-all cursor-pointer"
+        >
+          <span>{MAP_TILE_PROVIDERS[activeLayer].icon}</span>
+          <span className="hidden sm:inline">{MAP_TILE_PROVIDERS[activeLayer].name}</span>
+          <span className="text-[10px] text-slate-400">▼</span>
+        </button>
+
+        {showLayerMenu && (
+          <div className="absolute right-0 mt-2 w-44 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-1.5 backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 py-1">Capas de Mapa</p>
+            {(Object.keys(MAP_TILE_PROVIDERS) as MapLayerType[]).map((key) => {
+              const prov = MAP_TILE_PROVIDERS[key];
+              const isSelected = activeLayer === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    onSelectLayer(key);
+                    setShowLayerMenu(false);
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                    isSelected
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  }`}
+                >
+                  <span>{prov.icon}</span>
+                  <span>{prov.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Botón Mi Ubicación GPS */}
+      {userLocation && (
+        <button
+          type="button"
+          onClick={() => map.flyTo(userLocation, 16, { animate: true, duration: 1.2 })}
+          title="Centrar en mi ubicación GPS"
+          className="bg-slate-900/90 hover:bg-slate-800 text-blue-400 hover:text-blue-300 p-2.5 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10"
+        >
+          <span className="text-base">📍</span>
+        </button>
+      )}
+
+      {/* Botón Centrar Ruta Completa */}
+      {origenCoords && destinoCoords && (
+        <button
+          type="button"
+          onClick={() => {
+            const bounds = L.latLngBounds([origenCoords, destinoCoords]);
+            if (rutaCoordenadas && rutaCoordenadas.length > 0) {
+              rutaCoordenadas.forEach(coord => bounds.extend(coord));
+            }
+            map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15, animate: true });
+          }}
+          title="Centrar toda la ruta"
+          className="bg-slate-900/90 hover:bg-slate-800 text-amber-400 hover:text-amber-300 p-2.5 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10"
+        >
+          <span className="text-base">🛣️</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -197,6 +288,8 @@ export default function SaraFletesMap({
   onOriginDragEnd,
   onDestinationDragEnd
 }: SaraFletesMapProps) {
+  const [activeLayer, setActiveLayer] = useState<MapLayerType>('voyager');
+
   // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Loja/Cariamanga (-4.3285, -79.5560) o Cuenca (-2.8974, -79.0044)
   const defaultCenter: [number, number] = userLocation || origenCoords || [-4.3285, -79.5560];
 
@@ -209,10 +302,21 @@ export default function SaraFletesMap({
         style={{ width: '100%', height: '100%', zIndex: 1 }}
         attributionControl={false}
       >
-        {/* Capa de OpenStreetMap estándar de alta resolución y libre de marcas de agua */}
+        {/* Capa de Cartografía Dinámica Seleccionada (Vial Voyager / Satelital HD / Dark Night / OSM) */}
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
+          key={activeLayer}
+          url={MAP_TILE_PROVIDERS[activeLayer].url}
+          maxZoom={MAP_TILE_PROVIDERS[activeLayer].maxZoom}
+        />
+
+        {/* Controles Flotantes de Capas, GPS y Recentrado */}
+        <MapFloatingControls
+          userLocation={userLocation}
+          activeLayer={activeLayer}
+          onSelectLayer={setActiveLayer}
+          origenCoords={origenCoords}
+          destinoCoords={destinoCoords}
+          rutaCoordenadas={rutaCoordenadas}
         />
 
         <MapCameraController
@@ -408,13 +512,6 @@ export default function SaraFletesMap({
             </Marker>
           );
         })}
-
-        {/* Botón flotante para recentrar la ruta si el usuario se alejó */}
-        <CentrarRutaBoton
-          origenCoords={origenCoords}
-          destinoCoords={destinoCoords}
-          rutaCoordenadas={rutaCoordenadas}
-        />
       </MapContainer>
     </div>
   );
