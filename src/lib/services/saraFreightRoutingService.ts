@@ -99,6 +99,33 @@ export class SaraFreightRoutingService {
   }
 
   /**
+   * Reverse geocodificación de coordenadas a dirección o calle en Ecuador
+   */
+  static async reverseGeocodificar(lat: number, lng: number): Promise<string | null> {
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17&addressdetails=1`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'SARA-Fletes-Ecuador/1.0' } });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.address) {
+          const a = data.address;
+          const calle = a.road || a.pedestrian || a.suburb || a.neighbourhood || a.commercial || a.isolated_dwelling;
+          const ciudad = a.city || a.town || a.village || a.county || 'Ecuador';
+          if (calle) {
+            return `${calle}, ${ciudad}`;
+          }
+          if (data.display_name) {
+            return data.display_name.split(',').slice(0, 3).join(',');
+          }
+        }
+      }
+    } catch {
+      // Ignorar fallos de red en segundo plano
+    }
+    return null;
+  }
+
+  /**
    * Calcula la ruta más corta sobre la red vial entre origen y destino
    */
   static async calcularRutaMasCorta(

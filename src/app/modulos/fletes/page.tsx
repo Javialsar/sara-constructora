@@ -281,6 +281,84 @@ export default function SaraFletesEngine() {
     }
   };
 
+  // Manejador de arrastre manual de Punto de Carga (Origen)
+  const handleOriginDragEnd = async (lat: number, lng: number) => {
+    const coordTexto = `Ubicación mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    const newPoint: GeocodedPoint = {
+      nombre: coordTexto,
+      lat,
+      lng
+    };
+    setOriginPoint(newPoint);
+    setOriginText(coordTexto);
+
+    if (destinationPoint) {
+      setIsCalculatingRoute(true);
+      try {
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(newPoint, destinationPoint);
+        setRutaCalculada(ruta);
+        const tarifa = SaraFreightPricingService.calcularTarifa(
+          ruta.distanciaKm,
+          weight,
+          vehicleType,
+          material
+        );
+        setTarifaEstimada(tarifa);
+      } catch (err) {
+        console.error('Error recalculando ruta al arrastrar origen:', err);
+      } finally {
+        setIsCalculatingRoute(false);
+      }
+    }
+
+    // Resolver nombre de calle en segundo plano
+    SaraFreightRoutingService.reverseGeocodificar(lat, lng).then((dir) => {
+      if (dir) {
+        setOriginText(dir);
+        setOriginPoint(prev => prev ? { ...prev, nombre: dir } : prev);
+      }
+    });
+  };
+
+  // Manejador de arrastre manual de Punto de Descarga (Destino)
+  const handleDestinationDragEnd = async (lat: number, lng: number) => {
+    const coordTexto = `Ubicación mapa (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    const newPoint: GeocodedPoint = {
+      nombre: coordTexto,
+      lat,
+      lng
+    };
+    setDestinationPoint(newPoint);
+    setDestinationText(coordTexto);
+
+    if (originPoint) {
+      setIsCalculatingRoute(true);
+      try {
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(originPoint, newPoint);
+        setRutaCalculada(ruta);
+        const tarifa = SaraFreightPricingService.calcularTarifa(
+          ruta.distanciaKm,
+          weight,
+          vehicleType,
+          material
+        );
+        setTarifaEstimada(tarifa);
+      } catch (err) {
+        console.error('Error recalculando ruta al arrastrar destino:', err);
+      } finally {
+        setIsCalculatingRoute(false);
+      }
+    }
+
+    // Resolver nombre de calle en segundo plano
+    SaraFreightRoutingService.reverseGeocodificar(lat, lng).then((dir) => {
+      if (dir) {
+        setDestinationText(dir);
+        setDestinationPoint(prev => prev ? { ...prev, nombre: dir } : prev);
+      }
+    });
+  };
+
   // Solicitar el flete (Modo Flete Directo)
   const handlePedirFlete = async () => {
     if (!originText || !destinationText) return alert('Por favor ingresa origen y destino');
@@ -537,6 +615,11 @@ export default function SaraFletesEngine() {
 
                   {/* RUTA: ORIGEN Y DESTINO */}
                   <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                    <div className="bg-amber-500/10 border border-amber-500/25 p-2 rounded-lg text-[11px] text-amber-300 flex items-center gap-2 font-medium">
+                      <span className="text-sm">📍</span>
+                      <span>Puedes <strong>arrastrar los iconos 🟢 CARGA o 🚩 DESCARGA</strong> directamente en el mapa para ubicar el punto con precisión.</span>
+                    </div>
+
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -1081,14 +1164,17 @@ export default function SaraFletesEngine() {
 
         {/* CONTENEDOR DEL MAPA VECTORIAL INTERACTIVO EN TIEMPO REAL */}
         <div className="flex-1 relative w-full h-[450px] lg:h-auto min-h-[400px]">
-          <div className="absolute top-4 left-4 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3.5 py-2 rounded-xl text-xs flex items-center gap-2.5 shadow-xl">
+          <div className="absolute top-4 left-4 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-3 shadow-xl">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <div>
-              <p className="font-bold text-white leading-tight">
-                Flota Zonificada Activa ({vehiculosZonificados.length} unidades en radar)
+              <p className="font-bold text-white leading-tight flex items-center gap-2">
+                <span>Flota Zonificada Activa ({vehiculosZonificados.length} unidades en radar)</span>
+                <span className="text-[10px] bg-amber-500/20 text-amber-400 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">
+                  Hover para Placa/Chofer
+                </span>
               </p>
-              <p className="text-[10px] text-slate-400">
-                {serviceType === 'flete' ? 'Modalidad: Flete de Carga On-Demand' : 'Modalidad: Renta Temporal Disponible'}
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {serviceType === 'flete' ? 'Pasa el cursor sobre un camión para ver datos · Arrastra los pines para afinar ruta' : 'Modalidad: Renta Temporal Disponible'}
               </p>
             </div>
           </div>
@@ -1102,6 +1188,8 @@ export default function SaraFletesEngine() {
             rutaCoordenadas={serviceType === 'flete' ? rutaCalculada?.coordenadasRuta : undefined}
             vehiculosCercanos={vehiculosZonificados}
             vehiculoSeleccionado={vehicleType}
+            onOriginDragEnd={handleOriginDragEnd}
+            onDestinationDragEnd={handleDestinationDragEnd}
             onSelectVehiculo={(veh) => {
               setVehicleType(veh.tipoVehiculo);
             }}

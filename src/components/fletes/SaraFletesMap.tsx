@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { CategoriaVehiculo, CATALOGO_VEHICULOS_SARA } from '@/lib/services/saraFreightPricingService';
@@ -29,6 +29,8 @@ interface SaraFletesMapProps {
   vehiculoSeleccionado?: CategoriaVehiculo;
   onMapClick?: (lat: number, lng: number) => void;
   onSelectVehiculo?: (vehiculo: VehiculoMapa) => void;
+  onOriginDragEnd?: (lat: number, lng: number) => void;
+  onDestinationDragEnd?: (lat: number, lng: number) => void;
 }
 
 // Generadores de Iconos L.divIcon personalizados para evitar problemas de assets externos
@@ -155,7 +157,9 @@ export default function SaraFletesMap({
   vehiculosCercanos = [],
   vehiculoSeleccionado,
   onMapClick,
-  onSelectVehiculo
+  onSelectVehiculo,
+  onOriginDragEnd,
+  onDestinationDragEnd
 }: SaraFletesMapProps) {
   // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Loja/Cariamanga (-4.3285, -79.5560) o Cuenca (-2.8974, -79.0044)
   const defaultCenter: [number, number] = userLocation || origenCoords || [-4.3285, -79.5560];
@@ -201,16 +205,39 @@ export default function SaraFletesMap({
           </Marker>
         )}
 
-        {/* 2. Marcador Punto de Carga (Origen) */}
+        {/* 2. Marcador Punto de Carga (Origen) - Con Arrastre Manual Interactivo */}
         {origenCoords && (
-          <Marker position={origenCoords} icon={crearIconoPunto('origen')}>
+          <Marker
+            position={origenCoords}
+            icon={crearIconoPunto('origen')}
+            draggable={Boolean(onOriginDragEnd)}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target;
+                if (marker) {
+                  const latLng = marker.getLatLng();
+                  if (onOriginDragEnd) {
+                    onOriginDragEnd(latLng.lat, latLng.lng);
+                  }
+                }
+              }
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -42]} opacity={0.95}>
+              <div className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded shadow">
+                🟢 Punto de Carga (Arrastra para afinar)
+              </div>
+            </Tooltip>
             <Popup>
               <div className="text-xs p-1 text-slate-800">
                 <p className="font-bold text-emerald-700">🟢 Punto de Carga (Origen)</p>
+                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                  💡 Arrastra este pin en el mapa para ajustar la ubicación exacta
+                </p>
                 <p className="font-semibold text-slate-700 text-xs mt-1">
                   {origenNombre || 'Origen Seleccionado'}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
+                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
                   Coord: {origenCoords[0].toFixed(5)}, {origenCoords[1].toFixed(5)}
                 </p>
               </div>
@@ -218,16 +245,39 @@ export default function SaraFletesMap({
           </Marker>
         )}
 
-        {/* 3. Marcador Punto de Descarga (Destino) */}
+        {/* 3. Marcador Punto de Descarga (Destino) - Con Arrastre Manual Interactivo */}
         {destinoCoords && (
-          <Marker position={destinoCoords} icon={crearIconoPunto('destino')}>
+          <Marker
+            position={destinoCoords}
+            icon={crearIconoPunto('destino')}
+            draggable={Boolean(onDestinationDragEnd)}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target;
+                if (marker) {
+                  const latLng = marker.getLatLng();
+                  if (onDestinationDragEnd) {
+                    onDestinationDragEnd(latLng.lat, latLng.lng);
+                  }
+                }
+              }
+            }}
+          >
+            <Tooltip direction="top" offset={[0, -42]} opacity={0.95}>
+              <div className="text-[11px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded shadow">
+                🚩 Punto de Descarga (Arrastra para afinar)
+              </div>
+            </Tooltip>
             <Popup>
               <div className="text-xs p-1 text-slate-800">
                 <p className="font-bold text-amber-700">🚩 Punto de Descarga (Destino)</p>
+                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
+                  💡 Arrastra este pin en el mapa para ajustar la ubicación exacta
+                </p>
                 <p className="font-semibold text-slate-700 text-xs mt-1">
                   {destinoNombre || 'Destino Seleccionado'}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
+                <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
                   Coord: {destinoCoords[0].toFixed(5)}, {destinoCoords[1].toFixed(5)}
                 </p>
               </div>
@@ -251,9 +301,10 @@ export default function SaraFletesMap({
           </>
         )}
 
-        {/* 5. Vehículos Cercanos Zonificados */}
+        {/* 5. Vehículos Cercanos Zonificados con Tooltip al Pasar el Mouse (Hover) */}
         {vehiculosCercanos.map((vehiculo) => {
           const isSelected = !vehiculoSeleccionado || vehiculoSeleccionado === vehiculo.tipoVehiculo;
+          const infoVehiculo = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
           return (
             <Marker
               key={vehiculo.id}
@@ -263,6 +314,36 @@ export default function SaraFletesMap({
                 click: () => onSelectVehiculo && onSelectVehiculo(vehiculo)
               }}
             >
+              {/* Tooltip visible al pasar el mouse por encima (Hover) */}
+              <Tooltip direction="top" offset={[0, -36]} opacity={1} sticky={true}>
+                <div className="p-2 text-slate-900 font-sans min-w-[170px] bg-white rounded-xl shadow-2xl border border-slate-200">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
+                    <span className="font-mono font-black text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      Placa: {vehiculo.placa}
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 px-1.5 py-0.5 rounded">
+                      ★ {vehiculo.rating}
+                    </span>
+                  </div>
+                  <p className="text-xs font-black text-slate-900 leading-tight">
+                    Conductor: {vehiculo.nombreChofer}
+                  </p>
+                  <p className="text-[11px] text-slate-600 font-medium mt-0.5 flex items-center gap-1.5">
+                    <span>{infoVehiculo.icono}</span>
+                    <span>{infoVehiculo.nombre}</span>
+                  </p>
+                  <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                    <span className="text-emerald-600 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                      En Radar (Zonificado)
+                    </span>
+                    <span className="text-slate-500 font-mono font-semibold">
+                      Cap: {infoVehiculo.capacidadTon}T
+                    </span>
+                  </div>
+                </div>
+              </Tooltip>
+
               <Popup>
                 <div className="p-2 text-slate-800 max-w-xs">
                   <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1.5">
@@ -272,10 +353,10 @@ export default function SaraFletesMap({
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-600 font-medium">
-                    {CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo]?.nombre || vehiculo.tipoVehiculo}
+                    {infoVehiculo.nombre || vehiculo.tipoVehiculo}
                   </p>
                   <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                    Placa: {vehiculo.placa}
+                    Placa: <strong>{vehiculo.placa}</strong>
                   </p>
                   <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
                     <span className="text-emerald-600 font-bold">● Disponible en zona</span>
