@@ -1,18 +1,53 @@
-
 'use client';
-import React, { useState, useRef } from 'react';
-import { List, Truck, MapPin, FileText, History, Wallet, Camera, ChevronRight, CheckCircle, Navigation, Package, Download, CreditCard, QrCode, Building, UploadCloud, Loader2 } from 'lucide-react';
-import Link from 'next/link';
 
+import React, { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { 
+  List, 
+  Truck, 
+  MapPin, 
+  FileText, 
+  History, 
+  Wallet, 
+  Camera, 
+  ChevronRight, 
+  CheckCircle, 
+  Navigation, 
+  Package, 
+  Download, 
+  CreditCard, 
+  QrCode, 
+  Building, 
+  UploadCloud, 
+  Loader2, 
+  ShieldAlert,
+  Sparkles,
+  ArrowUpRight,
+  TrendingUp,
+  Percent,
+  CheckCircle2,
+  Clock
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { getFletesPlanes } from '@/lib/fletes-data';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
+import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { canAccessModule } from '@/lib/auth/moduleGuards';
+// Carga dinámica del mapa interactivo Leaflet sin SSR
+const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[450px] bg-slate-950 flex flex-col items-center justify-center text-slate-400 gap-3 rounded-2xl border border-slate-800">
+      <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+      <span className="text-sm font-semibold tracking-wide">Cargando Mapa Satelital y Radar de Fletes...</span>
+    </div>
+  )
+});
 
 export default function MiPerfilFletes() {
   const router = useRouter();
@@ -20,8 +55,11 @@ export default function MiPerfilFletes() {
   const [authLoading, setAuthLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  // Guard estricto: Solo usuarios de SARA-FLETES pueden acceder
-  React.useEffect(() => {
+  const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
+  const [planesList, setPlanesList] = useState<any[]>([]);
+
+  // Verificación de autenticación de usuario
+  useEffect(() => {
     async function verifyFletesAccess() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
@@ -39,13 +77,11 @@ export default function MiPerfilFletes() {
     verifyFletesAccess();
   }, [router, supabase]);
 
-  const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
-  const [planesList, setPlanesList] = useState<any[]>([]);
-
-  React.useEffect(() => {
+  useEffect(() => {
     getFletesPlanes().then(setPlanesList);
   }, []);
 
+  // Estados del conductor y vehículo
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cedulaRef = useRef<HTMLInputElement>(null);
@@ -62,37 +98,61 @@ export default function MiPerfilFletes() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-    const [incomingRequest, setIncomingRequest] = useState<any>(null);
+  // Ubicación del conductor (GPS)
+  const [driverLocation, setDriverLocation] = useState<[number, number]>([-4.3285, -79.5560]); // Cariamanga / Loja por defecto
+  const [driverCountry, setDriverCountry] = useState('Ecuador');
+  const [driverProvince, setDriverProvince] = useState('Loja');
+  const [driverCity, setDriverCity] = useState('Cariamanga');
+
+  // Detección real de GPS
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setDriverLocation([pos.coords.latitude, pos.coords.longitude]);
+        },
+        () => {
+          setDriverLocation([-4.3285, -79.5560]); // Cariamanga
+        },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+  }, []);
+
+  // Simulación de solicitud de flete entrante
+  const [incomingRequest, setIncomingRequest] = useState<any>(null);
   const [tripAccepted, setTripAccepted] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
 
-  // Simular la llegada de un flete a los 5 segundos de abrir la app
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       if (!incomingRequest && !tripAccepted) {
         setIncomingRequest({
-          origen: 'Av. Simón Bolívar y Ruta Viva',
-          destino: 'Plaza Lagos, Samborondón',
-          cliente: 'Constructora Atlas S.A.',
-          valorRef: 145.50
+          origen: 'MAtecons Chile, Cariamanga',
+          destino: 'El Dorado, Cariamanga',
+          cliente: 'Constructora del Sur S.A.',
+          material: 'Cemento y Varillas (1.5 Ton)',
+          valorRef: 3.50,
+          distanciaKm: 1.8,
+          coordsOrigen: [-4.3292, -79.5548] as [number, number],
+          coordsDestino: [-4.3210, -79.5620] as [number, number]
         });
-        showToast('¡Nueva solicitud de flete en tu área!');
+        showToast('¡Nueva solicitud de flete en tu zona de Cariamanga!');
       }
-    }, 5000);
+    }, 4000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [incomingRequest, tripAccepted]);
 
   const handleAcceptTrip = () => {
-    setIncomingRequest(null);
     setTripAccepted(true);
-    setAccessCode('SARA-' + Math.floor(100 + Math.random() * 900));
+    setAccessCode('SARA-' + Math.floor(1000 + Math.random() * 9000));
     showToast('Flete aceptado. Dirígete al origen y presenta tu código de acceso.');
   };
 
-  // Estados Billetera
-  const [balance, setBalance] = useState(0);
-  const [rechargeAmount, setRechargeAmount] = useState(20);
-  const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('Estandar');
+  // Estados Billetera y Planes
+  const [balance, setBalance] = useState(119.00);
+  const [rechargeAmount, setRechargeAmount] = useState(25);
+  const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('VIP');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutConfig, setCheckoutConfig] = useState<{
     title: string;
@@ -101,647 +161,980 @@ export default function MiPerfilFletes() {
     interval?: string;
   }>({
     title: 'Recarga de Saldo Prepago',
-    amount: 20,
+    amount: 25,
     isSubscription: false
   });
 
-  // Estados Ubicacion
-  const [driverCountry, setDriverCountry] = useState('Ecuador');
-  const [driverProvince, setDriverProvince] = useState('Pichincha');
-  const [driverCity, setDriverCity] = useState('Quito Sur');
-
-  const viajes = [
-    { id: 1, route: 'Quito Sur -> Cumbayá', embarque: '12 Oct 2026, 14:00', llegada: '12 Oct 2026, 14:45', tiempo: '45 min', tarifa: 45.00, comision: 6.75, utilidad: 38.25 },
-    { id: 2, route: 'Mitad del Mundo -> Calderón', embarque: '10 Oct 2026, 09:15', llegada: '10 Oct 2026, 10:20', tiempo: '1h 05 min', tarifa: 60.00, comision: 9.00, utilidad: 51.00 },
-    { id: 3, route: 'Sangolquí -> Sur de Quito', embarque: '08 Oct 2026, 16:30', llegada: '08 Oct 2026, 17:10', tiempo: '40 min', tarifa: 35.00, comision: 5.25, utilidad: 29.75 },
-  ];
-
-  const historialRecargas = [
-    { fecha: '12 Oct 2026, 15:30', referencia: 'TRX-99882211', metodo: 'Tarjeta Crédito', estado: 'En Verificación', valor: 50.00 },
-    { fecha: '01 Oct 2026, 09:15', referencia: 'TRX-11223344', metodo: 'Transferencia', estado: 'Aprobado', valor: 100.00 }
-  ];
-
-  const handleDownloadExcel = (type: 'viajes' | 'recargas') => {
-    if (type === 'viajes') {
-      const ws = XLSX.utils.json_to_sheet(viajes);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Viajes");
-      XLSX.writeFile(wb, "historial_viajes.xlsx");
-    } else {
-      const ws = XLSX.utils.json_to_sheet(historialRecargas);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Recargas");
-      XLSX.writeFile(wb, "historial_recargas.xlsx");
-    }
-  };
-
-  const handleDownloadPDF = (type: 'viajes' | 'recargas') => {
-    const doc = new jsPDF();
-    if (type === 'viajes') {
-      doc.text("Historial de Viajes", 14, 15);
-      const tableColumn = ["Ruta", "Embarque", "Llegada", "Tiempo", "Tarifa", "Comisión", "Utilidad"];
-      const tableRows = viajes.map(v => [
-        v.route, v.embarque, v.llegada, v.tiempo, v.tarifa.toString(), v.comision.toString(), v.utilidad.toString()
-      ]);
-      autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
-      doc.save("historial_viajes.pdf");
-    } else {
-      doc.text("Historial de Recargas", 14, 15);
-      const tableColumn = ["Fecha", "Referencia", "Método", "Estado", "Valor"];
-      const tableRows = historialRecargas.map(r => [
-        r.fecha, r.referencia, r.metodo, r.estado, r.valor.toString()
-      ]);
-      autoTable(doc, { head: [tableColumn], body: tableRows, startY: 20 });
-      doc.save("historial_recargas.pdf");
-    }
-  };
-
   const handleRecharge = () => {
     setCheckoutConfig({
-      title: 'Recarga de Saldo SARA Fletes',
+      title: 'Recarga de Billetera SARA Fletes',
       amount: rechargeAmount,
       isSubscription: false
     });
     setIsCheckoutOpen(true);
   };
 
-  const handleSelectPlanSubscription = (selectedPlanName: string) => {
-    const cost = selectedPlanName === 'VIP' ? 49.99 : selectedPlanName === 'Estandar' ? 19.99 : 4.99;
-    setPlan(selectedPlanName as any);
+  const handleSelectPlanSubscription = (nombrePlan: 'VIP' | 'Estandar' | 'Basico') => {
+    const precios = { VIP: 49.99, Estandar: 19.99, Basico: 4.99 };
     setCheckoutConfig({
-      title: `Suscripción a Plan ${selectedPlanName}`,
-      amount: cost,
+      title: `Plan ${nombrePlan} de SARA Fletes`,
+      amount: precios[nombrePlan],
       isSubscription: true,
-      interval: 'por mes'
+      interval: 'mes'
     });
+    setPlan(nombrePlan);
     setIsCheckoutOpen(true);
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans text-slate-800">
-      
-      {/* SIDEBAR */}
-      <div className="w-full md:w-64 bg-slate-900 text-white min-h-screen p-6 flex flex-col shadow-xl z-10">
-        <div className="mb-8 border-b border-slate-800 pb-6">
-          <Link href="/modulos/fletes" className="flex items-center gap-2 font-black text-xl mb-6">
-            <div className="bg-amber-500 p-1.5 rounded-lg">
-              <Truck className="w-5 h-5 text-slate-900" />
-            </div>
-            SARA Fletes
-          </Link>
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-2">Mi Cabina</p>
-          <p className="text-white font-bold">Carlos Mendoza</p>
-          <p className="text-slate-400 text-xs font-mono">PBA-1234</p>
-{/* SALDO WIDGET */}
-            <div className="mt-4 bg-slate-900/50 border border-slate-700/50 p-4 rounded-xl flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Saldo Disponible</p>
-                <p className="text-2xl font-black text-emerald-400">$119.00</p>
-              </div>
-              <div className="bg-slate-800 p-2 rounded-lg border border-slate-700">
-                <Wallet className="w-6 h-6 text-emerald-400" />
-              </div>
-            </div>
-        </div>
+  const viajes = [
+    { id: 1, route: 'MAtecons Chile -> El Dorado (Cariamanga)', embarque: '12 Oct 2026, 14:00', llegada: '12 Oct 2026, 14:15', tiempo: '15 min', tarifa: 3.50, comision: 0.18, utilidad: 3.32 },
+    { id: 2, route: 'Centro Cariamanga -> Vía Colaisaca', embarque: '10 Oct 2026, 09:15', llegada: '10 Oct 2026, 09:45', tiempo: '30 min', tarifa: 8.00, comision: 0.40, utilidad: 7.60 },
+    { id: 3, route: 'Terminal Terrestre -> San Vicente', embarque: '08 Oct 2026, 16:30', llegada: '08 Oct 2026, 16:50', tiempo: '20 min', tarifa: 4.50, comision: 0.23, utilidad: 4.27 },
+  ];
 
-        <nav className="space-y-2 flex-grow">
-          <button onClick={() => setActiveTab('sincronizacion')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'sincronizacion' ? 'bg-emerald-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <Navigation className="w-5 h-5 mr-3" /> Sincronización Fletes
-          </button>
-          <button onClick={() => setActiveTab('vehiculo')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'vehiculo' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <Truck className="w-5 h-5 mr-3" /> Mi Cabina y Perfil
-          </button>
-          <button onClick={() => setActiveTab('documentos')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'documentos' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <FileText className="w-5 h-5 mr-3" /> Mis Documentos
-          </button>
-          <button onClick={() => setActiveTab('billetera')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'billetera' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <Wallet className="w-5 h-5 mr-3" /> Billetera y Plan
-          </button>
-          <button onClick={() => setActiveTab('historial')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'historial' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <List className="w-5 h-5 mr-3" /> Historial de Viajes
-          </button>
-          <button onClick={() => setActiveTab('recargas')} className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${activeTab === 'recargas' ? 'bg-amber-500 text-slate-900 font-bold' : 'text-slate-300 hover:bg-slate-800'}`}>
-            <List className="w-5 h-5 mr-3" /> Historial de Recargas
-          </button>
-        </nav>
+  const historialRecargas = [
+    { fecha: '12 Oct 2026, 15:30', referencia: 'TRX-99882211', metodo: 'Tarjeta de Crédito', estado: 'En Verificación', valor: 50.00 },
+    { fecha: '01 Oct 2026, 09:15', referencia: 'TRX-11223344', metodo: 'Transferencia Bancaria', estado: 'Aprobado', valor: 100.00 }
+  ];
 
-        <div className="mt-8 pt-6 border-t border-slate-800">
-          <Link href="/modulos/fletes">
-            <button className="w-full text-slate-400 hover:text-white text-sm font-medium transition-colors">
-              Cerrar Sesi├│n
-            </button>
-          </Link>
-        </div>
+  const handleDownloadExcel = (type: 'viajes' | 'recargas') => {
+    const dataToExport = type === 'viajes' ? viajes : historialRecargas;
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, type === 'viajes' ? 'Viajes' : 'Recargas');
+    XLSX.writeFile(wb, `SARA-Fletes-${type}.xlsx`);
+    showToast(`Archivo Excel de ${type} descargado exitosamente`);
+  };
+
+  const handleDownloadPDF = (type: 'viajes' | 'recargas') => {
+    const doc = new jsPDF();
+    doc.text(`GRUPO SARA - Historial de ${type === 'viajes' ? 'Viajes' : 'Recargas'}`, 14, 15);
+    if (type === 'viajes') {
+      autoTable(doc, {
+        head: [['Ruta', 'Embarque', 'Llegada', 'Tarifa', 'Utilidad']],
+        body: viajes.map(v => [v.route, v.embarque, v.llegada, `$${v.tarifa}`, `$${v.utilidad}`]),
+        startY: 20
+      });
+    } else {
+      autoTable(doc, {
+        head: [['Fecha', 'Referencia', 'Método', 'Estado', 'Valor']],
+        body: historialRecargas.map(r => [r.fecha, r.referencia, r.metodo, r.estado, `+$${r.valor}`]),
+        startY: 20
+      });
+    }
+    doc.save(`SARA-Fletes-${type}.pdf`);
+    showToast(`Archivo PDF de ${type} generado exitosamente`);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300 gap-3">
+        <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+        <p className="font-bold text-sm tracking-wide">Cargando Cabina de Transportista SARA...</p>
       </div>
+    );
+  }
 
-      {/* CONTENT AREA */}
-      <div className="flex-1 p-8 overflow-y-auto h-screen">
-        <div className="max-w-7xl mx-auto">
+  // Objeto de vehículo del chofer para pintar en el mapa
+  const choferVehiculoMapa: VehiculoMapa[] = [
+    {
+      id: 'MI-VEHICULO',
+      nombreChofer: currentUser?.user_metadata?.full_name || 'Carlos Mendoza',
+      placa: currentUser?.user_metadata?.placa || 'PBA-1234',
+      tipoVehiculo: 'VOLQUETA_V3A',
+      lat: driverLocation[0],
+      lng: driverLocation[1],
+      rating: 4.95,
+      telefono: '0991234567',
+      disponible: true
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-950 font-sans flex flex-col text-slate-100">
+      {/* HEADER NAVBAR */}
+      <header className="bg-slate-900 border-b border-slate-800 p-4 flex flex-wrap justify-between items-center shadow-lg relative z-20 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="bg-amber-500 p-2.5 rounded-xl text-slate-950 shadow-md">
+            <Truck className="w-6 h-6 stroke-[2.5]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black text-white">
+                SARA <span className="text-amber-500">Cabina de Transportista</span>
+              </h1>
+              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                Activo
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">
+              Panel de control de unidad, radar de pedidos, billetera y documentación oficial
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Link
+            href="/modulos/fletes"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors"
+          >
+            ← Despachador de Fletes
+          </Link>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push('/modulos/fletes/auth');
+            }}
+            className="text-xs text-rose-400 hover:text-rose-300 font-bold"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+      </header>
+
+      {/* CUERPO PRINCIPAL SPLIT */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        {/* SIDEBAR DE PESTAÑAS */}
+        <aside className="w-full lg:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between">
+          <div className="space-y-1">
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Chofer Asignado</p>
+              <p className="font-bold text-white text-sm mt-0.5">
+                {currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
+              </p>
+              <p className="text-[11px] font-mono text-amber-400">
+                Placa: {currentUser?.user_metadata?.placa || 'PBA-1234'}
+              </p>
+              <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Billetera:</span>
+                <span className="font-mono font-black text-emerald-400">${balance.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('sincronizacion')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'sincronizacion'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <Navigation className="w-4 h-4" />
+              Sincronización & Radar
+            </button>
+
+            <button
+              onClick={() => setActiveTab('vehiculo')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'vehiculo'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <Truck className="w-4 h-4" />
+              Mi Cabina y Perfil
+            </button>
+
+            <button
+              onClick={() => setActiveTab('documentos')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'documentos'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Mis Documentos
+            </button>
+
+            <button
+              onClick={() => setActiveTab('billetera')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'billetera'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <Wallet className="w-4 h-4" />
+              Billetera y Planes
+            </button>
+
+            <button
+              onClick={() => setActiveTab('historial')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'historial'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              Historial de Viajes
+            </button>
+
+            <button
+              onClick={() => setActiveTab('recargas')}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'recargas'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              Historial de Recargas
+            </button>
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">
+            SARA Fletes v2.4 • Red Ecuatoriana
+          </div>
+        </aside>
+
+        {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA */}
+        <main className="flex-1 p-6 overflow-y-auto max-h-[calc(100vh-73px)] bg-slate-950">
           
-          {/* TAB: SINCRONIZACION */}
+          {/* ================================================================ */}
+          {/* TAB 1: SINCRONIZACIÓN Y RADAR EN VIVO (CON MAPA COMPLETO) */}
+          {/* ================================================================ */}
           {activeTab === 'sincronizacion' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-full min-h-[85vh] flex flex-col">
-              <h2 className="text-3xl font-black mb-6">Sincronización Fletes (Radar Activo)</h2>
-              <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden">
-                <div className="w-full h-[70vh] rounded-xl shadow-inner overflow-hidden relative">
-                   <iframe 
-                     width="100%" 
-                     height="100%" 
-                     frameBorder="0" 
-                     scrolling="no" 
-                     src={`https://maps.google.com/maps?q=${encodeURIComponent(driverCountry + ' ' + driverProvince + ' ' + driverCity)}&t=m&z=13&output=embed`}
-                     style={{ filter: tripAccepted ? 'hue-rotate(90deg) contrast(1.1)' : 'none', transition: 'all 0.5s ease' }}
-                   ></iframe>
-                   
-                   {/* OVERLAY: SOLICITUD ENTRANTE */}
-                   {incomingRequest && !tripAccepted && (
-                     <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-10 animate-in fade-in zoom-in duration-300">
-                       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-                         <div className="flex justify-between items-start mb-4">
-                           <div className="flex items-center gap-2">
-                             <span className="relative flex h-3 w-3">
-                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                               <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-                             </span>
-                             <h3 className="font-black text-lg text-slate-800">¡Nuevo Flete Disponible!</h3>
-                           </div>
-                         </div>
-                         
-                         <div className="space-y-4 mb-6">
-                           <div className="flex items-start gap-3">
-                             <div className="bg-slate-100 p-2 rounded-lg mt-1"><MapPin className="w-4 h-4 text-slate-600"/></div>
-                             <div>
-                               <p className="text-xs text-slate-500 font-bold uppercase">Origen</p>
-                               <p className="font-bold text-slate-800">{incomingRequest.origen}</p>
-                             </div>
-                           </div>
-                           <div className="flex items-start gap-3">
-                             <div className="bg-slate-100 p-2 rounded-lg mt-1"><Navigation className="w-4 h-4 text-blue-600"/></div>
-                             <div>
-                               <p className="text-xs text-slate-500 font-bold uppercase">Destino</p>
-                               <p className="font-bold text-slate-800">{incomingRequest.destino}</p>
-                             </div>
-                           </div>
-                           <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
-                             <div>
-                               <p className="text-xs text-slate-500 font-bold uppercase">Cliente</p>
-                               <p className="font-bold text-slate-700">{incomingRequest.cliente}</p>
-                             </div>
-                             <div className="text-right">
-                               <p className="text-xs text-slate-500 font-bold uppercase">Valor Ref.</p>
-                               <p className="font-black text-emerald-600 text-lg">${incomingRequest.valorRef?.toFixed(2)}</p>
-                             </div>
-                           </div>
-                         </div>
-                         
-                         <div className="grid grid-cols-2 gap-3">
-                           <button onClick={() => setIncomingRequest(null)} className="bg-white border-2 border-slate-200 text-slate-700 font-bold py-3 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-colors">
-                             Negociar
-                           </button>
-                           <button onClick={handleAcceptTrip} className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black py-3 rounded-xl transition-colors shadow-md">
-                             Aceptar
-                           </button>
-                         </div>
-                       </div>
-                     </div>
-                   )}
-
-                   {/* OVERLAY: VIAJE ACEPTADO (RUTA ACTIVA) */}
-                   {tripAccepted && (
-                     <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-slate-200 p-5 z-10 animate-in slide-in-from-bottom-8">
-                       <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-4">
-                         <div className="flex items-center gap-3">
-                           <div className="bg-emerald-100 p-2 rounded-lg"><Navigation className="w-6 h-6 text-emerald-600"/></div>
-                           <div>
-                             <h3 className="font-black text-slate-800">En Ruta hacia Origen</h3>
-                             <p className="text-sm text-slate-500 font-medium">Llegada estimada: 12 min</p>
-                           </div>
-                         </div>
-                         <div className="bg-slate-900 text-white px-4 py-2 rounded-xl text-center shadow-inner">
-                           <p className="text-[10px] font-bold uppercase text-slate-400">Código Acceso</p>
-                           <p className="font-mono font-black text-lg tracking-wider text-amber-400">{accessCode}</p>
-                         </div>
-                       </div>
-                       <div className="flex gap-3">
-                         <button className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition-colors text-sm">
-                           Navegar (GPS)
-                         </button>
-                         <button onClick={() => { setTripAccepted(false); setAccessCode(null); showToast('Viaje finalizado exitosamente.'); }} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 rounded-xl transition-colors text-sm border border-red-100">
-                           Finalizar Viaje
-                         </button>
-                       </div>
-                     </div>
-                   )}
+            <div className="space-y-4 h-full flex flex-col">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                    Sincronización Fletes (Radar Activo en Tiempo Real)
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Tu unidad está transmitiendo coordenadas GPS y recibiendo viajes cercanos en tiempo real.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span className="text-slate-300 font-bold">Transmitiendo en {driverCity}, {driverProvince}</span>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB: VEHICULO */}
-          {activeTab === 'vehiculo' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-3xl font-black mb-6">Datos de Mi Cabina y Perfil</h2>
-              
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-                <div className="p-8 border-b border-slate-100">
-                  
-                  {/* FOTO DE PERFIL */}
-                  <div className="flex flex-col md:flex-row items-center gap-6 mb-8 bg-slate-50 p-6 rounded-xl border border-slate-100">
-                    <div 
-                      className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden relative group cursor-pointer border-4 border-white shadow-lg"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      {photoPreview ? (
-                        <img src={photoPreview} alt="Perfil" className="w-full h-full object-cover" />
-                      ) : (
-                        <Camera className="w-8 h-8 text-slate-400 group-hover:opacity-0 transition-opacity" />
-                      )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white text-xs font-bold text-center px-2">Subir Foto</span>
-                      </div>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        className="hidden" 
-                        accept="image/*" 
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => setPhotoPreview(event.target?.result as string);
-                            reader.readAsDataURL(e.target.files[0]);
-                          }
-                        }}
-                      />
+              {/* MAPA COMPLETO EN VIVO */}
+              <div className="flex-1 w-full min-h-[520px] rounded-2xl overflow-hidden border border-slate-800 relative shadow-2xl">
+                <SaraFletesMap
+                  userLocation={driverLocation}
+                  origenCoords={incomingRequest ? incomingRequest.coordsOrigen : null}
+                  destinoCoords={incomingRequest ? incomingRequest.coordsDestino : null}
+                  origenNombre={incomingRequest?.origen}
+                  destinoNombre={incomingRequest?.destino}
+                  vehiculosCercanos={choferVehiculoMapa}
+                  rutaCoordenadas={tripAccepted && incomingRequest ? [
+                    incomingRequest.coordsOrigen,
+                    [-4.3250, -79.5580],
+                    incomingRequest.coordsDestino
+                  ] : undefined}
+                />
+
+                {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE */}
+                {incomingRequest && !tripAccepted && (
+                  <div className="absolute top-6 right-6 z-20 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        ¡Nuevo Flete Cercano!
+                      </span>
+                      <span className="text-xs font-mono text-emerald-400 font-black">
+                        ${incomingRequest.valorRef.toFixed(2)} USD
+                      </span>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800">Fotograf├¡a del Conductor</h4>
-                      <p className="text-sm text-slate-500 mb-2">Para seguridad de los constructores, debes subir una foto clara de tu rostro.</p>
-                      <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-sm bg-white border border-slate-300 px-4 py-2 rounded-lg hover:bg-slate-50 font-bold text-slate-700 transition-colors shadow-sm"
+
+                    <div className="space-y-2 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
+                      <p className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></span>
+                        <span><strong>Origen:</strong> {incomingRequest.origen}</span>
+                      </p>
+                      <p className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mt-1 flex-shrink-0"></span>
+                        <span><strong>Destino:</strong> {incomingRequest.destino}</span>
+                      </p>
+                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                        Carga: {incomingRequest.material} • Distancia: {incomingRequest.distanciaKm} km
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setIncomingRequest(null)}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors"
                       >
-                        {photoPreview ? 'Cambiar Foto' : 'Seleccionar Archivo'}
+                        Rechazar
+                      </button>
+                      <button
+                        onClick={handleAcceptTrip}
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25"
+                      >
+                        Aceptar Flete
                       </button>
                     </div>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Nombre del Chofer Registrado</label>
-                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500" defaultValue="Carlos Mendoza" />
+                {/* OVERLAY: VIAJE ACEPTADO (EN RUTA) */}
+                {tripAccepted && (
+                  <div className="absolute bottom-6 left-6 right-6 z-20 bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 p-5 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                        <Navigation className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <div>
+                        <h4 className="font-black text-white text-base">En Ruta hacia el Punto de Carga</h4>
+                        <p className="text-xs text-slate-400">Dirígete a: {incomingRequest?.origen}</p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Celular / WhatsApp</label>
-                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500" defaultValue="0991234567" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Veh├¡culo</label>
-                      <select className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500 bg-white">
-                        <option>Volqueta (12m3)</option>
-                        <option>Cami├│n (5 Ton)</option>
-                        <option>Plataforma / Mula</option>
-                        <option>Camionetas Doble Cabina</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Placa (Letras y N├║meros)</label>
-                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-amber-500 font-mono uppercase" defaultValue="PBA-1234" />
+
+                    <div className="flex items-center gap-4">
+                      <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-center">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Código de Entrega</p>
+                        <p className="text-xl font-black font-mono text-emerald-400 tracking-widest">{accessCode}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setTripAccepted(false);
+                          setAccessCode(null);
+                          setIncomingRequest(null);
+                          showToast('¡Flete finalizado con éxito!');
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-3 rounded-xl text-xs transition-colors shadow-lg"
+                      >
+                        Completar Entrega
+                      </button>
                     </div>
                   </div>
-                  
-                  <div className="mt-8 pt-6 border-t border-slate-100">
-                     <div className="flex items-center justify-between mb-4">
-                       <div>
-                         <h4 className="font-bold text-slate-800">Ubicaci├│n GPS Actual</h4>
-                         <p className="text-sm text-slate-500">Transmite tu posici├│n exacta para recibir viajes cercanos y mejorar cobertura.</p>
-                       </div>
-                       <div className="flex items-center gap-2">
-                         <span className="relative flex h-3 w-3">
-                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                           <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                         </span>
-                         <span className="text-sm font-bold text-emerald-600">Conectado y Transmitiendo</span>
-                       </div>
-                     </div>
-                     
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Pa├¡s</label>
-                          <select value={driverCountry} onChange={e => setDriverCountry(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500 bg-slate-50">
-                            <option>Ecuador</option>
-                            <option>Colombia</option>
-                            <option>Per├║</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Provincia / Departamento</label>
-                          <input type="text" value={driverProvince} onChange={e => setDriverProvince(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Pichincha" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Ciudad / Sector</label>
-                          <input type="text" value={driverCity} onChange={e => setDriverCity(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-amber-500" placeholder="Ej. Quito Sur" />
-                        </div>
-                     </div>
-
-                                       </div>
-                </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* TAB: DOCUMENTOS */}
-          {activeTab === 'documentos' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-3xl font-black mb-6">Validaci├│n de Documentos</h2>
-              
-              <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl mb-6">
-                <p className="text-amber-800 text-sm font-bold">Importante: Para activar tu perfil y empezar a recibir notificaciones de fletes, debes subir copias legibles de tu c├®dula, licencia de conducir y matr├¡cula del veh├¡culo. Ser├ín validados por el Administrador.</p>
+          {/* ================================================================ */}
+          {/* TAB 2: MI CABINA Y PERFIL (ESPAÑOL PURO CORREGIDO) */}
+          {/* ================================================================ */}
+          {activeTab === 'vehiculo' && (
+            <div className="max-w-4xl space-y-6">
+              <div>
+                <h2 className="text-2xl font-black text-white">Datos de Mi Cabina y Perfil</h2>
+                <p className="text-xs text-slate-400">Actualiza la información de tu unidad y datos de contacto oficiales.</p>
               </div>
 
-              <div className="space-y-6">
-                
-                {/* Cedula */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="bg-slate-100 p-3 rounded-xl"><FileText className="w-6 h-6 text-slate-600" /></div>
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl">
+                {/* Foto del conductor */}
+                <div className="flex flex-col md:flex-row items-center gap-6 bg-slate-950 p-5 rounded-xl border border-slate-800">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-24 h-24 rounded-full bg-slate-800 border-2 border-amber-500/50 flex items-center justify-center overflow-hidden cursor-pointer relative group"
+                  >
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Perfil" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-slate-400 group-hover:scale-110 transition-transform" />
+                    )}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
+                          reader.readAsDataURL(e.target.files[0]);
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Fotografía del Conductor</h4>
+                    <p className="text-xs text-slate-400 mb-2">Para seguridad de los constructores y clientes, sube una foto clara de tu rostro.</p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-lg font-bold transition-colors"
+                    >
+                      {photoPreview ? 'Cambiar Foto' : 'Seleccionar Archivo'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Campos de texto en español impecable */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre del Chofer Registrado</label>
+                    <input
+                      type="text"
+                      defaultValue={currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Celular / WhatsApp</label>
+                    <input
+                      type="text"
+                      defaultValue="0991234567"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Tipo de Vehículo</label>
+                    <select className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                      <option>Volqueta de Obra (14m³)</option>
+                      <option>Camión Liviano (5 Ton)</option>
+                      <option>Camioneta Pickup (1.2 Ton)</option>
+                      <option>Furgón Urbano (3.5 Ton)</option>
+                      <option>Camión Mediano (10 Ton)</option>
+                      <option>Tráiler / Mula Plataforma (32 Ton)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Placa (Letras y Números)</label>
+                    <input
+                      type="text"
+                      defaultValue={currentUser?.user_metadata?.placa || 'PBA-1234'}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Ubicación en vivo */}
+                <div className="pt-4 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-bold text-slate-800">C├®dula de Identidad</h4>
-                      <p className="text-sm text-slate-500">Sube una foto o PDF de tu documento (ambos lados).</p>
+                      <h4 className="font-bold text-white text-sm">Ubicación GPS Actual</h4>
+                      <p className="text-xs text-slate-400">Transmite tu posición exacta para recibir viajes cercanos y mejorar tu cobertura.</p>
+                    </div>
+                    <span className="text-xs text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Conectado y Transmitiendo
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">País</label>
+                      <select value={driverCountry} onChange={e => setDriverCountry(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none">
+                        <option>Ecuador</option>
+                        <option>Colombia</option>
+                        <option>Perú</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Provincia</label>
+                      <input type="text" value={driverProvince} onChange={e => setDriverProvince(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase mb-1">Ciudad / Cantón</label>
+                      <input type="text" value={driverCity} onChange={e => setDriverCity(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white focus:outline-none" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    {!docCedula && <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente</span>}
-                    <input type="file" ref={cedulaRef} className="hidden" onChange={(e) => { if(e.target.files && e.target.files[0]) setDocCedula(true); }} />
-  {docCedula ? (
-    <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Recibido</span>
-  ) : (
-    <button onClick={() => cedulaRef.current?.click()} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
-  )}
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================ */}
+          {/* TAB 3: MIS DOCUMENTOS (ESPAÑOL PURO CORREGIDO) */}
+          {/* ================================================================ */}
+          {activeTab === 'documentos' && (
+            <div className="max-w-4xl space-y-6">
+              <div>
+                <h2 className="text-2xl font-black text-white">Validación de Documentos</h2>
+                <p className="text-xs text-slate-400">Verificación normativa para habilitar viajes y despachos oficiales en el radar.</p>
+              </div>
+
+              <div className="bg-amber-500/10 border-l-4 border-amber-500 p-4 rounded-r-xl">
+                <p className="text-amber-300 text-xs font-semibold leading-relaxed">
+                  <strong>Requisito Obligatorio:</strong> Para activar tu perfil y recibir notificaciones de fletes, sube copias legibles de tu cédula de identidad, licencia de conducir profesional y matrícula vehicular del año en curso.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Cédula */}
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-amber-500">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white text-sm">Cédula de Identidad</h4>
+                      <p className="text-xs text-slate-400">Sube una foto o PDF de tu documento (ambos lados legibles).</p>
+                    </div>
+                  </div>
+                  <div>
+                    <input type="file" ref={cedulaRef} className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setDocCedula(true); }} />
+                    {docCedula ? (
+                      <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" /> Documento Recibido
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => cedulaRef.current?.click()}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-2"
+                      >
+                        <UploadCloud className="w-4 h-4" /> Subir Cédula
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Licencia */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="bg-slate-100 p-3 rounded-xl"><FileText className="w-6 h-6 text-slate-600" /></div>
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-amber-500">
+                      <FileText className="w-5 h-5" />
+                    </div>
                     <div>
-                      <h4 className="font-bold text-slate-800">Licencia de Conducir (Tipo C/E)</h4>
-                      <p className="text-sm text-slate-500">Sube una foto o PDF vigente.</p>
+                      <h4 className="font-bold text-white text-sm">Licencia de Conducir (Tipo C / D / E)</h4>
+                      <p className="text-xs text-slate-400">Sube tu licencia profesional vigente emitida por la ANT.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    {!docLicencia && <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente</span>}
-                    <input type="file" ref={licenciaRef} className="hidden" onChange={(e) => { if(e.target.files && e.target.files[0]) setDocLicencia(true); }} />
-  {docLicencia ? (
-    <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Recibido</span>
-  ) : (
-    <button onClick={() => licenciaRef.current?.click()} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
-  )}
+                  <div>
+                    <input type="file" ref={licenciaRef} className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setDocLicencia(true); }} />
+                    {docLicencia ? (
+                      <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" /> Documento Recibido
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => licenciaRef.current?.click()}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-2"
+                      >
+                        <UploadCloud className="w-4 h-4" /> Subir Licencia
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Matricula */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="bg-slate-100 p-3 rounded-xl"><FileText className="w-6 h-6 text-slate-600" /></div>
+                {/* Matrícula */}
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-amber-500">
+                      <FileText className="w-5 h-5" />
+                    </div>
                     <div>
-                      <h4 className="font-bold text-slate-800">Matr├¡cula del Veh├¡culo</h4>
-                      <p className="text-sm text-slate-500">Documento actualizado del a├▒o en curso.</p>
+                      <h4 className="font-bold text-white text-sm">Matrícula del Vehículo</h4>
+                      <p className="text-xs text-slate-400">Documento de revisión técnica vehicular actualizado del año en curso.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                    {!docMatricula && <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin"/> Pendiente</span>}
-                    <input type="file" ref={matriculaRef} className="hidden" onChange={(e) => { if(e.target.files && e.target.files[0]) setDocMatricula(true); }} />
-  {docMatricula ? (
-    <span className="text-xs font-bold bg-blue-100 text-blue-700 px-3 py-1 rounded-full flex items-center"><CheckCircle className="w-3 h-3 mr-1"/> Recibido</span>
-  ) : (
-    <button onClick={() => matriculaRef.current?.click()} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800"><UploadCloud className="w-4 h-4"/> Subir</button>
-  )}
+                  <div>
+                    <input type="file" ref={matriculaRef} className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) setDocMatricula(true); }} />
+                    {docMatricula ? (
+                      <span className="text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5" /> Documento Recibido
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => matriculaRef.current?.click()}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-2"
+                      >
+                        <UploadCloud className="w-4 h-4" /> Subir Matrícula
+                      </button>
+                    )}
                   </div>
                 </div>
-
               </div>
             </div>
           )}
 
-          {/* TAB: BILLETERA Y COMISIONES */}
+          {/* ================================================================ */}
+          {/* TAB 4: BILLETERA Y PLANES (FORMATO CLARO $49.99/MES Y 5% COMISIÓN) */}
+          {/* ================================================================ */}
           {activeTab === 'billetera' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-3xl font-black mb-6">Billetera de Recargas y Planes</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden flex flex-col justify-between">
-                  <Wallet className="w-24 h-24 absolute -right-4 -bottom-4 opacity-10 text-white" />
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-black text-white">Billetera de Recargas y Planes de Comisión</h2>
+                <p className="text-xs text-slate-400">Controla tu saldo disponible, recargas en línea y plan de suscripción activo.</p>
+              </div>
+
+              {/* Saldo y Recarga en línea */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Saldo Prepago</p>
-                    <h3 className={`text-5xl font-black mb-2 ${balance < 5 ? 'text-red-400' : 'text-emerald-400'}`}>${balance.toFixed(2)}</h3>
-                    <p className="text-xs text-slate-400 leading-tight">De aqu├¡ se debitar├í el porcentaje de comisi├│n cada vez que ganes un flete.</p>
+                    <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Saldo Disponible en Billetera</p>
+                    <h3 className="text-4xl font-black text-emerald-400 font-mono tracking-tight">${balance.toFixed(2)}</h3>
+                    <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                      De este saldo se debita automáticamente la comisión pactada por flete adjudicado.
+                    </p>
                   </div>
-                  {balance < 5 && <div className="mt-4 bg-red-500/20 text-red-300 text-xs font-bold p-2 rounded border border-red-500/30">Saldo bajo. Recarga para recibir notificaciones.</div>}
+                  <div className="pt-4 border-t border-slate-800/80 mt-4 text-[11px] text-emerald-400 font-bold flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" /> Cuenta habilitada para recibir viajes
+                  </div>
                 </div>
 
-                <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center">
-                  <h3 className="font-bold text-lg mb-1 text-slate-800">Recargar Saldo a trav├®s de Administrador SARA</h3>
-                  <p className="text-sm text-slate-500 mb-6">El ecosistema est├í integrado a m├®todos de pago autom├íticos. Escoge tu preferencia.</p>
-                  
-                  <div className="flex gap-4 mb-6">
-                    <div className="relative flex-1">
-                      <span className="absolute left-4 top-3 font-bold text-slate-500">$</span>
-                      <input 
-                        type="number" 
+                <div className="lg:col-span-2 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+                  <div>
+                    <h4 className="font-bold text-white text-base">Recargar Saldo a través de Administrador SARA</h4>
+                    <p className="text-xs text-slate-400">Integración con pasarelas de pago automáticas y acreditación inmediata.</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <div className="relative flex-1 min-w-[140px]">
+                      <span className="absolute left-3.5 top-2.5 font-bold text-slate-500 text-sm">$</span>
+                      <input
+                        type="number"
                         value={rechargeAmount}
-                        onChange={(e) => setRechargeAmount(Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-3 rounded-xl border border-slate-300 font-bold text-lg outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        onChange={(e) => setRechargeAmount(Math.max(5, Number(e.target.value)))}
+                        className="w-full pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono font-bold text-base focus:outline-none focus:border-amber-500"
                       />
                     </div>
-                    <button onClick={handleRecharge} className="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black px-8 rounded-xl transition-colors shadow-md flex items-center">
-                      <CreditCard className="w-5 h-5 mr-2" /> Pagar Online
+                    <button
+                      onClick={handleRecharge}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2 rounded-xl text-xs transition-colors flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                    >
+                      <CreditCard className="w-4 h-4" /> Recargar Saldo Online
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-6">
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <CreditCard className="w-8 h-8 text-blue-600" />
-                      <div className="text-xs"><p className="font-bold text-slate-800">Tarjetas</p><p className="text-slate-500">Cr├®dito y D├®bito</p></div>
+                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800 text-[11px]">
+                    <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                      <CreditCard className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-white">Tarjetas</p>
+                        <p className="text-slate-400 text-[10px]">Crédito y Débito</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <Building className="w-8 h-8 text-emerald-600" />
-                      <div className="text-xs"><p className="font-bold text-slate-800">Transferencias</p><p className="text-slate-500">Cuentas SARA</p></div>
+                    <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                      <Building className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-white">Transferencias</p>
+                        <p className="text-slate-400 text-[10px]">Bancos del Ecuador</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                      <QrCode className="w-8 h-8 text-slate-700" />
-                      <div className="text-xs"><p className="font-bold text-slate-800">C├│digo QR</p><p className="text-slate-500">Billeteras M├│viles</p></div>
+                    <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                      <QrCode className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                      <div>
+                        <p className="font-bold text-white">Código QR</p>
+                        <p className="text-slate-400 text-[10px]">Billeteras Móviles</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <h3 className="text-xl font-bold mb-4">Selecciona tu Plan de Comisión</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {planesList.length > 0 ? planesList.map((p: any) => (
-                    <div key={p.id} onClick={() => handleSelectPlanSubscription(p.nombre)} className={`cursor-pointer rounded-2xl p-6 border-2 transition-all group ${plan === p.nombre ? 'border-amber-500 bg-amber-50 relative overflow-hidden shadow-md' : 'border-slate-200 bg-white hover:border-amber-400 hover:shadow-sm'}`}>
-                      {plan === p.nombre && <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">ACTIVO</div>}
-                      <div className="flex justify-between items-start mb-4">
-                        <h4 className={`font-black text-lg ${plan === p.nombre ? 'text-amber-900' : 'text-slate-800'}`}>{p.nombre}</h4>
-                        {plan === p.nombre && <CheckCircle className="w-6 h-6 text-amber-500" />}
+              {/* SECCIÓN DE PLANES CON FORMATO ULTRA CLARO */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-black text-white">Planes de Suscripción y Comisión</h3>
+                  <span className="text-xs text-amber-400 font-bold">A menor comisión por viaje, mayor utilidad neta</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* PLAN VIP */}
+                  <div
+                    onClick={() => handleSelectPlanSubscription('VIP')}
+                    className={`cursor-pointer rounded-2xl p-5 border-2 transition-all flex flex-col justify-between ${
+                      plan === 'VIP'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10'
+                        : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-black text-sm text-white">Plan VIP</span>
+                        {plan === 'VIP' && (
+                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                            Plan Activo
+                          </span>
+                        )}
                       </div>
-                      <div className="text-3xl font-black text-slate-800 mb-2">{p.comision}% <span className="text-sm text-slate-500 font-medium">/ flete</span></div>
-                      <p className="text-xs text-slate-500 mb-3">{p.nombre === 'VIP' ? '$49.99/mes' : p.nombre === 'Estandar' ? '$19.99/mes' : '$4.99/mes'}</p>
-                      <ul className="text-sm text-slate-600 space-y-2 mt-4 mb-4">
-                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Notificaciones prioritarias</li>
-                        <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2"/> Cobertura Nacional GPS</li>
+
+                      {/* Costo Mensual Destacado */}
+                      <div className="mb-3">
+                        <p className="text-3xl font-black text-amber-400 font-mono">
+                          $49.99 <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                        </p>
+                      </div>
+
+                      {/* Comisión por Flete */}
+                      <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
+                        <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
+                        <p className="text-xl font-black text-emerald-400 font-mono">5.0% <span className="text-xs font-normal text-slate-400">(La tarifa más baja)</span></p>
+                      </div>
+
+                      <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
+                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Prioridad 1 en Despacho Satelital</li>
+                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Cobertura Nacional y Vía Express</li>
+                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Liquidación inmediata en 24h</li>
                       </ul>
-                      <button 
-                        type="button" 
-                        className={`w-full py-2 rounded-lg text-xs font-bold transition-colors ${plan === p.nombre ? 'bg-amber-500 text-slate-900' : 'bg-slate-100 text-slate-700 group-hover:bg-slate-900 group-hover:text-white'}`}
-                      >
-                        {plan === p.nombre ? 'Plan Actual' : 'Suscribirse al Plan'}
-                      </button>
                     </div>
-                  )) : (
-                    <div className="col-span-3 text-center text-slate-500 py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">Cargando planes de Supabase...</div>
-                  )}
+
+                    <button
+                      type="button"
+                      className={`w-full py-2.5 rounded-xl text-xs font-black transition-colors ${
+                        plan === 'VIP' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                    >
+                      {plan === 'VIP' ? 'Plan Activo' : 'Suscribirse al Plan VIP'}
+                    </button>
+                  </div>
+
+                  {/* PLAN ESTÁNDAR */}
+                  <div
+                    onClick={() => handleSelectPlanSubscription('Estandar')}
+                    className={`cursor-pointer rounded-2xl p-5 border-2 transition-all flex flex-col justify-between ${
+                      plan === 'Estandar'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-lg'
+                        : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-black text-sm text-white">Plan Estándar</span>
+                        {plan === 'Estandar' && (
+                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                            Plan Activo
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mb-3">
+                        <p className="text-3xl font-black text-white font-mono">
+                          $19.99 <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
+                        <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
+                        <p className="text-xl font-black text-white font-mono">10.0% <span className="text-xs font-normal text-slate-400">por carrera</span></p>
+                      </div>
+
+                      <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
+                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Notificaciones de radio local</li>
+                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Billetera prepago SARA</li>
+                      </ul>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={`w-full py-2.5 rounded-xl text-xs font-black transition-colors ${
+                        plan === 'Estandar' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                    >
+                      {plan === 'Estandar' ? 'Plan Activo' : 'Elegir Estándar'}
+                    </button>
+                  </div>
+
+                  {/* PLAN BÁSICO */}
+                  <div
+                    onClick={() => handleSelectPlanSubscription('Basico')}
+                    className={`cursor-pointer rounded-2xl p-5 border-2 transition-all flex flex-col justify-between ${
+                      plan === 'Basico'
+                        ? 'border-amber-500 bg-amber-500/10 shadow-lg'
+                        : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-black text-sm text-white">Plan Básico</span>
+                        {plan === 'Basico' && (
+                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                            Plan Activo
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mb-3">
+                        <p className="text-3xl font-black text-white font-mono">
+                          $4.99 <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
+                        <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
+                        <p className="text-xl font-black text-white font-mono">15.0% <span className="text-xs font-normal text-slate-400">por carrera</span></p>
+                      </div>
+
+                      <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
+                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Acceso general a la bolsa de carga</li>
+                      </ul>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={`w-full py-2.5 rounded-xl text-xs font-black transition-colors ${
+                        plan === 'Basico' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white'
+                      }`}
+                    >
+                      {plan === 'Basico' ? 'Plan Activo' : 'Elegir Básico'}
+                    </button>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* TAB: HISTORIAL */}
+          {/* ================================================================ */}
+          {/* TAB 5: HISTORIAL DE VIAJES */}
+          {/* ================================================================ */}
           {activeTab === 'historial' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-               <div className="flex justify-between items-center mb-6">
-                 <h2 className="text-3xl font-black">Historial Detallado de Viajes</h2>
-                 <div className="flex gap-2">
-                   <button onClick={() => handleDownloadExcel('viajes')} className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
-                     <Download className="w-4 h-4 mr-2" /> Excel
-                   </button>
-                   <button onClick={() => handleDownloadPDF('viajes')} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
-                     <Download className="w-4 h-4 mr-2" /> PDF
-                   </button>
-                 </div>
-               </div>
-               
-               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-                 <div className="overflow-x-auto">
-                   <table className="w-full text-left whitespace-nowrap">
-                     <thead>
-                       <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
-                         <th className="p-4 font-bold">Ruta</th>
-                         <th className="p-4 font-bold">Embarque</th>
-                         <th className="p-4 font-bold">Llegada</th>
-                         <th className="p-4 font-bold">Tiempo</th>
-                         <th className="p-4 font-bold">Tarifa Cobrada</th>
-                         <th className="p-4 font-bold">Comisi├│n SARA</th>
-                         <th className="p-4 font-bold">Utilidad Viaje</th>
-                       </tr>
-                     </thead>
-                     <tbody className="text-sm">
-                       {viajes.map((viaje) => (
-                         <tr key={viaje.id} className="border-b border-slate-100 hover:bg-slate-50">
-                           <td className="p-4 font-bold text-slate-800">{viaje.route}</td>
-                           <td className="p-4 text-slate-500">{viaje.embarque}</td>
-                           <td className="p-4 text-slate-500">{viaje.llegada}</td>
-                           <td className="p-4 font-medium text-slate-600">{viaje.tiempo}</td>
-                           <td className="p-4 font-black text-slate-800">${viaje.tarifa.toFixed(2)}</td>
-                           <td className="p-4 font-bold text-red-500">- ${viaje.comision.toFixed(2)}</td>
-                           <td className="p-4 font-black text-emerald-600">${viaje.utilidad.toFixed(2)}</td>
-                         </tr>
-                       ))}
-                     </tbody>
-                   </table>
-                 </div>
-               </div>
+            <div className="space-y-6">
+              <div className="flex flex-wrap justify-between items-center gap-3">
+                <div>
+                  <h2 className="text-2xl font-black text-white">Historial Detallado de Viajes</h2>
+                  <p className="text-xs text-slate-400">Registro de carreras completadas, comisiones y utilidad neta obtenida.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleDownloadExcel('viajes')} className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-700">
+                    <Download className="w-3.5 h-3.5" /> Excel
+                  </button>
+                  <button onClick={() => handleDownloadPDF('viajes')} className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-md">
+                    <Download className="w-3.5 h-3.5" /> PDF
+                  </button>
+                </div>
+              </div>
 
-               {/* Resumen de Totales */}
-               <div className="bg-slate-900 rounded-2xl p-6 text-white grid grid-cols-1 md:grid-cols-4 gap-6">
-                 <div>
-                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Total Viajes Realizados</p>
-                   <p className="text-3xl font-black">3</p>
-                 </div>
-                 <div>
-                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Tarifa Bruta Generada</p>
-                   <p className="text-3xl font-black text-white">$140.00</p>
-                 </div>
-                 <div>
-                   <p className="text-slate-400 text-xs font-bold uppercase mb-1">Comisiones Pagadas a SARA</p>
-                   <p className="text-3xl font-black text-red-400">-$21.00</p>
-                 </div>
-                 <div className="bg-emerald-500/20 p-4 rounded-xl -m-4 ml-2 border border-emerald-500/30">
-                   <p className="text-emerald-200 text-xs font-bold uppercase mb-1">Utilidad Neta</p>
-                   <p className="text-4xl font-black text-emerald-400">$119.00</p>
-                 </div>
-               </div>
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left whitespace-nowrap text-xs">
+                    <thead>
+                      <tr className="bg-slate-950 text-slate-400 text-[10px] uppercase tracking-wider border-b border-slate-800">
+                        <th className="p-3.5 font-bold">Ruta</th>
+                        <th className="p-3.5 font-bold">Embarque</th>
+                        <th className="p-3.5 font-bold">Llegada</th>
+                        <th className="p-3.5 font-bold">Tiempo</th>
+                        <th className="p-3.5 font-bold">Tarifa Cobrada</th>
+                        <th className="p-3.5 font-bold">Comisión SARA</th>
+                        <th className="p-3.5 font-bold">Utilidad Neta</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {viajes.map((viaje) => (
+                        <tr key={viaje.id} className="hover:bg-slate-800/50 transition-colors">
+                          <td className="p-3.5 font-bold text-white">{viaje.route}</td>
+                          <td className="p-3.5 text-slate-400">{viaje.embarque}</td>
+                          <td className="p-3.5 text-slate-400">{viaje.llegada}</td>
+                          <td className="p-3.5 text-slate-300 font-mono">{viaje.tiempo}</td>
+                          <td className="p-3.5 font-mono font-bold text-white">${viaje.tarifa.toFixed(2)}</td>
+                          <td className="p-3.5 font-mono font-bold text-rose-400">- ${viaje.comision.toFixed(2)}</td>
+                          <td className="p-3.5 font-mono font-black text-emerald-400">${viaje.utilidad.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================ */}
+          {/* TAB 6: HISTORIAL DE RECARGAS (ORGANIZADO A ANCHO COMPLETO - IMAGEN 1) */}
+          {/* ================================================================ */}
+          {activeTab === 'recargas' && (
+            <div className="space-y-6 w-full animate-in fade-in">
+              
+              {/* Header Organizado y Equilibrado */}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                <div>
+                  <h2 className="text-2xl font-black text-white">Historial de Recargas y Pagos</h2>
+                  <p className="text-xs text-slate-400 mt-1">Verifica tus recargas en línea, transferencias bancarias y saldo disponible.</p>
+                  
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => handleDownloadExcel('recargas')}
+                      className="flex items-center gap-1.5 bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Exportar Excel
+                    </button>
+                    <button
+                      onClick={() => handleDownloadPDF('recargas')}
+                      className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors shadow-md"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Exportar PDF
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tarjeta de Saldo Disponible Equilibrada */}
+                <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl flex items-center gap-4 min-w-[260px]">
+                  <div className="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                    <Wallet className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Saldo Prepago Disponible</p>
+                    <p className="text-3xl font-black text-emerald-400 font-mono tracking-tight">${balance.toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Métricas Resumen a Ancho Completo */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                  <p className="text-[10px] font-black uppercase text-slate-500">Total Histórico Recargado</p>
+                  <p className="text-2xl font-black text-white font-mono mt-1">$150.00 USD</p>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                  <p className="text-[10px] font-black uppercase text-slate-500">Transacciones Aprobadas</p>
+                  <p className="text-2xl font-black text-emerald-400 font-mono mt-1">1 Acreditada</p>
+                </div>
+                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                  <p className="text-[10px] font-black uppercase text-slate-500">En Verificación</p>
+                  <p className="text-2xl font-black text-amber-400 font-mono mt-1">1 Pendiente</p>
+                </div>
+              </div>
+
+              {/* Tabla a Ancho Completo */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl w-full">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left whitespace-nowrap text-xs">
+                    <thead>
+                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] uppercase tracking-wider text-slate-400 font-bold">
+                        <th className="p-4">Fecha y Hora</th>
+                        <th className="p-4">Referencia / Comprobante</th>
+                        <th className="p-4">Forma de Pago</th>
+                        <th className="p-4">Estado</th>
+                        <th className="p-4 text-right">Valor Recargado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {historialRecargas.map((recarga, index) => (
+                        <tr key={index} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="p-4 text-slate-300 font-medium">{recarga.fecha}</td>
+                          <td className="p-4 font-mono text-slate-400 flex items-center gap-1.5">
+                            <FileText className="w-4 h-4 text-slate-500" />
+                            {recarga.referencia}
+                          </td>
+                          <td className="p-4">
+                            <span className="flex items-center gap-2 text-slate-200">
+                              {recarga.metodo.includes('Tarjeta') ? (
+                                <CreditCard className="w-4 h-4 text-blue-400" />
+                              ) : (
+                                <Building className="w-4 h-4 text-emerald-400" />
+                              )}
+                              {recarga.metodo}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${
+                              recarga.estado === 'Aprobado'
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                            }`}>
+                              {recarga.estado}
+                            </span>
+                          </td>
+                          <td className="p-4 font-mono font-black text-emerald-400 text-right text-base">
+                            +${recarga.valor.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
             </div>
           )}
 
-        </div>
+        </main>
       </div>
 
-      {activeTab === 'recargas' && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-800">Historial de Recargas</h2>
-                <p className="text-slate-500 mt-1">Verifica tus pagos y transferencias a la billetera SARA.</p>
-                <div className="flex gap-2 mt-2">
-                   <button onClick={() => handleDownloadExcel('recargas')} className="flex items-center bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
-                     <Download className="w-4 h-4 mr-2" /> Excel
-                   </button>
-                   <button onClick={() => handleDownloadPDF('recargas')} className="flex items-center bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-red-700 transition-colors">
-                     <Download className="w-4 h-4 mr-2" /> PDF
-                   </button>
-                 </div>
-              </div>
-              <div className="bg-slate-900 text-white p-4 rounded-xl shadow-lg flex items-center gap-6 min-w-[250px]">
-                <div>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Saldo Disponible</p>
-                  <p className="text-3xl font-black text-emerald-400">$119.00</p>
-                </div>
-                <div className="p-3 bg-slate-800 rounded-full">
-                  <Wallet className="w-6 h-6 text-emerald-400" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left whitespace-nowrap">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                      <th className="p-4">Fecha y Hora</th>
-                      <th className="p-4">Referencia / Comprobante</th>
-                      <th className="p-4">Forma de Pago</th>
-                      <th className="p-4">Estado</th>
-                      <th className="p-4 text-right">Valor Recargado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historialRecargas.map((recarga, index) => (
-                      <tr key={index} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 text-slate-600 font-medium">{recarga.fecha}</td>
-                        <td className="p-4 text-slate-500 text-sm font-mono flex items-center"><FileText className="w-4 h-4 mr-2 text-slate-400"/> {recarga.referencia}</td>
-                        <td className="p-4">
-                          <span className="flex items-center text-slate-600 text-sm">
-                            {recarga.metodo === 'Tarjeta Cr├®dito' ? <CreditCard className="w-4 h-4 mr-2 text-blue-500" /> : <Building className="w-4 h-4 mr-2 text-slate-500" />}
-                            {recarga.metodo}
-                          </span>
-                        </td>
-                        <td className="p-4"><span className={"text-[11px] font-bold px-2.5 py-1 rounded-full border " + (recarga.estado === 'Aprobado' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200')}>{recarga.estado}</span></td>
-                        <td className="p-4 font-black text-emerald-600 text-right text-lg">+${recarga.valor.toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-      {/* TOAST NOTIFICATION */}
+      {/* TOAST DE NOTIFICACIÓN */}
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 z-50">
-          <CheckCircle className="w-5 h-5 text-emerald-400" />
-          <p className="font-bold">{toastMessage}</p>
+        <div className="fixed bottom-5 right-5 bg-slate-900 border border-amber-500 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in z-50">
+          <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <p className="text-xs font-bold">{toastMessage}</p>
         </div>
       )}
 
@@ -752,10 +1145,10 @@ export default function MiPerfilFletes() {
         onSuccess={(txId) => {
           setIsCheckoutOpen(false);
           if (checkoutConfig.isSubscription) {
-            showToast(`¡Suscripción al plan activada con éxito! Ref: ${txId}`);
+            showToast(`¡Suscripción al ${checkoutConfig.title} activada! Ref: ${txId}`);
           } else {
             setBalance(balance + checkoutConfig.amount);
-            showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} aplicada! Ref: ${txId}`);
+            showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} acreditada! Ref: ${txId}`);
           }
         }}
         title={checkoutConfig.title}
@@ -767,7 +1160,7 @@ export default function MiPerfilFletes() {
           {
             label: checkoutConfig.isSubscription 
               ? `Acceso a red y beneficios ${checkoutConfig.title}`
-              : `Acreditación directa a billetera móvil SARA`,
+              : `Acreditación directa a billetera móvil SARA Fletes`,
             amount: checkoutConfig.amount
           }
         ]}
