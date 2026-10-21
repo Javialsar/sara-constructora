@@ -67,6 +67,61 @@ export interface PedidoMaterialObra {
   ordenCompraGeneradaRef?: string;
 }
 
+export type AnilloCoberturaGeografica =
+  | 'ANILLO_1_LOCAL'
+  | 'ANILLO_2_REGIONAL'
+  | 'ANILLO_3_NACIONAL';
+
+export interface OpcionProveedorMarketplaceItem {
+  proveedorId: string;
+  razonSocial: string;
+  ruc: string;
+  ciudadUbicacion: string;
+  anilloCobertura: AnilloCoberturaGeografica;
+  ordenCercania: 1 | 2 | 3;
+  etiquetaAnillo: string;
+  distanciaKmDesdeObra: number;
+  tiempoEntregaEstimado: string;
+  stockDisponibleProveedor: number;
+  precioUnitarioNetoUSD: number;
+  costoFleteEstimadoUSD: number;
+  subtotalMaterialUSD: number;
+  subtotalPuestoEnObraUSD: number;
+  ivaAplicablePct: 5 | 15;
+  esRecomendadoIA: boolean;
+  razonRecomendacionIA: string;
+}
+
+export interface SubPedidoProveedorOC {
+  numeroSubPedido: string; // Ej: OC-2026-780-P1, OC-2026-780-P2
+  ordenCompraMatrizRef: string; // Ej: OC-2026-780
+  solicitudOrigenRef: string; // Ej: REQ-BOD-COMP-2026-020
+  pedidoResidenteOrigenRef: string; // Ej: PED-OBRA-2026-043
+  proveedorId: string;
+  razonSocial: string;
+  ruc: string;
+  ciudadUbicacion: string;
+  anilloCobertura: AnilloCoberturaGeografica;
+  etiquetaAnillo: string;
+  distanciaKmDesdeObra: number;
+  tiempoEntregaEstimado: string;
+  itemsAsignados: Array<{
+    codigo: string;
+    nombre: string;
+    unidad: string;
+    cantidad: number;
+    precioUnitarioUSD: number;
+    subtotalMaterialUSD: number;
+    ivaPct: 5 | 15;
+  }>;
+  subtotalMaterialesUSD: number;
+  costoFleteConsolidadoUSD: number;
+  ivaTotalUSD: number;
+  totalPedidoProveedorUSD: number;
+  fechaEmision: string;
+  estadoDespachoProveedor: 'EMITIDO_AL_PROVEEDOR' | 'EN_RUTA_OBRA' | 'RECIBIDO_EN_BODEGA';
+}
+
 export interface SolicitudCompraDesdeBodega {
   id: string;
   numeroSolicitudCompra: string;
@@ -84,6 +139,7 @@ export interface SolicitudCompraDesdeBodega {
   numeroOCGenerada?: string;
   proveedorSeleccionado?: string;
   rucProveedor?: string;
+  subPedidosPorProveedor?: SubPedidoProveedorOC[];
   itemsAComprar: Array<{
     insumoKardexId: string;
     codigo: string;
@@ -97,6 +153,9 @@ export interface SolicitudCompraDesdeBodega {
     costoUnitarioEstimadoUSD: number;
     subtotalEstimadoUSD: number;
     rubroApuOrigen?: string;
+    proveedorAsignadoId?: string;
+    proveedorAsignadoNombre?: string;
+    subPedidoGeneradoRef?: string;
   }>;
   montoTotalEstimadoUSD: number;
 }
@@ -601,16 +660,517 @@ export class ObraMaterialRequestService {
   }
 
   /**
-   * El Área de Compras aprueba la Solicitud del Bodeguero y emite la Orden de Compra (OC) oficial,
-   * dejándola lista para recepción física cuando llegue el camión a Bodega.
+   * AGENTE IA SARA-MARKETPLACE:
+   * Evalúa un artículo faltante en el Marketplace de Proveedores de Grupo SARA
+   * priorizando como 1ra opción el proveedor más cercano a la obra (Anillo 1 Local)
+   * y ampliando progresivamente el radio de cobertura hacia Anillo 2 (Regional) y Anillo 3 (Planta Nacional).
+   */
+  public static analizarOpcionesMarketplacePorItem(
+    item: {
+      codigo: string;
+      nombre: string;
+      categoria: string;
+      unidad: string;
+      cantidadAComprar: number;
+      costoUnitarioEstimadoUSD: number;
+    },
+    ciudadObra: string = 'Loja'
+  ): OpcionProveedorMarketplaceItem[] {
+    const texto = `${item.codigo} ${item.nombre} ${item.categoria}`.toLowerCase();
+    const cant = Math.max(1, item.cantidadAComprar);
+    const precioRef = item.costoUnitarioEstimadoUSD > 0 ? item.costoUnitarioEstimadoUSD : 12.0;
+
+    const esElectrico =
+      texto.includes('ele') ||
+      texto.includes('cable') ||
+      texto.includes('thhn') ||
+      texto.includes('incable') ||
+      texto.includes('breaker') ||
+      texto.includes('tablero');
+    const esSanitario =
+      texto.includes('san') ||
+      texto.includes('asiento') ||
+      texto.includes('inodoro') ||
+      texto.includes('briggs') ||
+      texto.includes('brigs') ||
+      texto.includes('fv') ||
+      texto.includes('edesa') ||
+      texto.includes('lavamanos') ||
+      texto.includes('grif');
+    const esCemento =
+      texto.includes('cem') ||
+      texto.includes('cemento') ||
+      texto.includes('portland') ||
+      texto.includes('holcim') ||
+      texto.includes('selvalegre') ||
+      texto.includes('guapán');
+    const esAcero =
+      texto.includes('ace') ||
+      texto.includes('acero') ||
+      texto.includes('varilla') ||
+      texto.includes('adelca') ||
+      texto.includes('novacero') ||
+      texto.includes('malla');
+    const esArido =
+      texto.includes('ari') ||
+      texto.includes('arena') ||
+      texto.includes('ripio') ||
+      texto.includes('lastre') ||
+      texto.includes('grava') ||
+      texto.includes('piedra');
+    const esQuimico =
+      texto.includes('qui') ||
+      texto.includes('sika') ||
+      texto.includes('aditivo') ||
+      texto.includes('impermeabilizante') ||
+      texto.includes('epox');
+    const esTuberia =
+      texto.includes('tub') ||
+      texto.includes('pvc') ||
+      texto.includes('plastigama') ||
+      texto.includes('tigre');
+
+    // IVA 5% para materiales de construcción (Res. SRI NAC-DGERCGC24-00000013) vs 15% general
+    const ivaAplicablePct: 5 | 15 =
+      esCemento || esAcero || esArido || texto.includes('bloque') || texto.includes('ladrillo') || texto.includes('hormigon')
+        ? 5
+        : 15;
+
+    type ConfigAnillo = {
+      id: string;
+      razonSocial: string;
+      ruc: string;
+      ciudad: string;
+      anillo: AnilloCoberturaGeografica;
+      orden: 1 | 2 | 3;
+      etiqueta: string;
+      distanciaKm: number;
+      tiempo: string;
+      factorPrecio: number;
+      fleteBaseUSD: number;
+      stockDisp: number;
+    };
+
+    let configs: ConfigAnillo[];
+
+    if (esElectrico) {
+      configs = [
+        {
+          id: 'PROV-ELE-LOC-01',
+          razonSocial: `ELECTROSUR & CABLES INDUSTRIALES ${ciudadObra.toUpperCase()} CÍA. LTDA.`,
+          ruc: '1191748291001',
+          ciudad: `${ciudadObra} (Sector Parque Industrial)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Más Cercano)',
+          distanciaKm: 2.1,
+          tiempo: '45 min (Entrega Inmediata)',
+          factorPrecio: 0.99,
+          fleteBaseUSD: 3.5,
+          stockDisp: Math.max(cant + 45, 80),
+        },
+        {
+          id: 'PROV-ELE-REG-02',
+          razonSocial: 'IMPORTADORA ELÉCTRICA DEL AUSTRO S.A. (CUENCA)',
+          ruc: '0190384712001',
+          ciudad: 'Cuenca (Av. Gil Ramírez Dávalos)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Regional Austro',
+          distanciaKm: 205.0,
+          tiempo: '8 horas (Ruta E35)',
+          factorPrecio: 0.94,
+          fleteBaseUSD: 45.0,
+          stockDisp: Math.max(cant + 300, 500),
+        },
+        {
+          id: 'PROV-ELE-NAC-03',
+          razonSocial: 'INCABLE S.A. PLANTA MATRIZ & DISTRIBUCIÓN NACIONAL',
+          ruc: '0990048129001',
+          ciudad: 'Durán / Guayaquil (Planta Industrial)',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Nacional (Planta Matriz)',
+          distanciaKm: 412.0,
+          tiempo: '24 - 36 horas',
+          factorPrecio: 0.89,
+          fleteBaseUSD: 140.0,
+          stockDisp: 5000,
+        },
+      ];
+    } else if (esSanitario) {
+      configs = [
+        {
+          id: 'PROV-SAN-LOC-01',
+          razonSocial: `ACABADOS & SANITARIOS DEL SUR (${ciudadObra.toUpperCase()})`,
+          ruc: '1191729402001',
+          ciudad: `${ciudadObra} (Av. Universitaria)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Más Cercano)',
+          distanciaKm: 1.8,
+          tiempo: '40 min (Despacho Urbano)',
+          factorPrecio: 1.0,
+          fleteBaseUSD: 4.0,
+          stockDisp: Math.max(cant + 24, 36),
+        },
+        {
+          id: 'PROV-SAN-REG-02',
+          razonSocial: 'CENTRO CERÁMICO & BAÑOS REGIONAL CUENCA CÍA. LTDA.',
+          ruc: '0190441820001',
+          ciudad: 'Cuenca (Parque Industrial)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Regional Austro',
+          distanciaKm: 208.0,
+          tiempo: '8 horas',
+          factorPrecio: 0.93,
+          fleteBaseUSD: 48.0,
+          stockDisp: Math.max(cant + 150, 240),
+        },
+        {
+          id: 'PROV-SAN-NAC-03',
+          razonSocial: 'EDESA / BRIGGS & FV ECUADOR PLANTA MATRIZ',
+          ruc: '1790014289001',
+          ciudad: 'Quito / Sangolquí (Planta Matriz)',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Nacional (Fábrica)',
+          distanciaKm: 635.0,
+          tiempo: '36 - 48 horas',
+          factorPrecio: 0.87,
+          fleteBaseUSD: 185.0,
+          stockDisp: 3500,
+        },
+      ];
+    } else if (esCemento) {
+      configs = [
+        {
+          id: 'PROV-CEM-LOC-01',
+          razonSocial: `DISENSA DISTRIBUIDORA MAYORISTA SUR (${ciudadObra.toUpperCase()})`,
+          ruc: '1190084210001',
+          ciudad: `${ciudadObra} (Vía de Integración Barrial)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Más Cercano)',
+          distanciaKm: 3.2,
+          tiempo: '1.5 horas (Camión Urbano)',
+          factorPrecio: 0.98,
+          fleteBaseUSD: 12.0,
+          stockDisp: Math.max(cant + 450, 600),
+        },
+        {
+          id: 'PROV-CEM-REG-02',
+          razonSocial: 'CENTRO LOGÍSTICO CEMENTERO CATAMAYO / CUENCA',
+          ruc: '1191402918001',
+          ciudad: 'Catamayo / Cuenca (Bodega Regional)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Regional Provincial',
+          distanciaKm: 36.5,
+          tiempo: '3.5 horas',
+          factorPrecio: 0.95,
+          fleteBaseUSD: 55.0,
+          stockDisp: Math.max(cant + 1800, 2500),
+        },
+        {
+          id: 'PROV-CEM-NAC-03',
+          razonSocial: 'HOLCIM ECUADOR S.A. - PLANTA INDUSTRIAL SAN EDUARDO',
+          ruc: '0990023541001',
+          ciudad: 'Guayaquil (Planta Matriz)',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Nacional (Planta Matriz)',
+          distanciaKm: 418.0,
+          tiempo: '24 horas (Mula 3S3)',
+          factorPrecio: 0.90,
+          fleteBaseUSD: 380.0,
+          stockDisp: 25000,
+        },
+      ];
+    } else if (esAcero) {
+      configs = [
+        {
+          id: 'PROV-ACE-LOC-01',
+          razonSocial: `HIERROS & ACEROS DEL SUR (${ciudadObra.toUpperCase()})`,
+          ruc: '1191550291001',
+          ciudad: `${ciudadObra} (Sector Norte)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Más Cercano)',
+          distanciaKm: 2.9,
+          tiempo: '1 hora (Entrega en Obra)',
+          factorPrecio: 0.99,
+          fleteBaseUSD: 15.0,
+          stockDisp: Math.max(cant + 4000, 8000),
+        },
+        {
+          id: 'PROV-ACE-REG-02',
+          razonSocial: 'NOVACERO / ADELCA CENTRO DISTRIBUCIÓN CUENCA',
+          ruc: '0190159283001',
+          ciudad: 'Cuenca (Panamericana Norte)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Regional Austro',
+          distanciaKm: 210.0,
+          tiempo: '8 horas',
+          factorPrecio: 0.94,
+          fleteBaseUSD: 165.0,
+          stockDisp: Math.max(cant + 25000, 45000),
+        },
+        {
+          id: 'PROV-ACE-NAC-03',
+          razonSocial: 'ACERÍA DEL ECUADOR C.A. (ADELCA) - PLANTA LASSO / ALOAG',
+          ruc: '1790008941001',
+          ciudad: 'Lasso / Cotopaxi (Planta Fundición)',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Nacional (Planta Fundición)',
+          distanciaKm: 560.0,
+          tiempo: '30 horas (Plataforma 30T)',
+          factorPrecio: 0.89,
+          fleteBaseUSD: 520.0,
+          stockDisp: 150000,
+        },
+      ];
+    } else if (esArido) {
+      configs = [
+        {
+          id: 'PROV-ARI-LOC-01',
+          razonSocial: `CANTERA & ÁRIDOS LAVADOS SUR ${ciudadObra.toUpperCase()} CÍA. LTDA.`,
+          ruc: '1191755443001',
+          ciudad: `${ciudadObra} / Malacatos (Cantera Local)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Cantera Más Cercana)',
+          distanciaKm: 9.4,
+          tiempo: '1.5 horas (Volqueta V3A 14m³)',
+          factorPrecio: 0.97,
+          fleteBaseUSD: 28.0,
+          stockDisp: Math.max(cant + 350, 600),
+        },
+        {
+          id: 'PROV-ARI-REG-02',
+          razonSocial: 'MINERA & AGREGADOS VALLE DE CATAMAYO S.A.',
+          ruc: '1191604921001',
+          ciudad: 'Catamayo (Río Boquerón)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Provincial (38 km)',
+          distanciaKm: 38.0,
+          tiempo: '3 horas',
+          factorPrecio: 0.91,
+          fleteBaseUSD: 75.0,
+          stockDisp: 2500,
+        },
+        {
+          id: 'PROV-ARI-NAC-03',
+          razonSocial: 'CANTERA EL TABLÓN & AGREGADOS DEL AUSTRO (PAUTE)',
+          ruc: '0190332910001',
+          ciudad: 'Paute / Azuay',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Interprovincial',
+          distanciaKm: 235.0,
+          tiempo: '9 horas',
+          factorPrecio: 0.86,
+          fleteBaseUSD: 290.0,
+          stockDisp: 9000,
+        },
+      ];
+    } else if (esQuimico || esTuberia) {
+      configs = [
+        {
+          id: 'PROV-TEC-LOC-01',
+          razonSocial: `FERRETERÍA TÉCNICA & HIDROSANITARIA ${ciudadObra.toUpperCase()}`,
+          ruc: '1191683920001',
+          ciudad: `${ciudadObra} (Centro Comercial Industrial)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Más Cercano)',
+          distanciaKm: 2.4,
+          tiempo: '50 min (Entrega Directa)',
+          factorPrecio: 0.99,
+          fleteBaseUSD: 5.0,
+          stockDisp: Math.max(cant + 60, 120),
+        },
+        {
+          id: 'PROV-TEC-REG-02',
+          razonSocial: 'DISTRIBUIDORA REGIONAL SIKA & PLASTIGAMA AUSTRO',
+          ruc: '0190293847001',
+          ciudad: 'Cuenca (Av. Las Américas)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Regional Austro',
+          distanciaKm: 204.0,
+          tiempo: '8 horas',
+          factorPrecio: 0.93,
+          fleteBaseUSD: 42.0,
+          stockDisp: 850,
+        },
+        {
+          id: 'PROV-TEC-NAC-03',
+          razonSocial: 'SIKA ECUATORIANA S.A. / PLASTIGAMA WAVIN PLANTA DURÁN',
+          ruc: '0990018273001',
+          ciudad: 'Durán / Guayas (Planta Matriz)',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Nacional (Planta Matriz)',
+          distanciaKm: 415.0,
+          tiempo: '24 - 36 horas',
+          factorPrecio: 0.88,
+          fleteBaseUSD: 155.0,
+          stockDisp: 6000,
+        },
+      ];
+    } else {
+      configs = [
+        {
+          id: 'PROV-GEN-LOC-01',
+          razonSocial: `CENTRO FERRETERO MAYORISTA ${ciudadObra.toUpperCase()} S.A.`,
+          ruc: '1191804921001',
+          ciudad: `${ciudadObra} (Zona Urbana)`,
+          anillo: 'ANILLO_1_LOCAL',
+          orden: 1,
+          etiqueta: '1ra Opción • Cobertura Local (Más Cercano)',
+          distanciaKm: 2.6,
+          tiempo: '1 hora (Despacho Local)',
+          factorPrecio: 0.99,
+          fleteBaseUSD: 6.0,
+          stockDisp: Math.max(cant + 100, 200),
+        },
+        {
+          id: 'PROV-GEN-REG-02',
+          razonSocial: 'CORPORACIÓN FERRETERA REGIONAL DEL AUSTRO CÍA. LTDA.',
+          ruc: '0190482910001',
+          ciudad: 'Cuenca (Zona Industrial)',
+          anillo: 'ANILLO_2_REGIONAL',
+          orden: 2,
+          etiqueta: '2da Opción • Cobertura Regional Provincial',
+          distanciaKm: 206.0,
+          tiempo: '8 horas',
+          factorPrecio: 0.94,
+          fleteBaseUSD: 50.0,
+          stockDisp: Math.max(cant + 500, 1000),
+        },
+        {
+          id: 'PROV-GEN-NAC-03',
+          razonSocial: 'CONSORCIO MAYORISTA NACIONAL QUITO / GUAYAQUIL',
+          ruc: '0991283940001',
+          ciudad: 'Guayaquil (Vía Daule)',
+          anillo: 'ANILLO_3_NACIONAL',
+          orden: 3,
+          etiqueta: '3ra Opción • Cobertura Nacional Mayorista',
+          distanciaKm: 416.0,
+          tiempo: '24 - 36 horas',
+          factorPrecio: 0.89,
+          fleteBaseUSD: 160.0,
+          stockDisp: 10000,
+        },
+      ];
+    }
+
+    const opcionesCalculadas = configs.map(cfg => {
+      const precioUnitarioNetoUSD = +(precioRef * cfg.factorPrecio).toFixed(2);
+      const subtotalMaterialUSD = +(precioUnitarioNetoUSD * cant).toFixed(2);
+      const costoFleteEstimadoUSD = +cfg.fleteBaseUSD.toFixed(2);
+      const subtotalPuestoEnObraUSD = +(subtotalMaterialUSD + costoFleteEstimadoUSD).toFixed(2);
+
+      return {
+        proveedorId: cfg.id,
+        razonSocial: cfg.razonSocial,
+        ruc: cfg.ruc,
+        ciudadUbicacion: cfg.ciudad,
+        anilloCobertura: cfg.anillo,
+        ordenCercania: cfg.orden,
+        etiquetaAnillo: cfg.etiqueta,
+        distanciaKmDesdeObra: cfg.distanciaKm,
+        tiempoEntregaEstimado: cfg.tiempo,
+        stockDisponibleProveedor: cfg.stockDisp,
+        precioUnitarioNetoUSD,
+        costoFleteEstimadoUSD,
+        subtotalMaterialUSD,
+        subtotalPuestoEnObraUSD,
+        ivaAplicablePct,
+        esRecomendadoIA: false,
+        razonRecomendacionIA: '',
+      };
+    });
+
+    // Determinar cuál tiene mejor Landed Cost pero dando prioridad al Anillo 1 (Más Cercano)
+    // salvo que el ahorro neto en otro anillo supere ampliamente el flete y tiempo de espera
+    const mejorLanded = [...opcionesCalculadas].sort(
+      (a, b) => a.subtotalPuestoEnObraUSD - b.subtotalPuestoEnObraUSD
+    )[0];
+
+    const opcionLocal = opcionesCalculadas[0];
+    // Prioridad 1ra Opción: Lugar más cercano si su Landed Cost es el mejor o está a menos de 8% de diferencia
+    const elegirLocal =
+      opcionLocal.subtotalPuestoEnObraUSD <= mejorLanded.subtotalPuestoEnObraUSD * 1.08;
+    const ganadorId = elegirLocal ? opcionLocal.proveedorId : mejorLanded.proveedorId;
+
+    return opcionesCalculadas.map(op => {
+      const esGanador = op.proveedorId === ganadorId;
+      let razon = '';
+      if (esGanador && op.anilloCobertura === 'ANILLO_1_LOCAL') {
+        const ahorroVsPlanta = +(
+          opcionesCalculadas[2].subtotalPuestoEnObraUSD - op.subtotalPuestoEnObraUSD
+        ).toFixed(2);
+        razon =
+          ahorroVsPlanta > 0
+            ? `1ra Opción IA (Más cercano a ${op.distanciaKmDesdeObra} km): Entrega en ${op.tiempoEntregaEstimado} y ahorra $${ahorroVsPlanta} USD en flete frente a planta nacional.`
+            : `1ra Opción IA (Más cercano a ${op.distanciaKmDesdeObra} km): Disponibilidad inmediata en ${op.tiempoEntregaEstimado} con flete urbano mínimo.`;
+      } else if (esGanador) {
+        const ahorroVsLocal = +(
+          opcionLocal.subtotalPuestoEnObraUSD - op.subtotalPuestoEnObraUSD
+        ).toFixed(2);
+        razon = `Recomendado IA por Volumen (${op.etiquetaAnillo}): El descuento mayorista compensa el flete y ahorra $${ahorroVsLocal} USD netos.`;
+      } else if (op.anilloCobertura === 'ANILLO_2_REGIONAL') {
+        razon = `Alternativa Regional (${op.distanciaKmDesdeObra} km): Útil si requiere ampliar cobertura por agotamiento local.`;
+      } else {
+        razon = `Alternativa Planta Nacional (${op.distanciaKmDesdeObra} km): Precio ex-fábrica menor ($${op.precioUnitarioNetoUSD}), pero flete de $${op.costoFleteEstimadoUSD} USD.`;
+      }
+
+      return {
+        ...op,
+        esRecomendadoIA: esGanador,
+        razonRecomendacionIA: razon,
+      };
+    });
+  }
+
+  /**
+   * Permite re-abrir una Solicitud de Compra para volver a cotizar y dividir por proveedor con IA Marketplace.
+   */
+  public static reabrirParaCotizacionIA(solicitudId: string): SolicitudCompraDesdeBodega {
+    const solicitudes = this.getSolicitudesCompraBodega();
+    const idx = solicitudes.findIndex(s => s.id === solicitudId);
+    if (idx < 0) {
+      throw new Error('Solicitud de compra no encontrada');
+    }
+    const actualizada: SolicitudCompraDesdeBodega = {
+      ...solicitudes[idx],
+      estado: 'PENDIENTE_COTIZACION_COMPRAS',
+    };
+    solicitudes[idx] = actualizada;
+    this.saveSolicitudesCompraBodega(solicitudes);
+    return actualizada;
+  }
+
+  /**
+   * El Área de Compras aprueba la Solicitud del Bodeguero seleccionando el proveedor óptimo por cada artículo.
+   * Si en la misma Orden de Compra hay artículos de más de un proveedor, genera la Orden de Compra Matriz (ej. OC-2026-780)
+   * y automáticamente desglosa los Sub-Pedidos por proveedor basados en ese mismo número (ej. OC-2026-780-P1, OC-2026-780-P2).
    */
   public static emitirOrdenCompraDesdeSolicitud(params: {
     solicitudId: string;
-    proveedorNombre: string;
-    rucProveedor: string;
+    proveedorNombre?: string;
+    rucProveedor?: string;
+    seleccionesPorItem?: Record<number, OpcionProveedorMarketplaceItem>;
   }): {
     solicitudActualizada: SolicitudCompraDesdeBodega;
     numeroOC: string;
+    subPedidosGenerados: SubPedidoProveedorOC[];
   } {
     const solicitudes = this.getSolicitudesCompraBodega();
     const idx = solicitudes.findIndex(s => s.id === params.solicitudId);
@@ -619,14 +1179,136 @@ export class ObraMaterialRequestService {
     }
 
     const sol = solicitudes[idx];
-    const numeroOC = `OC-2026-${Math.floor(100 + Math.random() * 899)}`;
+    const numeroOC = sol.numeroOCGenerada && sol.numeroOCGenerada.startsWith('OC-')
+      ? sol.numeroOCGenerada
+      : `OC-2026-${Math.floor(100 + Math.random() * 899)}`;
+
+    // Agrupar ítems por proveedor seleccionado (usando la recomendación IA #1 más cercana por defecto si no se especificó)
+    const gruposPorProveedor = new Map<
+      string,
+      {
+        opcionProveedor: OpcionProveedorMarketplaceItem;
+        itemsIndices: number[];
+      }
+    >();
+
+    sol.itemsAComprar.forEach((it, itemIdx) => {
+      const opcionesItem = this.analizarOpcionesMarketplacePorItem(it, 'Loja');
+      const recomendada = opcionesItem.find(o => o.esRecomendadoIA) || opcionesItem[0];
+      const elegida = params.seleccionesPorItem?.[itemIdx] || recomendada;
+
+      const existente = gruposPorProveedor.get(elegida.proveedorId);
+      if (existente) {
+        existente.itemsIndices.push(itemIdx);
+      } else {
+        gruposPorProveedor.set(elegida.proveedorId, {
+          opcionProveedor: elegida,
+          itemsIndices: [itemIdx],
+        });
+      }
+    });
+
+    const subPedidosGenerados: SubPedidoProveedorOC[] = [];
+    const mapaItemSubPedido: Record<
+      number,
+      { proveedorId: string; proveedorNombre: string; subPedidoRef: string; unitPrice: number; subtotal: number }
+    > = {};
+
+    let correlativoProveedor = 1;
+    const fechaHoy = new Date().toISOString().split('T')[0];
+
+    gruposPorProveedor.forEach(({ opcionProveedor, itemsIndices }) => {
+      const numeroSubPedido = `${numeroOC}-P${correlativoProveedor}`;
+      correlativoProveedor += 1;
+
+      const itemsAsignados = itemsIndices.map(iIdx => {
+        const rawItem = sol.itemsAComprar[iIdx];
+        const subtotalMat = +(rawItem.cantidadAComprar * opcionProveedor.precioUnitarioNetoUSD).toFixed(2);
+        mapaItemSubPedido[iIdx] = {
+          proveedorId: opcionProveedor.proveedorId,
+          proveedorNombre: opcionProveedor.razonSocial,
+          subPedidoRef: numeroSubPedido,
+          unitPrice: opcionProveedor.precioUnitarioNetoUSD,
+          subtotal: subtotalMat,
+        };
+        return {
+          codigo: rawItem.codigo,
+          nombre: rawItem.nombre,
+          unidad: rawItem.unidad,
+          cantidad: rawItem.cantidadAComprar,
+          precioUnitarioUSD: opcionProveedor.precioUnitarioNetoUSD,
+          subtotalMaterialUSD: subtotalMat,
+          ivaPct: opcionProveedor.ivaAplicablePct,
+        };
+      });
+
+      const subtotalMaterialesUSD = +itemsAsignados
+        .reduce((acc, x) => acc + x.subtotalMaterialUSD, 0)
+        .toFixed(2);
+      const costoFleteConsolidadoUSD = opcionProveedor.costoFleteEstimadoUSD;
+      const ivaTotalUSD = +itemsAsignados
+        .reduce((acc, x) => acc + x.subtotalMaterialUSD * (x.ivaPct / 100), 0)
+        .toFixed(2);
+      const totalPedidoProveedorUSD = +(
+        subtotalMaterialesUSD +
+        costoFleteConsolidadoUSD +
+        ivaTotalUSD
+      ).toFixed(2);
+
+      subPedidosGenerados.push({
+        numeroSubPedido,
+        ordenCompraMatrizRef: numeroOC,
+        solicitudOrigenRef: sol.numeroSolicitudCompra,
+        pedidoResidenteOrigenRef: sol.numeroPedidoOrigen,
+        proveedorId: opcionProveedor.proveedorId,
+        razonSocial: opcionProveedor.razonSocial,
+        ruc: opcionProveedor.ruc,
+        ciudadUbicacion: opcionProveedor.ciudadUbicacion,
+        anilloCobertura: opcionProveedor.anilloCobertura,
+        etiquetaAnillo: opcionProveedor.etiquetaAnillo,
+        distanciaKmDesdeObra: opcionProveedor.distanciaKmDesdeObra,
+        tiempoEntregaEstimado: opcionProveedor.tiempoEntregaEstimado,
+        itemsAsignados,
+        subtotalMaterialesUSD,
+        costoFleteConsolidadoUSD,
+        ivaTotalUSD,
+        totalPedidoProveedorUSD,
+        fechaEmision: fechaHoy,
+        estadoDespachoProveedor: 'EMITIDO_AL_PROVEEDOR',
+      });
+    });
+
+    const resumenProveedores = subPedidosGenerados
+      .map(sp => `${sp.numeroSubPedido}: ${sp.razonSocial}`)
+      .join(' | ');
+    const resumenRucs = subPedidosGenerados.map(sp => sp.ruc).join(' / ');
+
+    const itemsActualizados = sol.itemsAComprar.map((it, iIdx) => {
+      const info = mapaItemSubPedido[iIdx];
+      if (!info) return it;
+      return {
+        ...it,
+        costoUnitarioEstimadoUSD: info.unitPrice,
+        subtotalEstimadoUSD: info.subtotal,
+        proveedorAsignadoId: info.proveedorId,
+        proveedorAsignadoNombre: info.proveedorNombre,
+        subPedidoGeneradoRef: info.subPedidoRef,
+      };
+    });
+
+    const nuevoMontoTotal = +subPedidosGenerados
+      .reduce((acc, sp) => acc + sp.totalPedidoProveedorUSD, 0)
+      .toFixed(2);
 
     const solicitudActualizada: SolicitudCompraDesdeBodega = {
       ...sol,
       estado: 'OC_GENERADA_ENVIADA_PROVEEDOR',
       numeroOCGenerada: numeroOC,
-      proveedorSeleccionado: params.proveedorNombre,
-      rucProveedor: params.rucProveedor,
+      proveedorSeleccionado: params.proveedorNombre || resumenProveedores,
+      rucProveedor: params.rucProveedor || resumenRucs,
+      subPedidosPorProveedor: subPedidosGenerados,
+      itemsAComprar: itemsActualizados,
+      montoTotalEstimadoUSD: nuevoMontoTotal,
     };
 
     solicitudes[idx] = solicitudActualizada;
@@ -639,7 +1321,7 @@ export class ObraMaterialRequestService {
       pedidos[pIdx] = {
         ...pedidos[pIdx],
         estado: 'ORDEN_COMPRA_EMITIDA',
-        ordenCompraGeneradaRef: numeroOC,
+        ordenCompraGeneradaRef: `${numeroOC} (${subPedidosGenerados.map(s => s.numeroSubPedido).join(', ')})`,
       };
       this.savePedidos(pedidos);
     }
@@ -647,6 +1329,7 @@ export class ObraMaterialRequestService {
     return {
       solicitudActualizada,
       numeroOC,
+      subPedidosGenerados,
     };
   }
 }

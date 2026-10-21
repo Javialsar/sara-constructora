@@ -70,6 +70,7 @@ import { PedidosMaterialesResidenteSection } from '@/components/constructora/Ped
 import {
   ObraMaterialRequestService,
   SolicitudCompraDesdeBodega,
+  OpcionProveedorMarketplaceItem,
 } from '@/lib/services/obraMaterialRequestService';
 import { 
   ConstructoraSubscriptionService, 
@@ -499,38 +500,72 @@ export default function EcosistemaAvanzadoPage() {
   // -------------------------------------------------------------
   // TAB 4: PROCURAMIENTO PREDICTIVO GEORREFERENCIADO & SOLICITUDES DE BODEGA
   // -------------------------------------------------------------
-  const [selectedCanton, setSelectedCanton] = useState<'Cariamanga' | 'Loja' | 'Cuenca'>('Cariamanga');
+  const [selectedCanton, setSelectedCanton] = useState<'Cariamanga' | 'Loja' | 'Cuenca'>('Loja');
   const [solicitudesCompraBodega, setSolicitudesCompraBodega] = useState<SolicitudCompraDesdeBodega[]>([]);
-  const [proveedorSeleccionadoOC, setProveedorSeleccionadoOC] = useState<Record<string, string>>({});
+  const [seleccionProveedorPorItemOC, setSeleccionProveedorPorItemOC] = useState<
+    Record<string, Record<number, OpcionProveedorMarketplaceItem>>
+  >({});
   const [ocEmitidaBanner, setOcEmitidaBanner] = useState<string | null>(null);
 
   useEffect(() => {
-    setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
-    const syncSol = () => setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
+    const cargarYSincronizar = () => {
+      let lista = ObraMaterialRequestService.getSolicitudesCompraBodega();
+      // Si existe alguna OC emitida con la versión anterior sin subPedidosPorProveedor, generarle su desglose multiproveedor
+      let huboUpgrade = false;
+      lista.forEach(s => {
+        if (s.estado === 'OC_GENERADA_ENVIADA_PROVEEDOR' && (!s.subPedidosPorProveedor || s.subPedidosPorProveedor.length === 0)) {
+          ObraMaterialRequestService.emitirOrdenCompraDesdeSolicitud({ solicitudId: s.id });
+          huboUpgrade = true;
+        }
+      });
+      if (huboUpgrade) {
+        lista = ObraMaterialRequestService.getSolicitudesCompraBodega();
+      }
+      setSolicitudesCompraBodega(lista);
+    };
+
+    cargarYSincronizar();
     if (typeof window !== 'undefined') {
-      window.addEventListener('sara_pedidos_obra_updated', syncSol);
-      return () => window.removeEventListener('sara_pedidos_obra_updated', syncSol);
+      window.addEventListener('sara_pedidos_obra_updated', cargarYSincronizar);
+      return () => window.removeEventListener('sara_pedidos_obra_updated', cargarYSincronizar);
     }
   }, [activeTab]);
 
-  const handleEmitirOCDesdeSolicitudBodega = (sol: SolicitudCompraDesdeBodega) => {
-    const provElegido =
-      proveedorSeleccionadoOC[sol.id] || 'HOLCIM ECUADOR S.A. / ADELCA DISTRIBUCIÓN MAYORISTA';
-    const rucElegido = provElegido.includes('ADELCA')
-      ? '1790012345001'
-      : provElegido.includes('DISENSA')
-        ? '1102938475001'
-        : '0990004589001';
+  const handleSeleccionarProveedorItem = (
+    solicitudId: string,
+    itemIndex: number,
+    opcion: OpcionProveedorMarketplaceItem
+  ) => {
+    setSeleccionProveedorPorItemOC(prev => ({
+      ...prev,
+      [solicitudId]: {
+        ...(prev[solicitudId] || {}),
+        [itemIndex]: opcion,
+      },
+    }));
+  };
 
-    const { numeroOC } = ObraMaterialRequestService.emitirOrdenCompraDesdeSolicitud({
+  const handleEmitirOCDesdeSolicitudBodega = (sol: SolicitudCompraDesdeBodega) => {
+    const seleccionesActuales = seleccionProveedorPorItemOC[sol.id] || {};
+    const { numeroOC, subPedidosGenerados } = ObraMaterialRequestService.emitirOrdenCompraDesdeSolicitud({
       solicitudId: sol.id,
-      proveedorNombre: provElegido,
-      rucProveedor: rucElegido,
+      seleccionesPorItem: seleccionesActuales,
     });
 
     setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
+    const detalleSubPedidos = subPedidosGenerados
+      .map(sp => `${sp.numeroSubPedido} → ${sp.razonSocial} (${sp.distanciaKmDesdeObra} km • $${sp.totalPedidoProveedorUSD.toFixed(2)} USD)`)
+      .join(' | ');
     setOcEmitidaBanner(
-      `¡Orden de Compra ${numeroOC} emitida exitosamente a ${provElegido} para cubrir el faltante reportado por el Bodeguero (Solicitud ${sol.numeroSolicitudCompra} • Obra: ${sol.proyectoDestino})!`
+      `¡Orden de Compra Matriz ${numeroOC} procesada por Agente IA SARA-MARKETPLACE! Se generaron ${subPedidosGenerados.length} Pedido(s) a Proveedor basados en la OC: ${detalleSubPedidos}`
+    );
+  };
+
+  const handleReabrirCotizacionMarketplace = (sol: SolicitudCompraDesdeBodega) => {
+    ObraMaterialRequestService.reabrirParaCotizacionIA(sol.id);
+    setSolicitudesCompraBodega(ObraMaterialRequestService.getSolicitudesCompraBodega());
+    setOcEmitidaBanner(
+      `Solicitud ${sol.numeroSolicitudCompra} reabierta en el Cotizador IA del Marketplace para que selecciones o cambies el proveedor de cada artículo según cercanía y cobertura.`
     );
   };
   const mockSupplierCatalog: SupplierCatalogItem[] = [
@@ -1799,131 +1834,359 @@ export default function EcosistemaAvanzadoPage() {
               </div>
             )}
 
-            {/* BANDEJA DE SOLICITUDES DE COMPRA REMITIDAS POR EL BODEGUERO (POR FALTA DE STOCK) */}
+            {/* BANDEJA DE SOLICITUDES DE COMPRA REMITIDAS POR EL BODEGUERO (CON AGENTE IA MARKETPLACE POR ANILLOS DE CERCANÍA) */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
-                    Escalamiento Bodega → Área de Compras
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">
+                      Escalamiento Bodega → Área de Compras
+                    </span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-1">
+                      <Brain size={12} />
+                      Agente IA SARA-MARKETPLACE: 1° Más Cercano → 2° Regional → 3° Nacional
+                    </span>
+                  </div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
-                    Solicitudes de Compra Remitidas por el Bodeguero (Faltantes de Stock en Obra)
+                    Solicitudes de Compra Remitidas por el Bodeguero (Cotización Inteligente Multiproveedor)
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Materiales solicitados por el Ingeniero Residente que no tuvieron disponibilidad en Bodega Central y requieren emisión de Orden de Compra (OC).
+                    El Agente IA verifica cada artículo en el Marketplace priorizando el proveedor más cercano a la obra y ampliando la cobertura. Si los artículos pertenecen a distintos proveedores, genera los sub-pedidos derivados (<code className="text-amber-500 font-mono">OC-2026-XXX-P1, P2...</code>) basados en el número de Orden de Compra Matriz.
                   </p>
                 </div>
-                <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300">
+                <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-300 shrink-0">
                   {solicitudesCompraBodega.filter(s => s.estado === 'PENDIENTE_COTIZACION_COMPRAS').length} Pendientes de OC
                 </span>
               </div>
 
-              <div className="space-y-4">
-                {solicitudesCompraBodega.map(sol => (
-                  <div
-                    key={sol.id}
-                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3"
-                  >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-rose-600 text-white">
-                            {sol.numeroSolicitudCompra}
-                          </span>
-                          <span className="font-mono text-xs text-amber-600 dark:text-amber-400 font-bold">
-                            Origen: {sol.numeroPedidoOrigen}
-                          </span>
-                          <span className="font-bold text-sm text-slate-900 dark:text-white">
-                            • {sol.proyectoDestino} ({sol.frenteObra})
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                          Solicitado por Residente: <strong>{sol.residenteSolicitante}</strong> • Certificado sin stock por: <strong>{sol.bodegueroSolicitante}</strong> ({sol.fechaSolicitud} {sol.horaSolicitud})
-                        </p>
-                      </div>
+              <div className="space-y-5">
+                {solicitudesCompraBodega.map(sol => {
+                  const ciudadObraDetectada = sol.proyectoDestino.toLowerCase().includes('cariamanga')
+                    ? 'Cariamanga'
+                    : sol.proyectoDestino.toLowerCase().includes('cuenca')
+                    ? 'Cuenca'
+                    : 'Loja';
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {sol.estado === 'PENDIENTE_COTIZACION_COMPRAS' ? (
-                          <>
-                            <select
-                              value={
-                                proveedorSeleccionadoOC[sol.id] ||
-                                'HOLCIM ECUADOR S.A. / ADELCA DISTRIBUCIÓN MAYORISTA'
-                              }
-                              onChange={e =>
-                                setProveedorSeleccionadoOC(prev => ({
-                                  ...prev,
-                                  [sol.id]: e.target.value,
-                                }))
-                              }
-                              className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
-                            >
-                              <option value="HOLCIM ECUADOR S.A. / ADELCA DISTRIBUCIÓN MAYORISTA">
-                                Planta Mayorista (Holcim / Adelca - Mejor Precio)
-                              </option>
-                              <option value="DISENSA DISTRIBUIDORA SUR LOJA">
-                                Distribuidor Local Disensa (Entrega 3 Horas)
-                              </option>
-                              <option value="CANTERA & MATERIALES SUR LOJA CÍA. LTDA.">
-                                Cantera & Suministros Sur Loja
-                              </option>
-                            </select>
+                  // Calcular para cada ítem sus 3 opciones de anillo de cobertura y cuál está seleccionada actualmente
+                  const detallesItemsConIA = sol.itemsAComprar.map((it, idx) => {
+                    const opciones = ObraMaterialRequestService.analizarOpcionesMarketplacePorItem(
+                      it,
+                      ciudadObraDetectada
+                    );
+                    const recomendada = opciones.find(o => o.esRecomendadoIA) || opciones[0];
+                    const elegida = seleccionProveedorPorItemOC[sol.id]?.[idx] || recomendada;
+                    return {
+                      item: it,
+                      idx,
+                      opciones,
+                      elegida,
+                    };
+                  });
+
+                  // Agrupar vista previa de cuántos proveedores distintos han sido seleccionados para esta solicitud
+                  const proveedoresUnicosPreview = Array.from(
+                    new Map(detallesItemsConIA.map(d => [d.elegida.proveedorId, d.elegida])).values()
+                  );
+
+                  const totalPuestoEnObraPreview = detallesItemsConIA.reduce(
+                    (acc, d) => acc + d.elegida.subtotalMaterialUSD,
+                    0
+                  ) + proveedoresUnicosPreview.reduce((acc, p) => acc + p.costoFleteEstimadoUSD, 0);
+
+                  return (
+                    <div
+                      key={sol.id}
+                      className="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-4"
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-rose-600 text-white">
+                              {sol.numeroSolicitudCompra}
+                            </span>
+                            <span className="font-mono text-xs text-amber-600 dark:text-amber-400 font-bold">
+                              Origen: {sol.numeroPedidoOrigen}
+                            </span>
+                            <span className="font-bold text-sm text-slate-900 dark:text-white">
+                              • {sol.proyectoDestino} ({sol.frenteObra})
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            Solicitado por Residente: <strong>{sol.residenteSolicitante}</strong> • Certificado sin stock por: <strong>{sol.bodegueroSolicitante}</strong> ({sol.fechaSolicitud} {sol.horaSolicitud})
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {sol.estado === 'PENDIENTE_COTIZACION_COMPRAS' ? (
                             <button
                               type="button"
                               onClick={() => handleEmitirOCDesdeSolicitudBodega(sol)}
-                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                              className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-2 cursor-pointer transition-all"
                             >
-                              <ShoppingCart size={14} />
-                              <span>Generar Orden de Compra (OC)</span>
+                              <ShoppingCart size={15} />
+                              <span>
+                                Generar Orden de Compra ({proveedoresUnicosPreview.length}{' '}
+                                {proveedoresUnicosPreview.length === 1 ? 'Pedido a Proveedor' : 'Sub-Pedidos por Proveedor'})
+                              </span>
                             </button>
-                          </>
-                        ) : (
-                          <span className="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-mono font-bold border border-emerald-300 flex items-center gap-1.5">
-                            <CheckCircle2 size={14} />
-                            <span>OC Emitida: {sol.numeroOCGenerada} ({sol.proveedorSeleccionado})</span>
-                          </span>
-                        )}
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="px-3 py-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-xs font-mono font-bold border border-emerald-300 dark:border-emerald-800 flex items-center gap-1.5">
+                                <CheckCircle2 size={14} />
+                                <span>
+                                  OC Matriz: {sol.numeroOCGenerada} ({sol.subPedidosPorProveedor?.length || 1}{' '}
+                                  {(sol.subPedidosPorProveedor?.length || 1) === 1
+                                    ? 'Pedido Emitido'
+                                    : 'Pedidos por Proveedor'})
+                                </span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleReabrirCotizacionMarketplace(sol)}
+                                className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800 text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                              >
+                                <RefreshCw size={12} />
+                                <span>Re-Cotizar en Marketplace IA</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="bg-slate-100 dark:bg-slate-800/80 text-[10px] font-mono uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
-                            <th className="py-2 px-3">Código</th>
-                            <th className="py-2 px-3">Material Faltante en Bodega</th>
-                            <th className="py-2 px-2 text-center">Pedido Residente</th>
-                            <th className="py-2 px-2 text-center text-emerald-600">Atendido Bodega</th>
-                            <th className="py-2 px-2 text-center text-rose-600">Cantidad a Comprar (OC)</th>
-                            <th className="py-2 px-3 text-right">Subtotal Est. ($)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
-                          {sol.itemsAComprar.map((it, idx) => (
-                            <tr key={idx}>
-                              <td className="py-2 px-3 text-slate-500">{it.codigo}</td>
-                              <td className="py-2 px-3 font-sans font-bold text-slate-900 dark:text-white">
-                                {it.nombre}
-                              </td>
-                              <td className="py-2 px-2 text-center">
-                                {it.cantidadSolicitadaResidente} {it.unidad}
-                              </td>
-                              <td className="py-2 px-2 text-center text-emerald-600 font-bold">
-                                {it.cantidadDespachadaDesdeBodega} {it.unidad}
-                              </td>
-                              <td className="py-2 px-2 text-center text-rose-600 font-bold">
-                                {it.cantidadAComprar} {it.unidad}
-                              </td>
-                              <td className="py-2 px-3 text-right font-bold text-slate-900 dark:text-white">
-                                ${it.subtotalEstimadoUSD.toFixed(2)} USD
-                              </td>
+                      {/* TABLA DE ARTÍCULOS CON VERIFICACIÓN DEL AGENTE IA EN MARKETPLACE POR CERCANÍA */}
+                      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="bg-slate-100 dark:bg-slate-800/80 text-[10px] font-mono uppercase text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                              <th className="py-2.5 px-3">Código / Material Faltante</th>
+                              <th className="py-2.5 px-2 text-center">Pedido / Bodega</th>
+                              <th className="py-2.5 px-2 text-center text-rose-600">Cant. a Comprar</th>
+                              <th className="py-2.5 px-3 min-w-[340px]">
+                                🤖 Opciones de Compra en Marketplace IA (1° Más Cercano → Ampliar Cobertura)
+                              </th>
+                              <th className="py-2.5 px-3 text-right">Costo Puesto en Obra</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                            {detallesItemsConIA.map(({ item: it, idx, opciones, elegida }) => (
+                              <tr key={idx} className="align-top hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
+                                <td className="py-3 px-3 font-sans">
+                                  <span className="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 block">
+                                    {it.codigo}
+                                  </span>
+                                  <span className="font-bold text-slate-900 dark:text-white text-xs">
+                                    {it.nombre}
+                                  </span>
+                                  {it.subPedidoGeneradoRef && sol.estado === 'OC_GENERADA_ENVIADA_PROVEEDOR' && (
+                                    <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[10px] font-mono font-bold">
+                                      Sub-Pedido: {it.subPedidoGeneradoRef}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2 text-center text-[11px]">
+                                  <div className="text-slate-600 dark:text-slate-300">
+                                    Ped: <strong>{it.cantidadSolicitadaResidente} {it.unidad}</strong>
+                                  </div>
+                                  <div className="text-emerald-600 font-bold">
+                                    Bod: {it.cantidadDespachadaDesdeBodega} {it.unidad}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className="px-2 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold text-xs border border-rose-200 dark:border-rose-800 inline-block">
+                                    {it.cantidadAComprar} {it.unidad}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3 font-sans space-y-2">
+                                  {sol.estado === 'PENDIENTE_COTIZACION_COMPRAS' ? (
+                                    <>
+                                      {/* Botones rápidos para ampliar cobertura geográfica (1° Local -> 2° Regional -> 3° Nacional) */}
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        {opciones.map(op => {
+                                          const activa = op.proveedorId === elegida.proveedorId;
+                                          const badgeColor =
+                                            op.anilloCobertura === 'ANILLO_1_LOCAL'
+                                              ? activa
+                                                ? 'bg-emerald-600 text-white border-emerald-600'
+                                                : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                                              : op.anilloCobertura === 'ANILLO_2_REGIONAL'
+                                              ? activa
+                                                ? 'bg-amber-500 text-slate-950 border-amber-500'
+                                                : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                                              : activa
+                                              ? 'bg-sky-600 text-white border-sky-600'
+                                              : 'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800';
+
+                                          return (
+                                            <button
+                                              key={op.proveedorId}
+                                              type="button"
+                                              onClick={() => handleSeleccionarProveedorItem(sol.id, idx, op)}
+                                              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${badgeColor}`}
+                                            >
+                                              <span>
+                                                {op.ordenCercania === 1
+                                                  ? `🟢 1° Local (${op.distanciaKmDesdeObra} km)`
+                                                  : op.ordenCercania === 2
+                                                  ? `🟡 2° Regional (${op.distanciaKmDesdeObra} km)`
+                                                  : `🔵 3° Nacional (${op.distanciaKmDesdeObra} km)`}
+                                              </span>
+                                              {op.esRecomendadoIA && (
+                                                <span className="underline ml-0.5">★ IA</span>
+                                              )}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+
+                                      {/* Selector desplegable completo con todas las opciones del Marketplace */}
+                                      <select
+                                        value={elegida.proveedorId}
+                                        onChange={e => {
+                                          const found = opciones.find(o => o.proveedorId === e.target.value);
+                                          if (found) handleSeleccionarProveedorItem(sol.id, idx, found);
+                                        }}
+                                        className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                                      >
+                                        {opciones.map(op => (
+                                          <option key={op.proveedorId} value={op.proveedorId}>
+                                            {op.ordenCercania}° Opción ({op.distanciaKmDesdeObra} km • {op.tiempoEntregaEstimado}) — {op.razonSocial} — ${op.precioUnitarioNetoUSD.toFixed(2)}/{it.unidad} + Flete ${op.costoFleteEstimadoUSD.toFixed(2)}
+                                          </option>
+                                        ))}
+                                      </select>
+
+                                      <div className="text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1.5 rounded-lg border border-slate-200/70 dark:border-slate-700/60">
+                                        <span>
+                                          📍 <strong>{elegida.ciudadUbicacion}</strong> ({elegida.distanciaKmDesdeObra} km • {elegida.tiempoEntregaEstimado})
+                                        </span>
+                                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                          {elegida.razonRecomendacionIA}
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      <div className="font-bold text-slate-900 dark:text-white text-xs">
+                                        {it.proveedorAsignadoNombre || elegida.razonSocial}
+                                      </div>
+                                      <div className="text-[11px] text-slate-500">
+                                        📍 {elegida.ciudadUbicacion} ({elegida.distanciaKmDesdeObra} km • {elegida.tiempoEntregaEstimado}) • RUC: {elegida.ruc}
+                                      </div>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-3 px-3 text-right">
+                                  <div className="font-bold text-slate-900 dark:text-white text-xs">
+                                    ${elegida.subtotalMaterialUSD.toFixed(2)} USD
+                                  </div>
+                                  <div className="text-[10px] text-slate-500">
+                                    Unit: ${elegida.precioUnitarioNetoUSD.toFixed(2)} + Flete: ${elegida.costoFleteEstimadoUSD.toFixed(2)}
+                                  </div>
+                                  <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
+                                    Landed: ${elegida.subtotalPuestoEnObraUSD.toFixed(2)}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* SI ESTÁ PENDIENTE: VISTA PREVIA DE AGRUPACIÓN MULTIPROVEEDOR */}
+                      {sol.estado === 'PENDIENTE_COTIZACION_COMPRAS' && (
+                        <div className="p-3.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="text-[11px] font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
+                              <Sparkles size={14} className="text-indigo-600 dark:text-indigo-400" />
+                              Resumen de Emisión Multiproveedor basado en Orden de Compra:
+                            </span>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">
+                              Se adjudicarán los artículos a <strong>{proveedoresUnicosPreview.length} proveedor(es)</strong>:{' '}
+                              {proveedoresUnicosPreview.map((p, i) => (
+                                <span key={p.proveedorId} className="font-mono font-semibold text-indigo-700 dark:text-indigo-300">
+                                  [Pedido P{i + 1}: {p.razonSocial} ({p.distanciaKmDesdeObra} km)]{' '}
+                                </span>
+                              ))}
+                            </p>
+                          </div>
+                          <div className="text-right font-mono shrink-0">
+                            <span className="text-[10px] text-slate-500 block uppercase">Total Estimado + Fletes</span>
+                            <span className="text-sm font-bold text-slate-900 dark:text-white">
+                              ${totalPuestoEnObraPreview.toFixed(2)} USD
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SI YA FUE EMITIDA LA OC: MOSTRAR SUB-PEDIDOS GENERADOS POR PROVEEDOR BASADOS EN EL NÚMERO DE OC */}
+                      {sol.estado === 'OC_GENERADA_ENVIADA_PROVEEDOR' &&
+                        sol.subPedidosPorProveedor &&
+                        sol.subPedidosPorProveedor.length > 0 && (
+                          <div className="space-y-2.5 pt-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                                <FileCheck2 size={15} />
+                                Pedidos a Proveedores Generados en base a la Orden de Compra Matriz ({sol.numeroOCGenerada}):
+                              </span>
+                              <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                                Total Consolidado OC (Inc. Flete + IVA): ${sol.montoTotalEstimadoUSD.toFixed(2)} USD
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {sol.subPedidosPorProveedor.map(sp => (
+                                <div
+                                  key={sp.numeroSubPedido}
+                                  className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border-2 border-emerald-500/40 dark:border-emerald-700/50 shadow-sm space-y-2.5"
+                                >
+                                  <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="px-2.5 py-0.5 rounded-md bg-emerald-600 text-white font-mono font-bold text-xs">
+                                          {sp.numeroSubPedido}
+                                        </span>
+                                        <span className="text-[10px] font-mono text-slate-500">
+                                          Base: {sp.ordenCompraMatrizRef}
+                                        </span>
+                                      </div>
+                                      <h4 className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                                        {sp.razonSocial}
+                                      </h4>
+                                      <p className="text-[11px] text-slate-500 font-mono">
+                                        RUC: {sp.ruc} • 📍 {sp.ciudadUbicacion} ({sp.distanciaKmDesdeObra} km • {sp.tiempoEntregaEstimado})
+                                      </p>
+                                    </div>
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                      {sp.etiquetaAnillo}
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-1 text-xs font-mono">
+                                    {sp.itemsAsignados.map((itemSp, iSp) => (
+                                      <div key={iSp} className="flex justify-between text-[11px] text-slate-700 dark:text-slate-300">
+                                        <span className="font-sans">
+                                          • <strong>{itemSp.cantidad} {itemSp.unidad}</strong> — {itemSp.nombre} ({itemSp.codigo})
+                                        </span>
+                                        <span className="font-bold">${itemSp.subtotalMaterialUSD.toFixed(2)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+
+                                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
+                                    <span className="text-slate-500">
+                                      Mat: ${sp.subtotalMaterialesUSD.toFixed(2)} + Flete: ${sp.costoFleteConsolidadoUSD.toFixed(2)} + IVA: ${sp.ivaTotalUSD.toFixed(2)}
+                                    </span>
+                                    <span className="font-bold text-emerald-700 dark:text-emerald-400 text-xs">
+                                      Total Pedido {sp.numeroSubPedido}: ${sp.totalPedidoProveedorUSD.toFixed(2)} USD
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
