@@ -67,6 +67,8 @@ import { ConfiguracionEmpresaSection } from '@/components/constructora/Configura
 import { PlanesSuscripcionSection } from '@/components/constructora/PlanesSuscripcionSection';
 import { EquipoAccesosSection } from '@/components/constructora/EquipoAccesosSection';
 import { PedidosMaterialesResidenteSection } from '@/components/constructora/PedidosMaterialesResidenteSection';
+import { SolicitarPersonalObraSection } from '@/components/constructora/SolicitarPersonalObraSection';
+import { ContratacionPersonalSection } from '@/components/constructora/ContratacionPersonalSection';
 import {
   ObraMaterialRequestService,
   SolicitudCompraDesdeBodega,
@@ -87,10 +89,12 @@ export type SuiteTab =
   | 'avances'
   | 'documentos'
   | 'pedidos_obra'
+  | 'solicitar_personal_obra'
   | 'kardex'
   | 'procura'
   | 'match'
   | 'nomina'
+  | 'contratacion_personal'
   | 'directorio'
   | 'talento'
   | 'fletes'
@@ -674,9 +678,15 @@ export default function EcosistemaAvanzadoPage() {
       ]
     },
     {
-      title: "BODEGA E INVENTARIO",
+      title: "REQUERIMIENTOS MATERIALES/TRABAJADORES",
       items: [
         { id: "pedidos_obra", label: "Pedidos de Materiales (Obra)", icon: Boxes },
+        { id: "solicitar_personal_obra", label: "Solicitar Profesionales/Trabajadores (Obra)", icon: HardHat },
+      ]
+    },
+    {
+      title: "BODEGA E INVENTARIO",
+      items: [
         { id: "kardex", label: "Bodega & Kardex", icon: Warehouse },
         { id: "procura", label: "Compras Predictivas", icon: ShoppingCart },
       ]
@@ -691,6 +701,7 @@ export default function EcosistemaAvanzadoPage() {
     {
       title: "DIRECTORIO Y RECURSOS",
       items: [
+        { id: "contratacion_personal", label: "Contratación Personal", icon: UserCheck },
         { id: "directorio", label: "Directorio Central", icon: Users },
         { id: "talento", label: "SARA Talento", icon: HardHat },
         { id: "fletes", label: "SARA Fletes (Transporte)", icon: Truck },
@@ -736,7 +747,13 @@ export default function EcosistemaAvanzadoPage() {
       setOpenGroup('MIS PROYECTOS');
     } else if (tab === 'pedidos_obra' || tab === 'pedidos') {
       setActiveTab('pedidos_obra');
-      setOpenGroup('BODEGA E INVENTARIO');
+      setOpenGroup('REQUERIMIENTOS MATERIALES/TRABAJADORES');
+    } else if (tab === 'solicitar_personal_obra' || tab === 'solicitar_personal') {
+      setActiveTab('solicitar_personal_obra');
+      setOpenGroup('REQUERIMIENTOS MATERIALES/TRABAJADORES');
+    } else if (tab === 'contratacion_personal' || tab === 'contratacion') {
+      setActiveTab('contratacion_personal');
+      setOpenGroup('DIRECTORIO Y RECURSOS');
     } else if (tab === 'avances') {
       setActiveTab('avances');
       setOpenGroup('MIS PROYECTOS');
@@ -781,7 +798,9 @@ export default function EcosistemaAvanzadoPage() {
       case 'proyectos':
         return { group: 'MIS PROYECTOS', title: 'Obras y Proyectos Activos' };
       case 'pedidos_obra':
-        return { group: 'BODEGA E INVENTARIO', title: 'Pedidos de Materiales del Residente a Bodega (APU & Manual)' };
+        return { group: 'REQUERIMIENTOS MATERIALES/TRABAJADORES', title: 'Pedidos de Materiales del Residente a Bodega (APU & Manual)' };
+      case 'solicitar_personal_obra':
+        return { group: 'REQUERIMIENTOS MATERIALES/TRABAJADORES', title: 'Solicitar Profesionales / Trabajadores de Obra (Cronograma & APU)' };
       case 'avances':
         return { group: 'MIS PROYECTOS', title: 'Avances de Obra & Fiscalización Fotográfica' };
       case 'documentos':
@@ -794,6 +813,8 @@ export default function EcosistemaAvanzadoPage() {
         return { group: 'CONTABILIDAD Y FINANZAS', title: 'Three-Way Match SRI (XML vs OC vs Bodega)' };
       case 'nomina':
         return { group: 'CONTABILIDAD Y FINANZAS', title: 'Nómina CICS / IESS & Tareo Diario' };
+      case 'contratacion_personal':
+        return { group: 'DIRECTORIO Y RECURSOS', title: 'Contratación de Personal con Agente IA SARA-TALENTO' };
       case 'directorio':
         return { group: 'DIRECTORIO Y RECURSOS', title: 'Directorio Central (Clientes & Proveedores)' };
       case 'talento':
@@ -1161,6 +1182,13 @@ export default function EcosistemaAvanzadoPage() {
             />
           )}
 
+          {activeTab === 'solicitar_personal_obra' && suscripcionActual?.hasAccess && (
+            <SolicitarPersonalObraSection
+              residenteActualNombre={professionalUser?.nombre || 'Ing. David Sarango (Residente de Obra)'}
+              onIrAContratacionPersonal={() => handleNavigate('contratacion_personal')}
+            />
+          )}
+
           {activeTab === 'avances' && (isCliente || suscripcionActual?.hasAccess) && (
             <MisProyectosSection user={professionalUser} initialSubTab="avances" />
           )}
@@ -1170,6 +1198,12 @@ export default function EcosistemaAvanzadoPage() {
           )}
 
           {/* VISTA 3: DIRECTORIO Y RECURSOS */}
+          {activeTab === 'contratacion_personal' && suscripcionActual?.hasAccess && (
+            <ContratacionPersonalSection
+              onIrASaraTalento={() => handleNavigate('talento')}
+            />
+          )}
+
           {activeTab === 'directorio' && suscripcionActual?.hasAccess && (
             <DirectorioRecursosSection user={professionalUser} initialSubTab="clientes" />
           )}
