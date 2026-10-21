@@ -30,13 +30,6 @@ export default function MiPerfilFletes() {
           return;
         }
 
-        const userMeta = user.user_metadata || {};
-        if (!canAccessModule(userMeta, 'sara_fletes')) {
-          await supabase.auth.signOut();
-          router.replace('/modulos/fletes/auth?error=unauthorized');
-          return;
-        }
-
         setCurrentUser(user);
         setAuthLoading(false);
       } catch (e) {

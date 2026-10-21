@@ -47,32 +47,14 @@ export default function FletesAuth() {
         });
         if (signInError) throw signInError;
 
-        // 2. VERIFICACIÓN ESTRICTA: SOLO USUARIOS Y CLIENTES DE SARA_FLETES
+        // 2. Acceso abierto y universal para todo el público y usuarios del ecosistema
         const userMeta = { ...(data.user.user_metadata || {}), ...(data.user.app_metadata || {}) };
         
-        if (!canAccessModule(userMeta, 'sara_fletes')) {
-          // Desconectar inmediatamente la sesión por violación de módulo
-          await supabase.auth.signOut();
-          
-          const userMod = getUserModule(userMeta);
-          const modDef = SARA_MODULES[userMod];
-          const portalUrl = getUserPortalUrl(userMeta);
-          
-          setRedirectPortal({
-            url: portalUrl,
-            name: modDef?.name || 'tu módulo asignado'
-          });
-
-          throw new Error(
-            `Acceso restringido: Esta cuenta pertenece al módulo "${modDef?.name || 'otro módulo'}". Por políticas de gobernanza y segregación de GRUPO SARA, únicamente los clientes y transportistas registrados en SARA FLETES pueden autenticarse en este portal.`
-          );
-        }
-
-        // Si es cliente, redirigir al cotizador/despacho; si es transportista, al radar/perfil
-        if (userMeta.role === 'cliente_fletes') {
-          router.push('/modulos/fletes');
-        } else {
+        // Si el usuario es transportista va al panel de chofer, sino al despachador de fletes
+        if (userMeta.role === 'transportista' || userMeta.placa) {
           router.push('/modulos/fletes/mi-perfil');
+        } else {
+          router.push('/modulos/fletes');
         }
       } else {
         // REGISTRO EXCLUSIVO PARA SARA_FLETES

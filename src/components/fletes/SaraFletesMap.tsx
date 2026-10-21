@@ -169,9 +169,9 @@ export default function SaraFletesMap({
         style={{ width: '100%', height: '100%', zIndex: 1 }}
         attributionControl={false}
       >
-        {/* Capa de CartoDB Voyager / Dark Matter para estética super-profesional de mapas */}
+        {/* Capa de OpenStreetMap estándar de alta resolución y libre de marcas de agua */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
 
