@@ -80,10 +80,29 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
     id: 'sara_fletes',
     name: 'SARA Fletes - Logística, Carga & Renta Vehicular',
     shortName: 'SARA Fletes',
-    description: 'Bolsa de carga, viajes pesados, backhaul y renta temporal de vehículos.',
+    description: 'Bolsa de carga, viajes pesados, backhaul y renta temporal de vehículos para todo el público.',
     loginUrl: '/modulos/fletes/auth',
     portalUrl: '/modulos/fletes/mi-perfil',
-    allowedRoles: ['transportista', 'cliente_fletes', 'usuario_fletes', 'chofer', 'propietario_vehiculo', 'admin', 'superadmin'],
+    allowedRoles: [
+      'transportista', 
+      'cliente_fletes', 
+      'usuario_fletes', 
+      'chofer', 
+      'propietario_vehiculo', 
+      'cliente_constructora',
+      'profesional_constructora',
+      'propietario_inmobiliaria',
+      'comprador_inmobiliaria',
+      'huesped',
+      'anfitrion',
+      'cuadrilla',
+      'trabajador',
+      'profesional',
+      'cliente_general',
+      'publico',
+      'admin', 
+      'superadmin'
+    ],
     color: 'amber'
   },
   sara_talento: {
@@ -188,12 +207,19 @@ export function canAccessModule(rawMetadata: any, targetModule: SaraModule): boo
     return role === 'admin' || role === 'superadmin'
   }
 
-  // 3. Revisar array explícito de módulos autorizados si existe
+  // 3. SARA FLETES: SERVICIO PÚBLICO UNIVERSAL (Uber, inDrive, DiDi de Ecuador)
+  // Cualquier usuario autenticado (cliente particular, empresa, profesional o conductor)
+  // tiene autorización de uso y acceso a SARA Fletes sin restricciones entre módulos.
+  if (targetModule === 'sara_fletes') {
+    return true
+  }
+
+  // 4. Revisar array explícito de módulos autorizados si existe
   if (Array.isArray(metadata.modulos_autorizados) && metadata.modulos_autorizados.length > 0) {
     return metadata.modulos_autorizados.includes(targetModule)
   }
 
-  // 4. Comparar estrictamente contra módulo de origen
+  // 5. Comparar estrictamente contra módulo de origen
   const originModule = getUserModule(metadata)
   if (originModule === targetModule) {
     return true

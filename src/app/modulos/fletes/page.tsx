@@ -385,9 +385,12 @@ export default function SaraFletesEngine() {
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                 GPS En Vivo
               </span>
+              <span className="hidden sm:inline-block bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Abierto a Todo Público
+              </span>
             </div>
             <p className="text-xs text-slate-400">
-              Transporte de carga on-demand y renta temporal de vehículos tipo Uber, inDrive y DiDi
+              Transporte de carga on-demand y renta temporal de vehículos para empresas, constructores y público en general
             </p>
           </div>
         </div>
@@ -403,7 +406,7 @@ export default function SaraFletesEngine() {
             }`}
           >
             <Package className="w-3.5 h-3.5" />
-            Modo Constructor / Cliente
+            Cliente / Público General
           </button>
           <button
             onClick={() => setViewMode('driver')}
@@ -414,16 +417,23 @@ export default function SaraFletesEngine() {
             }`}
           >
             <Navigation className="w-3.5 h-3.5" />
-            Modo Transportista
+            Conductor / Transportista
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/modulos/fletes/mi-perfil"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3.5 py-2 rounded-lg text-xs font-black transition-colors shadow-sm flex items-center gap-1.5"
+          >
+            <Truck className="w-3.5 h-3.5" />
+            Mi Billetera / Conductor
+          </Link>
           <Link
             href="/modulos/fletes/auth"
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-xs font-bold transition-colors"
           >
-            Registro de Choferes
+            Ingreso / Registro
           </Link>
           <Link href="/" className="text-slate-400 hover:text-amber-400 text-xs font-medium transition-colors">
             Inicio

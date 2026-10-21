@@ -101,15 +101,15 @@ export default function EcosystemMatrix({ onOpenCheckout, initialLogos }: Ecosys
     {
       id: 'fletes',
       title: 'SARA-FLETES',
-      tagline: 'Logística & Transporte Pesado',
-      desc: 'Despacho tipo Uber de fletes con geolocalización satelital en tiempo real, validación de carga y conductores certificados.',
+      tagline: 'Fletes & Renta Vehicular Abierta',
+      desc: 'Plataforma para todo público: fletes locales, mudanzas, transporte pesado y alquiler de camionetas/camiones por horas o días (tipo Uber, inDrive y DiDi).',
       logoUrl: logos.fletes,
       iconFallback: Truck,
       href: '/modulos/fletes',
-      accentColor: 'from-blue-500 to-blue-700',
-      badge: 'Radar Satelital 24/7',
-      stats: 'Monitoreo en Ruta',
-      pricePreview: { title: 'Recarga Prepago Conductor', amount: 20.00, isSub: false }
+      accentColor: 'from-amber-500 to-amber-700',
+      badge: 'Abierto a Todo Público',
+      stats: 'Carga & Renta 24/7',
+      pricePreview: { title: 'Flete Local Inmediato', amount: 3.00, isSub: false }
     },
     {
       id: 'talento',

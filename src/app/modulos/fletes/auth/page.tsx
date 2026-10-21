@@ -124,11 +124,11 @@ export default function FletesAuth() {
 
             <div className="bg-slate-950/10 border border-slate-950/20 p-3.5 rounded-2xl mb-6 backdrop-blur-sm">
               <p className="text-xs font-bold text-slate-950 flex items-center gap-1.5 mb-1">
-                <ShieldCheck className="w-4 h-4 text-slate-950" />
-                Segregación Zero-Trust SARA
+                <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                Servicio Abierto al Público General
               </p>
               <p className="text-[11px] text-slate-900 leading-tight">
-                Acceso restringido exclusivamente a clientes y transportistas registrados en este módulo.
+                Cualquier persona, particular, empresa de obra o transportista puede solicitar carreras, rentar vehículos por horas/días o registrarse como conductor.
               </p>
             </div>
           </div>
