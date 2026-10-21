@@ -84,6 +84,20 @@ interface ReservaRentaConfirmada {
   lugarEntrega: string;
 }
 
+export interface DriverOffer {
+  id: string;
+  driverName: string;
+  vehicleName: string;
+  plate: string;
+  rating: number;
+  tripsCount: number;
+  etaMinutes: number;
+  distanceMeters: number;
+  offeredPrice: number;
+  isCounterOffer: boolean;
+  phone: string;
+}
+
 export default function SaraFletesEngine() {
   const [viewMode, setViewMode] = useState<'constructor' | 'driver'>('constructor');
   const [serviceType, setServiceType] = useState<'flete' | 'renta'>('flete');
@@ -127,9 +141,86 @@ export default function SaraFletesEngine() {
   // 5. Estados de negociación y despacho
   const [activeFreight, setActiveFreight] = useState<FreightRequest | null>(null);
   const [counterOffer, setCounterOffer] = useState<string>('');
+  const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
+  const [assignedDriver, setAssignedDriver] = useState<DriverOffer | null>(null);
 
   // Generador de código PIN de entrega segura
   const generateAccessCode = () => Math.floor(1000 + Math.random() * 9000).toString();
+
+  // Simulación dinámica de ofertas de conductores cercanos al solicitar flete
+  useEffect(() => {
+    if (activeFreight && activeFreight.status === 'searching') {
+      setDriverOffers([]);
+      const timers: NodeJS.Timeout[] = [];
+      const basePrice = activeFreight.referencePrice;
+      const vehName = CATALOGO_VEHICULOS_SARA[activeFreight.vehicleType]?.nombre || 'Vehículo de Carga';
+
+      // Oferta 1: Conductor cercano inmediato (a los 1.8 segundos)
+      timers.push(setTimeout(() => {
+        setDriverOffers(prev => [
+          ...prev,
+          {
+            id: 'OFFER-01',
+            driverName: 'Manuel Cárdenas',
+            vehicleName: `Camioneta 1T · ${vehName}`,
+            plate: 'LBA-3421',
+            rating: 4.9,
+            tripsCount: 184,
+            etaMinutes: 3,
+            distanceMeters: 380,
+            offeredPrice: basePrice,
+            isCounterOffer: false,
+            phone: '0993849182'
+          }
+        ]);
+      }, 1800));
+
+      // Oferta 2: Conductor alternativo (a los 3.4 segundos)
+      timers.push(setTimeout(() => {
+        setDriverOffers(prev => [
+          ...prev,
+          {
+            id: 'OFFER-02',
+            driverName: 'Luis Toapanta',
+            vehicleName: `Furgón 3.5T Urbano`,
+            plate: 'GCA-9876',
+            rating: 4.8,
+            tripsCount: 96,
+            etaMinutes: 2,
+            distanceMeters: 250,
+            offeredPrice: basePrice,
+            isCounterOffer: false,
+            phone: '0961128472'
+          }
+        ]);
+      }, 3400));
+
+      // Oferta 3: Conductor con contraoferta inDrive (a los 5.2 segundos)
+      timers.push(setTimeout(() => {
+        const contraTarifa = +(basePrice + 0.50).toFixed(2);
+        setDriverOffers(prev => [
+          ...prev,
+          {
+            id: 'OFFER-03',
+            driverName: 'Carlos Mendoza',
+            vehicleName: `Camión Hino 5T`,
+            plate: 'PBA-1234',
+            rating: 4.8,
+            tripsCount: 312,
+            etaMinutes: 5,
+            distanceMeters: 680,
+            offeredPrice: contraTarifa,
+            isCounterOffer: true,
+            phone: '0984710293'
+          }
+        ]);
+      }, 5200));
+
+      return () => {
+        timers.forEach(t => clearTimeout(t));
+      };
+    }
+  }, [activeFreight]);
 
   // Detección inicial de GPS del navegador
   useEffect(() => {
@@ -164,8 +255,8 @@ export default function SaraFletesEngine() {
         nombreChofer: 'Manuel Cárdenas',
         placa: 'LBA-3421',
         tipoVehiculo: 'PICKUP_1T',
-        lat: +(centerLat + 0.0035).toFixed(5),
-        lng: +(centerLng - 0.0028).toFixed(5),
+        lat: +(centerLat + 0.0018).toFixed(5),
+        lng: +(centerLng - 0.0016).toFixed(5),
         rating: 4.9,
         telefono: '0993849182',
         disponible: true
@@ -175,8 +266,8 @@ export default function SaraFletesEngine() {
         nombreChofer: 'Carlos Mendoza',
         placa: 'PBA-1234',
         tipoVehiculo: 'CAMION_5T',
-        lat: +(centerLat - 0.0042).toFixed(5),
-        lng: +(centerLng + 0.0031).toFixed(5),
+        lat: +(centerLat - 0.0022).toFixed(5),
+        lng: +(centerLng + 0.0021).toFixed(5),
         rating: 4.8,
         telefono: '0984710293',
         disponible: true
@@ -186,8 +277,8 @@ export default function SaraFletesEngine() {
         nombreChofer: 'Luis Toapanta',
         placa: 'GCA-9876',
         tipoVehiculo: 'FURGON_3T',
-        lat: +(centerLat + 0.0021).toFixed(5),
-        lng: +(centerLng + 0.0045).toFixed(5),
+        lat: +(centerLat + 0.0026).toFixed(5),
+        lng: +(centerLng + 0.0015).toFixed(5),
         rating: 4.7,
         telefono: '0961128472',
         disponible: true
@@ -197,8 +288,8 @@ export default function SaraFletesEngine() {
         nombreChofer: 'Jorge Encalada',
         placa: 'UBA-5512',
         tipoVehiculo: 'VOLQUETA_V3A',
-        lat: +(centerLat - 0.0055).toFixed(5),
-        lng: +(centerLng - 0.0038).toFixed(5),
+        lat: +(centerLat - 0.0032).toFixed(5),
+        lng: +(centerLng - 0.0024).toFixed(5),
         rating: 4.9,
         telefono: '0991204857',
         disponible: true
@@ -208,10 +299,32 @@ export default function SaraFletesEngine() {
         nombreChofer: 'Marco Vinicio Guamán',
         placa: 'LBB-4321',
         tipoVehiculo: 'TRACTO_3S3',
-        lat: +(centerLat + 0.0065).toFixed(5),
-        lng: +(centerLng - 0.0072).toFixed(5),
+        lat: +(centerLat + 0.0038).toFixed(5),
+        lng: +(centerLng - 0.0032).toFixed(5),
         rating: 5.0,
         telefono: '0998273641',
+        disponible: true
+      },
+      {
+        id: 'FLT-VEH-06',
+        nombreChofer: 'David Sarango',
+        placa: 'LBA-9012',
+        tipoVehiculo: 'PICKUP_1T',
+        lat: +(centerLat - 0.0012).toFixed(5),
+        lng: +(centerLng - 0.0026).toFixed(5),
+        rating: 4.9,
+        telefono: '0995544332',
+        disponible: true
+      },
+      {
+        id: 'FLT-VEH-07',
+        nombreChofer: 'Pedro Jimbo',
+        placa: 'LBA-6543',
+        tipoVehiculo: 'FURGON_3T',
+        lat: +(centerLat + 0.0020).toFixed(5),
+        lng: +(centerLng - 0.0028).toFixed(5),
+        rating: 4.8,
+        telefono: '0981122334',
         disponible: true
       }
     ];
@@ -478,6 +591,25 @@ export default function SaraFletesEngine() {
       distanciaKm: rutaCalculada?.distanciaKm || 1.8,
       duracionMinutos: rutaCalculada?.duracionMinutos || 8
     });
+  };
+
+  // Aceptar oferta de conductor en radar
+  const handleAcceptDriverOffer = async (offer: DriverOffer) => {
+    if (!activeFreight) return;
+    setAssignedDriver(offer);
+    setActiveFreight(prev => prev ? {
+      ...prev,
+      status: 'accepted',
+      referencePrice: offer.offeredPrice
+    } : null);
+    if (activeFreight.id) {
+      await updateFletesSolicitudStatus(activeFreight.id, 'asignado', activeFreight.accessCode);
+    }
+  };
+
+  // Rechazar oferta específica de conductor
+  const handleRejectDriverOffer = (offerId: string) => {
+    setDriverOffers(prev => prev.filter(o => o.id !== offerId));
   };
 
   // Confirmar Renta Temporal (Modo Uber Rent)
@@ -987,55 +1119,186 @@ export default function SaraFletesEngine() {
                         </div>
                       )}
 
-                      {/* ESTADO DE FLETE ACTIVO Y SEGUIMIENTO */}
+                      {/* ESTADO DE FLETE ACTIVO Y SEGUIMIENTO CON OFERTAS DE CONDUCTORES */}
                       {activeFreight && (
-                        <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl text-center space-y-3">
+                        <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl space-y-3">
                           {activeFreight.status === 'searching' && (
-                            <>
-                              <Loader2 className="w-9 h-9 text-amber-500 animate-spin mx-auto" />
-                              <div>
+                            <div className="space-y-3">
+                              <div className="text-center space-y-1.5">
+                                <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                                  <span>Radar SARA: Conectando con unidades en Cariamanga</span>
+                                </div>
                                 <h3 className="font-black text-white text-base">Notificando a Conductores...</h3>
-                                <p className="text-xs text-slate-400 mt-0.5">Transmitiendo oferta a camionetas en radar</p>
-                              </div>
-                              <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                                <span className="text-[10px] text-slate-400">Tu oferta actual:</span>
-                                <p className="text-xl font-black text-amber-500 font-mono">
-                                  ${activeFreight.referencePrice.toFixed(2)} USD
+                                <p className="text-xs text-slate-400">
+                                  Tu oferta: <strong className="text-amber-400 font-mono text-sm">${activeFreight.referencePrice.toFixed(2)} USD</strong> ({activeFreight.material})
                                 </p>
                               </div>
-                            </>
+
+                              {/* LISTA DE OFERTAS EN TIEMPO REAL */}
+                              {driverOffers.length === 0 ? (
+                                <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl text-center space-y-2">
+                                  <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400 animate-pulse">
+                                    <Truck className="w-4 h-4" />
+                                  </div>
+                                  <p className="text-xs font-bold text-slate-300">Esperando respuesta de conductores...</p>
+                                  <p className="text-[10px] text-slate-500">Transmitiendo solicitud a los vehículos visibles en el mapa</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2.5">
+                                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 px-1">
+                                    <span>Conductores que respondieron ({driverOffers.length})</span>
+                                    <span className="text-emerald-400 font-mono">En vivo</span>
+                                  </div>
+
+                                  {driverOffers.map((offer) => (
+                                    <div
+                                      key={offer.id}
+                                      className="bg-slate-900 border border-slate-700/80 hover:border-amber-500/70 p-3 rounded-2xl transition-all shadow-xl space-y-2.5 animate-in fade-in zoom-in-95 duration-200"
+                                    >
+                                      <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base shadow-inner">
+                                            {offer.driverName.charAt(0)}
+                                          </div>
+                                          <div>
+                                            <h4 className="font-black text-white text-xs">{offer.driverName}</h4>
+                                            <p className="text-[10px] text-slate-400">{offer.vehicleName} · <span className="font-mono text-slate-300 font-bold">{offer.plate}</span></p>
+                                            <p className="text-[10px] text-amber-400 font-bold flex items-center gap-1 mt-0.5">
+                                              <span>★ {offer.rating}</span>
+                                              <span className="text-slate-500 font-normal">({offer.tripsCount} viajes)</span>
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        <div className="text-right">
+                                          <p className="text-base font-black font-mono text-emerald-400">
+                                            ${offer.offeredPrice.toFixed(2)} <span className="text-[10px] font-sans font-semibold text-slate-400">USD</span>
+                                          </p>
+                                          <span className="text-[9px] font-bold text-slate-300 flex items-center justify-end gap-1 mt-0.5">
+                                            ⚡ {offer.etaMinutes} min ({offer.distanceMeters}m)
+                                          </span>
+                                          {offer.isCounterOffer && (
+                                            <span className="inline-block text-[8px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-black border border-amber-500/40 mt-1">
+                                              Contraoferta
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      <div className="flex gap-2 pt-1 border-t border-slate-800">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAcceptDriverOffer(offer)}
+                                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                                        >
+                                          <CheckCircle className="w-3.5 h-3.5" />
+                                          Aceptar este Conductor
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRejectDriverOffer(offer.id)}
+                                          className="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-3 py-2 rounded-xl text-xs font-bold transition-all"
+                                        >
+                                          Rechazar
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveFreight(null);
+                                  setDriverOffers([]);
+                                }}
+                                className="w-full text-xs text-rose-400 hover:text-rose-300 font-bold transition-colors pt-1"
+                              >
+                                Cancelar Búsqueda
+                              </button>
+                            </div>
                           )}
 
                           {activeFreight.status === 'accepted' && (
-                            <>
-                              <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
-                              <div>
-                                <h3 className="font-black text-white text-base">¡Flete Asignado y en Ruta!</h3>
-                                <p className="text-xs text-slate-400">
-                                  Chofer en camino por <strong>${activeFreight.referencePrice.toFixed(2)} USD</strong>
-                                </p>
+                            <div className="space-y-3.5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                                  <CheckCircle className="w-7 h-7" />
+                                </div>
+                                <div className="text-left">
+                                  <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                    ¡Conductor Asignado y en Ruta!
+                                  </span>
+                                  <h3 className="font-black text-white text-base mt-1">
+                                    {assignedDriver?.driverName || 'Conductor SARA'}
+                                  </h3>
+                                  <p className="text-xs text-slate-400">
+                                    {assignedDriver?.vehicleName} · Placa: <strong className="text-white font-mono">{assignedDriver?.plate}</strong>
+                                  </p>
+                                </div>
                               </div>
 
-                              <div className="bg-emerald-950/40 border border-emerald-500/40 p-3 rounded-xl">
-                                <p className="text-[10px] font-black uppercase text-emerald-400 mb-0.5">
+                              <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                                <div className="text-left">
+                                  <span className="text-slate-400 text-[10px] block">Tarifa acordada:</span>
+                                  <p className="text-xl font-black font-mono text-emerald-400">
+                                    ${activeFreight.referencePrice.toFixed(2)} USD
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-slate-400 text-[10px] block">Llegada estimada:</span>
+                                  <p className="text-sm font-bold text-white flex items-center justify-end gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                    ~{assignedDriver?.etaMinutes || 3} min
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* PIN de seguridad de entrega */}
+                              <div className="bg-emerald-950/40 border border-emerald-500/40 p-3.5 rounded-xl text-center">
+                                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-0.5">
                                   PIN de Seguridad de Entrega
                                 </p>
-                                <p className="text-2xl font-black text-emerald-400 font-mono tracking-widest">
+                                <p className="text-3xl font-black text-emerald-400 font-mono tracking-widest">
                                   {activeFreight.accessCode}
                                 </p>
                                 <p className="text-[10px] text-slate-400 mt-1">
-                                  Entrégalos al conductor al verificar la carga
+                                  Entrégalos al conductor al recibir y verificar la carga
                                 </p>
+                              </div>
+
+                              {/* Botones de contacto directo */}
+                              <div className="grid grid-cols-2 gap-2">
+                                <a
+                                  href={`tel:${assignedDriver?.phone || '0993849182'}`}
+                                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
+                                >
+                                  📞 Llamar
+                                </a>
+                                <a
+                                  href={`https://wa.me/593${(assignedDriver?.phone || '0993849182').replace(/^0/, '')}?text=Hola%20${encodeURIComponent(assignedDriver?.driverName || 'amigo')},%20solicité%20un%20flete%20en%20SARA%20Fletes.`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
+                                >
+                                  💬 WhatsApp
+                                </a>
                               </div>
 
                               <button
                                 type="button"
-                                onClick={() => setActiveFreight(null)}
-                                className="text-xs text-amber-400 underline font-bold"
+                                onClick={() => {
+                                  setActiveFreight(null);
+                                  setDriverOffers([]);
+                                  setAssignedDriver(null);
+                                }}
+                                className="w-full text-xs text-amber-400 hover:text-amber-300 font-bold underline text-center pt-1"
                               >
-                                Solicitar otro viaje
+                                Finalizar viaje o solicitar otro flete
                               </button>
-                            </>
+                            </div>
                           )}
                         </div>
                       )}

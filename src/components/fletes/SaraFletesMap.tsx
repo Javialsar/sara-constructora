@@ -103,25 +103,30 @@ const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario') => {
   });
 };
 
-const crearIconoVehiculo = (tipoVehiculo: CategoriaVehiculo, isFiltered: boolean) => {
-  const vehiculo = CATALOGO_VEHICULOS_SARA[tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
-  const bgColor = isFiltered ? '#f59e0b' : '#334155';
-  const borderColor = isFiltered ? '#ffffff' : '#64748b';
-  const scale = isFiltered ? '1.15' : '0.95';
+const crearIconoVehiculo = (vehiculo: VehiculoMapa, isSelected: boolean) => {
+  const cat = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
+  const bgColor = isSelected ? '#f59e0b' : '#0f172a';
+  const borderColor = isSelected ? '#ffffff' : '#10b981';
+  const scale = isSelected ? '1.15' : '1.0';
+  const firstName = vehiculo.nombreChofer.split(' ')[0];
 
   return L.divIcon({
-    className: `sara-vehicle-marker-${tipoVehiculo}`,
+    className: `sara-vehicle-marker-${vehiculo.id}`,
     html: `
-      <div style="transform: scale(${scale}); transition: all 0.2s ease-in-out; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));">
-        <div style="background: ${bgColor}; width: 38px; height: 38px; border-radius: 12px; border: 2.5px solid ${borderColor}; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-          ${vehiculo.icono}
+      <div style="transform: scale(${scale}); transition: all 0.2s ease-in-out; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55));">
+        <div style="position: relative; background: ${bgColor}; width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid ${borderColor}; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+          ${cat.icono}
+          <span style="position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #10b981; border: 2px solid #ffffff; box-shadow: 0 0 6px rgba(16,185,129,0.8);"></span>
         </div>
-        <div style="margin-top: -4px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${bgColor};"></div>
+        <div style="margin-top: -3px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${bgColor};"></div>
+        <div style="margin-top: 2px; background: rgba(15, 23, 42, 0.92); color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25); white-space: nowrap; backdrop-filter: blur(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.4);">
+          ${firstName} · ${cat.capacidadTon}T
+        </div>
       </div>
     `,
-    iconSize: [40, 46],
-    iconAnchor: [20, 42],
-    popupAnchor: [0, -42]
+    iconSize: [52, 60],
+    iconAnchor: [26, 46],
+    popupAnchor: [0, -46]
   });
 };
 
@@ -455,7 +460,7 @@ export default function SaraFletesMap({
             <Marker
               key={vehiculo.id}
               position={[vehiculo.lat, vehiculo.lng]}
-              icon={crearIconoVehiculo(vehiculo.tipoVehiculo, isSelected)}
+              icon={crearIconoVehiculo(vehiculo, isSelected)}
               eventHandlers={{
                 click: () => onSelectVehiculo && onSelectVehiculo(vehiculo)
               }}
