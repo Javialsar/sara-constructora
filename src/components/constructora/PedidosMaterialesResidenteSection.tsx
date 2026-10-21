@@ -12,16 +12,18 @@ import {
   AlertTriangle,
   Layers,
   Wrench,
-  FileSpreadsheet,
   Building2,
   ArrowRight,
-  Sparkles,
   Warehouse,
   ShoppingCart,
   ClipboardList,
   ShieldCheck,
-  Info,
+  Search,
+  Database,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import {
   ObraMaterialRequestService,
   PedidoMaterialObra,
@@ -35,16 +37,129 @@ interface PedidosMaterialesResidenteSectionProps {
   onNavigate?: (tab: string) => void;
 }
 
-const CATALOGO_MANUAL_RAPIDO = [
-  { id: 'cemento_holcim', codigo: 'INS-CEM-001', nombre: 'Cemento Holcim Fuerte 50kg', categoria: 'CEMENTO' as const, unidad: 'Saco', costoRef: 7.45 },
-  { id: 'acero_adelca_12', codigo: 'INS-ACE-012', nombre: 'Varilla Acero Corrugado Adelca 12mm x 12m', categoria: 'ACERO' as const, unidad: 'kg', costoRef: 1.18 },
-  { id: 'arena_gruesa', codigo: 'INS-ARI-003', nombre: 'Arena Gruesa de Mina Lavada', categoria: 'ARIDOS' as const, unidad: 'm³', costoRef: 14.5 },
-  { id: 'bloque_15', codigo: 'INS-MAM-015', nombre: 'Bloque Alivianado Prensado 15x20x40', categoria: 'MAMPOSTERIA' as const, unidad: 'Unidad', costoRef: 0.48 },
-  { id: 'hormigon_210', codigo: 'INS-HOR-210', nombre: 'Hormigón Premezclado f\'c=210 kg/cm²', categoria: 'HORMIGON' as const, unidad: 'm³', costoRef: 94.5 },
-  { id: 'tuberia_pvc_110', codigo: 'INS-TUB-110', nombre: 'Tubo PVC Sanitario Reforzado 110mm x 3m', categoria: 'TUBERIA' as const, unidad: 'Tubo', costoRef: 11.2 },
-  { id: 'aditivo_sika_1', codigo: 'INS-QUI-009', nombre: 'Aditivo Plastificante Acelerante SikaPlast-100 (Caneca 20L)', categoria: 'OTROS' as const, unidad: 'Caneca', costoRef: 46.5 },
-  { id: 'puntales_metalicos', codigo: 'INS-ENC-004', nombre: 'Puntal Metálico Telescópico Galvanizado 3.5m', categoria: 'OTROS' as const, unidad: 'Unidad', costoRef: 22.8 },
-  { id: 'malla_electrosoldada', codigo: 'INS-ACE-018', nombre: 'Malla Electrosoldada R-188 (6mm @ 15cm) 6.0x2.4m', categoria: 'ACERO' as const, unidad: 'Plancha', costoRef: 36.4 },
+interface InsumoMaestroSara {
+  id: string;
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  precio_sin_iva: number;
+  categoria?: string;
+  proveedorSugerido?: string;
+  enBodegaLocal?: boolean;
+}
+
+// 1. Artículos que sí están en el Kardex físico de la Bodega Central de Obra
+const CATALOGO_BODEGA_LOCAL = [
+  { id: 'cemento_holcim', codigo: 'INS-CEM-001', nombre: 'Cemento Holcim Fuerte 50kg (En Bodega: 85 Sacos)', nombreLimpio: 'Cemento Holcim Fuerte 50kg', categoria: 'CEMENTO' as const, unidad: 'Saco', costoRef: 7.45 },
+  { id: 'acero_adelca_12', codigo: 'INS-ACE-012', nombre: 'Varilla Acero Corrugado Adelca 12mm x 12m (En Bodega: 24,500 kg)', nombreLimpio: 'Varilla Acero Corrugado Adelca 12mm x 12m', categoria: 'ACERO' as const, unidad: 'kg', costoRef: 1.18 },
+  { id: 'arena_gruesa', codigo: 'INS-ARI-003', nombre: 'Arena Gruesa de Mina Lavada (En Bodega: 18 m³)', nombreLimpio: 'Arena Gruesa de Mina Lavada', categoria: 'ARIDOS' as const, unidad: 'm³', costoRef: 14.5 },
+  { id: 'bloque_15', codigo: 'INS-MAM-015', nombre: 'Bloque Alivianado Prensado 15x20x40 (En Bodega: 6,200 u)', nombreLimpio: 'Bloque Alivianado Prensado 15x20x40', categoria: 'MAMPOSTERIA' as const, unidad: 'Unidad', costoRef: 0.48 },
+  { id: 'hormigon_210', codigo: 'INS-HOR-210', nombre: 'Hormigón Premezclado f\'c=210 kg/cm² (En Bodega: 65 m³)', nombreLimpio: 'Hormigón Premezclado f\'c=210 kg/cm²', categoria: 'HORMIGON' as const, unidad: 'm³', costoRef: 94.5 },
+  { id: 'tuberia_pvc_110', codigo: 'INS-TUB-110', nombre: 'Tubo PVC Sanitario Reforzado 110mm x 3m (En Bodega: 120 Tubos)', nombreLimpio: 'Tubo PVC Sanitario Reforzado 110mm x 3m', categoria: 'TUBERIA' as const, unidad: 'Tubo', costoRef: 11.2 },
+];
+
+// 2. Semilla curada del Catálogo Maestro de Insumos GRUPO SARA (Acabados, Sanitarios Briggs/FV/Edesa, Eléctricos, Químicos, Encofrados)
+// Se combina en tiempo real con la consulta a `supabase.from('insumos')`
+const CATALOGO_MAESTRO_SARA_RESPALDO: InsumoMaestroSara[] = [
+  {
+    id: 'maestro-briggs-01',
+    codigo: 'SARA-SAN-0104',
+    nombre: 'Asiento para Inodoro / Baño Elongado Caída Lenta Color Beige Marca Briggs',
+    unidad: 'Unidad',
+    precio_sin_iva: 18.5,
+    categoria: 'APARATOS SANITARIOS & GRIFERÍA',
+    proveedorSugerido: 'EDESA / BRIGGS ECUADOR S.A.',
+  },
+  {
+    id: 'maestro-briggs-02',
+    codigo: 'SARA-SAN-0105',
+    nombre: 'Inodoro One Piece Sanitario Elongado Color Beige Línea Montecarlo Marca Briggs',
+    unidad: 'Unidad',
+    precio_sin_iva: 142.0,
+    categoria: 'APARATOS SANITARIOS & GRIFERÍA',
+    proveedorSugerido: 'EDESA / BRIGGS ECUADOR S.A.',
+  },
+  {
+    id: 'maestro-briggs-03',
+    codigo: 'SARA-SAN-0108',
+    nombre: 'Lavamanos de Pedestal / Mesón Porcelana Vitrificada Beige Marca Briggs',
+    unidad: 'Unidad',
+    precio_sin_iva: 54.8,
+    categoria: 'APARATOS SANITARIOS & GRIFERÍA',
+    proveedorSugerido: 'EDESA / BRIGGS ECUADOR S.A.',
+  },
+  {
+    id: 'maestro-fv-01',
+    codigo: 'SARA-GRI-0210',
+    nombre: 'Grifería Monocomando para Lavamanos Cromada Línea Franz Viegener (FV)',
+    unidad: 'Unidad',
+    precio_sin_iva: 68.5,
+    categoria: 'APARATOS SANITARIOS & GRIFERÍA',
+    proveedorSugerido: 'FV ÁREA ANDINA S.A.',
+  },
+  {
+    id: 'maestro-sika-01',
+    codigo: 'SARA-QUI-009',
+    nombre: 'Aditivo Plastificante Acelerante SikaPlast-100 (Caneca 20 Litros)',
+    unidad: 'Caneca',
+    precio_sin_iva: 46.5,
+    categoria: 'ADITIVOS & QUÍMICOS',
+    proveedorSugerido: 'SIKA ECUATORIANA S.A.',
+  },
+  {
+    id: 'maestro-sika-02',
+    codigo: 'SARA-QUI-014',
+    nombre: 'Impermeabilizante Acrílico Elastomérico SikaFill-10 Techo (Caneca 20 kg)',
+    unidad: 'Caneca',
+    precio_sin_iva: 64.9,
+    categoria: 'ADITIVOS & QUÍMICOS',
+    proveedorSugerido: 'SIKA ECUATORIANA S.A.',
+  },
+  {
+    id: 'maestro-graiman-01',
+    codigo: 'SARA-ACA-0312',
+    nombre: 'Porcelanato Rectificado Antideslizante Beige Marfil 60x60cm Graiman (Primera)',
+    unidad: 'm²',
+    precio_sin_iva: 19.8,
+    categoria: 'REVESTIMIENTOS & PISOS',
+    proveedorSugerido: 'GRAIMAN CÍA. LTDA.',
+  },
+  {
+    id: 'maestro-pintuco-01',
+    codigo: 'SARA-PIN-0088',
+    nombre: 'Pintura Látex Acrílica Lavable Koraza / Viniltex Blanco Hueso & Beige (Caneca 5 Gal)',
+    unidad: 'Caneca',
+    precio_sin_iva: 89.5,
+    categoria: 'PINTURAS & ACABADOS',
+    proveedorSugerido: 'PINTUCO ECUADOR',
+  },
+  {
+    id: 'maestro-elec-01',
+    codigo: 'SARA-ELE-0402',
+    nombre: 'Cable Cobre Flexible THHN/THWN-2 Calibre 12 AWG 90°C (Rollo 100m Incable)',
+    unidad: 'Rollo',
+    precio_sin_iva: 58.4,
+    categoria: 'INSTALACIONES ELÉCTRICAS',
+    proveedorSugerido: 'INCABLE / ELECTROCABLES C.A.',
+  },
+  {
+    id: 'maestro-enc-01',
+    codigo: 'SARA-ENC-004',
+    nombre: 'Puntal Metálico Telescópico Galvanizado 3.50m (Capacidad 2.0 Ton)',
+    unidad: 'Unidad',
+    precio_sin_iva: 22.8,
+    categoria: 'ENCOFRADOS & EQUIPOS MENORES',
+    proveedorSugerido: 'IMPORTADORA FERRETERA SARA',
+  },
+  {
+    id: 'maestro-malla-01',
+    codigo: 'SARA-ACE-018',
+    nombre: 'Malla Electrosoldada R-188 (6mm @ 15cm) Plancha 6.00 x 2.40m INEN',
+    unidad: 'Plancha',
+    precio_sin_iva: 36.4,
+    categoria: 'ACEROS & ESTRUCTURAS',
+    proveedorSugerido: 'ADELCA / NOVACERO',
+  },
 ];
 
 export function PedidosMaterialesResidenteSection({
@@ -68,11 +183,25 @@ export function PedidosMaterialesResidenteSection({
   // Carrito de ítems a solicitar a Bodega
   const [itemsCarrito, setItemsCarrito] = useState<ItemPedidoResidente[]>([]);
 
-  // Campos para agregar un ítem manual
-  const [manualCatalogoId, setManualCatalogoId] = useState<string>('aditivo_sika_1');
-  const [manualNombreCustom, setManualNombreCustom] = useState<string>('');
-  const [manualUnidadCustom, setManualUnidadCustom] = useState<string>('Unidad');
-  const [manualCostoCustom, setManualCostoCustom] = useState<number>(18.5);
+  // Campos para agregar un ítem en Modo Manual / Catálogo Maestro
+  const [manualCatalogoId, setManualCatalogoId] = useState<string>('catalogo_maestro_sara');
+  const [busquedaMaestroQuery, setBusquedaMaestroQuery] = useState<string>('');
+  const [resultadosMaestro, setResultadosMaestro] = useState<InsumoMaestroSara[]>(CATALOGO_MAESTRO_SARA_RESPALDO);
+  const [buscandoEnSupabase, setBuscandoEnSupabase] = useState<boolean>(false);
+  const [insumoMaestroSeleccionado, setInsumoMaestroSeleccionado] = useState<InsumoMaestroSara | null>(
+    CATALOGO_MAESTRO_SARA_RESPALDO[0]
+  );
+
+  const [manualCodigoCustom, setManualCodigoCustom] = useState<string>('SARA-SAN-0104');
+  const [manualNombreCustom, setManualNombreCustom] = useState<string>(
+    CATALOGO_MAESTRO_SARA_RESPALDO[0].nombre
+  );
+  const [manualUnidadCustom, setManualUnidadCustom] = useState<string>(
+    CATALOGO_MAESTRO_SARA_RESPALDO[0].unidad
+  );
+  const [manualCostoCustom, setManualCostoCustom] = useState<number>(
+    CATALOGO_MAESTRO_SARA_RESPALDO[0].precio_sin_iva
+  );
   const [manualCantidad, setManualCantidad] = useState<number>(15);
   const [manualObs, setManualObs] = useState<string>('Requerimiento emergente en frente de obra');
 
@@ -89,6 +218,96 @@ export function PedidosMaterialesResidenteSection({
     window.addEventListener('sara_pedidos_obra_updated', handler);
     return () => window.removeEventListener('sara_pedidos_obra_updated', handler);
   }, []);
+
+  // Buscador en vivo contra el Catálogo Maestro de Insumos de GRUPO SARA (Supabase `insumos` + Semilla Maestra)
+  useEffect(() => {
+    let cancelado = false;
+    const buscarEnCatalogoMaestro = async () => {
+      const q = busquedaMaestroQuery.trim().toLowerCase();
+
+      // 1. Filtrar primero sobre la semilla curada (incluye matching flexible brigs -> briggs, bano -> baño)
+      const qNorm = q
+        .replace(/brigs/g, 'briggs')
+        .replace(/[áä]/g, 'a')
+        .replace(/[éë]/g, 'e')
+        .replace(/[íï]/g, 'i')
+        .replace(/[óö]/g, 'o')
+        .replace(/[úü]/g, 'u');
+
+      const coincidenciasLocales = CATALOGO_MAESTRO_SARA_RESPALDO.filter(item => {
+        if (!qNorm) return true;
+        const textoItem = `${item.codigo} ${item.nombre} ${item.categoria || ''} ${item.proveedorSugerido || ''}`
+          .toLowerCase()
+          .replace(/[áä]/g, 'a')
+          .replace(/[éë]/g, 'e')
+          .replace(/[íï]/g, 'i')
+          .replace(/[óö]/g, 'o')
+          .replace(/[úü]/g, 'u');
+        const palabras = qNorm.split(/\s+/).filter(Boolean);
+        return palabras.every(p => textoItem.includes(p)) || textoItem.includes(qNorm);
+      });
+
+      setBuscandoEnSupabase(true);
+      try {
+        const supabase = createClient();
+        let query = supabase
+          .from('insumos')
+          .select('id, codigo, nombre, unidad, precio_sin_iva, categoria')
+          .eq('estado', true)
+          .limit(15);
+
+        if (q.length >= 2) {
+          const primeraPalabra = q.split(/\s+/)[0];
+          query = query.or(`nombre.ilike.%${primeraPalabra}%,codigo.ilike.%${primeraPalabra}%`);
+        }
+
+        const { data } = await query;
+        if (!cancelado) {
+          const desdeDb: InsumoMaestroSara[] = (data || []).map((row: any) => ({
+            id: String(row.id),
+            codigo: String(row.codigo || 'SARA-INS'),
+            nombre: String(row.nombre || 'Insumo Maestro SARA'),
+            unidad: String(row.unidad || 'u'),
+            precio_sin_iva: Number(row.precio_sin_iva) || 10.0,
+            categoria: row.categoria || 'CATÁLOGO MAESTRO APU SARA',
+            proveedorSugerido: 'Red de Proveedores Calificados GRUPO SARA',
+          }));
+
+          const codigosVistos = new Set(coincidenciasLocales.map(c => c.codigo));
+          const fusionados = [
+            ...coincidenciasLocales,
+            ...desdeDb.filter(d => !codigosVistos.has(d.codigo)),
+          ];
+          setResultadosMaestro(fusionados);
+        }
+      } catch {
+        if (!cancelado) {
+          setResultadosMaestro(coincidenciasLocales);
+        }
+      } finally {
+        if (!cancelado) {
+          setBuscandoEnSupabase(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(buscarEnCatalogoMaestro, 180);
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [busquedaMaestroQuery]);
+
+  const handleSeleccionarInsumoMaestro = (item: InsumoMaestroSara) => {
+    setInsumoMaestroSeleccionado(item);
+    setManualCodigoCustom(item.codigo);
+    setManualNombreCustom(item.nombre);
+    setManualUnidadCustom(item.unidad);
+    setManualCostoCustom(item.precio_sin_iva);
+    setManualObs(
+      `Sin stock en bodega de obra • Solicitado del Catálogo Maestro de Insumos GRUPO SARA (${item.codigo})`
+    );
+  };
 
   const currentRubro: RubroApuPlantilla | undefined = rubrosPlantillas.find(
     r => r.id === selectedRubroId
@@ -123,30 +342,50 @@ export function PedidosMaterialesResidenteSection({
     });
   };
 
-  // Agregar ítem manual
+  // Agregar ítem manual o del Catálogo Maestro de Insumos SARA
   const handleAgregarItemManual = () => {
     if (manualCantidad <= 0) return;
 
-    const esCustom = manualCatalogoId === 'custom';
-    const refCat = CATALOGO_MANUAL_RAPIDO.find(c => c.id === manualCatalogoId);
+    const esDeCatalogoMaestro = manualCatalogoId === 'catalogo_maestro_sara';
+    const esCustomNoCatalogado = manualCatalogoId === 'custom_nuevo';
+    const refBodega = CATALOGO_BODEGA_LOCAL.find(c => c.id === manualCatalogoId);
 
     const nuevoItem: ItemPedidoResidente = {
       id: `cart-man-${Date.now()}`,
-      insumoKardexId: esCustom ? `custom_${Date.now()}` : refCat?.id || 'custom',
-      codigo: esCustom ? `INS-MAN-${Math.floor(100 + Math.random() * 899)}` : refCat?.codigo || 'INS-MAN-01',
-      nombre: esCustom ? (manualNombreCustom.trim() || 'Material Especial de Obra') : refCat?.nombre || 'Insumo',
-      categoria: esCustom ? 'OTROS' : refCat?.categoria || 'OTROS',
-      unidad: esCustom ? manualUnidadCustom : refCat?.unidad || 'Unidad',
-      origenItem: 'MANUAL',
+      insumoKardexId:
+        esDeCatalogoMaestro || esCustomNoCatalogado
+          ? `maestro_${Date.now()}`
+          : refBodega?.id || 'custom',
+      codigo: esDeCatalogoMaestro
+        ? manualCodigoCustom || insumoMaestroSeleccionado?.codigo || 'SARA-INS-01'
+        : esCustomNoCatalogado
+          ? `INS-ESP-${Math.floor(100 + Math.random() * 899)}`
+          : refBodega?.codigo || 'INS-BOD-01',
+      nombre:
+        esDeCatalogoMaestro || esCustomNoCatalogado
+          ? manualNombreCustom.trim() || 'Insumo Catálogo Maestro SARA'
+          : refBodega?.nombreLimpio || 'Insumo de Bodega',
+      categoria:
+        esDeCatalogoMaestro || esCustomNoCatalogado
+          ? 'OTROS'
+          : refBodega?.categoria || 'OTROS',
+      unidad:
+        esDeCatalogoMaestro || esCustomNoCatalogado
+          ? manualUnidadCustom
+          : refBodega?.unidad || 'Unidad',
+      origenItem: esDeCatalogoMaestro ? 'CATALOGO_MAESTRO_SARA' : 'MANUAL',
       cantidadSolicitada: manualCantidad,
       cantidadDespachadaBodega: 0,
       cantidadFaltanteParaCompra: 0,
-      costoUnitarioEstimadoUSD: esCustom ? manualCostoCustom : refCat?.costoRef || 10,
-      observacionTecnica: manualObs || 'Solicitud manual directa del Residente de Obra',
+      costoUnitarioEstimadoUSD:
+        esDeCatalogoMaestro || esCustomNoCatalogado
+          ? manualCostoCustom
+          : refBodega?.costoRef || 10,
+      observacionTecnica: manualObs || 'Solicitud de obra',
+      esDeCatalogoMaestroSara: esDeCatalogoMaestro,
     };
 
     setItemsCarrito(prev => [...prev, nuevoItem]);
-    setManualNombreCustom('');
   };
 
   const handleActualizarCantidadCarrito = (id: string, nuevaCant: number) => {
@@ -164,7 +403,7 @@ export function PedidosMaterialesResidenteSection({
     if (itemsCarrito.length === 0) return;
 
     const tieneApu = itemsCarrito.some(i => i.origenItem === 'APU');
-    const tieneManual = itemsCarrito.some(i => i.origenItem === 'MANUAL');
+    const tieneManual = itemsCarrito.some(i => i.origenItem !== 'APU');
     const origen =
       tieneApu && tieneManual
         ? 'MIXTO_APU_Y_MANUAL'
@@ -189,7 +428,7 @@ export function PedidosMaterialesResidenteSection({
     setItemsCarrito([]);
     cargarDatos();
     setBannerExito(
-      `¡Pedido ${creado.numeroPedido} emitido y enviado en tiempo real a la Bandeja del Bodeguero! Si algún material no tiene stock suficiente en Bodega, el Bodeguero despachará lo existente y generará automáticamente la Orden/Solicitud de Compra al Área de Compras.`
+      `¡Pedido ${creado.numeroPedido} emitido y enviado en tiempo real a la Bandeja del Bodeguero! Los artículos que pertenecen al Catálogo Maestro SARA y no tienen stock físico en Bodega pasarán automáticamente a Orden de Compra en el Área de Compras.`
     );
   };
 
@@ -213,14 +452,13 @@ export function PedidosMaterialesResidenteSection({
               </span>
             </div>
             <h1 className="text-2xl font-extrabold text-white tracking-tight">
-              Pedidos de Materiales a Bodega (Desde APU o Manual)
+              Pedidos de Materiales a Bodega (APU, Bodega Local & Catálogo Maestro SARA)
             </h1>
             <p className="text-xs text-slate-400 max-w-3xl leading-relaxed">
-              Solicita materiales para tu frente de obra cargando las cantidades técnicas desde el{' '}
-              <strong className="text-amber-300">Presupuesto APU</strong> (con control de techo presupuestario) o agregando{' '}
-              <strong className="text-sky-300">insumos manuales / emergentes</strong>. Tu pedido llega directo al{' '}
-              <strong className="text-emerald-300">Bodeguero</strong> para su despacho inmediato o escalamiento automático a{' '}
-              <strong className="text-indigo-300">Compras</strong> si falta stock.
+              Solicita materiales cargando las cantidades desde el{' '}
+              <strong className="text-amber-300">Presupuesto APU</strong>, seleccionando del{' '}
+              <strong className="text-emerald-300">Stock de Bodega</strong> o buscando en el{' '}
+              <strong className="text-sky-300">Catálogo Maestro de Insumos de GRUPO SARA</strong> cuando el artículo no exista en la bodega de la obra.
             </p>
           </div>
 
@@ -255,9 +493,9 @@ export function PedidosMaterialesResidenteSection({
               1
             </span>
             <div>
-              <span className="font-bold text-white block">Residente Solicita Materiales</span>
+              <span className="font-bold text-white block">Residente Pide (APU o Catálogo Maestro)</span>
               <span className="text-[11px] text-slate-400">
-                Explosión desde Rubros APU del presupuesto o ingreso manual de ítems.
+                Si un ítem no está en bodega, lo busca en el Catálogo Maestro de Insumos SARA.
               </span>
             </div>
           </div>
@@ -281,7 +519,7 @@ export function PedidosMaterialesResidenteSection({
             <div>
               <span className="font-bold text-white block">Faltantes Pasan a Área de Compras</span>
               <span className="text-[11px] text-slate-400">
-                Si no hay disponibilidad en bodega, se genera la Orden/Solicitud a Compras.
+                El Bodeguero genera la Orden/Solicitud de Compra con el código del Catálogo Maestro.
               </span>
             </div>
           </div>
@@ -317,7 +555,7 @@ export function PedidosMaterialesResidenteSection({
 
       {/* FORMULARIO PRINCIPAL EN 2 COLUMNAS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* COLUMNA IZQUIERDA (7 COL): SELECTOR DE MATERIALES (APU O MANUAL) */}
+        {/* COLUMNA IZQUIERDA (7 COL): SELECTOR DE MATERIALES (APU O MANUAL / CATÁLOGO MAESTRO) */}
         <div className="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
@@ -354,7 +592,7 @@ export function PedidosMaterialesResidenteSection({
                 }`}
               >
                 <Wrench size={14} />
-                <span>Pedido Manual / Emergente</span>
+                <span>Pedido Manual / Catálogo Maestro</span>
               </button>
             </div>
           </div>
@@ -445,45 +683,134 @@ export function PedidosMaterialesResidenteSection({
             </div>
           )}
 
-          {/* MODO B: PEDIDO MANUAL / EMERGENTE DE OBRA */}
+          {/* MODO B: PEDIDO DESDE BODEGA O BÚSQUEDA EN CATÁLOGO MAESTRO DE INSUMOS GRUPO SARA */}
           {modoIngreso === 'MANUAL' && (
             <div className="p-4 rounded-2xl bg-sky-50/40 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/50 space-y-4">
-              <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300 text-xs font-bold">
-                <Wrench size={15} />
-                <span>Ingreso Manual de Materiales o Requerimientos Emergentes de Obra</span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300 text-xs font-bold">
+                  <Database size={15} />
+                  <span>Selección en Bodega Local o Búsqueda en Catálogo Maestro de Insumos GRUPO SARA</span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
+                  Sincronizado con Catálogo Maestro APU
+                </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="sm:col-span-2">
                   <label className="text-slate-600 dark:text-slate-300 font-semibold block mb-1">
-                    Seleccionar del Catálogo de Bodega o Escribir Material Nuevo:
+                    1. Seleccionar Origen del Material:
                   </label>
                   <select
                     value={manualCatalogoId}
                     onChange={e => setManualCatalogoId(e.target.value)}
                     className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-bold text-slate-900 dark:text-white"
                   >
-                    {CATALOGO_MANUAL_RAPIDO.map(c => (
-                      <option key={c.id} value={c.id}>
-                        [{c.codigo}] {c.nombre} ({c.unidad} - Ref: ${c.costoRef})
+                    <optgroup label="🔎 NO ESTÁ EN BODEGA → BUSCAR EN CATÁLOGO MAESTRO GRUPO SARA">
+                      <option value="catalogo_maestro_sara">
+                        🌐 Buscar en el Catálogo Maestro de Insumos del Grupo SARA (Sin stock en bodega local)
                       </option>
-                    ))}
-                    <option value="custom">➕ Otro Material Especial / No Catalogado (Escribir Manualmente)</option>
+                    </optgroup>
+                    <optgroup label="📦 EXISTENCIAS ACTUALES EN BODEGA DE OBRA">
+                      {CATALOGO_BODEGA_LOCAL.map(c => (
+                        <option key={c.id} value={c.id}>
+                          [{c.codigo}] {c.nombre} (CPP: ${c.costoRef})
+                        </option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="➕ OTRO ARTÍCULO NO CATALOGADO">
+                      <option value="custom_nuevo">
+                        ✍️ Escribir Material Especial Nuevo (No existe en Bodega ni en Catálogo Maestro)
+                      </option>
+                    </optgroup>
                   </select>
                 </div>
 
-                {manualCatalogoId === 'custom' && (
+                {/* BUSCADOR EN VIVO DEL CATÁLOGO MAESTRO DE INSUMOS DEL GRUPO SARA */}
+                {manualCatalogoId === 'catalogo_maestro_sara' && (
+                  <div className="sm:col-span-2 p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-sky-300 dark:border-sky-800 space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-sky-800 dark:text-sky-300 flex items-center gap-1.5">
+                        <Search size={14} />
+                        <span>Buscar Artículo en el Catálogo Maestro de Insumos del Grupo SARA:</span>
+                      </label>
+                      {buscandoEnSupabase && (
+                        <span className="text-[10px] font-mono text-sky-500 flex items-center gap-1">
+                          <Loader2 size={12} className="animate-spin" /> Consultando BD Maestra...
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={busquedaMaestroQuery}
+                        onChange={e => setBusquedaMaestroQuery(e.target.value)}
+                        placeholder="Escribe ej: asiento baño briggs beige, inodoro, grifería FV, porcelanato, cable, sika..."
+                        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      />
+                      <Search size={15} className="absolute left-3 top-3 text-slate-400" />
+                    </div>
+
+                    {/* Lista de resultados del Catálogo Maestro */}
+                    <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+                      {resultadosMaestro.length === 0 ? (
+                        <div className="p-3 text-center text-slate-400 text-xs">
+                          No se encontró coincidencia exacta en el Catálogo Maestro. Puedes editar el nombre abajo directamente.
+                        </div>
+                      ) : (
+                        resultadosMaestro.map(item => {
+                          const isSelected = insumoMaestroSeleccionado?.codigo === item.codigo;
+                          return (
+                            <button
+                              key={item.id + item.codigo}
+                              type="button"
+                              onClick={() => handleSeleccionarInsumoMaestro(item)}
+                              className={`w-full text-left p-2.5 transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                                isSelected
+                                  ? 'bg-sky-50 dark:bg-sky-950/60 border-l-4 border-sky-500'
+                                  : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-1.5 py-0.5 rounded bg-slate-900 text-amber-400 font-mono text-[10px] font-bold">
+                                    {item.codigo}
+                                  </span>
+                                  <span className="font-bold text-slate-900 dark:text-white truncate">
+                                    {item.nombre}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                                  {item.categoria || 'CATÁLOGO MAESTRO SARA'} • {item.proveedorSugerido || 'Proveedor Oficial'}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0 font-mono">
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400 block">
+                                  ${item.precio_sin_iva.toFixed(2)} USD
+                                </span>
+                                <span className="text-[10px] text-slate-400">por {item.unidad}</span>
+                              </div>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {(manualCatalogoId === 'catalogo_maestro_sara' || manualCatalogoId === 'custom_nuevo') && (
                   <>
                     <div className="sm:col-span-2">
                       <label className="text-slate-600 dark:text-slate-300 font-semibold block mb-1">
-                        Nombre y Especificación Técnica del Material:
+                        Nombre y Especificación Técnica del Material (Autorrellenado del Catálogo Maestro o Personalizado):
                       </label>
                       <input
                         type="text"
                         value={manualNombreCustom}
                         onChange={e => setManualNombreCustom(e.target.value)}
-                        placeholder="Ej. Disco Diamantado 14'' Corte Hormigón Armado"
-                        className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                        placeholder="Ej. Asiento para Inodoro / Baño Color Beige Modelo Elongado Marca Briggs"
+                        className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-semibold text-slate-900 dark:text-white"
                       />
                     </div>
                     <div>
@@ -500,7 +827,7 @@ export function PedidosMaterialesResidenteSection({
                     </div>
                     <div>
                       <label className="text-slate-600 dark:text-slate-300 font-semibold block mb-1">
-                        Costo Unitario Estimado ($):
+                        Costo Unitario Catálogo Maestro ($):
                       </label>
                       <input
                         type="number"
@@ -508,7 +835,7 @@ export function PedidosMaterialesResidenteSection({
                         min="0.1"
                         value={manualCostoCustom}
                         onChange={e => setManualCostoCustom(Number(e.target.value))}
-                        className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono text-slate-900 dark:text-white"
+                        className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 font-mono font-bold text-slate-900 dark:text-white"
                       />
                     </div>
                   </>
@@ -535,7 +862,7 @@ export function PedidosMaterialesResidenteSection({
                     type="text"
                     value={manualObs}
                     onChange={e => setManualObs(e.target.value)}
-                    placeholder="Ej. Encofrado emergente de viga"
+                    placeholder="Ej. Equipamiento de baños departamentos Nivel 6"
                     className="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
                   />
                 </div>
@@ -545,10 +872,14 @@ export function PedidosMaterialesResidenteSection({
                 <button
                   type="button"
                   onClick={handleAgregarItemManual}
-                  className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Plus size={14} />
-                  <span>Agregar Ítem Manual al Pedido</span>
+                  <span>
+                    {manualCatalogoId === 'catalogo_maestro_sara'
+                      ? 'Agregar Artículo del Catálogo Maestro al Pedido'
+                      : 'Agregar Ítem Manual al Pedido'}
+                  </span>
                 </button>
               </div>
             </div>
@@ -570,7 +901,7 @@ export function PedidosMaterialesResidenteSection({
 
             {itemsCarrito.length === 0 ? (
               <div className="p-6 text-center rounded-2xl bg-slate-50 dark:bg-slate-800/30 border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-400">
-                Haz clic en <strong>"Cargar Materiales del Rubro al Pedido"</strong> o agrega un ítem manual para armar tu requisición a Bodega.
+                Haz clic en <strong>"Cargar Materiales del Rubro al Pedido"</strong> o busca un insumo en el <strong>Catálogo Maestro del Grupo SARA</strong> para armar tu requisición.
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -581,7 +912,7 @@ export function PedidosMaterialesResidenteSection({
                       <th className="py-2 px-3">Material Solicitado</th>
                       <th className="py-2 px-2 text-center">Cantidad a Pedir</th>
                       <th className="py-2 px-2 text-center">Unidad</th>
-                      <th className="py-2 px-2 text-right"> Acción</th>
+                      <th className="py-2 px-2 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -592,16 +923,19 @@ export function PedidosMaterialesResidenteSection({
                             className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
                               it.origenItem === 'APU'
                                 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
+                                : it.origenItem === 'CATALOGO_MAESTRO_SARA'
+                                  ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
+                                  : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
                             }`}
                           >
-                            {it.origenItem}
+                            {it.origenItem === 'CATALOGO_MAESTRO_SARA' ? 'CATÁLOGO SARA' : it.origenItem}
                           </span>
                         </td>
                         <td className="py-2 px-3">
                           <div className="font-bold text-slate-900 dark:text-white">{it.nombre}</div>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            {it.codigo} {it.rubroApuCodigo ? `• ${it.rubroApuCodigo}` : ''}
+                            {it.codigo} • ${it.costoUnitarioEstimadoUSD.toFixed(2)}/{it.unidad}{' '}
+                            {it.rubroApuCodigo ? `• ${it.rubroApuCodigo}` : ''}
                           </span>
                         </td>
                         <td className="py-2 px-2 text-center">
@@ -711,7 +1045,7 @@ export function PedidosMaterialesResidenteSection({
                   <span>Regla Automática de Gobernanza Bodega → Compras:</span>
                 </div>
                 <p>
-                  Al enviar este pedido, el <strong>Bodeguero</strong> verificará las existencias en el Kardex. Lo que esté en stock se despachará con <strong>Vale de Obra</strong>; lo que no tenga stock generará una <strong>Solicitud de Compra</strong> directa al Área de Compras.
+                  Al enviar este pedido, el <strong>Bodeguero</strong> verificará las existencias en el Kardex. Lo que esté en stock se despachará con <strong>Vale de Obra</strong>; y los artículos traídos del <strong>Catálogo Maestro de Insumos SARA</strong> que no estén en bodega generarán una <strong>Solicitud de Compra</strong> directa al Área de Compras.
                 </p>
               </div>
             </div>
@@ -837,7 +1171,7 @@ export function PedidosMaterialesResidenteSection({
                         </td>
                         <td className="py-2 px-2 text-center">
                           <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800">
-                            {it.origenItem}
+                            {it.origenItem === 'CATALOGO_MAESTRO_SARA' ? 'CATÁLOGO SARA' : it.origenItem}
                           </span>
                         </td>
                         <td className="py-2 px-2 text-center font-bold">

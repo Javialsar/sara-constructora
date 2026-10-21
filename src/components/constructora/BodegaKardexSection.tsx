@@ -2088,16 +2088,23 @@ export function BodegaKardexSection({
                                     className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                       it.origenItem === 'APU'
                                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                        : it.origenItem === 'CATALOGO_MAESTRO_SARA'
+                                        ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
                                         : 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300'
                                     }`}
                                   >
-                                    {it.origenItem}
+                                    {it.origenItem === 'CATALOGO_MAESTRO_SARA' ? 'CATÁLOGO SARA' : it.origenItem}
                                   </span>
                                 </td>
                                 <td className="py-2.5 px-3 font-sans">
                                   <div className="font-bold text-slate-900 dark:text-white">{it.nombre}</div>
                                   <span className="text-[10px] font-mono text-slate-400">
-                                    {it.codigo} {it.rubroApuCodigo ? `• Rubro: ${it.rubroApuCodigo}` : '• Solicitud Manual'}
+                                    {it.codigo}{' '}
+                                    {it.rubroApuCodigo
+                                      ? `• Rubro: ${it.rubroApuCodigo}`
+                                      : it.origenItem === 'CATALOGO_MAESTRO_SARA'
+                                      ? '• Catálogo Maestro Grupo SARA'
+                                      : '• Solicitud Manual'}
                                   </span>
                                 </td>
                                 <td className="py-2.5 px-2 text-center font-bold text-slate-900 dark:text-white">

@@ -24,12 +24,12 @@ export type EstadoPedidoObra =
 
 export interface ItemPedidoResidente {
   id: string;
-  insumoKardexId: string; // ID en el catálogo de bodega o 'custom'
+  insumoKardexId: string; // ID en el catálogo de bodega, ID de insumo maestro o 'custom'
   codigo: string;
   nombre: string;
   categoria: 'ACERO' | 'CEMENTO' | 'ARIDOS' | 'MAMPOSTERIA' | 'HORMIGON' | 'TUBERIA' | 'OTROS';
   unidad: string;
-  origenItem: 'APU' | 'MANUAL';
+  origenItem: 'APU' | 'CATALOGO_MAESTRO_SARA' | 'MANUAL';
   rubroApuCodigo?: string;
   rubroApuNombre?: string;
   cantidadPresupuestadaApu?: number;
@@ -39,6 +39,7 @@ export interface ItemPedidoResidente {
   cantidadFaltanteParaCompra: number;
   costoUnitarioEstimadoUSD: number;
   observacionTecnica?: string;
+  esDeCatalogoMaestroSara?: boolean;
 }
 
 export interface PedidoMaterialObra {
