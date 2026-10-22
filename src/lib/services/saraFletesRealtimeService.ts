@@ -185,7 +185,7 @@ export type FletesRealtimeEvent =
   | { type: 'CHOFER_ACEPTO_FLETE'; payload: { fleteId: string; driverName: string; plate: string; vehicleName: string; codigoAcceso: string; precio: number; coords: [number, number] } }
   | { type: 'FLETE_INICIADO'; payload: { fleteId: string; codigoValidado: string; driverName: string; plate: string; startedAt: number; comisionDebitada: number; nuevoSaldo: number } }
   | { type: 'FLETE_COMPLETADO'; payload: { fleteId: string; codigoAcceso: string; driverName?: string; plate?: string; tarifaFinal?: number } }
-  | { type: 'FLETE_CALIFICADO'; payload: { fleteId: string; driverName: string; plate: string; rating: number; comentario?: string; tags?: string[] } }
+  | { type: 'FLETE_CALIFICADO'; payload: { fleteId: string; driverName: string; plate: string; rating: number; comentario?: string; tags?: string[]; metodoPago?: string; montoTotal?: number } }
   | { type: 'ACTUALIZAR_GPS_CONDUCTOR'; payload: ConductorEstadoRealtime }
   | { type: 'PLANES_ACTUALIZADOS'; payload: PlanConfigItem[] }
   | { type: 'DEBITO_COMISION_CONDUCTOR'; payload: { plate: string; driverName: string; montoDebitado: number; nuevoSaldo: number; fleteId: string } }

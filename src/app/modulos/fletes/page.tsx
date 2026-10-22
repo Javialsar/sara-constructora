@@ -37,7 +37,11 @@ import {
   Users,
   FileText,
   AlertOctagon,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard,
+  Banknote,
+  Building2,
+  Wallet
 } from 'lucide-react';
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
 import { SaraGuiaRemisionService } from '@/lib/services/saraGuiaRemisionService';
@@ -431,6 +435,8 @@ export default function SaraFletesEngine() {
   const [selectedRatingTags, setSelectedRatingTags] = useState<string[]>(['Puntualidad']);
   const [ratingComment, setRatingComment] = useState('');
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
+  const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
 
   // Generador de código PIN de entrega segura
   const generateAccessCode = () => Math.floor(1000 + Math.random() * 9000).toString();
@@ -2602,75 +2608,155 @@ export default function SaraFletesEngine() {
 
       </div>
 
-      {/* MODAL DE CALIFICACIÓN AL CONDUCTOR (ESTILO UBER / DIDI / INDRIVE) */}
+      {/* NOTIFICACIÓN TOAST DE CONFIRMACIÓN DE PAGO Y CALIFICACIÓN */}
+      {paymentSuccessToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 border-2 border-emerald-500/80 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300 max-w-lg w-[92%] sm:w-auto">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <div className="text-xs">
+            <h5 className="font-bold text-emerald-400">¡Viaje y Pago Finalizados con Éxito!</h5>
+            <p className="text-slate-300 text-[11px] mt-0.5 leading-snug">{paymentSuccessToast}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPaymentSuccessToast(null)}
+            className="ml-auto text-slate-400 hover:text-white text-xs font-bold p-1 transition-colors cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* MODAL INTEGRADO DE PAGO Y CALIFICACIÓN AL CONDUCTOR (ESTILO UBER / DIDI / INDRIVE) */}
       {isRatingModalOpen && driverToRate && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 my-auto">
             {/* Header */}
             <div className="text-center space-y-1">
-              <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full">
-                ¡Flete Completado!
+              <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
+                🏁 ¡Flete Completado con Éxito!
               </span>
-              <h3 className="font-black text-white text-xl mt-2">¿Cómo estuvo tu experiencia?</h3>
+              <h3 className="font-black text-white text-xl mt-2">Pago y Calificación del Viaje</h3>
               <p className="text-xs text-slate-400">
-                Tu calificación ayuda a premiar a los mejores transportistas del Ecuador.
+                Selecciona tu forma de pago y califica la atención de tu transportista.
               </p>
             </div>
 
-            {/* Tarjeta del Conductor */}
+            {/* Tarjeta del Conductor y Monto Total */}
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-inner">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-inner shrink-0">
                   {driverToRate.driverName.charAt(0)}
                 </div>
-                <div>
-                  <h4 className="font-bold text-white text-sm">{driverToRate.driverName}</h4>
-                  <p className="text-xs text-slate-400">{driverToRate.vehicleName}</p>
+                <div className="min-w-0">
+                  <h4 className="font-bold text-white text-sm truncate">{driverToRate.driverName}</h4>
+                  <p className="text-xs text-slate-400 truncate">{driverToRate.vehicleName}</p>
                   <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
                     Placa: {driverToRate.plate}
                   </span>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] text-slate-500 block">Total Pagado:</span>
-                <span className="font-mono font-black text-emerald-400 text-base">
+              <div className="text-right shrink-0">
+                <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Total a Pagar:</span>
+                <span className="font-mono font-black text-emerald-400 text-lg">
                   ${driverToRate.price.toFixed(2)} USD
                 </span>
               </div>
             </div>
 
-            {/* Estrellas Interactivas (1 a 5) */}
-            <div className="text-center space-y-2">
-              <div className="flex justify-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => {
-                  const isFilled = star <= (hoverStars || ratingStars);
-                  return (
-                    <button
-                      key={star}
-                      type="button"
-                      onMouseEnter={() => setHoverStars(star)}
-                      onMouseLeave={() => setHoverStars(0)}
-                      onClick={() => setRatingStars(star)}
-                      className="p-1 text-3xl transition-transform hover:scale-125 focus:outline-none"
-                    >
-                      <Star
-                        className={`w-8 h-8 transition-colors ${
-                          isFilled
-                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
-                            : 'text-slate-600 hover:text-amber-300'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
+            {/* Selector de Método de Pago */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
+                <span>1. Método de Pago del Viaje</span>
+                <span className="text-emerald-400 font-mono text-[10px] font-bold">100% Seguro</span>
+              </label>
+
+              <div className="grid grid-cols-3 gap-2">
+                {/* Opción 1: Efectivo */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('efectivo')}
+                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                    paymentMethod === 'efectivo'
+                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <Banknote className={`w-5 h-5 ${paymentMethod === 'efectivo' ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span className="text-[11px] font-bold leading-tight">Efectivo</span>
+                  <span className="text-[9px] text-slate-400 font-medium">En mano</span>
+                </button>
+
+                {/* Opción 2: Tarjeta */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('tarjeta')}
+                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                    paymentMethod === 'tarjeta'
+                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <CreditCard className={`w-5 h-5 ${paymentMethod === 'tarjeta' ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span className="text-[11px] font-bold leading-tight">Tarjeta</span>
+                  <span className="text-[9px] text-slate-400 font-medium">Débito / Crédito</span>
+                </button>
+
+                {/* Opción 3: Transferencia */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('transferencia')}
+                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                    paymentMethod === 'transferencia'
+                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <Building2 className={`w-5 h-5 ${paymentMethod === 'transferencia' ? 'text-emerald-400' : 'text-slate-400'}`} />
+                  <span className="text-[11px] font-bold leading-tight">Transferencia</span>
+                  <span className="text-[9px] text-slate-400 font-medium">Pichincha / Deuna</span>
+                </button>
               </div>
-              <p className="text-xs font-bold text-amber-400">
-                {ratingStars === 5 && '⭐⭐⭐⭐⭐ ¡Servicio Excelente!'}
-                {ratingStars === 4 && '⭐⭐⭐⭐ Muy buen servicio'}
-                {ratingStars === 3 && '⭐⭐⭐ Servicio estándar'}
-                {ratingStars === 2 && '⭐⭐ Mejorable'}
-                {ratingStars === 1 && '⭐ Mal servicio'}
-              </p>
+            </div>
+
+            {/* Estrellas Interactivas (1 a 5) */}
+            <div className="space-y-1.5 text-left pt-1 border-t border-slate-800/80">
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                2. Califica el Servicio del Conductor
+              </label>
+              <div className="text-center space-y-1.5 bg-slate-950 border border-slate-800/80 rounded-2xl py-3">
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isFilled = star <= (hoverStars || ratingStars);
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onMouseEnter={() => setHoverStars(star)}
+                        onMouseLeave={() => setHoverStars(0)}
+                        onClick={() => setRatingStars(star)}
+                        className="p-1 text-3xl transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                      >
+                        <Star
+                          className={`w-7 h-7 transition-colors ${
+                            isFilled
+                              ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                              : 'text-slate-700 hover:text-amber-300'
+                          }`}
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs font-bold text-amber-400">
+                  {ratingStars === 5 && '⭐⭐⭐⭐⭐ ¡Servicio Excelente!'}
+                  {ratingStars === 4 && '⭐⭐⭐⭐ Muy buen servicio'}
+                  {ratingStars === 3 && '⭐⭐⭐ Servicio estándar'}
+                  {ratingStars === 2 && '⭐⭐ Mejorable'}
+                  {ratingStars === 1 && '⭐ Mal servicio'}
+                </p>
+              </div>
             </div>
 
             {/* Chips de Cumplidos / Etiquetas Rápidas Estilo Uber */}
@@ -2697,7 +2783,7 @@ export default function SaraFletesEngine() {
                           isSelected ? prev.filter(t => t !== tag) : [...prev, tag]
                         );
                       }}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-amber-500 text-slate-950 font-black border-amber-500 shadow-sm'
                           : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
@@ -2717,11 +2803,11 @@ export default function SaraFletesEngine() {
                 onChange={(e) => setRatingComment(e.target.value)}
                 placeholder="Escribe un comentario sobre el servicio... (opcional)"
                 rows={2}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-amber-500 resize-none"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500 resize-none"
               ></textarea>
             </div>
 
-            {/* Botón de Enviar */}
+            {/* Botón de Confirmar Pago y Calificar */}
             <button
               type="button"
               disabled={isSubmittingRating}
@@ -2735,20 +2821,40 @@ export default function SaraFletesEngine() {
                     plate: driverToRate.plate,
                     rating: ratingStars,
                     comentario: ratingComment,
-                    tags: selectedRatingTags
+                    tags: selectedRatingTags,
+                    metodoPago: paymentMethod,
+                    montoTotal: driverToRate.price
                   }
                 });
+
+                const metodoTexto = paymentMethod === 'efectivo' 
+                  ? 'Efectivo en mano' 
+                  : paymentMethod === 'tarjeta' 
+                  ? 'Tarjeta Digital' 
+                  : 'Transferencia Bancaria';
+
                 setTimeout(() => {
                   setIsSubmittingRating(false);
                   setIsRatingModalOpen(false);
+                  setPaymentSuccessToast(`Pago de $${driverToRate.price.toFixed(2)} USD registrado (${metodoTexto}) y calificación de ${ratingStars} ⭐ enviada. ¡Gracias por preferir SARA Fletes!`);
                   setDriverToRate(null);
                   setRatingComment('');
-                }, 400);
+                  setTimeout(() => setPaymentSuccessToast(null), 6000);
+                }, 500);
               }}
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-95"
+              className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
             >
-              <Star className="w-4 h-4 fill-slate-950" />
-              <span>Enviar Calificación</span>
+              {isSubmittingRating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Procesando Pago y Calificación...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 text-white" />
+                  <span>Confirmar Pago y Calificar ($${driverToRate.price.toFixed(2)} USD)</span>
+                </>
+              )}
             </button>
           </div>
         </div>

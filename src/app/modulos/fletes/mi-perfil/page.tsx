@@ -1157,14 +1157,14 @@ export default function MiPerfilFletes() {
                           </span>
                         </div>
 
-                        {/* BOTÓN: CERTIFICAR e-POD Y COMPLETAR */}
+                        {/* BOTÓN DIRECTO: FINALIZAR VIAJE */}
                         <button
                           type="button"
-                          onClick={() => setIsEpodModalOpen(true)}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2 active:scale-95"
+                          onClick={handleCompleteTrip}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-8 py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all shadow-xl shadow-emerald-600/30 flex items-center gap-2 active:scale-95 cursor-pointer"
                         >
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Certificar e-POD y Completar</span>
+                          <CheckCircle className="w-5 h-5" />
+                          <span>Finalizar Viaje</span>
                         </button>
                       </>
                     )}
