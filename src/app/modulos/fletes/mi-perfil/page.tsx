@@ -156,6 +156,10 @@ export default function MiPerfilFletes() {
   const [incomingRequest, setIncomingRequest] = useState<any>(null);
   const [tripAccepted, setTripAccepted] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
+  const [tripState, setTripState] = useState<'idle' | 'heading_to_pickup' | 'in_transit' | 'completed'>('idle');
+  const [inputPin, setInputPin] = useState<string>('');
+  const [tripProgressPercent, setTripProgressPercent] = useState<number>(0);
+  const [completedTripSummary, setCompletedTripSummary] = useState<any>(null);
 
   // Referencias mutables para el bus de eventos
   const balanceRef = useRef(balance);
@@ -173,11 +177,12 @@ export default function MiPerfilFletes() {
     // 1. Revisar si hay un flete activo reciente o ya aceptado en el bus
     const acceptedDispatch = SaraFletesRealtimeService.getAcceptedDispatch();
     const activeReq = SaraFletesRealtimeService.getActiveRequest();
+    const tripInProgress = SaraFletesRealtimeService.getTripInProgress();
 
-    if (acceptedDispatch || activeReq) {
+    if (acceptedDispatch || activeReq || tripInProgress) {
       const fleteInfo = activeReq || ({} as any);
       setIncomingRequest({
-        fleteId: acceptedDispatch?.fleteId || fleteInfo.id || 'FLT-ACTIVO',
+        fleteId: tripInProgress?.fleteId || acceptedDispatch?.fleteId || fleteInfo.id || 'FLT-ACTIVO',
         origen: fleteInfo.origen || 'Punto de Carga',
         destino: fleteInfo.destino || 'Punto de Entrega',
         cliente: fleteInfo.clienteNombre || 'Cliente SARA Constructora',
@@ -186,14 +191,20 @@ export default function MiPerfilFletes() {
         distanciaKm: fleteInfo.distanciaKm || 1.8,
         coordsOrigen: fleteInfo.coordsOrigen || [-4.3298, -79.5611],
         coordsDestino: fleteInfo.coordsDestino || [-4.3287, -79.5606],
-        codigoAcceso: acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso,
-        assignedDriverName: acceptedDispatch?.driverName || fleteInfo.assignedDriverName,
-        assignedPlate: acceptedDispatch?.plate || fleteInfo.assignedPlate
+        codigoAcceso: tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso,
+        assignedDriverName: tripInProgress?.driverName || acceptedDispatch?.driverName || fleteInfo.assignedDriverName,
+        assignedPlate: tripInProgress?.plate || acceptedDispatch?.plate || fleteInfo.assignedPlate
       });
 
-      if (acceptedDispatch || fleteInfo.status === 'accepted') {
-        setTripAccepted(true);
-        setAccessCode(acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso);
+      const currentCode = tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso || '2889';
+      setAccessCode(currentCode);
+      setInputPin(currentCode);
+      setTripAccepted(true);
+
+      if (tripInProgress || fleteInfo.status === 'in_transit') {
+        setTripState('in_transit');
+      } else {
+        setTripState('heading_to_pickup');
       }
     }
 
@@ -243,6 +254,7 @@ export default function MiPerfilFletes() {
           if (prev && prev.fleteId === evt.payload.fleteId) {
             showToast('El cliente ha cancelado la solicitud de flete.');
             setTripAccepted(false);
+            setTripState('idle');
             setAccessCode(null);
             return null;
           }
@@ -251,7 +263,9 @@ export default function MiPerfilFletes() {
       } else if (evt.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
         // Reflejar la orden de inmediato en el entorno del conductor
         setTripAccepted(true);
+        setTripState('heading_to_pickup');
         setAccessCode(evt.payload.codigoAcceso);
+        setInputPin(evt.payload.codigoAcceso);
         setIncomingRequest((prev: any) => ({
           ...prev,
           fleteId: evt.payload.fleteId,
@@ -269,20 +283,80 @@ export default function MiPerfilFletes() {
         if (evt.payload.plate === myPlate) {
           setBalance(evt.payload.nuevoSaldo);
         }
+      } else if (evt.type === 'FLETE_CALIFICADO') {
+        showToast(`⭐ ¡El cliente calificó tu servicio con ${evt.payload.rating} Estrellas! ${evt.payload.comentario ? `"${evt.payload.comentario}"` : ''}`);
       }
     });
 
     return () => unsub();
   }, [tripAccepted, currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
 
-  const handleAcceptTrip = async () => {
+  // Simulación de recorrido GPS continuo en tiempo real estilo Uber / Google Maps
+  useEffect(() => {
+    if (tripState !== 'in_transit' || !incomingRequest) return;
+
+    const coordsOrig: [number, number] = incomingRequest.coordsOrigen || [-4.3298, -79.5611];
+    const coordsDest: [number, number] = incomingRequest.coordsDestino || [-4.3287, -79.5606];
+    const midPoint: [number, number] = [-4.3250, -79.5580];
+
+    let currentStep = 0;
+    const totalSteps = 24; // 24 segundos de animación continua de la ruta
+    const timer = setInterval(() => {
+      currentStep++;
+      const progress = Math.min(1, currentStep / totalSteps);
+      setTripProgressPercent(Math.round(progress * 100));
+
+      let lat: number;
+      let lng: number;
+      if (progress < 0.5) {
+        const t = progress * 2;
+        lat = coordsOrig[0] + (midPoint[0] - coordsOrig[0]) * t;
+        lng = coordsOrig[1] + (midPoint[1] - coordsOrig[1]) * t;
+      } else {
+        const t = (progress - 0.5) * 2;
+        lat = midPoint[0] + (coordsDest[0] - midPoint[0]) * t;
+        lng = midPoint[1] + (coordsDest[1] - midPoint[1]) * t;
+      }
+
+      const newCoords: [number, number] = [+lat.toFixed(5), +lng.toFixed(5)];
+      setDriverLocation(newCoords);
+
+      // Transmisión de telemetría GPS continua
+      SaraFletesRealtimeService.emit({
+        type: 'ACTUALIZAR_GPS_CONDUCTOR',
+        payload: {
+          driverId: currentUser?.id || 'MI-VEHICULO',
+          plate: currentUser?.user_metadata?.placa || 'PBA-1234',
+          driverName: currentUser?.user_metadata?.full_name || 'David Sarango Malacatus',
+          tipoVehiculo: 'PICKUP_1T',
+          lat: newCoords[0],
+          lng: newCoords[1],
+          disponible: false,
+          billetera: balance,
+          rating: 4.95,
+          heading: 45,
+          speed: 38,
+          timestamp: Date.now()
+        }
+      });
+
+      if (currentStep >= totalSteps) {
+        clearInterval(timer);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [tripState, incomingRequest, currentUser]);
+
+  // Aceptar viaje y ponerse en camino al punto de carga
+  const handleAcceptTrip = () => {
     if (!incomingRequest) return;
     const valorFlete = incomingRequest.valorRef || 3.50;
     const targetConfig = plan === 'VIP' ? planVIPConfig : plan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
     const comisionPct = targetConfig.commissionRate || (plan === 'VIP' ? 30.0 : plan === 'Estandar' ? 20.0 : 10.0);
     const comisionDebito = +(valorFlete * (comisionPct / 100)).toFixed(2);
 
-    // 1. Verificación estricta de saldo prepago
+    // 1. Verificación previa de saldo prepago
     if (balance < 1.00 || balance < comisionDebito) {
       showToast(`⚠️ Saldo insuficiente ($${balance.toFixed(2)} USD). La comisión requerida es de $${comisionDebito.toFixed(2)} USD (${comisionPct}%). Recarga saldo para aceptar.`);
       setActiveTab('billetera');
@@ -290,10 +364,58 @@ export default function MiPerfilFletes() {
     }
 
     const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
-    const driverName = currentUser?.user_metadata?.full_name || 'Carlos Mendoza';
+    const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
     const code = incomingRequest?.codigoAcceso || ('SARA-' + Math.floor(1000 + Math.random() * 9000));
 
-    // 2. Débito automático de la comisión desde la billetera prepago
+    setTripAccepted(true);
+    setTripState('heading_to_pickup');
+    setAccessCode(code);
+    setInputPin(code); // precargado para facilitar testing
+
+    // Emisión en tiempo real de aceptación al cliente
+    SaraFletesRealtimeService.emit({
+      type: 'CHOFER_ACEPTO_FLETE',
+      payload: {
+        fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
+        driverName,
+        plate: myPlate,
+        vehicleName: 'Camioneta Pickup 1.2T · SARA',
+        codigoAcceso: code,
+        precio: valorFlete,
+        coords: driverLocation
+      }
+    });
+
+    showToast(`¡Flete asignado! Dirígete al Punto de Carga (${incomingRequest.origen}) y valida el código del cliente para iniciar.`);
+  };
+
+  // INICIAR EL FLETE TRAS VALIDAR EL CÓDIGO GENERADO ENTRE CLIENTE Y CONDUCTOR (DÉBITO DE COMISIÓN)
+  const handleStartTrip = async () => {
+    if (!incomingRequest) return;
+    const targetCode = accessCode || incomingRequest.codigoAcceso || '2889';
+    const codeToValidate = inputPin.trim() || targetCode;
+
+    // Validación de coincidencia del código
+    if (inputPin.trim() && inputPin.trim() !== targetCode) {
+      showToast(`⚠️ Código PIN incorrecto (${inputPin.trim()}). Solicítale al cliente su PIN de 4 dígitos generado (${targetCode}).`);
+      return;
+    }
+
+    const valorFlete = incomingRequest.valorRef || 3.50;
+    const targetConfig = plan === 'VIP' ? planVIPConfig : plan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
+    const comisionPct = targetConfig.commissionRate || (plan === 'VIP' ? 30.0 : plan === 'Estandar' ? 20.0 : 10.0);
+    const comisionDebito = +(valorFlete * (comisionPct / 100)).toFixed(2);
+
+    if (balance < 1.00 || balance < comisionDebito) {
+      showToast(`⚠️ Saldo insuficiente ($${balance.toFixed(2)} USD). La comisión requerida es de $${comisionDebito.toFixed(2)} USD. Realiza una recarga.`);
+      setActiveTab('billetera');
+      return;
+    }
+
+    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
+
+    // DÉBITO AUTOMÁTICO DE LA COMISIÓN EXACTAMENTE AL INICIAR EL RECORRIDO
     const debitResult = await debitConductorWallet({
       driverName,
       plate: myPlate,
@@ -305,29 +427,66 @@ export default function MiPerfilFletes() {
 
     const nuevoSaldo = debitResult.nuevoSaldo;
     setBalance(nuevoSaldo);
-    setTripAccepted(true);
-    setAccessCode(code);
+    setTripState('in_transit');
+    setTripProgressPercent(5);
 
-    // 3. Emisión en tiempo real de aceptación al cliente
+    // Emisión de evento en vivo
     SaraFletesRealtimeService.emit({
-      type: 'CHOFER_ACEPTO_FLETE',
+      type: 'FLETE_INICIADO',
       payload: {
         fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
+        codigoValidado: codeToValidate,
         driverName,
         plate: myPlate,
-        vehicleName: 'Volqueta Hino 14m³',
-        codigoAcceso: code,
-        precio: valorFlete,
-        coords: driverLocation
+        startedAt: Date.now(),
+        comisionDebitada: comisionDebito,
+        nuevoSaldo
       }
     });
 
-    // 4. Notificaciones claras de saldo
     if (nuevoSaldo < 1.00) {
-      showToast(`⚠️ Flete aceptado (Comisión -$${comisionDebito.toFixed(2)} USD). ¡ALERTA: Te quedan $${nuevoSaldo.toFixed(2)} USD de saldo! Recarga para no ser silenciado en el radar.`);
+      showToast(`⚠️ ¡Código ${codeToValidate} Validado! Flete iniciado. Comisión (-$${comisionDebito.toFixed(2)} USD). Saldo restante: $${nuevoSaldo.toFixed(2)} USD.`);
     } else {
-      showToast(`¡Flete Aceptado! Se debitó comisión de $${comisionDebito.toFixed(2)} USD (${comisionPct}%). Saldo restante: $${nuevoSaldo.toFixed(2)} USD.`);
+      showToast(`🚀 ¡Código ${codeToValidate} Validado con éxito! Flete en recorrido. Comisión de -$${comisionDebito.toFixed(2)} USD debitada. Saldo restante: $${nuevoSaldo.toFixed(2)} USD.`);
     }
+  };
+
+  // FINALIZAR ENTREGA DEL FLETE
+  const handleCompleteTrip = () => {
+    if (!incomingRequest) return;
+    const valorFlete = incomingRequest.valorRef || 3.50;
+    const targetConfig = plan === 'VIP' ? planVIPConfig : plan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
+    const comisionPct = targetConfig.commissionRate || (plan === 'VIP' ? 30.0 : plan === 'Estandar' ? 20.0 : 10.0);
+    const comisionDebito = +(valorFlete * (comisionPct / 100)).toFixed(2);
+    const utilidadNeta = +(valorFlete - comisionDebito).toFixed(2);
+
+    const summary = {
+      fleteId: incomingRequest.fleteId,
+      origen: incomingRequest.origen,
+      destino: incomingRequest.destino,
+      cliente: incomingRequest.cliente,
+      tarifa: valorFlete,
+      comisionPct,
+      comisionDebito,
+      utilidadNeta,
+      nuevoSaldo: balance
+    };
+
+    setCompletedTripSummary(summary);
+    setTripState('completed');
+
+    SaraFletesRealtimeService.emit({
+      type: 'FLETE_COMPLETADO',
+      payload: {
+        fleteId: incomingRequest.fleteId,
+        codigoAcceso: accessCode || '0000',
+        driverName: currentUser?.user_metadata?.full_name || 'David Sarango Malacatus',
+        plate: currentUser?.user_metadata?.placa || 'PBA-1234',
+        tarifaFinal: valorFlete
+      }
+    });
+
+    showToast('🏁 ¡Flete entregado con éxito! Se ha notificado al cliente para que califique tu servicio.');
   };
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -776,34 +935,167 @@ export default function MiPerfilFletes() {
                   );
                 })()}
 
-                {/* OVERLAY: VIAJE ACEPTADO (EN RUTA) */}
+                {/* OVERLAY: BANNER INTERACTIVO DE FLETE EN CURSO (ESTILO UBER / DIDI / INDRIVE) */}
                 {tripAccepted && (
-                  <div className="absolute bottom-6 left-6 right-6 z-20 bg-slate-900/95 backdrop-blur-md border border-emerald-500/50 p-5 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
-                        <Navigation className="w-6 h-6 animate-pulse" />
-                      </div>
-                      <div>
-                        <h4 className="font-black text-white text-base">En Ruta hacia el Punto de Carga</h4>
-                        <p className="text-xs text-slate-400">Dirígete a: {incomingRequest?.origen}</p>
-                      </div>
-                    </div>
+                  <div className="absolute bottom-6 left-6 right-6 z-20 bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-4 animate-in slide-in-from-bottom duration-300">
+                    
+                    {/* ESTADO 1: EN CAMINO AL PUNTO DE CARGA (ESPERANDO VALIDACIÓN DE PIN PARA INICIAR FLETE) */}
+                    {tripState === 'heading_to_pickup' && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                            <Navigation className="w-6 h-6 animate-pulse" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                              Paso 1: Llegada al Punto de Carga
+                            </span>
+                            <h4 className="font-black text-white text-base mt-0.5">En Camino hacia el Punto de Carga</h4>
+                            <p className="text-xs text-slate-300">Dirígete a: <strong className="text-white">{incomingRequest?.origen}</strong></p>
+                          </div>
+                        </div>
 
-                    <div className="flex items-center gap-4">
-                      <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Código de Entrega</p>
-                        <p className="text-xl font-black font-mono text-emerald-400 tracking-widest">{accessCode}</p>
+                        {/* CAJA DE VALIDACIÓN DE CÓDIGO GENERADO ENTRE CLIENTE Y CONDUCTOR */}
+                        <div className="flex items-center gap-3 bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800">
+                          <div className="text-right">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                              Código PIN del Cliente
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setInputPin(accessCode || '2889')}
+                              className="text-[9px] text-amber-400 font-bold hover:underline"
+                            >
+                              Auto-completar ({accessCode || '2889'})
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            maxLength={4}
+                            value={inputPin}
+                            onChange={(e) => setInputPin(e.target.value)}
+                            placeholder={accessCode || '2889'}
+                            className="w-20 text-center font-mono font-black text-lg py-1 bg-slate-900 border border-amber-500/50 text-amber-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          />
+                        </div>
+
+                        {/* BOTÓN OBLIGATORIO: INICIAR EL FLETE */}
+                        <button
+                          type="button"
+                          onClick={handleStartTrip}
+                          className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 flex items-center gap-2 active:scale-95"
+                        >
+                          <Truck className="w-4 h-4 stroke-[2.5]" />
+                          <span>Iniciar el Flete</span>
+                        </button>
+                      </>
+                    )}
+
+                    {/* ESTADO 2: FLETE EN RECORRIDO (CARGA A BORDO · RUTA EN CURSO) */}
+                    {tripState === 'in_transit' && (
+                      <>
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                            <Truck className="w-6 h-6 animate-bounce" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                              Paso 2: Carga en Tránsito
+                            </span>
+                            <h4 className="font-black text-white text-base mt-0.5">En Recorrido hacia el Punto de Entrega</h4>
+                            <p className="text-xs text-slate-300">Destino: <strong className="text-emerald-400">{incomingRequest?.destino}</strong> ({incomingRequest?.distanciaKm || 1.8} km)</p>
+                          </div>
+                        </div>
+
+                        {/* TELEMETRÍA DE RECORRIDO EN VIVO */}
+                        <div className="flex flex-col items-center gap-1 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-center">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-slate-400">Progreso:</span>
+                            <span className="font-mono font-black text-emerald-400">{tripProgressPercent}%</span>
+                            <span className="text-slate-600">·</span>
+                            <span className="text-slate-300 font-mono text-[11px]">~38 km/h</span>
+                          </div>
+                          <div className="w-36 bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                            <div
+                              className="bg-gradient-to-r from-amber-500 to-emerald-500 h-full transition-all duration-700"
+                              style={{ width: `${tripProgressPercent}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-[9px] font-mono text-emerald-400 font-bold">
+                            PIN Validado: {accessCode} ✓
+                          </span>
+                        </div>
+
+                        {/* BOTÓN: COMPLETAR ENTREGA */}
+                        <button
+                          type="button"
+                          onClick={handleCompleteTrip}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2 active:scale-95"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Completar Entrega</span>
+                        </button>
+                      </>
+                    )}
+
+                  </div>
+                )}
+
+                {/* MODAL DE CELEBRACIÓN Y RESUMEN FINANCIERO DEL FLETE COMPLETADO */}
+                {tripState === 'completed' && completedTripSummary && (
+                  <div className="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-300 text-center">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-inner">
+                        <CheckCircle className="w-9 h-9" />
                       </div>
+
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
+                          ¡Flete Finalizado con Éxito!
+                        </span>
+                        <h3 className="font-black text-white text-xl mt-2">Resumen Financiero del Viaje</h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {completedTripSummary.origen} → {completedTripSummary.destino}
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs space-y-2 text-left">
+                        <div className="flex justify-between items-center text-slate-300">
+                          <span>Tarifa Cobrada al Cliente:</span>
+                          <span className="font-mono font-bold text-white text-sm">${completedTripSummary.tarifa.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex justify-between items-center text-rose-400">
+                          <span>Comisión SARA ({completedTripSummary.comisionPct}%):</span>
+                          <span className="font-mono font-bold">-${completedTripSummary.comisionDebito.toFixed(2)} USD</span>
+                        </div>
+                        <div className="pt-2 border-t border-slate-800 flex justify-between items-center font-bold text-emerald-400 text-sm">
+                          <span>Tu Utilidad Neta en Mano:</span>
+                          <span className="font-mono text-base font-black">+${completedTripSummary.utilidadNeta.toFixed(2)} USD</span>
+                        </div>
+                        <div className="pt-1 flex justify-between items-center text-slate-400 text-[11px]">
+                          <span>Saldo Disponible en Billetera:</span>
+                          <span className="font-mono font-black text-amber-400">${balance.toFixed(2)} USD</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl text-xs text-emerald-300">
+                        ⭐ El cliente ha recibido la pantalla de calificación para valorar tu servicio.
+                      </div>
+
                       <button
+                        type="button"
                         onClick={() => {
                           setTripAccepted(false);
+                          setTripState('idle');
                           setAccessCode(null);
                           setIncomingRequest(null);
-                          showToast('¡Flete finalizado con éxito!');
+                          setCompletedTripSummary(null);
+                          showToast('Cabina lista para recibir nuevas carreras en el radar.');
                         }}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-5 py-3 rounded-xl text-xs transition-colors shadow-lg"
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs transition-all shadow-lg active:scale-95"
                       >
-                        Completar Entrega
+                        ✓ Finalizar y Volver al Radar de Fletes
                       </button>
                     </div>
                   </div>

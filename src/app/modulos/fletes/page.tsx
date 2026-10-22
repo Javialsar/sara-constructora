@@ -26,7 +26,12 @@ import {
   Zap,
   Sliders,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Star,
+  CheckCircle2,
+  ThumbsUp,
+  Award,
+  MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
@@ -73,7 +78,7 @@ interface FreightRequest {
   weight: number;
   vehicleType: CategoriaVehiculo;
   referencePrice: number;
-  status: 'searching' | 'negotiating' | 'accepted';
+  status: 'searching' | 'negotiating' | 'accepted' | 'in_transit';
   accessCode?: string;
   distanciaKm?: number;
   duracionMinutos?: number;
@@ -372,6 +377,21 @@ export default function SaraFletesEngine() {
   const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
   const [assignedDriver, setAssignedDriver] = useState<DriverOffer | null>(null);
 
+  // Estados del Modal de Calificación al Conductor (Estilo Uber / DiDi / inDrive)
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [driverToRate, setDriverToRate] = useState<{
+    fleteId: string;
+    driverName: string;
+    plate: string;
+    vehicleName: string;
+    price: number;
+  } | null>(null);
+  const [ratingStars, setRatingStars] = useState(5);
+  const [hoverStars, setHoverStars] = useState(0);
+  const [selectedRatingTags, setSelectedRatingTags] = useState<string[]>(['Puntualidad']);
+  const [ratingComment, setRatingComment] = useState('');
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+
   // Generador de código PIN de entrega segura
   const generateAccessCode = () => Math.floor(1000 + Math.random() * 9000).toString();
 
@@ -633,6 +653,25 @@ export default function SaraFletesEngine() {
           }
           return null;
         });
+      } else if (evt.type === 'FLETE_INICIADO') {
+        setActiveFreight((prev) => prev ? {
+          ...prev,
+          status: 'in_transit'
+        } : null);
+      } else if (evt.type === 'FLETE_COMPLETADO') {
+        // Al terminar el viaje, abrir el modal de calificación al conductor (estilo Uber / inDrive)
+        const currentReq = activeFreightRef.current;
+        setDriverToRate({
+          fleteId: evt.payload.fleteId,
+          driverName: evt.payload.driverName || 'David Sarango',
+          plate: evt.payload.plate || 'PBA-1234',
+          vehicleName: 'Camioneta Pickup 1.2T · SARA',
+          price: currentReq?.referencePrice || evt.payload.tarifaFinal || 3.50
+        });
+        setIsRatingModalOpen(true);
+        setActiveFreight(null);
+        setDriverOffers([]);
+        setAssignedDriver(null);
       } else if (evt.type === 'CANCELAR_SOLICITUD_FLETE') {
         setActiveFreight(null);
         setDriverOffers([]);
@@ -1960,15 +1999,28 @@ export default function SaraFletesEngine() {
                             </div>
                           )}
 
-                          {activeFreight.status === 'accepted' && (
+                          {(activeFreight.status === 'accepted' || activeFreight.status === 'in_transit') && (
                             <div className="space-y-3.5">
                               <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center shrink-0">
-                                  <CheckCircle className="w-7 h-7" />
+                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                                  activeFreight.status === 'in_transit'
+                                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                }`}>
+                                  {activeFreight.status === 'in_transit' ? (
+                                    <Truck className="w-7 h-7 animate-bounce" />
+                                  ) : (
+                                    <CheckCircle className="w-7 h-7" />
+                                  )}
                                 </div>
                                 <div className="text-left">
-                                  <span className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                                    ¡Conductor Asignado y en Ruta!
+                                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 w-fit ${
+                                    activeFreight.status === 'in_transit'
+                                      ? 'text-amber-400 bg-amber-950/80 border-amber-500/40'
+                                      : 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30'
+                                  }`}>
+                                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
+                                    {activeFreight.status === 'in_transit' ? '¡Flete en Recorrido Activo!' : '¡Conductor en Camino al Punto de Carga!'}
                                   </span>
                                   <h3 className="font-black text-white text-base mt-1">
                                     {assignedDriver?.driverName || 'Conductor SARA'}
@@ -1987,24 +2039,32 @@ export default function SaraFletesEngine() {
                                   </p>
                                 </div>
                                 <div className="text-right">
-                                  <span className="text-slate-400 text-[10px] block">Llegada estimada:</span>
+                                  <span className="text-slate-400 text-[10px] block">
+                                    {activeFreight.status === 'in_transit' ? 'Estado del Recorrido:' : 'Llegada estimada:'}
+                                  </span>
                                   <p className="text-sm font-bold text-white flex items-center justify-end gap-1">
                                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                                    ~{assignedDriver?.etaMinutes || 3} min
+                                    {activeFreight.status === 'in_transit' ? 'Carga a bordo (~38 km/h)' : `~${assignedDriver?.etaMinutes || 3} min`}
                                   </p>
                                 </div>
                               </div>
 
-                              {/* PIN de seguridad de entrega */}
-                              <div className="bg-emerald-950/40 border border-emerald-500/40 p-3.5 rounded-xl text-center">
-                                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-0.5">
-                                  PIN de Seguridad de Entrega
+                              {/* PIN de seguridad de entrega / embarque */}
+                              <div className={`border p-3.5 rounded-xl text-center ${
+                                activeFreight.status === 'in_transit'
+                                  ? 'bg-amber-950/30 border-amber-500/40'
+                                  : 'bg-emerald-950/40 border-emerald-500/40'
+                              }`}>
+                                <p className="text-[10px] font-black uppercase tracking-wider text-amber-400 mb-0.5">
+                                  {activeFreight.status === 'in_transit' ? 'Código Validado de Entrega' : 'Código PIN de Embarque'}
                                 </p>
-                                <p className="text-3xl font-black text-emerald-400 font-mono tracking-widest">
+                                <p className="text-3xl font-black text-white font-mono tracking-widest">
                                   {activeFreight.accessCode}
                                 </p>
                                 <p className="text-[10px] text-slate-400 mt-1">
-                                  Entrégalos al conductor al recibir y verificar la carga
+                                  {activeFreight.status === 'in_transit'
+                                    ? 'El conductor validó el código e inició el recorrido de entrega'
+                                    : 'Indica este código al conductor para validar la carga e iniciar el viaje'}
                                 </p>
                               </div>
 
@@ -2356,6 +2416,158 @@ export default function SaraFletesEngine() {
         </aside>
 
       </div>
+
+      {/* MODAL DE CALIFICACIÓN AL CONDUCTOR (ESTILO UBER / DIDI / INDRIVE) */}
+      {isRatingModalOpen && driverToRate && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/80 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="text-center space-y-1">
+              <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-950/80 border border-amber-500/30 px-3 py-1 rounded-full">
+                ¡Flete Completado!
+              </span>
+              <h3 className="font-black text-white text-xl mt-2">¿Cómo estuvo tu experiencia?</h3>
+              <p className="text-xs text-slate-400">
+                Tu calificación ayuda a premiar a los mejores transportistas del Ecuador.
+              </p>
+            </div>
+
+            {/* Tarjeta del Conductor */}
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-inner">
+                  {driverToRate.driverName.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="font-bold text-white text-sm">{driverToRate.driverName}</h4>
+                  <p className="text-xs text-slate-400">{driverToRate.vehicleName}</p>
+                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
+                    Placa: {driverToRate.plate}
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-500 block">Total Pagado:</span>
+                <span className="font-mono font-black text-emerald-400 text-base">
+                  ${driverToRate.price.toFixed(2)} USD
+                </span>
+              </div>
+            </div>
+
+            {/* Estrellas Interactivas (1 a 5) */}
+            <div className="text-center space-y-2">
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const isFilled = star <= (hoverStars || ratingStars);
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoverStars(star)}
+                      onMouseLeave={() => setHoverStars(0)}
+                      onClick={() => setRatingStars(star)}
+                      className="p-1 text-3xl transition-transform hover:scale-125 focus:outline-none"
+                    >
+                      <Star
+                        className={`w-8 h-8 transition-colors ${
+                          isFilled
+                            ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
+                            : 'text-slate-600 hover:text-amber-300'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs font-bold text-amber-400">
+                {ratingStars === 5 && '⭐⭐⭐⭐⭐ ¡Servicio Excelente!'}
+                {ratingStars === 4 && '⭐⭐⭐⭐ Muy buen servicio'}
+                {ratingStars === 3 && '⭐⭐⭐ Servicio estándar'}
+                {ratingStars === 2 && '⭐⭐ Mejorable'}
+                {ratingStars === 1 && '⭐ Mal servicio'}
+              </p>
+            </div>
+
+            {/* Chips de Cumplidos / Etiquetas Rápidas Estilo Uber */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                ¿Qué fue lo más destacable?
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  '⚡ Puntualidad',
+                  '📦 Carga protegida',
+                  '💬 Excelente comunicación',
+                  '🚚 Conducción segura',
+                  '🤝 Trato muy profesional',
+                  '💰 Tarifa justa'
+                ].map((tag) => {
+                  const isSelected = selectedRatingTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRatingTags(prev =>
+                          isSelected ? prev.filter(t => t !== tag) : [...prev, tag]
+                        );
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
+                        isSelected
+                          ? 'bg-amber-500 text-slate-950 font-black border-amber-500 shadow-sm'
+                          : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Textarea de Comentario */}
+            <div>
+              <textarea
+                value={ratingComment}
+                onChange={(e) => setRatingComment(e.target.value)}
+                placeholder="Escribe un comentario sobre el servicio... (opcional)"
+                rows={2}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-amber-500 resize-none"
+              ></textarea>
+            </div>
+
+            {/* Botón de Enviar */}
+            <button
+              type="button"
+              disabled={isSubmittingRating}
+              onClick={() => {
+                setIsSubmittingRating(true);
+                SaraFletesRealtimeService.emit({
+                  type: 'FLETE_CALIFICADO',
+                  payload: {
+                    fleteId: driverToRate.fleteId,
+                    driverName: driverToRate.driverName,
+                    plate: driverToRate.plate,
+                    rating: ratingStars,
+                    comentario: ratingComment,
+                    tags: selectedRatingTags
+                  }
+                });
+                setTimeout(() => {
+                  setIsSubmittingRating(false);
+                  setIsRatingModalOpen(false);
+                  setDriverToRate(null);
+                  setRatingComment('');
+                }, 400);
+              }}
+              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-95"
+            >
+              <Star className="w-4 h-4 fill-slate-950" />
+              <span>Enviar Calificación</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

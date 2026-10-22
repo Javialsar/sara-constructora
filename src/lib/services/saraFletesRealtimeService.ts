@@ -50,6 +50,8 @@ export interface ConductorEstadoRealtime {
   disponible: boolean;
   billetera: number;
   rating: number;
+  speed?: number;
+  heading?: number;
   timestamp: number;
 }
 
@@ -115,7 +117,9 @@ export type FletesRealtimeEvent =
   | { type: 'RECHAZAR_OFERTA_CONDUCTOR'; payload: { fleteId: string; offerId: string; driverName: string } }
   | { type: 'CLIENTE_ACEPTO_CONDUCTOR'; payload: { fleteId: string; driverName: string; plate: string; codigoAcceso: string; precioAcordado: number } }
   | { type: 'CHOFER_ACEPTO_FLETE'; payload: { fleteId: string; driverName: string; plate: string; vehicleName: string; codigoAcceso: string; precio: number; coords: [number, number] } }
-  | { type: 'FLETE_COMPLETADO'; payload: { fleteId: string; codigoAcceso: string } }
+  | { type: 'FLETE_INICIADO'; payload: { fleteId: string; codigoValidado: string; driverName: string; plate: string; startedAt: number; comisionDebitada: number; nuevoSaldo: number } }
+  | { type: 'FLETE_COMPLETADO'; payload: { fleteId: string; codigoAcceso: string; driverName?: string; plate?: string; tarifaFinal?: number } }
+  | { type: 'FLETE_CALIFICADO'; payload: { fleteId: string; driverName: string; plate: string; rating: number; comentario?: string; tags?: string[] } }
   | { type: 'ACTUALIZAR_GPS_CONDUCTOR'; payload: ConductorEstadoRealtime }
   | { type: 'PLANES_ACTUALIZADOS'; payload: PlanConfigItem[] }
   | { type: 'DEBITO_COMISION_CONDUCTOR'; payload: { plate: string; driverName: string; montoDebitado: number; nuevoSaldo: number; fleteId: string } };
@@ -227,9 +231,25 @@ export class SaraFletesRealtimeService {
           } catch {}
         }
         localStorage.setItem(`${STORAGE_PREFIX}accepted_dispatch`, JSON.stringify(event.payload));
+      } else if (event.type === 'FLETE_INICIADO') {
+        const existing = localStorage.getItem(`${STORAGE_PREFIX}active_request`);
+        if (existing) {
+          try {
+            const parsed = JSON.parse(existing);
+            parsed.status = 'in_transit';
+            parsed.codigoValidado = event.payload.codigoValidado;
+            parsed.startedAt = event.payload.startedAt;
+            localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify(parsed));
+          } catch {}
+        }
+        localStorage.setItem(`${STORAGE_PREFIX}trip_in_progress`, JSON.stringify(event.payload));
       } else if (event.type === 'CANCELAR_SOLICITUD_FLETE' || event.type === 'FLETE_COMPLETADO') {
         localStorage.removeItem(`${STORAGE_PREFIX}active_request`);
         localStorage.removeItem(`${STORAGE_PREFIX}accepted_dispatch`);
+        localStorage.removeItem(`${STORAGE_PREFIX}trip_in_progress`);
+        if (event.type === 'FLETE_COMPLETADO') {
+          localStorage.setItem(`${STORAGE_PREFIX}last_completed_trip`, JSON.stringify(event.payload));
+        }
       } else if (event.type === 'ACTUALIZAR_GPS_CONDUCTOR') {
         localStorage.setItem(`${STORAGE_PREFIX}driver_${event.payload.plate}`, JSON.stringify(event.payload));
       } else if (event.type === 'PLANES_ACTUALIZADOS') {
@@ -238,6 +258,18 @@ export class SaraFletesRealtimeService {
     } catch {
       // Ignorar errores de quota de storage
     }
+  }
+
+  /**
+   * Recupera el flete actualmente en recorrido (si existe)
+   */
+  static getTripInProgress(): { fleteId: string; codigoValidado: string; driverName: string; plate: string; startedAt: number; comisionDebitada: number; nuevoSaldo: number } | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}trip_in_progress`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return null;
   }
 
   /**
