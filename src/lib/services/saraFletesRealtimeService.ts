@@ -156,8 +156,23 @@ export class SaraFletesRealtimeService {
       // Guardar estados persistentes según el tipo
       if (event.type === 'NUEVA_SOLICITUD_FLETE') {
         localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify(event.payload));
+      } else if (event.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
+        const existing = localStorage.getItem(`${STORAGE_PREFIX}active_request`);
+        if (existing) {
+          try {
+            const parsed = JSON.parse(existing);
+            parsed.status = 'accepted';
+            parsed.assignedDriverName = event.payload.driverName;
+            parsed.assignedPlate = event.payload.plate;
+            parsed.codigoAcceso = event.payload.codigoAcceso;
+            parsed.precioAcordado = event.payload.precioAcordado;
+            localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify(parsed));
+          } catch {}
+        }
+        localStorage.setItem(`${STORAGE_PREFIX}accepted_dispatch`, JSON.stringify(event.payload));
       } else if (event.type === 'CANCELAR_SOLICITUD_FLETE' || event.type === 'FLETE_COMPLETADO') {
         localStorage.removeItem(`${STORAGE_PREFIX}active_request`);
+        localStorage.removeItem(`${STORAGE_PREFIX}accepted_dispatch`);
       } else if (event.type === 'ACTUALIZAR_GPS_CONDUCTOR') {
         localStorage.setItem(`${STORAGE_PREFIX}driver_${event.payload.plate}`, JSON.stringify(event.payload));
       }
@@ -182,6 +197,20 @@ export class SaraFletesRealtimeService {
       }
     } catch {
       // Fallback null
+    }
+    return null;
+  }
+
+  /**
+   * Recupera la asignación de flete aceptada por el cliente
+   */
+  static getAcceptedDispatch(): { fleteId: string; driverName: string; plate: string; codigoAcceso: string; precioAcordado: number } | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}accepted_dispatch`);
+      if (data) return JSON.parse(data);
+    } catch {
+      // ignore
     }
     return null;
   }

@@ -382,7 +382,40 @@ export default function SaraFletesEngine() {
       const basePrice = activeFreight.referencePrice;
       const vehName = CATALOGO_VEHICULOS_SARA[activeFreight.vehicleType]?.nombre || 'Vehículo de Carga';
 
-      // Oferta 1: Conductor cercano inmediato (a los 1.8 segundos)
+      // Prefijo de placa según provincia de origen
+      const centerLat = originPoint?.lat || userLocation?.[0] || -4.3285;
+      const centerLng = originPoint?.lng || userLocation?.[1] || -79.5560;
+      let pCode = 'L'; // Loja por defecto
+      const prov = (originPoint?.provincia || '').toLowerCase();
+      if (prov.includes('pichincha') || (centerLat > -0.5 && centerLat < 0.2)) pCode = 'P';
+      else if (prov.includes('guayas') || (centerLat > -2.5 && centerLat < -1.8 && centerLng < -79.7)) pCode = 'G';
+      else if (prov.includes('azuay') || (centerLat > -3.1 && centerLat < -2.7)) pCode = 'A';
+      else if (prov.includes('el oro') || (centerLat > -3.6 && centerLat < -3.1)) pCode = 'O';
+      else if (prov.includes('tungurahua') || (centerLat > -1.4 && centerLat < -1.1)) pCode = 'T';
+      else if (prov.includes('manabi') || (centerLat > -1.2 && centerLat < -0.8 && centerLng < -80.3)) pCode = 'M';
+      else if (prov.includes('santo domingo') || (centerLat > -0.4 && centerLat < -0.1 && centerLng < -79.1)) pCode = 'J';
+
+      // Oferta 1: DAVID SARANGO (Camioneta Pickup 1.2T · FLT-VEH-06 a 210m, respuesta rápida)
+      timers.push(setTimeout(() => {
+        setDriverOffers(prev => [
+          ...prev,
+          {
+            id: 'OFFER-SARANGO',
+            driverName: 'David Sarango',
+            vehicleName: `Camioneta Pickup 1.2T · SARA`,
+            plate: `${pCode}FA-9012`,
+            rating: 4.9,
+            tripsCount: 142,
+            etaMinutes: 2,
+            distanceMeters: 210,
+            offeredPrice: basePrice,
+            isCounterOffer: false,
+            phone: '0995544332'
+          }
+        ]);
+      }, 1200));
+
+      // Oferta 2: MANUEL CÁRDENAS (Camioneta 1T · FLT-VEH-01 a 380m)
       timers.push(setTimeout(() => {
         setDriverOffers(prev => [
           ...prev,
@@ -390,7 +423,7 @@ export default function SaraFletesEngine() {
             id: 'OFFER-01',
             driverName: 'Manuel Cárdenas',
             vehicleName: `Camioneta 1T · ${vehName}`,
-            plate: 'LBA-3421',
+            plate: `${pCode}BA-3421`,
             rating: 4.9,
             tripsCount: 184,
             etaMinutes: 3,
@@ -400,9 +433,29 @@ export default function SaraFletesEngine() {
             phone: '0993849182'
           }
         ]);
-      }, 1800));
+      }, 2400));
 
-      // Oferta 2: Conductor alternativo (a los 3.4 segundos)
+      // Oferta 3: PEDRO JIMBO (Furgón 3T Urbano · FLT-VEH-07 a 420m)
+      timers.push(setTimeout(() => {
+        setDriverOffers(prev => [
+          ...prev,
+          {
+            id: 'OFFER-JIMBO',
+            driverName: 'Pedro Jimbo',
+            vehicleName: `Furgón 3T Urbano`,
+            plate: `${pCode}GA-6543`,
+            rating: 4.8,
+            tripsCount: 118,
+            etaMinutes: 3,
+            distanceMeters: 420,
+            offeredPrice: basePrice,
+            isCounterOffer: false,
+            phone: '0981122334'
+          }
+        ]);
+      }, 3500));
+
+      // Oferta 4: LUIS TOAPANTA (Furgón 3.5T Urbano · FLT-VEH-03 a 510m)
       timers.push(setTimeout(() => {
         setDriverOffers(prev => [
           ...prev,
@@ -410,19 +463,19 @@ export default function SaraFletesEngine() {
             id: 'OFFER-02',
             driverName: 'Luis Toapanta',
             vehicleName: `Furgón 3.5T Urbano`,
-            plate: 'GCA-9876',
-            rating: 4.8,
+            plate: `${pCode}CA-9876`,
+            rating: 4.7,
             tripsCount: 96,
-            etaMinutes: 2,
-            distanceMeters: 250,
+            etaMinutes: 4,
+            distanceMeters: 510,
             offeredPrice: basePrice,
             isCounterOffer: false,
             phone: '0961128472'
           }
         ]);
-      }, 3400));
+      }, 4700));
 
-      // Oferta 3: Conductor con contraoferta inDrive (a los 5.2 segundos)
+      // Oferta 5: CARLOS MENDOZA (Camión Hino 5T · FLT-VEH-02 a 680m, con contraoferta inDrive)
       timers.push(setTimeout(() => {
         const contraTarifa = +(basePrice + 0.50).toFixed(2);
         setDriverOffers(prev => [
@@ -431,7 +484,7 @@ export default function SaraFletesEngine() {
             id: 'OFFER-03',
             driverName: 'Carlos Mendoza',
             vehicleName: `Camión Hino 5T`,
-            plate: 'PBA-1234',
+            plate: `${pCode}BK-1234`,
             rating: 4.8,
             tripsCount: 312,
             etaMinutes: 5,
@@ -441,13 +494,13 @@ export default function SaraFletesEngine() {
             phone: '0984710293'
           }
         ]);
-      }, 5200));
+      }, 5900));
 
       return () => {
         timers.forEach(t => clearTimeout(t));
       };
     }
-  }, [activeFreight]);
+  }, [activeFreight, originPoint, userLocation]);
 
   // Referencia mutable a activeFreight para el bus en tiempo real
   const activeFreightRef = useRef<FreightRequest | null>(null);
@@ -457,6 +510,45 @@ export default function SaraFletesEngine() {
 
   // Suscripción al bus en tiempo real SARA-FLETES (BroadcastChannel & LocalStorage)
   useEffect(() => {
+    // 1. Restaurar flete activo y despacho aceptado si existen
+    const savedDispatch = SaraFletesRealtimeService.getAcceptedDispatch();
+    const savedReq = SaraFletesRealtimeService.getActiveRequest();
+
+    if (savedDispatch || savedReq) {
+      if (savedDispatch) {
+        setAssignedDriver({
+          id: 'ASSIGNED_' + savedDispatch.plate,
+          driverName: savedDispatch.driverName,
+          vehicleName: 'Vehículo Asignado SARA',
+          plate: savedDispatch.plate,
+          rating: 4.9,
+          tripsCount: 160,
+          etaMinutes: 2,
+          distanceMeters: 250,
+          offeredPrice: savedDispatch.precioAcordado,
+          isCounterOffer: false,
+          phone: '0995544332'
+        });
+      }
+
+      if (savedReq) {
+        setActiveFreight({
+          id: savedReq.id,
+          origin: savedReq.origen,
+          destination: savedReq.destino,
+          material: savedReq.material,
+          weight: savedReq.pesoTon,
+          vehicleType: (savedReq.tipoVehiculo as CategoriaVehiculo) || 'PICKUP_1T',
+          referencePrice: savedDispatch ? savedDispatch.precioAcordado : savedReq.tarifaOfertadaUSD,
+          status: (savedDispatch || savedReq.status === 'accepted') ? 'accepted' : 'searching',
+          accessCode: savedDispatch?.codigoAcceso || savedReq.codigoAcceso,
+          distanciaKm: savedReq.distanciaKm,
+          duracionMinutos: savedReq.duracionMinutos
+        });
+      }
+    }
+
+    // 2. Suscribirse a eventos en vivo entre pestañas/roles
     const unsub = SaraFletesRealtimeService.subscribe((evt) => {
       if (evt.type === 'NUEVA_OFERTA_CONDUCTOR') {
         if (activeFreightRef.current && activeFreightRef.current.id === evt.payload.fleteId) {
@@ -497,6 +589,53 @@ export default function SaraFletesEngine() {
           });
           setActiveFreight((prev) => prev ? { ...prev, status: 'accepted' } : null);
         }
+      } else if (evt.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
+        // Reflejar la orden de inmediato en el entorno del conductor
+        setAssignedDriver({
+          id: 'ASSIGNED_' + evt.payload.plate,
+          driverName: evt.payload.driverName,
+          vehicleName: 'Vehículo Asignado SARA',
+          plate: evt.payload.plate,
+          rating: 4.9,
+          tripsCount: 160,
+          etaMinutes: 2,
+          distanceMeters: 250,
+          offeredPrice: evt.payload.precioAcordado,
+          isCounterOffer: false,
+          phone: '0995544332'
+        });
+
+        setActiveFreight((prev) => {
+          if (prev) {
+            return {
+              ...prev,
+              status: 'accepted',
+              referencePrice: evt.payload.precioAcordado,
+              accessCode: evt.payload.codigoAcceso || prev.accessCode
+            };
+          }
+          const req = SaraFletesRealtimeService.getActiveRequest();
+          if (req) {
+            return {
+              id: req.id,
+              origin: req.origen,
+              destination: req.destino,
+              material: req.material,
+              weight: req.pesoTon,
+              vehicleType: (req.tipoVehiculo as CategoriaVehiculo) || 'PICKUP_1T',
+              referencePrice: evt.payload.precioAcordado,
+              status: 'accepted',
+              accessCode: evt.payload.codigoAcceso || req.codigoAcceso,
+              distanciaKm: req.distanciaKm,
+              duracionMinutos: req.duracionMinutos
+            };
+          }
+          return null;
+        });
+      } else if (evt.type === 'CANCELAR_SOLICITUD_FLETE') {
+        setActiveFreight(null);
+        setDriverOffers([]);
+        setAssignedDriver(null);
       }
     });
 
@@ -2052,17 +2191,51 @@ export default function SaraFletesEngine() {
                       )}
 
                       {activeFreight.status === 'accepted' && (
-                        <div className="bg-emerald-950/40 border border-emerald-500/40 p-3 rounded-xl text-center space-y-1">
-                          <CheckCircle className="w-7 h-7 text-emerald-400 mx-auto" />
-                          <p className="text-xs font-black text-emerald-400 uppercase">
-                            ¡Viaje Asignado!
-                          </p>
-                          <p className="text-[11px] text-slate-300">
-                            Código requerido al entregar:
-                          </p>
-                          <p className="text-xl font-black text-white font-mono tracking-widest">
-                            {activeFreight.accessCode}
-                          </p>
+                        <div className="bg-emerald-950/40 border border-emerald-500/50 p-4 rounded-xl text-center space-y-2.5">
+                          <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto" />
+                          <div>
+                            <p className="text-xs font-black text-emerald-400 uppercase tracking-wider">
+                              ¡Viaje Asignado y Confirmado!
+                            </p>
+                            <p className="text-[11px] text-slate-300 mt-0.5">
+                              El cliente ha aceptado la propuesta en tiempo real.
+                            </p>
+                          </div>
+
+                          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-left text-xs space-y-1.5">
+                            {assignedDriver && (
+                              <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+                                <span className="text-slate-400 text-[11px]">Conductor:</span>
+                                <span className="font-bold text-white">
+                                  {assignedDriver.driverName} <span className="font-mono text-amber-400">({assignedDriver.plate})</span>
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+                              <span className="text-slate-400 text-[11px]">Tarifa Acordada:</span>
+                              <span className="font-black text-emerald-400 font-mono text-sm">
+                                ${activeFreight.referencePrice.toFixed(2)} USD
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 text-[11px]">Distancia Ruta:</span>
+                              <span className="font-bold text-slate-200 font-mono">
+                                {activeFreight.distanciaKm ? `${activeFreight.distanciaKm.toFixed(1)} km` : '~2 km'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-900 border border-emerald-500/30 p-2.5 rounded-xl">
+                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">
+                              Código PIN requerido en destino
+                            </p>
+                            <p className="text-2xl font-black text-white font-mono tracking-widest mt-0.5">
+                              {activeFreight.accessCode}
+                            </p>
+                            <p className="text-[9px] text-slate-500 mt-0.5">
+                              Solicita este código al cliente al descargar el material
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>

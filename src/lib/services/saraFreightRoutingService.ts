@@ -40,6 +40,7 @@ export interface CantonInfo {
   viewbox: [number, number, number, number]; // [minLng, minLat, maxLng, maxLat]
   viasPrincipales: Record<string, [number, number]>;
   hitos: Record<string, [number, number]>;
+  interseccionesExactas?: Record<string, [number, number]>;
   alias?: string[];
 }
 
@@ -415,19 +416,19 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     viewbox: [-79.5750, -4.3450, -79.5350, -4.3100],
     viasPrincipales: {
       '18 de noviembre': [-4.3265, -79.5560],
-      'sucre': [-4.3280, -79.5570],
-      'bolivar': [-4.3275, -79.5565],
-      'atahualpa': [-4.3312, -79.5570],
-      'cristobal colon': [-4.3315, -79.5575],
-      'colon': [-4.3315, -79.5575],
+      'sucre': [-4.3278, -79.5568],
+      'bolivar': [-4.3272, -79.5562],
+      'atahualpa': [-4.3295, -79.5613],
+      'cristobal colon': [-4.3295, -79.5606],
+      'colon': [-4.3295, -79.5606],
       'bernardo valdivieso': [-4.3268, -79.5552],
       'valdivieso': [-4.3268, -79.5552],
       'av del ejercito': [-4.3330, -79.5540],
       'ejercito': [-4.3330, -79.5540],
-      'chile': [-4.3292, -79.5548],
-      'carrera chile': [-4.3292, -79.5548],
+      'chile': [-4.3298, -79.5611],
+      'carrera chile': [-4.3298, -79.5611],
       'quito': [-4.3210, -79.5620],
-      'centenario': [-4.3275, -79.5535],
+      'centenario': [-4.3287, -79.5606],
       'gran colombia': [-4.3295, -79.5585],
       'ambato': [-4.3318, -79.5595],
       'loja': [-4.3250, -79.5530],
@@ -435,6 +436,26 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'eloy alfaro': [-4.3255, -79.5575],
       'daniel ojeda': [-4.3260, -79.5525],
       'mariano samaniego': [-4.3280, -79.5530]
+    },
+    interseccionesExactas: {
+      'chile_atahualpa': [-4.3298, -79.5611],
+      'carrera chile_atahualpa': [-4.3298, -79.5611],
+      'atahualpa_chile': [-4.3298, -79.5611],
+      'atahualpa_carrera chile': [-4.3298, -79.5611],
+      'centenario_cristobal colon': [-4.3287, -79.5606],
+      'cristobal colon_centenario': [-4.3287, -79.5606],
+      'centenario_colon': [-4.3287, -79.5606],
+      'colon_centenario': [-4.3287, -79.5606],
+      '18 de noviembre_sucre': [-4.3275, -79.5565],
+      'sucre_18 de noviembre': [-4.3275, -79.5565],
+      '18 de noviembre_bolivar': [-4.3270, -79.5562],
+      'bolivar_18 de noviembre': [-4.3270, -79.5562],
+      'atahualpa_cristobal colon': [-4.3312, -79.5605],
+      'cristobal colon_atahualpa': [-4.3312, -79.5605],
+      'bernardo valdivieso_sucre': [-4.3272, -79.5558],
+      'sucre_bernardo valdivieso': [-4.3272, -79.5558],
+      'av del ejercito_18 de noviembre': [-4.3315, -79.5545],
+      '18 de noviembre_av del ejercito': [-4.3315, -79.5545]
     },
     hitos: {
       'gimaga': [-4.3258, -79.5542],
@@ -1153,7 +1174,7 @@ export class SaraFreightRoutingService {
    */
   private static limpiarPrefijosViales(txt: string): string {
     return this.normalizar(txt)
-      .replace(/\b(calle|avenida|av|avda|clle|pasaje|diagonal|sector|barrio|ciudadela|cdla|parroquia|canton|nro|no|mz|villa)\b/g, ' ')
+      .replace(/\b(calle|carrera|cra|crra|avenida|av|avda|clle|pasaje|diagonal|sector|barrio|ciudadela|cdla|parroquia|canton|nro|no|mz|villa)\b/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -1303,6 +1324,30 @@ export class SaraFreightRoutingService {
           });
         }
       }
+
+      // Intersecciones exactas verificadas del cantón
+      if (cantonDetectado.interseccionesExactas) {
+        for (const [key, coords] of Object.entries(cantonDetectado.interseccionesExactas)) {
+          const [k1, k2] = key.split('_');
+          if (
+            clean.includes(k1) || clean.includes(k2) ||
+            key.replace('_', ' ').includes(clean)
+          ) {
+            const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
+            const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
+            agregarSugerencia({
+              id: `interseccion_${cantonDetectado.nombre}_${key}`,
+              titulo: `${tit1} y ${tit2}`,
+              subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · Intersección vial`,
+              lat: coords[0],
+              lng: coords[1],
+              ciudad: cantonDetectado.nombre,
+              provincia: cantonDetectado.provincia,
+              tipo: 'interseccion'
+            });
+          }
+        }
+      }
     }
 
     // 4. Si tenemos menos de 5 resultados, consultar Photon API para autocompletar dinámicamente
@@ -1404,6 +1449,38 @@ export class SaraFreightRoutingService {
         const via1 = partesInterseccion[0].trim();
         const via2 = partesInterseccion[1].trim();
 
+        // 1. Verificar primero en interseccionesExactas del cantón
+        if (cantonActual.interseccionesExactas) {
+          for (const [key, coords] of Object.entries(cantonActual.interseccionesExactas)) {
+            const [k1, k2] = key.split('_');
+            if (
+              (via1.includes(k1) || k1.includes(via1)) &&
+              (via2.includes(k2) || k2.includes(via2))
+            ) {
+              return {
+                nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
+                lat: coords[0],
+                lng: coords[1],
+                ciudad: cantonActual.nombre,
+                provincia: cantonActual.provincia
+              };
+            }
+            if (
+              (via1.includes(k2) || k2.includes(via1)) &&
+              (via2.includes(k1) || k1.includes(via2))
+            ) {
+              return {
+                nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
+                lat: coords[0],
+                lng: coords[1],
+                ciudad: cantonActual.nombre,
+                provincia: cantonActual.provincia
+              };
+            }
+          }
+        }
+
+        // 2. Si ambas vías están en viasPrincipales, calcular el punto de alta precisión
         let p1: [number, number] | null = null;
         let p2: [number, number] | null = null;
 

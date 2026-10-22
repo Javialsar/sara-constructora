@@ -127,21 +127,31 @@ export default function MiPerfilFletes() {
 
   // Cargar solicitud activa existente y suscribirse a eventos de clientes en vivo
   useEffect(() => {
-    // 1. Revisar si hay un flete activo reciente en el bus
+    // 1. Revisar si hay un flete activo reciente o ya aceptado en el bus
+    const acceptedDispatch = SaraFletesRealtimeService.getAcceptedDispatch();
     const activeReq = SaraFletesRealtimeService.getActiveRequest();
-    if (activeReq && !tripAccepted) {
+
+    if (acceptedDispatch || activeReq) {
+      const fleteInfo = activeReq || ({} as any);
       setIncomingRequest({
-        fleteId: activeReq.id,
-        origen: activeReq.origen,
-        destino: activeReq.destino,
-        cliente: activeReq.clienteNombre || 'Cliente SARA Constructora',
-        material: `${activeReq.material} (${activeReq.pesoTon} Ton)`,
-        valorRef: activeReq.tarifaOfertadaUSD,
-        distanciaKm: activeReq.distanciaKm,
-        coordsOrigen: activeReq.coordsOrigen,
-        coordsDestino: activeReq.coordsDestino,
-        codigoAcceso: activeReq.codigoAcceso
+        fleteId: acceptedDispatch?.fleteId || fleteInfo.id || 'FLT-ACTIVO',
+        origen: fleteInfo.origen || 'Punto de Carga',
+        destino: fleteInfo.destino || 'Punto de Entrega',
+        cliente: fleteInfo.clienteNombre || 'Cliente SARA Constructora',
+        material: fleteInfo.material ? `${fleteInfo.material} (${fleteInfo.pesoTon || 1} Ton)` : 'Material de Construcción',
+        valorRef: acceptedDispatch?.precioAcordado || fleteInfo.tarifaOfertadaUSD || 2.50,
+        distanciaKm: fleteInfo.distanciaKm || 1.8,
+        coordsOrigen: fleteInfo.coordsOrigen || [-4.3298, -79.5611],
+        coordsDestino: fleteInfo.coordsDestino || [-4.3287, -79.5606],
+        codigoAcceso: acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso,
+        assignedDriverName: acceptedDispatch?.driverName || fleteInfo.assignedDriverName,
+        assignedPlate: acceptedDispatch?.plate || fleteInfo.assignedPlate
       });
+
+      if (acceptedDispatch || fleteInfo.status === 'accepted') {
+        setTripAccepted(true);
+        setAccessCode(acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso);
+      }
     }
 
     // 2. Suscribirse a solicitudes y despachos en tiempo real
@@ -164,17 +174,25 @@ export default function MiPerfilFletes() {
         setIncomingRequest((prev: any) => {
           if (prev && prev.fleteId === evt.payload.fleteId) {
             showToast('El cliente ha cancelado la solicitud de flete.');
+            setTripAccepted(false);
+            setAccessCode(null);
             return null;
           }
           return prev;
         });
       } else if (evt.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
-        const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
-        if (evt.payload.plate === myPlate || evt.payload.driverName?.includes('Mendoza')) {
-          setTripAccepted(true);
-          setAccessCode(evt.payload.codigoAcceso);
-          showToast(`¡El cliente ha aceptado tu propuesta! Tarifa: $${evt.payload.precioAcordado} USD`);
-        }
+        // Reflejar la orden de inmediato en el entorno del conductor
+        setTripAccepted(true);
+        setAccessCode(evt.payload.codigoAcceso);
+        setIncomingRequest((prev: any) => ({
+          ...prev,
+          fleteId: evt.payload.fleteId,
+          assignedDriverName: evt.payload.driverName,
+          assignedPlate: evt.payload.plate,
+          valorRef: evt.payload.precioAcordado || prev?.valorRef,
+          codigoAcceso: evt.payload.codigoAcceso
+        }));
+        showToast(`¡Flete Asignado! Conductor: ${evt.payload.driverName} · Tarifa: $${evt.payload.precioAcordado} USD`);
       }
     });
 
