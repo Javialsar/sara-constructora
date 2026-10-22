@@ -127,8 +127,8 @@ export default function SaraFletesEngine() {
   const [gpsLoading, setGpsLoading] = useState<boolean>(true);
 
   // 2. Coordenadas y Puntos de Carga / Descarga para Flete
-  const [originText, setOriginText] = useState('MAtecons Chile, Cariamanga');
-  const [destinationText, setDestinationText] = useState('El Dorado, Cariamanga');
+  const [originText, setOriginText] = useState('Mi Ubicación Actual (GPS)');
+  const [destinationText, setDestinationText] = useState('');
   const [originPoint, setOriginPoint] = useState<GeocodedPoint | null>(null);
   const [destinationPoint, setDestinationPoint] = useState<GeocodedPoint | null>(null);
   const [rutaCalculada, setRutaCalculada] = useState<RutaVialCalculada | null>(null);
@@ -717,11 +717,18 @@ export default function SaraFletesEngine() {
           const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
           setUserLocation(coords);
           setGpsLoading(false);
+          const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: coords[0], lng: coords[1], ciudad: 'Ecuador' };
+          setOriginPoint(pOrig);
+          originPointRef.current = pOrig;
         },
         (err) => {
           console.warn('Geolocalización en modo referencial:', err.message);
-          setUserLocation([-4.3285, -79.5560]);
+          const defaultCoords: [number, number] = [-4.3285, -79.5560];
+          setUserLocation(defaultCoords);
           setGpsLoading(false);
+          const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: defaultCoords[0], lng: defaultCoords[1], ciudad: 'Cariamanga' };
+          setOriginPoint(pOrig);
+          originPointRef.current = pOrig;
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
@@ -1869,109 +1876,6 @@ export default function SaraFletesEngine() {
                           />
                         </div>
                       </div>
-                      {/* CALCULADORA DE AYUDANTES DE ESTIBA */}
-                      <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5 text-blue-400" />
-                            ¿Requiere Ayudantes de Estiba / Peones?
-                          </span>
-                          {peonesEstibaCount > 0 && (
-                            <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
-                              +${costoEstibaUSD.toFixed(2)} USD
-                            </span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {[0, 1, 2, 3].map((num) => (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => setPeonesEstibaCount(num)}
-                              className={`py-1.5 px-2 rounded-lg text-center font-bold text-xs transition-all ${
-                                peonesEstibaCount === num
-                                  ? "bg-blue-600 text-white shadow-sm ring-1 ring-blue-400"
-                                  : "bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800"
-                              }`}
-                            >
-                              {num === 0 ? "Sin peón" : `${num} ${num === 1 ? "Peón" : "Peones"}`}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* GUÍA DE REMISIÓN ELECTRÓNICA SRI (49 DÍGITOS) */}
-                      <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
-                            <FileText className="w-3.5 h-3.5 text-purple-400" />
-                            Guía de Remisión SRI (Obligatoria para Traslado)
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const claveDemo = SaraGuiaRemisionService.generarClaveAccesoPrueba();
-                              setGuiaRemisionClave(claveDemo);
-                              setGuiaRemisionValidacion(SaraGuiaRemisionService.validarClaveAcceso(claveDemo));
-                            }}
-                            className="text-[10px] text-purple-400 hover:text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60 flex items-center gap-1"
-                          >
-                            <Zap className="w-2.5 h-2.5" />
-                            Auto-Generar SRI Demo
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          maxLength={49}
-                          placeholder="Ingrese los 49 dígitos de la Clave de Acceso del SRI"
-                          value={guiaRemisionClave}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, "");
-                            setGuiaRemisionClave(val);
-                            if (val.length === 49) {
-                              setGuiaRemisionValidacion(SaraGuiaRemisionService.validarClaveAcceso(val));
-                            } else if (val.length === 0) {
-                              setGuiaRemisionValidacion(null);
-                            } else {
-                              setGuiaRemisionValidacion({ valida: false, error: `Faltan ${49 - val.length} dígitos para completar los 49 obligatorios del SRI.` });
-                            }
-                          }}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-purple-500"
-                        />
-                        {guiaRemisionValidacion && (
-                          <div className={`p-1.5 rounded-lg text-[10px] flex items-center gap-1.5 font-medium ${
-                            guiaRemisionValidacion.valida
-                              ? "bg-emerald-950/60 text-emerald-300 border border-emerald-500/30"
-                              : "bg-amber-950/60 text-amber-300 border border-amber-500/30"
-                          }`}>
-                            {guiaRemisionValidacion.valida ? (
-                              <>
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                                <span>✓ Clave SRI Válida (Módulo 11 Aprobado). Comprobante legalmente habilitado.</span>
-                              </>
-                            ) : (
-                              <>
-                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                                <span>{guiaRemisionValidacion.error}</span>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* CONTROL DE BÁSCULAS MTOP */}
-                      <div className="p-2 rounded-xl border text-[11px] flex items-center justify-between gap-2 bg-slate-950/80 border-slate-800">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-300">⚖️ Balanzas MTOP en Trayecto:</span>
-                          <span className="text-slate-400">{balanzasEnCorredor.length > 0 ? `${balanzasEnCorredor.length} estaciones detectadas` : "Sin básculas en el tramo"}</span>
-                        </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                          mtopCheck.dentroDeNorma ? "bg-emerald-950 text-emerald-400 border border-emerald-500/30" : "bg-rose-950 text-rose-400 border border-rose-500/30"
-                        }`}>
-                          {mtopCheck.dentroDeNorma ? "✓ Carga Legal MTOP" : "⚠️ Sobrepeso MTOP"}
-                        </span>
-                      </div>
-
                       {/* BARRA DE OFERTA / SUBASTA ESTILO INDRIVE */}
                       {tarifaEstimada && proposedPrice !== null && !activeFreight && (
                         <div className="bg-gradient-to-br from-slate-950 to-slate-900 border-2 border-amber-500/50 p-3.5 rounded-2xl shadow-xl space-y-3">

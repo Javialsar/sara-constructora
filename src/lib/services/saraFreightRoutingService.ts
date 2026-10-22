@@ -438,6 +438,14 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'mariano samaniego': [-4.3280, -79.5530]
     },
     interseccionesExactas: {
+      'atahualpa_centenario': [-4.3291, -79.5609],
+      'centenario_atahualpa': [-4.3291, -79.5609],
+      '18 de noviembre_centenario': [-4.3265, -79.5606],
+      'centenario_18 de noviembre': [-4.3265, -79.5606],
+      'sucre_centenario': [-4.3278, -79.5606],
+      'centenario_sucre': [-4.3278, -79.5606],
+      'bolivar_centenario': [-4.3272, -79.5606],
+      'centenario_bolivar': [-4.3272, -79.5606],
       'chile_atahualpa': [-4.3298, -79.5611],
       'carrera chile_atahualpa': [-4.3298, -79.5611],
       'atahualpa_chile': [-4.3298, -79.5611],
@@ -1189,10 +1197,27 @@ export class SaraFreightRoutingService {
     queryNormalizada: string,
     ubicacionReferencia?: [number, number]
   ): CantonInfo | null {
-    // 1. Coincidencia por nombre o alias de cantón
-    for (const canton of Object.values(CANTONES_ECUADOR)) {
+    // 1. Coincidencia por nombre, clave o alias de cantón
+    for (const [key, canton] of Object.entries(CANTONES_ECUADOR)) {
+      const keyNorm = this.normalizar(key);
+      if (queryNormalizada.includes(keyNorm)) {
+        return canton;
+      }
+
       const cantonNorm = this.normalizar(canton.nombre);
       const provNorm = this.normalizar(canton.provincia);
+      const nombreSinParen = cantonNorm.replace(/\(.*?\)/g, "").trim();
+
+      if (nombreSinParen && queryNormalizada.includes(nombreSinParen)) {
+        return canton;
+      }
+
+      const palabras = cantonNorm.split(/[\s,()]+/);
+      for (const p of palabras) {
+        if (p.length >= 4 && queryNormalizada.includes(p)) {
+          return canton;
+        }
+      }
 
       if (queryNormalizada.includes(cantonNorm) || queryNormalizada.includes(provNorm)) {
         return canton;
@@ -1443,8 +1468,26 @@ export class SaraFreightRoutingService {
 
     // 4. Si identificamos un cantón específico, resolver intersecciones o vías locales en 0 ms
     if (cantonActual) {
+      // Remover el nombre del cantón, provincia y alias del texto para aislar estrictamente las vías
+      let querySoloVias = cleanWithoutPrefixes;
+      const cNom = this.normalizar(cantonActual.nombre).replace(/\(.*?\)/g, "").trim();
+      const pNom = this.normalizar(cantonActual.provincia);
+      querySoloVias = querySoloVias
+        .replace(new RegExp(`\\b${cNom}\\b`, "gi"), "")
+        .replace(new RegExp(`\\b${pNom}\\b`, "gi"), "")
+        .replace(/,\s*/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (cantonActual.alias) {
+        for (const al of cantonActual.alias) {
+          querySoloVias = querySoloVias.replace(new RegExp(`\\b${this.normalizar(al)}\\b`, "gi"), "").trim();
+        }
+      }
+      querySoloVias = querySoloVias.replace(/\s+/g, " ").trim();
+
       // 4a. Parser de Intersecciones ("X y Y" / "X con Y" / "X esquina Y")
-      const partesInterseccion = cleanWithoutPrefixes.split(/\s+(?:y|e|esquina|con)\s+/);
+      const partesInterseccion = querySoloVias.split(/\s+(?:y|e|esquina|con)\s+/);
       if (partesInterseccion.length >= 2) {
         const via1 = partesInterseccion[0].trim();
         const via2 = partesInterseccion[1].trim();
@@ -1555,6 +1598,20 @@ export class SaraFreightRoutingService {
 
           // Validar que esté dentro del territorio ecuatoriano
           if (lat >= -5.5 && lat <= 1.8 && lon >= -92.0 && lon <= -75.0) {
+            if (cantonActual) {
+              const dLat = (lat - cantonActual.centroide[0]) * 111;
+              const dLon = (lon - cantonActual.centroide[1]) * 111;
+              const distCanton = Math.sqrt(dLat * dLat + dLon * dLon);
+              if (distCanton > 30) {
+                return {
+                  nombre: `${query}, ${cantonActual.nombre}`,
+                  lat: cantonActual.centroide[0],
+                  lng: cantonActual.centroide[1],
+                  ciudad: cantonActual.nombre,
+                  provincia: cantonActual.provincia
+                };
+              }
+            }
             return {
               nombre: feat.properties.name || feat.properties.street || query,
               lat: +lat.toFixed(5),
@@ -1586,10 +1643,26 @@ export class SaraFreightRoutingService {
       if (nomRes.ok) {
         const nomData = await nomRes.json();
         if (nomData?.length > 0) {
+          const nLat = parseFloat(nomData[0].lat);
+          const nLon = parseFloat(nomData[0].lon);
+          if (cantonActual) {
+            const dLat = (nLat - cantonActual.centroide[0]) * 111;
+            const dLon = (nLon - cantonActual.centroide[1]) * 111;
+            const distCanton = Math.sqrt(dLat * dLat + dLon * dLon);
+            if (distCanton > 30) {
+              return {
+                nombre: `${query}, ${cantonActual.nombre}`,
+                lat: cantonActual.centroide[0],
+                lng: cantonActual.centroide[1],
+                ciudad: cantonActual.nombre,
+                provincia: cantonActual.provincia
+              };
+            }
+          }
           return {
             nombre: nomData[0].display_name,
-            lat: +parseFloat(nomData[0].lat).toFixed(5),
-            lng: +parseFloat(nomData[0].lon).toFixed(5),
+            lat: +nLat.toFixed(5),
+            lng: +nLon.toFixed(5),
             ciudad: cantonActual?.nombre ?? 'Ecuador',
             provincia: cantonActual?.provincia ?? 'Ecuador'
           };
