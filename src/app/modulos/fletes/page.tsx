@@ -25,7 +25,8 @@ import {
   Minimize2,
   Zap,
   Sliders,
-  Layers
+  Layers,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
@@ -413,7 +414,7 @@ export default function SaraFletesEngine() {
             phone: '0995544332'
           }
         ]);
-      }, 1200));
+      }, 200));
 
       // Oferta 2: MANUEL CÁRDENAS (Camioneta 1T · FLT-VEH-01 a 380m)
       timers.push(setTimeout(() => {
@@ -433,7 +434,7 @@ export default function SaraFletesEngine() {
             phone: '0993849182'
           }
         ]);
-      }, 2400));
+      }, 500));
 
       // Oferta 3: PEDRO JIMBO (Furgón 3T Urbano · FLT-VEH-07 a 420m)
       timers.push(setTimeout(() => {
@@ -453,7 +454,7 @@ export default function SaraFletesEngine() {
             phone: '0981122334'
           }
         ]);
-      }, 3500));
+      }, 900));
 
       // Oferta 4: LUIS TOAPANTA (Furgón 3.5T Urbano · FLT-VEH-03 a 510m)
       timers.push(setTimeout(() => {
@@ -776,6 +777,14 @@ export default function SaraFletesEngine() {
     ];
   }, [originPoint, userLocation]);
 
+  // Unidades cercanas filtradas automáticamente por categoría de vehículo seleccionada (Radar Inmediato)
+  const vehiculosDisponiblesTipo = useMemo(() => {
+    const matching = vehiculosZonificados.filter(v => v.tipoVehiculo === vehicleType);
+    if (matching.length > 0) return matching;
+    // Si no hay exactamente de esa categoría, presentar las unidades activas más cercanas
+    return vehiculosZonificados.slice(0, 3);
+  }, [vehiculosZonificados, vehicleType]);
+
   // Recalcular Cotización de Renta Temporal
   useEffect(() => {
     const cot = SaraFreightPricingService.calcularRentaTemporal(
@@ -1072,6 +1081,32 @@ export default function SaraFletesEngine() {
         timestamp: Date.now()
       }
     });
+  };
+
+  // Solicitar flete directo a conductor seleccionado del radar automático
+  const handleDirectDriverRequest = async (veh: VehiculoMapa) => {
+    const latDiff = Math.abs(veh.lat - (originPoint?.lat || userLocation?.[0] || -4.3285));
+    const lngDiff = Math.abs(veh.lng - (originPoint?.lng || userLocation?.[1] || -79.5560));
+    const distMeters = Math.max(180, Math.round((latDiff + lngDiff) * 111000));
+    const etaMin = Math.max(2, Math.round(distMeters / 150));
+    const price = proposedPrice || (tarifaEstimada?.tarifaSugeridaUSD || 3.50);
+
+    const directOffer: DriverOffer = {
+      id: `DIRECT-${veh.id}`,
+      driverName: veh.nombreChofer,
+      vehicleName: CATALOGO_VEHICULOS_SARA[veh.tipoVehiculo]?.nombre || 'Vehículo de Carga',
+      plate: veh.placa,
+      rating: veh.rating,
+      tripsCount: 140,
+      etaMinutes: etaMin,
+      distanceMeters: distMeters,
+      offeredPrice: price,
+      isCounterOffer: false,
+      phone: veh.telefono || '0993849182'
+    };
+
+    await handlePedirFlete();
+    setDriverOffers([directOffer]);
   };
 
   // Aceptar oferta de conductor en radar y notificar en tiempo real
@@ -1652,6 +1687,79 @@ export default function SaraFletesEngine() {
                           })}
                         </div>
                       </div>
+
+                      {/* RADAR AUTOMÁTICO DE UNIDADES CERCANAS (AL SELECCIONAR VEHÍCULO SIN ESPERAR A SOLICITAR FLETE) */}
+                      {!activeFreight && (
+                        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-xl">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                              </span>
+                              <span className="text-[11px] font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                                Radar Activo: {CATALOGO_VEHICULOS_SARA[vehicleType]?.nombre}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                              {vehiculosDisponiblesTipo.length} unidades en la zona
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            {vehiculosDisponiblesTipo.map((veh) => {
+                              const latDiff = Math.abs(veh.lat - (originPoint?.lat || userLocation?.[0] || -4.3285));
+                              const lngDiff = Math.abs(veh.lng - (originPoint?.lng || userLocation?.[1] || -79.5560));
+                              const distMeters = Math.max(180, Math.round((latDiff + lngDiff) * 111000));
+                              const etaMin = Math.max(2, Math.round(distMeters / 150));
+                              const estPrice = proposedPrice || (tarifaEstimada?.tarifaSugeridaUSD || 3.50);
+
+                              return (
+                                <div
+                                  key={veh.id}
+                                  className="bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/60 p-2.5 rounded-xl transition-all flex items-center justify-between gap-3 text-xs group shadow-sm"
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-xs shrink-0 shadow-inner">
+                                      {veh.nombreChofer.charAt(0)}
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-white text-xs truncate">{veh.nombreChofer}</span>
+                                        <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 shrink-0">
+                                          {veh.placa}
+                                        </span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                        <span className="text-amber-400 font-bold">★ {veh.rating}</span>
+                                        <span className="text-slate-600">•</span>
+                                        <span className="text-emerald-400 font-semibold">⚡ ~{etaMin} min ({distMeters}m)</span>
+                                        <span className="text-slate-600">•</span>
+                                        <span className="text-slate-400 truncate">Saldo OK</span>
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <div className="text-right hidden sm:block">
+                                      <p className="font-mono font-bold text-xs text-white">${estPrice.toFixed(2)}</p>
+                                      <p className="text-[8px] text-slate-500 font-semibold">USD</p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDirectDriverRequest(veh)}
+                                      className="bg-slate-800 group-hover:bg-amber-500 text-slate-300 group-hover:text-slate-950 font-bold text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 group-hover:border-amber-500 transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                                    >
+                                      <span>Pedir</span>
+                                      <ChevronRight className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* AJUSTES DE MATERIAL Y PESO */}
                       <div className="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">

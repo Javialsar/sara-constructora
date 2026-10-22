@@ -26,12 +26,13 @@ import {
   TrendingUp,
   Percent,
   CheckCircle2,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { getFletesPlanes } from '@/lib/fletes-data';
+import { getFletesPlanes, debitConductorWallet } from '@/lib/fletes-data';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -120,10 +121,52 @@ export default function MiPerfilFletes() {
     }
   }, []);
 
+  // Estados Billetera y Planes Sincronizados
+  const [balance, setBalance] = useState(119.00);
+  const [rechargeAmount, setRechargeAmount] = useState(25);
+  const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('VIP');
+  const [planesConfig, setPlanesConfig] = useState<PlanConfigItem[]>(() => {
+    return SaraFletesRealtimeService.getPlanesConfig();
+  });
+
+  const planVIPConfig = useMemo(() => planesConfig.find(p => p.id === 'vip') || {
+    id: 'vip', name: 'Plan VIP', monthlyPrice: 0.00, commissionRate: 30.0, priority: 'ALTA' as const, dispatchDelaySeconds: 0, benefits: ['Prioridad ALTA en Radar (Despacho Inmediato Nivel 1)', 'Carreras Ilimitadas a nivel nacional', 'Atención y Soporte 24/7 VIP']
+  }, [planesConfig]);
+
+  const planEstandarConfig = useMemo(() => planesConfig.find(p => p.id === 'standard') || {
+    id: 'standard', name: 'Plan Estándar', monthlyPrice: 0.00, commissionRate: 20.0, priority: 'MEDIA' as const, dispatchDelaySeconds: 4, benefits: ['Prioridad MEDIA en Radar (Despacho Nivel 2 tras 4s)', 'Carreras Ilimitadas a nivel nacional', 'Atención y Soporte 24/7']
+  }, [planesConfig]);
+
+  const planBasicoConfig = useMemo(() => planesConfig.find(p => p.id === 'basic') || {
+    id: 'basic', name: 'Plan Básico', monthlyPrice: 0.00, commissionRate: 10.0, priority: 'BAJA' as const, dispatchDelaySeconds: 8, benefits: ['Prioridad BAJA en Radar (Despacho Nivel 3 tras 8s)', 'Carreras Ilimitadas a nivel nacional', 'Atención y Soporte 24/7']
+  }, [planesConfig]);
+
+  // Carga inicial y persistencia del saldo de billetera por placa
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
+      const savedBalance = localStorage.getItem(`sara_fletes_rt_wallet_${plate}`);
+      if (savedBalance !== null) {
+        setBalance(Number(savedBalance));
+      }
+    }
+  }, [currentUser]);
+
   // Solicitud de flete entrante en tiempo real (SARA Realtime Bus)
   const [incomingRequest, setIncomingRequest] = useState<any>(null);
   const [tripAccepted, setTripAccepted] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
+
+  // Referencias mutables para el bus de eventos
+  const balanceRef = useRef(balance);
+  useEffect(() => {
+    balanceRef.current = balance;
+  }, [balance]);
+
+  const planRef = useRef(plan);
+  useEffect(() => {
+    planRef.current = plan;
+  }, [plan]);
 
   // Cargar solicitud activa existente y suscribirse a eventos de clientes en vivo
   useEffect(() => {
@@ -157,19 +200,44 @@ export default function MiPerfilFletes() {
     // 2. Suscribirse a solicitudes y despachos en tiempo real
     const unsub = SaraFletesRealtimeService.subscribe((evt) => {
       if (evt.type === 'NUEVA_SOLICITUD_FLETE') {
-        setIncomingRequest({
-          fleteId: evt.payload.id,
-          origen: evt.payload.origen,
-          destino: evt.payload.destino,
-          cliente: evt.payload.clienteNombre || 'Cliente SARA Constructora',
-          material: `${evt.payload.material} (${evt.payload.pesoTon} Ton)`,
-          valorRef: evt.payload.tarifaOfertadaUSD,
-          distanciaKm: evt.payload.distanciaKm,
-          coordsOrigen: evt.payload.coordsOrigen,
-          coordsDestino: evt.payload.coordsDestino,
-          codigoAcceso: evt.payload.codigoAcceso
-        });
-        showToast(`¡Nuevo flete en tiempo real: ${evt.payload.origen} → ${evt.payload.destino}!`);
+        // Validación estricta de saldo prepago: Mínimo $1.00 USD para que el radar notifique
+        if (balanceRef.current < 1.00) {
+          showToast(`⚠️ Radar silenciado: Tu saldo ($${balanceRef.current.toFixed(2)} USD) es menor a $1.00 USD. Recarga tu billetera.`);
+          return;
+        }
+
+        // Evaluar retardo de despacho según la jerarquía del plan activo (VIP: 0s, Estándar: 4s, Básico: 8s)
+        const currentPlan = planRef.current;
+        const targetConfig = currentPlan === 'VIP' ? planVIPConfig : currentPlan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
+        const delaySeconds = targetConfig?.dispatchDelaySeconds ?? (currentPlan === 'VIP' ? 0 : currentPlan === 'Estandar' ? 4 : 8);
+
+        const deliverTripRequest = () => {
+          // Verificar si el flete no fue tomado por otro conductor en los segundos previos
+          const currentAccepted = SaraFletesRealtimeService.getAcceptedDispatch();
+          if (currentAccepted && currentAccepted.fleteId === evt.payload.id) {
+            return;
+          }
+
+          setIncomingRequest({
+            fleteId: evt.payload.id,
+            origen: evt.payload.origen,
+            destino: evt.payload.destino,
+            cliente: evt.payload.clienteNombre || 'Cliente SARA Constructora',
+            material: `${evt.payload.material} (${evt.payload.pesoTon} Ton)`,
+            valorRef: evt.payload.tarifaOfertadaUSD,
+            distanciaKm: evt.payload.distanciaKm,
+            coordsOrigen: evt.payload.coordsOrigen,
+            coordsDestino: evt.payload.coordsDestino,
+            codigoAcceso: evt.payload.codigoAcceso
+          });
+          showToast(`¡Nuevo flete en radar [Jerarquía ${targetConfig?.priority || 'ALTA'}]: ${evt.payload.origen} → ${evt.payload.destino}!`);
+        };
+
+        if (delaySeconds > 0) {
+          setTimeout(deliverTripRequest, delaySeconds * 1000);
+        } else {
+          deliverTripRequest();
+        }
       } else if (evt.type === 'CANCELAR_SOLICITUD_FLETE') {
         setIncomingRequest((prev: any) => {
           if (prev && prev.fleteId === evt.payload.fleteId) {
@@ -196,55 +264,71 @@ export default function MiPerfilFletes() {
       } else if (evt.type === 'PLANES_ACTUALIZADOS') {
         setPlanesConfig(evt.payload);
         showToast('¡Planes y comisiones de fletes sincronizados con Administración!');
+      } else if (evt.type === 'DEBITO_COMISION_CONDUCTOR') {
+        const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+        if (evt.payload.plate === myPlate) {
+          setBalance(evt.payload.nuevoSaldo);
+        }
       }
     });
 
     return () => unsub();
-  }, [tripAccepted, currentUser]);
+  }, [tripAccepted, currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
 
-  const handleAcceptTrip = () => {
+  const handleAcceptTrip = async () => {
+    if (!incomingRequest) return;
+    const valorFlete = incomingRequest.valorRef || 3.50;
+    const targetConfig = plan === 'VIP' ? planVIPConfig : plan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
+    const comisionPct = targetConfig.commissionRate || (plan === 'VIP' ? 30.0 : plan === 'Estandar' ? 20.0 : 10.0);
+    const comisionDebito = +(valorFlete * (comisionPct / 100)).toFixed(2);
+
+    // 1. Verificación estricta de saldo prepago
+    if (balance < 1.00 || balance < comisionDebito) {
+      showToast(`⚠️ Saldo insuficiente ($${balance.toFixed(2)} USD). La comisión requerida es de $${comisionDebito.toFixed(2)} USD (${comisionPct}%). Recarga saldo para aceptar.`);
+      setActiveTab('billetera');
+      return;
+    }
+
+    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const driverName = currentUser?.user_metadata?.full_name || 'Carlos Mendoza';
     const code = incomingRequest?.codigoAcceso || ('SARA-' + Math.floor(1000 + Math.random() * 9000));
+
+    // 2. Débito automático de la comisión desde la billetera prepago
+    const debitResult = await debitConductorWallet({
+      driverName,
+      plate: myPlate,
+      amount: comisionDebito,
+      fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
+      tarifaFlete: valorFlete,
+      comisionPorcentaje: comisionPct
+    });
+
+    const nuevoSaldo = debitResult.nuevoSaldo;
+    setBalance(nuevoSaldo);
     setTripAccepted(true);
     setAccessCode(code);
 
-    // Emisión en tiempo real de aceptación al cliente
-    if (incomingRequest) {
-      SaraFletesRealtimeService.emit({
-        type: 'CHOFER_ACEPTO_FLETE',
-        payload: {
-          fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
-          driverName: currentUser?.user_metadata?.full_name || 'Carlos Mendoza',
-          plate: currentUser?.user_metadata?.placa || 'PBA-1234',
-          vehicleName: 'Volqueta Hino 14m³',
-          codigoAcceso: code,
-          precio: incomingRequest.valorRef || 3.50,
-          coords: driverLocation
-        }
-      });
+    // 3. Emisión en tiempo real de aceptación al cliente
+    SaraFletesRealtimeService.emit({
+      type: 'CHOFER_ACEPTO_FLETE',
+      payload: {
+        fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
+        driverName,
+        plate: myPlate,
+        vehicleName: 'Volqueta Hino 14m³',
+        codigoAcceso: code,
+        precio: valorFlete,
+        coords: driverLocation
+      }
+    });
+
+    // 4. Notificaciones claras de saldo
+    if (nuevoSaldo < 1.00) {
+      showToast(`⚠️ Flete aceptado (Comisión -$${comisionDebito.toFixed(2)} USD). ¡ALERTA: Te quedan $${nuevoSaldo.toFixed(2)} USD de saldo! Recarga para no ser silenciado en el radar.`);
+    } else {
+      showToast(`¡Flete Aceptado! Se debitó comisión de $${comisionDebito.toFixed(2)} USD (${comisionPct}%). Saldo restante: $${nuevoSaldo.toFixed(2)} USD.`);
     }
-
-    showToast('¡Flete aceptado! Notificación enviada al cliente en tiempo real.');
   };
-
-  // Estados Billetera y Planes Sincronizados
-  const [balance, setBalance] = useState(119.00);
-  const [rechargeAmount, setRechargeAmount] = useState(25);
-  const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('VIP');
-  const [planesConfig, setPlanesConfig] = useState<PlanConfigItem[]>(() => {
-    return SaraFletesRealtimeService.getPlanesConfig();
-  });
-
-  const planVIPConfig = useMemo(() => planesConfig.find(p => p.id === 'vip') || {
-    id: 'vip', name: 'Plan VIP', monthlyPrice: 29.99, commissionRate: 5.0, benefits: ['Prioridad 1 en Despacho Satelital', 'Cobertura Nacional y Vía Express', 'Liquidación inmediata en 24h']
-  }, [planesConfig]);
-
-  const planEstandarConfig = useMemo(() => planesConfig.find(p => p.id === 'standard') || {
-    id: 'standard', name: 'Plan Estándar', monthlyPrice: 15.00, commissionRate: 10.0, benefits: ['Notificaciones de radio local', 'Billetera prepago SARA', 'Hasta 50 rutas/mes']
-  }, [planesConfig]);
-
-  const planBasicoConfig = useMemo(() => planesConfig.find(p => p.id === 'basic') || {
-    id: 'basic', name: 'Plan Básico', monthlyPrice: 0.00, commissionRate: 20.0, benefits: ['Acceso general a la bolsa de carga', 'Hasta 10 rutas/mes']
-  }, [planesConfig]);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutConfig, setCheckoutConfig] = useState<{
@@ -270,17 +354,7 @@ export default function MiPerfilFletes() {
   const handleSelectPlanSubscription = (nombrePlan: 'VIP' | 'Estandar' | 'Basico') => {
     const targetConfig = nombrePlan === 'VIP' ? planVIPConfig : nombrePlan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
     setPlan(nombrePlan);
-    if (targetConfig.monthlyPrice > 0) {
-      setCheckoutConfig({
-        title: `Plan ${nombrePlan} de SARA Fletes`,
-        amount: targetConfig.monthlyPrice,
-        isSubscription: true,
-        interval: 'mes'
-      });
-      setIsCheckoutOpen(true);
-    } else {
-      showToast(`¡Plan ${nombrePlan} activado con ${targetConfig.commissionRate}% de comisión!`);
-    }
+    showToast(`¡Plan ${nombrePlan} activado! Jerarquía: ${targetConfig.priority || 'ALTA'} · Comisión: ${targetConfig.commissionRate}% ($0.00/mes).`);
   };
 
   const viajes = [
@@ -370,7 +444,36 @@ export default function MiPerfilFletes() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* BADGE DESTACADO DE SALDO DE BILLETERA */}
+          <div
+            onClick={() => setActiveTab('billetera')}
+            className={`cursor-pointer px-3.5 py-1.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-md ${
+              balance < 1.00
+                ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-2 ring-rose-500/30 animate-pulse'
+                : balance < 5.00
+                  ? 'bg-amber-500/15 border-amber-500/50 text-amber-300'
+                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+            }`}
+          >
+            <div className={`p-1.5 rounded-lg ${balance < 1.00 ? 'bg-rose-500 text-white' : 'bg-slate-800 text-emerald-400'}`}>
+              {balance < 1.00 ? <AlertTriangle className="w-4 h-4 animate-bounce" /> : <Wallet className="w-4 h-4" />}
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                {balance < 1.00 ? '¡Saldo Crítico!' : 'Saldo Billetera'}
+              </span>
+              <span className="text-sm font-black font-mono leading-none tracking-tight">
+                ${balance.toFixed(2)} <span className="text-[10px] font-normal text-slate-400 font-sans">USD</span>
+              </span>
+            </div>
+            {balance < 1.00 && (
+              <span className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md ml-1 shadow">
+                Recargar
+              </span>
+            )}
+          </div>
+
           <Link
             href="/modulos/fletes"
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors"
@@ -395,8 +498,19 @@ export default function MiPerfilFletes() {
         {/* SIDEBAR DE PESTAÑAS */}
         <aside className="w-full lg:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between">
           <div className="space-y-1">
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Chofer Asignado</p>
+            <div className={`p-3 rounded-xl border mb-4 transition-all ${
+              balance < 1.00 ? 'bg-rose-950/40 border-rose-500/70' : 'bg-slate-950 border-slate-800'
+            }`}>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Chofer Asignado</p>
+                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
+                  plan === 'VIP' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                  plan === 'Estandar' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                  'bg-slate-700 text-slate-300'
+                }`}>
+                  {plan} · {plan === 'VIP' ? 'Prioridad Alta' : plan === 'Estandar' ? 'Prioridad Media' : 'Prioridad Baja'}
+                </span>
+              </div>
               <p className="font-bold text-white text-sm mt-0.5">
                 {currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
               </p>
@@ -404,9 +518,24 @@ export default function MiPerfilFletes() {
                 Placa: {currentUser?.user_metadata?.placa || 'PBA-1234'}
               </p>
               <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Billetera:</span>
-                <span className="font-mono font-black text-emerald-400">${balance.toFixed(2)}</span>
+                <span className="text-slate-400">Billetera Prepago:</span>
+                <span className={`font-mono font-black ${balance < 1.00 ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`}>
+                  ${balance.toFixed(2)} USD
+                </span>
               </div>
+              {balance < 1.00 && (
+                <div className="mt-2 pt-2 border-t border-rose-500/30">
+                  <p className="text-[10px] text-rose-300 font-bold leading-tight">
+                    ⚠️ Saldo menor a $1.00. Radar silenciado.
+                  </p>
+                  <button
+                    onClick={() => setActiveTab('billetera')}
+                    className="mt-1 w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] py-1 rounded-md transition-colors"
+                  >
+                    Recargar Ahora
+                  </button>
+                </div>
+              )}
             </div>
 
             <button
@@ -495,18 +624,47 @@ export default function MiPerfilFletes() {
           {/* ================================================================ */}
           {activeTab === 'sincronizacion' && (
             <div className="space-y-4 h-full flex flex-col">
+              {/* BANNER DE ALERTA CRÍTICA SI EL SALDO ES MENOR A $1.00 */}
+              {balance < 1.00 && (
+                <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-rose-950 border-2 border-rose-500 p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl">
+                      <AlertTriangle className="w-6 h-6 animate-bounce" />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-rose-200 text-sm flex items-center gap-2">
+                        <span>⚠️ Te estás quedando sin saldo:</span>
+                        <span className="font-mono bg-rose-500/30 px-2 py-0.5 rounded text-white font-black">${balance.toFixed(2)} USD</span>
+                      </h4>
+                      <p className="text-xs text-rose-300/90 mt-0.5">
+                        Tu saldo es menor a $1.00 USD. Tu radar ha sido <strong>silenciado automáticamente</strong> y no recibirás notificaciones de carreras hasta que realices una recarga.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('billetera')}
+                    className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-rose-600/30 flex items-center gap-1.5"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    Recargar Saldo Inmediato
+                  </button>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-2xl font-black text-white flex items-center gap-2">
                     Sincronización Fletes (Radar Activo en Tiempo Real)
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Tu unidad está transmitiendo coordenadas GPS y recibiendo viajes cercanos en tiempo real.
+                    Tu unidad está transmitiendo coordenadas GPS y recibiendo viajes cercanos según tu jerarquía ({plan === 'VIP' ? 'Prioridad Alta' : plan === 'Estandar' ? 'Prioridad Media' : 'Prioridad Baja'}).
                   </p>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  <span className="text-slate-300 font-bold">Transmitiendo en {driverCity}, {driverProvince}</span>
+                  <span className={`w-2.5 h-2.5 rounded-full ${balance < 1.00 ? 'bg-rose-500' : 'bg-emerald-500 animate-ping'}`}></span>
+                  <span className="text-slate-300 font-bold">
+                    {balance < 1.00 ? 'Radar En Pausa (Sin Saldo)' : `Transmitiendo en ${driverCity}, ${driverProvince}`}
+                  </span>
                 </div>
               </div>
 
@@ -526,49 +684,97 @@ export default function MiPerfilFletes() {
                   ] : undefined}
                 />
 
-                {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE */}
-                {incomingRequest && !tripAccepted && (
-                  <div className="absolute top-6 right-6 z-20 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        ¡Nuevo Flete Cercano!
-                      </span>
-                      <span className="text-xs font-mono text-emerald-400 font-black">
-                        ${incomingRequest.valorRef.toFixed(2)} USD
-                      </span>
-                    </div>
+                {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE CON CÁLCULO DE COMISIÓN Y DESCUENTO DE SALDO */}
+                {incomingRequest && !tripAccepted && (() => {
+                  const valorRef = incomingRequest.valorRef || 3.50;
+                  const targetConfig = plan === 'VIP' ? planVIPConfig : plan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
+                  const comisionPct = targetConfig.commissionRate || (plan === 'VIP' ? 30.0 : plan === 'Estandar' ? 20.0 : 10.0);
+                  const comisionUSD = +(valorRef * (comisionPct / 100)).toFixed(2);
+                  const saldoPostViaje = +(balance - comisionUSD).toFixed(2);
+                  const saldoSuficiente = balance >= 1.00 && balance >= comisionUSD;
 
-                    <div className="space-y-2 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 mb-4">
-                      <p className="flex items-start gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></span>
-                        <span><strong>Origen:</strong> {incomingRequest.origen}</span>
-                      </p>
-                      <p className="flex items-start gap-2">
-                        <span className="w-2 h-2 rounded-full bg-amber-500 mt-1 flex-shrink-0"></span>
-                        <span><strong>Destino:</strong> {incomingRequest.destino}</span>
-                      </p>
-                      <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
-                        Carga: {incomingRequest.material} • Distancia: {incomingRequest.distanciaKm} km
-                      </p>
-                    </div>
+                  return (
+                    <div className="absolute top-6 right-6 z-20 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          ¡Nuevo Flete en Radar!
+                        </span>
+                        <div className="text-right">
+                          <span className="text-base font-mono text-emerald-400 font-black">
+                            ${valorRef.toFixed(2)} USD
+                          </span>
+                        </div>
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setIncomingRequest(null)}
-                        className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors"
-                      >
-                        Rechazar
-                      </button>
-                      <button
-                        onClick={handleAcceptTrip}
-                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25"
-                      >
-                        Aceptar Flete
-                      </button>
+                      <div className="space-y-2 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3">
+                        <p className="flex items-start gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></span>
+                          <span><strong>Origen:</strong> {incomingRequest.origen}</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 mt-1 flex-shrink-0"></span>
+                          <span><strong>Destino:</strong> {incomingRequest.destino}</span>
+                        </p>
+                        <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+                          Carga: {incomingRequest.material} • Distancia: {incomingRequest.distanciaKm} km
+                        </p>
+                      </div>
+
+                      {/* DESGLOSE TRANSPARENTE DE COMISIÓN Y SALDO */}
+                      <div className="bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl mb-4 space-y-1.5 text-xs">
+                        <div className="flex justify-between text-slate-400">
+                          <span>Tarifa de Carrera:</span>
+                          <span className="font-mono text-white font-bold">${valorRef.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex justify-between text-rose-400">
+                          <span>Comisión SARA ({plan} - {comisionPct}%):</span>
+                          <span className="font-mono font-bold">-${comisionUSD.toFixed(2)} USD</span>
+                        </div>
+                        <div className="pt-1 border-t border-slate-800 flex justify-between items-center text-[11px]">
+                          <span className="text-slate-400">Tu Saldo Actual:</span>
+                          <span className="font-mono font-bold text-amber-400">${balance.toFixed(2)} USD</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-slate-400">Saldo tras aceptar:</span>
+                          <span className={`font-mono font-bold ${saldoPostViaje < 1.00 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            ${saldoPostViaje.toFixed(2)} USD
+                          </span>
+                        </div>
+                      </div>
+
+                      {!saldoSuficiente ? (
+                        <div className="space-y-2">
+                          <p className="text-[11px] text-rose-400 font-bold text-center">
+                            ⚠️ Saldo insuficiente para cubrir la comisión de este flete (${comisionUSD.toFixed(2)} USD).
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('billetera')}
+                            className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-rose-600/30"
+                          >
+                            Recargar Billetera Ahora
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => setIncomingRequest(null)}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors"
+                          >
+                            Rechazar
+                          </button>
+                          <button
+                            onClick={handleAcceptTrip}
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25"
+                          >
+                            Aceptar (-${comisionUSD.toFixed(2)})
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* OVERLAY: VIAJE ACEPTADO (EN RUTA) */}
                 {tripAccepted && (
@@ -912,9 +1118,14 @@ export default function MiPerfilFletes() {
 
               {/* SECCIÓN DE PLANES CON FORMATO ULTRA CLARO */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-black text-white">Planes de Suscripción y Comisión</h3>
-                  <span className="text-xs text-amber-400 font-bold">A menor comisión por viaje, mayor utilidad neta</span>
+                <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
+                  <div>
+                    <h3 className="text-lg font-black text-white">Planes de Notificación y Comisión Prepago</h3>
+                    <p className="text-xs text-slate-400">Todos los planes tienen $0.00 de costo mensual y carreras ilimitadas. Se diferencian por la jerarquía de prioridad en el radar.</p>
+                  </div>
+                  <span className="text-xs text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
+                    100% Basado en Comisión por Carrera Ganada
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -930,44 +1141,56 @@ export default function MiPerfilFletes() {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-black text-sm text-white">{planVIPConfig.name}</span>
-                        {plan === 'VIP' && (
-                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                            Plan Activo
-                          </span>
-                        )}
+                        <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                          {plan === 'VIP' ? 'Plan Activo' : 'Prioridad Alta'}
+                        </span>
                       </div>
 
-                      {/* Costo Mensual Destacado Sincronizado */}
+                      {/* Costo Mensual $0.00 Destacado */}
                       <div className="mb-3">
-                        <p className="text-3xl font-black text-amber-400 font-mono">
-                          ${planVIPConfig.monthlyPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                        <p className="text-2xl font-black text-white font-mono">
+                          $0.00 <span className="text-xs text-emerald-400 font-sans font-semibold">USD / mes (Sin Mensualidad)</span>
                         </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Prepago 100% por carrera adjudicada</p>
                       </div>
 
-                      {/* Comisión por Flete Sincronizada */}
+                      {/* Jerarquía de Notificación */}
+                      <div className="bg-amber-500/15 border border-amber-500/30 p-2.5 rounded-xl mb-3">
+                        <p className="text-[10px] text-amber-400 uppercase font-black">Jerarquía de Notificación</p>
+                        <p className="text-base font-black text-white">
+                          Prioridad ALTA <span className="text-xs text-amber-300 font-normal font-mono">(Inmediato T=0s)</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Recibe el viaje antes que cualquier otro plan</p>
+                      </div>
+
+                      {/* Comisión por Flete */}
                       <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
                         <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
                         <p className="text-xl font-black text-emerald-400 font-mono">
-                          {planVIPConfig.commissionRate.toFixed(1)}% <span className="text-xs font-normal text-slate-400">(Tarifa Administrador)</span>
+                          {planVIPConfig.commissionRate.toFixed(1)}% <span className="text-xs font-normal text-slate-400">por carrera</span>
                         </p>
                       </div>
 
                       <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
-                        {planVIPConfig.benefits.map((b: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {b}
-                          </li>
-                        ))}
+                        <li className="flex items-center gap-1.5 font-bold text-white">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Despacho Inmediato Nivel 1 en Radar
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Carreras Ilimitadas a nivel nacional
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Atención y Soporte 24/7 VIP
+                        </li>
                       </ul>
                     </div>
 
                     <button
                       type="button"
                       className={`w-full py-2.5 rounded-xl text-xs font-black transition-colors ${
-                        plan === 'VIP' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white'
+                        plan === 'VIP' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-slate-800 hover:bg-slate-700 text-white'
                       }`}
                     >
-                      {plan === 'VIP' ? 'Plan Activo' : 'Suscribirse al Plan VIP'}
+                      {plan === 'VIP' ? '✓ Plan Activo' : 'Activar Plan VIP (Prioridad Alta)'}
                     </button>
                   </div>
 
@@ -976,24 +1199,34 @@ export default function MiPerfilFletes() {
                     onClick={() => handleSelectPlanSubscription('Estandar')}
                     className={`cursor-pointer rounded-2xl p-5 border-2 transition-all flex flex-col justify-between ${
                       plan === 'Estandar'
-                        ? 'border-amber-500 bg-amber-500/10 shadow-lg'
+                        ? 'border-blue-500 bg-blue-500/10 shadow-lg'
                         : 'border-slate-800 bg-slate-900 hover:border-slate-700'
                     }`}
                   >
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-black text-sm text-white">{planEstandarConfig.name}</span>
-                        {plan === 'Estandar' && (
-                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                            Plan Activo
-                          </span>
-                        )}
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                          plan === 'Estandar' ? 'bg-blue-500 text-white' : 'bg-slate-800 text-slate-300'
+                        }`}>
+                          {plan === 'Estandar' ? 'Plan Activo' : 'Prioridad Media'}
+                        </span>
                       </div>
 
                       <div className="mb-3">
-                        <p className="text-3xl font-black text-white font-mono">
-                          ${planEstandarConfig.monthlyPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                        <p className="text-2xl font-black text-white font-mono">
+                          $0.00 <span className="text-xs text-emerald-400 font-sans font-semibold">USD / mes (Sin Mensualidad)</span>
                         </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Prepago 100% por carrera adjudicada</p>
+                      </div>
+
+                      {/* Jerarquía de Notificación */}
+                      <div className="bg-blue-500/15 border border-blue-500/30 p-2.5 rounded-xl mb-3">
+                        <p className="text-[10px] text-blue-400 uppercase font-black">Jerarquía de Notificación</p>
+                        <p className="text-base font-black text-white">
+                          Prioridad MEDIA <span className="text-xs text-blue-300 font-normal font-mono">(Nivel 2 tras 4s)</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Notifica si los conductores VIP no toman el flete</p>
                       </div>
 
                       <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
@@ -1004,21 +1237,25 @@ export default function MiPerfilFletes() {
                       </div>
 
                       <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
-                        {planEstandarConfig.benefits.map((b: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {b}
-                          </li>
-                        ))}
+                        <li className="flex items-center gap-1.5 font-bold text-white">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Notificación Nivel 2 (a los 4s)
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Carreras Ilimitadas a nivel nacional
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Atención y Soporte 24/7
+                        </li>
                       </ul>
                     </div>
 
                     <button
                       type="button"
                       className={`w-full py-2.5 rounded-xl text-xs font-black transition-colors ${
-                        plan === 'Estandar' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white'
+                        plan === 'Estandar' ? 'bg-blue-500 text-white shadow-md' : 'bg-slate-800 hover:bg-slate-700 text-white'
                       }`}
                     >
-                      {plan === 'Estandar' ? 'Plan Activo' : 'Elegir Estándar'}
+                      {plan === 'Estandar' ? '✓ Plan Activo' : 'Activar Estándar (Prioridad Media)'}
                     </button>
                   </div>
 
@@ -1027,24 +1264,34 @@ export default function MiPerfilFletes() {
                     onClick={() => handleSelectPlanSubscription('Basico')}
                     className={`cursor-pointer rounded-2xl p-5 border-2 transition-all flex flex-col justify-between ${
                       plan === 'Basico'
-                        ? 'border-amber-500 bg-amber-500/10 shadow-lg'
+                        ? 'border-slate-500 bg-slate-800/40 shadow-lg'
                         : 'border-slate-800 bg-slate-900 hover:border-slate-700'
                     }`}
                   >
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-black text-sm text-white">{planBasicoConfig.name}</span>
-                        {plan === 'Basico' && (
-                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                            Plan Activo
-                          </span>
-                        )}
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                          plan === 'Basico' ? 'bg-slate-600 text-white' : 'bg-slate-800 text-slate-400'
+                        }`}>
+                          {plan === 'Basico' ? 'Plan Activo' : 'Prioridad Baja'}
+                        </span>
                       </div>
 
                       <div className="mb-3">
-                        <p className="text-3xl font-black text-white font-mono">
-                          ${planBasicoConfig.monthlyPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                        <p className="text-2xl font-black text-white font-mono">
+                          $0.00 <span className="text-xs text-emerald-400 font-sans font-semibold">USD / mes (Sin Mensualidad)</span>
                         </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Prepago 100% por carrera adjudicada</p>
+                      </div>
+
+                      {/* Jerarquía de Notificación */}
+                      <div className="bg-slate-800/60 border border-slate-700 p-2.5 rounded-xl mb-3">
+                        <p className="text-[10px] text-slate-400 uppercase font-black">Jerarquía de Notificación</p>
+                        <p className="text-base font-black text-white">
+                          Prioridad BAJA <span className="text-xs text-slate-400 font-normal font-mono">(Nivel 3 tras 8s)</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Notifica si los planes superiores no toman el flete</p>
                       </div>
 
                       <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
@@ -1055,21 +1302,25 @@ export default function MiPerfilFletes() {
                       </div>
 
                       <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
-                        {planBasicoConfig.benefits.map((b: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {b}
-                          </li>
-                        ))}
+                        <li className="flex items-center gap-1.5 font-bold text-white">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Notificación Nivel 3 (a los 8s)
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Carreras Ilimitadas a nivel nacional
+                        </li>
+                        <li className="flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Atención y Soporte 24/7
+                        </li>
                       </ul>
                     </div>
 
                     <button
                       type="button"
                       className={`w-full py-2.5 rounded-xl text-xs font-black transition-colors ${
-                        plan === 'Basico' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 hover:bg-slate-700 text-white'
+                        plan === 'Basico' ? 'bg-slate-700 text-white shadow-md' : 'bg-slate-800 hover:bg-slate-700 text-white'
                       }`}
                     >
-                      {plan === 'Basico' ? 'Plan Activo' : 'Elegir Básico'}
+                      {plan === 'Basico' ? '✓ Plan Activo' : 'Activar Básico (Prioridad Baja)'}
                     </button>
                   </div>
                 </div>
@@ -1259,8 +1510,13 @@ export default function MiPerfilFletes() {
           if (checkoutConfig.isSubscription) {
             showToast(`¡Suscripción al ${checkoutConfig.title} activada! Ref: ${txId}`);
           } else {
-            setBalance(balance + checkoutConfig.amount);
-            showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} acreditada! Ref: ${txId}`);
+            const nuevo = +(balance + checkoutConfig.amount).toFixed(2);
+            setBalance(nuevo);
+            if (typeof window !== 'undefined') {
+              const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
+              localStorage.setItem(`sara_fletes_rt_wallet_${plate}`, nuevo.toString());
+            }
+            showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} USD acreditada exitosamente! Tu nuevo saldo es $${nuevo.toFixed(2)} USD. Ref: ${txId}`);
           }
         }}
         title={checkoutConfig.title}

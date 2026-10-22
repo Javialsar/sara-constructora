@@ -234,6 +234,65 @@ export async function rechargeConductorWallet(conductorId: string, amount: numbe
   }
 }
 
+export async function debitConductorWallet(params: {
+  conductorId?: string;
+  driverName: string;
+  plate: string;
+  amount: number;
+  fleteId: string;
+  tarifaFlete: number;
+  comisionPorcentaje: number;
+}): Promise<{ success: boolean; nuevoSaldo: number }> {
+  try {
+    // 1. Actualización y persistencia en storage por placa
+    const storageKey = `sara_fletes_rt_wallet_${params.plate}`;
+    const rawVal = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+    const prevBalance = rawVal !== null ? Number(rawVal) : 119.00;
+    const nuevoSaldo = Math.max(0, +(prevBalance - params.amount).toFixed(2));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, nuevoSaldo.toString());
+    }
+
+    // 2. Notificación en el bus en tiempo real
+    SaraFletesRealtimeService.emit({
+      type: 'DEBITO_COMISION_CONDUCTOR',
+      payload: {
+        plate: params.plate,
+        driverName: params.driverName,
+        montoDebitado: params.amount,
+        nuevoSaldo,
+        fleteId: params.fleteId
+      }
+    });
+
+    // 3. Persistencia en Supabase si existe ID
+    if (params.conductorId) {
+      try {
+        const { data: cond } = await supabase
+          .from('fletes_conductores')
+          .select('saldo_billetera')
+          .eq('id', params.conductorId)
+          .single();
+
+        if (cond) {
+          const saldoEnBD = Math.max(0, (Number(cond.saldo_billetera) || 0) - params.amount);
+          await supabase
+            .from('fletes_conductores')
+            .update({ saldo_billetera: saldoEnBD, updated_at: new Date().toISOString() })
+            .eq('id', params.conductorId);
+        }
+      } catch (dbErr) {
+        console.warn('Persistencia en BD Supabase omitida:', dbErr);
+      }
+    }
+
+    return { success: true, nuevoSaldo };
+  } catch (err) {
+    console.error('Error debitando comisión de flete:', err);
+    return { success: false, nuevoSaldo: 0 };
+  }
+}
+
 export async function getFletesDashboardStats() {
   try {
     const [{ count: activeCount }, { count: pendingReqs }] = await Promise.all([

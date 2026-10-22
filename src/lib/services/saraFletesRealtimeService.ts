@@ -56,8 +56,10 @@ export interface ConductorEstadoRealtime {
 export interface PlanConfigItem {
   id: string; // 'vip' | 'standard' | 'basic'
   name: string;
-  monthlyPrice: number;
-  commissionRate: number;
+  monthlyPrice: number; // 0.00 (Sin costo mensual, 100% comisión por viaje)
+  commissionRate: number; // Porcentaje de comisión por flete
+  priority: 'ALTA' | 'MEDIA' | 'BAJA'; // Jerarquía de notificación
+  dispatchDelaySeconds: number; // 0s para VIP, 4s para Estándar, 8s para Básico
   benefits: string[];
 }
 
@@ -65,37 +67,43 @@ export const DEFAULT_FLETES_PLANES: PlanConfigItem[] = [
   {
     id: 'vip',
     name: 'Plan VIP',
-    monthlyPrice: 29.99,
-    commissionRate: 5.0,
+    monthlyPrice: 0.00,
+    commissionRate: 30.0,
+    priority: 'ALTA',
+    dispatchDelaySeconds: 0,
     benefits: [
-      'Prioridad 1 en Despacho Satelital',
-      'Soporte 24/7 prioritario',
-      'Rutas y cobertura ilimitada a nivel nacional',
-      'Liquidación inmediata en 24h'
+      'Prioridad ALTA en Notificación de Radar (Despacho Inmediato Nivel 1)',
+      'Soporte 24/7 y Asistencia VIP en Obra',
+      'Rutas ilimitadas a nivel nacional',
+      'Mayor probabilidad de adjudicación de fletes'
     ]
   },
   {
     id: 'standard',
     name: 'Plan Estándar',
-    monthlyPrice: 15.00,
-    commissionRate: 10.0,
+    monthlyPrice: 0.00,
+    commissionRate: 20.0,
+    priority: 'MEDIA',
+    dispatchDelaySeconds: 4,
     benefits: [
-      'Soporte horario hábil',
-      'Hasta 50 rutas/mes',
-      'Notificaciones de radio local',
-      'Billetera prepago SARA'
+      'Prioridad MEDIA en Notificación de Radar (Despacho Nivel 2 tras 4s)',
+      'Soporte 24/7',
+      'Rutas ilimitadas a nivel nacional',
+      'Billetera prepago SARA recargable'
     ]
   },
   {
     id: 'basic',
     name: 'Plan Básico',
     monthlyPrice: 0.00,
-    commissionRate: 20.0,
+    commissionRate: 10.0,
+    priority: 'BAJA',
+    dispatchDelaySeconds: 8,
     benefits: [
-      'Soporte comunitario',
-      'Hasta 10 rutas/mes',
-      'Acceso general a la bolsa de carga',
-      'Hasta 2 vehículos'
+      'Prioridad BAJA en Notificación de Radar (Despacho Nivel 3 tras 8s)',
+      'Soporte 24/7',
+      'Rutas ilimitadas a nivel nacional',
+      'Acceso a bolsa general de carga'
     ]
   }
 ];
@@ -109,7 +117,8 @@ export type FletesRealtimeEvent =
   | { type: 'CHOFER_ACEPTO_FLETE'; payload: { fleteId: string; driverName: string; plate: string; vehicleName: string; codigoAcceso: string; precio: number; coords: [number, number] } }
   | { type: 'FLETE_COMPLETADO'; payload: { fleteId: string; codigoAcceso: string } }
   | { type: 'ACTUALIZAR_GPS_CONDUCTOR'; payload: ConductorEstadoRealtime }
-  | { type: 'PLANES_ACTUALIZADOS'; payload: PlanConfigItem[] };
+  | { type: 'PLANES_ACTUALIZADOS'; payload: PlanConfigItem[] }
+  | { type: 'DEBITO_COMISION_CONDUCTOR'; payload: { plate: string; driverName: string; montoDebitado: number; nuevoSaldo: number; fleteId: string } };
 
 const CHANNEL_NAME = 'sara_fletes_radar_bus_v1';
 const STORAGE_PREFIX = 'sara_fletes_rt_';

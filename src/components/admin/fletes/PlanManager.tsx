@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Zap, CheckCircle, Save, Star, Plus, Trash2, Check } from 'lucide-react';
+import { Settings, Shield, Zap, CheckCircle, Save, Star, Plus, Trash2, Check, Clock, BellRing, Sparkles } from 'lucide-react';
 import { saveFletesPlanes } from '@/lib/fletes-data';
 import { SaraFletesRealtimeService, PlanConfigItem } from '@/lib/services/saraFletesRealtimeService';
 
@@ -23,6 +23,7 @@ export default function PlanManager() {
     const loaded = SaraFletesRealtimeService.getPlanesConfig();
     setPlans(loaded.map(p => ({
       ...p,
+      monthlyPrice: 0.00, // Modelo 100% por comisión sin costo mensual
       ...getIconAndColor(p.id)
     })));
 
@@ -30,6 +31,7 @@ export default function PlanManager() {
       if (evt.type === 'PLANES_ACTUALIZADOS') {
         setPlans(evt.payload.map(p => ({
           ...p,
+          monthlyPrice: 0.00,
           ...getIconAndColor(p.id)
         })));
       }
@@ -38,12 +40,13 @@ export default function PlanManager() {
     return () => unsub();
   }, []);
 
-  const handlePriceChange = (id: string, value: string) => {
-    setPlans(plans.map(p => p.id === id ? { ...p, monthlyPrice: parseFloat(value) || 0 } : p));
-  };
-
   const handleCommissionChange = (id: string, value: string) => {
     setPlans(plans.map(p => p.id === id ? { ...p, commissionRate: parseFloat(value) || 0 } : p));
+  };
+
+  const handlePriorityChange = (id: string, priority: 'ALTA' | 'MEDIA' | 'BAJA') => {
+    const delay = priority === 'ALTA' ? 0 : priority === 'MEDIA' ? 4 : 8;
+    setPlans(plans.map(p => p.id === id ? { ...p, priority, dispatchDelaySeconds: delay } : p));
   };
 
   const handleBenefitChange = (planId: string, index: number, value: string) => {
@@ -80,8 +83,10 @@ export default function PlanManager() {
     const cleanPlans: PlanConfigItem[] = plans.map(p => ({
       id: p.id,
       name: p.name,
-      monthlyPrice: p.monthlyPrice,
+      monthlyPrice: 0.00, // Modelo sin costo mensual
       commissionRate: p.commissionRate,
+      priority: p.priority || (p.id === 'vip' ? 'ALTA' : p.id === 'standard' ? 'MEDIA' : 'BAJA'),
+      dispatchDelaySeconds: p.dispatchDelaySeconds !== undefined ? p.dispatchDelaySeconds : (p.id === 'vip' ? 0 : p.id === 'standard' ? 4 : 8),
       benefits: p.benefits
     }));
 
@@ -105,10 +110,10 @@ export default function PlanManager() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Settings className="w-8 h-8 text-indigo-600" />
-            Gestión de Planes de Fletes
+            Gestión de Planes de Fletes (Modelo por Comisión)
           </h1>
-          <p className="text-gray-600 mt-2">
-            Configura los precios mensuales y las comisiones por viaje para cada plan de suscripción. Totalmente sincronizado con la Cabina de Transportista en tiempo real.
+          <p className="text-gray-600 mt-2 text-sm">
+            Configuración 100% basada en porcentaje de comisión por viaje ganado y jerarquía de notificación en radar (Alta, Media, Baja). Todos los planes cuentan con rutas ilimitadas y atención 24/7 sin costos fijos mensuales.
           </p>
         </div>
         <button
@@ -128,48 +133,69 @@ export default function PlanManager() {
             className={`bg-white rounded-2xl shadow-md overflow-hidden border-t-4 ${plan.color} hover:shadow-lg transition-shadow flex flex-col justify-between`}
           >
             <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                 {plan.icon}
               </div>
 
-              <div className="space-y-5 mt-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
-                    Costo Mensual ($ USD)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 sm:text-sm">$</span>
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={plan.monthlyPrice}
-                      onChange={(e) => handlePriceChange(plan.id, e.target.value)}
-                      className="pl-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm border p-2.5 font-bold font-mono text-gray-900"
-                    />
-                  </div>
-                </div>
+              {/* Modalidad de Cobro: 100% Comisión (Sin costo mensual) */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
+                <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider block">
+                  Modalidad de Cobro
+                </span>
+                <p className="font-black text-emerald-700 text-sm mt-0.5 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  100% Prepago por Carrera Ganada
+                </p>
+                <p className="text-[11px] text-emerald-600 mt-0.5">
+                  Costo mensual: <strong>$0.00 USD / mes (Gratis)</strong>
+                </p>
+              </div>
 
+              <div className="space-y-4">
+                {/* 1. Comisión por Flete */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">
-                    Comisión por Flete (%)
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Comisión por Flete Ganado (%)
                   </label>
                   <div className="relative">
                     <input
                       type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
+                      min="1"
+                      max="50"
+                      step="0.5"
                       value={plan.commissionRate}
                       onChange={(e) => handleCommissionChange(plan.id, e.target.value)}
-                      className="pr-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm border p-2.5 font-bold font-mono text-gray-900"
+                      className="pr-7 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-base border p-2.5 font-black font-mono text-gray-900"
                     />
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 sm:text-sm">%</span>
+                      <span className="text-gray-500 font-bold sm:text-sm">%</span>
                     </div>
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    Ej: Si la carrera es de $10.00, se debitan ${(10 * plan.commissionRate / 100).toFixed(2)} de su recarga al aceptar.
+                  </p>
+                </div>
+
+                {/* 2. Jerarquía de Notificación en Radar */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Nivel de Jerarquía de Notificación
+                  </label>
+                  <select
+                    value={plan.priority || (plan.id === 'vip' ? 'ALTA' : plan.id === 'standard' ? 'MEDIA' : 'BAJA')}
+                    onChange={(e) => handlePriorityChange(plan.id, e.target.value as any)}
+                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-xs font-bold border p-2 text-gray-900 bg-white"
+                  >
+                    <option value="ALTA">Prioridad Alta (Despacho Inmediato Nivel 1: 0s a 4s)</option>
+                    <option value="MEDIA">Prioridad Media (Despacho Nivel 2 tras 4s)</option>
+                    <option value="BAJA">Prioridad Baja (Despacho Nivel 3 tras 8s)</option>
+                  </select>
+                  <div className="mt-2 p-2 bg-slate-50 rounded-lg border border-slate-200 text-[11px] text-slate-600 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span>
+                      Retardo de despacho en radar: <strong>{plan.dispatchDelaySeconds || (plan.id === 'vip' ? 0 : plan.id === 'standard' ? 4 : 8)} segundos</strong>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -179,7 +205,7 @@ export default function PlanManager() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                    Beneficios Incluidos
+                    Beneficios del Plan
                   </h4>
                   <button
                     type="button"
@@ -190,7 +216,7 @@ export default function PlanManager() {
                   </button>
                 </div>
 
-                <ul className="space-y-2.5">
+                <ul className="space-y-2">
                   {plan.benefits.map((benefit, idx) => (
                     <li key={idx} className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -215,9 +241,14 @@ export default function PlanManager() {
                 </ul>
               </div>
 
-              <div className="mt-5 pt-3 border-t border-gray-200/80 text-[11px] text-gray-500 flex items-center justify-between">
-                <span>Estado: <strong className="text-emerald-600 font-bold">Activo en SARA Fletes</strong></span>
-                <span className="font-mono text-[10px] bg-gray-200 px-1.5 py-0.5 rounded">ID: {plan.id}</span>
+              <div className="mt-5 pt-3 border-t border-gray-200 text-[11px] text-gray-500 flex items-center justify-between">
+                <span className="flex items-center gap-1 font-semibold text-emerald-700">
+                  <BellRing className="w-3.5 h-3.5" />
+                  Jerarquía: <strong>{plan.priority || (plan.id === 'vip' ? 'ALTA' : plan.id === 'standard' ? 'MEDIA' : 'BAJA')}</strong>
+                </span>
+                <span className="font-mono text-[10px] bg-gray-200 px-1.5 py-0.5 rounded font-bold">
+                  {plan.commissionRate}% Comisión
+                </span>
               </div>
             </div>
           </div>
