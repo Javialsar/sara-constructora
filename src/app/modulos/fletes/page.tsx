@@ -44,8 +44,13 @@ import {
 import { 
   SaraFreightRoutingService, 
   GeocodedPoint, 
-  RutaVialCalculada 
+  RutaVialCalculada,
+  SugerenciaDireccion
 } from '@/lib/services/saraFreightRoutingService';
+import { 
+  SaraFletesRealtimeService, 
+  SolicitudFleteRealtime 
+} from '@/lib/services/saraFletesRealtimeService';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
@@ -129,6 +134,217 @@ export default function SaraFletesEngine() {
   useEffect(() => {
     destinationPointRef.current = destinationPoint;
   }, [destinationPoint]);
+
+  // Estados para sugerencias predictivas (Autocomplete en tiempo real a nivel nacional)
+  const [originSuggestions, setOriginSuggestions] = useState<SugerenciaDireccion[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<SugerenciaDireccion[]>([]);
+  const [showOriginSuggestions, setShowOriginSuggestions] = useState(false);
+  const [showDestSuggestions, setShowDestSuggestions] = useState(false);
+  const [isSearchingOrigin, setIsSearchingOrigin] = useState(false);
+  const [isSearchingDest, setIsSearchingDest] = useState(false);
+  const originDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const destDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const originInputWrapperRef = useRef<HTMLDivElement>(null);
+  const destInputWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar menús de sugerencias al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (originInputWrapperRef.current && !originInputWrapperRef.current.contains(e.target as Node)) {
+        setShowOriginSuggestions(false);
+      }
+      if (destInputWrapperRef.current && !destInputWrapperRef.current.contains(e.target as Node)) {
+        setShowDestSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Manejo de escritura con búsqueda predictiva en Origen
+  const handleOriginInputChange = (val: string) => {
+    originLockedByMapRef.current = false;
+    setOriginText(val);
+
+    if (originDebounceRef.current) clearTimeout(originDebounceRef.current);
+    if (val.trim().length >= 2) {
+      setIsSearchingOrigin(true);
+      originDebounceRef.current = setTimeout(async () => {
+        try {
+          const sugs = await SaraFreightRoutingService.buscarSugerenciasDireccion(val, userLocation || undefined);
+          setOriginSuggestions(sugs);
+          setShowOriginSuggestions(sugs.length > 0);
+        } catch (e) {
+          console.warn('Error buscando sugerencias origen:', e);
+        } finally {
+          setIsSearchingOrigin(false);
+        }
+      }, 180);
+    } else {
+      setOriginSuggestions([]);
+      setShowOriginSuggestions(false);
+      setIsSearchingOrigin(false);
+    }
+  };
+
+  // Manejo de escritura con búsqueda predictiva en Destino
+  const handleDestinationInputChange = (val: string) => {
+    destLockedByMapRef.current = false;
+    setDestinationText(val);
+
+    if (destDebounceRef.current) clearTimeout(destDebounceRef.current);
+    if (val.trim().length >= 2) {
+      setIsSearchingDest(true);
+      destDebounceRef.current = setTimeout(async () => {
+        try {
+          const sugs = await SaraFreightRoutingService.buscarSugerenciasDireccion(val, originPoint ? [originPoint.lat, originPoint.lng] : userLocation || undefined);
+          setDestinationSuggestions(sugs);
+          setShowDestSuggestions(sugs.length > 0);
+        } catch (e) {
+          console.warn('Error buscando sugerencias destino:', e);
+        } finally {
+          setIsSearchingDest(false);
+        }
+      }, 180);
+    } else {
+      setDestinationSuggestions([]);
+      setShowDestSuggestions(false);
+      setIsSearchingDest(false);
+    }
+  };
+
+  // Selección de sugerencia de Origen
+  const handleSelectOriginSuggestion = async (sug: SugerenciaDireccion) => {
+    originLockedByMapRef.current = true;
+    setOriginText(sug.titulo);
+    setShowOriginSuggestions(false);
+
+    const newPoint: GeocodedPoint = {
+      nombre: sug.titulo,
+      lat: sug.lat,
+      lng: sug.lng,
+      ciudad: sug.ciudad,
+      provincia: sug.provincia
+    };
+    originPointRef.current = newPoint;
+    setOriginPoint(newPoint);
+
+    const pDest = destinationPointRef.current;
+    if (pDest) {
+      setIsCalculatingRoute(true);
+      try {
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(newPoint, pDest);
+        setRutaCalculada(ruta);
+        const tarifa = SaraFreightPricingService.calcularTarifa(
+          ruta.distanciaKm,
+          weight,
+          vehicleType,
+          material
+        );
+        setTarifaEstimada(tarifa);
+        setProposedPrice(tarifa.tarifaSugeridaUSD);
+      } catch (err) {
+        console.error('Error calculando ruta al seleccionar origen:', err);
+      } finally {
+        setIsCalculatingRoute(false);
+      }
+    }
+  };
+
+  // Selección de sugerencia de Destino
+  const handleSelectDestinationSuggestion = async (sug: SugerenciaDireccion) => {
+    destLockedByMapRef.current = true;
+    setDestinationText(sug.titulo);
+    setShowDestSuggestions(false);
+
+    const newPoint: GeocodedPoint = {
+      nombre: sug.titulo,
+      lat: sug.lat,
+      lng: sug.lng,
+      ciudad: sug.ciudad,
+      provincia: sug.provincia
+    };
+    destinationPointRef.current = newPoint;
+    setDestinationPoint(newPoint);
+
+    const pOrig = originPointRef.current;
+    if (pOrig) {
+      setIsCalculatingRoute(true);
+      try {
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, newPoint);
+        setRutaCalculada(ruta);
+        const tarifa = SaraFreightPricingService.calcularTarifa(
+          ruta.distanciaKm,
+          weight,
+          vehicleType,
+          material
+        );
+        setTarifaEstimada(tarifa);
+        setProposedPrice(tarifa.tarifaSugeridaUSD);
+      } catch (err) {
+        console.error('Error calculando ruta al seleccionar destino:', err);
+      } finally {
+        setIsCalculatingRoute(false);
+      }
+    }
+  };
+
+  // Selección rápida de rutas nacionales icónicas
+  const handleSelectRutaRapida = async (
+    nomOrig: string,
+    coordsOrig: [number, number],
+    ciudadOrig: string,
+    provOrig: string,
+    nomDest: string,
+    coordsDest: [number, number],
+    ciudadDest: string,
+    provDest: string
+  ) => {
+    originLockedByMapRef.current = true;
+    destLockedByMapRef.current = true;
+
+    const pOrig: GeocodedPoint = {
+      nombre: nomOrig,
+      lat: coordsOrig[0],
+      lng: coordsOrig[1],
+      ciudad: ciudadOrig,
+      provincia: provOrig
+    };
+    const pDest: GeocodedPoint = {
+      nombre: nomDest,
+      lat: coordsDest[0],
+      lng: coordsDest[1],
+      ciudad: ciudadDest,
+      provincia: provDest
+    };
+
+    setOriginText(nomOrig);
+    setDestinationText(nomDest);
+    originPointRef.current = pOrig;
+    destinationPointRef.current = pDest;
+    setOriginPoint(pOrig);
+    setDestinationPoint(pDest);
+    setShowOriginSuggestions(false);
+    setShowDestSuggestions(false);
+
+    setIsCalculatingRoute(true);
+    try {
+      const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest);
+      setRutaCalculada(ruta);
+      const tarifa = SaraFreightPricingService.calcularTarifa(
+        ruta.distanciaKm,
+        weight,
+        vehicleType,
+        material
+      );
+      setTarifaEstimada(tarifa);
+      setProposedPrice(tarifa.tarifaSugeridaUSD);
+    } catch (err) {
+      console.error('Error calculando ruta rápida:', err);
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
 
   // 3. Parámetros de la Carga (Flete) y Subasta inDrive
   const [vehicleType, setVehicleType] = useState<CategoriaVehiculo>('PICKUP_1T');
@@ -233,6 +449,60 @@ export default function SaraFletesEngine() {
     }
   }, [activeFreight]);
 
+  // Referencia mutable a activeFreight para el bus en tiempo real
+  const activeFreightRef = useRef<FreightRequest | null>(null);
+  useEffect(() => {
+    activeFreightRef.current = activeFreight;
+  }, [activeFreight]);
+
+  // Suscripción al bus en tiempo real SARA-FLETES (BroadcastChannel & LocalStorage)
+  useEffect(() => {
+    const unsub = SaraFletesRealtimeService.subscribe((evt) => {
+      if (evt.type === 'NUEVA_OFERTA_CONDUCTOR') {
+        if (activeFreightRef.current && activeFreightRef.current.id === evt.payload.fleteId) {
+          setDriverOffers((prev) => {
+            if (prev.some(o => o.id === evt.payload.id)) return prev;
+            return [
+              {
+                id: evt.payload.id,
+                driverName: evt.payload.driverName,
+                vehicleName: evt.payload.vehicleName,
+                plate: evt.payload.plate,
+                rating: evt.payload.rating,
+                tripsCount: evt.payload.tripsCount,
+                etaMinutes: evt.payload.etaMinutes,
+                distanceMeters: evt.payload.distanceMeters,
+                offeredPrice: evt.payload.offeredPrice,
+                isCounterOffer: evt.payload.isCounterOffer,
+                phone: evt.payload.phone
+              },
+              ...prev
+            ];
+          });
+        }
+      } else if (evt.type === 'CHOFER_ACEPTO_FLETE') {
+        if (activeFreightRef.current && activeFreightRef.current.id === evt.payload.fleteId) {
+          setAssignedDriver({
+            id: 'CHOFER_DIRECTO_' + evt.payload.plate,
+            driverName: evt.payload.driverName,
+            vehicleName: evt.payload.vehicleName,
+            plate: evt.payload.plate,
+            rating: 4.9,
+            tripsCount: 154,
+            etaMinutes: 2,
+            distanceMeters: 300,
+            offeredPrice: evt.payload.precio,
+            isCounterOffer: false,
+            phone: '0993849182'
+          });
+          setActiveFreight((prev) => prev ? { ...prev, status: 'accepted' } : null);
+        }
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
   // Detección inicial de GPS del navegador
   useEffect(() => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
@@ -255,16 +525,42 @@ export default function SaraFletesEngine() {
     }
   }, []);
 
-  // Flota de vehículos zonificados alrededor de la zona de operación
+  // Flota de vehículos zonificados alrededor de la zona de operación con placas provinciales de Ecuador (ANT)
   const vehiculosZonificados = useMemo<VehiculoMapa[]>(() => {
     const centerLat = originPoint?.lat || userLocation?.[0] || -4.3285;
     const centerLng = originPoint?.lng || userLocation?.[1] || -79.5560;
+
+    // Prefijo de placa según provincia o latitud/longitud
+    let pCode = 'L'; // Loja por defecto
+    const prov = (originPoint?.provincia || '').toLowerCase();
+    if (prov.includes('pichincha') || (centerLat > -0.5 && centerLat < 0.2)) pCode = 'P';
+    else if (prov.includes('guayas') || (centerLat > -2.5 && centerLat < -1.8 && centerLng < -79.7)) pCode = 'G';
+    else if (prov.includes('azuay') || (centerLat > -3.1 && centerLat < -2.7)) pCode = 'A';
+    else if (prov.includes('el oro') || (centerLat > -3.6 && centerLat < -3.1)) pCode = 'O';
+    else if (prov.includes('tungurahua') || (centerLat > -1.4 && centerLat < -1.1)) pCode = 'T';
+    else if (prov.includes('manabi') || (centerLat > -1.2 && centerLat < -0.8 && centerLng < -80.3)) pCode = 'M';
+    else if (prov.includes('santo domingo') || (centerLat > -0.4 && centerLat < -0.1 && centerLng < -79.1)) pCode = 'J';
+    else if (prov.includes('chimborazo')) pCode = 'H';
+    else if (prov.includes('imbabura')) pCode = 'I';
+    else if (prov.includes('cotopaxi')) pCode = 'X';
+    else if (prov.includes('los rios')) pCode = 'R';
+    else if (prov.includes('esmeraldas')) pCode = 'E';
+    else if (prov.includes('carchi')) pCode = 'C';
+    else if (prov.includes('canar')) pCode = 'U';
+    else if (prov.includes('santa elena')) pCode = 'Y';
+    else if (prov.includes('sucumbios')) pCode = 'K';
+    else if (prov.includes('pastaza')) pCode = 'S';
+    else if (prov.includes('napo')) pCode = 'N';
+    else if (prov.includes('morona')) pCode = 'V';
+    else if (prov.includes('zamora')) pCode = 'Z';
+    else if (prov.includes('bolivar')) pCode = 'B';
+    else if (prov.includes('galapagos')) pCode = 'W';
 
     return [
       {
         id: 'FLT-VEH-01',
         nombreChofer: 'Manuel Cárdenas',
-        placa: 'LBA-3421',
+        placa: `${pCode}BA-3421`,
         tipoVehiculo: 'PICKUP_1T',
         lat: +(centerLat + 0.0018).toFixed(5),
         lng: +(centerLng - 0.0016).toFixed(5),
@@ -275,7 +571,7 @@ export default function SaraFletesEngine() {
       {
         id: 'FLT-VEH-02',
         nombreChofer: 'Carlos Mendoza',
-        placa: 'PBA-1234',
+        placa: `${pCode}BK-1234`,
         tipoVehiculo: 'CAMION_5T',
         lat: +(centerLat - 0.0022).toFixed(5),
         lng: +(centerLng + 0.0021).toFixed(5),
@@ -286,7 +582,7 @@ export default function SaraFletesEngine() {
       {
         id: 'FLT-VEH-03',
         nombreChofer: 'Luis Toapanta',
-        placa: 'GCA-9876',
+        placa: `${pCode}CA-9876`,
         tipoVehiculo: 'FURGON_3T',
         lat: +(centerLat + 0.0026).toFixed(5),
         lng: +(centerLng + 0.0015).toFixed(5),
@@ -297,7 +593,7 @@ export default function SaraFletesEngine() {
       {
         id: 'FLT-VEH-04',
         nombreChofer: 'Jorge Encalada',
-        placa: 'UBA-5512',
+        placa: `${pCode}DA-5512`,
         tipoVehiculo: 'VOLQUETA_V3A',
         lat: +(centerLat - 0.0032).toFixed(5),
         lng: +(centerLng - 0.0024).toFixed(5),
@@ -308,7 +604,7 @@ export default function SaraFletesEngine() {
       {
         id: 'FLT-VEH-05',
         nombreChofer: 'Marco Vinicio Guamán',
-        placa: 'LBB-4321',
+        placa: `${pCode}EA-4321`,
         tipoVehiculo: 'TRACTO_3S3',
         lat: +(centerLat + 0.0038).toFixed(5),
         lng: +(centerLng - 0.0032).toFixed(5),
@@ -319,7 +615,7 @@ export default function SaraFletesEngine() {
       {
         id: 'FLT-VEH-06',
         nombreChofer: 'David Sarango',
-        placa: 'LBA-9012',
+        placa: `${pCode}FA-9012`,
         tipoVehiculo: 'PICKUP_1T',
         lat: +(centerLat - 0.0012).toFixed(5),
         lng: +(centerLng - 0.0026).toFixed(5),
@@ -330,7 +626,7 @@ export default function SaraFletesEngine() {
       {
         id: 'FLT-VEH-07',
         nombreChofer: 'Pedro Jimbo',
-        placa: 'LBA-6543',
+        placa: `${pCode}GA-6543`,
         tipoVehiculo: 'FURGON_3T',
         lat: +(centerLat + 0.0020).toFixed(5),
         lng: +(centerLng - 0.0028).toFixed(5),
@@ -581,7 +877,7 @@ export default function SaraFletesEngine() {
     return { percent: p, label: `Baja (${p}%)`, color: 'text-rose-400 bg-rose-500/20 border-rose-500/30' };
   }, [tarifaEstimada, proposedPrice]);
 
-  // Solicitar el flete (Modo Flete Directo)
+  // Solicitar el flete (Modo Flete Directo con emisión en tiempo real)
   const handlePedirFlete = async () => {
     if (!originText || !destinationText) return alert('Por favor ingresa origen y destino');
     if (!tarifaEstimada) return;
@@ -599,6 +895,9 @@ export default function SaraFletesEngine() {
       codigoAcceso: code
     });
 
+    const distKm = rutaCalculada?.distanciaKm || 1.8;
+    const durMin = rutaCalculada?.duracionMinutos || 8;
+
     setActiveFreight({
       id: asignadoId,
       origin: originText,
@@ -609,12 +908,34 @@ export default function SaraFletesEngine() {
       referencePrice: precioFinal,
       status: 'searching',
       accessCode: code,
-      distanciaKm: rutaCalculada?.distanciaKm || 1.8,
-      duracionMinutos: rutaCalculada?.duracionMinutos || 8
+      distanciaKm: distKm,
+      duracionMinutos: durMin
+    });
+
+    // Emisión en tiempo real en canal de transportistas SARA
+    SaraFletesRealtimeService.emit({
+      type: 'NUEVA_SOLICITUD_FLETE',
+      payload: {
+        id: asignadoId,
+        origen: originText,
+        destino: destinationText,
+        material,
+        pesoTon: weight,
+        tipoVehiculo: vehicleType,
+        tarifaOfertadaUSD: precioFinal,
+        distanciaKm: distKm,
+        duracionMinutos: durMin,
+        coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3285, -79.5560],
+        coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
+        codigoAcceso: code,
+        clienteNombre: 'Cliente SARA Constructora',
+        status: 'searching',
+        timestamp: Date.now()
+      }
     });
   };
 
-  // Aceptar oferta de conductor en radar
+  // Aceptar oferta de conductor en radar y notificar en tiempo real
   const handleAcceptDriverOffer = async (offer: DriverOffer) => {
     if (!activeFreight) return;
     setAssignedDriver(offer);
@@ -623,8 +944,20 @@ export default function SaraFletesEngine() {
       status: 'accepted',
       referencePrice: offer.offeredPrice
     } : null);
+
     if (activeFreight.id) {
       await updateFletesSolicitudStatus(activeFreight.id, 'asignado', activeFreight.accessCode);
+
+      SaraFletesRealtimeService.emit({
+        type: 'CLIENTE_ACEPTO_CONDUCTOR',
+        payload: {
+          fleteId: activeFreight.id,
+          driverName: offer.driverName,
+          plate: offer.plate,
+          codigoAcceso: activeFreight.accessCode || '0000',
+          precioAcordado: offer.offeredPrice
+        }
+      });
     }
   };
 
@@ -880,10 +1213,10 @@ export default function SaraFletesEngine() {
                             <span className="w-3 h-3 rounded-full bg-amber-500 ring-4 ring-amber-500/20"></span>
                           </div>
 
-                          {/* Campos de texto con botones contextuales */}
+                          {/* Campos de texto con botones contextuales y Autocomplete Nacional */}
                           <div className="flex-1 space-y-2">
                             {/* Input Origen */}
-                            <div>
+                            <div className="relative" ref={originInputWrapperRef}>
                               <div className="flex items-center justify-between mb-1">
                                 <label className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
                                   Punto de Carga (Origen)
@@ -909,20 +1242,58 @@ export default function SaraFletesEngine() {
                                   </button>
                                 </div>
                               </div>
-                              <input
-                                type="text"
-                                value={originText}
-                                onChange={(e) => {
-                                  originLockedByMapRef.current = false;
-                                  setOriginText(e.target.value);
-                                }}
-                                placeholder="Escribe o arrastra el pin 🟢"
-                                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                              />
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={originText}
+                                  onChange={(e) => handleOriginInputChange(e.target.value)}
+                                  onFocus={() => {
+                                    if (originSuggestions.length > 0) setShowOriginSuggestions(true);
+                                  }}
+                                  placeholder="Escribe dirección, hito o cantón nacional 🟢"
+                                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 pr-7"
+                                />
+                                {isSearchingOrigin && (
+                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-400">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Dropdown Predictivo de Sugerencias en Tiempo Real (Origen) */}
+                              {showOriginSuggestions && originSuggestions.length > 0 && (
+                                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900/98 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto divide-y divide-slate-800">
+                                  {originSuggestions.map((sug) => (
+                                    <button
+                                      key={sug.id}
+                                      type="button"
+                                      onClick={() => handleSelectOriginSuggestion(sug)}
+                                      className="w-full text-left p-2.5 hover:bg-slate-800/90 transition-colors flex items-center gap-2.5 group"
+                                    >
+                                      <span className="shrink-0">
+                                        {sug.tipo === 'puerto' && '🚢'}
+                                        {sug.tipo === 'terminal' && '🚌'}
+                                        {sug.tipo === 'canton' && '🏙️'}
+                                        {sug.tipo === 'via' && '🛣️'}
+                                        {sug.tipo === 'hito' && '🏢'}
+                                        {sug.tipo === 'geo' && '📍'}
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors truncate">
+                                          {sug.titulo}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 truncate">
+                                          {sug.subtitulo}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
 
                             {/* Input Destino */}
-                            <div>
+                            <div className="relative" ref={destInputWrapperRef}>
                               <div className="flex items-center justify-between mb-1">
                                 <label className="text-[10px] font-black uppercase tracking-wider text-amber-400">
                                   Punto de Descarga (Destino)
@@ -939,16 +1310,54 @@ export default function SaraFletesEngine() {
                                   📍 Marcar
                                 </button>
                               </div>
-                              <input
-                                type="text"
-                                value={destinationText}
-                                onChange={(e) => {
-                                  destLockedByMapRef.current = false;
-                                  setDestinationText(e.target.value);
-                                }}
-                                placeholder="Escribe o arrastra el pin 🚩"
-                                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                              />
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  value={destinationText}
+                                  onChange={(e) => handleDestinationInputChange(e.target.value)}
+                                  onFocus={() => {
+                                    if (destinationSuggestions.length > 0) setShowDestSuggestions(true);
+                                  }}
+                                  placeholder="Escribe dirección, hito o cantón nacional 🚩"
+                                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 pr-7"
+                                />
+                                {isSearchingDest && (
+                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-400">
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Dropdown Predictivo de Sugerencias en Tiempo Real (Destino) */}
+                              {showDestSuggestions && destinationSuggestions.length > 0 && (
+                                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900/98 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto divide-y divide-slate-800">
+                                  {destinationSuggestions.map((sug) => (
+                                    <button
+                                      key={sug.id}
+                                      type="button"
+                                      onClick={() => handleSelectDestinationSuggestion(sug)}
+                                      className="w-full text-left p-2.5 hover:bg-slate-800/90 transition-colors flex items-center gap-2.5 group"
+                                    >
+                                      <span className="shrink-0">
+                                        {sug.tipo === 'puerto' && '🚢'}
+                                        {sug.tipo === 'terminal' && '🚌'}
+                                        {sug.tipo === 'canton' && '🏙️'}
+                                        {sug.tipo === 'via' && '🛣️'}
+                                        {sug.tipo === 'hito' && '🏢'}
+                                        {sug.tipo === 'geo' && '📍'}
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors truncate">
+                                          {sug.titulo}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 truncate">
+                                          {sug.subtitulo}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -965,32 +1374,88 @@ export default function SaraFletesEngine() {
                           </div>
                         </div>
 
-                        {/* Chips rápidos de destino sugerido */}
-                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px]">
-                          <span className="text-slate-500 font-semibold shrink-0">Rutas:</span>
+                        {/* Chips rápidos de rutas estratégicas a nivel nacional */}
+                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] scrollbar-thin">
+                          <span className="text-slate-500 font-semibold shrink-0">Rutas Nacionales:</span>
                           <button
                             type="button"
-                            onClick={() => {
-                              originLockedByMapRef.current = false;
-                              destLockedByMapRef.current = false;
-                              setOriginText('MAtecons Chile, Cariamanga');
-                              setDestinationText('El Dorado, Cariamanga');
-                            }}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2 py-0.5 rounded-lg whitespace-nowrap"
+                            onClick={() => handleSelectRutaRapida(
+                              'MAtecons Chile, Cariamanga', [-4.3292, -79.5548], 'Cariamanga', 'Loja',
+                              'El Dorado, Cariamanga', [-4.3210, -79.5620], 'Cariamanga', 'Loja'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
                           >
                             Cariamanga Centro
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              originLockedByMapRef.current = false;
-                              destLockedByMapRef.current = false;
-                              setOriginText('MAtecons Chile, Cariamanga');
-                              setDestinationText('Cantera Bella María, Loja');
-                            }}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 px-2 py-0.5 rounded-lg whitespace-nowrap"
+                            onClick={() => handleSelectRutaRapida(
+                              'Terminal Terrestre Reina del Cisne (Loja)', [-3.9785, -79.2045], 'Loja', 'Loja',
+                              'Cantera de Áridos Bella María (Loja)', [-3.9650, -79.2150], 'Loja', 'Loja'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
                           >
-                            Cantera Bella María
+                            Loja · Bella María
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRutaRapida(
+                              'Terminal Quitumbe, Quito', [-0.2917, -78.5522], 'Quito', 'Pichincha',
+                              'Parque La Carolina (Torre Qorner), Quito', [-0.1807, -78.4820], 'Quito', 'Pichincha'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
+                          >
+                            Quito · Quitumbe a Carolina
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRutaRapida(
+                              'Terminal Portuario Contecon (Puerto Marítimo)', [-2.2844, -79.9011], 'Guayaquil', 'Guayas',
+                              'Vía a Daule Km 12 (Zona Industrial), Guayaquil', [-2.1200, -79.9400], 'Guayaquil', 'Guayas'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
+                          >
+                            Guayaquil · Puerto a Vía Daule
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRutaRapida(
+                              'Parque Industrial de Cuenca', [-2.8750, -78.9750], 'Cuenca', 'Azuay',
+                              'Challuabamba (Zona Residencial), Cuenca', [-2.8620, -78.9320], 'Cuenca', 'Azuay'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
+                          >
+                            Cuenca · Parque Industrial
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRutaRapida(
+                              'Mercado Mayorista de Ambato', [-1.2689, -78.6389], 'Ambato', 'Tungurahua',
+                              'Parque Industrial de Ambato', [-1.2189, -78.5989], 'Ambato', 'Tungurahua'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
+                          >
+                            Ambato · Mayorista
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRutaRapida(
+                              'Terminal Portuario Yilport Puerto Bolívar', [-3.2644, -79.9989], 'Machala', 'El Oro',
+                              'Av. 25 de Junio (Centro Comercial), Machala', [-3.2600, -79.9550], 'Machala', 'El Oro'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
+                          >
+                            Machala · Puerto Bolívar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectRutaRapida(
+                              'Terminal Portuario de Manta (TPM)', [-0.9450, -80.7228], 'Manta', 'Manabí',
+                              'Playa El Murciélago (Zona Hotelera), Manta', [-0.9440, -80.7300], 'Manta', 'Manabí'
+                            )}
+                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
+                          >
+                            Manta · Puerto a Murciélago
                           </button>
                         </div>
                       </div>
@@ -1232,6 +1697,12 @@ export default function SaraFletesEngine() {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (activeFreight) {
+                                    SaraFletesRealtimeService.emit({
+                                      type: 'CANCELAR_SOLICITUD_FLETE',
+                                      payload: { fleteId: activeFreight.id }
+                                    });
+                                  }
                                   setActiveFreight(null);
                                   setDriverOffers([]);
                                 }}

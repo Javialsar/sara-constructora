@@ -37,6 +37,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
+import { SaraFletesRealtimeService } from '@/lib/services/saraFletesRealtimeService';
 
 // Carga dinámica del mapa interactivo Leaflet sin SSR
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -119,34 +120,89 @@ export default function MiPerfilFletes() {
     }
   }, []);
 
-  // Simulación de solicitud de flete entrante
+  // Solicitud de flete entrante en tiempo real (SARA Realtime Bus)
   const [incomingRequest, setIncomingRequest] = useState<any>(null);
   const [tripAccepted, setTripAccepted] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
 
+  // Cargar solicitud activa existente y suscribirse a eventos de clientes en vivo
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!incomingRequest && !tripAccepted) {
+    // 1. Revisar si hay un flete activo reciente en el bus
+    const activeReq = SaraFletesRealtimeService.getActiveRequest();
+    if (activeReq && !tripAccepted) {
+      setIncomingRequest({
+        fleteId: activeReq.id,
+        origen: activeReq.origen,
+        destino: activeReq.destino,
+        cliente: activeReq.clienteNombre || 'Cliente SARA Constructora',
+        material: `${activeReq.material} (${activeReq.pesoTon} Ton)`,
+        valorRef: activeReq.tarifaOfertadaUSD,
+        distanciaKm: activeReq.distanciaKm,
+        coordsOrigen: activeReq.coordsOrigen,
+        coordsDestino: activeReq.coordsDestino,
+        codigoAcceso: activeReq.codigoAcceso
+      });
+    }
+
+    // 2. Suscribirse a solicitudes y despachos en tiempo real
+    const unsub = SaraFletesRealtimeService.subscribe((evt) => {
+      if (evt.type === 'NUEVA_SOLICITUD_FLETE') {
         setIncomingRequest({
-          origen: 'MAtecons Chile, Cariamanga',
-          destino: 'El Dorado, Cariamanga',
-          cliente: 'Constructora del Sur S.A.',
-          material: 'Cemento y Varillas (1.5 Ton)',
-          valorRef: 3.50,
-          distanciaKm: 1.8,
-          coordsOrigen: [-4.3292, -79.5548] as [number, number],
-          coordsDestino: [-4.3210, -79.5620] as [number, number]
+          fleteId: evt.payload.id,
+          origen: evt.payload.origen,
+          destino: evt.payload.destino,
+          cliente: evt.payload.clienteNombre || 'Cliente SARA Constructora',
+          material: `${evt.payload.material} (${evt.payload.pesoTon} Ton)`,
+          valorRef: evt.payload.tarifaOfertadaUSD,
+          distanciaKm: evt.payload.distanciaKm,
+          coordsOrigen: evt.payload.coordsOrigen,
+          coordsDestino: evt.payload.coordsDestino,
+          codigoAcceso: evt.payload.codigoAcceso
         });
-        showToast('¡Nueva solicitud de flete en tu zona de Cariamanga!');
+        showToast(`¡Nuevo flete en tiempo real: ${evt.payload.origen} → ${evt.payload.destino}!`);
+      } else if (evt.type === 'CANCELAR_SOLICITUD_FLETE') {
+        setIncomingRequest((prev: any) => {
+          if (prev && prev.fleteId === evt.payload.fleteId) {
+            showToast('El cliente ha cancelado la solicitud de flete.');
+            return null;
+          }
+          return prev;
+        });
+      } else if (evt.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
+        const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+        if (evt.payload.plate === myPlate || evt.payload.driverName?.includes('Mendoza')) {
+          setTripAccepted(true);
+          setAccessCode(evt.payload.codigoAcceso);
+          showToast(`¡El cliente ha aceptado tu propuesta! Tarifa: $${evt.payload.precioAcordado} USD`);
+        }
       }
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, [incomingRequest, tripAccepted]);
+    });
+
+    return () => unsub();
+  }, [tripAccepted, currentUser]);
 
   const handleAcceptTrip = () => {
+    const code = incomingRequest?.codigoAcceso || ('SARA-' + Math.floor(1000 + Math.random() * 9000));
     setTripAccepted(true);
-    setAccessCode('SARA-' + Math.floor(1000 + Math.random() * 9000));
-    showToast('Flete aceptado. Dirígete al origen y presenta tu código de acceso.');
+    setAccessCode(code);
+
+    // Emisión en tiempo real de aceptación al cliente
+    if (incomingRequest) {
+      SaraFletesRealtimeService.emit({
+        type: 'CHOFER_ACEPTO_FLETE',
+        payload: {
+          fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
+          driverName: currentUser?.user_metadata?.full_name || 'Carlos Mendoza',
+          plate: currentUser?.user_metadata?.placa || 'PBA-1234',
+          vehicleName: 'Volqueta Hino 14m³',
+          codigoAcceso: code,
+          precio: incomingRequest.valorRef || 3.50,
+          coords: driverLocation
+        }
+      });
+    }
+
+    showToast('¡Flete aceptado! Notificación enviada al cliente en tiempo real.');
   };
 
   // Estados Billetera y Planes
