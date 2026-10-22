@@ -1175,6 +1175,7 @@ export default function SaraFletesEngine() {
         duracionMinutos: durMin,
         coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3285, -79.5560],
         coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
+        coordenadasRuta: rutaCalculada?.coordenadasRuta,
         codigoAcceso: code,
         clienteNombre: 'Cliente SARA Constructora',
         status: 'searching',
@@ -1263,6 +1264,7 @@ export default function SaraFletesEngine() {
         duracionMinutos: durMin,
         coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : (userLocation || [-4.3285, -79.5560]),
         coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
+        coordenadasRuta: rutaCalculada?.coordenadasRuta,
         codigoAcceso: code,
         clienteNombre: 'Cliente SARA Constructora',
         status: 'searching',
@@ -1291,7 +1293,16 @@ export default function SaraFletesEngine() {
           driverName: offer.driverName,
           plate: offer.plate,
           codigoAcceso: activeFreight.accessCode || '0000',
-          precioAcordado: offer.offeredPrice
+          precioAcordado: offer.offeredPrice,
+          origen: activeFreight.origin || originText,
+          destino: activeFreight.destination || destinationText,
+          coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : (userLocation || [-4.3285, -79.5560]),
+          coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
+          coordenadasRuta: rutaCalculada?.coordenadasRuta,
+          distanciaKm: activeFreight.distanciaKm || rutaCalculada?.distanciaKm || 1.8,
+          duracionMinutos: activeFreight.duracionMinutos || rutaCalculada?.duracionMinutos || 8,
+          material: activeFreight.material,
+          pesoTon: activeFreight.weight
         }
       });
     }

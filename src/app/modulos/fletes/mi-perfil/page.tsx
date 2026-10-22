@@ -42,6 +42,7 @@ import { SaraFletesRealtimeService, PlanConfigItem, ProofOfDeliveryData } from '
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
 import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
+import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
 
 // Carga dinámica del mapa interactivo Leaflet sin SSR
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -200,17 +201,19 @@ export default function MiPerfilFletes() {
     const tripInProgress = SaraFletesRealtimeService.getTripInProgress();
 
     if (acceptedDispatch || activeReq || tripInProgress) {
-      const fleteInfo = activeReq || ({} as any);
+      const fleteInfo = activeReq || acceptedDispatch || ({} as any);
       setIncomingRequest({
         fleteId: tripInProgress?.fleteId || acceptedDispatch?.fleteId || fleteInfo.id || 'FLT-ACTIVO',
-        origen: fleteInfo.origen || 'Punto de Carga',
-        destino: fleteInfo.destino || 'Punto de Entrega',
+        origen: fleteInfo.origen || acceptedDispatch?.origen || 'Punto de Carga',
+        destino: fleteInfo.destino || acceptedDispatch?.destino || 'Punto de Entrega',
         cliente: fleteInfo.clienteNombre || 'Cliente SARA Constructora',
         material: fleteInfo.material ? `${fleteInfo.material} (${fleteInfo.pesoTon || 1} Ton)` : 'Material de Construcción',
         valorRef: acceptedDispatch?.precioAcordado || fleteInfo.tarifaOfertadaUSD || 2.50,
-        distanciaKm: fleteInfo.distanciaKm || 1.8,
-        coordsOrigen: fleteInfo.coordsOrigen || [-4.3298, -79.5611],
-        coordsDestino: fleteInfo.coordsDestino || [-4.3287, -79.5606],
+        distanciaKm: fleteInfo.distanciaKm || acceptedDispatch?.distanciaKm || 1.8,
+        duracionMinutos: fleteInfo.duracionMinutos || acceptedDispatch?.duracionMinutos || 5,
+        coordsOrigen: fleteInfo.coordsOrigen || acceptedDispatch?.coordsOrigen || [-4.3298, -79.5611],
+        coordsDestino: fleteInfo.coordsDestino || acceptedDispatch?.coordsDestino || [-4.3287, -79.5606],
+        coordenadasRuta: fleteInfo.coordenadasRuta || acceptedDispatch?.coordenadasRuta,
         codigoAcceso: tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso,
         assignedDriverName: tripInProgress?.driverName || acceptedDispatch?.driverName || fleteInfo.assignedDriverName,
         assignedPlate: tripInProgress?.plate || acceptedDispatch?.plate || fleteInfo.assignedPlate
@@ -257,8 +260,10 @@ export default function MiPerfilFletes() {
             material: `${evt.payload.material} (${evt.payload.pesoTon} Ton)`,
             valorRef: evt.payload.tarifaOfertadaUSD,
             distanciaKm: evt.payload.distanciaKm,
+            duracionMinutos: evt.payload.duracionMinutos,
             coordsOrigen: evt.payload.coordsOrigen,
             coordsDestino: evt.payload.coordsDestino,
+            coordenadasRuta: evt.payload.coordenadasRuta,
             codigoAcceso: evt.payload.codigoAcceso
           });
           showToast(`¡Nuevo flete en radar [Jerarquía ${targetConfig?.priority || 'ALTA'}]: ${evt.payload.origen} → ${evt.payload.destino}!`);
@@ -281,7 +286,7 @@ export default function MiPerfilFletes() {
           return prev;
         });
       } else if (evt.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
-        // Reflejar la orden de inmediato en el entorno del conductor
+        // Reflejar la orden de inmediato en el entorno del conductor con ruta completa y direcciones reales
         setTripAccepted(true);
         setTripState('heading_to_pickup');
         setAccessCode(evt.payload.codigoAcceso);
@@ -292,9 +297,18 @@ export default function MiPerfilFletes() {
           assignedDriverName: evt.payload.driverName,
           assignedPlate: evt.payload.plate,
           valorRef: evt.payload.precioAcordado || prev?.valorRef,
-          codigoAcceso: evt.payload.codigoAcceso
+          codigoAcceso: evt.payload.codigoAcceso,
+          origen: evt.payload.origen || prev?.origen || 'Punto de Carga',
+          destino: evt.payload.destino || prev?.destino || 'Punto de Entrega',
+          coordsOrigen: evt.payload.coordsOrigen || prev?.coordsOrigen || [-4.3298, -79.5611],
+          coordsDestino: evt.payload.coordsDestino || prev?.coordsDestino || [-4.3287, -79.5606],
+          coordenadasRuta: evt.payload.coordenadasRuta || prev?.coordenadasRuta,
+          distanciaKm: evt.payload.distanciaKm || prev?.distanciaKm || 1.8,
+          duracionMinutos: evt.payload.duracionMinutos || prev?.duracionMinutos || 5,
+          material: evt.payload.material || prev?.material,
+          pesoTon: evt.payload.pesoTon || prev?.pesoTon
         }));
-        showToast(`¡Flete Asignado! Conductor: ${evt.payload.driverName} · Tarifa: $${evt.payload.precioAcordado} USD`);
+        showToast(`¡Flete Asignado! Conductor: ${evt.payload.driverName} · ${evt.payload.origen || ''} → ${evt.payload.destino || ''} · $${evt.payload.precioAcordado} USD`);
       } else if (evt.type === 'PLANES_ACTUALIZADOS') {
         setPlanesConfig(evt.payload);
         showToast('¡Planes y comisiones de fletes sincronizados con Administración!');
@@ -310,6 +324,25 @@ export default function MiPerfilFletes() {
 
     return () => unsub();
   }, [tripAccepted, currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
+
+  // Sincronizar ruta vial precisa entre origen y destino si no viene calculada
+  useEffect(() => {
+    if (incomingRequest?.coordsOrigen && incomingRequest?.coordsDestino && (!incomingRequest.coordenadasRuta || incomingRequest.coordenadasRuta.length <= 2)) {
+      SaraFreightRoutingService.calcularRutaMasCorta(
+        { nombre: incomingRequest.origen || 'Punto de Carga', lat: incomingRequest.coordsOrigen[0], lng: incomingRequest.coordsOrigen[1] },
+        { nombre: incomingRequest.destino || 'Punto de Descarga', lat: incomingRequest.coordsDestino[0], lng: incomingRequest.coordsDestino[1] }
+      ).then((ruta) => {
+        if (ruta && ruta.coordenadasRuta && ruta.coordenadasRuta.length > 0) {
+          setIncomingRequest((prev: any) => prev ? {
+            ...prev,
+            coordenadasRuta: ruta.coordenadasRuta,
+            distanciaKm: ruta.distanciaKm,
+            duracionMinutos: ruta.duracionMinutos
+          } : prev);
+        }
+      }).catch((e) => console.warn('Error calculando ruta para conductor:', e));
+    }
+  }, [incomingRequest?.coordsOrigen, incomingRequest?.coordsDestino]);
 
   // Simulación de recorrido GPS continuo en tiempo real estilo Uber / Google Maps
   useEffect(() => {
@@ -913,11 +946,11 @@ export default function MiPerfilFletes() {
                   origenNombre={incomingRequest?.origen}
                   destinoNombre={incomingRequest?.destino}
                   vehiculosCercanos={choferVehiculoMapa}
-                  rutaCoordenadas={tripAccepted && incomingRequest ? [
-                    incomingRequest.coordsOrigen,
-                    [-4.3250, -79.5580],
-                    incomingRequest.coordsDestino
-                  ] : undefined}
+                  rutaCoordenadas={tripAccepted && incomingRequest ? (
+                    incomingRequest.coordenadasRuta && incomingRequest.coordenadasRuta.length > 0
+                      ? incomingRequest.coordenadasRuta
+                      : [incomingRequest.coordsOrigen, incomingRequest.coordsDestino]
+                  ) : undefined}
                 />
 
                 {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE CON CÁLCULO DE COMISIÓN Y DESCUENTO DE SALDO */}
@@ -1024,11 +1057,31 @@ export default function MiPerfilFletes() {
                             <Navigation className="w-6 h-6 animate-pulse" />
                           </div>
                           <div>
-                            <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                              Paso 1: Llegada al Punto de Carga
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                                Paso 1: Llegada al Punto de Carga
+                              </span>
+                              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                Tarifa: ${incomingRequest?.valorRef ? incomingRequest.valorRef.toFixed(2) : '3.50'} USD
+                              </span>
+                            </div>
                             <h4 className="font-black text-white text-base mt-0.5">En Camino hacia el Punto de Carga</h4>
-                            <p className="text-xs text-slate-300">Dirígete a: <strong className="text-white">{incomingRequest?.origen}</strong></p>
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                              <span className="text-slate-400">Recoger en:</span>
+                              <strong className="text-white bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                                {incomingRequest?.origen || 'Punto de Carga'}
+                              </strong>
+                              <span className="text-amber-500 font-bold">➔</span>
+                              <span className="text-slate-400">Entregar en:</span>
+                              <strong className="text-emerald-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                                {incomingRequest?.destino || 'Punto de Entrega'}
+                              </strong>
+                              {incomingRequest?.distanciaKm && (
+                                <span className="text-slate-400 font-mono text-[11px]">
+                                  ({incomingRequest.distanciaKm} km · ~{incomingRequest.duracionMinutos || 5} min)
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 

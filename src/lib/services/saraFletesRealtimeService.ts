@@ -22,6 +22,7 @@ export interface SolicitudFleteRealtime {
   status: 'searching' | 'driver_offered' | 'accepted' | 'in_transit' | 'completed' | 'cancelled';
   timestamp: number;
   // Campos avanzados 2026
+  coordenadasRuta?: [number, number][];
   tokenRastreo?: string; // Token público para seguimiento zero-login
   guiaRemision?: {
     claveAcceso: string;
@@ -165,7 +166,22 @@ export type FletesRealtimeEvent =
   | { type: 'CANCELAR_SOLICITUD_FLETE'; payload: { fleteId: string } }
   | { type: 'NUEVA_OFERTA_CONDUCTOR'; payload: OfertaConductorRealtime }
   | { type: 'RECHAZAR_OFERTA_CONDUCTOR'; payload: { fleteId: string; offerId: string; driverName: string } }
-  | { type: 'CLIENTE_ACEPTO_CONDUCTOR'; payload: { fleteId: string; driverName: string; plate: string; codigoAcceso: string; precioAcordado: number } }
+  | { type: 'CLIENTE_ACEPTO_CONDUCTOR'; payload: {
+      fleteId: string;
+      driverName: string;
+      plate: string;
+      codigoAcceso: string;
+      precioAcordado: number;
+      origen?: string;
+      destino?: string;
+      coordsOrigen?: [number, number];
+      coordsDestino?: [number, number];
+      coordenadasRuta?: [number, number][];
+      distanciaKm?: number;
+      duracionMinutos?: number;
+      material?: string;
+      pesoTon?: number;
+    } }
   | { type: 'CHOFER_ACEPTO_FLETE'; payload: { fleteId: string; driverName: string; plate: string; vehicleName: string; codigoAcceso: string; precio: number; coords: [number, number] } }
   | { type: 'FLETE_INICIADO'; payload: { fleteId: string; codigoValidado: string; driverName: string; plate: string; startedAt: number; comisionDebitada: number; nuevoSaldo: number } }
   | { type: 'FLETE_COMPLETADO'; payload: { fleteId: string; codigoAcceso: string; driverName?: string; plate?: string; tarifaFinal?: number } }
@@ -281,8 +297,33 @@ export class SaraFletesRealtimeService {
             parsed.assignedPlate = event.payload.plate;
             parsed.codigoAcceso = event.payload.codigoAcceso;
             parsed.precioAcordado = event.payload.precioAcordado;
+            if (event.payload.origen) parsed.origen = event.payload.origen;
+            if (event.payload.destino) parsed.destino = event.payload.destino;
+            if (event.payload.coordsOrigen) parsed.coordsOrigen = event.payload.coordsOrigen;
+            if (event.payload.coordsDestino) parsed.coordsDestino = event.payload.coordsDestino;
+            if (event.payload.coordenadasRuta) parsed.coordenadasRuta = event.payload.coordenadasRuta;
+            if (event.payload.distanciaKm) parsed.distanciaKm = event.payload.distanciaKm;
+            if (event.payload.duracionMinutos) parsed.duracionMinutos = event.payload.duracionMinutos;
             localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify(parsed));
           } catch {}
+        } else {
+          localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify({
+            id: event.payload.fleteId,
+            status: 'accepted',
+            assignedDriverName: event.payload.driverName,
+            assignedPlate: event.payload.plate,
+            codigoAcceso: event.payload.codigoAcceso,
+            tarifaOfertadaUSD: event.payload.precioAcordado,
+            origen: event.payload.origen || 'Punto de Carga',
+            destino: event.payload.destino || 'Punto de Entrega',
+            coordsOrigen: event.payload.coordsOrigen || [-4.3298, -79.5611],
+            coordsDestino: event.payload.coordsDestino || [-4.3287, -79.5606],
+            coordenadasRuta: event.payload.coordenadasRuta,
+            distanciaKm: event.payload.distanciaKm || 1.8,
+            duracionMinutos: event.payload.duracionMinutos || 5,
+            material: event.payload.material || 'Carga General',
+            pesoTon: event.payload.pesoTon || 1
+          }));
         }
         localStorage.setItem(`${STORAGE_PREFIX}accepted_dispatch`, JSON.stringify(event.payload));
       } else if (event.type === 'FLETE_INICIADO') {
@@ -384,7 +425,22 @@ export class SaraFletesRealtimeService {
   /**
    * Recupera la asignación de flete aceptada por el cliente
    */
-  static getAcceptedDispatch(): { fleteId: string; driverName: string; plate: string; codigoAcceso: string; precioAcordado: number } | null {
+  static getAcceptedDispatch(): {
+    fleteId: string;
+    driverName: string;
+    plate: string;
+    codigoAcceso: string;
+    precioAcordado: number;
+    origen?: string;
+    destino?: string;
+    coordsOrigen?: [number, number];
+    coordsDestino?: [number, number];
+    coordenadasRuta?: [number, number][];
+    distanciaKm?: number;
+    duracionMinutos?: number;
+    material?: string;
+    pesoTon?: number;
+  } | null {
     if (typeof window === 'undefined') return null;
     try {
       const data = localStorage.getItem(`${STORAGE_PREFIX}accepted_dispatch`);
