@@ -397,7 +397,7 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     nombre: 'Santa Isabel (Yunguilla)',
     provincia: 'Azuay',
     centroide: [-3.2741, -79.3142],
-    viewbox: [-3.3300, -79.3600, -3.2200, -79.2700],
+    viewbox: [-79.3600, -3.3300, -79.2700, -3.2200],
     viasPrincipales: {
       'giron pasaje': [-3.2740, -79.3140]
     },
@@ -435,7 +435,10 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'gonzalez suarez': [-4.3285, -79.5580],
       'eloy alfaro': [-4.3255, -79.5575],
       'daniel ojeda': [-4.3260, -79.5525],
-      'mariano samaniego': [-4.3280, -79.5530]
+      'mariano samaniego': [-4.3280, -79.5530],
+      'via a gonzanama': [-4.3200, -79.5520],
+      'via a sozoranga': [-4.3380, -79.5620],
+      'via a amaluza': [-4.3400, -79.5500]
     },
     interseccionesExactas: {
       'atahualpa_centenario': [-4.3291, -79.5609],
@@ -460,10 +463,22 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'bolivar_18 de noviembre': [-4.3270, -79.5562],
       'atahualpa_cristobal colon': [-4.3312, -79.5605],
       'cristobal colon_atahualpa': [-4.3312, -79.5605],
+      'atahualpa_colon': [-4.3312, -79.5605],
+      'colon_atahualpa': [-4.3312, -79.5605],
       'bernardo valdivieso_sucre': [-4.3272, -79.5558],
       'sucre_bernardo valdivieso': [-4.3272, -79.5558],
       'av del ejercito_18 de noviembre': [-4.3315, -79.5545],
-      '18 de noviembre_av del ejercito': [-4.3315, -79.5545]
+      '18 de noviembre_av del ejercito': [-4.3315, -79.5545],
+      'centenario_gran colombia': [-4.3291, -79.5585],
+      'gran colombia_centenario': [-4.3291, -79.5585],
+      'atahualpa_gran colombia': [-4.3295, -79.5585],
+      'gran colombia_atahualpa': [-4.3295, -79.5585],
+      '18 de noviembre_gran colombia': [-4.3285, -79.5580],
+      'gran colombia_18 de noviembre': [-4.3285, -79.5580],
+      'bolivar_gran colombia': [-4.3280, -79.5582],
+      'gran colombia_bolivar': [-4.3280, -79.5582],
+      'sucre_gran colombia': [-4.3278, -79.5584],
+      'gran colombia_sucre': [-4.3278, -79.5584]
     },
     hitos: {
       'gimaga': [-4.3258, -79.5542],
@@ -473,18 +488,26 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'mercado de chile': [-4.32683, -79.55920],
       'san vicente': [-4.32416, -79.55135],
       'barrio san vicente': [-4.32416, -79.55135],
+      'la nube': [-4.3285, -79.5600],
+      'barrio la nube': [-4.3285, -79.5600],
       'ahuaca': [-4.3160, -79.5460],
       'cerro ahuaca': [-4.3160, -79.5460],
       'el dorado': [-4.3210, -79.5620],
+      'barrio el dorado': [-4.3210, -79.5620],
+      'chile': [-4.3298, -79.5611],
+      'barrio chile': [-4.3298, -79.5611],
       'plaza central': [-4.3285, -79.5560],
       'parque central': [-4.3285, -79.5560],
+      'parque central cariamanga': [-4.3285, -79.5560],
       'estadio municipal': [-4.3240, -79.5500],
       'colegio ambato': [-4.3280, -79.5585],
+      'colegio eloy alfaro': [-4.3255, -79.5575],
       'hospital basico': [-4.3305, -79.5525],
       'la merced': [-4.3265, -79.5515],
+      'barrio la merced': [-4.3265, -79.5515],
       'bano del inca': [-4.3220, -79.5490]
     },
-    alias: ['cariamanga', 'calvas', 'san vicente cariamanga', 'ahuaca', 'chile cariamanga']
+    alias: ['cariamanga', 'calvas', 'san vicente cariamanga', 'ahuaca', 'chile cariamanga', 'la merced cariamanga', 'la nube cariamanga']
   },
   loja: {
     nombre: 'Loja',
@@ -502,8 +525,32 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'orillas del zamora': [-3.9880, -79.2000],
       'gran colombia': [-3.9890, -79.2040],
       'olmedo': [-3.9940, -79.2050],
+      '10 de agosto': [-3.9935, -79.2040],
+      'colon': [-3.9955, -79.2035],
       'manuel agustin aguirre': [-3.9930, -79.2020],
       'reinaldo espinosa': [-4.0300, -79.2020]
+    },
+    interseccionesExactas: {
+      '18 de noviembre_10 de agosto': [-3.9935, -79.2038],
+      '10 de agosto_18 de noviembre': [-3.9935, -79.2038],
+      'bolivar_10 de agosto': [-3.9928, -79.2045],
+      '10 de agosto_bolivar': [-3.9928, -79.2045],
+      'sucre_10 de agosto': [-3.9920, -79.2052],
+      '10 de agosto_sucre': [-3.9920, -79.2052],
+      'av universitaria_10 de agosto': [-3.9942, -79.2028],
+      '10 de agosto_av universitaria': [-3.9942, -79.2028],
+      'universitaria_10 de agosto': [-3.9942, -79.2028],
+      '10 de agosto_universitaria': [-3.9942, -79.2028],
+      '18 de noviembre_colon': [-3.9958, -79.2032],
+      'colon_18 de noviembre': [-3.9958, -79.2032],
+      'bolivar_colon': [-3.9952, -79.2040],
+      'colon_bolivar': [-3.9952, -79.2040],
+      'sucre_colon': [-3.9945, -79.2048],
+      'colon_sucre': [-3.9945, -79.2048],
+      'cuxibamba_gran colombia': [-3.9855, -79.2045],
+      'gran colombia_cuxibamba': [-3.9855, -79.2045],
+      'manuel agustin aguirre_10 de agosto': [-3.9938, -79.2025],
+      '10 de agosto_manuel agustin aguirre': [-3.9938, -79.2025]
     },
     hitos: {
       'san sebastian': [-3.9980, -79.2040],
@@ -513,7 +560,9 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'unl': [-4.0320, -79.2030],
       'complejo ferial': [-3.9820, -79.2080],
       'parque jipiro': [-3.9680, -79.2060],
-      'hospital isidro ayora': [-4.0010, -79.2030]
+      'hospital isidro ayora': [-4.0010, -79.2030],
+      'puerta de la ciudad': [-3.9890, -79.2030],
+      'parque central loja': [-3.9930, -79.2045]
     },
     alias: ['loja', 'ciudad de loja', 'zamora huayco', 'san sebastian loja']
   },
@@ -524,10 +573,26 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     viewbox: [-79.4000, -4.0200, -79.3200, -3.9500],
     viasPrincipales: {
       'isidro ayora': [-3.9870, -79.3580],
-      'panamericana': [-3.9850, -79.3600]
+      'av catamayo': [-3.9860, -79.3590],
+      '18 de agosto': [-3.9880, -79.3575],
+      '24 de mayo': [-3.9875, -79.3585],
+      '1 de mayo': [-3.9865, -79.3570],
+      'av eliseo arias': [-3.9890, -79.3600],
+      'panamericana': [-3.9850, -79.3600],
+      'via a gonzanama': [-3.9920, -79.3610]
+    },
+    interseccionesExactas: {
+      'isidro ayora_18 de agosto': [-3.9875, -79.3578],
+      '18 de agosto_isidro ayora': [-3.9875, -79.3578],
+      'isidro ayora_24 de mayo': [-3.9872, -79.3582],
+      '24 de mayo_isidro ayora': [-3.9872, -79.3582],
+      'isidro ayora_1 de mayo': [-3.9868, -79.3575],
+      '1 de mayo_isidro ayora': [-3.9868, -79.3575]
     },
     hitos: {
       'parque central catamayo': [-3.9870, -79.3580],
+      'mercado central': [-3.9865, -79.3585],
+      'aeropuerto catamayo': [-3.9939, -79.3719],
       'guayabal': [-3.9810, -79.3450],
       'ingenio monterrey': [-3.9750, -79.3620]
     },
@@ -539,11 +604,19 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     centroide: [-4.3820, -79.9430],
     viewbox: [-79.9800, -4.4200, -79.9100, -4.3500],
     viasPrincipales: {
+      '10 de agosto': [-4.3815, -79.9425],
+      'bolivar': [-4.3820, -79.9430],
+      'amazonas': [-4.3825, -79.9435],
       'panamericana': [-4.3820, -79.9430]
+    },
+    interseccionesExactas: {
+      '10 de agosto_bolivar': [-4.3818, -79.9428],
+      'bolivar_10 de agosto': [-4.3818, -79.9428]
     },
     hitos: {
       'parque central macara': [-4.3820, -79.9430],
-      'mercado municipal': [-4.3830, -79.9450]
+      'mercado municipal': [-4.3830, -79.9450],
+      'puente internacional macara': [-4.3889, -79.9489]
     },
     alias: ['macara']
   },
@@ -551,12 +624,23 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     nombre: 'Gonzanamá',
     provincia: 'Loja',
     centroide: [-4.2290, -79.4320],
-    viewbox: [-4.2700, -79.4700, -4.1800, -79.3900],
+    viewbox: [-79.4700, -4.2700, -79.3900, -4.1800],
     viasPrincipales: {
+      '18 de noviembre': [-4.2285, -79.4325],
+      'sucre': [-4.2290, -79.4318],
+      'bolivar': [-4.2295, -79.4322],
+      '9 de octubre': [-4.2280, -79.4315],
       'via cariamanga': [-4.2290, -79.4320]
+    },
+    interseccionesExactas: {
+      '18 de noviembre_sucre': [-4.2288, -79.4320],
+      'sucre_18 de noviembre': [-4.2288, -79.4320],
+      'bolivar_18 de noviembre': [-4.2292, -79.4322],
+      '18 de noviembre_bolivar': [-4.2292, -79.4322]
     },
     hitos: {
       'parque central gonzanama': [-4.2290, -79.4320],
+      'mercado central': [-4.2288, -79.4312],
       'changaimina': [-4.2650, -79.4650]
     },
     alias: ['gonzanama', 'changaimina']
@@ -565,13 +649,24 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     nombre: 'Catacocha (Paltas)',
     provincia: 'Loja',
     centroide: [-4.0510, -79.6480],
-    viewbox: [-4.0900, -79.6800, -4.0100, -79.6100],
+    viewbox: [-79.6800, -4.0900, -79.6100, -4.0100],
     viasPrincipales: {
+      '25 de junio': [-4.0515, -79.6485],
+      'sucre': [-4.0508, -79.6480],
+      'bolivar': [-4.0512, -79.6475],
+      'lauro guerrero': [-4.0520, -79.6490],
       'panamericana': [-4.0510, -79.6480]
+    },
+    interseccionesExactas: {
+      'sucre_25 de junio': [-4.0510, -79.6482],
+      '25 de junio_sucre': [-4.0510, -79.6482],
+      'bolivar_25 de junio': [-4.0514, -79.6478],
+      '25 de junio_bolivar': [-4.0514, -79.6478]
     },
     hitos: {
       'el shiriculapo': [-4.0480, -79.6450],
-      'parque central catacocha': [-4.0510, -79.6480]
+      'parque central catacocha': [-4.0510, -79.6480],
+      'mercado central': [-4.0522, -79.6478]
     },
     alias: ['catacocha', 'paltas']
   },
@@ -1189,51 +1284,73 @@ export class SaraFreightRoutingService {
 
   /**
    * Determina de forma inteligente el cantón de contexto basado en:
-   * 1. Nombres de cantones o provincias explícitos en el texto.
-   * 2. Ubicación GPS o referencia cercana (distancia euclidiana mínima).
-   * 3. Por defecto null si no se identifica uno puntual (búsqueda abierta en todo Ecuador).
+   * 1. Nombres de cantones o provincias explícitos en el texto con límites estrictos de palabra (\b).
+   * 2. Desambiguación contextual: palabras como "quito", "loja", "ambato" precedidas por "calle/av" son vías, no el cantón.
+   * 3. Si no hay cantón en el texto, inferir prioritariamente el cantón de referencia geográfica (GPS u origen).
    */
   static detectarCanton(
     queryNormalizada: string,
     ubicacionReferencia?: [number, number]
   ): CantonInfo | null {
-    // 1. Coincidencia por nombre, clave o alias de cantón
-    for (const [key, canton] of Object.entries(CANTONES_ECUADOR)) {
-      const keyNorm = this.normalizar(key);
-      if (queryNormalizada.includes(keyNorm)) {
-        return canton;
+    const norm = this.normalizar(queryNormalizada);
+
+    // 1. Detección por nombre explícito de cantón, provincia o alias usando límites de palabra (\b)
+    // Ordenamos de mayor a menor longitud para que nombres compuestos ("nueva loja", "santo domingo") tengan prioridad sobre simples
+    const cantonesOrdenados = Object.values(CANTONES_ECUADOR).sort(
+      (a, b) => b.nombre.length - a.nombre.length
+    );
+
+    // Función auxiliar para determinar si una palabra está precedida por un prefijo de calle/avenida (ej. "calle loja", "calle quito")
+    const esPrefijoVial = (nombre: string): boolean => {
+      const rx = new RegExp(`\\b(?:calle|carrera|cra|crra|avenida|av|avda|clle|pasaje|diagonal|sector|barrio)\\s+(?:de\\s+)?${nombre}\\b`, 'i');
+      return rx.test(queryNormalizada);
+    };
+
+    for (const canton of cantonesOrdenados) {
+      const nombresAChequear: string[] = [];
+
+      // Nombre base sin paréntesis (ej: "cariamanga" de "cariamanga (calvas)")
+      const nomLimpio = this.normalizar(canton.nombre).replace(/\(.*?\)/g, '').trim();
+      if (nomLimpio.length >= 3) nombresAChequear.push(nomLimpio);
+
+      // Nombre dentro de paréntesis (ej: "calvas" o "paltas")
+      const matchParen = canton.nombre.match(/\((.*?)\)/);
+      if (matchParen) {
+        const pLimpio = this.normalizar(matchParen[1]).trim();
+        if (pLimpio.length >= 3) nombresAChequear.push(pLimpio);
       }
 
-      const cantonNorm = this.normalizar(canton.nombre);
-      const provNorm = this.normalizar(canton.provincia);
-      const nombreSinParen = cantonNorm.replace(/\(.*?\)/g, "").trim();
-
-      if (nombreSinParen && queryNormalizada.includes(nombreSinParen)) {
-        return canton;
-      }
-
-      const palabras = cantonNorm.split(/[\s,()]+/);
-      for (const p of palabras) {
-        if (p.length >= 4 && queryNormalizada.includes(p)) {
-          return canton;
-        }
-      }
-
-      if (queryNormalizada.includes(cantonNorm) || queryNormalizada.includes(provNorm)) {
-        return canton;
-      }
-
+      // Alias del cantón
       if (canton.alias) {
         for (const al of canton.alias) {
           const alNorm = this.normalizar(al);
-          if (queryNormalizada.includes(alNorm)) {
-            return canton;
+          if (alNorm.length >= 3) nombresAChequear.push(alNorm);
+        }
+      }
+
+      for (const nom of nombresAChequear) {
+        const rxWord = new RegExp(`\\b${nom}\\b`, 'i');
+        if (rxWord.test(norm)) {
+          // Desambiguación: si coincide con un nombre pero está precedido de "calle/av" (ej. "calle loja", "calle quito"),
+          // verificar si aparece en otra parte sin prefijo vial
+          if (esPrefijoVial(nom)) {
+            const matches = [...norm.matchAll(new RegExp(`\\b${nom}\\b`, 'gi'))];
+            const hasStandalone = matches.some(m => {
+              const idx = m.index ?? 0;
+              const subBefore = queryNormalizada.slice(Math.max(0, idx - 15), idx).toLowerCase();
+              return !/\b(?:calle|carrera|cra|crra|avenida|av|avda|clle|pasaje)\s+(?:de\s+)?$/i.test(subBefore);
+            });
+            if (!hasStandalone) {
+              continue; // Es una calle, no el cantón
+            }
           }
+          return canton;
         }
       }
     }
 
-    // 2. Si hay ubicación de referencia (GPS o punto previo), encontrar el cantón más cercano
+    // 2. Si el texto no menciona explícitamente un cantón pero se tiene una ubicación de referencia (origen o GPS),
+    // asociar prioritariamente al cantón más cercano dentro de un radio de 50 km
     if (ubicacionReferencia && !isNaN(ubicacionReferencia[0]) && !isNaN(ubicacionReferencia[1])) {
       let cantonMasCercano: CantonInfo | null = null;
       let distMinima = Infinity;
@@ -1249,8 +1366,7 @@ export class SaraFreightRoutingService {
         }
       }
 
-      // Si está a menos de 45 km del cantón, considerarlo activo
-      if (distMinima <= 45 && cantonMasCercano) {
+      if (distMinima <= 50 && cantonMasCercano) {
         return cantonMasCercano;
       }
     }
@@ -1280,59 +1396,35 @@ export class SaraFreightRoutingService {
       }
     };
 
-    // 1. Revisar Hitos Nacionales Estratégicos (Puertos, Terminales, Canteras, Aeropuertos)
-    for (const [clave, hito] of Object.entries(HITOS_NACIONALES_ECUADOR)) {
-      if (clave.includes(norm) || norm.includes(clave) || this.normalizar(hito.nombre).includes(norm)) {
-        agregarSugerencia({
-          id: `hito_nac_${clave}`,
-          titulo: hito.nombre,
-          subtitulo: `${hito.ciudad}, ${hito.provincia} · Ecuador`,
-          lat: hito.lat,
-          lng: hito.lng,
-          ciudad: hito.ciudad,
-          provincia: hito.provincia,
-          tipo: hito.tipo
-        });
-      }
-    }
+    // Detectar cantón activo de contexto
+    const cantonDetectado = this.detectarCanton(norm, ubicacionReferencia) || (ubicacionReferencia ? null : CANTONES_ECUADOR.cariamanga);
 
-    // 2. Revisar Cantones y Ciudades del Ecuador
-    for (const canton of Object.values(CANTONES_ECUADOR)) {
-      const nomNorm = this.normalizar(canton.nombre);
-      if (nomNorm.includes(clean) || clean.includes(nomNorm)) {
-        agregarSugerencia({
-          id: `canton_${canton.nombre}`,
-          titulo: canton.nombre,
-          subtitulo: `Provincia de ${canton.provincia} · Centro Urbano`,
-          lat: canton.centroide[0],
-          lng: canton.centroide[1],
-          ciudad: canton.nombre,
-          provincia: canton.provincia,
-          tipo: 'canton'
-        });
-      }
-    }
-
-    // 3. Revisar Vías Principales e Hitos Locales del Cantón Activo o Cercano
-    const cantonDetectado = this.detectarCanton(norm, ubicacionReferencia) || CANTONES_ECUADOR.cariamanga;
-    if (cantonDetectado) {
-      // Hitos cantonales
-      for (const [hitoNom, coords] of Object.entries(cantonDetectado.hitos)) {
-        if (hitoNom.includes(clean) || clean.includes(hitoNom)) {
-          const titCapitalizado = hitoNom.charAt(0).toUpperCase() + hitoNom.slice(1);
+    // 1. PRIORIDAD 1: Intersecciones exactas verificadas del cantón activo
+    if (cantonDetectado && cantonDetectado.interseccionesExactas) {
+      for (const [key, coords] of Object.entries(cantonDetectado.interseccionesExactas)) {
+        const [k1, k2] = key.split('_');
+        if (
+          clean.includes(k1) || clean.includes(k2) ||
+          key.replace('_', ' ').includes(clean)
+        ) {
+          const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
+          const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
           agregarSugerencia({
-            id: `hito_local_${cantonDetectado.nombre}_${hitoNom}`,
-            titulo: `${titCapitalizado}`,
-            subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia}`,
+            id: `interseccion_${cantonDetectado.nombre}_${key}`,
+            titulo: `${tit1} y ${tit2}`,
+            subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · Intersección vial`,
             lat: coords[0],
             lng: coords[1],
             ciudad: cantonDetectado.nombre,
             provincia: cantonDetectado.provincia,
-            tipo: 'hito'
+            tipo: 'interseccion'
           });
         }
       }
+    }
 
+    // 2. PRIORIDAD 2: Vías e hitos locales del cantón activo
+    if (cantonDetectado) {
       // Vías principales cantonales
       for (const [viaNom, coords] of Object.entries(cantonDetectado.viasPrincipales)) {
         if (viaNom.includes(clean) || clean.includes(viaNom)) {
@@ -1350,37 +1442,76 @@ export class SaraFreightRoutingService {
         }
       }
 
-      // Intersecciones exactas verificadas del cantón
-      if (cantonDetectado.interseccionesExactas) {
-        for (const [key, coords] of Object.entries(cantonDetectado.interseccionesExactas)) {
-          const [k1, k2] = key.split('_');
-          if (
-            clean.includes(k1) || clean.includes(k2) ||
-            key.replace('_', ' ').includes(clean)
-          ) {
-            const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
-            const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
-            agregarSugerencia({
-              id: `interseccion_${cantonDetectado.nombre}_${key}`,
-              titulo: `${tit1} y ${tit2}`,
-              subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · Intersección vial`,
-              lat: coords[0],
-              lng: coords[1],
-              ciudad: cantonDetectado.nombre,
-              provincia: cantonDetectado.provincia,
-              tipo: 'interseccion'
-            });
-          }
+      // Hitos cantonales
+      for (const [hitoNom, coords] of Object.entries(cantonDetectado.hitos)) {
+        if (hitoNom.includes(clean) || clean.includes(hitoNom)) {
+          const titCapitalizado = hitoNom.charAt(0).toUpperCase() + hitoNom.slice(1);
+          agregarSugerencia({
+            id: `hito_local_${cantonDetectado.nombre}_${hitoNom}`,
+            titulo: `${titCapitalizado}`,
+            subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia}`,
+            lat: coords[0],
+            lng: coords[1],
+            ciudad: cantonDetectado.nombre,
+            provincia: cantonDetectado.provincia,
+            tipo: 'hito'
+          });
         }
       }
     }
 
-    // 4. Si tenemos menos de 5 resultados, consultar Photon API para autocompletar dinámicamente
+    // 3. PRIORIDAD 3: Hitos Nacionales Estratégicos (Puertos, Terminales, Canteras, Aeropuertos)
+    for (const [clave, hito] of Object.entries(HITOS_NACIONALES_ECUADOR)) {
+      if (clave.includes(norm) || norm.includes(clave) || this.normalizar(hito.nombre).includes(norm)) {
+        agregarSugerencia({
+          id: `hito_nac_${clave}`,
+          titulo: hito.nombre,
+          subtitulo: `${hito.ciudad}, ${hito.provincia} · Ecuador`,
+          lat: hito.lat,
+          lng: hito.lng,
+          ciudad: hito.ciudad,
+          provincia: hito.provincia,
+          tipo: hito.tipo
+        });
+      }
+    }
+
+    // 4. PRIORIDAD 4: Cantones y Ciudades del Ecuador (con verificación de palabra completa o prefijo estricto)
+    for (const canton of Object.values(CANTONES_ECUADOR)) {
+      const nomNorm = this.normalizar(canton.nombre).replace(/\(.*?\)/g, '').trim();
+      const matchParen = canton.nombre.match(/\((.*?)\)/);
+      const aliasList = [nomNorm, ...(matchParen ? [this.normalizar(matchParen[1]).trim()] : []), ...(canton.alias ? canton.alias.map(a => this.normalizar(a)) : [])];
+
+      const coincideCanton = aliasList.some(al => {
+        if (al.startsWith(clean) && clean.length >= 3) return true;
+        if (clean.startsWith(al)) return true;
+        const rx = new RegExp(`\\b${al}\\b`, 'i');
+        return rx.test(norm);
+      });
+
+      if (coincideCanton) {
+        agregarSugerencia({
+          id: `canton_${canton.nombre}`,
+          titulo: canton.nombre,
+          subtitulo: `Provincia de ${canton.provincia} · Centro Urbano`,
+          lat: canton.centroide[0],
+          lng: canton.centroide[1],
+          ciudad: canton.nombre,
+          provincia: canton.provincia,
+          tipo: 'canton'
+        });
+      }
+    }
+
+    // 5. PRIORIDAD 5: Photon API si hay menos de 5 sugerencias (con sesgo geográfico local)
     if (sugerencias.length < 5) {
       try {
         const refLat = ubicacionReferencia?.[0] ?? cantonDetectado?.centroide[0] ?? -1.8312;
         const refLng = ubicacionReferencia?.[1] ?? cantonDetectado?.centroide[1] ?? -78.1834;
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(query + ' Ecuador')}&lat=${refLat}&lon=${refLng}&limit=4`;
+        const searchTarget = cantonDetectado
+          ? `${clean} ${cantonDetectado.nombre.replace(/\(.*?\)/g, '').trim()} Ecuador`
+          : `${clean} Ecuador`;
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTarget)}&lat=${refLat}&lon=${refLng}&limit=4`;
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 1200);
@@ -1397,6 +1528,13 @@ export class SaraFreightRoutingService {
               const city = props.city || props.county || props.district || 'Ecuador';
               const state = props.state || '';
 
+              // Si hay cantón activo, filtrar puntos a más de 35 km
+              if (cantonDetectado) {
+                const dLat = (lat - cantonDetectado.centroide[0]) * 111;
+                const dLon = (lon - cantonDetectado.centroide[1]) * 111;
+                if (Math.sqrt(dLat * dLat + dLon * dLon) > 35) continue;
+              }
+
               agregarSugerencia({
                 id: `photon_${lat}_${lon}`,
                 titulo: name,
@@ -1411,7 +1549,7 @@ export class SaraFreightRoutingService {
           }
         }
       } catch {
-        // En caso de corte de red, devolver las sugerencias locales de 0ms
+        // Failsafe offline
       }
     }
 
@@ -1423,8 +1561,8 @@ export class SaraFreightRoutingService {
    * Arquitectura Híbrida de 4 Niveles:
    * Nivel 1: Parser Semántico de Coordenadas Numéricas e Hitos Nacionales.
    * Nivel 2: Parser de Intersecciones ("X y Y") sobre el Nomenclátor Urbano.
-   * Nivel 3: Photon API con Sesgo Geográfico del Cantón o Nacional.
-   * Nivel 4: OpenStreetMap Nominatim con Bounding Box Estricto o Nacional.
+   * Nivel 3: Búsqueda Georreferenciada con Bounding Box Estricto del Cantón.
+   * Nivel 4: Fallback Inviolable Calibrado al Centroide del Cantón Correcto.
    */
   static async geocodificarDireccion(
     query: string,
@@ -1468,26 +1606,34 @@ export class SaraFreightRoutingService {
 
     // 4. Si identificamos un cantón específico, resolver intersecciones o vías locales en 0 ms
     if (cantonActual) {
+      const cNom = this.normalizar(cantonActual.nombre).replace(/\(.*?\)/g, '').trim();
+      const pNom = this.normalizar(cantonActual.provincia);
+
       // Remover el nombre del cantón, provincia y alias del texto para aislar estrictamente las vías
       let querySoloVias = cleanWithoutPrefixes;
-      const cNom = this.normalizar(cantonActual.nombre).replace(/\(.*?\)/g, "").trim();
-      const pNom = this.normalizar(cantonActual.provincia);
       querySoloVias = querySoloVias
-        .replace(new RegExp(`\\b${cNom}\\b`, "gi"), "")
-        .replace(new RegExp(`\\b${pNom}\\b`, "gi"), "")
-        .replace(/,\s*/g, " ")
-        .replace(/\s+/g, " ")
+        .replace(new RegExp(`\\b${cNom}\\b`, 'gi'), '')
+        .replace(new RegExp(`\\b${pNom}\\b`, 'gi'), '')
+        .replace(/,\s*/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
 
       if (cantonActual.alias) {
         for (const al of cantonActual.alias) {
-          querySoloVias = querySoloVias.replace(new RegExp(`\\b${this.normalizar(al)}\\b`, "gi"), "").trim();
+          querySoloVias = querySoloVias.replace(new RegExp(`\\b${this.normalizar(al)}\\b`, 'gi'), '').trim();
         }
       }
-      querySoloVias = querySoloVias.replace(/\s+/g, " ").trim();
+      querySoloVias = querySoloVias.replace(/\s+/g, ' ').trim();
 
-      // 4a. Parser de Intersecciones ("X y Y" / "X con Y" / "X esquina Y")
-      const partesInterseccion = querySoloVias.split(/\s+(?:y|e|esquina|con)\s+/);
+      // 4a. Parser de Intersecciones ("X y Y" / "X con Y" / "X esquina Y" / "X e Y" / "entre X y Y")
+      let partesInterseccion: string[] = [];
+      const matchEntre = querySoloVias.match(/^entre\s+(.+?)\s+y\s+(.+)$/i);
+      if (matchEntre) {
+        partesInterseccion = [matchEntre[1].trim(), matchEntre[2].trim()];
+      } else {
+        partesInterseccion = querySoloVias.split(/\s+(?:y|e|esquina|con|\/|&)\s+/);
+      }
+
       if (partesInterseccion.length >= 2) {
         const via1 = partesInterseccion[0].trim();
         const via2 = partesInterseccion[1].trim();
@@ -1497,20 +1643,8 @@ export class SaraFreightRoutingService {
           for (const [key, coords] of Object.entries(cantonActual.interseccionesExactas)) {
             const [k1, k2] = key.split('_');
             if (
-              (via1.includes(k1) || k1.includes(via1)) &&
-              (via2.includes(k2) || k2.includes(via2))
-            ) {
-              return {
-                nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
-                lat: coords[0],
-                lng: coords[1],
-                ciudad: cantonActual.nombre,
-                provincia: cantonActual.provincia
-              };
-            }
-            if (
-              (via1.includes(k2) || k2.includes(via1)) &&
-              (via2.includes(k1) || k1.includes(via2))
+              ((via1.includes(k1) || k1.includes(via1)) && (via2.includes(k2) || k2.includes(via2))) ||
+              ((via1.includes(k2) || k2.includes(via1)) && (via2.includes(k1) || k1.includes(via2)))
             ) {
               return {
                 nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
@@ -1523,7 +1657,7 @@ export class SaraFreightRoutingService {
           }
         }
 
-        // 2. Si ambas vías están en viasPrincipales, calcular el punto de alta precisión
+        // 2. Si ambas vías están en viasPrincipales, calcular el punto medio exacto de la intersección
         let p1: [number, number] | null = null;
         let p2: [number, number] | null = null;
 
@@ -1543,7 +1677,7 @@ export class SaraFreightRoutingService {
         } else if (p1 || p2) {
           const p = p1 || p2!;
           return {
-            nombre: query,
+            nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
             lat: p[0],
             lng: p[1],
             ciudad: cantonActual.nombre,
@@ -1577,105 +1711,94 @@ export class SaraFreightRoutingService {
           };
         }
       }
-    }
 
-    // 5. Consulta Dinámica a Photon API (con sesgo geográfico local o centro de Ecuador)
-    const refLat = ubicacionReferencia?.[0] ?? (cantonActual ? cantonActual.centroide[0] : -1.8312);
-    const refLng = ubicacionReferencia?.[1] ?? (cantonActual ? cantonActual.centroide[1] : -78.1834);
+      // 4d. Búsqueda Descompuesta en Nominatim con Bounding Box Estricto del Cantón
+      try {
+        const [v0, v1, v2, v3] = cantonActual.viewbox;
+        const minLng = Math.min(v0, v2);
+        const maxLng = Math.max(v0, v2);
+        const minLat = Math.min(v1, v3);
+        const maxLat = Math.max(v1, v3);
+        const viewboxParam = `&bounded=1&viewbox=${minLng},${maxLat},${maxLng},${minLat}`;
+        const cantonNombreLimpio = cantonActual.nombre.replace(/\(.*?\)/g, '').trim();
 
-    try {
-      const searchTarget = cantonActual
-        ? `${cleanWithoutPrefixes} ${cantonActual.nombre} Ecuador`
-        : `${cleanWithoutPrefixes} Ecuador`;
+        // Si es una intersección, buscar cada vía individualmente dentro del viewbox del cantón
+        if (partesInterseccion.length >= 2) {
+          const via1 = partesInterseccion[0].trim();
+          const via2 = partesInterseccion[1].trim();
 
-      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTarget)}&lat=${refLat}&lon=${refLng}&limit=1`;
-      const res = await fetch(photonUrl);
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.features?.length > 0) {
-          const feat = data.features[0];
-          const [lon, lat] = feat.geometry.coordinates;
+          const url1 = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ec${viewboxParam}&limit=1&q=${encodeURIComponent(via1 + ', ' + cantonNombreLimpio)}`;
+          const res1 = await fetch(url1, { headers: { 'User-Agent': 'SARA-Fletes-Ecuador/2.0', 'Accept': 'application/json' } });
+          const data1 = res1.ok ? await res1.json() : [];
 
-          // Validar que esté dentro del territorio ecuatoriano
-          if (lat >= -5.5 && lat <= 1.8 && lon >= -92.0 && lon <= -75.0) {
-            if (cantonActual) {
-              const dLat = (lat - cantonActual.centroide[0]) * 111;
-              const dLon = (lon - cantonActual.centroide[1]) * 111;
-              const distCanton = Math.sqrt(dLat * dLat + dLon * dLon);
-              if (distCanton > 30) {
-                return {
-                  nombre: `${query}, ${cantonActual.nombre}`,
-                  lat: cantonActual.centroide[0],
-                  lng: cantonActual.centroide[1],
-                  ciudad: cantonActual.nombre,
-                  provincia: cantonActual.provincia
-                };
-              }
-            }
+          const url2 = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ec${viewboxParam}&limit=1&q=${encodeURIComponent(via2 + ', ' + cantonNombreLimpio)}`;
+          const res2 = await fetch(url2, { headers: { 'User-Agent': 'SARA-Fletes-Ecuador/2.0', 'Accept': 'application/json' } });
+          const data2 = res2.ok ? await res2.json() : [];
+
+          let p1: [number, number] | null = null;
+          let p2: [number, number] | null = null;
+
+          if (data1?.length > 0) {
+            const lat1 = parseFloat(data1[0].lat);
+            const lon1 = parseFloat(data1[0].lon);
+            const dist = Math.sqrt(Math.pow((lat1 - cantonActual.centroide[0]) * 111, 2) + Math.pow((lon1 - cantonActual.centroide[1]) * 111, 2));
+            if (dist <= 25) p1 = [lat1, lon1];
+          }
+
+          if (data2?.length > 0) {
+            const lat2 = parseFloat(data2[0].lat);
+            const lon2 = parseFloat(data2[0].lon);
+            const dist = Math.sqrt(Math.pow((lat2 - cantonActual.centroide[0]) * 111, 2) + Math.pow((lon2 - cantonActual.centroide[1]) * 111, 2));
+            if (dist <= 25) p2 = [lat2, lon2];
+          }
+
+          if (p1 && p2) {
             return {
-              nombre: feat.properties.name || feat.properties.street || query,
-              lat: +lat.toFixed(5),
-              lng: +lon.toFixed(5),
-              ciudad: feat.properties.city || (cantonActual?.nombre ?? 'Ecuador'),
-              provincia: feat.properties.state || (cantonActual?.provincia ?? 'Ecuador')
+              nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
+              lat: +((p1[0] + p2[0]) / 2).toFixed(5),
+              lng: +((p1[1] + p2[1]) / 2).toFixed(5),
+              ciudad: cantonActual.nombre,
+              provincia: cantonActual.provincia
+            };
+          } else if (p1 || p2) {
+            const p = p1 || p2!;
+            return {
+              nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
+              lat: +p[0].toFixed(5),
+              lng: +p[1].toFixed(5),
+              ciudad: cantonActual.nombre,
+              provincia: cantonActual.provincia
             };
           }
         }
-      }
-    } catch {
-      // Continuar al siguiente nivel
-    }
 
-    // 6. Consulta a OpenStreetMap Nominatim
-    try {
-      let viewboxParam = '';
-      if (cantonActual) {
-        const [minLng, minLat, maxLng, maxLat] = cantonActual.viewbox;
-        viewboxParam = `&bounded=1&viewbox=${minLng},${maxLat},${maxLng},${minLat}`;
-      } else {
-        // Viewbox de todo el Ecuador continental e insular
-        viewboxParam = `&bounded=1&viewbox=-92.0,1.8,-75.0,-5.5`;
-      }
-
-      const nomQuery = cantonActual ? `${cleanWithoutPrefixes} ${cantonActual.nombre}` : `${cleanWithoutPrefixes} Ecuador`;
-      const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ec${viewboxParam}&limit=1&q=${encodeURIComponent(nomQuery)}`;
-      const nomRes = await fetch(nomUrl, { headers: { 'Accept': 'application/json' } });
-      if (nomRes.ok) {
-        const nomData = await nomRes.json();
-        if (nomData?.length > 0) {
-          const nLat = parseFloat(nomData[0].lat);
-          const nLon = parseFloat(nomData[0].lon);
-          if (cantonActual) {
-            const dLat = (nLat - cantonActual.centroide[0]) * 111;
-            const dLon = (nLon - cantonActual.centroide[1]) * 111;
-            const distCanton = Math.sqrt(dLat * dLat + dLon * dLon);
-            if (distCanton > 30) {
+        // Búsqueda del texto limpio en Nominatim con viewbox estricto
+        const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=ec${viewboxParam}&limit=1&q=${encodeURIComponent(querySoloVias + ', ' + cantonNombreLimpio)}`;
+        const nomRes = await fetch(nomUrl, { headers: { 'User-Agent': 'SARA-Fletes-Ecuador/2.0', 'Accept': 'application/json' } });
+        if (nomRes.ok) {
+          const nomData = await nomRes.json();
+          if (nomData?.length > 0) {
+            const nLat = parseFloat(nomData[0].lat);
+            const nLon = parseFloat(nomData[0].lon);
+            const dist = Math.sqrt(Math.pow((nLat - cantonActual.centroide[0]) * 111, 2) + Math.pow((nLon - cantonActual.centroide[1]) * 111, 2));
+            if (dist <= 25) {
               return {
-                nombre: `${query}, ${cantonActual.nombre}`,
-                lat: cantonActual.centroide[0],
-                lng: cantonActual.centroide[1],
+                nombre: nomData[0].display_name,
+                lat: +nLat.toFixed(5),
+                lng: +nLon.toFixed(5),
                 ciudad: cantonActual.nombre,
                 provincia: cantonActual.provincia
               };
             }
           }
-          return {
-            nombre: nomData[0].display_name,
-            lat: +nLat.toFixed(5),
-            lng: +nLon.toFixed(5),
-            ciudad: cantonActual?.nombre ?? 'Ecuador',
-            provincia: cantonActual?.provincia ?? 'Ecuador'
-          };
         }
+      } catch {
+        // Continuar al fallback seguro del cantón
       }
-    } catch {
-      // Continuar a fallback
-    }
 
-    // 7. Fallback seguro y calibrado
-    if (cantonActual) {
+      // 4e. Fallback seguro e inviolable dentro del cantón detectado
       return {
-        nombre: query,
+        nombre: `${query}, ${cantonActual.nombre}`,
         lat: cantonActual.centroide[0],
         lng: cantonActual.centroide[1],
         ciudad: cantonActual.nombre,
@@ -1683,6 +1806,34 @@ export class SaraFreightRoutingService {
       };
     }
 
+    // 5. Consulta Dinámica a Photon / Nominatim para consultas abiertas en todo Ecuador
+    const refLat = ubicacionReferencia?.[0] ?? -1.8312;
+    const refLng = ubicacionReferencia?.[1] ?? -78.1834;
+
+    try {
+      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(cleanWithoutPrefixes + ' Ecuador')}&lat=${refLat}&lon=${refLng}&limit=1`;
+      const res = await fetch(photonUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.features?.length > 0) {
+          const feat = data.features[0];
+          const [lon, lat] = feat.geometry.coordinates;
+          if (lat >= -5.5 && lat <= 1.8 && lon >= -92.0 && lon <= -75.0) {
+            return {
+              nombre: feat.properties.name || feat.properties.street || query,
+              lat: +lat.toFixed(5),
+              lng: +lon.toFixed(5),
+              ciudad: feat.properties.city || feat.properties.county || 'Ecuador',
+              provincia: feat.properties.state || 'Ecuador'
+            };
+          }
+        }
+      }
+    } catch {
+      // Continuar a fallback
+    }
+
+    // 6. Fallback final
     if (ubicacionReferencia && !isNaN(ubicacionReferencia[0]) && !isNaN(ubicacionReferencia[1])) {
       return {
         nombre: query,
