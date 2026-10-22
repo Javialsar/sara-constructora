@@ -31,8 +31,16 @@ import {
   CheckCircle2,
   ThumbsUp,
   Award,
-  MessageSquare
+  MessageSquare,
+  Share2,
+  Users,
+  FileText,
+  AlertOctagon,
+  AlertTriangle
 } from 'lucide-react';
+import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
+import { SaraGuiaRemisionService } from '@/lib/services/saraGuiaRemisionService';
+import { SaraMtopBalanzasService } from '@/lib/services/saraMtopBalanzasService';
 import Link from 'next/link';
 import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 import { 
@@ -376,6 +384,25 @@ export default function SaraFletesEngine() {
   const [counterOffer, setCounterOffer] = useState<string>('');
   const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
   const [assignedDriver, setAssignedDriver] = useState<DriverOffer | null>(null);
+
+  // Estados Avanzados 2026: Guía de Remisión SRI, Calculadora de Estiba y Control MTOP
+  const [guiaRemisionClave, setGuiaRemisionClave] = useState<string>('');
+  const [guiaRemisionValidacion, setGuiaRemisionValidacion] = useState<{ valida: boolean; error?: string } | null>(null);
+  const [peonesEstibaCount, setPeonesEstibaCount] = useState<number>(0);
+  const costoEstibaUSD = peonesEstibaCount * 15.00;
+
+  // Evaluación de cumplimiento de balanza MTOP en tiempo real
+  const mtopCheck = useMemo(() => {
+    return SaraMtopBalanzasService.evaluarPesaje(vehicleType, weight);
+  }, [vehicleType, weight]);
+
+  const balanzasEnCorredor = useMemo(() => {
+    if (!originPoint || !destinationPoint) return [];
+    return SaraMtopBalanzasService.obtenerBalanzasEnCorredor(
+      [originPoint.lat, originPoint.lng],
+      [destinationPoint.lat, destinationPoint.lng]
+    );
+  }, [originPoint, destinationPoint]);
 
   // Estados del Modal de Calificación al Conductor (Estilo Uber / DiDi / inDrive)
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
@@ -1069,7 +1096,8 @@ export default function SaraFletesEngine() {
     if (!originText || !destinationText) return alert('Por favor ingresa origen y destino');
     if (!tarifaEstimada) return;
 
-    const precioFinal = proposedPrice || tarifaEstimada.tarifaSugeridaUSD;
+    const precioBase = proposedPrice || tarifaEstimada.tarifaSugeridaUSD;
+    const precioFinal = +(precioBase + costoEstibaUSD).toFixed(2);
     const asignadoId = 'FLT-' + Math.floor(1000 + Math.random() * 9000);
     const code = generateAccessCode();
 
@@ -1117,7 +1145,14 @@ export default function SaraFletesEngine() {
         codigoAcceso: code,
         clienteNombre: 'Cliente SARA Constructora',
         status: 'searching',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        guiaRemision: guiaRemisionClave ? {
+          claveAcceso: guiaRemisionClave,
+          autorizada: guiaRemisionValidacion?.valida ?? false
+        } : undefined,
+        requiereEstiba: peonesEstibaCount > 0,
+        peonesCount: peonesEstibaCount,
+        costoEstibaUSD: costoEstibaUSD
       }
     });
   };
@@ -1834,6 +1869,108 @@ export default function SaraFletesEngine() {
                           />
                         </div>
                       </div>
+                      {/* CALCULADORA DE AYUDANTES DE ESTIBA */}
+                      <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5 text-blue-400" />
+                            ¿Requiere Ayudantes de Estiba / Peones?
+                          </span>
+                          {peonesEstibaCount > 0 && (
+                            <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+                              +${costoEstibaUSD.toFixed(2)} USD
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[0, 1, 2, 3].map((num) => (
+                            <button
+                              key={num}
+                              type="button"
+                              onClick={() => setPeonesEstibaCount(num)}
+                              className={`py-1.5 px-2 rounded-lg text-center font-bold text-xs transition-all ${
+                                peonesEstibaCount === num
+                                  ? "bg-blue-600 text-white shadow-sm ring-1 ring-blue-400"
+                                  : "bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800"
+                              }`}
+                            >
+                              {num === 0 ? "Sin peón" : `${num} ${num === 1 ? "Peón" : "Peones"}`}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* GUÍA DE REMISIÓN ELECTRÓNICA SRI (49 DÍGITOS) */}
+                      <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
+                            <FileText className="w-3.5 h-3.5 text-purple-400" />
+                            Guía de Remisión SRI (Obligatoria para Traslado)
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const claveDemo = SaraGuiaRemisionService.generarClaveAccesoPrueba();
+                              setGuiaRemisionClave(claveDemo);
+                              setGuiaRemisionValidacion(SaraGuiaRemisionService.validarClaveAcceso(claveDemo));
+                            }}
+                            className="text-[10px] text-purple-400 hover:text-purple-300 font-bold bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60 flex items-center gap-1"
+                          >
+                            <Zap className="w-2.5 h-2.5" />
+                            Auto-Generar SRI Demo
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          maxLength={49}
+                          placeholder="Ingrese los 49 dígitos de la Clave de Acceso del SRI"
+                          value={guiaRemisionClave}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
+                            setGuiaRemisionClave(val);
+                            if (val.length === 49) {
+                              setGuiaRemisionValidacion(SaraGuiaRemisionService.validarClaveAcceso(val));
+                            } else if (val.length === 0) {
+                              setGuiaRemisionValidacion(null);
+                            } else {
+                              setGuiaRemisionValidacion({ valida: false, error: `Faltan ${49 - val.length} dígitos para completar los 49 obligatorios del SRI.` });
+                            }
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-purple-500"
+                        />
+                        {guiaRemisionValidacion && (
+                          <div className={`p-1.5 rounded-lg text-[10px] flex items-center gap-1.5 font-medium ${
+                            guiaRemisionValidacion.valida
+                              ? "bg-emerald-950/60 text-emerald-300 border border-emerald-500/30"
+                              : "bg-amber-950/60 text-amber-300 border border-amber-500/30"
+                          }`}>
+                            {guiaRemisionValidacion.valida ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                                <span>✓ Clave SRI Válida (Módulo 11 Aprobado). Comprobante legalmente habilitado.</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                                <span>{guiaRemisionValidacion.error}</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CONTROL DE BÁSCULAS MTOP */}
+                      <div className="p-2 rounded-xl border text-[11px] flex items-center justify-between gap-2 bg-slate-950/80 border-slate-800">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-300">⚖️ Balanzas MTOP en Trayecto:</span>
+                          <span className="text-slate-400">{balanzasEnCorredor.length > 0 ? `${balanzasEnCorredor.length} estaciones detectadas` : "Sin básculas en el tramo"}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                          mtopCheck.dentroDeNorma ? "bg-emerald-950 text-emerald-400 border border-emerald-500/30" : "bg-rose-950 text-rose-400 border border-rose-500/30"
+                        }`}>
+                          {mtopCheck.dentroDeNorma ? "✓ Carga Legal MTOP" : "⚠️ Sobrepeso MTOP"}
+                        </span>
+                      </div>
 
                       {/* BARRA DE OFERTA / SUBASTA ESTILO INDRIVE */}
                       {tarifaEstimada && proposedPrice !== null && !activeFreight && (
@@ -2067,6 +2204,37 @@ export default function SaraFletesEngine() {
                                     : 'Indica este código al conductor para validar la carga e iniciar el viaje'}
                                 </p>
                               </div>
+
+                              {/* Botón de Compartir Seguimiento Satelital en Vivo por WhatsApp (Zero-Login) */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const trackingToken = activeFreight.id || `TRK-${Date.now().toString().slice(-6)}`;
+                                  SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {
+                                    driverName: assignedDriver?.driverName || "David Sarango",
+                                    plate: assignedDriver?.plate || "PCX-4590",
+                                    origin: activeFreight.origin,
+                                    destination: activeFreight.destination,
+                                    originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
+                                    destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-3.9931, -79.2042],
+                                    material: activeFreight.material,
+                                    distanceKm: rutaCalculada?.distanciaKm || 4.2
+                                  });
+                                  const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}`;
+                                  const text = encodeURIComponent(
+                                    `🚚 *SARA-FLETES: Rastreo de Viaje en Vivo*\n\n` +
+                                    `• Chofer: ${assignedDriver?.driverName || "Conductor SARA"} (${assignedDriver?.plate || "PBA-1234"})\n` +
+                                    `• Carga: ${activeFreight.material}\n` +
+                                    `• PIN de Recepción: ${activeFreight.accessCode}\n\n` +
+                                    `📍 Sigue el camión en tiempo real aquí (sin necesidad de iniciar sesión):\n${shareUrl}`
+                                  );
+                                  window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+                                }}
+                                className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold py-2.5 px-3 rounded-xl border border-emerald-500/40 text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
+                              >
+                                <Share2 className="w-4 h-4 text-emerald-400" />
+                                <span>Compartir Rastreo por WhatsApp con Residente de Obra</span>
+                              </button>
 
                               {/* Botones de contacto directo */}
                               <div className="grid grid-cols-2 gap-2">
@@ -2568,6 +2736,15 @@ export default function SaraFletesEngine() {
           </div>
         </div>
       )}
+
+      {/* Botón de Pánico SOS 24/7 Flotante */}
+      <SaraFloatingSosButton
+        userType="cliente"
+        fleteId={activeFreight?.id}
+        driverName={assignedDriver?.driverName || "David Sarango"}
+        plate={assignedDriver?.plate || "PCX-4590"}
+        currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562]}
+      />
     </div>
   );
 }

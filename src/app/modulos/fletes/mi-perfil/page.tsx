@@ -38,7 +38,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
-import { SaraFletesRealtimeService, PlanConfigItem } from '@/lib/services/saraFletesRealtimeService';
+import { SaraFletesRealtimeService, PlanConfigItem, ProofOfDeliveryData } from '@/lib/services/saraFletesRealtimeService';
+import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
+import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
+import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 
 // Carga dinámica del mapa interactivo Leaflet sin SSR
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -160,6 +163,23 @@ export default function MiPerfilFletes() {
   const [inputPin, setInputPin] = useState<string>('');
   const [tripProgressPercent, setTripProgressPercent] = useState<number>(0);
   const [completedTripSummary, setCompletedTripSummary] = useState<any>(null);
+
+  // Estados e-POD, SOS, Modo Rumbo a Casa y Balanzas MTOP
+  const [isEpodModalOpen, setIsEpodModalOpen] = useState(false);
+  const [savedEpod, setSavedEpod] = useState<ProofOfDeliveryData | null>(null);
+  const [rumboACasaActivo, setRumboACasaActivo] = useState(false);
+  const [rumboCanton, setRumboCanton] = useState('Cariamanga');
+
+  // Balanzas MTOP cercanas a la ubicación actual del conductor
+  const balanzasCercanas = useMemo(() => {
+    return SaraMtopBalanzasService.buscarBalanzasCercanas(driverLocation[0], driverLocation[1], 50);
+  }, [driverLocation]);
+
+  // Evaluación de cumplimiento MTOP de la carga actual
+  const evaluacionMtop = useMemo(() => {
+    const peso = incomingRequest?.pesoTon || 1.2;
+    return SaraMtopBalanzasService.evaluarPesaje('PICKUP_1T', peso);
+  }, [incomingRequest]);
 
   // Referencias mutables para el bus de eventos
   const balanceRef = useRef(balance);
@@ -819,11 +839,68 @@ export default function MiPerfilFletes() {
                     Tu unidad está transmitiendo coordenadas GPS y recibiendo viajes cercanos según tu jerarquía ({plan === 'VIP' ? 'Prioridad Alta' : plan === 'Estandar' ? 'Prioridad Media' : 'Prioridad Baja'}).
                   </p>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-                  <span className={`w-2.5 h-2.5 rounded-full ${balance < 1.00 ? 'bg-rose-500' : 'bg-emerald-500 animate-ping'}`}></span>
-                  <span className="text-slate-300 font-bold">
-                    {balance < 1.00 ? 'Radar En Pausa (Sin Saldo)' : `Transmitiendo en ${driverCity}, ${driverProvince}`}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Switch Rumbo a mi Casa */}
+                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    <span className="text-slate-400 font-semibold">🏠 Rumbo a Casa:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nuevoEstado = !rumboACasaActivo;
+                        setRumboACasaActivo(nuevoEstado);
+                        SaraFletesRealtimeService.setRumboACasa(
+                          currentUser?.user_metadata?.placa || 'PBA-1234',
+                          nuevoEstado,
+                          rumboCanton
+                        );
+                        showToast(nuevoEstado ? `🏠 Modo Rumbo a Casa activado hacia ${rumboCanton}. Filtrando cargas directas.` : 'Modo Rumbo a Casa desactivado.');
+                      }}
+                      className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
+                        rumboACasaActivo ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {rumboACasaActivo ? 'ACTIVO' : 'INACTIVO'}
+                    </button>
+                    {rumboACasaActivo && (
+                      <select
+                        value={rumboCanton}
+                        onChange={(e) => setRumboCanton(e.target.value)}
+                        className="bg-slate-950 border border-slate-700 text-slate-200 text-[11px] rounded px-1.5 py-0.5 outline-none font-medium"
+                      >
+                        <option value="Cariamanga">Cariamanga</option>
+                        <option value="Loja">Loja</option>
+                        <option value="Catamayo">Catamayo</option>
+                        <option value="Cuenca">Cuenca</option>
+                        <option value="Guayaquil">Guayaquil</option>
+                        <option value="Quito">Quito</option>
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Estado de Transmisión */}
+                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+                    <span className={`w-2.5 h-2.5 rounded-full ${balance < 1.00 ? 'bg-rose-500' : 'bg-emerald-500 animate-ping'}`}></span>
+                    <span className="text-slate-300 font-bold">
+                      {balance < 1.00 ? 'Radar En Pausa (Sin Saldo)' : `Transmitiendo en ${driverCity}`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* MTOP Compliance Ribbon */}
+              <div className="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-300">⚖️ Control MTOP:</span>
+                  <span className="text-slate-400">
+                    Balanza más cercana: <strong className="text-slate-200">{balanzasCercanas[0]?.nombre || 'Sin balanzas en radio 50km'}</strong>
+                    {balanzasCercanas[0] && ` (~${balanzasCercanas[0].distanciaKm} km)`}
                   </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-mono font-bold bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded">
+                    PBV: {evaluacionMtop.pbvCalculadoTon}T / {evaluacionMtop.pbvMaximoLegalTon}T ({evaluacionMtop.porcentajeOcupacionPbv}%)
+                  </span>
+                  <span className="text-slate-500 text-[11px]">Norma MTOP Acuerdo N° 018</span>
                 </div>
               </div>
 
@@ -1027,14 +1104,14 @@ export default function MiPerfilFletes() {
                           </span>
                         </div>
 
-                        {/* BOTÓN: COMPLETAR ENTREGA */}
+                        {/* BOTÓN: CERTIFICAR e-POD Y COMPLETAR */}
                         <button
                           type="button"
-                          onClick={handleCompleteTrip}
+                          onClick={() => setIsEpodModalOpen(true)}
                           className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-2 active:scale-95"
                         >
                           <CheckCircle className="w-4 h-4" />
-                          <span>Completar Entrega</span>
+                          <span>Certificar e-POD y Completar</span>
                         </button>
                       </>
                     )}
@@ -1059,6 +1136,18 @@ export default function MiPerfilFletes() {
                           {completedTripSummary.origen} → {completedTripSummary.destino}
                         </p>
                       </div>
+
+                      {/* CERTIFICADO e-POD ASOCIADO */}
+                      {savedEpod && (
+                        <div className="bg-emerald-950/60 border border-emerald-500/40 p-3 rounded-2xl text-left text-xs space-y-1">
+                          <div className="flex items-center justify-between text-emerald-400 font-bold">
+                            <span>✓ Acta de Entrega Digital (e-POD)</span>
+                            <span className="font-mono text-[10px]">{savedEpod.hashCriptografico}</span>
+                          </div>
+                          <p className="text-slate-300 text-[11px]">Receptor: {savedEpod.receptorNombre} ({savedEpod.receptorCargo})</p>
+                          <p className="text-slate-400 text-[10px]">Cédula: {savedEpod.receptorCedula} · Conformidad: {savedEpod.conformidad}</p>
+                        </div>
+                      )}
 
                       <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs space-y-2 text-left">
                         <div className="flex justify-between items-center text-slate-300">
@@ -1826,6 +1915,30 @@ export default function MiPerfilFletes() {
         ]}
         defaultEmail="carlos.mendoza@gruposara.com"
         defaultCustomerName="Carlos Mendoza"
+      />
+
+      {/* Modal de Firma y Certificación de Entrega Digital (e-POD) */}
+      <SaraEpodModal
+        isOpen={isEpodModalOpen}
+        onClose={() => setIsEpodModalOpen(false)}
+        fleteId={incomingRequest?.fleteId || 'FLT-DIRECT'}
+        codigoAcceso={accessCode || '2889'}
+        driverName={currentUser?.user_metadata?.full_name || 'David Sarango Malacatus'}
+        plate={currentUser?.user_metadata?.placa || 'PBA-1234'}
+        currentCoords={driverLocation}
+        onSuccess={(epod) => {
+          setSavedEpod(epod);
+          handleCompleteTrip();
+        }}
+      />
+
+      {/* Botón de Pánico SOS 24/7 Flotante */}
+      <SaraFloatingSosButton
+        plate={currentUser?.user_metadata?.placa || 'PBA-1234'}
+        driverName={currentUser?.user_metadata?.full_name || 'David Sarango Malacatus'}
+        currentCoords={driverLocation}
+        fleteId={incomingRequest?.fleteId}
+        userType="conductor"
       />
     </div>
   );

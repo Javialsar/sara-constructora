@@ -19,8 +19,58 @@ export interface SolicitudFleteRealtime {
   coordsDestino: [number, number];
   codigoAcceso: string; // PIN de seguridad
   clienteNombre?: string;
-  status: 'searching' | 'driver_offered' | 'accepted' | 'completed' | 'cancelled';
+  status: 'searching' | 'driver_offered' | 'accepted' | 'in_transit' | 'completed' | 'cancelled';
   timestamp: number;
+  // Campos avanzados 2026
+  tokenRastreo?: string; // Token público para seguimiento zero-login
+  guiaRemision?: {
+    claveAcceso: string;
+    numeroGuia?: string;
+    autorizada: boolean;
+  };
+  requiereEstiba?: boolean;
+  peonesCount?: number;
+  costoEstibaUSD?: number;
+  paradasIntermedias?: Array<{
+    id: string;
+    direccion: string;
+    coords: [number, number];
+  }>;
+}
+
+export interface ProofOfDeliveryData {
+  id: string;
+  fleteId: string;
+  codigoAcceso: string;
+  receptorNombre: string;
+  receptorCedula: string;
+  receptorCargo: string;
+  firmaBase64: string;
+  fotoCargaUrl?: string;
+  odometroKm?: number;
+  precintoSeguridad?: string;
+  observaciones?: string;
+  conformidad: 'CONFORME' | 'OBSERVACION_LEVE' | 'DANOS_REPORTADOS';
+  coords: [number, number];
+  timestampUtc: string;
+  hashCriptografico: string;
+  placa: string;
+  driverName: string;
+}
+
+export interface SOSAlertData {
+  id: string;
+  fleteId?: string;
+  conductorId?: string;
+  driverName: string;
+  plate: string;
+  lat: number;
+  lng: number;
+  speedKmh?: number;
+  bateriaPct?: number;
+  motivo: string;
+  timestamp: number;
+  activa: boolean;
 }
 
 export interface OfertaConductorRealtime {
@@ -122,7 +172,11 @@ export type FletesRealtimeEvent =
   | { type: 'FLETE_CALIFICADO'; payload: { fleteId: string; driverName: string; plate: string; rating: number; comentario?: string; tags?: string[] } }
   | { type: 'ACTUALIZAR_GPS_CONDUCTOR'; payload: ConductorEstadoRealtime }
   | { type: 'PLANES_ACTUALIZADOS'; payload: PlanConfigItem[] }
-  | { type: 'DEBITO_COMISION_CONDUCTOR'; payload: { plate: string; driverName: string; montoDebitado: number; nuevoSaldo: number; fleteId: string } };
+  | { type: 'DEBITO_COMISION_CONDUCTOR'; payload: { plate: string; driverName: string; montoDebitado: number; nuevoSaldo: number; fleteId: string } }
+  | { type: 'SOS_DISPARADO'; payload: SOSAlertData }
+  | { type: 'SOS_CANCELADO'; payload: { fleteId?: string; plate: string } }
+  | { type: 'EPOD_REGISTRADO'; payload: ProofOfDeliveryData }
+  | { type: 'RUMBO_A_CASA_CAMBIADO'; payload: { plate: string; activo: boolean; cantonDestino?: string; coordsDestino?: [number, number] } };
 
 const CHANNEL_NAME = 'sara_fletes_radar_bus_v1';
 const STORAGE_PREFIX = 'sara_fletes_rt_';
@@ -254,6 +308,14 @@ export class SaraFletesRealtimeService {
         localStorage.setItem(`${STORAGE_PREFIX}driver_${event.payload.plate}`, JSON.stringify(event.payload));
       } else if (event.type === 'PLANES_ACTUALIZADOS') {
         localStorage.setItem(`${STORAGE_PREFIX}planes_config`, JSON.stringify(event.payload));
+      } else if (event.type === 'SOS_DISPARADO') {
+        localStorage.setItem(`${STORAGE_PREFIX}active_sos`, JSON.stringify(event.payload));
+      } else if (event.type === 'SOS_CANCELADO') {
+        localStorage.removeItem(`${STORAGE_PREFIX}active_sos`);
+      } else if (event.type === 'EPOD_REGISTRADO') {
+        localStorage.setItem(`${STORAGE_PREFIX}epod_${event.payload.fleteId}`, JSON.stringify(event.payload));
+      } else if (event.type === 'RUMBO_A_CASA_CAMBIADO') {
+        localStorage.setItem(`${STORAGE_PREFIX}rumbo_casa_${event.payload.plate}`, JSON.stringify(event.payload));
       }
     } catch {
       // Ignorar errores de quota de storage
@@ -343,5 +405,97 @@ export class SaraFletesRealtimeService {
     } catch {
       // ignore
     }
+  }
+
+  /**
+   * Obtiene la alerta de emergencia SOS activa
+   */
+  static getActiveSos(): SOSAlertData | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}active_sos`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return null;
+  }
+
+  /**
+   * Dispara una alerta de pánico / SOS 24/7
+   */
+  static emitSos(sosData: SOSAlertData) {
+    this.emit({
+      type: 'SOS_DISPARADO',
+      payload: sosData
+    });
+  }
+
+  /**
+   * Cancela la alerta de emergencia SOS
+   */
+  static cancelSos(plate: string, fleteId?: string) {
+    this.emit({
+      type: 'SOS_CANCELADO',
+      payload: { plate, fleteId }
+    });
+  }
+
+  /**
+   * Registra y emite una prueba de entrega electrónica (e-POD)
+   */
+  static emitProofOfDelivery(epod: ProofOfDeliveryData) {
+    this.emit({
+      type: 'EPOD_REGISTRADO',
+      payload: epod
+    });
+  }
+
+  /**
+   * Obtiene la prueba de entrega electrónica (e-POD) de un flete
+   */
+  static getProofOfDelivery(fleteId: string): ProofOfDeliveryData | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}epod_${fleteId}`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return null;
+  }
+
+  /**
+   * Guarda o consulta el modo Rumbo a mi Casa
+   */
+  static getRumboACasa(plate: string): { activo: boolean; cantonDestino?: string; coordsDestino?: [number, number] } | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}rumbo_casa_${plate}`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return null;
+  }
+
+  static setRumboACasa(plate: string, activo: boolean, cantonDestino?: string, coordsDestino?: [number, number]) {
+    this.emit({
+      type: 'RUMBO_A_CASA_CAMBIADO',
+      payload: { plate, activo, cantonDestino, coordsDestino }
+    });
+  }
+
+  /**
+   * Guarda y consulta una instantánea de rastreo público (Zero-Login)
+   */
+  static savePublicTrackingSnapshot(token: string, payload: any) {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem(`${STORAGE_PREFIX}public_track_${token}`, JSON.stringify(payload));
+    } catch {}
+  }
+
+  static getPublicTrackingSnapshot(token: string): any | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}public_track_${token}`);
+      if (data) return JSON.parse(data);
+    } catch {}
+    return null;
   }
 }
