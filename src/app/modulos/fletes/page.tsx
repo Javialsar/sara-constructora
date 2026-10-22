@@ -25,6 +25,7 @@ import {
   Minimize2,
   Zap,
   Sliders,
+  Radio,
   Layers,
   ChevronRight,
   Star,
@@ -101,6 +102,18 @@ interface ReservaRentaConfirmada {
   depositoGarantia: number;
   pinDesbloqueo: string;
   lugarEntrega: string;
+}
+
+function getVehiclePlural(type?: string): string {
+  switch (type) {
+    case 'PICKUP_1T': return 'camionetas';
+    case 'FURGON_3_5T': return 'furgones';
+    case 'CAMION_5T': return 'camiones';
+    case 'VOLQUETA_14M3': return 'volquetas';
+    case 'MULA_TRAILER_30T': return 'mulas y tráileres';
+    case 'CAMABAJA_40T': return 'camas bajas';
+    default: return 'vehículos';
+  }
 }
 
 export interface DriverOffer {
@@ -948,6 +961,11 @@ export default function SaraFletesEngine() {
         resolverRutaYTarifa(originText, destinationText, vehicleType, weight, material);
       }, 400);
       return () => clearTimeout(timer);
+    } else if (serviceType === 'flete' && !destinationText) {
+      const distAprox = 1.8;
+      const tarifa = SaraFreightPricingService.calcularTarifa(distAprox, weight, vehicleType, material);
+      setTarifaEstimada(tarifa);
+      setProposedPrice((prev) => prev ?? tarifa.tarifaSugeridaUSD);
     }
   }, [originText, destinationText, vehicleType, weight, material, serviceType, resolverRutaYTarifa]);
 
@@ -1100,30 +1118,38 @@ export default function SaraFletesEngine() {
 
   // Solicitar el flete (Modo Flete Directo con emisión en tiempo real)
   const handlePedirFlete = async () => {
-    if (!originText || !destinationText) return alert('Por favor ingresa origen y destino');
-    if (!tarifaEstimada) return;
+    const orig = originText || 'Mi Ubicación Actual (GPS)';
+    let dest = destinationText;
+    if (!dest) {
+      dest = 'Entrega Local (Zona Urbana)';
+      setDestinationText('Entrega Local (Zona Urbana)');
+    }
 
-    const precioBase = proposedPrice || tarifaEstimada.tarifaSugeridaUSD;
+    const distKm = rutaCalculada?.distanciaKm || 1.8;
+    const durMin = rutaCalculada?.duracionMinutos || 8;
+    const tarifa = tarifaEstimada || SaraFreightPricingService.calcularTarifa(distKm, weight, vehicleType, material);
+    if (!tarifaEstimada) {
+      setTarifaEstimada(tarifa);
+    }
+
+    const precioBase = proposedPrice || tarifa.tarifaSugeridaUSD;
     const precioFinal = +(precioBase + costoEstibaUSD).toFixed(2);
     const asignadoId = 'FLT-' + Math.floor(1000 + Math.random() * 9000);
     const code = generateAccessCode();
 
     await createFletesSolicitud({
-      origen: originText,
-      destino: destinationText,
+      origen: orig,
+      destino: dest,
       tarifa: precioFinal,
       material,
       peso: weight,
       codigoAcceso: code
     });
 
-    const distKm = rutaCalculada?.distanciaKm || 1.8;
-    const durMin = rutaCalculada?.duracionMinutos || 8;
-
     setActiveFreight({
       id: asignadoId,
-      origin: originText,
-      destination: destinationText,
+      origin: orig,
+      destination: dest,
       material,
       weight,
       vehicleType,
@@ -1166,6 +1192,13 @@ export default function SaraFletesEngine() {
 
   // Solicitar flete directo a conductor seleccionado del radar automático
   const handleDirectDriverRequest = async (veh: VehiculoMapa) => {
+    const orig = originText || 'Mi Ubicación Actual (GPS)';
+    let dest = destinationText;
+    if (!dest) {
+      dest = 'Entrega Local (Zona Urbana)';
+      setDestinationText('Entrega Local (Zona Urbana)');
+    }
+
     const latDiff = Math.abs(veh.lat - (originPoint?.lat || userLocation?.[0] || -4.3285));
     const lngDiff = Math.abs(veh.lng - (originPoint?.lng || userLocation?.[1] || -79.5560));
     const distMeters = Math.max(180, Math.round((latDiff + lngDiff) * 111000));
@@ -1186,8 +1219,56 @@ export default function SaraFletesEngine() {
       phone: veh.telefono || '0993849182'
     };
 
-    await handlePedirFlete();
+    const distKm = rutaCalculada?.distanciaKm || 1.8;
+    const durMin = rutaCalculada?.duracionMinutos || 8;
+    const asignadoId = 'FLT-' + Math.floor(1000 + Math.random() * 9000);
+    const code = generateAccessCode();
+
+    await createFletesSolicitud({
+      origen: orig,
+      destino: dest,
+      tarifa: price,
+      material,
+      peso: weight,
+      codigoAcceso: code
+    });
+
+    setActiveFreight({
+      id: asignadoId,
+      origin: orig,
+      destination: dest,
+      material,
+      weight,
+      vehicleType: veh.tipoVehiculo,
+      referencePrice: price,
+      status: 'searching',
+      accessCode: code,
+      distanciaKm: distKm,
+      duracionMinutos: durMin
+    });
+
     setDriverOffers([directOffer]);
+
+    SaraFletesRealtimeService.emit({
+      type: 'NUEVA_SOLICITUD_FLETE',
+      payload: {
+        id: asignadoId,
+        origen: orig,
+        destino: dest,
+        material,
+        pesoTon: weight,
+        tipoVehiculo: veh.tipoVehiculo,
+        tarifaOfertadaUSD: price,
+        distanciaKm: distKm,
+        duracionMinutos: durMin,
+        coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : (userLocation || [-4.3285, -79.5560]),
+        coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
+        codigoAcceso: code,
+        clienteNombre: 'Cliente SARA Constructora',
+        status: 'searching',
+        timestamp: Date.now()
+      }
+    });
   };
 
   // Aceptar oferta de conductor en radar y notificar en tiempo real
@@ -1739,7 +1820,13 @@ export default function SaraFletesEngine() {
                               <button
                                 key={catKey}
                                 type="button"
-                                onClick={() => setVehicleType(catKey)}
+                                onClick={() => {
+                                  setVehicleType(catKey);
+                                  const distKm = rutaCalculada?.distanciaKm || 1.8;
+                                  const tarifa = SaraFreightPricingService.calcularTarifa(distKm, weight, catKey, material);
+                                  setTarifaEstimada(tarifa);
+                                  setProposedPrice(tarifa.tarifaSugeridaUSD);
+                                }}
                                 className={`shrink-0 w-32 p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                                   isSelected
                                     ? 'bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
@@ -1839,6 +1926,15 @@ export default function SaraFletesEngine() {
                               );
                             })}
                           </div>
+
+                          <button
+                            type="button"
+                            onClick={handlePedirFlete}
+                            className="w-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/40 rounded-xl py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm mt-1"
+                          >
+                            <Radio className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+                            <span>Transmitir Oferta (${(proposedPrice || 2.80).toFixed(2)} USD) a unidades en radar</span>
+                          </button>
                         </div>
                       )}
 
@@ -1937,15 +2033,21 @@ export default function SaraFletesEngine() {
                         <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl space-y-3">
                           {activeFreight.status === 'searching' && (
                             <div className="space-y-3">
-                              <div className="text-center space-y-1.5">
-                                <div className="inline-flex items-center gap-2 bg-amber-500/15 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-bold">
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-                                  <span>Radar SARA: Conectando con unidades en Cariamanga</span>
+                              {/* SECCIÓN NOTIFICANDO A CONDUCTORES (IDÉNTICO A IMAGEN 1) */}
+                              <div className="text-center space-y-2 py-1">
+                                <div className="w-9 h-9 border-[3px] border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                                <div>
+                                  <h3 className="font-black text-white text-base">Notificando a Conductores...</h3>
+                                  <p className="text-xs text-slate-400 mt-0.5">
+                                    Transmitiendo oferta a {getVehiclePlural(activeFreight.vehicleType)} en radar
+                                  </p>
                                 </div>
-                                <h3 className="font-black text-white text-base">Notificando a Conductores...</h3>
-                                <p className="text-xs text-slate-400">
-                                  Tu oferta: <strong className="text-amber-400 font-mono text-sm">${activeFreight.referencePrice.toFixed(2)} USD</strong> ({activeFreight.material})
-                                </p>
+                                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 max-w-[260px] mx-auto">
+                                  <span className="text-[10px] text-slate-400 block font-medium">Tu oferta actual:</span>
+                                  <p className="text-xl font-black text-amber-500 font-mono">
+                                    ${activeFreight.referencePrice.toFixed(2)} USD
+                                  </p>
+                                </div>
                               </div>
 
                               {/* LISTA DE OFERTAS EN TIEMPO REAL */}
