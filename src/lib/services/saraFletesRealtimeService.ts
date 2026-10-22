@@ -53,6 +53,53 @@ export interface ConductorEstadoRealtime {
   timestamp: number;
 }
 
+export interface PlanConfigItem {
+  id: string; // 'vip' | 'standard' | 'basic'
+  name: string;
+  monthlyPrice: number;
+  commissionRate: number;
+  benefits: string[];
+}
+
+export const DEFAULT_FLETES_PLANES: PlanConfigItem[] = [
+  {
+    id: 'vip',
+    name: 'Plan VIP',
+    monthlyPrice: 29.99,
+    commissionRate: 5.0,
+    benefits: [
+      'Prioridad 1 en Despacho Satelital',
+      'Soporte 24/7 prioritario',
+      'Rutas y cobertura ilimitada a nivel nacional',
+      'Liquidación inmediata en 24h'
+    ]
+  },
+  {
+    id: 'standard',
+    name: 'Plan Estándar',
+    monthlyPrice: 15.00,
+    commissionRate: 10.0,
+    benefits: [
+      'Soporte horario hábil',
+      'Hasta 50 rutas/mes',
+      'Notificaciones de radio local',
+      'Billetera prepago SARA'
+    ]
+  },
+  {
+    id: 'basic',
+    name: 'Plan Básico',
+    monthlyPrice: 0.00,
+    commissionRate: 20.0,
+    benefits: [
+      'Soporte comunitario',
+      'Hasta 10 rutas/mes',
+      'Acceso general a la bolsa de carga',
+      'Hasta 2 vehículos'
+    ]
+  }
+];
+
 export type FletesRealtimeEvent =
   | { type: 'NUEVA_SOLICITUD_FLETE'; payload: SolicitudFleteRealtime }
   | { type: 'CANCELAR_SOLICITUD_FLETE'; payload: { fleteId: string } }
@@ -61,7 +108,8 @@ export type FletesRealtimeEvent =
   | { type: 'CLIENTE_ACEPTO_CONDUCTOR'; payload: { fleteId: string; driverName: string; plate: string; codigoAcceso: string; precioAcordado: number } }
   | { type: 'CHOFER_ACEPTO_FLETE'; payload: { fleteId: string; driverName: string; plate: string; vehicleName: string; codigoAcceso: string; precio: number; coords: [number, number] } }
   | { type: 'FLETE_COMPLETADO'; payload: { fleteId: string; codigoAcceso: string } }
-  | { type: 'ACTUALIZAR_GPS_CONDUCTOR'; payload: ConductorEstadoRealtime };
+  | { type: 'ACTUALIZAR_GPS_CONDUCTOR'; payload: ConductorEstadoRealtime }
+  | { type: 'PLANES_ACTUALIZADOS'; payload: PlanConfigItem[] };
 
 const CHANNEL_NAME = 'sara_fletes_radar_bus_v1';
 const STORAGE_PREFIX = 'sara_fletes_rt_';
@@ -175,10 +223,39 @@ export class SaraFletesRealtimeService {
         localStorage.removeItem(`${STORAGE_PREFIX}accepted_dispatch`);
       } else if (event.type === 'ACTUALIZAR_GPS_CONDUCTOR') {
         localStorage.setItem(`${STORAGE_PREFIX}driver_${event.payload.plate}`, JSON.stringify(event.payload));
+      } else if (event.type === 'PLANES_ACTUALIZADOS') {
+        localStorage.setItem(`${STORAGE_PREFIX}planes_config`, JSON.stringify(event.payload));
       }
     } catch {
       // Ignorar errores de quota de storage
     }
+  }
+
+  /**
+   * Obtiene la configuración de planes de suscripción de fletes sincronizada
+   */
+  static getPlanesConfig(): PlanConfigItem[] {
+    if (typeof window === 'undefined') return DEFAULT_FLETES_PLANES;
+    try {
+      const data = localStorage.getItem(`${STORAGE_PREFIX}planes_config`);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {
+      // fallback
+    }
+    return DEFAULT_FLETES_PLANES;
+  }
+
+  /**
+   * Guarda y sincroniza la configuración de planes de suscripción en tiempo real
+   */
+  static savePlanesConfig(planes: PlanConfigItem[]) {
+    this.emit({
+      type: 'PLANES_ACTUALIZADOS',
+      payload: planes
+    });
   }
 
   /**

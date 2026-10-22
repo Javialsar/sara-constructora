@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   List, 
@@ -37,7 +37,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
-import { SaraFletesRealtimeService } from '@/lib/services/saraFletesRealtimeService';
+import { SaraFletesRealtimeService, PlanConfigItem } from '@/lib/services/saraFletesRealtimeService';
 
 // Carga dinámica del mapa interactivo Leaflet sin SSR
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -193,6 +193,9 @@ export default function MiPerfilFletes() {
           codigoAcceso: evt.payload.codigoAcceso
         }));
         showToast(`¡Flete Asignado! Conductor: ${evt.payload.driverName} · Tarifa: $${evt.payload.precioAcordado} USD`);
+      } else if (evt.type === 'PLANES_ACTUALIZADOS') {
+        setPlanesConfig(evt.payload);
+        showToast('¡Planes y comisiones de fletes sincronizados con Administración!');
       }
     });
 
@@ -223,10 +226,26 @@ export default function MiPerfilFletes() {
     showToast('¡Flete aceptado! Notificación enviada al cliente en tiempo real.');
   };
 
-  // Estados Billetera y Planes
+  // Estados Billetera y Planes Sincronizados
   const [balance, setBalance] = useState(119.00);
   const [rechargeAmount, setRechargeAmount] = useState(25);
   const [plan, setPlan] = useState<'VIP' | 'Estandar' | 'Basico'>('VIP');
+  const [planesConfig, setPlanesConfig] = useState<PlanConfigItem[]>(() => {
+    return SaraFletesRealtimeService.getPlanesConfig();
+  });
+
+  const planVIPConfig = useMemo(() => planesConfig.find(p => p.id === 'vip') || {
+    id: 'vip', name: 'Plan VIP', monthlyPrice: 29.99, commissionRate: 5.0, benefits: ['Prioridad 1 en Despacho Satelital', 'Cobertura Nacional y Vía Express', 'Liquidación inmediata en 24h']
+  }, [planesConfig]);
+
+  const planEstandarConfig = useMemo(() => planesConfig.find(p => p.id === 'standard') || {
+    id: 'standard', name: 'Plan Estándar', monthlyPrice: 15.00, commissionRate: 10.0, benefits: ['Notificaciones de radio local', 'Billetera prepago SARA', 'Hasta 50 rutas/mes']
+  }, [planesConfig]);
+
+  const planBasicoConfig = useMemo(() => planesConfig.find(p => p.id === 'basic') || {
+    id: 'basic', name: 'Plan Básico', monthlyPrice: 0.00, commissionRate: 20.0, benefits: ['Acceso general a la bolsa de carga', 'Hasta 10 rutas/mes']
+  }, [planesConfig]);
+
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutConfig, setCheckoutConfig] = useState<{
     title: string;
@@ -249,15 +268,19 @@ export default function MiPerfilFletes() {
   };
 
   const handleSelectPlanSubscription = (nombrePlan: 'VIP' | 'Estandar' | 'Basico') => {
-    const precios = { VIP: 49.99, Estandar: 19.99, Basico: 4.99 };
-    setCheckoutConfig({
-      title: `Plan ${nombrePlan} de SARA Fletes`,
-      amount: precios[nombrePlan],
-      isSubscription: true,
-      interval: 'mes'
-    });
+    const targetConfig = nombrePlan === 'VIP' ? planVIPConfig : nombrePlan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
     setPlan(nombrePlan);
-    setIsCheckoutOpen(true);
+    if (targetConfig.monthlyPrice > 0) {
+      setCheckoutConfig({
+        title: `Plan ${nombrePlan} de SARA Fletes`,
+        amount: targetConfig.monthlyPrice,
+        isSubscription: true,
+        interval: 'mes'
+      });
+      setIsCheckoutOpen(true);
+    } else {
+      showToast(`¡Plan ${nombrePlan} activado con ${targetConfig.commissionRate}% de comisión!`);
+    }
   };
 
   const viajes = [
@@ -906,7 +929,7 @@ export default function MiPerfilFletes() {
                   >
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-black text-sm text-white">Plan VIP</span>
+                        <span className="font-black text-sm text-white">{planVIPConfig.name}</span>
                         {plan === 'VIP' && (
                           <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                             Plan Activo
@@ -914,23 +937,27 @@ export default function MiPerfilFletes() {
                         )}
                       </div>
 
-                      {/* Costo Mensual Destacado */}
+                      {/* Costo Mensual Destacado Sincronizado */}
                       <div className="mb-3">
                         <p className="text-3xl font-black text-amber-400 font-mono">
-                          $49.99 <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                          ${planVIPConfig.monthlyPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
                         </p>
                       </div>
 
-                      {/* Comisión por Flete */}
+                      {/* Comisión por Flete Sincronizada */}
                       <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
                         <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
-                        <p className="text-xl font-black text-emerald-400 font-mono">5.0% <span className="text-xs font-normal text-slate-400">(La tarifa más baja)</span></p>
+                        <p className="text-xl font-black text-emerald-400 font-mono">
+                          {planVIPConfig.commissionRate.toFixed(1)}% <span className="text-xs font-normal text-slate-400">(Tarifa Administrador)</span>
+                        </p>
                       </div>
 
                       <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
-                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Prioridad 1 en Despacho Satelital</li>
-                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Cobertura Nacional y Vía Express</li>
-                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Liquidación inmediata en 24h</li>
+                        {planVIPConfig.benefits.map((b: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {b}
+                          </li>
+                        ))}
                       </ul>
                     </div>
 
@@ -955,7 +982,7 @@ export default function MiPerfilFletes() {
                   >
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-black text-sm text-white">Plan Estándar</span>
+                        <span className="font-black text-sm text-white">{planEstandarConfig.name}</span>
                         {plan === 'Estandar' && (
                           <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                             Plan Activo
@@ -965,18 +992,23 @@ export default function MiPerfilFletes() {
 
                       <div className="mb-3">
                         <p className="text-3xl font-black text-white font-mono">
-                          $19.99 <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                          ${planEstandarConfig.monthlyPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
                         </p>
                       </div>
 
                       <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
                         <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
-                        <p className="text-xl font-black text-white font-mono">10.0% <span className="text-xs font-normal text-slate-400">por carrera</span></p>
+                        <p className="text-xl font-black text-white font-mono">
+                          {planEstandarConfig.commissionRate.toFixed(1)}% <span className="text-xs font-normal text-slate-400">por carrera</span>
+                        </p>
                       </div>
 
                       <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
-                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Notificaciones de radio local</li>
-                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Billetera prepago SARA</li>
+                        {planEstandarConfig.benefits.map((b: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {b}
+                          </li>
+                        ))}
                       </ul>
                     </div>
 
@@ -1001,7 +1033,7 @@ export default function MiPerfilFletes() {
                   >
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-black text-sm text-white">Plan Básico</span>
+                        <span className="font-black text-sm text-white">{planBasicoConfig.name}</span>
                         {plan === 'Basico' && (
                           <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                             Plan Activo
@@ -1011,17 +1043,23 @@ export default function MiPerfilFletes() {
 
                       <div className="mb-3">
                         <p className="text-3xl font-black text-white font-mono">
-                          $4.99 <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
+                          ${planBasicoConfig.monthlyPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-semibold">USD / mes</span>
                         </p>
                       </div>
 
                       <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl mb-3">
                         <p className="text-[10px] text-slate-400 uppercase font-black">Comisión por Flete Ganado</p>
-                        <p className="text-xl font-black text-white font-mono">15.0% <span className="text-xs font-normal text-slate-400">por carrera</span></p>
+                        <p className="text-xl font-black text-white font-mono">
+                          {planBasicoConfig.commissionRate.toFixed(1)}% <span className="text-xs font-normal text-slate-400">por carrera</span>
+                        </p>
                       </div>
 
                       <ul className="text-xs text-slate-300 space-y-1.5 mb-4">
-                        <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Acceso general a la bolsa de carga</li>
+                        {planBasicoConfig.benefits.map((b: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> {b}
+                          </li>
+                        ))}
                       </ul>
                     </div>
 

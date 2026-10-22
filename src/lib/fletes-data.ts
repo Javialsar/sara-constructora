@@ -1,4 +1,5 @@
 import { createSupabaseBrowserClient } from './supabase-browser';
+import { PlanConfigItem, SaraFletesRealtimeService, DEFAULT_FLETES_PLANES } from './services/saraFletesRealtimeService';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -9,23 +10,46 @@ export const mockConductoresSeed = [
   { id: '33333333-3333-3333-3333-333333333333', plan_id: 3, saldo_billetera: 25.00, latitud: -0.1507, longitud: -78.4578, estado_activo: true }
 ];
 
-export async function getFletesPlanes() {
+export async function getFletesPlanes(): Promise<PlanConfigItem[]> {
   try {
+    // 1. Priorizar configuración sincronizada en tiempo real
+    const synced = SaraFletesRealtimeService.getPlanesConfig();
+    if (synced && synced.length > 0) return synced;
+
+    // 2. Consulta de respaldo a Supabase
     const { data, error } = await supabase.from('fletes_planes').select('*').order('comision', { ascending: true });
-    if (error || !data || data.length === 0) {
-      return [
-        { id: 1, nombre: 'VIP', comision: 5.00 },
-        { id: 2, nombre: 'Estandar', comision: 10.00 },
-        { id: 3, nombre: 'Basico', comision: 15.00 }
-      ];
+    if (!error && data && data.length > 0) {
+      return DEFAULT_FLETES_PLANES.map(dp => {
+        const row = data.find((r: any) => r.nombre?.toLowerCase() === dp.name.replace('Plan ', '').toLowerCase());
+        return {
+          ...dp,
+          commissionRate: row ? Number(row.comision) : dp.commissionRate
+        };
+      });
     }
-    return data;
+    return DEFAULT_FLETES_PLANES;
   } catch (e) {
-    return [
-      { id: 1, nombre: 'VIP', comision: 5.00 },
-      { id: 2, nombre: 'Estandar', comision: 10.00 },
-      { id: 3, nombre: 'Basico', comision: 15.00 }
-    ];
+    return SaraFletesRealtimeService.getPlanesConfig() || DEFAULT_FLETES_PLANES;
+  }
+}
+
+export async function saveFletesPlanes(plans: PlanConfigItem[]): Promise<boolean> {
+  try {
+    // 1. Guardar y emitir en el bus en tiempo real
+    SaraFletesRealtimeService.savePlanesConfig(plans);
+
+    // 2. Persistir comisiones en fletes_planes en Supabase si está disponible
+    for (const p of plans) {
+      const nombrePlan = p.name.replace('Plan ', '').trim();
+      await supabase
+        .from('fletes_planes')
+        .update({ comision: p.commissionRate })
+        .ilike('nombre', nombrePlan);
+    }
+    return true;
+  } catch (err) {
+    console.warn('Error sincronizando planes con Supabase (guardado en bus local exitoso):', err);
+    return true;
   }
 }
 
@@ -48,9 +72,11 @@ export async function getFletesConductores() {
 
     if (error || !data || data.length === 0) {
       return [
-        { id: '1', name: 'Carlos Mendoza', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', plan: 'Estandar', status: 'approved', walletBalance: 45.50, province: 'Pichincha', city: 'Quito', address: 'Av. Simón Bolívar', latitud: -0.1807, longitud: -78.4678, estado_activo: true },
-        { id: '2', name: 'Luis Toapanta', vehicle: 'Camión Chevrolet 5 Ton', plate: 'GCA-9876', plan: 'Basico', status: 'approved', walletBalance: 45.50, province: 'Guayas', city: 'Guayaquil', address: 'Vía a la Costa', latitud: -0.2107, longitud: -78.4878, estado_activo: true },
-        { id: '3', name: 'Marco Vinicio', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', plan: 'VIP', status: 'approved', walletBalance: 20.00, province: 'Azuay', city: 'Cuenca', address: 'Av. Las Américas', latitud: -0.1507, longitud: -78.4578, estado_activo: true }
+        { id: 'FLT-06', name: 'David Sarango', phone: '0995544332', vehicle: 'Camioneta Pickup 1.2T · SARA', plate: 'LFA-9012', plan: 'VIP', status: 'approved', walletBalance: 119.00, province: 'Loja', city: 'Cariamanga', address: 'Calvas / Cariamanga Centro', latitud: -4.3297, longitud: -79.5586, estado_activo: true },
+        { id: 'FLT-01', name: 'Manuel Cárdenas', phone: '0993849182', vehicle: 'Camioneta 1T', plate: 'LBA-3421', plan: 'VIP', status: 'approved', walletBalance: 85.00, province: 'Loja', city: 'Cariamanga', address: 'Av. Bernardo Valdivieso', latitud: -4.3267, longitud: -79.5576, estado_activo: true },
+        { id: '1', name: 'Carlos Mendoza', phone: '0991234567', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', plan: 'Estandar', status: 'approved', walletBalance: 45.50, province: 'Pichincha', city: 'Quito', address: 'Av. Simón Bolívar', latitud: -0.1807, longitud: -78.4678, estado_activo: true },
+        { id: '2', name: 'Luis Toapanta', phone: '0987654321', vehicle: 'Camión Chevrolet 5 Ton', plate: 'GCA-9876', plan: 'Basico', status: 'approved', walletBalance: 45.50, province: 'Guayas', city: 'Guayaquil', address: 'Vía a la Costa', latitud: -0.2107, longitud: -78.4878, estado_activo: true },
+        { id: '3', name: 'Marco Vinicio', phone: '0971122334', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', plan: 'VIP', status: 'approved', walletBalance: 20.00, province: 'Azuay', city: 'Cuenca', address: 'Av. Las Américas', latitud: -0.1507, longitud: -78.4578, estado_activo: true }
       ];
     }
 
