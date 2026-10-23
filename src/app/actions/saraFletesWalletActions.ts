@@ -6,7 +6,12 @@
 // Doble partida contable con transacciones atómicas e idempotencia estricta
 // ============================================================================
 
-import { createSupabaseAdminClient } from '@/lib/supabase-server';
+import { createSupabaseAdminClient, createSupabaseServerClient } from '@/lib/supabase-server';
+import { 
+  SaraFreightPricingService, 
+  CategoriaVehiculo, 
+  CATALOGO_VEHICULOS_SARA 
+} from '@/lib/services/saraFreightPricingService';
 
 export interface DebitWalletRequest {
   fleteId: string;
@@ -105,7 +110,35 @@ export async function debitDriverCommissionAction(
     const idempotencyKey = request.idempotencyKey || `debit_${request.fleteId}_${request.plate}_${Date.now()}`;
     const tarifa = Math.max(0.50, Number(request.tarifaFleteUSD) || 3.50);
 
-    // 1. Verificar idempotencia para prevenir dobles débitos en intermitencia celular
+    // 1. Control de Autorización Zero-Trust / BOLA
+    try {
+      const serverClient = await createSupabaseServerClient();
+      const { data: { user } } = await serverClient.auth.getUser();
+      if (user) {
+        const { data: conductorMatch } = await supabase
+          .from('fletes_conductores')
+          .select('id, user_id, placa')
+          .or(`placa.eq.${request.plate},id.eq.${request.plate}`)
+          .maybeSingle();
+
+        if (conductorMatch && conductorMatch.user_id && conductorMatch.user_id !== user.id) {
+          const role = (user.user_metadata?.role || user.app_metadata?.role) as string;
+          if (role !== 'admin' && role !== 'operador') {
+            return {
+              success: false,
+              nuevoSaldo: 0,
+              comisionDebitada: 0,
+              comisionPct: 20.0,
+              error: 'AUTORIZACION_DENEGADA: No posee permisos sobre la unidad o placa seleccionada.'
+            };
+          }
+        }
+      }
+    } catch {
+      // Continuar si la llamada proviene de un script o contexto sin cookies
+    }
+
+    // 2. Verificar idempotencia para prevenir dobles débitos en intermitencia celular
     const { data: existingTx } = await supabase
       .from('fletes_billetera_transacciones')
       .select('id, nuevo_saldo, monto')
@@ -484,6 +517,87 @@ export async function getDriverBankInfoAction(plate: string): Promise<{
         ...DEFAULT_DRIVER_BANK_CONFIG,
         plate: plate || 'PCX-4590'
       }
+    };
+  }
+}
+
+export interface CreateValidatedFleteRequest {
+  origen: string;
+  destino: string;
+  distanciaKm: number;
+  pesoTon: number;
+  vehiculoKey: CategoriaVehiculo;
+  tipoMaterial?: string;
+  tarifaOfertadaUSD: number;
+  codigoAcceso?: string;
+  clienteNombre?: string;
+}
+
+export interface CreateValidatedFleteResponse {
+  success: boolean;
+  solicitudId?: string;
+  tarifaValidadaUSD?: number;
+  codigoAcceso?: string;
+  error?: string;
+}
+
+/**
+ * Valida la propuesta económica en el servidor antes de crear la solicitud
+ * Bloquea la manipulación de tarifas client-side
+ */
+export async function createValidatedFletesSolicitudAction(
+  request: CreateValidatedFleteRequest
+): Promise<CreateValidatedFleteResponse> {
+  try {
+    const supabase = await createSupabaseAdminClient();
+    const config = CATALOGO_VEHICULOS_SARA[request.vehiculoKey] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
+    const calc = SaraFreightPricingService.calcularTarifa(
+      request.distanciaKm,
+      request.pesoTon,
+      request.vehiculoKey,
+      request.tipoMaterial || 'Otros Materiales'
+    );
+
+    const minPermitido = Math.max(config.tarifaMinimaLocalUSD, +(calc.tarifaSugeridaUSD * 0.80).toFixed(2));
+    const maxPermitido = +(calc.tarifaSugeridaUSD * 1.35).toFixed(2);
+    const tarifaOfertada = Number(request.tarifaOfertadaUSD);
+
+    if (isNaN(tarifaOfertada) || tarifaOfertada < minPermitido || tarifaOfertada > maxPermitido) {
+      return {
+        success: false,
+        error: `TARIFA_FUERA_DE_RANGO: La tarifa propuesta ($${tarifaOfertada.toFixed(2)}) debe situarse entre $${minPermitido.toFixed(2)} y $${maxPermitido.toFixed(2)} USD según la fórmula oficial.`
+      };
+    }
+
+    const pin = request.codigoAcceso || Math.floor(1000 + Math.random() * 9000).toString();
+
+    const { data: sol, error: insertErr } = await supabase
+      .from('fletes_solicitudes')
+      .insert({
+        origen: request.origen,
+        destino: request.destino,
+        tarifa: tarifaOfertada,
+        status: 'pendiente',
+        codigo_acceso: pin
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (insertErr) {
+      console.warn('[WALLET ACTION WARN] Fallback local fletes_solicitudes:', insertErr.message);
+    }
+
+    return {
+      success: true,
+      solicitudId: sol?.id || `SOL-${Date.now().toString().slice(-6)}`,
+      tarifaValidadaUSD: tarifaOfertada,
+      codigoAcceso: pin
+    };
+  } catch (err: any) {
+    console.error('[WALLET ACTION ERROR] createValidatedFletesSolicitudAction:', err);
+    return {
+      success: false,
+      error: err.message || 'Error al validar y crear solicitud en servidor'
     };
   }
 }

@@ -248,7 +248,7 @@ export function SaraFloatingSosButton({
                     ALERTA SOS 24/7
                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
                   </h3>
-                  <p className="text-xs text-neutral-400">Canal de Emergencia SARA + ECU-911</p>
+                  <p className="text-xs text-neutral-400">Registro en Central SARA · Conexión Telefónica al ECU-911</p>
                 </div>
               </div>
               <button
@@ -290,6 +290,10 @@ export function SaraFloatingSosButton({
 
             {/* Acciones de Emergencia Inmediata */}
             <div className="space-y-3">
+              <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 leading-snug">
+                Coordenadas telemáticas registradas en la central de seguridad SARA. Para despacho policial o médico, presione el botón para iniciar la llamada con el operador del ECU-911.
+              </p>
+
               <a
                 href="tel:911"
                 className="w-full bg-red-600 hover:bg-red-700 active:scale-98 text-white font-black py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-red-600/40 transition-all text-sm tracking-wide"

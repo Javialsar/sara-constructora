@@ -297,6 +297,44 @@ export class SaraFletesRealtimeService {
   private static channel: BroadcastChannel | null = null;
   private static listeners: Set<(event: FletesRealtimeEvent) => void> = new Set();
   private static isInitialized = false;
+  private static supabaseRealtimeChannel: any = null;
+  private static isSupabaseInitAttempted = false;
+
+  private static initSupabaseRealtime() {
+    if (typeof window === 'undefined' || this.isSupabaseInitAttempted) return;
+    this.isSupabaseInitAttempted = true;
+
+    try {
+      import('../supabase-browser')
+        .then(({ createSupabaseBrowserClient }) => {
+          try {
+            const supabase = createSupabaseBrowserClient();
+            if (!supabase || !supabase.channel) return;
+
+            const ch = supabase.channel('sara_fletes_radar_global', {
+              config: { broadcast: { self: false } }
+            });
+
+            ch.on('broadcast', { event: 'fletes_event' }, (payload: any) => {
+              if (payload?.payload && payload.payload.type) {
+                this.notifyListeners(payload.payload as FletesRealtimeEvent);
+              }
+            });
+
+            ch.subscribe((status: string) => {
+              if (status === 'SUBSCRIBED') {
+                this.supabaseRealtimeChannel = ch;
+              }
+            });
+          } catch (initErr) {
+            console.warn('[REALTIME] Supabase Realtime fallback local:', initErr);
+          }
+        })
+        .catch(() => {});
+    } catch {
+      // Ignorar en SSR o entornos sin navegador
+    }
+  }
 
   private static getChannel(): BroadcastChannel | null {
     if (typeof window === 'undefined') return null;
@@ -318,6 +356,7 @@ export class SaraFletesRealtimeService {
   private static initStorageListener() {
     if (this.isInitialized || typeof window === 'undefined') return;
     this.isInitialized = true;
+    this.initSupabaseRealtime();
 
     window.addEventListener('storage', (e) => {
       if (e.key?.startsWith(STORAGE_PREFIX) && e.newValue) {
@@ -456,6 +495,19 @@ export class SaraFletesRealtimeService {
       }
     } catch {
       // Ignorar errores de quota de storage
+    }
+
+    // 3. Enviar a través de Supabase Realtime Channel para sincronización entre dispositivos remotos
+    if (this.supabaseRealtimeChannel) {
+      try {
+        this.supabaseRealtimeChannel.send({
+          type: 'broadcast',
+          event: 'fletes_event',
+          payload: event
+        });
+      } catch (wsErr) {
+        console.warn('[REALTIME] Envío remoto omitido:', wsErr);
+      }
     }
   }
 

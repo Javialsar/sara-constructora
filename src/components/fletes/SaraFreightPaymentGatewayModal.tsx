@@ -246,15 +246,31 @@ export default function SaraFreightPaymentGatewayModal({
         {/* ================================================================ */}
         {activeTab === 'card' && (
           <div className="space-y-3 animate-in fade-in duration-200">
+            {/* Aviso de Seguridad PCI-DSS / Sandbox */}
+            <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2 text-amber-300 text-[11px] leading-tight">
+              <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <strong className="block font-bold">ENTORNO DEMO & SANDBOX (PCI-DSS)</strong>
+                <span>Por seguridad financiera, no ingrese números de tarjeta reales. En producción se utiliza formulario tokenizado cifrado. Puede usar los datos de prueba demo.</span>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span className="flex items-center gap-1 text-emerald-400 font-bold">
                 <Lock className="w-3.5 h-3.5" /> Encriptación TLS 256-Bit
               </span>
-              <div className="flex items-center gap-1 opacity-90">
-                <span className="text-[9px] font-black bg-blue-900 text-white px-1.5 py-0.5 rounded">VISA</span>
-                <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded">MC</span>
-                <span className="text-[9px] font-black bg-emerald-600 text-white px-1.5 py-0.5 rounded">DINERS</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCardNumber('4000 1234 5678 9010');
+                  setCardExpiry('12/28');
+                  setCardCvc('123');
+                  setCardHolder('CLIENTE DEMO SARA');
+                }}
+                className="text-[10px] text-emerald-400 hover:text-emerald-300 underline font-semibold cursor-pointer"
+              >
+                Cargar Tarjeta de Prueba
+              </button>
             </div>
 
             <div>

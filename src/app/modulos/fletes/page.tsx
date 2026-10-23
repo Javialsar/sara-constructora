@@ -1161,6 +1161,8 @@ export default function SaraFletesEngine() {
       origen: orig,
       destino: dest,
       tarifa: precioFinal,
+      distanciaKm: distKm,
+      vehiculoKey: vehicleType,
       material,
       peso: weight,
       codigoAcceso: code
@@ -1249,6 +1251,8 @@ export default function SaraFletesEngine() {
       origen: orig,
       destino: dest,
       tarifa: price,
+      distanciaKm: distKm,
+      vehiculoKey: veh.tipoVehiculo,
       material,
       peso: weight,
       codigoAcceso: code

@@ -52,6 +52,9 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
   const [distanceKm, setDistanceKm] = useState(48.5);
   const [material, setMaterial] = useState('450 Sacos Cemento Holcim');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [phoneUnlocked, setPhoneUnlocked] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [showPinDialog, setShowPinDialog] = useState(false);
 
   useEffect(() => {
     params.then((p) => {
@@ -204,22 +207,68 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
               <p className="font-semibold text-white">{vehicleType}</p>
             </div>
 
-            {/* Quick Contact Buttons */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <a
-                href={`tel:${driverPhone}`}
-                className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-neutral-700 text-xs transition-colors"
-              >
-                <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Llamar Chofer</span>
-              </a>
-              <button
-                onClick={handleShareWhatsApp}
-                className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-neutral-700 text-xs transition-colors"
-              >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>WhatsApp</span>
-              </button>
+            {/* Contacto Seguro con Protección de Privacidad LOPDP */}
+            <div className="pt-1 space-y-2">
+              {phoneUnlocked ? (
+                <div className="grid grid-cols-2 gap-2 animate-in fade-in">
+                  <a
+                    href={`tel:${driverPhone}`}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors shadow"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>{driverPhone}</span>
+                  </a>
+                  <button
+                    onClick={handleShareWhatsApp}
+                    className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-neutral-700 text-xs transition-colors"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>WhatsApp</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-2.5 space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-neutral-400 flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-neutral-500" />
+                      Teléfono Conductor:
+                    </span>
+                    <span className="font-mono text-neutral-400 font-bold">
+                      {driverPhone ? `${driverPhone.slice(0, 4)} *** **${driverPhone.slice(-2)}` : 'Protegido'}
+                    </span>
+                  </div>
+
+                  {showPinDialog ? (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="PIN de Flete"
+                        value={pinInput}
+                        onChange={(e) => setPinInput(e.target.value)}
+                        className="bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono w-full focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        onClick={() => {
+                          if (pinInput.trim().length >= 4) {
+                            setPhoneUnlocked(true);
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shrink-0"
+                      >
+                        Ver
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowPinDialog(true)}
+                      className="w-full text-center text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold py-1 hover:underline"
+                    >
+                      Desbloquear Contacto Directo con PIN
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

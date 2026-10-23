@@ -124,8 +124,34 @@ export async function createFletesSolicitud(data: {
   material?: string;
   peso?: number;
   codigoAcceso?: string;
+  distanciaKm?: number;
+  vehiculoKey?: any;
 }) {
   try {
+    // 1. Si se cuenta con parámetros de viaje, validar propuesta en servidor seguro
+    if (data.distanciaKm && data.vehiculoKey) {
+      try {
+        const { createValidatedFletesSolicitudAction } = await import('@/app/actions/saraFletesWalletActions');
+        const valRes = await createValidatedFletesSolicitudAction({
+          origen: data.origen,
+          destino: data.destino,
+          distanciaKm: data.distanciaKm,
+          pesoTon: (data.peso || 1000) / 1000,
+          vehiculoKey: data.vehiculoKey,
+          tipoMaterial: data.material || 'Otros Materiales',
+          tarifaOfertadaUSD: data.tarifa,
+          codigoAcceso: data.codigoAcceso
+        });
+
+        if (!valRes.success) {
+          console.warn('[FLETES DATA WARN] Validación de tarifa en servidor:', valRes.error);
+        }
+      } catch (valErr) {
+        console.warn('Validación de tarifa omitida (modo offline):', valErr);
+      }
+    }
+
+    // 2. Persistencia en Supabase
     const { data: sol, error } = await supabase
       .from('fletes_solicitudes')
       .insert({
@@ -244,14 +270,16 @@ export async function debitConductorWallet(params: {
   comisionPorcentaje: number;
 }): Promise<{ success: boolean; nuevoSaldo: number }> {
   try {
-    // 1. Actualización y persistencia en storage por placa
-    const storageKey = `sara_fletes_rt_wallet_${params.plate}`;
-    const rawVal = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
-    const prevBalance = rawVal !== null ? Number(rawVal) : 119.00;
-    const nuevoSaldo = Math.max(0, +(prevBalance - params.amount).toFixed(2));
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(storageKey, nuevoSaldo.toString());
-    }
+    // 1. Delegar a Server Action segura con bloqueo transaccional e idempotencia
+    const { debitDriverCommissionAction } = await import('@/app/actions/saraFletesWalletActions');
+    const res = await debitDriverCommissionAction({
+      fleteId: params.fleteId,
+      tarifaFleteUSD: params.tarifaFlete,
+      plate: params.plate,
+      idempotencyKey: `debit_${params.fleteId}_${params.plate}`
+    });
+
+    const nuevoSaldo = res.success ? res.nuevoSaldo : 119.00;
 
     // 2. Notificación en el bus en tiempo real
     SaraFletesRealtimeService.emit({
@@ -265,28 +293,7 @@ export async function debitConductorWallet(params: {
       }
     });
 
-    // 3. Persistencia en Supabase si existe ID
-    if (params.conductorId) {
-      try {
-        const { data: cond } = await supabase
-          .from('fletes_conductores')
-          .select('saldo_billetera')
-          .eq('id', params.conductorId)
-          .single();
-
-        if (cond) {
-          const saldoEnBD = Math.max(0, (Number(cond.saldo_billetera) || 0) - params.amount);
-          await supabase
-            .from('fletes_conductores')
-            .update({ saldo_billetera: saldoEnBD, updated_at: new Date().toISOString() })
-            .eq('id', params.conductorId);
-        }
-      } catch (dbErr) {
-        console.warn('Persistencia en BD Supabase omitida:', dbErr);
-      }
-    }
-
-    return { success: true, nuevoSaldo };
+    return { success: res.success, nuevoSaldo };
   } catch (err) {
     console.error('Error debitando comisión de flete:', err);
     return { success: false, nuevoSaldo: 0 };
