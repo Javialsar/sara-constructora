@@ -165,8 +165,8 @@ export function SaraFloatingSosButton({
   return (
     <>
       {/* Botón Flotante con Progress Ring SVG */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center select-none">
-        <div className="relative group">
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center select-none pointer-events-none">
+        <div className="relative group pointer-events-auto">
           {/* Anillo de progreso SVG */}
           {isPressing && (
             <svg className="absolute -top-2 -left-2 w-[76px] h-[76px] transform -rotate-90 pointer-events-none z-10">
