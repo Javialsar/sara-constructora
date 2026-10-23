@@ -52,7 +52,9 @@ import {
   PlanConfigItem, 
   ProofOfDeliveryData,
   DriverBankConfig,
-  DEFAULT_DRIVER_BANK_CONFIG
+  DEFAULT_DRIVER_BANK_CONFIG,
+  ViajeHistorialItem,
+  DEFAULT_VIAJES_HISTORIAL
 } from '@/lib/services/saraFletesRealtimeService';
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
 import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
@@ -401,6 +403,7 @@ export default function MiPerfilFletes() {
           fleteId: evt.payload.fleteId,
           assignedDriverName: evt.payload.driverName,
           assignedPlate: evt.payload.plate,
+          cliente: evt.payload.clienteNombre || prev?.cliente || 'Ing. Marco Vivanco (Constructora SARA)',
           valorRef: evt.payload.precioAcordado || prev?.valorRef,
           codigoAcceso: evt.payload.codigoAcceso,
           origen: evt.payload.origen || prev?.origen || 'Punto de Carga',
@@ -424,6 +427,13 @@ export default function MiPerfilFletes() {
         }
       } else if (evt.type === 'FLETE_CALIFICADO') {
         showToast(`⭐ ¡El cliente calificó tu servicio con ${evt.payload.rating} Estrellas! ${evt.payload.comentario ? `"${evt.payload.comentario}"` : ''}`);
+        SaraFletesRealtimeService.updateTripFeedback(evt.payload.fleteId, evt.payload.rating, evt.payload.comentario, evt.payload.metodoPago);
+        setViajesList(prev => prev.map(v => (v.fleteId === evt.payload.fleteId || v.id === evt.payload.fleteId) ? {
+          ...v,
+          calificacion: evt.payload.rating,
+          comentario: evt.payload.comentario || v.comentario,
+          metodoPago: evt.payload.metodoPago || v.metodoPago
+        } : v));
       }
     });
 
@@ -657,6 +667,32 @@ export default function MiPerfilFletes() {
     setCompletedTripSummary(summary);
     setTripState('completed');
 
+    const ahora = new Date();
+    const formatoFecha = ahora.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formatoHora = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+    const fechaLlegada = `${formatoFecha}, ${formatoHora}`;
+    const clienteFinal = incomingRequest.cliente || incomingRequest.clienteNombre || 'Ing. Marco Vivanco (Constructora SARA)';
+    const myPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
+
+    const nuevoViaje: ViajeHistorialItem = {
+      id: incomingRequest.fleteId || `FLT-${Date.now().toString().slice(-4)}`,
+      fleteId: incomingRequest.fleteId || `FLT-${Date.now().toString().slice(-4)}`,
+      cliente: clienteFinal,
+      route: `${incomingRequest.origen || 'Punto de Carga'} -> ${incomingRequest.destino || 'Punto de Entrega'}`,
+      embarque: fechaLlegada,
+      llegada: fechaLlegada,
+      tiempo: `${incomingRequest.duracionMinutos || 15} min`,
+      tarifa: valorFlete,
+      comision: comisionDebito,
+      utilidad: utilidadNeta,
+      metodoPago: 'Transferencia / Pasarela SARA',
+      calificacion: 5,
+      placa: myPlate
+    };
+
+    SaraFletesRealtimeService.saveCompletedTrip(myPlate, nuevoViaje);
+    setViajesList(prev => [nuevoViaje, ...prev.filter(v => v.id !== nuevoViaje.id && (!v.fleteId || v.fleteId !== nuevoViaje.fleteId))]);
+
     SaraFletesRealtimeService.emit({
       type: 'FLETE_COMPLETADO',
       payload: {
@@ -698,11 +734,13 @@ export default function MiPerfilFletes() {
     showToast(`¡Plan ${nombrePlan} activado! Jerarquía: ${targetConfig.priority || 'ALTA'} · Comisión: ${targetConfig.commissionRate}% ($0.00/mes).`);
   };
 
-  const viajes = [
-    { id: 1, route: 'MAtecons Chile -> El Dorado (Cariamanga)', embarque: '12 Oct 2026, 14:00', llegada: '12 Oct 2026, 14:15', tiempo: '15 min', tarifa: 3.50, comision: 0.18, utilidad: 3.32 },
-    { id: 2, route: 'Centro Cariamanga -> Vía Colaisaca', embarque: '10 Oct 2026, 09:15', llegada: '10 Oct 2026, 09:45', tiempo: '30 min', tarifa: 8.00, comision: 0.40, utilidad: 7.60 },
-    { id: 3, route: 'Terminal Terrestre -> San Vicente', embarque: '08 Oct 2026, 16:30', llegada: '08 Oct 2026, 16:50', tiempo: '20 min', tarifa: 4.50, comision: 0.23, utilidad: 4.27 },
-  ];
+  const [viajesList, setViajesList] = useState<ViajeHistorialItem[]>([]);
+
+  useEffect(() => {
+    const myPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
+    const loaded = SaraFletesRealtimeService.getCompletedTrips(myPlate);
+    setViajesList(loaded);
+  }, [currentUser]);
 
   const historialRecargas = [
     { fecha: '12 Oct 2026, 15:30', referencia: 'TRX-99882211', metodo: 'Tarjeta de Crédito', estado: 'En Verificación', valor: 50.00 },
@@ -710,7 +748,21 @@ export default function MiPerfilFletes() {
   ];
 
   const handleDownloadExcel = (type: 'viajes' | 'recargas') => {
-    const dataToExport = type === 'viajes' ? viajes : historialRecargas;
+    const dataToExport = type === 'viajes' 
+      ? viajesList.map(v => ({
+          'ID Flete': v.fleteId || v.id,
+          'Cliente': v.cliente,
+          'Ruta': v.route,
+          'Embarque': v.embarque,
+          'Llegada': v.llegada,
+          'Tiempo Estimado': v.tiempo,
+          'Tarifa Cobrada ($)': v.tarifa,
+          'Comisión SARA ($)': v.comision,
+          'Utilidad Conductor ($)': v.utilidad,
+          'Método Pago': v.metodoPago || 'Efectivo / Transferencia',
+          'Calificación': `${v.calificacion || 5} ★`
+        }))
+      : historialRecargas;
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, type === 'viajes' ? 'Viajes' : 'Recargas');
@@ -723,8 +775,8 @@ export default function MiPerfilFletes() {
     doc.text(`GRUPO SARA - Historial de ${type === 'viajes' ? 'Viajes' : 'Recargas'}`, 14, 15);
     if (type === 'viajes') {
       autoTable(doc, {
-        head: [['Ruta', 'Embarque', 'Llegada', 'Tarifa', 'Utilidad']],
-        body: viajes.map(v => [v.route, v.embarque, v.llegada, `$${v.tarifa}`, `$${v.utilidad}`]),
+        head: [['Cliente', 'Ruta', 'Embarque', 'Tarifa', 'Comisión', 'Utilidad']],
+        body: viajesList.map(v => [v.cliente || 'Cliente SARA', v.route, v.embarque, `${v.tarifa.toFixed(2)}`, `${v.comision.toFixed(2)}`, `${v.utilidad.toFixed(2)}`]),
         startY: 20
       });
     } else {
@@ -2486,6 +2538,7 @@ export default function MiPerfilFletes() {
                   <table className="w-full text-left whitespace-nowrap text-xs">
                     <thead>
                       <tr className="bg-slate-950 text-slate-400 text-[10px] uppercase tracking-wider border-b border-slate-800">
+                        <th className="p-3.5 font-bold">Cliente</th>
                         <th className="p-3.5 font-bold">Ruta</th>
                         <th className="p-3.5 font-bold">Embarque</th>
                         <th className="p-3.5 font-bold">Llegada</th>
@@ -2496,8 +2549,19 @@ export default function MiPerfilFletes() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {viajes.map((viaje) => (
+                      {viajesList.map((viaje) => (
                         <tr key={viaje.id} className="hover:bg-slate-800/50 transition-colors">
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0 shadow-sm">
+                                {viaje.cliente?.charAt(0) || 'C'}
+                              </div>
+                              <div>
+                                <p className="font-bold text-white text-xs leading-tight">{viaje.cliente || 'Cliente SARA'}</p>
+                                <span className="text-[10px] text-slate-400 font-mono">{viaje.fleteId || 'Flete Express'}</span>
+                              </div>
+                            </div>
+                          </td>
                           <td className="p-3.5 font-bold text-white">{viaje.route}</td>
                           <td className="p-3.5 text-slate-400">{viaje.embarque}</td>
                           <td className="p-3.5 text-slate-400">{viaje.llegada}</td>

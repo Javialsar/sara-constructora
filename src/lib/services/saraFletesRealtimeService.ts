@@ -92,6 +92,68 @@ export interface DriverBankConfig {
   updatedAt?: string;
 }
 
+export interface ViajeHistorialItem {
+  id: string | number;
+  fleteId?: string;
+  cliente: string;
+  route: string;
+  embarque: string;
+  llegada: string;
+  tiempo: string;
+  tarifa: number;
+  comision: number;
+  utilidad: number;
+  metodoPago?: string;
+  calificacion?: number;
+  comentario?: string;
+  placa?: string;
+}
+
+export const DEFAULT_VIAJES_HISTORIAL: ViajeHistorialItem[] = [
+  { 
+    id: 1, 
+    fleteId: 'FLT-8821', 
+    cliente: 'Ing. Marco Vivanco (Constructora SARA)', 
+    route: 'MAtecons Chile -> El Dorado (Cariamanga)', 
+    embarque: '12 Oct 2026, 14:00', 
+    llegada: '12 Oct 2026, 14:15', 
+    tiempo: '15 min', 
+    tarifa: 3.50, 
+    comision: 0.18, 
+    utilidad: 3.32, 
+    metodoPago: 'Efectivo', 
+    calificacion: 5 
+  },
+  { 
+    id: 2, 
+    fleteId: 'FLT-7649', 
+    cliente: 'Arq. Elena Rodríguez (Obra San Vicente)', 
+    route: 'Centro Cariamanga -> Vía Colaisaca', 
+    embarque: '10 Oct 2026, 09:15', 
+    llegada: '10 Oct 2026, 09:45', 
+    tiempo: '30 min', 
+    tarifa: 8.00, 
+    comision: 0.40, 
+    utilidad: 7.60, 
+    metodoPago: 'Transferencia Banco Pichincha', 
+    calificacion: 5 
+  },
+  { 
+    id: 3, 
+    fleteId: 'FLT-6102', 
+    cliente: 'Ferretería Disensa Cariamanga', 
+    route: 'Terminal Terrestre -> San Vicente', 
+    embarque: '08 Oct 2026, 16:30', 
+    llegada: '08 Oct 2026, 16:50', 
+    tiempo: '20 min', 
+    tarifa: 4.50, 
+    comision: 0.23, 
+    utilidad: 4.27, 
+    metodoPago: 'Deuna QR', 
+    calificacion: 5 
+  },
+];
+
 export const DEFAULT_DRIVER_BANK_CONFIG: DriverBankConfig = {
   plate: 'PCX-4590',
   bankName: 'Banco Pichincha',
@@ -204,6 +266,7 @@ export type FletesRealtimeEvent =
       plate: string;
       codigoAcceso: string;
       precioAcordado: number;
+      clienteNombre?: string;
       origen?: string;
       destino?: string;
       coordsOrigen?: [number, number];
@@ -626,5 +689,82 @@ export class SaraFletesRealtimeService {
       if (activeData) return JSON.parse(activeData);
     } catch {}
     return { ...DEFAULT_DRIVER_BANK_CONFIG, plate: plate || 'PCX-4590' };
+  }
+
+  /**
+   * Obtiene la lista del historial de viajes completados para un conductor específico
+   */
+  static getCompletedTrips(plate?: string): ViajeHistorialItem[] {
+    if (typeof window === 'undefined') return DEFAULT_VIAJES_HISTORIAL;
+    try {
+      const cleanPlate = plate ? plate.trim().toUpperCase() : 'PCX-4590';
+      const driverData = localStorage.getItem(`${STORAGE_PREFIX}viajes_historial_${cleanPlate}`);
+      if (driverData) {
+        const parsed = JSON.parse(driverData);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      const globalData = localStorage.getItem(`${STORAGE_PREFIX}viajes_historial_global`);
+      if (globalData) {
+        const parsed = JSON.parse(globalData);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error leyendo historial de viajes:', e);
+    }
+    return DEFAULT_VIAJES_HISTORIAL;
+  }
+
+  /**
+   * Guarda un nuevo viaje completado en el historial persistente
+   */
+  static saveCompletedTrip(plate: string | undefined, trip: ViajeHistorialItem) {
+    if (typeof window === 'undefined') return;
+    try {
+      const cleanPlate = plate ? plate.trim().toUpperCase() : 'PCX-4590';
+      const existing = this.getCompletedTrips(cleanPlate);
+      // Evitar duplicados por id o fleteId
+      const filtered = existing.filter(v => v.id !== trip.id && (!trip.fleteId || v.fleteId !== trip.fleteId));
+      const updated = [trip, ...filtered];
+
+      localStorage.setItem(`${STORAGE_PREFIX}viajes_historial_${cleanPlate}`, JSON.stringify(updated));
+      localStorage.setItem(`${STORAGE_PREFIX}viajes_historial_global`, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Error guardando viaje en historial:', e);
+    }
+  }
+
+  /**
+   * Actualiza la calificación o método de pago de un viaje en el historial tras el feedback del cliente
+   */
+  static updateTripFeedback(fleteId: string, rating: number, comentario?: string, metodoPago?: string) {
+    if (typeof window === 'undefined' || !fleteId) return;
+    try {
+      const allKeys = Object.keys(localStorage).filter(k => k.startsWith(`${STORAGE_PREFIX}viajes_historial_`));
+      for (const k of allKeys) {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          let updated = false;
+          const newArr = parsed.map((item: ViajeHistorialItem) => {
+            if (item.fleteId === fleteId || item.id === fleteId) {
+              updated = true;
+              return {
+                ...item,
+                calificacion: rating,
+                comentario: comentario || item.comentario,
+                metodoPago: metodoPago || item.metodoPago
+              };
+            }
+            return item;
+          });
+          if (updated) {
+            localStorage.setItem(k, JSON.stringify(newArr));
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error actualizando feedback en historial:', e);
+    }
   }
 }

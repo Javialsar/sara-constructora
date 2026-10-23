@@ -97,6 +97,7 @@ interface FreightRequest {
   accessCode?: string;
   distanciaKm?: number;
   duracionMinutos?: number;
+  clienteNombre?: string;
 }
 
 interface ReservaRentaConfirmada {
@@ -399,6 +400,7 @@ export default function SaraFletesEngine() {
   const [isProcessingRenta, setIsProcessingRenta] = useState(false);
 
   // 5. Estados de negociación y despacho
+  const [clienteNombre, setClienteNombre] = useState('Ing. Marco Vivanco (Constructora SARA)');
   const [activeFreight, setActiveFreight] = useState<FreightRequest | null>(null);
   const [counterOffer, setCounterOffer] = useState<string>('');
   const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
@@ -1195,7 +1197,7 @@ export default function SaraFletesEngine() {
         coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
         coordenadasRuta: rutaCalculada?.coordenadasRuta,
         codigoAcceso: code,
-        clienteNombre: 'Cliente SARA Constructora',
+        clienteNombre: clienteNombre || 'Ing. Marco Vivanco (Constructora SARA)',
         status: 'searching',
         timestamp: Date.now(),
         guiaRemision: guiaRemisionClave ? {
@@ -1284,7 +1286,7 @@ export default function SaraFletesEngine() {
         coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3210, -79.5620],
         coordenadasRuta: rutaCalculada?.coordenadasRuta,
         codigoAcceso: code,
-        clienteNombre: 'Cliente SARA Constructora',
+        clienteNombre: clienteNombre || 'Ing. Marco Vivanco (Constructora SARA)',
         status: 'searching',
         timestamp: Date.now()
       }
@@ -1312,6 +1314,7 @@ export default function SaraFletesEngine() {
           plate: offer.plate,
           codigoAcceso: activeFreight.accessCode || '0000',
           precioAcordado: offer.offeredPrice,
+          clienteNombre: activeFreight.clienteNombre || clienteNombre || 'Ing. Marco Vivanco (Constructora SARA)',
           origen: activeFreight.origin || originText,
           destino: activeFreight.destination || destinationText,
           coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : (userLocation || [-4.3285, -79.5560]),
