@@ -41,9 +41,11 @@ import {
   CreditCard,
   Banknote,
   Building2,
-  Wallet
+  Wallet,
+  QrCode
 } from 'lucide-react';
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
+import SaraFreightPaymentGatewayModal from '@/components/fletes/SaraFreightPaymentGatewayModal';
 import { SaraGuiaRemisionService } from '@/lib/services/saraGuiaRemisionService';
 import { SaraMtopBalanzasService } from '@/lib/services/saraMtopBalanzasService';
 import Link from 'next/link';
@@ -437,6 +439,13 @@ export default function SaraFletesEngine() {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
   const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
+  const [isPaymentGatewayOpen, setIsPaymentGatewayOpen] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<{
+    method: string;
+    methodName: string;
+    reference: string;
+    amount: number;
+  } | null>(null);
 
   // Generador de código PIN de entrega segura
   const generateAccessCode = () => Math.floor(1000 + Math.random() * 9000).toString();
@@ -714,6 +723,9 @@ export default function SaraFletesEngine() {
           vehicleName: 'Camioneta Pickup 1.2T · SARA',
           price: currentReq?.referencePrice || evt.payload.tarifaFinal || 3.50
         });
+        setPaymentMethod('efectivo');
+        setPaymentDetails(null);
+        setIsPaymentGatewayOpen(false);
         setIsRatingModalOpen(true);
         setActiveFreight(null);
         setDriverOffers([]);
@@ -2676,7 +2688,10 @@ export default function SaraFletesEngine() {
                 {/* Opción 1: Efectivo */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('efectivo')}
+                  onClick={() => {
+                    setPaymentMethod('efectivo');
+                    setPaymentDetails(null);
+                  }}
                   className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
                     paymentMethod === 'efectivo'
                       ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
@@ -2691,7 +2706,10 @@ export default function SaraFletesEngine() {
                 {/* Opción 2: Tarjeta */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('tarjeta')}
+                  onClick={() => {
+                    setPaymentMethod('tarjeta');
+                    setIsPaymentGatewayOpen(true);
+                  }}
                   className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
                     paymentMethod === 'tarjeta'
                       ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
@@ -2706,7 +2724,10 @@ export default function SaraFletesEngine() {
                 {/* Opción 3: Transferencia */}
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('transferencia')}
+                  onClick={() => {
+                    setPaymentMethod('transferencia');
+                    setIsPaymentGatewayOpen(true);
+                  }}
                   className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
                     paymentMethod === 'transferencia'
                       ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
@@ -2718,6 +2739,40 @@ export default function SaraFletesEngine() {
                   <span className="text-[9px] text-slate-400 font-medium">Pichincha / Deuna</span>
                 </button>
               </div>
+
+              {/* Detalle del Pago Digital Confirmado en Pasarela */}
+              {paymentDetails && (
+                <div className="mt-2.5 bg-emerald-950/70 border border-emerald-500/60 p-2.5 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-white text-[11px] block">{paymentDetails.methodName}</span>
+                      <span className="text-[10px] text-emerald-300 font-mono">Ref: {paymentDetails.reference} (${paymentDetails.amount.toFixed(2)} USD)</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentGatewayOpen(true)}
+                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+                  >
+                    Ver Pasarela
+                  </button>
+                </div>
+              )}
+
+              {/* Botón para Abrir Pasarela si seleccionó Tarjeta o Transferencia */}
+              {!paymentDetails && paymentMethod !== 'efectivo' && (
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentGatewayOpen(true)}
+                    className="w-full py-2.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-400 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    <span>Ver Datos Bancarios y Códigos QR del Transportista</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Estrellas Interactivas (1 a 5) */}
@@ -2852,12 +2907,35 @@ export default function SaraFletesEngine() {
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 text-white" />
-                  <span>Confirmar Pago y Calificar ($${driverToRate.price.toFixed(2)} USD)</span>
+                  <span>Confirmar Pago y Calificar (${driverToRate.price.toFixed(2)} USD)</span>
                 </>
               )}
             </button>
           </div>
         </div>
+      )}
+
+      {/* MODAL PASARELA DE PAGO DIGITAL: DATOS BANCARIOS DEL CONDUCTOR, QRS Y TARJETA */}
+      {isPaymentGatewayOpen && driverToRate && (
+        <SaraFreightPaymentGatewayModal
+          isOpen={isPaymentGatewayOpen}
+          onClose={() => setIsPaymentGatewayOpen(false)}
+          onPaymentSuccess={(details) => {
+            setPaymentDetails({
+              method: details.method,
+              methodName: details.methodName,
+              reference: details.reference,
+              amount: details.amount
+            });
+            setPaymentMethod(details.method === 'transferencia' ? 'transferencia' : 'tarjeta');
+            setIsPaymentGatewayOpen(false);
+          }}
+          amount={driverToRate.price}
+          driverName={driverToRate.driverName}
+          driverPlate={driverToRate.plate}
+          driverVehicle={driverToRate.vehicleName}
+          fleteId={driverToRate.fleteId}
+        />
       )}
 
       {/* Botón de Pánico SOS 24/7 Flotante */}
