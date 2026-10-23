@@ -33,6 +33,12 @@ export interface DriverBankInfo {
   holderId: string;
   phone: string;
   email: string;
+  deunaPhone?: string;
+  payphonePhone?: string;
+  guayaquilAccount?: string;
+  qrDeunaImage?: string;
+  qrPayphoneImage?: string;
+  qrGuayaquilImage?: string;
 }
 
 export interface SaraFreightPaymentGatewayModalProps {
@@ -136,12 +142,23 @@ export default function SaraFreightPaymentGatewayModal({
     }, 600);
   };
 
-  // Datos para los QRs dinámicos
+  // Datos para los QRs dinámicos y oficiales
+  const effectiveDeunaPhone = driverBankInfo.deunaPhone || driverBankInfo.phone;
+  const effectivePayphone = driverBankInfo.payphonePhone || driverBankInfo.phone;
+  const effectiveGuayaquilAcc = driverBankInfo.guayaquilAccount || driverBankInfo.accountNumber;
+
   const qrDataMap = {
-    deuna: `https://deuna.app/pay?to=${driverBankInfo.phone}&amount=${amount.toFixed(2)}&ref=${fleteId}`,
-    payphone: `https://payphone.app/pay?phone=${driverBankInfo.phone}&amount=${amount.toFixed(2)}&client=${encodeURIComponent(driverName)}`,
-    guayaquil: `https://bg.ec/transfer?account=${driverBankInfo.accountNumber}&amount=${amount.toFixed(2)}`
+    deuna: `https://deuna.app/pay?to=${effectiveDeunaPhone}&amount=${amount.toFixed(2)}&ref=${fleteId}`,
+    payphone: `https://payphone.app/pay?phone=${effectivePayphone}&amount=${amount.toFixed(2)}&client=${encodeURIComponent(driverName)}`,
+    guayaquil: `https://bg.ec/transfer?account=${effectiveGuayaquilAcc}&amount=${amount.toFixed(2)}`
   };
+
+  const currentUploadedQr = 
+    selectedQrPlatform === 'deuna' ? driverBankInfo.qrDeunaImage :
+    selectedQrPlatform === 'payphone' ? driverBankInfo.qrPayphoneImage :
+    driverBankInfo.qrGuayaquilImage;
+
+  const qrImageSource = currentUploadedQr || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(qrDataMap[selectedQrPlatform])}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
@@ -358,12 +375,17 @@ export default function SaraFreightPaymentGatewayModal({
 
             {/* Visualización del Código QR Escaneable */}
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <div className="p-2 bg-white rounded-xl shadow-lg shrink-0">
+              <div className="p-2 bg-white rounded-xl shadow-lg shrink-0 relative group">
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(qrDataMap[selectedQrPlatform])}`}
+                  src={qrImageSource}
                   alt={`QR ${selectedQrPlatform} ${driverName}`}
-                  className="w-28 h-28 rounded-lg"
+                  className="w-32 h-32 rounded-lg object-contain bg-white"
                 />
+                {currentUploadedQr && (
+                  <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow">
+                    OFICIAL
+                  </span>
+                )}
               </div>
 
               <div className="text-xs space-y-1">
@@ -376,13 +398,18 @@ export default function SaraFreightPaymentGatewayModal({
                   </strong>
                 </div>
                 <p className="text-slate-400 text-[11px]">
-                  1. Abre tu aplicación bancaria móvil y escanea este código.
+                  {currentUploadedQr 
+                    ? '1. Código QR verificado y subido directamente por el transportista.'
+                    : '1. Abre tu aplicación bancaria móvil y escanea este código.'}
                 </p>
                 <p className="text-slate-300 text-[11px]">
                   Beneficiario: <strong className="text-amber-400">{driverBankInfo.holderName}</strong>
                 </p>
                 <p className="text-slate-300 text-[11px]">
-                  Celular registrado: <strong className="font-mono text-emerald-400">{driverBankInfo.phone}</strong>
+                  {selectedQrPlatform === 'guayaquil' ? 'Cuenta / Peigo: ' : 'Celular registrado: '}
+                  <strong className="font-mono text-emerald-400">
+                    {selectedQrPlatform === 'guayaquil' ? effectiveGuayaquilAcc : (selectedQrPlatform === 'payphone' ? effectivePayphone : effectiveDeunaPhone)}
+                  </strong>
                 </p>
                 <p className="text-slate-300 text-[11px]">
                   Monto exacto: <strong className="text-emerald-400 font-mono text-sm">${amount.toFixed(2)} USD</strong>

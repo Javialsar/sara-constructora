@@ -2935,6 +2935,7 @@ export default function SaraFletesEngine() {
           driverPlate={driverToRate.plate}
           driverVehicle={driverToRate.vehicleName}
           fleteId={driverToRate.fleteId}
+          driverBankInfo={SaraFletesRealtimeService.getDriverBankConfig(driverToRate.plate)}
         />
       )}
 

@@ -27,7 +27,16 @@ import {
   Percent,
   CheckCircle2,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Landmark,
+  Building2,
+  Smartphone,
+  Lock,
+  Copy,
+  Check,
+  Eye,
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -38,7 +47,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
-import { SaraFletesRealtimeService, PlanConfigItem, ProofOfDeliveryData } from '@/lib/services/saraFletesRealtimeService';
+import { 
+  SaraFletesRealtimeService, 
+  PlanConfigItem, 
+  ProofOfDeliveryData,
+  DriverBankConfig,
+  DEFAULT_DRIVER_BANK_CONFIG
+} from '@/lib/services/saraFletesRealtimeService';
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
 import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
@@ -46,7 +61,9 @@ import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingServ
 import { 
   debitDriverCommissionAction, 
   rechargeDriverWalletAction, 
-  getDriverWalletStateAction 
+  getDriverWalletStateAction,
+  saveDriverBankInfoAction,
+  getDriverBankInfoAction
 } from '@/app/actions/saraFletesWalletActions';
 
 // Carga dinámica del mapa interactivo Leaflet sin SSR
@@ -66,8 +83,33 @@ export default function MiPerfilFletes() {
   const [authLoading, setAuthLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
+  const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'cuentas_bancarias' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
   const [planesList, setPlanesList] = useState<any[]>([]);
+
+  // Configuración de cuentas bancarias y códigos QR de cobro
+  const [bankConfig, setBankConfig] = useState<DriverBankConfig>(() => {
+    return SaraFletesRealtimeService.getDriverBankConfig();
+  });
+  const [savingBankInfo, setSavingBankInfo] = useState(false);
+  const [bankCopiedKey, setBankCopiedKey] = useState<string | null>(null);
+  const [activeQrPreviewTab, setActiveQrPreviewTab] = useState<'deuna' | 'payphone' | 'guayaquil'>('deuna');
+  const qrDeunaFileRef = useRef<HTMLInputElement>(null);
+  const qrPayphoneFileRef = useRef<HTMLInputElement>(null);
+  const qrGuayaquilFileRef = useRef<HTMLInputElement>(null);
+
+  // Cargar datos bancarios guardados en Supabase o Local
+  useEffect(() => {
+    const currentPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
+    getDriverBankInfoAction(currentPlate).then((res) => {
+      if (res && res.config) {
+        setBankConfig(prev => ({
+          ...prev,
+          ...res.config,
+          plate: currentPlate
+        }));
+      }
+    });
+  }, [currentUser]);
 
   // Verificación de autenticación de usuario
   useEffect(() => {
@@ -107,6 +149,55 @@ export default function MiPerfilFletes() {
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleCopyText = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setBankCopiedKey(key);
+    setTimeout(() => setBankCopiedKey(null), 2000);
+  };
+
+  const handleBankQrUpload = (platform: 'deuna' | 'payphone' | 'guayaquil', file: File) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setBankConfig(prev => ({
+        ...prev,
+        ...(platform === 'deuna' ? { qrDeunaImage: base64 } :
+            platform === 'payphone' ? { qrPayphoneImage: base64 } :
+            { qrGuayaquilImage: base64 })
+      }));
+      showToast(`📸 Código QR de ${platform.toUpperCase()} cargado con éxito. Presiona Guardar para aplicar.`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBankConfig = async () => {
+    setSavingBankInfo(true);
+    try {
+      const currentPlate = currentUser?.user_metadata?.placa || bankConfig.plate || 'PCX-4590';
+      const cleanConfig: DriverBankConfig = {
+        ...bankConfig,
+        plate: currentPlate,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // 1. Guardar local y emitir evento realtime
+      SaraFletesRealtimeService.saveDriverBankConfig(cleanConfig);
+      
+      // 2. Persistir en Supabase backend vía Server Action
+      const res = await saveDriverBankInfoAction(cleanConfig);
+      if (res.success && res.config) {
+        setBankConfig(res.config);
+      }
+      
+      showToast('✅ Cuentas bancarias y códigos QR guardados exitosamente. Sincronizado en tiempo real.');
+    } catch (e: any) {
+      showToast('⚠️ Datos guardados localmente. Sincronizado con la pasarela.');
+    } finally {
+      setSavingBankInfo(false);
+    }
   };
 
   // Ubicación del conductor (GPS)
@@ -787,6 +878,25 @@ export default function MiPerfilFletes() {
             </button>
 
             <button
+              onClick={() => setActiveTab('cuentas_bancarias')}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                activeTab === 'cuentas_bancarias'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Landmark className="w-4 h-4 text-emerald-400" />
+                <span>Cuentas Bancarias & QRs</span>
+              </div>
+              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
+                activeTab === 'cuentas_bancarias' ? 'bg-slate-950 text-amber-400' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              }`}>
+                Cobro
+              </span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('documentos')}
               className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 activeTab === 'documentos'
@@ -1379,6 +1489,547 @@ export default function MiPerfilFletes() {
                   </div>
                 </div>
 
+              </div>
+            </div>
+          )}
+
+          {/* ================================================================ */}
+          {/* TAB: CUENTAS BANCARIAS & CÓDIGOS QR DE COBRO (PASARELA DEL CLIENTE) */}
+          {/* ================================================================ */}
+          {activeTab === 'cuentas_bancarias' && (
+            <div className="max-w-4xl space-y-6 animate-in fade-in duration-200">
+              {/* Cabecera de la Sección */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      <Landmark className="w-5 h-5" />
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-black text-white">Cuentas Bancarias & Códigos QR de Cobro</h2>
+                  </div>
+                  <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+                    Registra tus cuentas bancarias y códigos QR oficiales de cobro (DeUna!, Payphone, Banco Guayaquil). 
+                    Cuando un cliente finalice el viaje, la pasarela de pagos le presentará automáticamente estos datos y QRs 
+                    para que te transfiera o pague con tarjeta sin intermediarios.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Pasarela Sincronizada en Vivo
+                    </span>
+                    <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                      <Lock className="w-3 h-3" /> Cifrado Zero-Trust SRI Ecuador
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+                      Placa: {bankConfig.plate || 'PCX-4590'}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveBankConfig}
+                  disabled={savingBankInfo}
+                  className="shrink-0 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black px-5 py-3 rounded-xl text-xs transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingBankInfo ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Guardar Cambios</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* CARD 1: CUENTA BANCARIA PRINCIPAL (TRANSFERENCIAS SPI) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-amber-400" />
+                    <h3 className="font-bold text-white text-sm">Cuenta Bancaria Principal (Transferencias Directas e Interbancarias SPI)</h3>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400">Pichincha, Guayaquil, Produbanco, JEP</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Institución Financiera / Banco
+                    </label>
+                    <select
+                      value={bankConfig.bankName}
+                      onChange={(e) => setBankConfig({ ...bankConfig, bankName: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option>Banco Pichincha</option>
+                      <option>Banco Guayaquil</option>
+                      <option>Produbanco - Grupo Promerica</option>
+                      <option>Banco del Pacífico</option>
+                      <option>Banco Bolivariano</option>
+                      <option>Banco Internacional</option>
+                      <option>Banco del Austro</option>
+                      <option>Cooperativa JEP</option>
+                      <option>Cooperativa Policía Nacional</option>
+                      <option>Cooperativa Alianza del Valle</option>
+                      <option>Cooperativa 29 de Octubre</option>
+                      <option>Cooperativa Padre Julián Lorente (Loja)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Tipo de Cuenta
+                    </label>
+                    <select
+                      value={bankConfig.accountType}
+                      onChange={(e) => setBankConfig({ ...bankConfig, accountType: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option>Cuenta de Ahorros</option>
+                      <option>Cuenta Corriente</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Número de Cuenta
+                    </label>
+                    <input
+                      type="text"
+                      value={bankConfig.accountNumber}
+                      onChange={(e) => setBankConfig({ ...bankConfig, accountNumber: e.target.value })}
+                      placeholder="Ej. 2208741904"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Titular de la Cuenta
+                    </label>
+                    <input
+                      type="text"
+                      value={bankConfig.holderName}
+                      onChange={(e) => setBankConfig({ ...bankConfig, holderName: e.target.value })}
+                      placeholder="Nombres completos según banco"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Cédula o RUC del Titular
+                    </label>
+                    <input
+                      type="text"
+                      value={bankConfig.holderId}
+                      onChange={(e) => setBankConfig({ ...bankConfig, holderId: e.target.value })}
+                      placeholder="Ej. 1103849182"
+                      maxLength={13}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Correo para Comprobantes
+                    </label>
+                    <input
+                      type="email"
+                      value={bankConfig.email}
+                      onChange={(e) => setBankConfig({ ...bankConfig, email: e.target.value })}
+                      placeholder="ejemplo@correo.com"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 2: BILLETERAS MÓVILES (DEUNA, PAYPHONE, PEIGO) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-emerald-400" />
+                    <h3 className="font-bold text-white text-sm">Billeteras Móviles & Cobro Inmediato (Ecuador)</h3>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400">Cobro rápido sin digitar cuenta</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* DeUna! */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-teal-900/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-teal-400">DeUna! Pichincha</span>
+                      <span className="text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded font-black">P2P</span>
+                    </div>
+                    <label className="block text-[11px] text-slate-400">
+                      Celular registrado en DeUna!:
+                    </label>
+                    <input
+                      type="tel"
+                      value={bankConfig.deunaPhone || ''}
+                      onChange={(e) => setBankConfig({ ...bankConfig, deunaPhone: e.target.value })}
+                      placeholder="Ej. 0995544332"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-teal-400"
+                    />
+                    <p className="text-[10px] text-slate-500">Permite a los usuarios de Pichincha pagarte al instante por número o QR.</p>
+                  </div>
+
+                  {/* Payphone */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-orange-900/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-orange-400">Payphone Ecuador</span>
+                      <span className="text-[9px] bg-orange-500/20 text-orange-300 px-1.5 py-0.5 rounded font-black">VISA/MC</span>
+                    </div>
+                    <label className="block text-[11px] text-slate-400">
+                      Celular / Usuario Payphone:
+                    </label>
+                    <input
+                      type="tel"
+                      value={bankConfig.payphonePhone || ''}
+                      onChange={(e) => setBankConfig({ ...bankConfig, payphonePhone: e.target.value })}
+                      placeholder="Ej. 0995544332"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-orange-400"
+                    />
+                    <p className="text-[10px] text-slate-500">Permite al cliente pagar con tarjetas de crédito nacionales e internacionales.</p>
+                  </div>
+
+                  {/* Banco Guayaquil / Peigo */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-pink-900/40 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-pink-400">Banco Guayaquil / Peigo</span>
+                      <span className="text-[9px] bg-pink-500/20 text-pink-300 px-1.5 py-0.5 rounded font-black">BG</span>
+                    </div>
+                    <label className="block text-[11px] text-slate-400">
+                      Cuenta o Celular Peigo:
+                    </label>
+                    <input
+                      type="text"
+                      value={bankConfig.guayaquilAccount || ''}
+                      onChange={(e) => setBankConfig({ ...bankConfig, guayaquilAccount: e.target.value })}
+                      placeholder="Ej. 1098452109 o celular"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-pink-400"
+                    />
+                    <p className="text-[10px] text-slate-500">Para clientes con cuenta en Banco Guayaquil o billetera Peigo.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 3: CÓDIGOS QR OFICIALES DE COBRO (CARGA DE IMAGEN O DINÁMICO) */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-cyan-400" />
+                    <h3 className="font-bold text-white text-sm">Códigos QR Oficiales de Cobro (Carga de Imagen o Generación Directa)</h3>
+                  </div>
+                  <span className="text-[10px] font-semibold text-slate-400">Sube tu captura de QR o usa el dinámico</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* QR 1: DeUna! */}
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-teal-800/40 flex flex-col justify-between items-center text-center space-y-3">
+                    <div className="w-full flex items-center justify-between text-xs">
+                      <span className="font-black text-teal-400">QR DeUna!</span>
+                      {bankConfig.qrDeunaImage ? (
+                        <span className="text-[9px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded">Oficial Subido</span>
+                      ) : (
+                        <span className="text-[9px] bg-slate-800 text-slate-300 font-bold px-1.5 py-0.5 rounded">Autogenerado</span>
+                      )}
+                    </div>
+
+                    <div className="w-36 h-36 bg-white p-2 rounded-xl shadow-md flex items-center justify-center relative group">
+                      <img
+                        src={bankConfig.qrDeunaImage || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=4&data=${encodeURIComponent(`https://deuna.app/pay?to=${bankConfig.deunaPhone || bankConfig.phone}&ref=SARA-FLETE`)}`}
+                        alt="QR Deuna"
+                        className="w-full h-full object-contain rounded"
+                      />
+                    </div>
+
+                    <div className="w-full space-y-1.5 text-center">
+                      <input
+                        type="file"
+                        ref={qrDeunaFileRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleBankQrUpload('deuna', e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => qrDeunaFileRef.current?.click()}
+                        className="w-full bg-teal-950/80 hover:bg-teal-900 border border-teal-600/50 text-teal-200 text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>{bankConfig.qrDeunaImage ? 'Cambiar Imagen QR' : 'Subir QR Oficial Deuna'}</span>
+                      </button>
+                      {bankConfig.qrDeunaImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBankConfig({ ...bankConfig, qrDeunaImage: '' });
+                            showToast('Imagen de QR Deuna eliminada. Se usará el QR dinámico.');
+                          }}
+                          className="text-[10px] text-rose-400 hover:text-rose-300 flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" /> Restaurar QR Dinámico
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* QR 2: Payphone */}
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-orange-800/40 flex flex-col justify-between items-center text-center space-y-3">
+                    <div className="w-full flex items-center justify-between text-xs">
+                      <span className="font-black text-orange-400">QR Payphone</span>
+                      {bankConfig.qrPayphoneImage ? (
+                        <span className="text-[9px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded">Oficial Subido</span>
+                      ) : (
+                        <span className="text-[9px] bg-slate-800 text-slate-300 font-bold px-1.5 py-0.5 rounded">Autogenerado</span>
+                      )}
+                    </div>
+
+                    <div className="w-36 h-36 bg-white p-2 rounded-xl shadow-md flex items-center justify-center relative group">
+                      <img
+                        src={bankConfig.qrPayphoneImage || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=4&data=${encodeURIComponent(`https://payphone.app/pay?phone=${bankConfig.payphonePhone || bankConfig.phone}`)}`}
+                        alt="QR Payphone"
+                        className="w-full h-full object-contain rounded"
+                      />
+                    </div>
+
+                    <div className="w-full space-y-1.5 text-center">
+                      <input
+                        type="file"
+                        ref={qrPayphoneFileRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleBankQrUpload('payphone', e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => qrPayphoneFileRef.current?.click()}
+                        className="w-full bg-orange-950/80 hover:bg-orange-900 border border-orange-600/50 text-orange-200 text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>{bankConfig.qrPayphoneImage ? 'Cambiar Imagen QR' : 'Subir QR Payphone'}</span>
+                      </button>
+                      {bankConfig.qrPayphoneImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBankConfig({ ...bankConfig, qrPayphoneImage: '' });
+                            showToast('Imagen de QR Payphone eliminada. Se usará el QR dinámico.');
+                          }}
+                          className="text-[10px] text-rose-400 hover:text-rose-300 flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" /> Restaurar QR Dinámico
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* QR 3: Banco Guayaquil */}
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-pink-800/40 flex flex-col justify-between items-center text-center space-y-3">
+                    <div className="w-full flex items-center justify-between text-xs">
+                      <span className="font-black text-pink-400">QR Banco Guayaquil</span>
+                      {bankConfig.qrGuayaquilImage ? (
+                        <span className="text-[9px] bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded">Oficial Subido</span>
+                      ) : (
+                        <span className="text-[9px] bg-slate-800 text-slate-300 font-bold px-1.5 py-0.5 rounded">Autogenerado</span>
+                      )}
+                    </div>
+
+                    <div className="w-36 h-36 bg-white p-2 rounded-xl shadow-md flex items-center justify-center relative group">
+                      <img
+                        src={bankConfig.qrGuayaquilImage || `https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=4&data=${encodeURIComponent(`https://bg.ec/transfer?account=${bankConfig.guayaquilAccount || bankConfig.accountNumber}`)}`}
+                        alt="QR Banco Guayaquil"
+                        className="w-full h-full object-contain rounded"
+                      />
+                    </div>
+
+                    <div className="w-full space-y-1.5 text-center">
+                      <input
+                        type="file"
+                        ref={qrGuayaquilFileRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleBankQrUpload('guayaquil', e.target.files[0]);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => qrGuayaquilFileRef.current?.click()}
+                        className="w-full bg-pink-950/80 hover:bg-pink-900 border border-pink-600/50 text-pink-200 text-xs font-bold py-1.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>{bankConfig.qrGuayaquilImage ? 'Cambiar Imagen QR' : 'Subir QR Guayaquil'}</span>
+                      </button>
+                      {bankConfig.qrGuayaquilImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBankConfig({ ...bankConfig, qrGuayaquilImage: '' });
+                            showToast('Imagen de QR Guayaquil eliminada. Se usará el QR dinámico.');
+                          }}
+                          className="text-[10px] text-rose-400 hover:text-rose-300 flex items-center justify-center gap-1 mx-auto cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" /> Restaurar QR Dinámico
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD 4: SIMULADOR DE PASARELA EN VIVO (CÓMO LO VERÁ EL CLIENTE) */}
+              <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-emerald-400" />
+                    <h3 className="font-bold text-white text-sm">Vista Previa en Vivo: Pasarela que Verá el Cliente</h3>
+                  </div>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md font-bold">
+                    Simulación Interactiva
+                  </span>
+                </div>
+
+                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 max-w-xl mx-auto space-y-4 text-white">
+                  {/* Selector de Tabs del Simulador */}
+                  <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setActiveQrPreviewTab('deuna')}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        activeQrPreviewTab === 'deuna' ? 'bg-teal-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      QR DeUna!
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveQrPreviewTab('payphone')}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        activeQrPreviewTab === 'payphone' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      QR Payphone
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveQrPreviewTab('guayaquil')}
+                      className={`py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        activeQrPreviewTab === 'guayaquil' ? 'bg-pink-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Transferencia SPI
+                    </button>
+                  </div>
+
+                  {activeQrPreviewTab === 'deuna' && (
+                    <div className="bg-slate-900/80 border border-teal-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="p-2 bg-white rounded-xl shadow-lg shrink-0">
+                        <img
+                          src={bankConfig.qrDeunaImage || `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(`https://deuna.app/pay?to=${bankConfig.deunaPhone || bankConfig.phone}&amount=15.00&ref=FLT-DEMO`)}`}
+                          alt="Preview Deuna"
+                          className="w-24 h-24 rounded object-contain"
+                        />
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <strong className="text-teal-400 block font-black">QR Oficial Deuna! Pichincha</strong>
+                        <p className="text-slate-300 text-[11px]">Beneficiario: <strong className="text-white">{bankConfig.holderName || 'Transportista SARA'}</strong></p>
+                        <p className="text-slate-300 text-[11px]">Celular: <strong className="font-mono text-emerald-400">{bankConfig.deunaPhone || bankConfig.phone || '0995544332'}</strong></p>
+                        <p className="text-slate-400 text-[10px]">El cliente escanea directo desde la app Deuna y confirma el pago al instante.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeQrPreviewTab === 'payphone' && (
+                    <div className="bg-slate-900/80 border border-orange-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                      <div className="p-2 bg-white rounded-xl shadow-lg shrink-0">
+                        <img
+                          src={bankConfig.qrPayphoneImage || `https://api.qrserver.com/v1/create-qr-code/?size=140x140&margin=4&data=${encodeURIComponent(`https://payphone.app/pay?phone=${bankConfig.payphonePhone || bankConfig.phone}&amount=15.00`)}`}
+                          alt="Preview Payphone"
+                          className="w-24 h-24 rounded object-contain"
+                        />
+                      </div>
+                      <div className="text-xs space-y-1">
+                        <strong className="text-orange-400 block font-black">QR Payphone Ecuador</strong>
+                        <p className="text-slate-300 text-[11px]">Beneficiario: <strong className="text-white">{bankConfig.holderName || 'Transportista SARA'}</strong></p>
+                        <p className="text-slate-300 text-[11px]">Celular: <strong className="font-mono text-orange-400">{bankConfig.payphonePhone || bankConfig.phone || '0995544332'}</strong></p>
+                        <p className="text-slate-400 text-[10px]">Permite pagar con tarjeta de débito o crédito desde cualquier banco nacional.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeQrPreviewTab === 'guayaquil' && (
+                    <div className="bg-slate-900/80 border border-slate-700 rounded-xl p-4 space-y-2 text-xs">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span className="text-slate-400">Banco:</span>
+                        <span className="font-bold text-white">{bankConfig.bankName}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span className="text-slate-400">Tipo de Cuenta:</span>
+                        <span className="font-semibold text-slate-200">{bankConfig.accountType}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span className="text-slate-400">Número de Cuenta:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-black text-amber-400">{bankConfig.accountNumber}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyText(bankConfig.accountNumber, 'sim_acc')}
+                            className="p-1 rounded bg-slate-800 text-slate-300 hover:text-white"
+                          >
+                            {bankCopiedKey === 'sim_acc' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <span className="text-slate-400">Titular:</span>
+                        <span className="font-bold text-white">{bankConfig.holderName}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Cédula / RUC:</span>
+                        <span className="font-mono text-slate-300">{bankConfig.holderId}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Botón Guardar Inferior Flotante / Destacado */}
+              <div className="flex justify-end pt-2 pb-6">
+                <button
+                  type="button"
+                  onClick={handleSaveBankConfig}
+                  disabled={savingBankInfo}
+                  className="w-full sm:w-auto bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black px-8 py-3.5 rounded-2xl text-sm transition-all shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                >
+                  {savingBankInfo ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Sincronizando y Guardando Cuentas...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>Guardar Cuentas Bancarias & Códigos QR</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}

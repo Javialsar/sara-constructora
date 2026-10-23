@@ -74,6 +74,38 @@ export interface SOSAlertData {
   activa: boolean;
 }
 
+export interface DriverBankConfig {
+  plate: string;
+  bankName: string;
+  accountType: string;
+  accountNumber: string;
+  holderName: string;
+  holderId: string;
+  phone: string;
+  email: string;
+  deunaPhone?: string;
+  payphonePhone?: string;
+  guayaquilAccount?: string;
+  qrDeunaImage?: string;
+  qrPayphoneImage?: string;
+  qrGuayaquilImage?: string;
+  updatedAt?: string;
+}
+
+export const DEFAULT_DRIVER_BANK_CONFIG: DriverBankConfig = {
+  plate: 'PCX-4590',
+  bankName: 'Banco Pichincha',
+  accountType: 'Cuenta de Ahorros',
+  accountNumber: '2208741904',
+  holderName: 'David Sarango Malacatus',
+  holderId: '1103849182',
+  phone: '0995544332',
+  email: 'david.sarango@gruposara.com',
+  deunaPhone: '0995544332',
+  payphonePhone: '0995544332',
+  guayaquilAccount: '1098452109'
+};
+
 export interface OfertaConductorRealtime {
   id: string;
   fleteId: string;
@@ -192,7 +224,8 @@ export type FletesRealtimeEvent =
   | { type: 'SOS_DISPARADO'; payload: SOSAlertData }
   | { type: 'SOS_CANCELADO'; payload: { fleteId?: string; plate: string } }
   | { type: 'EPOD_REGISTRADO'; payload: ProofOfDeliveryData }
-  | { type: 'RUMBO_A_CASA_CAMBIADO'; payload: { plate: string; activo: boolean; cantonDestino?: string; coordsDestino?: [number, number] } };
+  | { type: 'RUMBO_A_CASA_CAMBIADO'; payload: { plate: string; activo: boolean; cantonDestino?: string; coordsDestino?: [number, number] } }
+  | { type: 'DATOS_BANCARIOS_CONDUCTOR_ACTUALIZADOS'; payload: DriverBankConfig };
 
 const CHANNEL_NAME = 'sara_fletes_radar_bus_v1';
 const STORAGE_PREFIX = 'sara_fletes_rt_';
@@ -553,5 +586,45 @@ export class SaraFletesRealtimeService {
       if (data) return JSON.parse(data);
     } catch {}
     return null;
+  }
+
+  /**
+   * Guarda y sincroniza la configuración de cuentas bancarias y QRs del conductor
+   */
+  static saveDriverBankConfig(config: DriverBankConfig) {
+    if (typeof window === 'undefined') return;
+    try {
+      const cleanPlate = (config.plate || 'PCX-4590').trim().toUpperCase();
+      localStorage.setItem(`${STORAGE_PREFIX}bank_${cleanPlate}`, JSON.stringify(config));
+      // También guardar como default global del transportista activo
+      localStorage.setItem(`${STORAGE_PREFIX}active_driver_bank`, JSON.stringify(config));
+    } catch (e) {
+      console.warn('Error guardando bank config en localStorage:', e);
+    }
+
+    // Emitir evento reactivo a todos los oyentes (clientes, fletes modal, etc.)
+    this.emit({
+      type: 'DATOS_BANCARIOS_CONDUCTOR_ACTUALIZADOS',
+      payload: config
+    });
+  }
+
+  /**
+   * Obtiene la configuración de cuentas bancarias y QRs del conductor
+   */
+  static getDriverBankConfig(plate?: string): DriverBankConfig {
+    if (typeof window === 'undefined') {
+      return { ...DEFAULT_DRIVER_BANK_CONFIG, plate: plate || 'PCX-4590' };
+    }
+    try {
+      if (plate) {
+        const cleanPlate = plate.trim().toUpperCase();
+        const data = localStorage.getItem(`${STORAGE_PREFIX}bank_${cleanPlate}`);
+        if (data) return JSON.parse(data);
+      }
+      const activeData = localStorage.getItem(`${STORAGE_PREFIX}active_driver_bank`);
+      if (activeData) return JSON.parse(activeData);
+    } catch {}
+    return { ...DEFAULT_DRIVER_BANK_CONFIG, plate: plate || 'PCX-4590' };
   }
 }

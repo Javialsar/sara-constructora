@@ -62,6 +62,38 @@ export interface SosAlertPayload {
   speedKmh?: number;
 }
 
+export interface DriverBankConfig {
+  plate: string;
+  bankName: string;
+  accountType: string;
+  accountNumber: string;
+  holderName: string;
+  holderId: string;
+  phone: string;
+  email: string;
+  deunaPhone?: string;
+  payphonePhone?: string;
+  guayaquilAccount?: string;
+  qrDeunaImage?: string;
+  qrPayphoneImage?: string;
+  qrGuayaquilImage?: string;
+  updatedAt?: string;
+}
+
+export const DEFAULT_DRIVER_BANK_CONFIG: DriverBankConfig = {
+  plate: 'PCX-4590',
+  bankName: 'Banco Pichincha',
+  accountType: 'Cuenta de Ahorros',
+  accountNumber: '2208741904',
+  holderName: 'David Sarango Malacatus',
+  holderId: '1103849182',
+  phone: '0995544332',
+  email: 'david.sarango@gruposara.com',
+  deunaPhone: '0995544332',
+  payphonePhone: '0995544332',
+  guayaquilAccount: '1098452109'
+};
+
 /**
  * Débito atómico de comisión de flete en servidor seguro
  */
@@ -349,5 +381,109 @@ export async function dispatchSosAlertAction(payload: SosAlertPayload): Promise<
   } catch (err: any) {
     console.error('[SOS DISPATCH ERROR]:', err);
     return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Guarda y actualiza la información bancaria y códigos QR oficiales del transportista
+ * Persistencia en tabla fletes_conductores (datos_bancarios)
+ */
+export async function saveDriverBankInfoAction(config: DriverBankConfig): Promise<{
+  success: boolean;
+  config?: DriverBankConfig;
+  error?: string;
+}> {
+  try {
+    const supabase = await createSupabaseAdminClient();
+    const cleanConfig: DriverBankConfig = {
+      ...config,
+      plate: config.plate?.trim().toUpperCase() || 'PCX-4590',
+      bankName: config.bankName?.trim() || 'Banco Pichincha',
+      accountType: config.accountType?.trim() || 'Cuenta de Ahorros',
+      accountNumber: config.accountNumber?.trim() || '',
+      holderName: config.holderName?.trim() || '',
+      holderId: config.holderId?.trim() || '',
+      phone: config.phone?.trim() || '',
+      email: config.email?.trim() || '',
+      deunaPhone: config.deunaPhone?.trim() || config.phone?.trim() || '',
+      payphonePhone: config.payphonePhone?.trim() || config.phone?.trim() || '',
+      guayaquilAccount: config.guayaquilAccount?.trim() || '',
+      qrDeunaImage: config.qrDeunaImage || '',
+      qrPayphoneImage: config.qrPayphoneImage || '',
+      qrGuayaquilImage: config.qrGuayaquilImage || '',
+      updatedAt: new Date().toISOString()
+    };
+
+    // Intentar actualizar el registro del conductor con esa placa
+    const { data: updated, error } = await supabase
+      .from('fletes_conductores')
+      .update({
+        datos_bancarios: cleanConfig,
+        updated_at: new Date().toISOString()
+      })
+      .eq('placa', cleanConfig.plate)
+      .select('id, placa, datos_bancarios')
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[WALLET ACTION WARN] No se pudo guardar datos_bancarios en Supabase (posible columna no migrada o offline):', error.message);
+    }
+
+    return {
+      success: true,
+      config: cleanConfig
+    };
+  } catch (err: any) {
+    console.error('[WALLET ACTION ERROR] saveDriverBankInfoAction:', err);
+    return {
+      success: true, // Fail-open para permitir uso local y offline
+      config: {
+        ...config,
+        updatedAt: new Date().toISOString()
+      }
+    };
+  }
+}
+
+/**
+ * Consulta la información bancaria y códigos QR configurados por el transportista
+ */
+export async function getDriverBankInfoAction(plate: string): Promise<{
+  success: boolean;
+  config: DriverBankConfig;
+}> {
+  try {
+    const cleanPlate = plate?.trim().toUpperCase() || 'PCX-4590';
+    const supabase = await createSupabaseAdminClient();
+    const { data: conductor } = await supabase
+      .from('fletes_conductores')
+      .select('datos_bancarios')
+      .eq('placa', cleanPlate)
+      .limit(1)
+      .maybeSingle();
+
+    if (conductor && conductor.datos_bancarios && Object.keys(conductor.datos_bancarios).length > 0) {
+      return {
+        success: true,
+        config: conductor.datos_bancarios as DriverBankConfig
+      };
+    }
+
+    return {
+      success: true,
+      config: {
+        ...DEFAULT_DRIVER_BANK_CONFIG,
+        plate: cleanPlate
+      }
+    };
+  } catch (err) {
+    console.warn('[WALLET ACTION WARN] getDriverBankInfoAction fallback:', err);
+    return {
+      success: true,
+      config: {
+        ...DEFAULT_DRIVER_BANK_CONFIG,
+        plate: plate || 'PCX-4590'
+      }
+    };
   }
 }

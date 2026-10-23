@@ -36,6 +36,8 @@ ALTER TABLE public.fletes_conductores
     ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE public.fletes_conductores 
     ADD COLUMN IF NOT EXISTS estado_activo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.fletes_conductores 
+    ADD COLUMN IF NOT EXISTS datos_bancarios JSONB DEFAULT '{}'::jsonb;
 
 -- 2. TABLA INMUTABLE DE DOBLE PARTIDA: TRANSACCIONES DE BILLETERA
 CREATE TABLE IF NOT EXISTS public.fletes_billetera_transacciones (
