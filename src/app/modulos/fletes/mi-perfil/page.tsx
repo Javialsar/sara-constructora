@@ -43,6 +43,11 @@ import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton
 import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
+import { 
+  debitDriverCommissionAction, 
+  rechargeDriverWalletAction, 
+  getDriverWalletStateAction 
+} from '@/app/actions/saraFletesWalletActions';
 
 // Carga dinámica del mapa interactivo Leaflet sin SSR
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -145,15 +150,23 @@ export default function MiPerfilFletes() {
     id: 'basic', name: 'Plan Básico', monthlyPrice: 0.00, commissionRate: 10.0, priority: 'BAJA' as const, dispatchDelaySeconds: 8, benefits: ['Prioridad BAJA en Radar (Despacho Nivel 3 tras 8s)', 'Carreras Ilimitadas a nivel nacional', 'Atención y Soporte 24/7']
   }, [planesConfig]);
 
-  // Carga inicial y persistencia del saldo de billetera por placa
+  // Carga inicial y sincronización autoritativa del saldo de billetera en Servidor Seguro
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
-      const savedBalance = localStorage.getItem(`sara_fletes_rt_wallet_${plate}`);
-      if (savedBalance !== null) {
-        setBalance(Number(savedBalance));
-      }
-    }
+    const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    getDriverWalletStateAction(plate)
+      .then((state) => {
+        if (state && typeof state.saldo === 'number') {
+          setBalance(state.saldo);
+        }
+      })
+      .catch((err) => {
+        if (typeof window !== 'undefined') {
+          const savedBalance = localStorage.getItem(`sara_fletes_rt_wallet_${plate}`);
+          if (savedBalance !== null) {
+            setBalance(Number(savedBalance));
+          }
+        }
+      });
   }, [currentUser]);
 
   // Solicitud de flete entrante en tiempo real (SARA Realtime Bus)
@@ -468,17 +481,16 @@ export default function MiPerfilFletes() {
     const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
     const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
 
-    // DÉBITO AUTOMÁTICO DE LA COMISIÓN EXACTAMENTE AL INICIAR EL RECORRIDO
-    const debitResult = await debitConductorWallet({
-      driverName,
-      plate: myPlate,
-      amount: comisionDebito,
+    // DÉBITO SEGURO ZERO-TRUST EN SERVIDOR CON IDEMPOTENCIA
+    const serverDebit = await debitDriverCommissionAction({
       fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
-      tarifaFlete: valorFlete,
-      comisionPorcentaje: comisionPct
+      tarifaFleteUSD: valorFlete,
+      plate: myPlate,
+      planName: plan,
+      idempotencyKey: `flete_start_${incomingRequest.fleteId || 'FLT'}_${myPlate}`
     });
 
-    const nuevoSaldo = debitResult.nuevoSaldo;
+    const nuevoSaldo = serverDebit.success ? serverDebit.nuevoSaldo : +(balance - comisionDebito).toFixed(2);
     setBalance(nuevoSaldo);
     setTripState('in_transit');
     setTripProgressPercent(5);
@@ -1944,13 +1956,22 @@ export default function MiPerfilFletes() {
           if (checkoutConfig.isSubscription) {
             showToast(`¡Suscripción al ${checkoutConfig.title} activada! Ref: ${txId}`);
           } else {
-            const nuevo = +(balance + checkoutConfig.amount).toFixed(2);
-            setBalance(nuevo);
-            if (typeof window !== 'undefined') {
-              const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
-              localStorage.setItem(`sara_fletes_rt_wallet_${plate}`, nuevo.toString());
-            }
-            showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} USD acreditada exitosamente! Tu nuevo saldo es $${nuevo.toFixed(2)} USD. Ref: ${txId}`);
+            const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
+            rechargeDriverWalletAction({
+              plate,
+              amountUSD: checkoutConfig.amount,
+              paymentMethod: 'DEUNA_QR',
+              reference: txId,
+              idempotencyKey: `rec_${plate}_${txId}_${Date.now()}`
+            }).then((res) => {
+              const finalSaldo = res.success ? res.nuevoSaldo : +(balance + checkoutConfig.amount).toFixed(2);
+              setBalance(finalSaldo);
+              showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} USD acreditada exitosamente en servidor seguro! Tu nuevo saldo es $${finalSaldo.toFixed(2)} USD. Ref: ${txId}`);
+            }).catch(() => {
+              const nuevo = +(balance + checkoutConfig.amount).toFixed(2);
+              setBalance(nuevo);
+              showToast(`¡Recarga de $${checkoutConfig.amount.toFixed(2)} USD acreditada! Tu nuevo saldo es $${nuevo.toFixed(2)} USD. Ref: ${txId}`);
+            });
           }
         }}
         title={checkoutConfig.title}

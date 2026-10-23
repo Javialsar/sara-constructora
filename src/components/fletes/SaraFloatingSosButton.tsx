@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AlertOctagon, PhoneCall, ShieldAlert, X, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
 import { SaraFletesRealtimeService, SOSAlertData } from '@/lib/services/saraFletesRealtimeService';
+import { dispatchSosAlertAction } from '@/app/actions/saraFletesWalletActions';
 
 interface SaraFloatingSosButtonProps {
   plate?: string;
@@ -142,6 +143,16 @@ export function SaraFloatingSosButton({
     setSosActive(true);
     setActiveAlertData(sosData);
     playSiren();
+
+    // Persistencia Zero-Trust en Backend para Central de Monitoreo 24/7 y ECU-911
+    dispatchSosAlertAction({
+      fleteId,
+      userType,
+      driverName,
+      plate,
+      lat: currentCoords[0],
+      lng: currentCoords[1]
+    }).catch((err) => console.warn('[SOS DISPATCH WARN]:', err));
   };
 
   const cancelSos = () => {
