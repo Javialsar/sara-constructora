@@ -12,6 +12,11 @@ import {
   CategoriaVehiculo, 
   CATALOGO_VEHICULOS_SARA 
 } from '@/lib/services/saraFreightPricingService';
+import {
+  SaraFreightTripLifecycleService,
+  ItemEntregaParcialInput,
+  EpodEntregaInput
+} from '@/lib/services/saraFreightTripLifecycleService';
 
 export interface DebitWalletRequest {
   fleteId: string;
@@ -549,7 +554,6 @@ export async function createValidatedFletesSolicitudAction(
   request: CreateValidatedFleteRequest
 ): Promise<CreateValidatedFleteResponse> {
   try {
-    const supabase = await createSupabaseAdminClient();
     const config = CATALOGO_VEHICULOS_SARA[request.vehiculoKey] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
     const calc = SaraFreightPricingService.calcularTarifa(
       request.distanciaKm,
@@ -570,26 +574,34 @@ export async function createValidatedFletesSolicitudAction(
     }
 
     const pin = request.codigoAcceso || Math.floor(1000 + Math.random() * 9000).toString();
+    let solicitudId = `SOL-${Date.now().toString().slice(-6)}`;
 
-    const { data: sol, error: insertErr } = await supabase
-      .from('fletes_solicitudes')
-      .insert({
-        origen: request.origen,
-        destino: request.destino,
-        tarifa: tarifaOfertada,
-        status: 'pendiente',
-        codigo_acceso: pin
-      })
-      .select('id')
-      .maybeSingle();
+    try {
+      const supabase = await createSupabaseAdminClient();
+      const { data: sol, error: insertErr } = await supabase
+        .from('fletes_solicitudes')
+        .insert({
+          origen: request.origen,
+          destino: request.destino,
+          tarifa: tarifaOfertada,
+          status: 'pendiente',
+          codigo_acceso: pin
+        })
+        .select('id')
+        .maybeSingle();
 
-    if (insertErr) {
-      console.warn('[WALLET ACTION WARN] Fallback local fletes_solicitudes:', insertErr.message);
+      if (!insertErr && sol?.id) {
+        solicitudId = sol.id;
+      } else if (insertErr) {
+        console.warn('[WALLET ACTION WARN] Fallback local fletes_solicitudes:', insertErr.message);
+      }
+    } catch (dbErr: any) {
+      console.warn('[WALLET ACTION WARN] Conexión BD omitida (fallback local):', dbErr.message);
     }
 
     return {
       success: true,
-      solicitudId: sol?.id || `SOL-${Date.now().toString().slice(-6)}`,
+      solicitudId,
       tarifaValidadaUSD: tarifaOfertada,
       codigoAcceso: pin
     };
@@ -599,5 +611,81 @@ export async function createValidatedFletesSolicitudAction(
       success: false,
       error: err.message || 'Error al validar y crear solicitud en servidor'
     };
+  }
+}
+
+/**
+ * Asigna vehículo y conductor con control de concurrencia y prevención de doble asignación
+ */
+export async function asignarViajeAction(
+  viajeId: string,
+  vehiculoId: string,
+  conductorId: string
+) {
+  try {
+    return await SaraFreightTripLifecycleService.asignarVehiculoYConductor(viajeId, vehiculoId, conductorId);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Registra entrega parcial o total de materiales en obra con control de mermas
+ */
+export async function registrarEntregasParcialesAction(
+  viajeId: string,
+  items: ItemEntregaParcialInput[]
+) {
+  try {
+    return SaraFreightTripLifecycleService.registrarEntregasParciales(viajeId, items);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Registra evidencia ePOD inmutable con firma y hash SHA-256
+ */
+export async function registrarEpodAction(input: EpodEntregaInput) {
+  try {
+    return await SaraFreightTripLifecycleService.registrarEpod(input);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Liquida financieramente un viaje entregado con retenciones SRI
+ */
+export async function liquidarViajeAction(viajeId: string, idempotencyKey: string) {
+  try {
+    return await SaraFreightTripLifecycleService.liquidarViaje(viajeId, idempotencyKey);
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Dispara alarma SOS de pánico en carretera y notifica a central/ECU-911
+ */
+export async function dispararSosAction(
+  viajeId: string,
+  conductorId: string,
+  tipoIncidente: string,
+  latitud: number,
+  longitud: number,
+  descripcion: string
+) {
+  try {
+    return await SaraFreightTripLifecycleService.dispararSos(
+      viajeId,
+      conductorId,
+      tipoIncidente,
+      latitud,
+      longitud,
+      descripcion
+    );
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }

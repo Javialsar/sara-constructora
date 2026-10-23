@@ -32,7 +32,13 @@ export interface FleteRecepcionBodega {
 const STORAGE_KEY_FLETES_RECEPCIONES = 'sara_fletes_recepciones_bodega';
 
 export class SaraFletesSyncService {
-  private static supabase = createClient();
+  private static get supabaseClient() {
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }
 
   /**
    * Obtiene la lista de conductores registrados en la red oficial de SARA FLETES
@@ -131,26 +137,29 @@ export class SaraFletesSyncService {
 
       // 2. Persistir en Supabase (tabla fletes_solicitudes o transacciones de pago)
       try {
-        await this.supabase.from('fletes_solicitudes').insert([{
-          origen: `Bodega Proveedor: ${flete.proveedor}`,
-          destino: 'Bodega Central SARA - Constructora',
-          tarifa: flete.tarifaFleteUSD,
-          status: flete.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO' ? 'completado' : 'con_novedad',
-          material: `Recepción OC ${flete.ordenCompraNumero} (Guía: ${flete.guiaRemision})`,
-          codigo_acceso: flete.vehiculoPlaca,
-          created_at: new Date().toISOString()
-        }]);
-
-        // Registrar en ordenes_pago si fue autorizado para cancelar de inmediato
-        if (flete.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO') {
-          await this.supabase.from('ordenes_pago').insert([{
-            modulo: 'fletes',
-            referencia_id: `FLT-PAGO-${flete.id}`,
-            concepto: `Liquidación Flete Chofer: ${flete.choferNombre} (Placa ${flete.vehiculoPlaca}) - Calificación ${flete.calificacionEstrellas}⭐`,
-            monto: flete.tarifaFleteUSD,
-            moneda: 'USD',
-            estado: 'aprobada'
+        const client = this.supabaseClient;
+        if (client) {
+          await client.from('fletes_solicitudes').insert([{
+            origen: `Bodega Proveedor: ${flete.proveedor}`,
+            destino: 'Bodega Central SARA - Constructora',
+            tarifa: flete.tarifaFleteUSD,
+            status: flete.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO' ? 'completado' : 'con_novedad',
+            material: `Recepción OC ${flete.ordenCompraNumero} (Guía: ${flete.guiaRemision})`,
+            codigo_acceso: flete.vehiculoPlaca,
+            created_at: new Date().toISOString()
           }]);
+
+          // Registrar en ordenes_pago si fue autorizado para cancelar de inmediato
+          if (flete.autorizacionPagoFlete === 'APROBADO_PAGO_INMEDIATO') {
+            await client.from('ordenes_pago').insert([{
+              modulo: 'fletes',
+              referencia_id: `FLT-PAGO-${flete.id}`,
+              concepto: `Liquidación Flete Chofer: ${flete.choferNombre} (Placa ${flete.vehiculoPlaca}) - Calificación ${flete.calificacionEstrellas}⭐`,
+              monto: flete.tarifaFleteUSD,
+              moneda: 'USD',
+              estado: 'aprobada'
+            }]);
+          }
         }
       } catch (dbErr) {
         console.warn('Persistencia remota en Supabase completada con fallback local:', dbErr);
