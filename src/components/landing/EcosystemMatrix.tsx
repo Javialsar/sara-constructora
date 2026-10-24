@@ -66,7 +66,7 @@ export default function EcosystemMatrix({ onOpenCheckout, initialLogos }: Ecosys
       desc: 'Conexión directa entre proveedores de acero, cemento, agregados y acabados con precios mayoristas en vivo.',
       logoUrl: logos.compras,
       iconFallback: ShoppingCart,
-      href: '/compras',
+      href: '/modulos/compras',
       accentColor: 'from-cyan-500 to-cyan-700',
       badge: 'E-commerce Mayorista',
       stats: 'Precios en Vivo',

@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Building2, 
+  Store,
   ShieldCheck, 
   Check, 
   AlertCircle, 
@@ -478,263 +479,209 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     <div className="fixed inset-0 z-50 w-screen h-screen bg-slate-950 flex flex-col overflow-hidden text-slate-100 font-sans">
       
       {/* ===================================================================== */}
-      {/* PANTALLA 1: AUTENTICACIÓN EXACTA A LA IMAGEN 2 (SI NO HAY SESIÓN)     */}
+      {/* PANTALLA 1: AUTENTICACIÓN EXACTA A LA IMAGEN 1 DE SARA-MARKETPLACE    */}
       {/* ===================================================================== */}
       {!currentSeller ? (
-        <div className="w-full h-full bg-slate-950 flex flex-col overflow-y-auto">
+        <div className="w-full h-full bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-4 md:p-8 overflow-y-auto">
           
-          {/* Topbar idéntico a Imagen 2 */}
-          <div className="w-full bg-slate-950/90 border-b border-slate-800 px-6 py-3.5 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={onClose}
-                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Volver a SARA Compras</span>
-              </button>
-              <div className="h-4 w-[1px] bg-slate-800" />
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                <span>SARA Marketplace • Vitrina B2B & Precios de Fábrica</span>
-              </div>
-            </div>
+          {/* Tarjeta dividida idéntica al modelo de Imagen 1 (Blanco a la izquierda, Azul marino a la derecha) */}
+          <div className="max-w-4xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto border border-slate-200">
+            
+            {/* LADO IZQUIERDO: FORMULARIO BLANCO (IDÉNTICO A IMAGEN 1) */}
+            <div className="w-full md:w-1/2 p-8 md:p-10 bg-white text-slate-900 flex flex-col justify-between">
+              <div>
+                {/* Botón Volver */}
+                <button 
+                  onClick={onClose}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors mb-6 group"
+                >
+                  <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                  <span>Volver al Inicio</span>
+                </button>
 
-            <button 
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-colors"
-              title="Cerrar ventana"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Tarjeta dividida idéntica al modelo de Imagen 2 */}
-          <div className="flex-1 flex items-center justify-center p-4 md:p-8">
-            <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto">
-              
-              {/* LADO IZQUIERDO (COLUMNA NARANJA / ÁMBAR IDÉNTICA A IMAGEN 2) */}
-              <div className="w-full md:w-5/12 bg-gradient-to-br from-amber-500 to-amber-600 p-8 md:p-10 text-slate-950 flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
-                  <Building2 className="w-96 h-96" />
-                </div>
-                
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-2 font-black text-2xl mb-8">
-                    <div className="bg-slate-950 p-2 rounded-xl text-amber-500 shadow-lg">
-                      <Building2 className="w-6 h-6" />
-                    </div>
-                    <span>SARA <span className="text-slate-950">Marketplace</span></span>
+                {/* Logo & Marca SARA Marketplace */}
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="bg-blue-600 text-white p-2.5 rounded-2xl shadow-md shadow-blue-600/30">
+                    <Store className="w-6 h-6" />
                   </div>
-                  
-                  <h2 className="text-3xl font-black mb-3 leading-tight text-slate-950">
-                    Red Mayorista & Precios de Fábrica.
-                  </h2>
-                  <p className="font-semibold text-amber-950/80 text-sm mb-6 leading-relaxed">
-                    Plataforma especializada de materiales de construcción, venta al por mayor y despacho directo de planta a obra en Ecuador.
-                  </p>
-
-                  <div className="bg-slate-950/10 border border-slate-950/20 p-3.5 rounded-2xl mb-6 backdrop-blur-sm">
-                    <p className="text-xs font-bold text-slate-950 flex items-center gap-1.5 mb-1">
-                      <CheckCircle2 className="w-4 h-4 text-slate-950" />
-                      Servicio Abierto al Público General & Empresas
-                    </p>
-                    <p className="text-[11px] text-slate-900 leading-tight">
-                      Cualquier fábrica nacional, importador, distribuidor mayorista o ferretería puede registrarse, publicar su catálogo y abastecer directamente a constructoras.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="relative z-10 space-y-3 pt-4 border-t border-amber-600/30">
-                  <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
-                    <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
-                    <span>Comisión reducida por volumen (VIP Fábrica 1.8%, Distribuidor 3.5%)</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
-                    <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
-                    <span>Ingesta masiva por Excel (.xlsx) y sincronización API para ERPs</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
-                    <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
-                    <span>Custodia de pagos blindada con Fideicomiso Escrow y SPI</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* LADO DERECHO: FORMULARIO DE ACCESO Y REGISTRO (IDÉNTICO A IMAGEN 2) */}
-              <div className="w-full md:w-7/12 p-8 md:p-10 bg-slate-900 flex flex-col justify-center">
-                
-                <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h3 className="text-2xl font-black text-white">
-                      {isLogin ? 'Acceso a SARA Marketplace' : 'Crear Cuenta en Marketplace'}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {isLogin ? 'Ingresa con tus credenciales autorizadas' : 'Registra tu perfil de fábrica o ferretería'}
-                    </p>
+                    <h4 className="font-black text-slate-900 text-lg leading-tight tracking-tight">
+                      SARA Marketplace
+                    </h4>
+                    <span className="text-[10px] font-bold font-mono tracking-wider uppercase text-blue-600">
+                      PROVEEDORES & FÁBRICAS
+                    </span>
                   </div>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setAuthError(null);
-                    }}
-                    className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
-                  >
-                    {isLogin ? '¿No tienes cuenta? Regístrate' : 'Ya tengo cuenta'}
-                  </button>
                 </div>
 
-                {/* ALERTA DE ERROR */}
+                {/* Encabezado */}
+                <div className="mb-6">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                    {isLogin ? 'Bienvenido de vuelta' : 'Registra tu Empresa'}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {isLogin 
+                      ? 'Ingresa tus credenciales para acceder a tus productos y ventas.' 
+                      : 'Publica tus materiales directo a constructoras en Ecuador.'}
+                  </p>
+                </div>
+
+                {/* Mensaje de Error */}
                 {authError && (
-                  <div className="mb-5 p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2.5 animate-in fade-in">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                  <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                     <span>{authError}</span>
                   </div>
                 )}
 
+                {/* Formulario */}
                 <form onSubmit={handleAuthSubmit} className="space-y-4">
                   
-                  {/* SI ES MODO REGISTRO: SELECTOR DE PLAN Y CAMPOS FISCALES */}
+                  {/* SI ES MODO REGISTRO: CAMPOS FISCALES */}
                   {!isLogin && (
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                          Plan de Membresía & Comisión SARA
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Plan de Membresía & Comisión
                         </label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {(Object.keys(SELLER_PLANS) as SellerPlanType[]).map((pk) => {
-                            const p = SELLER_PLANS[pk];
-                            const isSelected = regForm.plan === pk;
-                            return (
-                              <button
-                                key={p.id}
-                                type="button"
-                                onClick={() => setRegForm({ ...regForm, plan: pk })}
-                                className={`p-2.5 rounded-xl border text-left transition-all ${
-                                  isSelected
-                                    ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
-                                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                                }`}
-                              >
-                                <p className="font-bold text-xs text-white leading-tight truncate">
-                                  {p.badge.replace('Proveedor ', '').replace(' Verificado', '')}
-                                </p>
-                                <p className="text-[10px] text-amber-400 font-mono font-bold mt-0.5">
-                                  {p.comisionSaraPct}% Com.
-                                </p>
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <select
+                          value={regForm.plan}
+                          onChange={(e) => setRegForm({ ...regForm, plan: e.target.value as SellerPlanType })}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold focus:border-blue-600 focus:outline-none"
+                        >
+                          <option value="VIP_FABRICA">⭐ Plan VIP Fábrica (1.8% Comisión) - Máxima Exposición</option>
+                          <option value="ESTANDAR_PRO">🚀 Plan Distribuidor Pro (3.5% Comisión) - Carga Excel</option>
+                          <option value="BASICO_FERRETERIA">🏪 Plan Ferretería Básica (6.0% Comisión) - Estándar</option>
+                        </select>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-300 mb-1">RUC Ecuatoriano (Módulo 11)</label>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-0.5">RUC (Módulo 11)</label>
                           <input 
                             required 
                             type="text" 
                             maxLength={13}
                             value={regForm.ruc}
                             onChange={(e) => setRegForm({ ...regForm, ruc: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none font-mono" 
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:border-blue-600 focus:outline-none" 
                             placeholder="1790008594001" 
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-slate-300 mb-1">Razón Social SRI</label>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Razón Social</label>
                           <input 
                             required 
                             type="text" 
                             value={regForm.razonSocial}
                             onChange={(e) => setRegForm({ ...regForm, razonSocial: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-blue-600 focus:outline-none" 
                             placeholder="ACERÍA DEL ECUADOR C.A." 
                           />
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre Comercial</label>
-                          <input 
-                            required 
-                            type="text" 
-                            value={regForm.nombreComercial}
-                            onChange={(e) => setRegForm({ ...regForm, nombreComercial: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                            placeholder="ADELCA Planta Industrial" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-300 mb-1">Ciudad Matriz</label>
-                          <input 
-                            required 
-                            type="text" 
-                            value={regForm.ciudad}
-                            onChange={(e) => setRegForm({ ...regForm, ciudad: e.target.value })}
-                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                            placeholder="Quito" 
-                          />
-                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Nombre Comercial</label>
+                        <input 
+                          required 
+                          type="text" 
+                          value={regForm.nombreComercial}
+                          onChange={(e) => setRegForm({ ...regForm, nombreComercial: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-blue-600 focus:outline-none" 
+                          placeholder="ADELCA Planta Industrial" 
+                        />
                       </div>
                     </div>
                   )}
 
-                  {/* CAMPOS COMUNES EMAIL & CONTRASEÑA (COMO IMAGEN 2) */}
+                  {/* Campo: Correo Electrónico o RUC */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      {isLogin ? 'Correo Electrónico o RUC Ecuatoriano' : 'Correo Electrónico Corporativo'}
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Correo Electrónico
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input 
                         required 
                         type="text" 
                         value={isLogin ? loginEmail : regForm.email}
                         onChange={(e) => isLogin ? setLoginEmail(e.target.value) : setRegForm({ ...regForm, email: e.target.value })}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                        placeholder={isLogin ? "correo@ejemplo.com o 1790008594001" : "ventas@empresa.com.ec"} 
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none" 
+                        placeholder={isLogin ? "tu@correo.com o RUC" : "ventas@empresa.com.ec"} 
                       />
                     </div>
                   </div>
 
+                  {/* Campo: Contraseña */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">Contraseña</label>
+                      {isLogin && (
+                        <button
+                          type="button"
+                          onClick={() => alert('Para reestablecer tu contraseña o soporte de acceso para empresas aliadas, escribe a compras@gruposara.com.ec')}
+                          className="text-[11px] font-semibold text-blue-600 hover:underline"
+                        >
+                          ¿Olvidaste tu contraseña?
+                        </button>
+                      )}
+                    </div>
                     <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input 
                         required 
                         type="password" 
                         value={isLogin ? loginPassword : regForm.password}
                         onChange={(e) => isLogin ? setLoginPassword(e.target.value) : setRegForm({ ...regForm, password: e.target.value })}
-                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                        className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none" 
                         placeholder="••••••••" 
                       />
+                      <Eye className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer hover:text-slate-600" />
                     </div>
                   </div>
 
+                  {/* Botón Principal Azul Idéntico a Imagen 1 */}
                   <button 
                     type="submit" 
                     disabled={authLoading}
-                    className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black py-3 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-amber-500/20 text-xs mt-2"
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-600/20 text-xs mt-2"
                   >
                     {authLoading ? (
                       <>
-                        <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2"></span>
-                        Verificando Credenciales y Entorno...
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span>Verificando Credenciales...</span>
                       </>
                     ) : (
                       <>
-                        {isLogin ? 'Ingresar a SARA Marketplace' : 'Crear Cuenta en Marketplace'}
-                        <ChevronRight className="w-4 h-4 ml-1.5" />
+                        <span>{isLogin ? 'Iniciar Sesión' : 'Completar Registro'}</span>
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
                 </form>
 
-                {/* SELECTOR RÁPIDO DEMO DE EMPRESAS CERTIFICADAS (ACCESO EN 1 CLIC) */}
-                <div className="mt-5 pt-4 border-t border-slate-800">
-                  <span className="text-[10px] font-mono text-slate-400 block mb-2 text-center">
-                    Acceso Rápido Demo (1 Clic):
+                {/* Toggle Login / Registro */}
+                <div className="mt-4 text-center">
+                  <span className="text-xs text-slate-500">
+                    {isLogin ? '¿No tienes una cuenta? ' : '¿Ya tienes una cuenta registrada? '}
+                  </span>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setAuthError(null);
+                    }}
+                    className="text-xs font-bold text-blue-600 hover:underline"
+                  >
+                    {isLogin ? 'Regístrate gratis' : 'Inicia Sesión'}
+                  </button>
+                </div>
+
+                {/* Acceso Rápido Demo 1-Clic */}
+                <div className="mt-5 pt-3 border-t border-slate-100">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 block mb-1.5 text-center uppercase tracking-wider">
+                    Acceso Rápido Demo para Fabricantes:
                   </span>
                   <div className="flex flex-wrap items-center justify-center gap-1.5">
                     {SellerMarketplaceService.getSellersList().slice(0, 4).map(s => (
@@ -748,33 +695,107 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           }
                           setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${s.nombreComercial} (${SELLER_PLANS[s.plan].nombre}).` });
                         }}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all ${
-                          s.plan === 'VIP_FABRICA' 
-                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-slate-950'
-                            : s.plan === 'ESTANDAR_PRO'
-                            ? 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-white'
-                            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white'
-                        }`}
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] font-bold border border-slate-200 transition-all"
                       >
-                        🏢 {s.nombreComercial.split(' ')[0]} ({s.plan === 'VIP_FABRICA' ? 'VIP' : s.plan === 'ESTANDAR_PRO' ? 'PRO' : 'BÁSICO'})
+                        {s.nombreComercial.split(' ')[0]} ({SELLER_PLANS[s.plan].badge.split(' ')[1] || 'Plan'})
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>¿Perteneces a otro módulo SARA?</span>
-                  <button onClick={onClose} className="text-amber-400 hover:underline font-bold">
-                    Portal Maestro SARA →
-                  </button>
+              </div>
+            </div>
+
+            {/* LADO DERECHO: PANEL AZUL MARINO OSCURO CON BENEFICIOS & TESTIMONIO (IDÉNTICO A IMAGEN 1) */}
+            <div className="w-full md:w-1/2 p-8 md:p-10 bg-[#0c162d] text-white flex flex-col justify-between relative overflow-hidden">
+              <div className="space-y-8 relative z-10">
+                
+                {/* Título de Propuesta */}
+                <h3 className="text-2xl md:text-3xl font-black text-white leading-snug">
+                  Diseñado para fabricantes y distribuidores de la construcción.
+                </h3>
+
+                {/* Características */}
+                <div className="space-y-6">
+                  
+                  {/* Característica 1 */}
+                  <div className="flex items-start gap-4">
+                    <div className="p-2.5 rounded-2xl bg-slate-800/80 text-blue-400 border border-slate-700/60 shrink-0">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Ventas Directas de Fábrica</h4>
+                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                        Conecta con miles de contratistas y obras civiles en todo el Ecuador sin intermediarios.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Característica 2 */}
+                  <div className="flex items-start gap-4">
+                    <div className="p-2.5 rounded-2xl bg-slate-800/80 text-blue-400 border border-slate-700/60 shrink-0">
+                      <FileSpreadsheet className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Gestión Masiva & API</h4>
+                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                        Sincroniza inventarios por Excel y API REST al instante con tu propio logo corporativo.
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Caja de Testimonio (Idéntica a Imagen 1) */}
+                <div className="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl backdrop-blur-sm">
+                  {/* Estrellas */}
+                  <div className="flex items-center gap-1 text-amber-400">
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                  </div>
+
+                  {/* Cita */}
+                  <p className="text-xs text-slate-300 italic leading-relaxed">
+                    &quot;Aumentamos nuestras ventas mayoristas de acero y cemento en un 40% durante el primer trimestre con Grupo SARA. La custodia con Fideicomiso Escrow es impecable.&quot;
+                  </p>
+
+                  {/* Autor */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
+                      FA
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white leading-tight">
+                        Ing. Fernando Alarcón
+                      </p>
+                      <p className="text-[10px] text-slate-400 leading-tight">
+                        Gerente Comercial · ADELCA / Proveedor VIP
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
               </div>
+
+              {/* Pie con cierre de modal */}
+              <div className="pt-6 mt-6 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <span>GRUPO SARA • Red B2B Ecuador</span>
+                <button 
+                  onClick={onClose}
+                  className="hover:text-white transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+
             </div>
+
           </div>
 
         </div>
-
       ) : (
 
         /* ===================================================================== */

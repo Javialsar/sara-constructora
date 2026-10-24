@@ -323,8 +323,6 @@ export default function ModuloComprasMasterPage() {
 
   return (
     <>
-      <ModuloIntroSplash modulo="compras" />
-      
       {/* VOUCHER MODAL DE ORDEN DE COMPRA (IMPRIMIBLE / PDF) */}
       <OrdenCompraVoucherModal 
         orden={ocParaVer} 
