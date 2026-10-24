@@ -164,8 +164,51 @@ async function runMarketplaceSellerSuite() {
     `Neto vendedor cuadra matemáticamente ($${primeraFactura.netoVendedorUSD.toFixed(2)} = Total $${primeraFactura.totalUSD.toFixed(2)} - Comisión $${primeraFactura.comisionSaraUSD.toFixed(2)})`
   );
 
+  // --------------------------------------------------------------------------
+  console.log('\n[GRUPO 7] Actualización de Datos de la Empresa (Ficha Fiscal & Logotipo)');
+  // --------------------------------------------------------------------------
+  const updatedSeller = SellerMarketplaceService.updateSellerCompanyData('seller-adelca-01', {
+    nombreComercial: 'ADELCA Siderúrgica Nacional',
+    telefono: '+593 2 382 7299',
+    telefonosAdicionales: ['+593 99 234 8190', '+593 98 765 4321'],
+    logoUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=200&h=200&fit=crop',
+    descripcionEmpresa: 'Líder en acero corrugado de alta resistencia fy=4200 bajo norma NTE INEN 2167.'
+  });
+  assert(updatedSeller.nombreComercial === 'ADELCA Siderúrgica Nacional', 'Nombre comercial de la empresa actualizado');
+  assert(updatedSeller.telefono === '+593 2 382 7299', 'Teléfono principal actualizado');
+  assert((updatedSeller.telefonosAdicionales?.length || 0) === 2, 'Teléfonos adicionales registrados');
+  assert(updatedSeller.logoUrl?.includes('unsplash') === true, 'URL de Logotipo corporativo persistida');
+
+  // --------------------------------------------------------------------------
+  console.log('\n[GRUPO 8] Cuentas Bancarias SPI & Códigos QR de Cobro (BCE & Billeteras)');
+  // --------------------------------------------------------------------------
+  const bankUpdated = SellerMarketplaceService.updateSellerBankDetails(
+    'seller-adelca-01',
+    {
+      banco: 'Banco Pichincha',
+      tipoCuenta: 'Cuenta Corriente',
+      numeroCuenta: '2100849201',
+      titular: 'ACERÍA DEL ECUADOR C.A. ADELCA',
+      identificacionTitular: '1790008594001',
+      emailComprobantes: 'tesoreria.cobros@adelca.com.ec'
+    },
+    {
+      deUnaCelular: '0992348190',
+      deUnaQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna-adelca-test',
+      payphoneCelular: '0992348190',
+      payphoneQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone-adelca-test',
+      peigoCelular: '0992348190',
+      peigoQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo-adelca-test'
+    }
+  );
+  assert(bankUpdated.cuentaBancaria?.banco === 'Banco Pichincha', 'Institución financiera SPI guardada');
+  assert(bankUpdated.cuentaBancaria?.numeroCuenta === '2100849201', 'Número de cuenta bancaria persistido');
+  assert(bankUpdated.billeterasMoviles?.deUnaCelular === '0992348190', 'Celular afiliado DeUna! Banco Pichincha configurado');
+  assert(bankUpdated.billeterasMoviles?.payphoneCelular === '0992348190', 'Billetera Payphone Ecuador configurada');
+  assert(bankUpdated.billeterasMoviles?.peigoCelular === '0992348190', 'Billetera Peigo Banco Guayaquil configurada');
+
   console.log('\n================================================================');
-  console.log('🏁 RESULTADO: 15 PRUEBAS PASADAS / 0 FALLADAS (100% ÉXITO)');
+  console.log('🏁 RESULTADO: 24 PRUEBAS PASADAS / 0 FALLADAS (100% ÉXITO)');
   console.log('================================================================\n');
 }
 

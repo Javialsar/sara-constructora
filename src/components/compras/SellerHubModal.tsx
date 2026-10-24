@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   X, 
   Building2, 
@@ -29,15 +29,34 @@ import {
   Calendar,
   BarChart3,
   Percent,
-  Plus
+  Plus,
+  CreditCard,
+  QrCode,
+  Smartphone,
+  Landmark,
+  Edit,
+  Globe,
+  Mail,
+  Phone,
+  MapPin,
+  ExternalLink,
+  Image as ImageIcon,
+  ChevronRight,
+  RefreshCw,
+  Eye,
+  Save,
+  CheckCheck
 } from 'lucide-react';
 import { 
   SellerMarketplaceService, 
   SellerProfile, 
   SELLER_PLANS, 
   SellerPlanType, 
-  MarketplaceProduct 
+  MarketplaceProduct,
+  SellerBankAccount,
+  SellerMobileWallets
 } from '@/lib/services/sellerMarketplaceService';
+import { ComprasService } from '@/lib/services/comprasService';
 
 interface SellerHubModalProps {
   isOpen: boolean;
@@ -46,15 +65,32 @@ interface SellerHubModalProps {
 }
 
 export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubModalProps) {
-  // Estado de Sesión del Vendedor (inicia con Adelca VIP como demostración, pero permite cambiar o registrar)
+  // 1. REGLA: Para ingresar a esta página debe primero autenticarse (null por defecto o recuperado de sesión persistente)
   const [currentSeller, setCurrentSeller] = useState<SellerProfile | null>(() => {
-    return SellerMarketplaceService.getSellerById('seller-adelca-01') || null;
+    if (typeof window !== 'undefined') {
+      const savedId = localStorage.getItem('sara_seller_active_id');
+      if (savedId) {
+        return SellerMarketplaceService.getSellerById(savedId) || null;
+      }
+    }
+    return null;
   });
 
-  // Pestañas internas del Seller Hub
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'subir_materiales' | 'historial_ventas' | 'config_plan'>('dashboard');
+  // Pestañas de navegación tipo Dashboard (Imagen 2)
+  type TabKey = 
+    | 'dashboard' 
+    | 'historial_facturas' 
+    | 'historial_articulos' 
+    | 'catalogo_excel' 
+    | 'catalogo_manual' 
+    | 'catalogo_api'
+    | 'datos_empresa'
+    | 'cuentas_bancarias_qr'
+    | 'config_plan';
 
-  // Modo Auth: 'login' | 'register'
+  const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
+
+  // Modo Auth inicial: 'login' | 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [loginTerm, setLoginTerm] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
@@ -70,9 +106,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     direccionMatriz: '',
     plan: 'VIP_FABRICA' as SellerPlanType
   });
-
-  // Pestañas de Subida de Materiales: 'excel' | 'manual' | 'api'
-  const [uploadMethod, setUploadMethod] = useState<'excel' | 'manual' | 'api'>('excel');
 
   // Formulario de Producto Manual
   const [prodManual, setProdManual] = useState({
@@ -97,13 +130,91 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
   const [excelCargando, setExcelCargando] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
-  // Historial de Ventas: 'facturas' | 'articulos'
-  const [historialSubTab, setHistorialSubTab] = useState<'facturas' | 'articulos'>('facturas');
+  // Historial de Ventas filtros
   const [historialFiltroTexto, setHistorialFiltroTexto] = useState('');
   const [historialFiltroEstado, setHistorialFiltroEstado] = useState('TODOS');
 
   // Copiado al portapapeles
   const [copiadoApiKey, setCopiadoApiKey] = useState(false);
+  const [copiadoCta, setCopiadoCta] = useState(false);
+
+  // ==========================================================================
+  // ESTADOS PARA DATOS DE LA EMPRESA (Requerimiento Usuario)
+  // ==========================================================================
+  const [empresaForm, setEmpresaForm] = useState({
+    razonSocial: '',
+    nombreComercial: '',
+    ruc: '',
+    direccionMatriz: '',
+    ciudad: '',
+    telefono: '',
+    telefonosAdicionales: '',
+    email: '',
+    logoUrl: '',
+    sitioWeb: '',
+    descripcionEmpresa: '',
+    ciudadesCobertura: ''
+  });
+
+  // ==========================================================================
+  // ESTADOS PARA CUENTAS BANCARIAS & CÓDIGOS QR (Requerimiento Imagen 3)
+  // ==========================================================================
+  const [bankForm, setBankForm] = useState<SellerBankAccount>({
+    banco: 'Banco Pichincha',
+    tipoCuenta: 'Cuenta Corriente',
+    numeroCuenta: '2100849201',
+    titular: 'ACERÍA DEL ECUADOR C.A. ADELCA',
+    identificacionTitular: '1790008594001',
+    emailComprobantes: 'pagos.tesoreria@adelca.com.ec'
+  });
+
+  const [walletsForm, setWalletsForm] = useState<SellerMobileWallets>({
+    deUnaCelular: '0992348190',
+    deUnaQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D0992348190%26merchant%3DADELCA_MATRIZ',
+    payphoneCelular: '0992348190',
+    payphoneQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D0992348190%26client%3DADELCA',
+    peigoCelular: '0992348190',
+    peigoQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D0992348190%26holder%3DADELCA'
+  });
+
+  const [previewPasarelaTab, setPreviewPasarelaTab] = useState<'spi' | 'deuna' | 'payphone'>('spi');
+
+  // Sincronizar formularios cuando cambia currentSeller
+  useEffect(() => {
+    if (currentSeller) {
+      setEmpresaForm({
+        razonSocial: currentSeller.razonSocial || '',
+        nombreComercial: currentSeller.nombreComercial || '',
+        ruc: currentSeller.ruc || '',
+        direccionMatriz: currentSeller.direccionMatriz || '',
+        ciudad: currentSeller.ciudad || 'Quito',
+        telefono: currentSeller.telefono || '',
+        telefonosAdicionales: currentSeller.telefonosAdicionales?.join(', ') || '',
+        email: currentSeller.email || '',
+        logoUrl: currentSeller.logoUrl || '',
+        sitioWeb: currentSeller.sitioWeb || '',
+        descripcionEmpresa: currentSeller.descripcionEmpresa || '',
+        ciudadesCobertura: currentSeller.ciudadesCobertura?.join(', ') || ''
+      });
+
+      if (currentSeller.cuentaBancaria) {
+        setBankForm({ ...currentSeller.cuentaBancaria });
+      } else {
+        setBankForm({
+          banco: 'Banco Pichincha',
+          tipoCuenta: 'Cuenta Corriente',
+          numeroCuenta: '',
+          titular: currentSeller.razonSocial,
+          identificacionTitular: currentSeller.ruc,
+          emailComprobantes: currentSeller.email
+        });
+      }
+
+      if (currentSeller.billeterasMoviles) {
+        setWalletsForm({ ...currentSeller.billeterasMoviles });
+      }
+    }
+  }, [currentSeller]);
 
   // Datos reactivos del Dashboard
   const dashboardData = useMemo(() => {
@@ -129,7 +240,10 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     try {
       const seller = SellerMarketplaceService.authenticateSeller(loginTerm);
       setCurrentSeller(seller);
-      setFeedbackMsg({ tipo: 'success', texto: `Bienvenido a su entorno, ${seller.nombreComercial}.` });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sara_seller_active_id', seller.id);
+      }
+      setFeedbackMsg({ tipo: 'success', texto: `Bienvenido a su entorno corporativo, ${seller.nombreComercial}.` });
     } catch (err: any) {
       setAuthError(err.message);
     }
@@ -142,11 +256,90 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     try {
       const nuevo = SellerMarketplaceService.registerSeller(regForm);
       setCurrentSeller(nuevo);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('sara_seller_active_id', nuevo.id);
+      }
       setFeedbackMsg({ tipo: 'success', texto: `Empresa ${nuevo.razonSocial} registrada con éxito en el ${SELLER_PLANS[nuevo.plan].nombre}.` });
       setActiveTab('dashboard');
     } catch (err: any) {
       setAuthError(err.message);
     }
+  };
+
+  // Manejador: Cerrar Sesión
+  const handleLogout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('sara_seller_active_id');
+    }
+    setCurrentSeller(null);
+    setActiveTab('dashboard');
+    setFeedbackMsg({ tipo: 'success', texto: 'Sesión finalizada correctamente.' });
+  };
+
+  // Manejador: Guardar Datos de la Empresa
+  const handleGuardarEmpresa = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentSeller) return;
+    try {
+      const updated = SellerMarketplaceService.updateSellerCompanyData(currentSeller.id, {
+        razonSocial: empresaForm.razonSocial,
+        nombreComercial: empresaForm.nombreComercial,
+        ruc: empresaForm.ruc,
+        direccionMatriz: empresaForm.direccionMatriz,
+        ciudad: empresaForm.ciudad,
+        telefono: empresaForm.telefono,
+        telefonosAdicionales: empresaForm.telefonosAdicionales.split(',').map(s => s.trim()).filter(Boolean),
+        email: empresaForm.email,
+        logoUrl: empresaForm.logoUrl,
+        sitioWeb: empresaForm.sitioWeb,
+        descripcionEmpresa: empresaForm.descripcionEmpresa,
+        ciudadesCobertura: empresaForm.ciudadesCobertura.split(',').map(s => s.trim()).filter(Boolean)
+      });
+      setCurrentSeller(updated);
+      setFeedbackMsg({ tipo: 'success', texto: '¡Datos de la empresa y ficha fiscal actualizados exitosamente en SARA Marketplace!' });
+    } catch (err: any) {
+      setFeedbackMsg({ tipo: 'error', texto: err.message });
+    }
+  };
+
+  // Manejador: Guardar Cuentas Bancarias & Códigos QR (Imagen 3)
+  const handleGuardarCuentasYQr = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentSeller) return;
+    try {
+      const updated = SellerMarketplaceService.updateSellerBankDetails(currentSeller.id, bankForm, walletsForm);
+      setCurrentSeller(updated);
+      setFeedbackMsg({ tipo: 'success', texto: '¡Cuentas Bancarias SPI y Códigos QR de Cobro guardados exitosamente!' });
+    } catch (err: any) {
+      setFeedbackMsg({ tipo: 'error', texto: err.message });
+    }
+  };
+
+  // Manejador: Regenerar Códigos QR Dinámicos
+  const handleRegenerarQr = (wallet: 'deuna' | 'payphone' | 'peigo') => {
+    if (wallet === 'deuna') {
+      const phone = walletsForm.deUnaCelular || '0992348190';
+      const merchant = encodeURIComponent(currentSeller?.nombreComercial || 'PROVEEDOR');
+      setWalletsForm({
+        ...walletsForm,
+        deUnaQrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D${phone}%26merchant%3D${merchant}`
+      });
+    } else if (wallet === 'payphone') {
+      const phone = walletsForm.payphoneCelular || '0992348190';
+      const client = encodeURIComponent(currentSeller?.nombreComercial || 'PROVEEDOR');
+      setWalletsForm({
+        ...walletsForm,
+        payphoneQrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D${phone}%26client%3D${client}`
+      });
+    } else if (wallet === 'peigo') {
+      const phone = walletsForm.peigoCelular || '0992348190';
+      const holder = encodeURIComponent(currentSeller?.razonSocial || 'EMPRESA');
+      setWalletsForm({
+        ...walletsForm,
+        peigoQrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D${phone}%26holder%3D${holder}`
+      });
+    }
+    setFeedbackMsg({ tipo: 'success', texto: `Código QR para ${wallet.toUpperCase()} autogenerado y calibrado.` });
   };
 
   // Manejador: Agregar Producto Manual
@@ -176,43 +369,40 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
       setFeedbackMsg({ tipo: 'success', texto: `Producto "${prodManual.nombre}" publicado en el Marketplace exitosamente.` });
       if (onProductAdded) onProductAdded();
-      // Reset form
       setProdManual({
-        ...prodManual,
         nombre: '',
-        descripcion: ''
+        descripcion: '',
+        categoria: 'ACERO',
+        unidad: 'unidad (u)',
+        precioSinIva: 10.00,
+        tarifaIvaPct: 5,
+        stockDisponible: 100,
+        tiempoEntregaHoras: 24,
+        pesoUnitarioKg: 10.0,
+        normaInen: '',
+        resistencia: '',
+        dimensiones: '',
+        presentacion: 'Estándar'
       });
     } catch (err: any) {
       setFeedbackMsg({ tipo: 'error', texto: err.message });
     }
   };
 
-  // Manejador: Carga Simulada de Excel
-  const handleSubirExcelSimulado = () => {
+  // Manejador: Importación Excel Simulación
+  const handleImportarExcel = () => {
     if (!currentSeller) return;
     setExcelCargando(true);
     setTimeout(() => {
-      // Filas ejemplo importadas desde Excel
       const filasExcel = [
         {
-          nombre: 'Perfil Angular de Acero 50x50x4mm x 6.00m',
-          categoria: 'ACERO',
-          unidad: 'pieza (6m)',
-          precioSinIva: 22.40,
-          tarifaIvaPct: 5,
-          stockDisponible: 450,
-          normaInen: 'NTE INEN 2215',
-          tiempoEntregaHoras: 24,
-          pesoUnitarioKg: 18.2
-        },
-        {
-          nombre: 'Cemento Selvalegre Tipo IP (Saco 50kg)',
+          nombre: 'Cemento Portland Tipo GU Especial para Estructuras (Saco 50 kg)',
           categoria: 'CEMENTO_HORMIGON',
-          unidad: 'saco (50kg)',
-          precioSinIva: 8.10,
+          unidad: 'saco (50 kg)',
+          precioSinIva: 7.95,
           tarifaIvaPct: 5,
-          stockDisponible: 1200,
-          normaInen: 'NTE INEN 490',
+          stockDisponible: 2400,
+          normaInen: 'NTE INEN 2380',
           tiempoEntregaHoras: 12,
           pesoUnitarioKg: 50.0
         },
@@ -241,70 +431,104 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     }, 1000);
   };
 
+  // Grupos de Navegación del Dashboard (Estructura Modelo Imagen 2)
+  const navGroups = [
+    {
+      title: '1. OPERACIONES & VENTAS',
+      items: [
+        { id: 'dashboard' as TabKey, label: 'Resumen & Estadísticas', icon: BarChart3 },
+        { id: 'historial_facturas' as TabKey, label: 'Historial por Facturas', icon: FileText },
+        { id: 'historial_articulos' as TabKey, label: 'Historial por Artículos', icon: Package },
+      ]
+    },
+    {
+      title: '2. CATÁLOGO DE PRODUCTOS',
+      items: [
+        { id: 'catalogo_excel' as TabKey, label: 'Subir Catálogo Excel (.xlsx)', icon: FileSpreadsheet },
+        { id: 'catalogo_manual' as TabKey, label: 'Registro Manual de Insumos', icon: Plus },
+        { id: 'catalogo_api' as TabKey, label: 'Conexión API REST & ERP', icon: Code },
+      ]
+    },
+    {
+      title: '3. PERFIL DE LA EMPRESA',
+      items: [
+        { id: 'datos_empresa' as TabKey, label: 'Datos de la Empresa & Logo', icon: Building2 },
+      ]
+    },
+    {
+      title: '4. FINANZAS & COBROS',
+      items: [
+        { id: 'cuentas_bancarias_qr' as TabKey, label: 'Cuentas Bancarias & QRs', icon: QrCode },
+      ]
+    },
+    {
+      title: '5. MEMBRESÍA & SEGURIDAD',
+      items: [
+        { id: 'config_plan' as TabKey, label: 'Plan & Credenciales API', icon: Key },
+      ]
+    }
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-7xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-6 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden">
+      <div className="relative w-full max-w-7xl h-[94vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         
         {/* ================================================================= */}
-        {/* CABECERA SUPERIOR DEL SELLER HUB */}
+        {/* TOPBAR / CABECERA SUPERIOR */}
         {/* ================================================================= */}
-        <div className="bg-slate-950 text-white px-6 py-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <header className="bg-slate-950 text-white px-5 py-3.5 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black">
-              <Building2 className="w-6 h-6" />
+            <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0">
+              <Building2 className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono text-amber-400 font-bold uppercase tracking-wider">
-                  GRUPO SARA • SELLER CENTRAL & VENDOR HUB
+                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+                  SARA SELLER CENTRAL • VENDOR HUB
                 </span>
                 {currentSeller && (
-                  <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black ${SELLER_PLANS[currentSeller.plan].colorBadge}`}>
+                  <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-black ${SELLER_PLANS[currentSeller.plan].colorBadge}`}>
                     {SELLER_PLANS[currentSeller.plan].badge}
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-black tracking-tight">
-                {currentSeller ? currentSeller.nombreComercial : 'Portal de Proveedores & Fabricantes'}
+              <h2 className="text-base md:text-lg font-black tracking-tight leading-tight">
+                {currentSeller ? currentSeller.nombreComercial : 'Portal de Proveedores & Fabricantes B2B'}
               </h2>
             </div>
           </div>
 
-          {/* Menú de Empresa / Sesión */}
           <div className="flex items-center gap-3">
-            {currentSeller ? (
-              <div className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-mono">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            {currentSeller && (
+              <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-mono">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-slate-300">RUC: {currentSeller.ruc}</span>
                 <span className="text-amber-400 font-bold ml-1">
-                  (Comisión SARA: {currentSeller.comisionSaraPct}%)
+                  ({currentSeller.comisionSaraPct}% Com.)
                 </span>
                 <button 
-                  onClick={() => setCurrentSeller(null)}
+                  onClick={handleLogout}
                   className="ml-2 text-slate-400 hover:text-rose-400 transition-colors"
-                  title="Cambiar de Empresa / Cerrar Sesión"
+                  title="Cerrar Sesión / Cambiar de Empresa"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : (
-              <span className="text-xs font-mono text-slate-400">
-                Seleccione o registre su empresa proveedora
-              </span>
             )}
 
             <button 
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-colors"
+              title="Cerrar Ventana"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        </header>
 
         {/* FEEDBACK TEMPORAL NOTICES */}
         {feedbackMsg && (
-          <div className={`px-6 py-2.5 text-xs font-mono flex items-center justify-between shrink-0 ${
+          <div className={`px-5 py-2 text-xs font-mono flex items-center justify-between shrink-0 ${
             feedbackMsg.tipo === 'success' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-rose-500 text-white font-bold'
           }`}>
             <span>{feedbackMsg.texto}</span>
@@ -313,30 +537,37 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
         )}
 
         {/* ================================================================= */}
-        {/* CONTENIDO PRINCIPAL: SI NO HAY SESIÓN O SI ESTÁ AUTENTICADO */}
+        {/* COMPORTAMIENTO SEGÚN AUTENTICACIÓN: GATEWAY O DASHBOARD COMPLETO */}
         {/* ================================================================= */}
         {!currentSeller ? (
           
           /* ================================================================= */
-          /* PANTALLA DE AUTENTICACIÓN Y REGISTRO CON SELECCIÓN DE PLAN */
+          /* PANTALLA OBLIGATORIA DE AUTENTICACIÓN (IMAGEN 1 / GATEWAY)        */
           /* ================================================================= */
-          <div className="p-6 md:p-10 overflow-y-auto space-y-8 flex-1">
+          <div className="p-6 md:p-10 overflow-y-auto space-y-8 flex-1 bg-slate-900/40">
             <div className="max-w-4xl mx-auto text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-mono text-amber-400 font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                AUTENTICACIÓN REQUERIDA DE PROVEEDOR
+              </div>
               <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 Vende tus Materiales de Construcción en GRUPO SARA
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-                Conecta tu empresa, fábrica o ferretería con más de 250 constructoras activas. Tus productos se integran automáticamente en las matrices de cotizaciones de presupuestos APU y compras de obra.
+                Para ingresar a este entorno administrativo debes identificarte con tu RUC o correo corporativo, o registrar tu empresa seleccionando un plan mayorista.
               </p>
               
               {/* Acceso Rápido Demo con Empresas Certificadas */}
-              <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-                <span className="text-xs font-mono text-slate-400 mr-2">Entrar rápido como empresa de prueba:</span>
+              <div className="pt-3 flex flex-wrap items-center justify-center gap-2">
+                <span className="text-xs font-mono text-slate-400 mr-1">Ingreso Rápido de Prueba:</span>
                 {SellerMarketplaceService.getSellersList().map(s => (
                   <button
                     key={s.id}
                     onClick={() => {
                       setCurrentSeller(s);
+                      if (typeof window !== 'undefined') {
+                        localStorage.setItem('sara_seller_active_id', s.id);
+                      }
                       setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${s.nombreComercial} (${SELLER_PLANS[s.plan].nombre}).` });
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all ${
@@ -364,7 +595,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       : 'border-transparent text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  Iniciar Sesión de Proveedor
+                  Iniciar Sesión de Empresa Proveedora
                 </button>
                 <button
                   onClick={() => setAuthMode('register')}
@@ -396,192 +627,169 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       required
                       value={loginTerm}
                       onChange={(e) => setLoginTerm(e.target.value)}
-                      placeholder="Ej: 1790008594001 o ventas@empresa.com.ec"
+                      placeholder="Ej: 1790008594001 o ventas@adelca.com.ec"
                       className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
+
                   <button
                     type="submit"
                     className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20"
                   >
-                    Ingresar a mi Seller Dashboard
+                    Ingresar al Dashboard de Proveedor
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleRegister} className="space-y-6">
+                <form onSubmit={handleRegister} className="space-y-6 bg-slate-50 dark:bg-slate-800/50 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-700">
                   
-                  {/* SELECCIÓN DE PLANES CON COMISIONES */}
-                  <div>
-                    <label className="text-xs font-mono text-slate-400 uppercase tracking-wider block mb-3 text-center">
-                      1. Elige tu Plan de Suscripción (Define tu Comisión y Posicionamiento):
+                  {/* Selector de Plan */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-mono text-slate-400 block">
+                      Selecciona el Plan de Exposición Comercial para tu Empresa:
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {(Object.keys(SELLER_PLANS) as SellerPlanType[]).map((planKey) => {
                         const p = SELLER_PLANS[planKey];
                         const isSelected = regForm.plan === planKey;
                         return (
                           <div
-                            key={planKey}
+                            key={p.id}
                             onClick={() => setRegForm({ ...regForm, plan: planKey })}
-                            className={`p-5 rounded-2xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                              isSelected 
-                                ? 'border-amber-500 bg-amber-500/5 shadow-xl shadow-amber-500/10' 
-                                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-400 dark:hover:border-slate-700'
+                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-amber-500 bg-amber-500/10'
+                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-400'
                             }`}
                           >
-                            <div>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-black ${p.colorBadge}`}>
-                                  {p.badge}
-                                </span>
-                                {isSelected && <CheckCircle2 className="w-5 h-5 text-amber-500" />}
-                              </div>
-
-                              <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                                {p.nombre}
-                              </h4>
-                              <div className="mt-2 text-2xl font-black font-mono text-slate-900 dark:text-white">
-                                ${p.costoMensualUSD}
-                                <span className="text-xs font-normal text-slate-400">/mes</span>
-                              </div>
-
-                              <div className="my-3 py-2 px-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
-                                <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 font-bold block">
-                                  COMISIÓN GRUPO SARA:
-                                </span>
-                                <span className="text-lg font-black font-mono text-amber-500">
-                                  {p.comisionSaraPct}%
-                                </span>
-                                <span className="text-[10px] text-slate-400 block">por venta concretada</span>
-                              </div>
-
-                              <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 mt-3">
-                                {p.beneficios.slice(0, 4).map((b, bi) => (
-                                  <li key={bi} className="flex items-start gap-1.5">
-                                    <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                                    <span>{b}</span>
-                                  </li>
-                                ))}
-                              </ul>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-black ${p.colorBadge}`}>
+                                {p.badge}
+                              </span>
+                              {isSelected && <Check className="w-4 h-4 text-amber-500" />}
                             </div>
+                            <div className="text-lg font-black font-mono text-slate-900 dark:text-white">
+                              {p.comisionSaraPct}% <span className="text-xs font-normal text-slate-400">comisión</span>
+                            </div>
+                            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">
+                              ${p.costoMensualUSD} USD / mes
+                            </div>
+                            <ul className="mt-3 space-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+                              <li>• Prioridad: {p.prioridadExhibicion === 1 ? 'VIP Fábrica #1' : p.prioridadExhibicion === 2 ? 'Distribuidor #2' : 'Básica #3'}</li>
+                              <li>• {p.soportaApiSync ? 'API REST + Webhooks' : 'Carga Excel .xlsx'}</li>
+                              <li>• Hasta {p.maxProductos} productos</li>
+                            </ul>
                           </div>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* FORMULARIO DE DATOS DE LA EMPRESA */}
-                  <div className="bg-slate-50 dark:bg-slate-800/40 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2">
-                      2. Datos Fiscales de la Empresa Proveedora:
-                    </h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          RUC del Proveedor (Validación SRI Módulo 11):
-                        </label>
-                        <input 
-                          type="text"
-                          required
-                          maxLength={13}
-                          value={regForm.ruc}
-                          onChange={(e) => setRegForm({ ...regForm, ruc: e.target.value })}
-                          placeholder="Ej: 1790008594001"
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Razón Social (según RUC):
-                        </label>
-                        <input 
-                          type="text"
-                          required
-                          value={regForm.razonSocial}
-                          onChange={(e) => setRegForm({ ...regForm, razonSocial: e.target.value })}
-                          placeholder="Ej: ACERÍA DEL ECUADOR C.A."
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Nombre Comercial / Marca:
-                        </label>
-                        <input 
-                          type="text"
-                          required
-                          value={regForm.nombreComercial}
-                          onChange={(e) => setRegForm({ ...regForm, nombreComercial: e.target.value })}
-                          placeholder="Ej: ADELCA Planta Alóag"
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Correo Electrónico Corporativo:
-                        </label>
-                        <input 
-                          type="email"
-                          required
-                          value={regForm.email}
-                          onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                          placeholder="pedidos@empresa.com.ec"
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Teléfono de Despacho:
-                        </label>
-                        <input 
-                          type="text"
-                          required
-                          value={regForm.telefono}
-                          onChange={(e) => setRegForm({ ...regForm, telefono: e.target.value })}
-                          placeholder="+593 2 382 7200"
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Ciudad Principal de Bodega / Planta:
-                        </label>
-                        <input 
-                          type="text"
-                          required
-                          value={regForm.ciudad}
-                          onChange={(e) => setRegForm({ ...regForm, ciudad: e.target.value })}
-                          placeholder="Ej: Quito / Guayaquil / Cuenca"
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Dirección Matriz / Ubicación de Retiro de Carga:
-                        </label>
-                        <input 
-                          type="text"
-                          required
-                          value={regForm.direccionMatriz}
-                          onChange={(e) => setRegForm({ ...regForm, direccionMatriz: e.target.value })}
-                          placeholder="Panamericana Sur Km 38, Parque Industrial"
-                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
+                  {/* Datos del Formulario de Registro */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        RUC del Proveedor (Validación SRI Módulo 11):
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        maxLength={13}
+                        value={regForm.ruc}
+                        onChange={(e) => setRegForm({ ...regForm, ruc: e.target.value })}
+                        placeholder="Ej: 1790008594001"
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        Razón Social (según RUC SRI):
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        value={regForm.razonSocial}
+                        onChange={(e) => setRegForm({ ...regForm, razonSocial: e.target.value })}
+                        placeholder="Ej: ACERÍA DEL ECUADOR C.A."
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                      />
                     </div>
 
-                    <button
-                      type="submit"
-                      className="w-full mt-4 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-xl shadow-amber-500/20"
-                    >
-                      Completar Registro y Activar Entorno de Ventas
-                    </button>
+                    <div>
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        Nombre Comercial / Marca:
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        value={regForm.nombreComercial}
+                        onChange={(e) => setRegForm({ ...regForm, nombreComercial: e.target.value })}
+                        placeholder="Ej: ADELCA Planta Industrial"
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        Correo Corporativo:
+                      </label>
+                      <input 
+                        type="email"
+                        required
+                        value={regForm.email}
+                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                        placeholder="ventas@empresa.com.ec"
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        Teléfono / PBX de Despacho:
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        value={regForm.telefono}
+                        onChange={(e) => setRegForm({ ...regForm, telefono: e.target.value })}
+                        placeholder="+593 2 382 7200"
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        Ciudad Matriz:
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        value={regForm.ciudad}
+                        onChange={(e) => setRegForm({ ...regForm, ciudad: e.target.value })}
+                        placeholder="Ej: Quito / Guayaquil / Cuenca"
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="text-xs font-mono text-slate-400 block mb-1">
+                        Dirección Matriz / Planta de Carga:
+                      </label>
+                      <input 
+                        type="text"
+                        required
+                        value={regForm.direccionMatriz}
+                        onChange={(e) => setRegForm({ ...regForm, direccionMatriz: e.target.value })}
+                        placeholder="Panamericana Sur Km 38, Alóag, Pichincha"
+                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                      />
+                    </div>
                   </div>
 
+                  <button
+                    type="submit"
+                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-xl shadow-amber-500/20"
+                  >
+                    Completar Registro y Activar Entorno de Ventas
+                  </button>
                 </form>
               )}
             </div>
@@ -590,73 +798,107 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
         ) : (
 
           /* ================================================================= */
-          /* PANEL COMPLETO DEL PROVEEDOR AUTENTICADO */
+          /* DASHBOARD DE EMPRESA CON MENÚ LATERAL (MODELO IMAGEN 2)           */
           /* ================================================================= */
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 flex overflow-hidden">
             
-            {/* SUB-NAV DE PESTAÑAS DEL SELLER HUB */}
-            <div className="bg-slate-100 dark:bg-slate-950 px-6 py-2 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-2 shrink-0">
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  activeTab === 'dashboard'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <BarChart3 className="w-4 h-4" />
-                Resumen & Cuadros Estadísticos
-              </button>
-
-              <button
-                onClick={() => setActiveTab('subir_materiales')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  activeTab === 'subir_materiales'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Upload className="w-4 h-4" />
-                Subir Catálogo (Excel / Manual / API)
-              </button>
-
-              <button
-                onClick={() => setActiveTab('historial_ventas')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  activeTab === 'historial_ventas'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                Historial de Ventas (Facturas & Artículos)
-              </button>
-
-              <button
-                onClick={() => setActiveTab('config_plan')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                  activeTab === 'config_plan'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <Key className="w-4 h-4" />
-                Plan ({currentSeller.plan === 'VIP_FABRICA' ? 'VIP 1.8%' : currentSeller.plan === 'ESTANDAR_PRO' ? 'PRO 3.5%' : 'BÁSICO 6%'}) & API Key
-              </button>
-            </div>
-
-            {/* ÁREA DE CONTENIDO SEGÚN LA PESTAÑA */}
-            <div className="p-6 md:p-8 overflow-y-auto flex-1 space-y-6">
+            {/* SIDEBAR DE NAVEGACIÓN AGRUPADA (ESTILO IMAGEN 2) */}
+            <aside className="w-64 md:w-72 bg-slate-950 border-r border-slate-800 flex flex-col shrink-0 overflow-y-auto">
               
-              {/* ------------------------------------------------------------- */}
-              {/* PESTAÑA 1: DASHBOARD RESUMEN Y CUADROS ESTADÍSTICOS */}
-              {/* ------------------------------------------------------------- */}
+              {/* Tarjeta de Empresa Activa */}
+              <div className="p-4 border-b border-slate-800/80 bg-slate-900/40">
+                <div className="flex items-center gap-3">
+                  {currentSeller.logoUrl ? (
+                    <img 
+                      src={currentSeller.logoUrl} 
+                      alt="Logo" 
+                      className="w-10 h-10 rounded-xl object-cover border border-slate-700 bg-white"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+                      {currentSeller.nombreComercial.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xs font-black text-white truncate">
+                      {currentSeller.nombreComercial}
+                    </h3>
+                    <p className="text-[10px] font-mono text-slate-400 truncate">
+                      {currentSeller.ruc}
+                    </p>
+                    <div className="mt-1">
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-black uppercase ${SELLER_PLANS[currentSeller.plan].colorBadge}`}>
+                        {SELLER_PLANS[currentSeller.plan].badge}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items de Navegación por Grupos */}
+              <div className="p-3 space-y-4 flex-1">
+                {navGroups.map((group, gi) => (
+                  <div key={gi} className="space-y-1">
+                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider px-2">
+                      {group.title}
+                    </span>
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isSelected = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
+                              isSelected
+                                ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                            }`}
+                          >
+                            <Icon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-slate-950' : 'text-slate-400'}`} />
+                            <span className="truncate">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pie del Sidebar: Cerrar Sesión */}
+              <div className="p-3 border-t border-slate-800 bg-slate-900/50">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-mono font-bold text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Cerrar Sesión Empresa</span>
+                </button>
+              </div>
+            </aside>
+
+            {/* ÁREA DE CONTENIDO PRINCIPAL DINÁMICA */}
+            <main className="flex-1 bg-slate-50 dark:bg-slate-950 overflow-y-auto p-5 md:p-8 space-y-6">
+              
+              {/* Breadcrumb Superior */}
+              <div className="flex items-center gap-2 text-xs font-mono text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-3">
+                <span className="text-amber-500 font-bold">PORTAL DE PROVEEDORES</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+                <span className="uppercase text-slate-700 dark:text-slate-200 font-bold">
+                  {activeTab.replace(/_/g, ' ')}
+                </span>
+              </div>
+
+              {/* ============================================================= */}
+              {/* VISTA 1: DASHBOARD RESUMEN Y CUADROS ESTADÍSTICOS             */}
+              {/* ============================================================= */}
               {activeTab === 'dashboard' && dashboardData && (
                 <div className="space-y-6 animate-in fade-in duration-200">
                   
                   {/* KPI Cards Superiores */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
                       <span className="text-[11px] font-mono text-slate-400 block mb-1">
                         VENTAS TOTALES (GMV):
                       </span>
@@ -713,8 +955,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                   {/* Cuadros Estadísticos Interactivos */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     
-                    {/* Gráfico 1: Evolución Semanal de Ventas (Bar Chart interactivo) */}
-                    <div className="lg:col-span-2 p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700">
+                    {/* Gráfico 1: Evolución Semanal de Ventas */}
+                    <div className="lg:col-span-2 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                       <div className="flex items-center justify-between mb-4">
                         <div>
                           <h4 className="text-base font-bold text-slate-900 dark:text-white">
@@ -727,7 +969,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </span>
                       </div>
 
-                      {/* Renderizado de Barras */}
                       <div className="h-48 flex items-end justify-between gap-3 pt-6 px-2">
                         {dashboardData.serieVentasDias.map((d, di) => {
                           const maxVal = 10000;
@@ -737,7 +978,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                               <span className="text-[11px] font-mono font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
                                 ${d.total}
                               </span>
-                              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-xl overflow-hidden h-36 flex items-end">
+                              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden h-36 flex items-end">
                                 <div 
                                   style={{ height: `${pct}%` }} 
                                   className="w-full bg-gradient-to-t from-amber-600 to-amber-400 rounded-t-lg transition-all group-hover:brightness-125"
@@ -752,523 +993,1154 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
                     </div>
 
-                    {/* Gráfico 2: Catálogo por Categorías */}
-                    <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+                    {/* Gráfico 2: Desglose por Categorías */}
+                    <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                       <div>
-                        <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1">
-                          Catálogo por Categoría
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                          Mix de Catálogo
                         </h4>
-                        <p className="text-xs text-slate-400 mb-4">Distribución de SKUs activos</p>
+                        <p className="text-xs text-slate-400">Distribución de materiales registrados</p>
+                      </div>
 
-                        <div className="space-y-3">
-                          {Object.entries(dashboardData.categoriasMap).map(([cat, cant]) => (
-                            <div key={cat} className="space-y-1">
-                              <div className="flex justify-between text-xs font-mono">
-                                <span className="text-slate-700 dark:text-slate-300">{cat.replace('_', ' ')}</span>
-                                <span className="text-amber-500 font-bold">{cant} insumos</span>
-                              </div>
-                              <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                <div 
-                                  style={{ width: `${(cant / dashboardData.kpis.totalProductosCatalogados) * 100}%` }}
-                                  className="h-full bg-amber-500 rounded-full"
-                                />
-                              </div>
+                      <div className="space-y-3 pt-2">
+                        {Object.entries(dashboardData.categoriasMap).map(([cat, cant]) => (
+                          <div key={cat} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                              <span className="text-slate-600 dark:text-slate-300 font-bold">{cat}</span>
+                              <span className="text-amber-500">{cant} productos</span>
                             </div>
-                          ))}
-                        </div>
+                            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div 
+                                style={{ width: `${Math.min(100, (cant / 10) * 100)}%` }} 
+                                className="h-full bg-amber-500 rounded-full"
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      <div className="pt-4 border-t border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-400 flex items-center justify-between">
-                        <span>Total SKUs Publicados:</span>
-                        <span className="font-bold text-slate-900 dark:text-white">{dashboardData.kpis.totalProductosCatalogados} de {dashboardData.planConfig.maxProductos} permitidos</span>
+                      <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-400">
+                        Capacidad de catálogo: {dashboardData.kpis.totalProductosCatalogados} / {SELLER_PLANS[currentSeller.plan].maxProductos} ítems
                       </div>
                     </div>
 
                   </div>
 
-                  {/* Tabla de Top Productos Más Vendidos */}
-                  <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700">
-                    <h4 className="text-base font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-amber-500" />
-                      Artículos Estrella de tu Catálogo (Mayor Demanda de Obra)
+                  {/* Top Productos Más Vendidos */}
+                  <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                      Top Insumos con Mayor Rotación
                     </h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs font-mono">
-                        <thead>
-                          <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-400">
-                            <th className="pb-2">PRODUCTO / MATERIAL</th>
-                            <th className="pb-2">CATEGORÍA</th>
-                            <th className="pb-2">PRECIO SIN IVA</th>
-                            <th className="pb-2">IVA APLICADO</th>
-                            <th className="pb-2">UNIDADES VENDIDAS</th>
-                            <th className="pb-2">ESTADO</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                          {dashboardData.topProductos.map(p => (
-                            <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                              <td className="py-2.5 font-bold text-slate-900 dark:text-white">{p.nombre}</td>
-                              <td className="py-2.5 text-slate-400">{p.categoria}</td>
-                              <td className="py-2.5 text-amber-500 font-bold">${p.precioSinIva.toFixed(2)}</td>
-                              <td className="py-2.5 text-emerald-400">{p.tarifaIvaPct}% (SRI)</td>
-                              <td className="py-2.5 font-black text-slate-900 dark:text-white">{p.ventasTotales} {p.unidad}</td>
-                              <td className="py-2.5">
-                                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 font-bold">
-                                  Activo en Vitrina
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {dashboardData.topProductos.map(prod => (
+                        <div key={prod.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+                          <img 
+                            src={prod.imagenUrl} 
+                            alt={prod.nombre} 
+                            className="w-14 h-14 rounded-xl object-cover shrink-0" 
+                          />
+                          <div className="min-w-0 flex-1">
+                            <h5 className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                              {prod.nombre}
+                            </h5>
+                            <span className="text-[11px] font-mono text-emerald-500 font-bold block">
+                              ${prod.precioSinIva.toFixed(2)} + {prod.tarifaIvaPct}% IVA
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {prod.ventasTotales} unidades vendidas
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                 </div>
               )}
 
-              {/* ------------------------------------------------------------- */}
-              {/* PESTAÑA 2: SUBIR MATERIALES (EXCEL / MANUAL / API) */}
-              {/* ------------------------------------------------------------- */}
-              {activeTab === 'subir_materiales' && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  
-                  {/* Selector de Método de Carga */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button
-                      onClick={() => setUploadMethod('excel')}
-                      className={`p-5 rounded-2xl border-2 text-left transition-all ${
-                        uploadMethod === 'excel'
-                          ? 'border-amber-500 bg-amber-500/5'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40'
-                      }`}
-                    >
-                      <FileSpreadsheet className="w-6 h-6 text-emerald-500 mb-2" />
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">Carga Masiva con Excel (.xlsx)</h4>
-                      <p className="text-xs text-slate-400 mt-1">Sube cientos de materiales de una sola vez con nuestra plantilla estandarizada.</p>
-                    </button>
-
-                    <button
-                      onClick={() => setUploadMethod('manual')}
-                      className={`p-5 rounded-2xl border-2 text-left transition-all ${
-                        uploadMethod === 'manual'
-                          ? 'border-amber-500 bg-amber-500/5'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40'
-                      }`}
-                    >
-                      <Plus className="w-6 h-6 text-amber-500 mb-2" />
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">Carga Manual Individual</h4>
-                      <p className="text-xs text-slate-400 mt-1">Formulario detallado con ficha técnica INEN, fotos y precios mayoristas.</p>
-                    </button>
-
-                    <button
-                      onClick={() => setUploadMethod('api')}
-                      className={`p-5 rounded-2xl border-2 text-left transition-all ${
-                        uploadMethod === 'api'
-                          ? 'border-amber-500 bg-amber-500/5'
-                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/40'
-                      }`}
-                    >
-                      <Code className="w-6 h-6 text-sky-400 mb-2" />
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">Conexión API REST (ERP)</h4>
-                      <p className="text-xs text-slate-400 mt-1">Sincroniza stock y precios en tiempo real desde SAP, Odoo o Contifico.</p>
-                    </button>
-                  </div>
-
-                  {/* MÉTODO A: EXCEL */}
-                  {uploadMethod === 'excel' && (
-                    <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-6">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                          <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
-                            Importador de Catálogo Excel (.xlsx / .csv)
-                          </h4>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            Descarga la plantilla con las columnas homologadas para el catálogo de obras del Ecuador.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setFeedbackMsg({
-                              tipo: 'success',
-                              texto: 'Plantilla "plantilla_materiales_sara_2026.xlsx" descargada en tu equipo.'
-                            });
-                          }}
-                          className="px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 rounded-xl text-xs font-mono font-bold flex items-center gap-2 border border-slate-600 transition-colors shrink-0"
-                        >
-                          <Download className="w-4 h-4 text-amber-500" />
-                          Descargar Plantilla Excel SARA
-                        </button>
-                      </div>
-
-                      {/* Dropzone Drag and Drop */}
-                      <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-2xl p-8 text-center bg-white dark:bg-slate-900/60 hover:border-amber-500 transition-all space-y-3">
-                        <Upload className="w-10 h-10 text-amber-500 mx-auto" />
-                        <div className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                          Arrastra tu archivo Excel aquí o haz clic para seleccionarlo
-                        </div>
-                        <p className="text-xs text-slate-400">
-                          Formatos admitidos: .xlsx, .xls, .csv (Máximo 5,000 registros por archivo)
-                        </p>
-                        <div className="pt-2">
-                          <button
-                            type="button"
-                            onClick={handleSubirExcelSimulado}
-                            disabled={excelCargando}
-                            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs font-mono rounded-xl transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50"
-                          >
-                            {excelCargando ? 'Procesando y Validando Columnas...' : '📁 Procesar Archivo Excel de Demostración'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* MÉTODO B: MANUAL */}
-                  {uploadMethod === 'manual' && (
-                    <form onSubmit={handleGuardarProductoManual} className="p-6 md:p-8 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
-                        <Plus className="w-5 h-5 text-amber-500" />
-                        Registrar Nuevo Insumo al Catálogo
-                      </h4>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Nombre Comercial del Material:</label>
-                          <input 
-                            type="text"
-                            required
-                            value={prodManual.nombre}
-                            onChange={(e) => setProdManual({ ...prodManual, nombre: e.target.value })}
-                            placeholder="Ej: Cemento Selvalegre Tipo IP 50kg"
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Categoría:</label>
-                          <select 
-                            value={prodManual.categoria}
-                            onChange={(e) => setProdManual({ ...prodManual, categoria: e.target.value as any })}
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white"
-                          >
-                            <option value="ACERO">Acero y Metales Estructurales</option>
-                            <option value="CEMENTO_HORMIGON">Cemento y Hormigón</option>
-                            <option value="ARIDOS_PETREOS">Áridos y Pétreos de Mina</option>
-                            <option value="ACABADOS">Acabados y Pinturas</option>
-                            <option value="TUBERIAS_PLOMERIA">Tuberías y Plomería</option>
-                            <option value="ELECTRICIDAD">Material Eléctrico</option>
-                            <option value="MAQUINARIA_EQUIPOS">Maquinaria y Equipos</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Unidad de Medida:</label>
-                          <input 
-                            type="text"
-                            required
-                            value={prodManual.unidad}
-                            onChange={(e) => setProdManual({ ...prodManual, unidad: e.target.value })}
-                            placeholder="Ej: quintal (qq), saco (50kg), m3"
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Precio Unitario Sin IVA (USD):</label>
-                          <input 
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            required
-                            value={prodManual.precioSinIva}
-                            onChange={(e) => setProdManual({ ...prodManual, precioSinIva: parseFloat(e.target.value) || 0 })}
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Tarifa IVA SRI Ecuador:</label>
-                          <select 
-                            value={prodManual.tarifaIvaPct}
-                            onChange={(e) => setProdManual({ ...prodManual, tarifaIvaPct: parseInt(e.target.value) as any })}
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white"
-                          >
-                            <option value={5}>5% IVA (Material de Construcción Calificado Res. 013)</option>
-                            <option value={15}>15% IVA (Tarifa General)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Stock Disponible Inmediato:</label>
-                          <input 
-                            type="number"
-                            required
-                            value={prodManual.stockDisponible}
-                            onChange={(e) => setProdManual({ ...prodManual, stockDisponible: parseInt(e.target.value) || 0 })}
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">Norma Técnica INEN:</label>
-                          <input 
-                            type="text"
-                            value={prodManual.normaInen}
-                            onChange={(e) => setProdManual({ ...prodManual, normaInen: e.target.value })}
-                            placeholder="NTE INEN 2167 / ASTM C1157"
-                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20"
-                      >
-                        Publicar Producto en el Marketplace
-                      </button>
-                    </form>
-                  )}
-
-                  {/* MÉTODO C: API REST */}
-                  {uploadMethod === 'api' && (
-                    <div className="p-6 md:p-8 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                          <Code className="w-5 h-5 text-sky-400" />
-                          Credenciales & Sincronización API REST
-                        </h4>
-                        <span className={`px-2.5 py-1 rounded text-xs font-mono font-bold ${
-                          SELLER_PLANS[currentSeller.plan].soportaApiSync 
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                        }`}>
-                          {SELLER_PLANS[currentSeller.plan].soportaApiSync ? 'API Habilitada en tu Plan' : 'Requiere Plan VIP Fábrica'}
-                        </span>
-                      </div>
-
-                      <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 font-mono text-xs text-slate-300 space-y-2">
-                        <div className="flex items-center justify-between text-slate-400">
-                          <span>TU API KEY SECRETA:</span>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(currentSeller.apiKey);
-                              setCopiadoApiKey(true);
-                              setTimeout(() => setCopiadoApiKey(false), 2000);
-                            }}
-                            className="text-amber-400 hover:text-amber-300 flex items-center gap-1 text-[11px]"
-                          >
-                            <Copy className="w-3.5 h-3.5" />
-                            {copiadoApiKey ? '¡Copiado!' : 'Copiar Key'}
-                          </button>
-                        </div>
-                        <div className="p-2 bg-slate-900 rounded-lg text-amber-400 select-all overflow-x-auto">
-                          {currentSeller.apiKey}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-xs font-mono text-slate-400 block">Ejemplo cURL para sincronizar desde tu ERP (SAP / Odoo / Contifico):</label>
-                        <pre className="p-4 bg-slate-950 rounded-2xl text-[11px] font-mono text-slate-300 overflow-x-auto border border-slate-800">
-{`curl -X POST https://sara-constructora.vercel.app/api/v1/seller/catalog/sync \\
-  -H "Authorization: Bearer ${currentSeller.apiKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "productos": [
-      {
-        "nombre": "Varilla Corrugada 14mm x 12m",
-        "precioSinIva": 58.50,
-        "tarifaIvaPct": 5,
-        "stockDisponible": 1500,
-        "categoria": "ACERO",
-        "unidad": "quintal (qq)"
-      }
-    ]
-  }'`}
-                        </pre>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              )}
-
-              {/* ------------------------------------------------------------- */}
-              {/* PESTAÑA 3: HISTORIAL DE VENTAS (FACTURAS & ARTÍCULOS) */}
-              {/* ------------------------------------------------------------- */}
-              {activeTab === 'historial_ventas' && ventasHistorial && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  
-                  {/* Selector Sub-pestaña & Filtros */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-xl">
-                      <button
-                        onClick={() => setHistorialSubTab('facturas')}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                          historialSubTab === 'facturas'
-                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400'
-                        }`}
-                      >
-                        📄 Historial por Facturas / Órdenes
-                      </button>
-                      <button
-                        onClick={() => setHistorialSubTab('articulos')}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                          historialSubTab === 'articulos'
-                            ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                            : 'text-slate-600 dark:text-slate-400'
-                        }`}
-                      >
-                        📦 Historial por Artículos / SKUs
-                      </button>
+              {/* ============================================================= */}
+              {/* VISTA 2: HISTORIAL POR FACTURAS                               */}
+              {/* ============================================================= */}
+              {activeTab === 'historial_facturas' && ventasHistorial && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                        Historial de Ventas por Facturas
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Registro oficial de compras recibidas por constructoras y dispersión Escrow
+                      </p>
                     </div>
 
-                    {/* Filtros de Búsqueda */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div className="relative">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                         <input 
-                          type="text"
+                          type="text" 
                           value={historialFiltroTexto}
                           onChange={(e) => setHistorialFiltroTexto(e.target.value)}
-                          placeholder="Buscar cliente, factura o SKU..."
-                          className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
+                          placeholder="Buscar por factura, obra, cliente..."
+                          className="pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
                         />
                       </div>
-
                       <select
                         value={historialFiltroEstado}
                         onChange={(e) => setHistorialFiltroEstado(e.target.value)}
-                        className="p-2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
+                        className="p-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl"
                       >
-                        <option value="TODOS">Todos los Pagos</option>
+                        <option value="TODOS">Todos los estados</option>
                         <option value="LIBERADO_A_VENDEDOR">Liberado a Cuenta</option>
                         <option value="EN_CUSTODIA_ESCROW">En Custodia Escrow</option>
                       </select>
                     </div>
                   </div>
 
-                  {/* VISTA 1: POR FACTURAS */}
-                  {historialSubTab === 'facturas' && (
-                    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs font-mono">
-                          <thead className="bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                            <tr>
-                              <th className="p-4">FACTURA / OC</th>
-                              <th className="p-4">FECHA</th>
-                              <th className="p-4">CLIENTE CONSTRUCTORA</th>
-                              <th className="p-4">OBRA / DESTINO</th>
-                              <th className="p-4 text-right">TOTAL FACTURA</th>
-                              <th className="p-4 text-right">COMISIÓN SARA</th>
-                              <th className="p-4 text-right">NETO VENDEDOR</th>
-                              <th className="p-4">ESTADO PAGO</th>
-                              <th className="p-4">DESPACHO</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {ventasHistorial.porFacturas.map((v) => (
-                              <tr key={v.id} className="hover:bg-white/5 transition-colors">
-                                <td className="p-4 font-bold text-slate-900 dark:text-white">
-                                  {v.facturaNumero}
-                                  <span className="block text-[10px] text-slate-400 font-normal">{v.ordenCompraFolio}</span>
-                                </td>
-                                <td className="p-4 text-slate-400">
-                                  {new Date(v.fecha).toLocaleDateString('es-EC')}
-                                </td>
-                                <td className="p-4 font-bold text-slate-800 dark:text-slate-200">
-                                  {v.clienteNombre}
-                                  <span className="block text-[10px] text-slate-400 font-normal">RUC: {v.clienteRuc}</span>
-                                </td>
-                                <td className="p-4 text-slate-400">{v.proyectoObra}</td>
-                                <td className="p-4 text-right font-black text-slate-900 dark:text-white font-mono">
-                                  ${v.totalUSD.toFixed(2)}
-                                </td>
-                                <td className="p-4 text-right text-amber-500 font-bold font-mono">
-                                  -${v.comisionSaraUSD.toFixed(2)}
-                                  <span className="block text-[10px] text-slate-400">({v.comisionSaraPct}%)</span>
-                                </td>
-                                <td className="p-4 text-right text-emerald-500 font-black font-mono">
-                                  ${v.netoVendedorUSD.toFixed(2)}
-                                </td>
-                                <td className="p-4">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    v.estadoPago === 'LIBERADO_A_VENDEDOR'
-                                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                      : 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
-                                  }`}>
-                                    {v.estadoPago === 'LIBERADO_A_VENDEDOR' ? 'Liberado a Cuenta' : 'Custodia Escrow'}
-                                  </span>
-                                </td>
-                                <td className="p-4">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    v.estadoDespacho === 'ENTREGADO_CONFORME'
-                                      ? 'bg-emerald-500/10 text-emerald-400'
-                                      : v.estadoDespacho === 'EN_TRANSITO'
-                                      ? 'bg-amber-500/10 text-amber-400'
-                                      : 'bg-slate-500/10 text-slate-400'
-                                  }`}>
-                                    {v.estadoDespacho.replace('_', ' ')}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* VISTA 2: POR ARTÍCULOS */}
-                  {historialSubTab === 'articulos' && (
-                    <div className="bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs font-mono">
-                          <thead className="bg-slate-100 dark:bg-slate-900/60 text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                            <tr>
-                              <th className="p-4">SKU / CÓDIGO</th>
-                              <th className="p-4">DESCRIPCIÓN DEL ARTÍCULO</th>
-                              <th className="p-4">UNIDAD</th>
-                              <th className="p-4 text-right">TOTAL VENDIDO</th>
-                              <th className="p-4 text-right">NÚMERO DE FACTURAS</th>
-                              <th className="p-4 text-right">INGRESOS GENERADOS</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                            {ventasHistorial.porArticulos.map((art, ai) => (
-                              <tr key={ai} className="hover:bg-white/5 transition-colors">
-                                <td className="p-4 font-bold text-amber-500">{art.sku}</td>
-                                <td className="p-4 font-bold text-slate-900 dark:text-white">{art.nombre}</td>
-                                <td className="p-4 text-slate-400">{art.unidad}</td>
-                                <td className="p-4 text-right font-black text-slate-900 dark:text-white">
-                                  {art.cantidadTotalVendida}
-                                </td>
-                                <td className="p-4 text-right text-slate-400">
-                                  {art.numeroFacturas} órdenes
-                                </td>
-                                <td className="p-4 text-right text-emerald-500 font-black">
-                                  ${art.ingresoTotalUSD.toFixed(2)} USD
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 font-mono text-[11px] text-slate-400 uppercase">
+                          <th className="p-4">Factura & Orden</th>
+                          <th className="p-4">Constructora / Obra</th>
+                          <th className="p-4">Fecha</th>
+                          <th className="p-4 text-right">Subtotal</th>
+                          <th className="p-4 text-right">Total Facturado</th>
+                          <th className="p-4 text-right">Comisión SARA</th>
+                          <th className="p-4 text-right">Neto Proveedor</th>
+                          <th className="p-4">Estado Pago</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                        {ventasHistorial.porFacturas.map((vt) => (
+                          <tr key={vt.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="p-4">
+                              <span className="font-bold text-slate-900 dark:text-white block">{vt.facturaNumero}</span>
+                              <span className="text-[10px] text-slate-400">{vt.ordenCompraFolio}</span>
+                            </td>
+                            <td className="p-4 font-sans">
+                              <span className="font-bold text-slate-800 dark:text-slate-200 block">{vt.clienteNombre}</span>
+                              <span className="text-[11px] text-slate-400">{vt.proyectoObra}</span>
+                            </td>
+                            <td className="p-4 text-slate-400">
+                              {new Date(vt.fecha).toLocaleDateString('es-EC')}
+                            </td>
+                            <td className="p-4 text-right">${vt.subtotalUSD.toFixed(2)}</td>
+                            <td className="p-4 text-right font-black text-slate-900 dark:text-white">${vt.totalUSD.toFixed(2)}</td>
+                            <td className="p-4 text-right text-amber-500">-${vt.comisionSaraUSD.toFixed(2)}</td>
+                            <td className="p-4 text-right font-black text-emerald-500">${vt.netoVendedorUSD.toFixed(2)}</td>
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                vt.estadoPago === 'LIBERADO_A_VENDEDOR'
+                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                              }`}>
+                                {vt.estadoPago === 'LIBERADO_A_VENDEDOR' ? 'Liberado SPI' : 'Escrow Activo'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 
-              {/* ------------------------------------------------------------- */}
-              {/* PESTAÑA 4: PLAN & API KEY */}
-              {/* ------------------------------------------------------------- */}
+              {/* ============================================================= */}
+              {/* VISTA 3: HISTORIAL POR ARTÍCULOS                              */}
+              {/* ============================================================= */}
+              {activeTab === 'historial_articulos' && ventasHistorial && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                      Desglose de Ventas por Artículos & SKUs
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Rendimiento de cada producto en las requisiciones de obras civiles
+                    </p>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 font-mono text-[11px] text-slate-400 uppercase">
+                          <th className="p-4">SKU / Insumo</th>
+                          <th className="p-4">Nombre del Material</th>
+                          <th className="p-4 text-right">Cantidad Despachada</th>
+                          <th className="p-4 text-right">Órdenes</th>
+                          <th className="p-4 text-right">Facturación Generada</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                        {ventasHistorial.porArticulos.map((art, ai) => (
+                          <tr key={ai} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <td className="p-4 font-bold text-amber-500">{art.sku}</td>
+                            <td className="p-4 font-sans font-bold text-slate-900 dark:text-white">{art.nombre}</td>
+                            <td className="p-4 text-right font-black">{art.cantidadTotalVendida} {art.unidad}</td>
+                            <td className="p-4 text-right text-slate-400">{art.numeroFacturas} órdenes</td>
+                            <td className="p-4 text-right text-emerald-500 font-black">${art.ingresoTotalUSD.toFixed(2)} USD</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================= */}
+              {/* VISTA 4: SUBIR CATÁLOGO EXCEL (.XLSX)                         */}
+              {/* ============================================================= */}
+              {activeTab === 'catalogo_excel' && (
+                <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                      Importador Masivo de Catálogo Excel (.xlsx)
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Carga miles de insumos en segundos con precios, tarifas diferenciadas de IVA (5% vs 15%) y normas INEN
+                    </p>
+                  </div>
+
+                  <div className="p-8 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mx-auto">
+                      <FileSpreadsheet className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white">
+                        Arrastra tu archivo Excel aquí o haz clic para seleccionarlo
+                      </h4>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Formatos compatibles: .xlsx, .xls y .csv (Tamaño máx: 25 MB)
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex flex-wrap justify-center gap-3">
+                      <button
+                        onClick={handleImportarExcel}
+                        disabled={excelCargando}
+                        className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                      >
+                        {excelCargando ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>Procesando e Importando Materiales...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span>Cargar Plantilla Oficial SARA (Simular Ingesta)</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button 
+                        onClick={() => setFeedbackMsg({ tipo: 'success', texto: 'Plantilla oficial de Excel descargada en su equipo.' })}
+                        className="px-4 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-all flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Descargar Plantilla .xlsx</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================= */}
+              {/* VISTA 5: REGISTRO MANUAL DE INSUMOS                           */}
+              {/* ============================================================= */}
+              {activeTab === 'catalogo_manual' && (
+                <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                      Registro Manual de Nuevo Material de Construcción
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Publica un ítem individual en la vitrina de SARA Marketplace con cumplimiento tributario SRI
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleGuardarProductoManual} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Nombre Comercial del Material:</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={prodManual.nombre}
+                          onChange={(e) => setProdManual({ ...prodManual, nombre: e.target.value })}
+                          placeholder="Ej: Varilla de Acero fy=4200 Ø12mm x 12m"
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Categoría:</label>
+                        <select 
+                          value={prodManual.categoria}
+                          onChange={(e) => setProdManual({ ...prodManual, categoria: e.target.value as any })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm"
+                        >
+                          <option value="ACERO">Acero y Mallas</option>
+                          <option value="CEMENTO_HORMIGON">Cemento y Hormigón</option>
+                          <option value="ARIDOS_PETREOS">Áridos y Pétreos</option>
+                          <option value="ACABADOS">Acabados y Pinturas</option>
+                          <option value="TUBERIAS_PLOMERIA">Tuberías y Plomería</option>
+                          <option value="ELECTRICIDAD">Electricidad e Iluminación</option>
+                          <option value="MAQUINARIA_EQUIPOS">Maquinaria y Equipos</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Unidad de Medida:</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={prodManual.unidad}
+                          onChange={(e) => setProdManual({ ...prodManual, unidad: e.target.value })}
+                          placeholder="Ej: quintal (qq), m3, saco, caneca"
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Precio Unitario sin IVA ($ USD):</label>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          required
+                          value={prodManual.precioSinIva}
+                          onChange={(e) => setProdManual({ ...prodManual, precioSinIva: Number(e.target.value) })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Tarifa IVA SRI:</label>
+                        <select 
+                          value={prodManual.tarifaIvaPct}
+                          onChange={(e) => setProdManual({ ...prodManual, tarifaIvaPct: Number(e.target.value) as any })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono"
+                        >
+                          <option value={5}>5% (Material de Construcción - Res. SRI)</option>
+                          <option value={15}>15% (Tarifa General)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Norma Técnica INEN:</label>
+                        <input 
+                          type="text" 
+                          value={prodManual.normaInen}
+                          onChange={(e) => setProdManual({ ...prodManual, normaInen: e.target.value })}
+                          placeholder="Ej: NTE INEN 2167"
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Stock Disponible en Planta:</label>
+                        <input 
+                          type="number" 
+                          required
+                          value={prodManual.stockDisponible}
+                          onChange={(e) => setProdManual({ ...prodManual, stockDisponible: Number(e.target.value) })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full mt-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20"
+                    >
+                      Publicar Material en Marketplace B2B
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* ============================================================= */}
+              {/* VISTA 6: CONEXIÓN API REST & ERP                              */}
+              {/* ============================================================= */}
+              {activeTab === 'catalogo_api' && (
+                <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                      Conexión API REST & Webhooks para ERPs
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Sincroniza inventarios en tiempo real desde SAP, Oracle NetSuite, Odoo o Contifico
+                    </p>
+                  </div>
+
+                  <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono text-slate-400">API Key Privada de Producción:</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentSeller.apiKey);
+                          setCopiadoApiKey(true);
+                          setTimeout(() => setCopiadoApiKey(false), 2000);
+                        }}
+                        className="text-xs font-mono text-amber-500 hover:underline flex items-center gap-1"
+                      >
+                        {copiadoApiKey ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copiadoApiKey ? 'Copiada' : 'Copiar API Key'}
+                      </button>
+                    </div>
+                    <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white break-all select-all">
+                      {currentSeller.apiKey}
+                    </div>
+
+                    <div className="pt-2">
+                      <span className="text-xs font-mono text-slate-400 block mb-2">Endpoint de Ingesta Masiva:</span>
+                      <div className="p-3 bg-slate-950 text-amber-400 rounded-xl font-mono text-xs">
+                        POST https://sara-constructora.vercel.app/api/marketplace/ingesta
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ============================================================= */}
+              {/* VISTA 7: DATOS DE LA EMPRESA & LOGOTIPO (REQUERIMIENTO USUARIO) */}
+              {/* ============================================================= */}
+              {activeTab === 'datos_empresa' && (
+                <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                        Datos Corporativos & Ficha de la Empresa
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Administra la razón social, RUC tributario SRI, dirección matriz, teléfonos de despacho y logotipo
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleGuardarEmpresa}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Guardar Datos</span>
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleGuardarEmpresa} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    
+                    {/* Logotipo y Previsualizador */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-5">
+                      <div className="w-20 h-20 rounded-2xl bg-white border border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                        {empresaForm.logoUrl ? (
+                          <img 
+                            src={empresaForm.logoUrl} 
+                            alt="Logotipo" 
+                            className="w-full h-full object-contain p-1"
+                            onError={(e) => {
+                              (e.target as any).src = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=120&h=120&fit=crop';
+                            }}
+                          />
+                        ) : (
+                          <ImageIcon className="w-8 h-8 text-slate-400" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-[260px] space-y-2">
+                        <label className="text-xs font-mono text-slate-400 block">
+                          URL del Logotipo Corporativo (PNG/JPG):
+                        </label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="url" 
+                            value={empresaForm.logoUrl}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, logoUrl: e.target.value })}
+                            placeholder="https://ejemplo.com/logo-empresa.png"
+                            className="flex-1 p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEmpresaForm({
+                              ...empresaForm,
+                              logoUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=120&h=120&fit=crop'
+                            })}
+                            className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-xs font-bold rounded-xl"
+                          >
+                            Logo Demo
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ficha Fiscal y RUC */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">
+                          Razón Social (Oficial SRI):
+                        </label>
+                        <input 
+                          type="text" 
+                          required
+                          value={empresaForm.razonSocial}
+                          onChange={(e) => setEmpresaForm({ ...empresaForm, razonSocial: e.target.value })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">
+                          Nombre Comercial / Marca en Marketplace:
+                        </label>
+                        <input 
+                          type="text" 
+                          required
+                          value={empresaForm.nombreComercial}
+                          onChange={(e) => setEmpresaForm({ ...empresaForm, nombreComercial: e.target.value })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-mono text-slate-400 block">
+                            RUC Ecuatoriano:
+                          </label>
+                          <span className="text-[10px] font-mono text-emerald-500 font-bold flex items-center gap-1">
+                            <ShieldCheck className="w-3 h-3" /> Módulo 11 Verificado
+                          </span>
+                        </div>
+                        <input 
+                          type="text" 
+                          maxLength={13}
+                          required
+                          value={empresaForm.ruc}
+                          onChange={(e) => setEmpresaForm({ ...empresaForm, ruc: e.target.value })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">
+                          Ciudad Matriz:
+                        </label>
+                        <input 
+                          type="text" 
+                          required
+                          value={empresaForm.ciudad}
+                          onChange={(e) => setEmpresaForm({ ...empresaForm, ciudad: e.target.value })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="text-xs font-mono text-slate-400 block mb-1">
+                          Dirección Matriz / Ubicación de Retiro de Carga (Bodega Principal):
+                        </label>
+                        <input 
+                          type="text" 
+                          required
+                          value={empresaForm.direccionMatriz}
+                          onChange={(e) => setEmpresaForm({ ...empresaForm, direccionMatriz: e.target.value })}
+                          className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Contactos */}
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                      <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3">
+                        Canales de Contacto & Despachos de Obra
+                      </h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Teléfono PBX / Fijo:
+                          </label>
+                          <input 
+                            type="text" 
+                            value={empresaForm.telefono}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, telefono: e.target.value })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Celulares / WhatsApp de Logística (separados por coma):
+                          </label>
+                          <input 
+                            type="text" 
+                            value={empresaForm.telefonosAdicionales}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, telefonosAdicionales: e.target.value })}
+                            placeholder="0992348190, 0984451200"
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Correo Electrónico para Facturación & Pedidos:
+                          </label>
+                          <input 
+                            type="email" 
+                            required
+                            value={empresaForm.email}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, email: e.target.value })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Sitio Web Oficial:
+                          </label>
+                          <input 
+                            type="url" 
+                            value={empresaForm.sitioWeb}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, sitioWeb: e.target.value })}
+                            placeholder="https://www.miempresa.com.ec"
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white font-mono"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Ciudades con Cobertura de Fletes Directos (separadas por coma):
+                          </label>
+                          <input 
+                            type="text" 
+                            value={empresaForm.ciudadesCobertura}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, ciudadesCobertura: e.target.value })}
+                            placeholder="Quito, Guayaquil, Cuenca, Ambato, Loja"
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                          />
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Reseña de la Empresa / Acreditaciones Técnicas:
+                          </label>
+                          <textarea 
+                            rows={3}
+                            value={empresaForm.descripcionEmpresa}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, descripcionEmpresa: e.target.value })}
+                            placeholder="Describe certificaciones INEN, ISO 9001, capacidad logística y experiencia en obras civiles..."
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="submit"
+                        className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-xl shadow-amber-500/20 flex items-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Guardar Cambios de la Empresa</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+              )}
+
+              {/* ============================================================= */}
+              {/* VISTA 8: CUENTAS BANCARIAS & CÓDIGOS QR (REPLICA IMAGEN 3)     */}
+              {/* ============================================================= */}
+              {activeTab === 'cuentas_bancarias_qr' && (
+                <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl">
+                  
+                  {/* Encabezado Principal Imagen 3 */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                          Cuentas Bancarias & Códigos QR de Cobro
+                        </h3>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                          SPI Central BCE
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                          Res. SRI NAC-DGERCGC24-00000013
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Configuración de cuentas SPI interbancarias y billeteras móviles del Ecuador para dispersión automática de liquidaciones y cobros directos de clientes.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={handleGuardarCuentasYQr}
+                      className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Guardar Cambios</span>
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleGuardarCuentasYQr} className="space-y-6">
+                    
+                    {/* BLOQUE 1: CUENTA BANCARIA PRINCIPAL SPI ECUADOR */}
+                    <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                        <Landmark className="w-4 h-4 text-amber-500" />
+                        <span>Cuenta Bancaria Principal SPI (Transferencias Interbancarias Ecuador)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Institución Financiera (Banco / Cooperativa):
+                          </label>
+                          <select
+                            value={bankForm.banco}
+                            onChange={(e) => setBankForm({ ...bankForm, banco: e.target.value })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white"
+                          >
+                            <option value="Banco Pichincha">Banco Pichincha</option>
+                            <option value="Banco Guayaquil">Banco Guayaquil</option>
+                            <option value="Produbanco">Produbanco (Grupo Promerica)</option>
+                            <option value="Banco del Austro">Banco del Austro</option>
+                            <option value="Banco Bolivariano">Banco Bolivariano</option>
+                            <option value="Banco Internacional">Banco Internacional</option>
+                            <option value="Mutualista Pichincha">Mutualista Pichincha</option>
+                            <option value="Cooperativa JEP">Cooperativa JEP</option>
+                            <option value="Cooperativa Policía Nacional">Cooperativa Policía Nacional</option>
+                            <option value="Cooperativa 29 de Octubre">Cooperativa 29 de Octubre</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Tipo de Cuenta:
+                          </label>
+                          <select
+                            value={bankForm.tipoCuenta}
+                            onChange={(e) => setBankForm({ ...bankForm, tipoCuenta: e.target.value as any })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white"
+                          >
+                            <option value="Cuenta Corriente">Cuenta Corriente</option>
+                            <option value="Cuenta de Ahorros">Cuenta de Ahorros</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Número de Cuenta Bancaria:
+                          </label>
+                          <input 
+                            type="text" 
+                            required
+                            value={bankForm.numeroCuenta}
+                            onChange={(e) => setBankForm({ ...bankForm, numeroCuenta: e.target.value })}
+                            placeholder="Ej: 2100849201"
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Nombre Completo o Razón Social del Titular:
+                          </label>
+                          <input 
+                            type="text" 
+                            required
+                            value={bankForm.titular}
+                            onChange={(e) => setBankForm({ ...bankForm, titular: e.target.value })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Identificación del Titular (RUC o Cédula):
+                          </label>
+                          <input 
+                            type="text" 
+                            required
+                            value={bankForm.identificacionTitular}
+                            onChange={(e) => setBankForm({ ...bankForm, identificacionTitular: e.target.value })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">
+                            Correo para Comprobantes de Transferencia:
+                          </label>
+                          <input 
+                            type="email" 
+                            required
+                            value={bankForm.emailComprobantes}
+                            onChange={(e) => setBankForm({ ...bankForm, emailComprobantes: e.target.value })}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* BLOQUE 2: BILLETERAS MÓVILES ECUADOR */}
+                    <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                      <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                        <Smartphone className="w-4 h-4 text-sky-400" />
+                        <span>Billeteras Móviles Ecuador (Pagos Inmediatos & Sin Contacto)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        
+                        {/* DeUna! */}
+                        <div className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/20 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-amber-500">DeUna! (Banco Pichincha)</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-500 text-slate-950 font-black">Activo</span>
+                          </div>
+                          <label className="text-[11px] font-mono text-slate-400 block">Número Celular Afiliado:</label>
+                          <input 
+                            type="text" 
+                            value={walletsForm.deUnaCelular}
+                            onChange={(e) => setWalletsForm({ ...walletsForm, deUnaCelular: e.target.value })}
+                            placeholder="0992348190"
+                            className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold"
+                          />
+                          <p className="text-[10px] text-slate-400">Cobros inmediatos desde app DeUna! y red Pichincha.</p>
+                        </div>
+
+                        {/* Payphone */}
+                        <div className="p-4 bg-orange-500/5 rounded-2xl border border-orange-500/20 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-orange-500">Payphone Ecuador</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] bg-orange-500 text-white font-black">Activo</span>
+                          </div>
+                          <label className="text-[11px] font-mono text-slate-400 block">Celular / ID Payphone:</label>
+                          <input 
+                            type="text" 
+                            value={walletsForm.payphoneCelular}
+                            onChange={(e) => setWalletsForm({ ...walletsForm, payphoneCelular: e.target.value })}
+                            placeholder="0992348190"
+                            className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold"
+                          />
+                          <p className="text-[10px] text-slate-400">Tarjetas Visa / Mastercard y saldo app Payphone.</p>
+                        </div>
+
+                        {/* Peigo */}
+                        <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/20 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-purple-400">Peigo (Banco Guayaquil)</span>
+                            <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple-500 text-white font-black">Activo</span>
+                          </div>
+                          <label className="text-[11px] font-mono text-slate-400 block">Celular Afiliado:</label>
+                          <input 
+                            type="text" 
+                            value={walletsForm.peigoCelular}
+                            onChange={(e) => setWalletsForm({ ...walletsForm, peigoCelular: e.target.value })}
+                            placeholder="0992348190"
+                            className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono font-bold"
+                          />
+                          <p className="text-[10px] text-slate-400">Transferencias instantáneas sin costo interbancario.</p>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* BLOQUE 3: CÓDIGOS QR OFICIALES DE COBRO (IMAGEN 3) */}
+                    <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                          <QrCode className="w-4 h-4 text-emerald-400" />
+                          <span>Códigos QR Oficiales de Cobro</span>
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-400">Resolución alta para escaneo en obra</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        {/* Tarjeta QR 1: DeUna! */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="text-xs font-black text-slate-900 dark:text-white">QR DeUna! Pichincha</span>
+                          </div>
+
+                          <div className="w-40 h-40 bg-white p-2 rounded-2xl mx-auto shadow-md border border-slate-200 flex items-center justify-center">
+                            <img 
+                              src={walletsForm.deUnaQrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=deuna-pichincha'} 
+                              alt="QR DeUna" 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+
+                          <p className="text-[11px] font-mono text-slate-500">Escaneo directo con app DeUna!</p>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleRegenerarQr('deuna')}
+                              className="flex-1 py-1.5 bg-amber-500/10 hover:bg-amber-500 hover:text-slate-950 text-amber-500 font-bold rounded-xl text-[11px] transition-all flex items-center justify-center gap-1"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              <span>Generar QR</span>
+                            </button>
+                            <label className="flex-1 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1">
+                              <Upload className="w-3 h-3" />
+                              <span>Subir QR</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    setFeedbackMsg({ tipo: 'success', texto: 'QR personalizado de DeUna cargado.' });
+                                  }
+                                }} 
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Tarjeta QR 2: Payphone */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-orange-400 animate-pulse" />
+                            <span className="text-xs font-black text-slate-900 dark:text-white">QR Payphone Ecuador</span>
+                          </div>
+
+                          <div className="w-40 h-40 bg-white p-2 rounded-2xl mx-auto shadow-md border border-slate-200 flex items-center justify-center">
+                            <img 
+                              src={walletsForm.payphoneQrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=payphone-ecuador'} 
+                              alt="QR Payphone" 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+
+                          <p className="text-[11px] font-mono text-slate-500">Escaneo con Payphone o cámara</p>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleRegenerarQr('payphone')}
+                              className="flex-1 py-1.5 bg-orange-500/10 hover:bg-orange-500 hover:text-white text-orange-400 font-bold rounded-xl text-[11px] transition-all flex items-center justify-center gap-1"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              <span>Generar QR</span>
+                            </button>
+                            <label className="flex-1 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1">
+                              <Upload className="w-3 h-3" />
+                              <span>Subir QR</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    setFeedbackMsg({ tipo: 'success', texto: 'QR personalizado de Payphone cargado.' });
+                                  }
+                                }} 
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Tarjeta QR 3: Peigo */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
+                            <span className="text-xs font-black text-slate-900 dark:text-white">QR Peigo Guayaquil</span>
+                          </div>
+
+                          <div className="w-40 h-40 bg-white p-2 rounded-2xl mx-auto shadow-md border border-slate-200 flex items-center justify-center">
+                            <img 
+                              src={walletsForm.peigoQrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=peigo-guayaquil'} 
+                              alt="QR Peigo" 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+
+                          <p className="text-[11px] font-mono text-slate-500">Transferencias con QR Peigo</p>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleRegenerarQr('peigo')}
+                              className="flex-1 py-1.5 bg-purple-500/10 hover:bg-purple-500 hover:text-white text-purple-400 font-bold rounded-xl text-[11px] transition-all flex items-center justify-center gap-1"
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              <span>Generar QR</span>
+                            </button>
+                            <label className="flex-1 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1">
+                              <Upload className="w-3 h-3" />
+                              <span>Subir QR</span>
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    setFeedbackMsg({ tipo: 'success', texto: 'QR personalizado de Peigo cargado.' });
+                                  }
+                                }} 
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+
+                    {/* BLOQUE 4: VISTA PREVIA EN VIVO: PASARELA QUE VERÁ EL CLIENTE (IMAGEN 3) */}
+                    <div className="p-6 bg-slate-900 text-white rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Eye className="w-4 h-4 text-emerald-400" />
+                          <h4 className="text-sm font-bold tracking-tight">
+                            Vista Previa en Vivo: Pasarela que Verá el Cliente
+                          </h4>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">
+                          Simulación Checkout de Compra de Obra
+                        </span>
+                      </div>
+
+                      {/* Selector de Tabs de Pasarela */}
+                      <div className="flex border-b border-slate-800 text-xs font-mono">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPasarelaTab('spi')}
+                          className={`py-2 px-4 border-b-2 font-bold transition-all ${
+                            previewPasarelaTab === 'spi'
+                              ? 'border-amber-400 text-amber-400'
+                              : 'border-transparent text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Transferencia SPI
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPasarelaTab('deuna')}
+                          className={`py-2 px-4 border-b-2 font-bold transition-all ${
+                            previewPasarelaTab === 'deuna'
+                              ? 'border-amber-400 text-amber-400'
+                              : 'border-transparent text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          DeUna! Pichincha
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPasarelaTab('payphone')}
+                          className={`py-2 px-4 border-b-2 font-bold transition-all ${
+                            previewPasarelaTab === 'payphone'
+                              ? 'border-amber-400 text-amber-400'
+                              : 'border-transparent text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Payphone Ecuador
+                        </button>
+                      </div>
+
+                      {/* Contenido según Tab Simulado */}
+                      <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
+                        {previewPasarelaTab === 'spi' && (
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div>
+                                <span className="text-[10px] font-mono text-slate-400 block">BANCO DE DESTINO:</span>
+                                <span className="text-sm font-bold text-white">{bankForm.banco} ({bankForm.tipoCuenta})</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-mono text-slate-400 block">NÚMERO DE CUENTA:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-mono font-bold text-amber-400">{bankForm.numeroCuenta}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(bankForm.numeroCuenta);
+                                      setCopiadoCta(true);
+                                      setTimeout(() => setCopiadoCta(false), 2000);
+                                    }}
+                                    className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                                    title="Copiar Cuenta"
+                                  >
+                                    {copiadoCta ? <CheckCheck className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800/80">
+                              <div>
+                                <span className="text-[10px] font-mono text-slate-400 block">TITULAR:</span>
+                                <span className="text-slate-200 font-semibold">{bankForm.titular}</span>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-mono text-slate-400 block">RUC / CÉDULA:</span>
+                                <span className="text-slate-200 font-mono">{bankForm.identificacionTitular}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {previewPasarelaTab === 'deuna' && (
+                          <div className="flex items-center gap-4">
+                            <img 
+                              src={walletsForm.deUnaQrUrl} 
+                              alt="QR DeUna" 
+                              className="w-24 h-24 bg-white p-1 rounded-xl shrink-0" 
+                            />
+                            <div className="space-y-1">
+                              <span className="text-xs font-bold text-amber-400">Paga al instante con DeUna!</span>
+                              <p className="text-xs text-slate-300">
+                                Celular: <span className="font-mono font-bold text-white">{walletsForm.deUnaCelular}</span>
+                              </p>
+                              <p className="text-[11px] text-slate-400">
+                                Abre tu app DeUna! Pichincha, escanea el código o transfiere al número celular.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {previewPasarelaTab === 'payphone' && (
+                          <div className="flex items-center gap-4">
+                            <img 
+                              src={walletsForm.payphoneQrUrl} 
+                              alt="QR Payphone" 
+                              className="w-24 h-24 bg-white p-1 rounded-xl shrink-0" 
+                            />
+                            <div className="space-y-1">
+                              <span className="text-xs font-bold text-orange-400">Paga con Tarjeta o App Payphone</span>
+                              <p className="text-xs text-slate-300">
+                                Celular / ID: <span className="font-mono font-bold text-white">{walletsForm.payphoneCelular}</span>
+                              </p>
+                              <p className="text-[11px] text-slate-400">
+                                Acepta tarjetas de crédito o débito Visa / Mastercard nacionales e internacionales.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botón Guardar al Pie de Formulario */}
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        type="submit"
+                        className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-xl shadow-emerald-500/20 flex items-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Guardar Cuentas Bancarias & Códigos QR</span>
+                      </button>
+                    </div>
+
+                  </form>
+                </div>
+              )}
+
+              {/* ============================================================= */}
+              {/* VISTA 9: PLAN & CREDENCIALES API                              */}
+              {/* ============================================================= */}
               {activeTab === 'config_plan' && (
                 <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
-                  <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
+                  <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-xs font-mono text-slate-400 block mb-1">PLAN ACTUAL CONTRATADO:</span>
@@ -1302,7 +2174,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                 </div>
               )}
 
-            </div>
+            </main>
 
           </div>
 

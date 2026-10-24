@@ -87,6 +87,24 @@ export const SELLER_PLANS: Record<SellerPlanType, SellerPlanConfig> = {
   }
 };
 
+export interface SellerBankAccount {
+  banco: string;
+  tipoCuenta: 'Cuenta de Ahorros' | 'Cuenta Corriente';
+  numeroCuenta: string;
+  titular: string;
+  identificacionTitular: string;
+  emailComprobantes: string;
+}
+
+export interface SellerMobileWallets {
+  deUnaCelular: string;
+  deUnaQrUrl?: string;
+  payphoneCelular: string;
+  payphoneQrUrl?: string;
+  peigoCelular: string;
+  peigoQrUrl?: string;
+}
+
 export interface SellerProfile {
   id: string;
   ruc: string;
@@ -94,18 +112,24 @@ export interface SellerProfile {
   nombreComercial: string;
   email: string;
   telefono: string;
+  telefonosAdicionales?: string[];
   ciudad: string;
+  ciudadesCobertura?: string[];
   direccionMatriz: string;
   plan: SellerPlanType;
   comisionSaraPct: number;
   apiKey: string;
   logoUrl?: string;
+  sitioWeb?: string;
+  descripcionEmpresa?: string;
   estado: 'ACTIVO' | 'EN_REVISION' | 'SUSPENDIDO';
   verificadoSri: boolean;
   totalVentasUsd: number;
   totalOrdenes: number;
   calificacionPromedio: number;
   fechaRegistro: string;
+  cuentaBancaria?: SellerBankAccount;
+  billeterasMoviles?: SellerMobileWallets;
 }
 
 export interface MarketplaceProduct {
@@ -180,18 +204,38 @@ let SELLERS_DB: SellerProfile[] = [
     nombreComercial: 'ADELCA Planta Industrial',
     email: 'ventas.corporativas@adelca.com.ec',
     telefono: '+593 2 382 7200',
+    telefonosAdicionales: ['+593 99 234 8190', '+593 2 269 1100'],
     ciudad: 'Quito / Alóag',
+    ciudadesCobertura: ['Quito', 'Guayaquil', 'Cuenca', 'Ambato', 'Loja', 'Santo Domingo'],
     direccionMatriz: 'Panamericana Sur Km 38, Alóag, Pichincha',
     plan: 'VIP_FABRICA',
     comisionSaraPct: 1.8,
     apiKey: 'sk_live_adelca_sec_993817290142_prod',
     logoUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=120&h=120&fit=crop',
+    sitioWeb: 'https://www.adelca.com',
+    descripcionEmpresa: 'Pioneros en la fabricación de acero sismo-resistente en el Ecuador bajo normas NTE INEN 2167 y certificaciones ISO 9001 e ISO 14001. Capacidad de entrega nacional inmediata.',
     estado: 'ACTIVO',
     verificadoSri: true,
     totalVentasUsd: 148920.00,
     totalOrdenes: 42,
     calificacionPromedio: 4.9,
-    fechaRegistro: '2026-01-15'
+    fechaRegistro: '2026-01-15',
+    cuentaBancaria: {
+      banco: 'Banco Pichincha',
+      tipoCuenta: 'Cuenta Corriente',
+      numeroCuenta: '2100849201',
+      titular: 'ACERÍA DEL ECUADOR C.A. ADELCA',
+      identificacionTitular: '1790008594001',
+      emailComprobantes: 'pagos.tesoreria@adelca.com.ec'
+    },
+    billeterasMoviles: {
+      deUnaCelular: '0992348190',
+      deUnaQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D0992348190%26merchant%3DADELCA_MATRIZ',
+      payphoneCelular: '0992348190',
+      payphoneQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D0992348190%26client%3DADELCA',
+      peigoCelular: '0992348190',
+      peigoQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D0992348190%26holder%3DADELCA'
+    }
   },
   {
     id: 'seller-holcim-02',
@@ -200,18 +244,38 @@ let SELLERS_DB: SellerProfile[] = [
     nombreComercial: 'Holcim Soluciones de Cemento & Hormigón',
     email: 'pedidos.mayoristas@holcim.com',
     telefono: '+593 4 371 9000',
+    telefonosAdicionales: ['+593 98 445 1200'],
     ciudad: 'Guayaquil',
+    ciudadesCobertura: ['Guayaquil', 'Quito', 'Manta', 'Machala', 'Portoviejo'],
     direccionMatriz: 'Av. Barcelona y Puente Portete, Complejo Industrial Holcim',
     plan: 'VIP_FABRICA',
     comisionSaraPct: 1.8,
     apiKey: 'sk_live_holcim_ec_448102948172_prod',
     logoUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861593?w=120&h=120&fit=crop',
+    sitioWeb: 'https://www.holcim.com.ec',
+    descripcionEmpresa: 'Líder mundial en soluciones de construcción sostenible. Cemento Fuerte, Hormigón Premezclado y Agregados certificados para obras de infraestructura de gran escala.',
     estado: 'ACTIVO',
     verificadoSri: true,
     totalVentasUsd: 112500.00,
     totalOrdenes: 38,
     calificacionPromedio: 4.8,
-    fechaRegistro: '2026-01-20'
+    fechaRegistro: '2026-01-20',
+    cuentaBancaria: {
+      banco: 'Banco Guayaquil',
+      tipoCuenta: 'Cuenta Corriente',
+      numeroCuenta: '0019284102',
+      titular: 'HOLCIM ECUADOR S.A.',
+      identificacionTitular: '0990004512001',
+      emailComprobantes: 'facturacion.cobros@holcim.com'
+    },
+    billeterasMoviles: {
+      deUnaCelular: '0984451200',
+      deUnaQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D0984451200%26merchant%3DHOLCIM_EC',
+      payphoneCelular: '0984451200',
+      payphoneQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D0984451200%26client%3DHOLCIM',
+      peigoCelular: '0984451200',
+      peigoQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D0984451200%26holder%3DHOLCIM'
+    }
   },
   {
     id: 'seller-novacero-03',
@@ -220,18 +284,38 @@ let SELLERS_DB: SellerProfile[] = [
     nombreComercial: 'Novacero Soluciones en Acero',
     email: 'corporativo@novacero.com',
     telefono: '+593 2 399 2200',
+    telefonosAdicionales: ['+593 99 778 2211'],
     ciudad: 'Quito / Lasso',
+    ciudadesCobertura: ['Quito', 'Latacunga', 'Ambato', 'Riobamba', 'Cuenca'],
     direccionMatriz: 'Km 23 Vía Latacunga - Quito, Lasso',
     plan: 'ESTANDAR_PRO',
     comisionSaraPct: 3.5,
     apiKey: 'sk_live_novacero_881293019283_prod',
     logoUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=120&h=120&fit=crop',
+    sitioWeb: 'https://www.novacero.com',
+    descripcionEmpresa: 'Soluciones integrales de acero para la construcción civil, cubiertas y estructuras metálicas con altos estándares de calidad y durabilidad.',
     estado: 'ACTIVO',
     verificadoSri: true,
     totalVentasUsd: 67450.00,
     totalOrdenes: 19,
     calificacionPromedio: 4.7,
-    fechaRegistro: '2026-02-10'
+    fechaRegistro: '2026-02-10',
+    cuentaBancaria: {
+      banco: 'Produbanco',
+      tipoCuenta: 'Cuenta Corriente',
+      numeroCuenta: '1200984712',
+      titular: 'NOVACERO S.A.',
+      identificacionTitular: '1790184279001',
+      emailComprobantes: 'recaudacion@novacero.com'
+    },
+    billeterasMoviles: {
+      deUnaCelular: '0997782211',
+      deUnaQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D0997782211%26merchant%3DNOVACERO',
+      payphoneCelular: '0997782211',
+      payphoneQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D0997782211%26client%3DNOVACERO',
+      peigoCelular: '0997782211',
+      peigoQrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D0997782211%26holder%3DNOVACERO'
+    }
   },
   {
     id: 'seller-kubiec-04',
@@ -766,6 +850,55 @@ export class SellerMarketplaceService {
       throw new Error('No se encontró una empresa proveedora registrada con ese RUC o correo corporativo.');
     }
     return seller;
+  }
+
+  /**
+   * Actualiza los datos corporativos, fiscales y de contacto de la empresa proveedora
+   */
+  static updateSellerCompanyData(sellerId: string, data: Partial<Pick<SellerProfile, 
+    'razonSocial' | 'nombreComercial' | 'ruc' | 'direccionMatriz' | 'ciudad' | 'telefono' | 
+    'telefonosAdicionales' | 'email' | 'logoUrl' | 'sitioWeb' | 'descripcionEmpresa' | 'ciudadesCobertura'>>): SellerProfile {
+    const seller = SELLERS_DB.find(s => s.id === sellerId);
+    if (!seller) {
+      throw new Error(`Empresa proveedora con ID ${sellerId} no encontrada.`);
+    }
+
+    if (data.ruc && data.ruc !== seller.ruc) {
+      const rucCheck = ComprasService.validarRucEcuador(data.ruc);
+      if (!rucCheck.valido) {
+        throw new Error(`RUC inválido para el SRI: ${rucCheck.error}`);
+      }
+      seller.ruc = data.ruc;
+    }
+
+    if (data.razonSocial) seller.razonSocial = data.razonSocial.trim().toUpperCase();
+    if (data.nombreComercial) seller.nombreComercial = data.nombreComercial.trim();
+    if (data.direccionMatriz) seller.direccionMatriz = data.direccionMatriz.trim();
+    if (data.ciudad) seller.ciudad = data.ciudad.trim();
+    if (data.telefono) seller.telefono = data.telefono.trim();
+    if (data.telefonosAdicionales) seller.telefonosAdicionales = data.telefonosAdicionales;
+    if (data.email) seller.email = data.email.trim().toLowerCase();
+    if (data.logoUrl !== undefined) seller.logoUrl = data.logoUrl.trim();
+    if (data.sitioWeb !== undefined) seller.sitioWeb = data.sitioWeb.trim();
+    if (data.descripcionEmpresa !== undefined) seller.descripcionEmpresa = data.descripcionEmpresa.trim();
+    if (data.ciudadesCobertura) seller.ciudadesCobertura = data.ciudadesCobertura;
+
+    return { ...seller };
+  }
+
+  /**
+   * Actualiza las Cuentas Bancarias SPI y Billeteras Móviles QR de Cobro
+   */
+  static updateSellerBankDetails(sellerId: string, bank: SellerBankAccount, wallets: SellerMobileWallets): SellerProfile {
+    const seller = SELLERS_DB.find(s => s.id === sellerId);
+    if (!seller) {
+      throw new Error(`Empresa proveedora con ID ${sellerId} no encontrada.`);
+    }
+
+    seller.cuentaBancaria = { ...bank };
+    seller.billeterasMoviles = { ...wallets };
+
+    return { ...seller };
   }
 
   /**
