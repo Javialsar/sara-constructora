@@ -131,7 +131,7 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
       glowColor: "from-amber-500/30 via-amber-500/10 to-transparent",
       badgeColor: "bg-amber-500/10 text-amber-300 border-amber-500/30",
       label: "SARA MARKETPLACE · COMPRAS",
-      href: "/modulos/compras"
+      href: "/compras"
     },
     {
       id: "fletes",

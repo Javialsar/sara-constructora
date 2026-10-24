@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import ModuloIntroSplash from '@/components/ui/ModuloIntroSplash';
 import { 
   Building2, 
@@ -429,8 +430,17 @@ export default function ModuloComprasMasterPage() {
                 </button>
               </div>
 
-              {/* Botón Acceso Portal de Proveedores & Carrito */}
+              {/* Botón Acceso Portal de Proveedores, Landing Page & Carrito */}
               <div className="flex items-center gap-3">
+                <Link
+                  href="/compras"
+                  className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 flex items-center gap-2 transition-all"
+                  title="Ver Landing Page Pública de Compras & Marketplace"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="hidden sm:inline">Landing Page</span>
+                </Link>
+
                 <button
                   onClick={() => setSellerHubModalOpen(true)}
                   className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"

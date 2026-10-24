@@ -21,6 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           '/inmobiliaria',
           '/stays',
           '/apu',
+          '/compras',
           '/modulos/fletes',
           '/modulos/compras',
           '/modulos/talento',
