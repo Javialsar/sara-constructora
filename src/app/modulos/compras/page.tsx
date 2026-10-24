@@ -383,24 +383,26 @@ export default function ModuloComprasMasterPage() {
                 </p>
               </div>
 
-              {/* Selector de Proyecto Global */}
-              <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 min-w-[280px]">
-                <label className="text-[11px] font-mono text-slate-400 block mb-1">
-                  Filtrar por Obra / Proyecto Civil:
-                </label>
-                <select
-                  value={proyectoFiltro}
-                  onChange={(e) => setProyectoFiltro(e.target.value)}
-                  className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                >
-                  <option value="TODOS">Todas las Obras de la Empresa</option>
-                  {proyectos.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre} ({p.canton})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Selector de Proyecto Global (Solo visible en Modo Gestión Constructora) */}
+              {primaryMode === 'gestion_constructora' && (
+                <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 min-w-[280px]">
+                  <label className="text-[11px] font-mono text-slate-400 block mb-1">
+                    Filtrar por Obra / Proyecto Civil:
+                  </label>
+                  <select
+                    value={proyectoFiltro}
+                    onChange={(e) => setProyectoFiltro(e.target.value)}
+                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="TODOS">Todas las Obras de la Empresa</option>
+                    {proyectos.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} ({p.canton})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* BARRA SUPERIOR: SELECTOR DE MODO (MARKETPLACE B2B VS GESTIÓN CONSTRUCTORA) & ACCESO PROVEEDORES */}
