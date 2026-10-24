@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react"
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet"
-import "leaflet/dist/leaflet.css"
 import L from "leaflet"
 
 // Fix para el icono de Leaflet en Next.js

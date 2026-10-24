@@ -212,7 +212,14 @@ export function SaraEpodModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="epod-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      tabIndex={-1}
+    >
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl max-w-xl w-full p-6 text-neutral-900 dark:text-white shadow-2xl relative my-8 animate-in fade-in zoom-in-95">
         {/* Cabecera */}
         <div className="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 pb-4 mb-5">
@@ -222,7 +229,7 @@ export function SaraEpodModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-black tracking-tight">Acta de Entrega Digital (e-POD)</h3>
+                <h3 id="epod-modal-title" className="text-lg font-black tracking-tight">Acta de Entrega Digital (e-POD)</h3>
                 <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300/40">
                   ISO 19650
                 </span>

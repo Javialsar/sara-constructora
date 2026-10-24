@@ -45,6 +45,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
+import { SaraDriverRatingModal } from '@/components/fletes/SaraDriverRatingModal';
 import SaraFreightPaymentGatewayModal from '@/components/fletes/SaraFreightPaymentGatewayModal';
 import { SaraGuiaRemisionService } from '@/lib/services/saraGuiaRemisionService';
 import { SaraMtopBalanzasService } from '@/lib/services/saraMtopBalanzasService';
@@ -2647,282 +2648,23 @@ export default function SaraFletesEngine() {
         </div>
       )}
 
-      {/* MODAL INTEGRADO DE PAGO Y CALIFICACIÓN AL CONDUCTOR (ESTILO UBER / DIDI / INDRIVE) */}
-      {isRatingModalOpen && driverToRate && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 my-auto">
-            {/* Header */}
-            <div className="text-center space-y-1">
-              <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-                🏁 ¡Flete Completado con Éxito!
-              </span>
-              <h3 className="font-black text-white text-xl mt-2">Pago y Calificación del Viaje</h3>
-              <p className="text-xs text-slate-400">
-                Selecciona tu forma de pago y califica la atención de tu transportista.
-              </p>
-            </div>
-
-            {/* Tarjeta del Conductor y Monto Total */}
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-inner shrink-0">
-                  {driverToRate.driverName.charAt(0)}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-bold text-white text-sm truncate">{driverToRate.driverName}</h4>
-                  <p className="text-xs text-slate-400 truncate">{driverToRate.vehicleName}</p>
-                  <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
-                    Placa: {driverToRate.plate}
-                  </span>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Total a Pagar:</span>
-                <span className="font-mono font-black text-emerald-400 text-lg">
-                  ${driverToRate.price.toFixed(2)} USD
-                </span>
-              </div>
-            </div>
-
-            {/* Selector de Método de Pago */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-between">
-                <span>1. Método de Pago del Viaje</span>
-                <span className="text-emerald-400 font-mono text-[10px] font-bold">100% Seguro</span>
-              </label>
-
-              <div className="grid grid-cols-3 gap-2">
-                {/* Opción 1: Efectivo */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod('efectivo');
-                    setPaymentDetails(null);
-                  }}
-                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
-                    paymentMethod === 'efectivo'
-                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <Banknote className={`w-5 h-5 ${paymentMethod === 'efectivo' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span className="text-[11px] font-bold leading-tight">Efectivo</span>
-                  <span className="text-[9px] text-slate-400 font-medium">En mano</span>
-                </button>
-
-                {/* Opción 2: Tarjeta */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod('tarjeta');
-                    setIsPaymentGatewayOpen(true);
-                  }}
-                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
-                    paymentMethod === 'tarjeta'
-                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <CreditCard className={`w-5 h-5 ${paymentMethod === 'tarjeta' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span className="text-[11px] font-bold leading-tight">Tarjeta</span>
-                  <span className="text-[9px] text-slate-400 font-medium">Débito / Crédito</span>
-                </button>
-
-                {/* Opción 3: Transferencia */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod('transferencia');
-                    setIsPaymentGatewayOpen(true);
-                  }}
-                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
-                    paymentMethod === 'transferencia'
-                      ? 'bg-emerald-950/60 border-emerald-500 text-white shadow-md shadow-emerald-950'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                  }`}
-                >
-                  <Building2 className={`w-5 h-5 ${paymentMethod === 'transferencia' ? 'text-emerald-400' : 'text-slate-400'}`} />
-                  <span className="text-[11px] font-bold leading-tight">Transferencia</span>
-                  <span className="text-[9px] text-slate-400 font-medium">Pichincha / Deuna</span>
-                </button>
-              </div>
-
-              {/* Detalle del Pago Digital Confirmado en Pasarela */}
-              {paymentDetails && (
-                <div className="mt-2.5 bg-emerald-950/70 border border-emerald-500/60 p-2.5 rounded-xl text-xs flex items-center justify-between animate-in fade-in duration-200">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <div>
-                      <span className="font-bold text-white text-[11px] block">{paymentDetails.methodName}</span>
-                      <span className="text-[10px] text-emerald-300 font-mono">Ref: {paymentDetails.reference} (${paymentDetails.amount.toFixed(2)} USD)</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPaymentGatewayOpen(true)}
-                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
-                  >
-                    Ver Pasarela
-                  </button>
-                </div>
-              )}
-
-              {/* Botón para Abrir Pasarela si seleccionó Tarjeta o Transferencia */}
-              {!paymentDetails && paymentMethod !== 'efectivo' && (
-                <div className="mt-2 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setIsPaymentGatewayOpen(true)}
-                    className="w-full py-2.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-400 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    <span>Ver Datos Bancarios y Códigos QR del Transportista</span>
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Estrellas Interactivas (1 a 5) */}
-            <div className="space-y-1.5 text-left pt-1 border-t border-slate-800/80">
-              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
-                2. Califica el Servicio del Conductor
-              </label>
-              <div className="text-center space-y-1.5 bg-slate-950 border border-slate-800/80 rounded-2xl py-3">
-                <div className="flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => {
-                    const isFilled = star <= (hoverStars || ratingStars);
-                    return (
-                      <button
-                        key={star}
-                        type="button"
-                        onMouseEnter={() => setHoverStars(star)}
-                        onMouseLeave={() => setHoverStars(0)}
-                        onClick={() => setRatingStars(star)}
-                        className="p-1 text-3xl transition-transform hover:scale-125 focus:outline-none cursor-pointer"
-                      >
-                        <Star
-                          className={`w-7 h-7 transition-colors ${
-                            isFilled
-                              ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]'
-                              : 'text-slate-700 hover:text-amber-300'
-                          }`}
-                        />
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs font-bold text-amber-400">
-                  {ratingStars === 5 && '⭐⭐⭐⭐⭐ ¡Servicio Excelente!'}
-                  {ratingStars === 4 && '⭐⭐⭐⭐ Muy buen servicio'}
-                  {ratingStars === 3 && '⭐⭐⭐ Servicio estándar'}
-                  {ratingStars === 2 && '⭐⭐ Mejorable'}
-                  {ratingStars === 1 && '⭐ Mal servicio'}
-                </p>
-              </div>
-            </div>
-
-            {/* Chips de Cumplidos / Etiquetas Rápidas Estilo Uber */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                ¿Qué fue lo más destacable?
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  '⚡ Puntualidad',
-                  '📦 Carga protegida',
-                  '💬 Excelente comunicación',
-                  '🚚 Conducción segura',
-                  '🤝 Trato muy profesional',
-                  '💰 Tarifa justa'
-                ].map((tag) => {
-                  const isSelected = selectedRatingTags.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        setSelectedRatingTags(prev =>
-                          isSelected ? prev.filter(t => t !== tag) : [...prev, tag]
-                        );
-                      }}
-                      className={`text-xs px-2.5 py-1 rounded-full border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-amber-500 text-slate-950 font-black border-amber-500 shadow-sm'
-                          : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Textarea de Comentario */}
-            <div>
-              <textarea
-                value={ratingComment}
-                onChange={(e) => setRatingComment(e.target.value)}
-                placeholder="Escribe un comentario sobre el servicio... (opcional)"
-                rows={2}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-emerald-500 resize-none"
-              ></textarea>
-            </div>
-
-            {/* Botón de Confirmar Pago y Calificar */}
-            <button
-              type="button"
-              disabled={isSubmittingRating}
-              onClick={() => {
-                setIsSubmittingRating(true);
-                SaraFletesRealtimeService.emit({
-                  type: 'FLETE_CALIFICADO',
-                  payload: {
-                    fleteId: driverToRate.fleteId,
-                    driverName: driverToRate.driverName,
-                    plate: driverToRate.plate,
-                    rating: ratingStars,
-                    comentario: ratingComment,
-                    tags: selectedRatingTags,
-                    metodoPago: paymentMethod,
-                    montoTotal: driverToRate.price
-                  }
-                });
-
-                const metodoTexto = paymentMethod === 'efectivo' 
-                  ? 'Efectivo en mano' 
-                  : paymentMethod === 'tarjeta' 
-                  ? 'Tarjeta Digital' 
-                  : 'Transferencia Bancaria';
-
-                setTimeout(() => {
-                  setIsSubmittingRating(false);
-                  setIsRatingModalOpen(false);
-                  setPaymentSuccessToast(`Pago de $${driverToRate.price.toFixed(2)} USD registrado (${metodoTexto}) y calificación de ${ratingStars} ⭐ enviada. ¡Gracias por preferir SARA Fletes!`);
-                  setDriverToRate(null);
-                  setRatingComment('');
-                  setTimeout(() => setPaymentSuccessToast(null), 6000);
-                }, 500);
-              }}
-              className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              {isSubmittingRating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Procesando Pago y Calificación...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-4 h-4 text-white" />
-                  <span>Confirmar Pago y Calificar (${driverToRate.price.toFixed(2)} USD)</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL PASARELA DE PAGO DIGITAL: DATOS BANCARIOS DEL CONDUCTOR, QRS Y TARJETA */}
+      {/* MODAL INTEGRADO DE PAGO Y CALIFICACIÓN AL CONDUCTOR (COMPONENTE MODULAR) */}
+      <SaraDriverRatingModal
+        isOpen={isRatingModalOpen}
+        driverToRate={driverToRate}
+        paymentDetails={paymentDetails}
+        onClose={() => {
+          setIsRatingModalOpen(false);
+          setDriverToRate(null);
+        }}
+        onOpenPaymentGateway={() => setIsPaymentGatewayOpen(true)}
+        onRatingSubmitted={(msg) => {
+          setIsRatingModalOpen(false);
+          setPaymentSuccessToast(msg);
+          setDriverToRate(null);
+          setTimeout(() => setPaymentSuccessToast(null), 6000);
+        }}
+      />      {/* MODAL PASARELA DE PAGO DIGITAL: DATOS BANCARIOS DEL CONDUCTOR, QRS Y TARJETA */}
       {isPaymentGatewayOpen && driverToRate && (
         <SaraFreightPaymentGatewayModal
           isOpen={isPaymentGatewayOpen}

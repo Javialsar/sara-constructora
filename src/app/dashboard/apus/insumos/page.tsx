@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft, Download, FileSpreadsheet, Copy } from "lucide-react"
+import { FileText, Plus, Search, X, Loader2, Edit, Trash2, Box, Truck, Wrench, AlertTriangle, Calendar, ChevronDown, ChevronRight, Package, Layers, ArrowLeft, Download, FileSpreadsheet, Copy, CheckCircle, Clock, HelpCircle, DollarSign } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -19,7 +19,7 @@ type Insumo = {
   unidad: string; tipo: string; precio_sin_iva: number
   proveedor_id: string | null; estado: boolean
   categoria?: string; fecha_actualizacion?: string; subfamilia_id?: string
-  es_maestro?: boolean; user_id?: string | null
+  es_maestro?: boolean; user_id?: string | null; estado_precio?: 'verificado' | 'cotizado' | 'estimado' | 'historico'
 }
 
 // =============================================
@@ -316,7 +316,8 @@ const insumoSchema = z.object({
   proveedor_id: z.string().nullable().optional(),
   proveedores_ids: z.array(z.string()).optional(),
   subfamilia_id: z.string().nullable().optional(),
-  categoria: z.string().optional()
+  categoria: z.string().optional(),
+  estado_precio: z.enum(["verificado", "cotizado", "estimado", "historico"])
 });
 type InsumoFormValues = z.infer<typeof insumoSchema>;
 
@@ -398,8 +399,8 @@ export default function InsumosPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
 
   const { register: registerNew, handleSubmit: handleNewSubmit, reset: resetNewForm, setValue: setNewValue, watch: watchNew, formState: { errors: newErrors, isSubmitting: isNewSubmitting } } = useForm<InsumoFormValues>({
-    resolver: zodResolver(insumoSchema),
-    defaultValues: { codigo: "", nombre: "", descripcion: "", unidad: "u", tipo: "material", precio_sin_iva: 0, proveedor_id: "", proveedores_ids: [], subfamilia_id: "", categoria: "" }
+    resolver: zodResolver(insumoSchema) as any,
+    defaultValues: { codigo: "", nombre: "", descripcion: "", unidad: "u", tipo: "material", precio_sin_iva: 0, proveedor_id: "", proveedores_ids: [], subfamilia_id: "", categoria: "", estado_precio: "estimado" }
   });
 
   const formData = watchNew(); 
@@ -584,7 +585,7 @@ export default function InsumosPage() {
 
   const openNewModal = () => {
     setEditingId(null)
-    setFormData({ codigo: "", nombre: "", descripcion: "", unidad: "", tipo: "material", categoria: "", precio_sin_iva: 0, proveedor_id: "", proveedores_ids: [], subfamilia_id: selectedSubfamilia || "" })
+    setFormData({ codigo: "", nombre: "", descripcion: "", unidad: "", tipo: "material", categoria: "", precio_sin_iva: 0, proveedor_id: "", proveedores_ids: [], subfamilia_id: selectedSubfamilia || "", estado_precio: "estimado" })
     setIsModalOpen(true)
   }
 
@@ -593,7 +594,8 @@ export default function InsumosPage() {
       codigo: insumo.codigo || "", nombre: insumo.nombre, descripcion: insumo.descripcion || "",
       unidad: insumo.unidad, tipo: insumo.tipo || "material", categoria: insumo.categoria || "",
       precio_sin_iva: insumo.precio_sin_iva || 0, proveedor_id: insumo.proveedor_id || "",
-      proveedores_ids: insumoProvMap[insumo.id] || [], subfamilia_id: insumo.subfamilia_id || ""
+      proveedores_ids: insumoProvMap[insumo.id] || [], subfamilia_id: insumo.subfamilia_id || "",
+      estado_precio: insumo.estado_precio || (insumo.es_maestro ? "verificado" : insumo.proveedor_id ? "cotizado" : "estimado")
     })
     setEditingId(insumo.id); setIsModalOpen(true)
   }
@@ -612,7 +614,8 @@ export default function InsumosPage() {
       precio_sin_iva: insumo.precio_sin_iva || 0,
       proveedor_id: insumo.proveedor_id || "",
       proveedores_ids: insumoProvMap[insumo.id] || [],
-      subfamilia_id: insumo.subfamilia_id || ""
+      subfamilia_id: insumo.subfamilia_id || "",
+      estado_precio: "cotizado"
     })
     setIsModalOpen(true)
   }
@@ -1014,7 +1017,7 @@ export default function InsumosPage() {
               </h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <form onSubmit={handleNewSubmit(submitNewInsumo)} className="p-6 space-y-4">
+            <form onSubmit={handleNewSubmit((data: any) => submitNewInsumo(data as InsumoFormValues))} className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Grupo / Subgrupo</label>
@@ -1051,7 +1054,7 @@ export default function InsumosPage() {
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nombre del Insumo</label>
                   <input type="text" {...registerNew("nombre")} className={`w-full border rounded-lg px-3 py-2 text-sm outline-none ${newErrors.nombre ? 'border-red-500' : 'border-gray-300'}`} placeholder="Ej: Cemento Portland 50kg..." />
-                  {newErrors.nombre && <span className="text-red-500 text-xs">{newErrors.nombre.message}</span>}
+                  {newErrors.nombre?.message && <span className="text-red-500 text-xs">{typeof newErrors.nombre.message === 'string' ? newErrors.nombre.message : ''}</span>}
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">

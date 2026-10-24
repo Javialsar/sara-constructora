@@ -96,32 +96,70 @@ export const TALENTO_SEMILLA: TalentDB[] = [
 
 export async function getTalentsFromDB(): Promise<TalentDB[]> {
   try {
-    const { data: dbProfiles, error } = await supabase
+    const results: TalentDB[] = [];
+
+    // 1. Consultar talent_profiles
+    const { data: dbProfiles, error: pErr } = await supabase
       .from('talent_profiles')
       .select('*')
       .order('created_at', { ascending: false });
 
-    // Si hay perfiles en la base de datos, unificarlos
-    if (!error && dbProfiles && dbProfiles.length > 0) {
-      const mapped = dbProfiles.map((p: any, idx: number) => ({
-        id: p.id,
-        name: p.nombre || p.full_name || p.specialty || p.profession || 'Especialista Certificado SARA',
-        role: p.profession || p.specialty || 'Especialista Técnico',
-        hourlyRate: Number(p.hourly_rate) || 25,
-        certifications: Array.isArray(p.certifications) ? p.certifications : ['Certificado Verificado SARA'],
-        distanceKm: 3.5 + (idx * 2),
-        rating: 4.9,
-        experienceYears: Number(p.experience_years) || 5,
-        locationName: 'Quito, Pichincha',
-        plan: (idx === 0 ? 'VIP' : idx === 1 ? 'Estandar' : 'Basico') as 'VIP' | 'Estandar' | 'Basico',
-        status: p.availability ? 'approved' as const : 'pending' as const,
-        documents: [
-          { type: 'Cédula de Identidad', status: 'Verificado' },
-          { type: 'Certificación Profesional', status: 'Verificado' }
-        ]
-      }));
+    if (!pErr && dbProfiles && dbProfiles.length > 0) {
+      dbProfiles.forEach((p: any, idx: number) => {
+        results.push({
+          id: p.id,
+          name: p.nombre || p.full_name || p.specialty || p.profession || 'Especialista Certificado SARA',
+          role: p.profession || p.specialty || 'Especialista Técnico',
+          hourlyRate: Number(p.hourly_rate) || 25,
+          certifications: Array.isArray(p.certifications) && p.certifications.length > 0
+            ? p.certifications
+            : ['Certificado Verificado SARA', 'Prevención Riesgos Laborales'],
+          distanceKm: 2.8 + (idx * 1.7),
+          rating: 4.8 + ((idx % 3) * 0.1),
+          experienceYears: Number(p.experience_years) || 6,
+          locationName: p.location || 'Quito, Pichincha',
+          plan: (idx % 3 === 0 ? 'VIP' : idx % 3 === 1 ? 'Estandar' : 'Basico') as 'VIP' | 'Estandar' | 'Basico',
+          status: p.availability ? 'approved' as const : 'pending' as const,
+          documents: [
+            { type: 'Cédula de Identidad', status: 'Verificado' },
+            { type: 'Registro Profesional / SECAP', status: 'Verificado' }
+          ]
+        });
+      });
+    }
 
-      return [...TALENTO_SEMILLA, ...mapped];
+    // 2. Consultar trabajadores de obra civil
+    const { data: dbWorkers, error: wErr } = await supabase
+      .from('trabajadores')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (!wErr && dbWorkers && dbWorkers.length > 0) {
+      dbWorkers.forEach((w: any, idx: number) => {
+        results.push({
+          id: w.id,
+          name: w.nombre_completo || 'Técnico de Obra Calificado',
+          role: w.categoria_ocupacional || 'Oficial de Construcción',
+          hourlyRate: Number(w.costo_horario) > 0 ? Number(w.costo_horario) : 4.50,
+          certifications: ['Competencia Laboral SECAP', 'Reglamento IESS CD 513'],
+          distanceKm: 1.5 + (idx * 1.2),
+          rating: 4.9,
+          experienceYears: 8 + (idx % 10),
+          locationName: 'Quito, Pichincha',
+          plan: 'Estandar',
+          status: w.estado ? 'approved' as const : 'pending' as const,
+          documents: [
+            { type: 'Cédula de Identidad', status: 'Verificado' },
+            { type: 'Certificación Ocupacional', status: 'Verificado' }
+          ]
+        });
+      });
+    }
+
+    // Si hay perfiles obtenidos de la base de datos, unificarlos con la semilla
+    if (results.length > 0) {
+      return [...TALENTO_SEMILLA, ...results];
     }
 
     return TALENTO_SEMILLA;

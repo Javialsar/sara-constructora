@@ -34,7 +34,6 @@ import {
   Activity
 } from "lucide-react"
 import { Gantt, Task, ViewMode } from "gantt-task-react"
-import "gantt-task-react/dist/index.css"
 import * as XLSX from "xlsx"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"

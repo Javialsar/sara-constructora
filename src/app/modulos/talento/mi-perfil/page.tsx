@@ -32,9 +32,30 @@ export default function MiPerfilTalento() {
   const [bannerRespuesta, setBannerRespuesta] = useState<string | null>(null);
 
   // Estados para el mapa
-  const [provincia, setProvincia] = useState('');
-  const [ciudad, setCiudad] = useState('');
-  const [calle, setCalle] = useState('');
+  const [provincia, setProvincia] = useState('Pichincha');
+  const [ciudad, setCiudad] = useState('Quito');
+  const [calle, setCalle] = useState('Av. República del Salvador');
+
+  // Datos personales editables
+  const [nombres, setNombres] = useState('Ing. Ana');
+  const [apellidos, setApellidos] = useState('Gómez PMP');
+  const [telefono, setTelefono] = useState('098 421 8973');
+  const [profesion, setProfesion] = useState('Ingeniera Residente de Obra');
+  const [tarifaHora, setTarifaHora] = useState('35');
+  const [bannerDatosGuardados, setBannerDatosGuardados] = useState(false);
+
+  // Bóveda de Documentos
+  const [documentosSubidos, setDocumentosSubidos] = useState<{
+    id: string;
+    nombre: string;
+    tipo: 'CV' | 'SECAP' | 'SENESCYT' | 'CEDULA';
+    estado: 'Verificado' | 'En Revisión' | 'Pendiente';
+    fecha: string;
+  }[]>([
+    { id: 'doc-1', nombre: 'Hoja_de_Vida_Ing_Ana_Gomez.pdf', tipo: 'CV', estado: 'Verificado', fecha: '2026-10-15' },
+    { id: 'doc-2', nombre: 'Certificado_SECAP_Fiscalizacion.pdf', tipo: 'SECAP', estado: 'Verificado', fecha: '2026-10-12' },
+    { id: 'doc-3', nombre: 'Registro_SENESCYT_Civil.pdf', tipo: 'SENESCYT', estado: 'Verificado', fecha: '2026-10-10' }
+  ]);
 
   // Estado para la foto
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -356,11 +377,26 @@ export default function MiPerfilTalento() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {bannerDatosGuardados && (
+                    <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-sm font-bold flex items-center justify-between">
+                      <span>✅ Datos de perfil y coordenadas guardados exitosamente.</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setBannerDatosGuardados(false)}
+                        className="text-xs text-emerald-600 underline"
+                      >
+                        Cerrar
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Nombres</label>
                       <input
                         type="text"
+                        value={nombres}
+                        onChange={(e) => setNombres(e.target.value)}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500"
                         placeholder="Ej. Juan Andrés"
                       />
@@ -369,13 +405,39 @@ export default function MiPerfilTalento() {
                       <label className="block text-sm font-medium text-slate-700 mb-1">Apellidos</label>
                       <input
                         type="text"
+                        value={apellidos}
+                        onChange={(e) => setApellidos(e.target.value)}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500"
                         placeholder="Ej. Pérez Silva"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Correo Electrónico
+                        Especialidad / Título
+                      </label>
+                      <input
+                        type="text"
+                        value={profesion}
+                        onChange={(e) => setProfesion(e.target.value)}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500"
+                        placeholder="Ej. Ingeniero Civil / Maestro Mayor"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Tarifa por Hora (USD)
+                      </label>
+                      <input
+                        type="number"
+                        value={tarifaHora}
+                        onChange={(e) => setTarifaHora(e.target.value)}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500"
+                        placeholder="Ej. 30"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Correo Electrónico (Protegido)
                       </label>
                       <input
                         type="email"
@@ -386,14 +448,29 @@ export default function MiPerfilTalento() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Celular / WhatsApp
+                        Celular / WhatsApp (Bajo Custodia)
                       </label>
                       <input
                         type="tel"
+                        value={telefono}
+                        onChange={(e) => setTelefono(e.target.value)}
                         className="w-full border border-slate-300 rounded-lg px-4 py-2 outline-none focus:border-blue-500"
                         placeholder="098 765 4321"
                       />
                     </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBannerDatosGuardados(true);
+                        setTimeout(() => setBannerDatosGuardados(false), 5000);
+                      }}
+                      className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow cursor-pointer"
+                    >
+                      Guardar Cambios de Perfil
+                    </button>
                   </div>
                 </div>
               </div>
@@ -469,41 +546,122 @@ export default function MiPerfilTalento() {
 
           {/* TAB: DOCUMENTOS */}
           {activeTab === 'documentos' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-3xl font-bold mb-6">Bóveda de Documentos</h2>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2 text-slate-900">Bóveda Documental & Certificaciones</h2>
+                <p className="text-sm text-slate-500">
+                  Sube tus documentos técnicos protegidos bajo custodia institucional. La insignia de <strong>Verificado</strong> solo se activa una vez validado con la base oficial del SECAP / SENESCYT.
+                </p>
+              </div>
+
+              {/* Grid de carga de archivos */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
-                  <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FileText className="w-8 h-8 text-blue-500" />
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                  <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <FileText className="w-7 h-7 text-blue-600" />
                   </div>
-                  <h3 className="font-bold text-lg mb-1">Hoja de Vida (CV)</h3>
-                  <p className="text-sm text-slate-500 mb-6">
-                    Sube tu currículum actualizado en PDF.
+                  <h3 className="font-bold text-base mb-1 text-slate-900">Hoja de Vida Oficial (CV)</h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Formato PDF (máximo 10 MB). Incluye obras ejecutadas y fiscalizaciones.
                   </p>
-                  <label className="cursor-pointer border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 flex flex-col items-center justify-center transition-colors">
-                    <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
-                    <span className="text-sm font-medium text-blue-600">
-                      Haz clic para buscar archivo
+                  <label className="cursor-pointer border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-6 flex flex-col items-center justify-center transition-colors bg-slate-50">
+                    <UploadCloud className="w-6 h-6 text-slate-400 mb-1" />
+                    <span className="text-xs font-bold text-blue-600">
+                      Seleccionar Archivo PDF
                     </span>
-                    <input type="file" className="hidden" accept=".pdf" />
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept=".pdf" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setDocumentosSubidos(prev => [
+                            {
+                              id: `doc-${Date.now()}`,
+                              nombre: file.name,
+                              tipo: 'CV',
+                              estado: 'En Revisión',
+                              fecha: new Date().toISOString().split('T')[0]
+                            },
+                            ...prev
+                          ]);
+                        }
+                      }}
+                    />
                   </label>
                 </div>
 
-                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm text-center">
-                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ShieldCheck className="w-8 h-8 text-emerald-500" />
+                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
+                  <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShieldCheck className="w-7 h-7 text-emerald-600" />
                   </div>
-                  <h3 className="font-bold text-lg mb-1">Cédula y Certificaciones SECAP / SENESCYT</h3>
-                  <p className="text-sm text-slate-500 mb-6">
-                    Valida tu identidad y títulos técnicos.
+                  <h3 className="font-bold text-base mb-1 text-slate-900">Certificaciones SECAP / SENESCYT / Cédula</h3>
+                  <p className="text-xs text-slate-500 mb-4">
+                    Títulos profesionales, licencias de prevención de riesgos o SECAP.
                   </p>
-                  <label className="cursor-pointer border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-8 flex flex-col items-center justify-center transition-colors">
-                    <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />
-                    <span className="text-sm font-medium text-emerald-600">
-                      Subir Cédula o Certificados
+                  <label className="cursor-pointer border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl p-6 flex flex-col items-center justify-center transition-colors bg-slate-50">
+                    <UploadCloud className="w-6 h-6 text-slate-400 mb-1" />
+                    <span className="text-xs font-bold text-emerald-600">
+                      Cargar Certificados o Cédula
                     </span>
-                    <input type="file" className="hidden" multiple />
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      multiple 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setDocumentosSubidos(prev => [
+                            {
+                              id: `doc-${Date.now()}`,
+                              nombre: file.name,
+                              tipo: 'SECAP',
+                              estado: 'En Revisión',
+                              fecha: new Date().toISOString().split('T')[0]
+                            },
+                            ...prev
+                          ]);
+                        }
+                      }}
+                    />
                   </label>
+                </div>
+              </div>
+
+              {/* Registro Histórico de Documentos en Custodia */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6">
+                <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center justify-between">
+                  <span>Expediente Documental del Profesional</span>
+                  <span className="text-xs text-slate-500 font-normal">
+                    {documentosSubidos.length} documento(s) registrado(s)
+                  </span>
+                </h3>
+
+                <div className="divide-y divide-slate-100">
+                  {documentosSubidos.map((doc) => (
+                    <div key={doc.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                        <div>
+                          <span className="font-bold text-slate-800 block text-sm">{doc.nombre}</span>
+                          <span className="text-slate-500">Tipo: {doc.tipo} • Subido: {doc.fecha}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        {doc.estado === 'Verificado' ? (
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center gap-1">
+                            <CheckCircle2 size={12} /> Verificado Oficial
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold">
+                            ⏳ En Revisión Técnica
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

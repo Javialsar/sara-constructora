@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from "react"
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Popup } from "react-leaflet"
 import L from "leaflet"
-import "leaflet/dist/leaflet.css"
 import { MapPin, Navigation, Compass, CheckCircle2 } from "lucide-react"
 
 interface AirbnbCoordinatePickerProps {

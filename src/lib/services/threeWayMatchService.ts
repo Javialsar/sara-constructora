@@ -372,6 +372,40 @@ export class ThreeWayMatchService {
     };
   }
 
+  /**
+   * Persiste transaccionalmente el asiento contable por partida doble en Supabase
+   */
+  public static async persistirAsientoContable(
+    asiento: AccountingEntryProposal,
+    origenTipo: string = 'three_way_match_sri',
+    origenId?: string
+  ): Promise<{ success: boolean; asientoId?: string; error?: string }> {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from('contabilidad_asientos')
+        .insert({
+          glosa: asiento.glosa,
+          origen_tipo: origenTipo,
+          origen_id: origenId || null,
+          total_debe: asiento.totalDebe,
+          total_haber: asiento.totalHaber,
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.warn('[ThreeWayMatchService] Aviso persistencia asiento en BD:', error.message);
+        return { success: false, error: error.message };
+      }
+      return { success: true, asientoId: data?.id };
+    } catch (e: any) {
+      console.warn('[ThreeWayMatchService] Excepción al persistir asiento:', e.message);
+      return { success: false, error: e.message };
+    }
+  }
+
   // =========================================================================
   // GESTIÓN DE ÓRDENES DE DEVOLUCIÓN & DISCREPANCIAS DE BODEGA PARA CONTABILIDAD
   // =========================================================================

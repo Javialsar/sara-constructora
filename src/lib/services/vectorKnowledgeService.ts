@@ -225,6 +225,28 @@ export class VectorKnowledgeService {
       console.warn('[VectorKnowledgeService] EventBus emit notice:', e);
     }
 
+    // 5. Persistencia del evento de aprendizaje en Supabase
+    try {
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      await supabase.from('sara_agent_events').insert({
+        event_name: 'CICLO_APRENDIZAJE_FINALIZADO',
+        source_agent: 'SARA-CONSTRUCTORA',
+        target_agents: ['SARA-APU', 'SARA-MARKETPLACE', 'SARA-PAGOS'],
+        payload: {
+          itemKey,
+          precioAnterior,
+          precioNuevo: nuevoPrecioUnitario,
+          varianzaPct,
+          apuAjuste,
+          comprasOptimizacion,
+          impactoNetoHoldingUSD: +impactoNetoHolding.toFixed(2),
+        },
+      });
+    } catch (dbErr) {
+      console.warn('[VectorKnowledgeService] Persistencia Supabase aviso:', dbErr);
+    }
+
     return {
       itemKey,
       precioAnterior,

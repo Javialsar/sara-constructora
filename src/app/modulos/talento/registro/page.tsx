@@ -11,11 +11,13 @@ export default function RegistroTalento() {
   const [successTx, setSuccessTx] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
-    nombre: 'Ing. Mateo Calderón',
-    rol: 'Ingeniero Civil Estructural',
-    experiencia: 6,
-    ubicacion: 'Quito, Cumbayá'
+    nombre: '',
+    rol: '',
+    experiencia: 3,
+    ubicacion: ''
   });
 
   const getPlanFee = () => {
@@ -27,8 +29,10 @@ export default function RegistroTalento() {
   };
 
   const handleInitiatePayment = () => {
-    if (!formData.nombre || !formData.rol) {
-      return alert('Completa los campos obligatorios.');
+    setValidationError(null);
+    if (!formData.nombre.trim() || !formData.rol.trim() || !formData.ubicacion.trim()) {
+      setValidationError('Por favor completa todos los campos obligatorios (Nombre, Especialidad y Ubicación).');
+      return;
     }
     setShowPayment(true);
   };
@@ -84,6 +88,18 @@ export default function RegistroTalento() {
         </div>
 
         <div className="p-8">
+          {validationError && (
+            <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-sm font-semibold flex items-center justify-between">
+              <span>⚠️ {validationError}</span>
+              <button 
+                type="button" 
+                onClick={() => setValidationError(null)}
+                className="text-xs text-rose-600 underline font-bold"
+              >
+                Cerrar
+              </button>
+            </div>
+          )}
           <h2 className="text-xl font-bold border-b border-slate-100 pb-2 mb-6">1. Datos Profesionales</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             <div>

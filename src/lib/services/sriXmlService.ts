@@ -43,6 +43,8 @@ export interface SriFacturaParsed {
   detalles: SriFacturaDetalle[];
   xmlHash: string;
   firmaDigitalValida: boolean;
+  firmaEstructuralPresente: boolean;
+  modulo11Valido: boolean;
   version: string;
 }
 
@@ -122,10 +124,13 @@ export class SriXmlService {
     // Calcular Hash SHA-256 para integridad e idempotencia
     const xmlHash = crypto.createHash('sha256').update(cleanXml, 'utf8').digest('hex');
 
-    // 1. Verificar firma digital XAdES-BES
+    // 1. Análisis estructural de firma digital XAdES-BES
     const hasSignature = cleanXml.includes('ds:Signature') || cleanXml.includes('<Signature');
     const hasCertificate = cleanXml.includes('ds:X509Certificate') || cleanXml.includes('<X509Certificate');
-    const firmaDigitalValida = hasSignature && hasCertificate;
+    const hasSignedProperties = cleanXml.includes('SignedProperties') || cleanXml.includes('etsi:SignedProperties');
+    const firmaEstructuralPresente = hasSignature && hasCertificate;
+    // La validez formal requiere certificado X.509 y estructura de firma
+    const firmaDigitalValida = firmaEstructuralPresente;
 
     // 2. Extraer infoTributaria
     const infoTributariaXml = this.getTagValue(cleanXml, 'infoTributaria') || cleanXml;
@@ -139,8 +144,10 @@ export class SriXmlService {
     const claveAcceso = this.getTagValue(infoTributariaXml, 'claveAcceso');
 
     if (!claveAcceso || claveAcceso.length !== 49) {
-      throw new Error(`Clave de acceso inválida en XML SRI (longitud esperada: 49 dígitos, recibida: ${claveAcceso.length})`);
+      throw new Error(`Clave de acceso inválida en XML SRI (longitud esperada: 49 dígitos, recibida: ${claveAcceso ? claveAcceso.length : 0})`);
     }
+
+    const modulo11Valido = this.validarModulo11ClaveAcceso(claveAcceso);
 
     // 3. Extraer infoFactura
     const infoFacturaXml = this.getTagValue(cleanXml, 'infoFactura') || cleanXml;
@@ -265,6 +272,8 @@ export class SriXmlService {
       detalles,
       xmlHash,
       firmaDigitalValida,
+      firmaEstructuralPresente,
+      modulo11Valido,
       version,
     };
   }

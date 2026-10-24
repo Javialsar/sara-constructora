@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet"
 import L from "leaflet"
-import "leaflet/dist/leaflet.css"
 
 const customIcon = typeof window !== 'undefined' ? new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -59,11 +58,27 @@ function BoundsHandler({ projects }: { projects: ProjectMarker[] }) {
 export default function ProjectsMap({ projects, flyTo }: ProjectsMapProps) {
   const [mounted, setMounted] = useState(false)
 
+  const [activeIcon, setActiveIcon] = useState<L.Icon | null>(customIcon)
+
   useEffect(() => {
+    try {
+      const icon = new L.Icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      })
+      setActiveIcon(icon)
+    } catch (e) {
+      console.warn("Leaflet icon init notice:", e)
+    }
     setMounted(true)
   }, [])
 
-  if (!mounted || !customIcon) return <div className="h-full min-h-[300px] w-full bg-gray-100 animate-pulse flex items-center justify-center">Cargando mapa...</div>
+  if (!mounted || !activeIcon) return <div className="h-full min-h-[300px] w-full bg-slate-900/40 border border-slate-800 animate-pulse flex items-center justify-center text-slate-400 text-xs font-mono">Cargando mapa satelital...</div>
 
   const center: [number, number] = [-4.3276, -79.5447]
 
@@ -85,7 +100,7 @@ export default function ProjectsMap({ projects, flyTo }: ProjectsMapProps) {
           <Marker 
             key={project.id} 
             position={[project.lat, project.lng]}
-            icon={customIcon}
+            icon={activeIcon}
           >
             <Popup>
               <div className="font-sans">

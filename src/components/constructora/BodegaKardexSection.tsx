@@ -55,6 +55,7 @@ import {
   ObraMaterialRequestService,
   PedidoMaterialObra,
 } from '@/lib/services/obraMaterialRequestService';
+import { createClient } from '@/lib/supabase/client';
 
 // ============================================================================
 // TIPOS E INTERFACES DEL MÓDULO DE BODEGA & KARDEX
@@ -789,6 +790,7 @@ export function BodegaKardexSection({
   // ÓRDENES DE DEVOLUCIÓN A PROVEEDOR (SINCRONIZADAS CON CONTABILIDAD)
   // ============================================================================
   const [ordenesDevolucion, setOrdenesDevolucion] = useState<OrdenDevolucionContable[]>([]);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     // Sincronizar devoluciones con el servicio contable y pedidos de residentes
@@ -796,8 +798,51 @@ export function BodegaKardexSection({
     setPedidosResidentes(ObraMaterialRequestService.getPedidos());
     const syncPedidos = () => setPedidosResidentes(ObraMaterialRequestService.getPedidos());
     window.addEventListener('sara_pedidos_obra_updated', syncPedidos);
-    return () => window.removeEventListener('sara_pedidos_obra_updated', syncPedidos);
-  }, []);
+
+    // Consulta e hidratación remota desde PostgreSQL / Supabase
+    let isMounted = true;
+    const fetchKardexRemoto = async () => {
+      try {
+        const { data: dbMovs, error } = await supabase
+          .from('kardex_movimientos')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (!error && dbMovs && dbMovs.length > 0 && isMounted) {
+          const mapped: MovimientoKardex[] = dbMovs.map((m: any) => ({
+            id: m.id || `MOV-${m.numero_movimiento}`,
+            insumoId: m.insumo_id || 'cemento_holcim',
+            fecha: m.created_at ? m.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+            hora: m.created_at ? new Date(m.created_at).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' }) : '08:00',
+            tipo: m.tipo_movimiento === 'transferencia_salida' || m.tipo_movimiento === 'consumo_obra' ? 'DESPACHO_OBRA' : 'RECEPCION_OC',
+            documentoRef: m.referencia_tipo ? `${m.referencia_tipo.toUpperCase()} #${m.numero_movimiento || ''}` : 'MOV-DB',
+            solicitanteOProveedor: m.notas || 'Personal de Obra',
+            entradaCant: m.tipo_movimiento === 'ingreso_compra' ? Number(m.cantidad) : 0,
+            entradaCostoUnit: m.tipo_movimiento === 'ingreso_compra' ? Number(m.costo_unitario) : 0,
+            entradaTotal: m.tipo_movimiento === 'ingreso_compra' ? Number(m.costo_total) : 0,
+            salidaCant: m.tipo_movimiento !== 'ingreso_compra' ? Number(m.cantidad) : 0,
+            salidaCostoUnit: m.tipo_movimiento !== 'ingreso_compra' ? Number(m.costo_unitario) : 0,
+            salidaTotal: m.tipo_movimiento !== 'ingreso_compra' ? Number(m.costo_total) : 0,
+            saldoCant: Number(m.saldo_resultante_cantidad || m.cantidad),
+            saldoCpp: Number(m.saldo_resultante_cpp || m.costo_unitario),
+            saldoTotal: Number(m.costo_total),
+            observacion: m.notas || '',
+          }));
+          setMovimientos(prev => [...mapped, ...prev.filter(p => !mapped.some(mp => mp.id === p.id))]);
+        }
+      } catch (err) {
+        console.warn('[BodegaKardexSection] Aviso consulta remota Supabase:', err);
+      }
+    };
+
+    fetchKardexRemoto();
+
+    return () => {
+      window.removeEventListener('sara_pedidos_obra_updated', syncPedidos);
+      isMounted = false;
+    };
+  }, [supabase]);
 
   // ----------------------------------------------------------------------------
   // LISTAS DE FILTRADO PARA KARDEX (IMAGEN 3)
@@ -967,6 +1012,22 @@ export function BodegaKardexSection({
 
     setMovimientos(prev => [nuevoMov, ...prev]);
     setValesDespacho(prev => [nuevoVale, ...prev]);
+
+    // Persistencia transaccional en Supabase (PostgreSQL)
+    try {
+      supabase.from('kardex_movimientos').insert({
+        insumo_id: targetInsumo.id,
+        tipo_movimiento: 'consumo_obra',
+        cantidad: despachoForm.cantidad,
+        costo_unitario: targetInsumo.cppActual,
+        costo_total: costoImputado,
+        referencia_tipo: 'vale_distribucion',
+        notas: `Despacho a ${despachoForm.proyectoDestino}: ${despachoForm.motivoImputacion}. Solicitante: ${despachoForm.solicitadoPor}`,
+      }).then(({ error }) => {
+        if (error) console.warn('[BodegaKardex] Nota persistencia Supabase:', error.message);
+      });
+    } catch {}
+
     setModalNuevoDespacho(false);
     setFeedbackBanner({
       tipo: 'EXITO',
@@ -1271,6 +1332,24 @@ export function BodegaKardexSection({
           observacion: `Ingreso conforme por transportista ${transportistaChecklist.chofer} (Placa ${transportistaChecklist.placa})`,
         };
         setMovimientos(prev => [nuevoMov, ...prev]);
+
+        // Persistencia asíncrona en Supabase (PostgreSQL) para ingreso por recepción OC
+        try {
+          supabase.from('kardex_movimientos').insert({
+            insumo_id: it.insumoId,
+            tipo_movimiento: 'ingreso_compra',
+            cantidad: cantRec,
+            costo_unitario: it.costoUnitario,
+            costo_total: subAceptado,
+            referencia_tipo: 'orden_compra',
+            referencia_id: selectedOCForRecepcion.id,
+            notas: `Recepción conforme OC ${selectedOCForRecepcion.numeroOC} / Guía ${transportistaChecklist.guiaRemision}. Chofer: ${transportistaChecklist.chofer} (${transportistaChecklist.placa})`,
+          }).then(({ error }) => {
+            if (error) console.warn('[BodegaKardex] Nota persistencia Supabase ingreso:', error.message);
+          });
+        } catch (e) {
+          console.warn('[BodegaKardex] Error de red Supabase ingreso:', e);
+        }
       }
 
       return {

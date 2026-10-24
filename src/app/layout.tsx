@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat, Plus_Jakarta_Sans, Geist } from "next/font/google";
 import "./globals.css";
+import "./leaflet.css";
+import "./gantt.css";
 import Providers from "@/lib/providers";
 import SessionTracker from "@/components/SessionTracker";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
@@ -33,10 +35,52 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Grupo SARA | Ingeniería, Construcción & Tecnología",
-  description: "Holding multisectorial oficial en Ecuador: Ingeniería civil, obras arquitectónicas, catálogo inmobiliario, suites boutique y software APU.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sara-constructora.vercel.app'),
+  title: {
+    default: "GRUPO SARA | Ingeniería, Construcción & Tecnología Integral",
+    template: "%s | GRUPO SARA"
+  },
+  description: "Holding multisectorial líder en Ecuador: Ingeniería civil, cálculo estructural NEC-15, catálogo inmobiliario, suites tipo Airbnb, software APU, fletes satelitales y marketplace de materiales.",
   manifest: "/manifests/constructora",
-  keywords: "Grupo SARA, SARA Constructora, SARA Inmobiliaria, SARA Stays, SARA APU, Construcción Ecuador, Arquitectura Cuenca",
+  keywords: [
+    "Grupo SARA",
+    "SARA Constructora",
+    "SARA Inmobiliaria",
+    "SARA Stays",
+    "SARA APU",
+    "Construcción Ecuador",
+    "Ingeniería Civil Cuenca",
+    "Cálculo Estructural NEC",
+    "Fletes Pesados Ecuador",
+    "Marketplace Materiales Construcción"
+  ],
+  authors: [{ name: "GRUPO SARA", url: "https://sara-constructora.vercel.app" }],
+  openGraph: {
+    type: "website",
+    locale: "es_EC",
+    url: "https://sara-constructora.vercel.app",
+    title: "GRUPO SARA | Ingeniería, Construcción & Tecnología Integral",
+    description: "Holding multisectorial líder en Ecuador: Ingeniería civil, obras arquitectónicas, catálogo inmobiliario, suites tipo Airbnb y software APU.",
+    siteName: "GRUPO SARA",
+    images: [
+      {
+        url: "/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "GRUPO SARA - Ingeniería & Tecnología Integral",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GRUPO SARA | Ingeniería, Construcción & Tecnología",
+    description: "Holding multisectorial oficial en Ecuador: Ingeniería civil, obras, catálogo inmobiliario, suites y software APU.",
+    images: ["/opengraph-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   appleWebApp: { capable: true, title: "SARA", statusBarStyle: "default" },
 };
 

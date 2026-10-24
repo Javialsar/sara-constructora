@@ -37,13 +37,14 @@ export class SaraDatabaseAuditorService {
    */
   static async verificarPersistenciaEcosistema(): Promise<{
     estadoGlobal: 'OPTIMO' | 'ADVERTENCIA' | 'CRITICO';
-    tasaPersistencia: number; // Ej: 100%
+    tasaPersistencia: number; // Porcentaje real de sincronización remota
     tablas: AuditTableStatus[];
     mensajesAgente: string[];
   }> {
     const ahora = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const tablas: AuditTableStatus[] = [];
     const mensajesAgente: string[] = [];
+    let tablasSincronizadas = 0;
 
     // 1. Módulo: Proyectos / Mis Obras
     try {
@@ -52,151 +53,264 @@ export class SaraDatabaseAuditorService {
         .select('*', { count: 'exact', head: true });
       
       const localProys = typeof window !== 'undefined' ? (localStorage.getItem('sara_obras_cache') ? JSON.parse(localStorage.getItem('sara_obras_cache')!).length : 4) : 4;
-      const countRemoto = proyErr ? localProys : (proyCount || localProys);
+      const countRemoto = proyErr ? 0 : (proyCount ?? 0);
+      const isSynced = !proyErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
 
       tablas.push({
         modulo: 'Mis Proyectos (Obras Civiles)',
         tablaSupabase: 'proyectos',
         registrosRemotos: countRemoto,
         registrosLocales: localProys,
-        estado: 'SINCRONIZADO',
+        estado: isSynced ? 'SINCRONIZADO' : (proyErr ? 'FALLO_CONEXION' : 'PENDIENTE_SYNC'),
         ultimaSincronizacion: ahora,
-        detalles: 'Obras activas, estados de ejecución y presupuestos consolidados.'
+        detalles: isSynced ? 'Obras activas y presupuestos vinculados con PostgreSQL.' : (proyErr ? `Fallo de conexión remota: ${proyErr.message}` : 'Sin obras registradas en servidor remoto.')
       });
-    } catch {
+    } catch (e: any) {
       tablas.push({
         modulo: 'Mis Proyectos (Obras Civiles)',
         tablaSupabase: 'proyectos',
-        registrosRemotos: 4,
+        registrosRemotos: 0,
         registrosLocales: 4,
-        estado: 'SINCRONIZADO',
+        estado: 'FALLO_CONEXION',
         ultimaSincronizacion: ahora,
-        detalles: 'Persistencia verificada con respaldo local activo.'
+        detalles: `Excepción de red: ${e.message || 'Error de conexión'}`
       });
     }
 
-    // 2. Módulo: Avances de Obra (Bitácora, Fotos múltiples, Videos, Técnico)
+    // 2. Módulo: Avances de Obra
     try {
       const { count: avCount, error: avErr } = await this.supabase
         .from('avances')
         .select('*', { count: 'exact', head: true });
       
-      const rem = avErr ? 5 : (avCount || 5);
+      const countRemoto = avErr ? 0 : (avCount ?? 0);
+      const localAvs = 5;
+      const isSynced = !avErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
+
       tablas.push({
         modulo: 'Bitácora & Avances Físicos',
         tablaSupabase: 'avances',
-        registrosRemotos: rem,
-        registrosLocales: rem,
-        estado: 'SINCRONIZADO',
+        registrosRemotos: countRemoto,
+        registrosLocales: localAvs,
+        estado: isSynced ? 'SINCRONIZADO' : (avErr ? 'FALLO_CONEXION' : 'PENDIENTE_SYNC'),
         ultimaSincronizacion: ahora,
-        detalles: 'Fotografías múltiples, videos de dron, porcentaje y técnico colegiado.'
+        detalles: isSynced ? 'Fotografías, bitácoras y porcentajes registrados en Supabase.' : 'Registros residen temporalmente en memoria local.'
       });
     } catch {
       tablas.push({
         modulo: 'Bitácora & Avances Físicos',
         tablaSupabase: 'avances',
-        registrosRemotos: 5,
+        registrosRemotos: 0,
         registrosLocales: 5,
-        estado: 'SINCRONIZADO',
+        estado: 'PENDIENTE_SYNC',
         ultimaSincronizacion: ahora,
-        detalles: 'Persistencia en memoria activa.'
+        detalles: 'Persistencia en memoria activa sin confirmación remota.'
       });
     }
 
-    // 3. Módulo: Gestor Documental (Planos BIM & Memorias)
+    // 3. Módulo: Gestor Documental Técnico
     try {
       const { count: docCount, error: docErr } = await this.supabase
         .from('documentos_proyecto')
         .select('*', { count: 'exact', head: true });
       
-      const remDocs = docErr ? 3 : (docCount || 3);
+      const countRemoto = docErr ? 0 : (docCount ?? 0);
+      const isSynced = !docErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
+
       tablas.push({
         modulo: 'Gestor Documental Técnico',
         tablaSupabase: 'documentos_proyecto',
-        registrosRemotos: remDocs,
-        registrosLocales: remDocs,
-        estado: 'SINCRONIZADO',
+        registrosRemotos: countRemoto,
+        registrosLocales: 3,
+        estado: isSynced ? 'SINCRONIZADO' : 'PENDIENTE_SYNC',
         ultimaSincronizacion: ahora,
-        detalles: 'Planos DWG, memorias PDF y planillas con fecha/hora automática.'
+        detalles: isSynced ? 'Metadatos de planos y expedientes persistidos en Supabase.' : 'Documentos operando bajo almacenamiento local.'
       });
     } catch {
       tablas.push({
         modulo: 'Gestor Documental Técnico',
         tablaSupabase: 'documentos_proyecto',
-        registrosRemotos: 3,
+        registrosRemotos: 0,
         registrosLocales: 3,
-        estado: 'SINCRONIZADO',
+        estado: 'PENDIENTE_SYNC',
         ultimaSincronizacion: ahora,
-        detalles: 'Archivos protegidos en almacenamiento local.'
+        detalles: 'Almacenamiento local temporal.'
       });
     }
 
     // 4. Módulo: Bodega Central & Kardex
-    const localKardexCount = typeof window !== 'undefined' ? (localStorage.getItem('sara_kardex_movimientos') ? JSON.parse(localStorage.getItem('sara_kardex_movimientos')!).length : 12) : 12;
-    tablas.push({
-      modulo: 'Bodega Central & Kardex',
-      tablaSupabase: 'bodega_movimientos / kardex',
-      registrosRemotos: localKardexCount,
-      registrosLocales: localKardexCount,
-      estado: 'SINCRONIZADO',
-      ultimaSincronizacion: ahora,
-      detalles: 'Método CPP, ingresos por OC, salidas a obra y alertas de stock.'
-    });
+    try {
+      const { count: kCount, error: kErr } = await this.supabase
+        .from('kardex_movimientos')
+        .select('*', { count: 'exact', head: true });
+
+      const localKardexCount = typeof window !== 'undefined' ? (localStorage.getItem('sara_kardex_movimientos') ? JSON.parse(localStorage.getItem('sara_kardex_movimientos')!).length : 12) : 12;
+      const countRemoto = kErr ? 0 : (kCount ?? 0);
+      const isSynced = !kErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
+
+      tablas.push({
+        modulo: 'Bodega Central & Kardex',
+        tablaSupabase: 'kardex_movimientos',
+        registrosRemotos: countRemoto,
+        registrosLocales: localKardexCount,
+        estado: isSynced ? 'SINCRONIZADO' : 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: isSynced ? 'Libro diario de Kardex persistido en PostgreSQL.' : 'Movimientos operando en caché local; DDL listo para ejecución.'
+      });
+    } catch {
+      tablas.push({
+        modulo: 'Bodega Central & Kardex',
+        tablaSupabase: 'kardex_movimientos',
+        registrosRemotos: 0,
+        registrosLocales: 12,
+        estado: 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: 'Operando en caché local.'
+      });
+    }
 
     // 5. Módulo: Órdenes de Compra & Devoluciones
-    tablas.push({
-      modulo: 'Órdenes de Compra & Devoluciones',
-      tablaSupabase: 'ordenes_compra / devoluciones',
-      registrosRemotos: 6,
-      registrosLocales: 6,
-      estado: 'SINCRONIZADO',
-      ultimaSincronizacion: ahora,
-      detalles: 'Checklists de recepción, actas de discrepancia e integración contable.'
-    });
+    try {
+      const { count: ocCount, error: ocErr } = await this.supabase
+        .from('ordenes_compra')
+        .select('*', { count: 'exact', head: true });
 
-    // 6. Módulo: SARA Fletes (Choferes, Vehículos, Calificación)
-    const localFletes = typeof window !== 'undefined' ? (localStorage.getItem('sara_fletes_recepciones_bodega') ? JSON.parse(localStorage.getItem('sara_fletes_recepciones_bodega')!).length : 1) : 1;
-    tablas.push({
-      modulo: 'SARA Fletes (Logística)',
-      tablaSupabase: 'fletes_solicitudes / ordenes_pago',
-      registrosRemotos: localFletes,
-      registrosLocales: localFletes,
-      estado: 'SINCRONIZADO',
-      ultimaSincronizacion: ahora,
-      detalles: 'Calificación de choferes, placas de transporte y autorización de pago.'
-    });
+      const countRemoto = ocErr ? 0 : (ocCount ?? 0);
+      const isSynced = !ocErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
+
+      tablas.push({
+        modulo: 'Órdenes de Compra & Devoluciones',
+        tablaSupabase: 'ordenes_compra',
+        registrosRemotos: countRemoto,
+        registrosLocales: 6,
+        estado: isSynced ? 'SINCRONIZADO' : 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: isSynced ? 'Órdenes de compra registradas en base de datos.' : 'Recepciones registradas en memoria y localStorage.'
+      });
+    } catch {
+      tablas.push({
+        modulo: 'Órdenes de Compra & Devoluciones',
+        tablaSupabase: 'ordenes_compra',
+        registrosRemotos: 0,
+        registrosLocales: 6,
+        estado: 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: 'En espera de sincronización de DDL.'
+      });
+    }
+
+    // 6. Módulo: SARA Fletes (Logística)
+    try {
+      const { count: fCount, error: fErr } = await this.supabase
+        .from('fletes_solicitudes')
+        .select('*', { count: 'exact', head: true });
+
+      const countRemoto = fErr ? 0 : (fCount ?? 0);
+      const isSynced = !fErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
+
+      tablas.push({
+        modulo: 'SARA Fletes (Logística)',
+        tablaSupabase: 'fletes_solicitudes',
+        registrosRemotos: countRemoto,
+        registrosLocales: 1,
+        estado: isSynced ? 'SINCRONIZADO' : 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: isSynced ? 'Viajes y fletes vinculados con base de datos.' : 'Caché de despacho sincronizada localmente.'
+      });
+    } catch {
+      tablas.push({
+        modulo: 'SARA Fletes (Logística)',
+        tablaSupabase: 'fletes_solicitudes',
+        registrosRemotos: 0,
+        registrosLocales: 1,
+        estado: 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: 'Caché de despacho en memoria.'
+      });
+    }
 
     // 7. Módulo: Configuración Corporativa de la Empresa
-    const hasEmpresa = typeof window !== 'undefined' && localStorage.getItem('sara_empresa_identidad');
-    tablas.push({
-      modulo: 'Configuración de la Empresa',
-      tablaSupabase: 'empresa_configuracion',
-      registrosRemotos: 1,
-      registrosLocales: 1,
-      estado: 'SINCRONIZADO',
-      ultimaSincronizacion: ahora,
-      detalles: 'Razón social, RUC 13 dígitos, firmas modulares (Obras, Bodega, Compras, Contabilidad).'
-    });
+    try {
+      const { count: cfgCount, error: cfgErr } = await this.supabase
+        .from('configuracion_empresa')
+        .select('*', { count: 'exact', head: true });
 
-    // 8. Módulo: Suscripciones & Guardián de Acceso
-    const localClientes = typeof window !== 'undefined' ? (localStorage.getItem('sara_constructora_clientes') ? JSON.parse(localStorage.getItem('sara_constructora_clientes')!).length : 3) : 3;
-    tablas.push({
-      modulo: 'Planes SaaS & Suscripciones',
-      tablaSupabase: 'constructora_suscripciones',
-      registrosRemotos: localClientes,
-      registrosLocales: localClientes,
-      estado: 'SINCRONIZADO',
-      ultimaSincronizacion: ahora,
-      detalles: 'Vigencia desde activación por admin, control de acceso y estados de cobro.'
-    });
+      const countRemoto = cfgErr ? 0 : (cfgCount ?? 0);
+      const isSynced = !cfgErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
 
-    mensajesAgente.push('✅ Supabase conectado con latencia de 32ms.');
-    mensajesAgente.push('✅ 8 módulos operativos monitoreados con tasa de integridad del 100%.');
-    mensajesAgente.push('✅ Mecanismo de persistencia dual activo (PostgreSQL Remoto + Respaldo Local).');
+      tablas.push({
+        modulo: 'Configuración de la Empresa',
+        tablaSupabase: 'configuracion_empresa',
+        registrosRemotos: countRemoto,
+        registrosLocales: 1,
+        estado: isSynced ? 'SINCRONIZADO' : 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: isSynced ? 'Ficha RUC y firmas empresariales respaldadas en servidor.' : 'Configuración operando con valores locales.'
+      });
+    } catch {
+      tablas.push({
+        modulo: 'Configuración de la Empresa',
+        tablaSupabase: 'configuracion_empresa',
+        registrosRemotos: 0,
+        registrosLocales: 1,
+        estado: 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: 'Configuración local activa.'
+      });
+    }
+
+    // 8. Módulo: Clientes y Suscripciones
+    try {
+      const { count: cCount, error: cErr } = await this.supabase
+        .from('clientes')
+        .select('*', { count: 'exact', head: true });
+
+      const countRemoto = cErr ? 0 : (cCount ?? 0);
+      const isSynced = !cErr && countRemoto > 0;
+      if (isSynced) tablasSincronizadas++;
+
+      tablas.push({
+        modulo: 'Planes SaaS & Suscripciones',
+        tablaSupabase: 'clientes',
+        registrosRemotos: countRemoto,
+        registrosLocales: 3,
+        estado: isSynced ? 'SINCRONIZADO' : 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: isSynced ? 'Clientes y suscripciones verificados en Supabase Auth y tabla clientes.' : 'Planes gestionados vía fallback local.'
+      });
+    } catch {
+      tablas.push({
+        modulo: 'Planes SaaS & Suscripciones',
+        tablaSupabase: 'clientes',
+        registrosRemotos: 0,
+        registrosLocales: 3,
+        estado: 'PENDIENTE_SYNC',
+        ultimaSincronizacion: ahora,
+        detalles: 'Planes gestionados localmente.'
+      });
+    }
+
+    const totalTablas = tablas.length;
+    const tasaPersistencia = Math.round((tablasSincronizadas / totalTablas) * 100);
+    const estadoGlobal: 'OPTIMO' | 'ADVERTENCIA' | 'CRITICO' =
+      tasaPersistencia >= 80 ? 'OPTIMO' : (tasaPersistencia >= 40 ? 'ADVERTENCIA' : 'CRITICO');
+
+    mensajesAgente.push(`📊 Auditoría de datos en vivo: ${tablasSincronizadas} de ${totalTablas} entidades verificadas en PostgreSQL.`);
+    mensajesAgente.push(`ℹ️ Tasa de persistencia remota real calculada: ${tasaPersistencia}%.`);
+    if (tasaPersistencia < 100) {
+      mensajesAgente.push(`⚠️ Módulos en estado PENDIENTE_SYNC operan con respaldo local seguro mientras se completan las migraciones DDL.`);
+    }
 
     return {
-      estadoGlobal: 'OPTIMO',
-      tasaPersistencia: 100,
+      estadoGlobal,
+      tasaPersistencia,
       tablas,
       mensajesAgente
     };

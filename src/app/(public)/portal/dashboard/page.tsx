@@ -140,11 +140,30 @@ export default function PortalDashboardPage() {
 
     setCliente(resolvedCliente)
 
-    // 4. Cargar Proyectos que están en Construcción
-    const { data: allProyectos } = await supabase
+    // 4. Cargar Proyectos (Blindaje Multi-Tenant IDOR: Clientes solo acceden a sus propios proyectos)
+    const isAdmin = Boolean(
+      user.user_metadata?.es_admin ||
+      user.user_metadata?.role === 'admin' ||
+      user.user_metadata?.role === 'superadmin' ||
+      resolvedCliente?.es_admin
+    )
+
+    let proyectosQuery = supabase
       .from("proyectos")
       .select("*")
       .order("created_at", { ascending: false })
+
+    if (!isAdmin) {
+      if (resolvedCliente?.id && user?.id && resolvedCliente.id !== user.id) {
+        proyectosQuery = proyectosQuery.or(`cliente_id.eq.${resolvedCliente.id},cliente_id.eq.${user.id}`)
+      } else if (resolvedCliente?.id) {
+        proyectosQuery = proyectosQuery.eq("cliente_id", resolvedCliente.id)
+      } else {
+        proyectosQuery = proyectosQuery.eq("cliente_id", user.id)
+      }
+    }
+
+    const { data: allProyectos } = await proyectosQuery
 
     if (allProyectos) {
       const construccionProyectos = allProyectos.filter(p => p.estado === 'en_construccion')
@@ -156,6 +175,13 @@ export default function PortalDashboardPage() {
   }
 
   const handleSelectProject = async (proyecto: any) => {
+    // Validar autorización horizontal (anti-IDOR) antes de cargar documentos privados
+    const isAdmin = Boolean(cliente?.es_admin)
+    if (!isAdmin && proyecto.cliente_id && cliente?.id && proyecto.cliente_id !== cliente.id && proyecto.cliente_id !== cliente.auth_id) {
+      console.warn("Bloqueo de seguridad: acceso horizontal no autorizado a proyecto ajeno", proyecto.id)
+      return
+    }
+
     setProyectoActivo(proyecto)
     setLoadingData(true)
     

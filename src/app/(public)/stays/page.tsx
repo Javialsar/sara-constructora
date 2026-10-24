@@ -156,8 +156,16 @@ export default function AirbnbPage() {
   const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0);
 
   // Fechas de reserva estimada
-  const [checkInDate, setCheckInDate] = useState<string>("2026-10-05");
-  const [checkOutDate, setCheckOutDate] = useState<string>("2026-10-08");
+  const [checkInDate, setCheckInDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+  });
+  const [checkOutDate, setCheckOutDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 4);
+    return d.toISOString().split("T")[0];
+  });
   const [guestsCount, setGuestsCount] = useState<number>(2);
 
   // Cálculo de noches
@@ -179,6 +187,9 @@ export default function AirbnbPage() {
     useState<boolean>(false);
   const [confirmedReservationCode, setConfirmedReservationCode] =
     useState<string>("");
+  const [confirmedSmartLockPin, setConfirmedSmartLockPin] =
+    useState<string>("#4829#");
+  const [authoritativeQuote, setAuthoritativeQuote] = useState<any>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [guestData, setGuestData] = useState({
     nombre: "",
@@ -669,18 +680,27 @@ export default function AirbnbPage() {
     const randomCode = `SARA-RSV-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      if (guestData.metodoPago === "tarjeta") {
-        const stripeRes = await fetch("/api/pagos/stripe", {
+      if (guestData.metodoPago === "tarjeta" || guestData.metodoPago === "anticipo") {
+        const totalAmount =
+          authoritativeQuote?.totales?.granTotalUSD ||
+          bookingStay.precioNoche * totalNoches + bookingStay.tarifaLimpieza;
+
+        // Registrar orden segura de checkout con clave de idempotencia
+        const checkoutRes = await fetch("/api/airbnb/pagos/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            monto: bookingStay.precioNoche * totalNoches + bookingStay.tarifaLimpieza,
-            noches: totalNoches
-          })
+            reservationCode: randomCode,
+            amountUSD: totalAmount,
+            paymentMethod: guestData.metodoPago,
+            guestEmail: guestData.email,
+            guestName: `${guestData.nombre} ${guestData.apellido}`.trim(),
+            idempotencyKey: `IDEM-${randomCode}-${Date.now()}`,
+          }),
         });
 
-        if (!stripeRes.ok) {
-          alert("Error al procesar el pago con tarjeta. Verifique sus datos e intente nuevamente.");
+        if (!checkoutRes.ok) {
+          alert("Error al inicializar la pasarela de pagos. Verifique sus datos e intente nuevamente.");
           setIsProcessingBooking(false);
           return;
         }
@@ -737,17 +757,23 @@ export default function AirbnbPage() {
           typeof finalReceiptUrl !== "undefined" ? finalReceiptUrl : "",
       };
 
-      const res = await fetch("/api/airbnb/reserva", {
+            const res = await fetch("/api/airbnb/reserva", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setConfirmedReservationCode(data.codigo || randomCode);
-      } else {
-        setConfirmedReservationCode(randomCode);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        alert(errJson.error || "No se pudo procesar la reserva. Por favor verifique los datos.");
+        setIsProcessingBooking(false);
+        return;
+      }
+
+      const data = await res.json();
+      setConfirmedReservationCode(data.codigo || randomCode);
+      if (data.smartLock?.accessPin) {
+        setConfirmedSmartLockPin(data.smartLock.accessPin);
       }
 
       // Auto-iniciar sesión si no estaba autenticado para que pueda ver sus reservas
@@ -762,15 +788,11 @@ export default function AirbnbPage() {
           ciudad: guestData.ciudadPais.split(",")[0]?.trim() || "Cuenca",
         });
       }
-    } catch (err) {
-      console.warn(
-        "Respaldo local de código de reserva por conectividad:",
-        err,
-      );
-      setConfirmedReservationCode(randomCode);
+      setBookingStep(4);
+    } catch (err: any) {
+      alert(err?.message || "Error de conexión al procesar la reserva.");
     } finally {
       setIsProcessingBooking(false);
-      setBookingStep(4);
     }
   };
 
@@ -798,7 +820,7 @@ export default function AirbnbPage() {
         `🗓 *Llegada (Check-in):* ${checkInDate} (a partir de las 15:00)\n` +
         `🗓 *Salida (Check-out):* ${checkOutDate} (hasta las 11:00)\n` +
         `🌙 *Estadía:* ${totalNoches} noche(s) para ${guestsCount} huésped(es)\n` +
-        `🔑 *Clave Cerradura Inteligente (Self Check-in):* *#4829#*\n\n` +
+        `🔑 *Clave Cerradura Inteligente (Self Check-in):* *${confirmedSmartLockPin}*\n\n` +
         `💰 *Desglose de Pago:*\n` +
         `• ${totalNoches} noches × $${stay.precioNoche} = $${subtotal} USD\n` +
         `• Tarifa de Limpieza = $${stay.tarifaLimpieza} USD\n` +
@@ -3056,7 +3078,7 @@ export default function AirbnbPage() {
                         <div className="flex items-center gap-2 mt-1">
                           <Key size={16} className="text-amber-400 shrink-0" />
                           <span className="font-mono font-black text-base text-white tracking-widest bg-black/40 px-2 py-0.5 rounded">
-                            *#4829#
+                            *{confirmedSmartLockPin}*
                           </span>
                         </div>
                         <p className="text-[10px] text-emerald-400 font-semibold mt-1">

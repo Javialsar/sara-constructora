@@ -22,10 +22,13 @@ import {
   RotateCcw,
   Sliders,
   Check,
-  Cuboid
+  Cuboid,
+  X,
+  AlertCircle
 } from "lucide-react"
 import { useProject } from "@/contexts/ProjectContext"
 import { createClient } from "@/lib/supabase/client"
+import BimImporterModal from "@/app/dashboard/presupuestos_reales/components/BimImporterModal"
 import Link from "next/link"
 
 export default function SaraBimPage() {
@@ -34,6 +37,10 @@ export default function SaraBimPage() {
   const [loading, setLoading] = useState(false)
   const [selectedLayer, setSelectedLayer] = useState<string>("todos")
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
+  // Feedback interactivo sin alerts
+  const [showRevitModal, setShowRevitModal] = useState(false)
+  const [showBimImporter, setShowBimImporter] = useState(false)
+  const [actionFeedback, setActionFeedback] = useState<{ tipo: "info" | "success" | "error"; mensaje: string } | null>(null)
   
   // Controles de Rotación 3D
   const [rotX, setRotX] = useState<number>(25) // inclinación
@@ -214,7 +221,10 @@ export default function SaraBimPage() {
       }
     } catch (err: any) {
       console.error("Error al inyectar BIM:", err)
-      alert("Error al inyectar cómputos BIM: " + (err.message || err))
+      setActionFeedback({
+        tipo: "error",
+        mensaje: "Error al inyectar cómputos BIM: " + (err.message || String(err))
+      })
     } finally {
       setIsInjecting(false)
     }
@@ -246,8 +256,15 @@ export default function SaraBimPage() {
             <span>Ir a la Mesa de Presupuestos</span>
             <ArrowRight size={14} />
           </Link>
+          <button
+            onClick={() => setShowBimImporter(true)}
+            className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-xl font-bold text-xs shadow-xs transition cursor-pointer"
+          >
+            <Upload size={14} className="text-cyan-400" />
+            <span>Importar Take-Off CSV</span>
+          </button>
           <button 
-            onClick={() => alert("Add-in SARA-Revit 2026 activo: Enlace bidireccional establecido.")}
+            onClick={() => setShowRevitModal(true)}
             className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold text-xs shadow-xs transition-colors"
           >
             <FileCode size={14} />
@@ -517,13 +534,17 @@ export default function SaraBimPage() {
             </div>
 
             <div className="pt-2 flex gap-2">
-              <button 
-                onClick={() => alert("Generando Orden de Compra B2B para despacho en obra...")}
-                className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5"
+              <Link 
+                href="/dashboard/compras"
+                onClick={() => setActionFeedback({
+                  tipo: "info",
+                  mensaje: "Iniciando generación de requisición de compras mayoristas para los elementos cuantificados en BIM..."
+                })}
+                className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 text-center cursor-pointer"
               >
                 <ShoppingCart size={15} />
                 Comprar en Marketplace
-              </button>
+              </Link>
             </div>
           </div>
         </div>

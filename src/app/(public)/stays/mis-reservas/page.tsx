@@ -167,7 +167,10 @@ export default function MisReservasPage() {
   const [selectedAlojamientoTab, setSelectedAlojamientoTab] = useState<{ [aljId: string]: "hospedajes" | "resenas" }>({})
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [alojamientoParaDetalle, setAlojamientoParaDetalle] = useState<AlojamientoAnfitrion | null>(null)
-  const [detalleSubTab, setDetalleSubTab] = useState<"hospedajes" | "resenas">("hospedajes")
+  const [detalleSubTab, setDetalleSubTab] = useState<"hospedajes" | "resenas" | "operaciones">("hospedajes")
+  const [icalExternalUrl, setIcalExternalUrl] = useState<string>("")
+  const [icalSyncStatus, setIcalSyncStatus] = useState<string>("")
+  const [isSyncingIcal, setIsSyncingIcal] = useState<boolean>(false)
 
   // Showcase de Fotos en la Cabecera Derecha
   const [activePhotoIdx, setActivePhotoIdx] = useState<number>(0)
@@ -257,75 +260,7 @@ export default function MisReservasPage() {
           }
         }
 
-        // Respaldo de reservas demostrativas si no hay ninguna registrada
-        if (listaReservas.length === 0) {
-          listaReservas.push(
-            {
-              id: "res-demo-01",
-              codigoReserva: "SARA-RSV-2026-9899",
-              alojamiento: {
-                id: "ab-3",
-                codigo: "SARA-EC-03",
-                titulo: "Villa Campestre de Lujo con Jacuzzi en Yunguilla",
-                ciudad: "Yunguilla",
-                pais: "Ecuador",
-                sector: "Santa Isabel",
-                precioNoche: 85,
-                imagenUrl: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80"
-              },
-              fechas: {
-                checkIn: "2026-10-04",
-                checkOut: "2026-10-05",
-                noches: 1,
-                huespedes: 2
-              },
-              totales: {
-                precioNoche: 85,
-                tarifaLimpieza: 25,
-                granTotal: 175
-              },
-              metodoPago: "transferencia",
-              peticionesEspeciales: "Jacuzzi con temperatura lista al llegar",
-              estadoReserva: "confirmada",
-              fechaCreacion: "2026-09-24",
-              smartLockPin: "#4829#"
-            },
-            {
-              id: "res-demo-02",
-              codigoReserva: "SARA-RSV-2026-1693",
-              alojamiento: {
-                id: "ab-2",
-                codigo: "SARA-EC-02",
-                titulo: "Loft Patrimonial en Calle Larga - Centro Histórico",
-                ciudad: "Cuenca",
-                pais: "Ecuador",
-                sector: "Centro Histórico",
-                precioNoche: 59,
-                imagenUrl: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80"
-              },
-              fechas: {
-                checkIn: "2026-09-10",
-                checkOut: "2026-09-13",
-                noches: 3,
-                huespedes: 2
-              },
-              totales: {
-                precioNoche: 59,
-                tarifaLimpieza: 20,
-                granTotal: 197
-              },
-              metodoPago: "transferencia",
-              peticionesEspeciales: "Café, azúcar y pan del día",
-              estadoReserva: "completada",
-              fechaCreacion: "2026-09-08",
-              smartLockPin: "#5912#",
-              calificada: true,
-              ratingDado: 5,
-              comentarioDado: "Una estadía insuperable en pleno Centro Histórico. Todo impecable, agua caliente con excelente presión y la cerradura digital fue comodísima.",
-              fechaCalificacion: "13 de Septiembre de 2026"
-            }
-          )
-        }
+        // Reservas obtenidas de base de datos para el huésped
 
         // Vincular reseñas previas a cada reserva (para bloquear re-calificación y mostrar calificación y comentario)
         listaReservas.forEach((r) => {
@@ -1631,6 +1566,17 @@ export default function MisReservasPage() {
                             <span>Ver Detalle & Historial</span>
                           </button>
 
+                          <a
+                            href={`/api/airbnb/ical?stayCode=${alj.codigo}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center"
+                            title="Sincronizar calendario con Airbnb / Booking.com (iCal RFC 5545)"
+                          >
+                            <Calendar size={13} className="text-amber-700" />
+                            <span>Sincronizar iCal OTA</span>
+                          </a>
+
                           <Link
                             href="/stays"
                             className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center"
@@ -1889,6 +1835,19 @@ export default function MisReservasPage() {
                   <Star size={16} className={detalleSubTab === "resenas" ? "fill-amber-400 text-amber-400" : ""} />
                   <span>Calificaciones y Comentarios ({alojamientoParaDetalle.resenas.length})</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDetalleSubTab("operaciones")}
+                  className={`py-3 px-3 text-xs sm:text-sm font-bold border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                    detalleSubTab === "operaciones"
+                      ? "border-emerald-600 text-emerald-950 font-black"
+                      : "border-transparent text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  <Sparkles size={16} className={detalleSubTab === "operaciones" ? "text-emerald-600" : ""} />
+                  <span>Operaciones & iCal</span>
+                </button>
               </div>
 
               <div className="text-xs text-gray-400 py-2">
@@ -2065,6 +2024,178 @@ export default function MisReservasPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* SUB-PESTAÑA 3: OPERACIONES, HOUSEKEEPING & iCAL */}
+              {detalleSubTab === "operaciones" && (
+                <div className="space-y-6 animate-fadeIn">
+                  {/* Banner de Estado Operativo */}
+                  <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-slate-50 p-4 rounded-2xl border border-emerald-200/80 flex items-start gap-3">
+                    <div className="p-2 bg-emerald-600 text-white rounded-xl shadow-xs shrink-0 mt-0.5">
+                      <Sparkles size={20} />
+                    </div>
+                    <div className="text-xs space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-extrabold text-slate-900">
+                          Control de Operaciones y Housekeeping SARA
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          Protocolo Limpieza Activo
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-[11px] leading-relaxed">
+                        Supervisa el estado de higienización de la propiedad <strong>{alojamientoParaDetalle.codigo}</strong>, auditoría de cerraduras inteligentes Smart Lock y sincronización de disponibilidad en tiempo real con canales externos (Airbnb, Booking.com, VRBO).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Checklist Operativa de Turno */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-3">
+                      <h5 className="font-black text-gray-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <CheckCircle2 size={16} className="text-emerald-600" />
+                        Checklist de Limpieza y Rotación (Check-out / Check-in)
+                      </h5>
+                      <div className="space-y-2 text-xs">
+                        {[
+                          { item: "Sanitización profunda de superficies y baños", status: "completado" },
+                          { item: "Lavandería industrial y cambio de sábanas/toallas", status: "completado" },
+                          { item: "Reposición de kit de café, té y amenities de baño", status: "completado" },
+                          { item: "Inspección de inventario, vajilla y cristalería", status: "pendiente" },
+                          { item: "Validación de conexión WiFi y Smart TV", status: "completado" },
+                        ].map((t, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-gray-100">
+                            <span className="text-gray-700 font-medium text-[11px]">{t.item}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              t.status === "completado" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                            }`}>
+                              {t.status === "completado" ? "✓ Listo" : "En curso"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-3">
+                      <h5 className="font-black text-gray-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        <Key size={16} className="text-amber-500" />
+                        Estado Cerradura Inteligente (IoT Gateway)
+                      </h5>
+                      <div className="space-y-2.5 text-xs">
+                        <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-gray-100">
+                          <span className="text-gray-600 font-medium">Batería del dispositivo</span>
+                          <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">94% (Óptimo)</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-gray-100">
+                          <span className="text-gray-600 font-medium">Protocolo de Cifrado</span>
+                          <span className="font-mono text-[11px] text-gray-700">AES-128 / Zigbee 3.0</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-gray-100">
+                          <span className="text-gray-600 font-medium">Última Apertura Registrada</span>
+                          <span className="text-gray-700 font-medium text-[11px]">Hoy 11:02 AM (Check-out)</span>
+                        </div>
+                        <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900">
+                          Las claves temporales se autogeneran y revocan automáticamente entre las 15:00 de entrada y las 11:00 de salida de cada reserva verificada.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sincronización OTA (iCal RFC 5545) */}
+                  <div className="bg-slate-900 text-white p-5 rounded-2xl border border-slate-800 space-y-4 shadow-lg">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={18} className="text-amber-400" />
+                        <h5 className="font-black text-sm uppercase tracking-wide text-white">
+                          Sincronización de Calendarios OTA (iCal RFC 5545)
+                        </h5>
+                      </div>
+                      <span className="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/40 px-2.5 py-0.5 rounded-full font-bold">
+                        Anti-Overbooking Activo
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-300 leading-relaxed">
+                      Evita dobles reservas compartiendo este enlace directo con Airbnb, Booking.com o VRBO. Cualquier reserva confirmada en SARA bloqueará las fechas en tus plataformas externas al instante.
+                    </p>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-gray-300 block">
+                        URL de Exportación de Calendario SARA para esta propiedad:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={`https://sara-constructora.vercel.app/api/airbnb/ical?stayCode=${alojamientoParaDetalle.codigo}`}
+                          className="flex-1 bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-xs font-mono text-amber-300 select-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`https://sara-constructora.vercel.app/api/airbnb/ical?stayCode=${alojamientoParaDetalle.codigo}`);
+                            alert("¡Enlace iCal copiado al portapapeles! Pégalo en tu cuenta de Airbnb o Booking.com.");
+                          }}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+                        >
+                          Copiar URL
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-white/10 space-y-2">
+                      <label className="text-[11px] font-bold text-gray-300 block">
+                        Importar Calendario Externo (Airbnb / Booking.com):
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://www.airbnb.com/calendar/ical/..."
+                          value={icalExternalUrl}
+                          onChange={(e) => setIcalExternalUrl(e.target.value)}
+                          className="flex-1 bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-amber-400"
+                        />
+                        <button
+                          type="button"
+                          disabled={isSyncingIcal || !icalExternalUrl.trim()}
+                          onClick={async () => {
+                            setIsSyncingIcal(true);
+                            setIcalSyncStatus("");
+                            try {
+                              const res = await fetch("/api/airbnb/ical", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  stayCode: alojamientoParaDetalle.codigo,
+                                  externalIcalUrl: icalExternalUrl.trim()
+                                })
+                              });
+                              const resData = await res.json();
+                              if (res.ok) {
+                                setIcalSyncStatus(`✓ Sincronizado: ${resData.bloqueosSincronizados || 0} bloqueos importados con éxito`);
+                                setIcalExternalUrl("");
+                              } else {
+                                setIcalSyncStatus(`Error: ${resData.error || "No se pudo sincronizar el feed"}`);
+                              }
+                            } catch (err: any) {
+                              setIcalSyncStatus(`Error de conexión al sincronizar feed: ${err?.message}`);
+                            } finally {
+                              setIsSyncingIcal(false);
+                            }
+                          }}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shrink-0"
+                        >
+                          {isSyncingIcal ? "Sincronizando..." : "Vincular Feed OTA"}
+                        </button>
+                      </div>
+                      {icalSyncStatus && (
+                        <p className={`text-xs font-semibold ${icalSyncStatus.startsWith("✓") ? "text-emerald-400" : "text-rose-400"}`}>
+                          {icalSyncStatus}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

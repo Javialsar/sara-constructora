@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { createSupabaseServerClient } from "@/lib/supabase-server"
+import { canAccessModule } from "@/lib/auth/moduleGuards"
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -15,58 +16,24 @@ function getSupabaseAdmin() {
   })
 }
 
-// Usuarios de respaldo base
-const USUARIOS_BASE = [
-  {
-    id: "usr-base-01",
-    created_at: "2026-09-25T18:30:15.000Z",
-    nombre: "Alexandra",
-    apellido: "Malacatus",
-    cedula: "1103711592",
-    telefono: "+593 981804023",
-    email: "alexandra.malacatus@gmail.com",
-    clave: "SARA2026*Alex",
-    estado: "activo",
-    ciudadPais: "Cariamanga / Loja, Ecuador"
-  },
-  {
-    id: "usr-base-02",
-    created_at: "2026-09-25T21:45:10.000Z",
-    nombre: "Clarissa Luciana",
-    apellido: "Paredes Sarango",
-    cedula: "1102978630",
-    telefono: "+593 981804023",
-    email: "clarisa.paredes@gmail.com",
-    clave: "Paredes*2026",
-    estado: "activo",
-    ciudadPais: "Loja, Ecuador"
-  },
-  {
-    id: "usr-base-03",
-    created_at: "2026-09-24T14:20:00.000Z",
-    nombre: "Juan Carlos",
-    apellido: "Andrade Vintimilla",
-    cedula: "0104829104",
-    telefono: "+593 998765432",
-    email: "juan.andrade@gmail.com",
-    clave: "SaraGuest#78",
-    estado: "activo",
-    ciudadPais: "Cuenca, Ecuador"
-  }
-]
-
-// GET: Listar todos los usuarios/huéspedes registrados
+// GET: Listar usuarios/huéspedes registrados (Protegido para administradores)
 export async function GET() {
-  const sanitizeUser = (u: any) => {
-    const { clave, password, ...safeUser } = u
-    return safeUser
-  }
-
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado. Inicie sesión para ver la lista de usuarios." }, { status: 401 })
+    }
+
+    const metadata = { ...(user.user_metadata || {}), ...(user.app_metadata || {}) }
+    if (!canAccessModule(metadata, 'sara_master') && !canAccessModule(metadata, 'sara_stays')) {
+      return NextResponse.json({ error: "Permisos insuficientes. Requiere rol administrativo." }, { status: 403 })
+    }
+
     const supabase = getSupabaseAdmin()
     if (!supabase) {
-      const sanitizedBase = USUARIOS_BASE.map(sanitizeUser)
-      return NextResponse.json({ usuarios: sanitizedBase, count: sanitizedBase.length })
+      return NextResponse.json({ usuarios: [], count: 0, origen: "sin_credenciales" })
     }
 
     const { data, error } = await supabase
@@ -77,8 +44,7 @@ export async function GET() {
 
     if (error) {
       console.warn("Aviso leyendo usuarios en Supabase:", error.message)
-      const sanitizedBase = USUARIOS_BASE.map(sanitizeUser)
-      return NextResponse.json({ usuarios: sanitizedBase, count: sanitizedBase.length })
+      return NextResponse.json({ usuarios: [], error: error.message }, { status: 500 })
     }
 
     const dbUsers = (data || []).map((row: any) => {
@@ -89,30 +55,26 @@ export async function GET() {
         det = {}
       }
 
-      return sanitizeUser({
+      // NUNCA exponer campos de contraseñas
+      const { clave, password, token, ...safeDet } = det
+
+      return {
         id: row.id,
         created_at: row.created_at,
-        nombre: det.nombre || row.nombre || "Usuario",
-        apellido: det.apellido || "",
-        cedula: det.cedula || "",
-        telefono: det.telefono || row.telefono || "+593",
-        email: det.email || row.email || "",
-        estado: (det.estado || (row.estado === "bloqueado" ? "bloqueado" : "activo")) as "activo" | "bloqueado",
-        ciudadPais: det.ciudadPais || "Ecuador"
-      })
+        nombre: safeDet.nombre || row.nombre || "Usuario",
+        apellido: safeDet.apellido || "",
+        cedula: safeDet.cedula || "",
+        telefono: safeDet.telefono || row.telefono || "+593",
+        email: safeDet.email || row.email || "",
+        estado: (safeDet.estado || (row.estado === "bloqueado" ? "bloqueado" : "activo")) as "activo" | "bloqueado",
+        ciudadPais: safeDet.ciudadPais || "Ecuador"
+      }
     })
 
-    // Unir sin duplicar correos electrónicos
-    const emailsInDB = new Set(dbUsers.map(u => u.email.toLowerCase()))
-    const baseRestantes = USUARIOS_BASE.filter(u => !emailsInDB.has(u.email.toLowerCase())).map(sanitizeUser)
-
-    const listaCompleta = [...dbUsers, ...baseRestantes]
-
-    return NextResponse.json({ usuarios: listaCompleta, count: listaCompleta.length })
+    return NextResponse.json({ usuarios: dbUsers, count: dbUsers.length })
   } catch (err: any) {
     console.error("Error en GET /api/airbnb/usuarios:", err)
-    const sanitizedBase = USUARIOS_BASE.map(sanitizeUser)
-    return NextResponse.json({ usuarios: sanitizedBase, error: err.message }, { status: 500 })
+    return NextResponse.json({ usuarios: [], error: err.message }, { status: 500 })
   }
 }
 
@@ -120,7 +82,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { nombre, apellido, cedula, telefono, email, password, ciudadPais } = body
+    const { nombre, apellido, cedula, telefono, email, ciudadPais } = body
 
     if (!nombre || !email || !cedula) {
       return NextResponse.json({ error: "Nombre, email y cédula son requeridos" }, { status: 400 })
@@ -128,13 +90,14 @@ export async function POST(request: Request) {
 
     const supabase = getSupabaseAdmin()
     const nowIso = new Date().toISOString()
+    
+    // NUNCA almacenar contraseñas en texto plano dentro de la columna mensaje
     const detalleUsuario = {
       nombre: nombre.trim(),
       apellido: (apellido || "").trim(),
       cedula: cedula.trim(),
       telefono: telefono || "+593 9",
       email: email.trim().toLowerCase(),
-      clave: password || "SARA2026*",
       estado: "activo",
       ciudadPais: ciudadPais || "Ecuador",
       created_at: nowIso
@@ -173,7 +136,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH: Bloquear, activar o generar nueva clave
+// PATCH: Bloquear o activar usuario (Requiere rol administrador)
 export async function PATCH(request: Request) {
   try {
     const serverClient = await createSupabaseServerClient()
@@ -182,8 +145,13 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "No autorizado. Sesión activa requerida." }, { status: 401 })
     }
 
+    const metadata = { ...(user.user_metadata || {}), ...(user.app_metadata || {}) }
+    if (!canAccessModule(metadata, 'sara_master') && !canAccessModule(metadata, 'sara_stays')) {
+      return NextResponse.json({ error: "Permisos insuficientes." }, { status: 403 })
+    }
+
     const body = await request.json()
-    const { id, accion, nuevaClave } = body
+    const { id, accion } = body
 
     if (!id || !accion) {
       return NextResponse.json({ error: "ID y acción son requeridos" }, { status: 400 })
@@ -194,7 +162,6 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: true, message: "Acción simulada sin backend" })
     }
 
-    // Leer registro actual
     const { data: record, error: fetchErr } = await supabase
       .from("solicitudes_servicio")
       .select("*")
@@ -203,7 +170,7 @@ export async function PATCH(request: Request) {
       .single()
 
     if (fetchErr || !record) {
-      return NextResponse.json({ success: true, message: "Registro procesado" })
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
     }
 
     let det: any = {}
@@ -220,9 +187,6 @@ export async function PATCH(request: Request) {
     } else if (accion === "activar") {
       nuevoEstado = "activo"
       det.estado = "activo"
-    } else if (accion === "generar_clave") {
-      const claveGen = nuevaClave || `SARA${Math.floor(1000 + Math.random() * 9000)}*Key`
-      det.clave = claveGen
     }
 
     const { error: updateErr } = await supabase
@@ -238,21 +202,25 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 })
     }
 
-    const { clave, password, ...safeDet } = det
-    return NextResponse.json({ success: true, det: safeDet, estado: nuevoEstado })
+    return NextResponse.json({ success: true, estado: nuevoEstado })
   } catch (err: any) {
     console.error("Error en PATCH /api/airbnb/usuarios:", err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
 
-// DELETE: Eliminar usuario
+// DELETE: Eliminar usuario (Requiere rol administrador)
 export async function DELETE(request: Request) {
   try {
     const serverClient = await createSupabaseServerClient()
     const { data: { user } } = await serverClient.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: "No autorizado. Sesión activa requerida." }, { status: 401 })
+    }
+
+    const metadata = { ...(user.user_metadata || {}), ...(user.app_metadata || {}) }
+    if (!canAccessModule(metadata, 'sara_master')) {
+      return NextResponse.json({ error: "Permisos insuficientes." }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)

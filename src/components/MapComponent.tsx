@@ -1,7 +1,6 @@
 "use client"
 import React, { useEffect, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 
 const DefaultIcon = L.icon({

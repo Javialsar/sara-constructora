@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { 
   X, Plus, Trash2, Save, Sparkles, AlertCircle, 
-  Package, Users, Wrench, Truck, Check, Search, Loader2, ArrowRight, FileText
+  Package, Users, Wrench, Truck, Check, Search, Loader2, ArrowRight, FileText, Lock
 } from "lucide-react"
 import { generateSercopApuPDF } from "@/lib/pdfGenerator"
 import { syncInsumosForPresupuestoRubro } from "@/lib/apuRecipeGenerator"
+import { calcularRubroApuDesdePresupuestoRubro, roundTo } from "@/lib/calculadoras/saraApuEngine"
 
 interface ApuSlideOverDetailProps {
   isOpen: boolean
@@ -18,6 +19,7 @@ interface ApuSlideOverDetailProps {
   supabase: any
   onRecipeUpdated: () => Promise<void>
   allInsumos?: any[]
+  readOnly?: boolean
 }
 
 export default function ApuSlideOverDetail({
@@ -29,7 +31,8 @@ export default function ApuSlideOverDetail({
   regimen = 'privado',
   userRole = 'admin',
   supabase,
-  onRecipeUpdated
+  onRecipeUpdated,
+  readOnly = false
 }: ApuSlideOverDetailProps) {
   const [activeSection, setActiveSection] = useState<'materiales' | 'mano_de_obra' | 'equipos' | 'transporte'>('materiales')
   const [searchInsumoTerm, setSearchInsumoTerm] = useState('')
@@ -68,31 +71,51 @@ export default function ApuSlideOverDetail({
     return { materiales: mat, mano_de_obra: mo, equipos: eq, transporte: tr }
   }, [rawItems])
 
-  // Totales por componente
-  const sumSection = (items: any[]) => {
-    return items.reduce((acc, curr) => {
-      const cant = Number(curr.cantidad || 0)
-      const pu = Number(curr.precio_sin_iva_snapshot || 0)
-      return acc + (cant * pu)
-    }, 0)
+  // Cálculo determinista unificado mediante saraApuEngine
+  const apuCalculado = useMemo(() => {
+    if (!currentRecipeRubro?.id) return null
+    return calcularRubroApuDesdePresupuestoRubro(
+      currentRecipeRubro,
+      rawItems,
+      herramientaPct
+    )
+  }, [currentRecipeRubro, rawItems, herramientaPct])
+
+  const totalMateriales = apuCalculado?.costoMateriales ?? 0
+  const totalMO = apuCalculado?.costoManoDeObra ?? 0
+  const totalEquiposBase = apuCalculado?.costoEquiposBase ?? 0
+  const valorHerramientaMenor = apuCalculado?.costoHerramientaMenor ?? 0
+  const totalEquiposTotal = apuCalculado?.costoEquiposTotal ?? 0
+  const totalTransporte = apuCalculado?.costoTransporte ?? 0
+  const totalCostoDirecto = apuCalculado?.costoDirectoUnitario ?? 0
+
+  const sumSection = (categoryKey: 'materiales' | 'mano_de_obra' | 'equipos' | 'transporte') => {
+    if (!apuCalculado) return 0
+    switch (categoryKey) {
+      case 'materiales': return apuCalculado.costoMateriales
+      case 'mano_de_obra': return apuCalculado.costoManoDeObra
+      case 'equipos': return apuCalculado.costoEquiposBase
+      case 'transporte': return apuCalculado.costoTransporte
+      default: return 0
+    }
   }
 
-  const totalMateriales = useMemo(() => sumSection(categorized.materiales), [categorized.materiales])
-  const totalMO = useMemo(() => sumSection(categorized.mano_de_obra), [categorized.mano_de_obra])
-  const totalEquiposBase = useMemo(() => sumSection(categorized.equipos), [categorized.equipos])
-  const totalTransporte = useMemo(() => sumSection(categorized.transporte), [categorized.transporte])
-  
-  // Herramienta menor (5% de Mano de Obra típico en Ecuador)
-  const valorHerramientaMenor = useMemo(() => {
-    return (totalMO * (herramientaPct / 100))
-  }, [totalMO, herramientaPct])
-
-  const totalEquiposTotal = totalEquiposBase + valorHerramientaMenor
-  const totalCostoDirecto = totalMateriales + totalMO + totalEquiposTotal + totalTransporte
+  // Sincronizar totales recalculados hacia presupuesto_rubros
+  const syncPresupuestoRubroTotals = async (updatedItems: any[]) => {
+    if (!currentRecipeRubro?.id) return
+    const calc = calcularRubroApuDesdePresupuestoRubro(currentRecipeRubro, updatedItems, herramientaPct)
+    await supabase
+      .from('presupuesto_rubros')
+      .update({
+        precio_unitario_snapshot: calc.costoDirectoUnitario,
+        subtotal: calc.subtotalCostoDirectoRubro
+      })
+      .eq('id', currentRecipeRubro.id)
+  }
 
   // Búsqueda en catálogo maestro
   useEffect(() => {
-    if (!searchInsumoTerm || searchInsumoTerm.trim().length < 2) {
+    if (readOnly || !searchInsumoTerm || searchInsumoTerm.trim().length < 2) {
       setSearchResults([])
       return
     }
@@ -121,16 +144,18 @@ export default function ApuSlideOverDetail({
       setSearching(false)
     }, 300)
     return () => clearTimeout(t)
-  }, [searchInsumoTerm, activeSection, supabase])
+  }, [searchInsumoTerm, activeSection, supabase, readOnly])
 
   // Modificar cantidad/rendimiento
   const handleUpdateCantidad = async (itemId: string, newCant: number) => {
-    if (newCant < 0) return
+    if (readOnly || newCant < 0) return
     try {
       await supabase
         .from('presupuesto_rubro_insumos')
         .update({ cantidad: newCant })
         .eq('id', itemId)
+      const updated = rawItems.map((r: any) => r.id === itemId ? { ...r, cantidad: newCant } : r)
+      await syncPresupuestoRubroTotals(updated)
       await onRecipeUpdated()
     } catch (err) {
       console.error("Error al actualizar cantidad:", err)
@@ -139,12 +164,14 @@ export default function ApuSlideOverDetail({
 
   // Modificar precio snapshot del insumo en el proyecto
   const handleUpdatePrecio = async (itemId: string, newPrecio: number) => {
-    if (newPrecio < 0) return
+    if (readOnly || newPrecio < 0) return
     try {
       await supabase
         .from('presupuesto_rubro_insumos')
         .update({ precio_sin_iva_snapshot: newPrecio })
         .eq('id', itemId)
+      const updated = rawItems.map((r: any) => r.id === itemId ? { ...r, precio_sin_iva_snapshot: newPrecio } : r)
+      await syncPresupuestoRubroTotals(updated)
       await onRecipeUpdated()
     } catch (err) {
       console.error("Error al actualizar precio:", err)
@@ -153,11 +180,14 @@ export default function ApuSlideOverDetail({
 
   // Eliminar insumo del rubro
   const handleRemoveInsumo = async (itemId: string) => {
+    if (readOnly) return
     try {
       await supabase
         .from('presupuesto_rubro_insumos')
         .delete()
         .eq('id', itemId)
+      const updated = rawItems.filter((r: any) => r.id !== itemId)
+      await syncPresupuestoRubroTotals(updated)
       await onRecipeUpdated()
     } catch (err) {
       console.error("Error al eliminar insumo:", err)
@@ -166,16 +196,23 @@ export default function ApuSlideOverDetail({
 
   // Agregar insumo seleccionado al rubro
   const handleAddInsumo = async (insumo: any) => {
-    if (!currentRecipeRubro?.id) return
+    if (readOnly || !currentRecipeRubro?.id) return
     try {
-      await supabase.from('presupuesto_rubro_insumos').insert([{
+      const newItem = {
         presupuesto_rubro_id: currentRecipeRubro.id,
         insumo_id: insumo.id,
         cantidad: 1.0,
         precio_sin_iva_snapshot: Number(insumo.precio_sin_iva) || 0
-      }])
+      }
+      const { data: inserted } = await supabase
+        .from('presupuesto_rubro_insumos')
+        .insert([newItem])
+        .select('*')
+        .single()
       setSearchInsumoTerm('')
       setSearchResults([])
+      const updated = [...rawItems, inserted || { ...newItem, insumo }]
+      await syncPresupuestoRubroTotals(updated)
       await onRecipeUpdated()
     } catch (err) {
       console.error("Error agregando insumo:", err)
@@ -184,6 +221,7 @@ export default function ApuSlideOverDetail({
 
   // Sincronizar hacia el catálogo maestro
   const handleSyncToMaster = async () => {
+    if (readOnly) return
     if (!currentRecipeRubro?.rubro_id) {
       alert("Este rubro fue creado localmente y no tiene plantilla maestra enlazada.")
       return
@@ -218,7 +256,7 @@ export default function ApuSlideOverDetail({
 
   // Sincronizar / Generar analíticamente la receta de insumos con la Red de Agentes SARA
   const handleAutoSyncRecipe = async () => {
-    if (!currentRecipeRubro?.id) return
+    if (readOnly || !currentRecipeRubro?.id) return
     setIsAutoSyncing(true)
     try {
       await syncInsumosForPresupuestoRubro(supabase, currentRecipeRubro)
@@ -372,51 +410,64 @@ export default function ApuSlideOverDetail({
           {/* Cuerpo: Lista de Insumos de la sección activa */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             
-            {/* Buscador de Insumos rápido para agregar a esta sección */}
-            <div className="relative">
-              <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 bg-white">
-                <Search size={16} className="text-slate-400 ml-1" />
-                <input
-                  type="text"
-                  placeholder={`Buscar y agregar insumo a ${activeSection.replace('_', ' ')}...`}
-                  value={searchInsumoTerm}
-                  onChange={(e) => setSearchInsumoTerm(e.target.value)}
-                  className="w-full text-xs bg-transparent outline-none text-slate-800"
-                />
-                {searching && <Loader2 size={15} className="animate-spin text-blue-600 mr-1" />}
-                {searchInsumoTerm && (
-                  <button onClick={() => setSearchInsumoTerm('')} className="text-slate-400 hover:text-slate-600">
-                    <X size={14} />
-                  </button>
-                )}
+            {/* Aviso de Inmutabilidad si el presupuesto está Aprobado */}
+            {readOnly && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-amber-900 text-xs shadow-2xs">
+                <Lock size={16} className="text-amber-600 shrink-0" />
+                <div>
+                  <span className="font-black block">Línea Base Inmutable (Presupuesto Aprobado)</span>
+                  <span className="text-[11px] text-amber-700">Este APU está protegido contra modificaciones directas. Para editarlo, clónalo como una nueva versión en borrador.</span>
+                </div>
               </div>
+            )}
 
-              {/* Resultados flotantes */}
-              {searchResults.length > 0 && (
-                <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto divide-y divide-slate-100">
-                  {searchResults.map((ins) => (
-                    <div
-                      key={ins.id}
-                      onClick={() => handleAddInsumo(ins)}
-                      className="p-2.5 hover:bg-blue-50 cursor-pointer flex items-center justify-between text-xs transition-colors"
-                    >
-                      <div>
-                        <div className="font-bold text-slate-800">{ins.nombre}</div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {ins.codigo} • {ins.tipo} • Und: {ins.unidad}
+            {/* Buscador de Insumos rápido para agregar a esta sección (sólo en borrador) */}
+            {!readOnly && (
+              <div className="relative">
+                <div className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 bg-white">
+                  <Search size={16} className="text-slate-400 ml-1" />
+                  <input
+                    type="text"
+                    placeholder={`Buscar y agregar insumo a ${activeSection.replace('_', ' ')}...`}
+                    value={searchInsumoTerm}
+                    onChange={(e) => setSearchInsumoTerm(e.target.value)}
+                    className="w-full text-xs bg-transparent outline-none text-slate-800"
+                  />
+                  {searching && <Loader2 size={15} className="animate-spin text-blue-600 mr-1" />}
+                  {searchInsumoTerm && (
+                    <button onClick={() => setSearchInsumoTerm('')} className="text-slate-400 hover:text-slate-600">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Resultados flotantes */}
+                {searchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-20 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                    {searchResults.map((ins) => (
+                      <div
+                        key={ins.id}
+                        onClick={() => handleAddInsumo(ins)}
+                        className="p-2.5 hover:bg-blue-50 cursor-pointer flex items-center justify-between text-xs transition-colors"
+                      >
+                        <div>
+                          <div className="font-bold text-slate-800">{ins.nombre}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            {ins.codigo} • {ins.tipo} • Und: {ins.unidad}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-700">${Number(ins.precio_sin_iva || 0).toFixed(2)}</span>
+                          <button className="p-1 rounded bg-blue-600 text-white hover:bg-blue-700">
+                            <Plus size={13} />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-slate-700">${Number(ins.precio_sin_iva || 0).toFixed(2)}</span>
-                        <button className="p-1 rounded bg-blue-600 text-white hover:bg-blue-700">
-                          <Plus size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Banner de Sincronización si el rubro no tiene insumos */}
             {rawItems.length === 0 && (
@@ -545,7 +596,7 @@ export default function ApuSlideOverDetail({
                         Subtotal {activeSection.replace('_', ' ')}:
                       </td>
                       <td className="py-2 px-3 text-right font-mono text-xs font-black text-blue-700">
-                        ${sumSection(itemsToShow).toFixed(2)}
+                        ${sumSection(activeSection as any).toFixed(2)}
                       </td>
                       <td></td>
                     </tr>

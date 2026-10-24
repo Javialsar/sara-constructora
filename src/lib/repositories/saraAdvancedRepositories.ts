@@ -234,6 +234,70 @@ export class ComprasRepository {
     if (error) throw new Error(`[ComprasRepository.saveRetencion] ${error.message}`);
     return data;
   }
+
+  /**
+   * Guarda o actualiza una Orden de Compra formal en Supabase
+   */
+  public static async saveOrdenCompra(ordenData: {
+    numero_orden: string;
+    proveedor_id: string;
+    proyecto_id?: string;
+    bodega_destino_id?: string;
+    fecha_emision?: string;
+    estado?: string;
+    subtotal: number;
+    descuento?: number;
+    flete?: number;
+    iva: number;
+    total: number;
+    items: any[];
+    metadata_procura?: any;
+  }) {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('compras_ordenes')
+      .upsert(ordenData, { onConflict: 'numero_orden' })
+      .select()
+      .single();
+
+    if (error) throw new Error(`[ComprasRepository.saveOrdenCompra] ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Actualiza el estado de una Orden de Compra
+   */
+  public static async updateOrdenCompraEstado(id: string, nuevoEstado: string) {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from('compras_ordenes')
+      .update({ estado: nuevoEstado, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(`[ComprasRepository.updateOrdenCompraEstado] ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Lista órdenes de compra por proyecto o globales
+   */
+  public static async listOrdenesCompra(proyectoId?: string) {
+    const supabase = createAdminClient();
+    let query = supabase
+      .from('compras_ordenes')
+      .select('*, proveedores(id, razon_social, ruc)')
+      .order('created_at', { ascending: false });
+
+    if (proyectoId && proyectoId !== 'TODOS') {
+      query = query.eq('proyecto_id', proyectoId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`[ComprasRepository.listOrdenesCompra] ${error.message}`);
+    return data || [];
+  }
 }
 
 export class NominaRepository {

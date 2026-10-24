@@ -147,22 +147,29 @@ export const SOLICITUDES_SEMILLA: SolicitudPersonalEmpresa[] = [
   }
 ];
 
+let memoryCache: SolicitudPersonalEmpresa[] = [...SOLICITUDES_SEMILLA];
+
 export class SaraTalentoRequestsService {
   /**
    * Obtiene la lista completa de solicitudes registradas en el sistema.
    */
   static getSolicitudes(): SolicitudPersonalEmpresa[] {
-    if (typeof window === 'undefined') return SOLICITUDES_SEMILLA;
+    if (typeof window === 'undefined') {
+      return memoryCache;
+    }
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (!stored) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(SOLICITUDES_SEMILLA));
+        memoryCache = [...SOLICITUDES_SEMILLA];
         return SOLICITUDES_SEMILLA;
       }
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      memoryCache = parsed;
+      return parsed;
     } catch (e) {
       console.warn('Error leyendo solicitudes de talento desde localStorage:', e);
-      return SOLICITUDES_SEMILLA;
+      return memoryCache;
     }
   }
 
@@ -170,6 +177,7 @@ export class SaraTalentoRequestsService {
    * Guarda la lista de solicitudes y notifica a los listeners reactivos.
    */
   private static saveSolicitudes(solicitudes: SolicitudPersonalEmpresa[]) {
+    memoryCache = solicitudes;
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(solicitudes));

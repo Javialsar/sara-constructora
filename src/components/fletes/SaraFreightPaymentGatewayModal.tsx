@@ -161,7 +161,14 @@ export default function SaraFreightPaymentGatewayModal({
   const qrImageSource = currentUploadedQr || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=4&data=${encodeURIComponent(qrDataMap[selectedQrPlatform])}`;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="payment-modal-title"
+      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+      tabIndex={-1}
+    >
       <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 my-auto text-white">
         
         {/* Cabecera del Modal */}
@@ -171,7 +178,7 @@ export default function SaraFreightPaymentGatewayModal({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-white text-base">Pasarela de Pago Digital</h3>
+              <h3 id="payment-modal-title" className="font-black text-white text-base">Pasarela de Pago Digital</h3>
               <p className="text-xs text-slate-400">Pago Directo al Transportista · 100% Seguro</p>
             </div>
           </div>

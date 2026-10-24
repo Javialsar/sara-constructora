@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -188,8 +188,12 @@ export default function AirbnbAuthPage() {
       let guestApellido = ""
 
       if (authError) {
-        console.warn("Supabase auth advertencia, evaluando sesión de huésped:", authError.message)
-      } else if (data?.user) {
+        throw new Error(authError.message || "Credenciales incorrectas. Verifique su correo y contrasena.")
+      }
+      if (!data?.user) {
+        throw new Error("No se pudo iniciar sesion. Verifique sus credenciales.")
+      }
+      if (data?.user) {
         const metadata = data.user.user_metadata || {}
 
         // VALIDACIÓN DE SEGREGACIÓN POR MÓDULO

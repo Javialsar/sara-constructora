@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { StaysPolicies, DEFAULT_STAYS_POLICIES } from "@/lib/services/staysPoliciesService"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
+import { canAccessModule } from "@/lib/auth/moduleGuards"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
@@ -56,6 +58,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado. Inicie sesión para modificar políticas." }, { status: 401 })
+    }
+
+    const metadata = { ...(user.user_metadata || {}), ...(user.app_metadata || {}) }
+    if (!canAccessModule(metadata, 'sara_master') && !canAccessModule(metadata, 'sara_stays')) {
+      return NextResponse.json({ error: "Permisos insuficientes. Requiere rol administrativo." }, { status: 403 })
+    }
+
     const body: StaysPolicies = await req.json()
     if (!body || typeof body.porcentajeAnticipo !== "number") {
       return NextResponse.json({ success: false, error: "Datos de políticas incompletos" }, { status: 400 })

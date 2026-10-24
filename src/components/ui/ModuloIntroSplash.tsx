@@ -123,21 +123,47 @@ export default function ModuloIntroSplash({
   nombrePersonalizado,
   subtituloPersonalizado,
   forceShow = false,
-  durationMs = 2000,
+  durationMs = 1600,
   onComplete
 }: ModuloIntroSplashProps) {
   const config = MODULOS_CONFIG[modulo] || MODULOS_CONFIG.constructora
-  const [isVisible, setIsVisible] = useState(true)
-  const [progress, setProgress] = useState(0)
+  const [isVisible, setIsVisible] = useState(() => {
+    if (forceShow) return true;
+    if (typeof window !== 'undefined') {
+      try {
+        const seen = sessionStorage.getItem(`sara_splash_seen_${modulo}`);
+        if (seen === 'true') return false;
+      } catch {
+        // En caso de modo privado
+      }
+    }
+    return true;
+  })
+  const [progress, setProgress] = useState(15)
   const [logoUrl, setLogoUrl] = useState<string>(config.fallbackLogo)
 
-  // 1. Obtener el logotipo oficial de la base de datos (configuración)
+  // 0. Comprobar si ya se vio en la sesión actual para no demorar al usuario recurrente
+  useEffect(() => {
+    if (!forceShow && typeof window !== 'undefined') {
+      try {
+        const seen = sessionStorage.getItem(`sara_splash_seen_${modulo}`);
+        if (seen === 'true') {
+          setIsVisible(false);
+          if (onComplete) onComplete();
+        }
+      } catch {}
+    }
+  }, [modulo, forceShow, onComplete]);
+
+  // 1. Obtener el logotipo oficial de la base de datos (configuración) con timeout
   useEffect(() => {
     let isMounted = true
     const fetchDbLogo = async () => {
       try {
-        const logos: LogosEmpresa = await getLogosEmpresa()
-        if (!isMounted) return
+        const logoPromise = getLogosEmpresa()
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200))
+        const logos = (await Promise.race([logoPromise, timeoutPromise])) as LogosEmpresa | null
+        if (!isMounted || !logos) return
         
         let targetUrl = ""
         switch (modulo) {
@@ -178,14 +204,18 @@ export default function ModuloIntroSplash({
       }
     }
 
-    fetchDbLogo()
+    if (isVisible) {
+      fetchDbLogo()
+    }
     return () => { isMounted = false }
-  }, [modulo])
+  }, [modulo, isVisible])
 
   // 2. Control del ciclo de animación de progreso y finalización
   useEffect(() => {
-    const stepIntervalMs = 40
-    const stepIncrement = (100 / (durationMs / stepIntervalMs))
+    if (!isVisible) return
+
+    const stepIntervalMs = 35
+    const stepIncrement = (85 / (durationMs / stepIntervalMs))
 
     const interval = setInterval(() => {
       setProgress((prev) => {
@@ -199,15 +229,22 @@ export default function ModuloIntroSplash({
 
     const timer = setTimeout(() => {
       handleFinish()
-    }, durationMs + 200)
+    }, durationMs + 100)
 
     return () => {
       clearInterval(interval)
       clearTimeout(timer)
     }
-  }, [durationMs])
+  }, [durationMs, isVisible])
 
   const handleFinish = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(`sara_splash_seen_${modulo}`, 'true')
+      }
+    } catch {
+      // Ignorar error de storage
+    }
     setIsVisible(false)
     if (onComplete) onComplete()
   }

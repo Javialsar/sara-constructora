@@ -130,6 +130,26 @@ export function ApuRequisitionComprasWorkflow() {
     }, 1400);
   };
 
+  const handleDescargarOCOficial = (oc: OrdenCompraGenerada) => {
+    try {
+      const lineasItems = oc.items
+        .map(it => `- ${it.codigo} | ${it.descripcion} | Cant: ${it.cantidad} ${it.unidad} | Unit: $${it.precioUnitario.toFixed(2)} | Subtotal: $${it.subtotal.toFixed(2)}`)
+        .join('\n');
+      const docTexto = `=================================================================\nGRUPO SARA • ORDEN DE COMPRA OFICIAL\n=================================================================\nNúmero de OC: ${oc.numeroOC}\nProveedor: ${oc.razonSocial} (RUC: ${oc.ruc})\nObra Destino: ${oc.obraDestino}\nFecha Emisión: ${new Date().toLocaleDateString('es-EC')}\nSubtotal: $${oc.subtotal.toFixed(2)} USD\nFlete: $${oc.flete.toFixed(2)} USD\nIVA (15%): $${oc.iva15.toFixed(2)} USD\nTotal Compra: $${oc.totalAPagar.toFixed(2)} USD\n\nDETALLE DE MATERIALES:\n${lineasItems}\n\n=================================================================\nCERTIFICACIÓN DIGITAL DE AUDITORÍA Y COMPRAS SARA\nCódigo Hash de Trazabilidad: OC-${btoa(oc.numeroOC).slice(0, 16)}\n=================================================================`;
+      const blob = new Blob([docTexto], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${oc.numeroOC}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.warn("Error descargando OC:", e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ------------------------------------------------------------------- */}
@@ -695,11 +715,11 @@ export function ApuRequisitionComprasWorkflow() {
                 </div>
 
                 <button
-                  onClick={() => alert(`Descargando documento digital oficial: ${ocSeleccionadaParaVer.numeroOC}.pdf con firma de compras y código QR de auditoría.`)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 self-start sm:self-auto transition-all"
+                  onClick={() => handleDescargarOCOficial(ocSeleccionadaParaVer)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-1.5 self-start sm:self-auto transition-all cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Descargar PDF Oficial</span>
+                  <span>Descargar OC Oficial</span>
                 </button>
               </div>
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -14,7 +15,7 @@ function getSupabaseAdmin() {
   })
 }
 
-function formatAuthorName(rawName?: string, fallback = "Clarisa Paredes"): string {
+function formatAuthorName(rawName?: string, fallback = "Huésped"): string {
   if (!rawName) return fallback
   const clean = rawName.replace(/[._-]+/g, " ").trim()
   if (!clean || clean.toLowerCase() === "huesped verificado" || clean.toLowerCase() === "huesped") {
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
       }
 
       const rawAuthor = detalle.autor || detalle.huespedNombre || row.nombre || (row.email ? row.email.split("@")[0] : "")
-      const formattedAuthor = formatAuthorName(rawAuthor, "Clarisa Paredes")
+      const formattedAuthor = formatAuthorName(rawAuthor, "Huésped SARA")
 
       return {
         id: row.id,
@@ -68,13 +69,13 @@ export async function GET(request: Request) {
         codigoReserva: detalle.codigoReserva || detalle.codigo_reserva || "",
         autor: formattedAuthor,
         huespedNombre: formattedAuthor,
-        ciudadOrigen: detalle.ciudadOrigen || detalle.ciudad || "Cuenca, Ecuador",
+        ciudadOrigen: detalle.ciudadOrigen || detalle.ciudad || "Ecuador",
         pais: detalle.pais || "Ecuador",
         bandera: detalle.bandera || "🇪🇨",
         fecha: detalle.fecha || new Date(row.created_at).toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" }),
         rating: Number(detalle.rating) || 5,
         comentario: detalle.comentario || "",
-        verificado: true
+        verificado: Boolean(detalle.verificado)
       }
     })
 
@@ -89,7 +90,7 @@ export async function GET(request: Request) {
   }
 }
 
-// POST: Registrar una nueva reseña de huésped verificado
+// POST: Registrar una nueva reseña con validación de verificación
 export async function POST(request: Request) {
   try {
     const supabase = getSupabaseAdmin()
@@ -111,16 +112,34 @@ export async function POST(request: Request) {
       comentario
     } = body
 
-    const rawAuthor = autor || huespedNombre || body.nombre || (email ? email.split("@")[0] : "") || "Clarisa Paredes"
-    const formattedAuthor = formatAuthorName(rawAuthor, "Clarisa Paredes")
-
     if (!alojamientoId || !rating || !comentario) {
-      return NextResponse.json({ error: "Faltan campos obligatorios para la reseña" }, { status: 400 })
+      return NextResponse.json({ error: "alojamientoId, rating y comentario son requeridos" }, { status: 400 })
     }
+
+    let isVerified = false
+
+    // Verificar si el código de reserva realmente existe en la base de datos
+    if (codigoReserva) {
+      try {
+        const { data: solRsv } = await supabase
+          .from("solicitudes_servicio")
+          .select("id")
+          .eq("tipo_servicio", "alojamiento_airbnb")
+          .ilike("mensaje", `%${codigoReserva}%`)
+          .limit(1)
+
+        if (solRsv && solRsv.length > 0) {
+          isVerified = true
+        }
+      } catch {}
+    }
+
+    const rawAuthor = autor || huespedNombre || (email ? email.split("@")[0] : "") || "Huésped"
+    const formattedAuthor = formatAuthorName(rawAuthor, "Huésped")
 
     const resenaDetalle = {
       alojamientoId,
-      alojamientoCodigo: alojamientoCodigo || "",
+      alojamientoCodigo: alojamientoCodigo || alojamientoId,
       codigoReserva: codigoReserva || "",
       autor: formattedAuthor,
       huespedNombre: formattedAuthor,
@@ -130,7 +149,7 @@ export async function POST(request: Request) {
       rating: Math.min(5, Math.max(1, Number(rating))),
       comentario: comentario.trim(),
       fecha: new Date().toLocaleDateString("es-EC", { day: "numeric", month: "long", year: "numeric" }),
-      verificado: true
+      verificado: isVerified
     }
 
     const { data, error } = await supabase
@@ -142,17 +161,23 @@ export async function POST(request: Request) {
           telefono: telefono || "+593",
           tipo_servicio: "resena_airbnb",
           mensaje: JSON.stringify(resenaDetalle, null, 2),
-          estado: "aprobada"
+          estado: isVerified ? "aprobada" : "pendiente_moderacion"
         }
       ])
       .select()
 
     if (error) {
-      console.error("Error guardando reseña en Supabase:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, resena: resenaDetalle, data })
+    return NextResponse.json({
+      success: true,
+      resena: resenaDetalle,
+      verificado: isVerified,
+      message: isVerified
+        ? "Reseña verificada publicada exitosamente."
+        : "Reseña recibida y enviada a moderación."
+    })
   } catch (err: any) {
     console.error("Error en POST /api/airbnb/resenas:", err)
     return NextResponse.json({ error: err.message }, { status: 500 })

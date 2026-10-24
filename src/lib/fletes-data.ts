@@ -145,8 +145,12 @@ export async function createFletesSolicitud(data: {
 
         if (!valRes.success) {
           console.warn('[FLETES DATA WARN] Validación de tarifa en servidor:', valRes.error);
+          throw new Error(valRes.error || 'Tarifa fuera de rango legal');
         }
-      } catch (valErr) {
+      } catch (valErr: any) {
+        if (valErr.message?.includes('TARIFA_FUERA_DE_RANGO')) {
+          throw valErr;
+        }
         console.warn('Validación de tarifa omitida (modo offline):', valErr);
       }
     }

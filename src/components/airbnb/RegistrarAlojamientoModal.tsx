@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import React, { useState, useEffect } from "react"
 import {
   Building,
@@ -453,8 +453,10 @@ export default function RegistrarAlojamientoModal({
       })
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        console.warn("Aviso guardando en BD:", errData)
+        const errData = await res.json().catch(() => ({}));
+        setErrorMessage(errData.error || "No se pudo registrar el alojamiento en el servidor. Verifique sus permisos de anfitrión.");
+        setIsSaving(false);
+        return;
       }
 
       // Formatear para el catálogo de la página

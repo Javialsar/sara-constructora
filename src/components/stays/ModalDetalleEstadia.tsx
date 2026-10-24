@@ -489,16 +489,22 @@ export default function ModalDetalleEstadia({
             </form>
           )}
 
-          {/* Métricas por Categoría (Estilo Airbnb Oficial) */}
+          {/* Métricas por Categoría (Estilo Airbnb Oficial - Dinámico) */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-gray-200/80">
-            {[
-              { label: "Limpieza", score: "4.9", pct: "98%" },
-              { label: "Precisión del anuncio", score: "5.0", pct: "100%" },
-              { label: "Llegada Smart Lock", score: "4.9", pct: "98%" },
-              { label: "Comunicación SARA", score: "5.0", pct: "100%" },
-              { label: "Ubicación & Seguridad", score: "4.9", pct: "98%" },
-              { label: "Calidad - Precio", score: "4.9", pct: "98%" },
-            ].map((cat, idx) => (
+            {(() => {
+              const currentRating = getStayStats(selectedStay).rating || selectedStay.rating || 4.9;
+              return [
+                { label: "Limpieza", score: Math.min(5, Math.max(1, currentRating - 0.05)).toFixed(1) },
+                { label: "Precisión del anuncio", score: Math.min(5, Math.max(1, currentRating >= 4.98 ? 5.0 : currentRating + 0.02)).toFixed(1) },
+                { label: "Llegada Smart Lock", score: Math.min(5, Math.max(1, currentRating)).toFixed(1) },
+                { label: "Comunicación SARA", score: Math.min(5, 5.0).toFixed(1) },
+                { label: "Ubicación & Seguridad", score: Math.min(5, Math.max(1, currentRating - 0.02)).toFixed(1) },
+                { label: "Calidad - Precio", score: Math.min(5, Math.max(1, currentRating)).toFixed(1) },
+              ].map((c) => ({
+                ...c,
+                pct: `${Math.min(100, Math.round((parseFloat(c.score) / 5) * 100))}%`,
+              }));
+            })().map((cat, idx) => (
               <div key={idx} className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-600 font-medium">{cat.label}</span>

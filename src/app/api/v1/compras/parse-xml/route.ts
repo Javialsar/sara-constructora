@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ComprasController } from '@/lib/controllers/saraAdvancedControllers';
 import { authenticateProfessionalRequest } from '@/lib/auth/professionalAuthGuard';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verificación de Seguridad y Sesión Profesional
+    // 1. Verificación de Seguridad y Sesión Profesional Zero-Trust
     const auth = await authenticateProfessionalRequest(req);
     if (!auth.user) {
       return NextResponse.json(
@@ -41,4 +43,26 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+}
+
+export async function PUT(req: NextRequest) {
+  const auth = await authenticateProfessionalRequest(req);
+  if (!auth.user) {
+    return NextResponse.json(
+      { success: false, error: auth.error || 'No autorizado' },
+      { status: auth.status || 401 }
+    );
+  }
+  return NextResponse.json({ success: false, error: 'Método PUT no soportado.' }, { status: 405 });
+}
+
+export async function DELETE(req: NextRequest) {
+  const auth = await authenticateProfessionalRequest(req);
+  if (!auth.user) {
+    return NextResponse.json(
+      { success: false, error: auth.error || 'No autorizado' },
+      { status: auth.status || 401 }
+    );
+  }
+  return NextResponse.json({ success: false, error: 'Método DELETE no soportado.' }, { status: 405 });
 }

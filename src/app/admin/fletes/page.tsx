@@ -35,9 +35,6 @@ interface Driver {
   documents: Document[];
 }
 
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import AnalyticsDashboard from '@/components/admin/fletes/AnalyticsDashboard';
 import GlobalMap from '@/components/admin/fletes/GlobalMap';
 import PlanManager from '@/components/admin/fletes/PlanManager';
@@ -185,7 +182,8 @@ export default function AdminFletes() {
     return matchPlaca && matchProv && matchCity && matchDir;
   });
 
-  const handleDownloadExcel = () => {
+  const handleDownloadExcel = async () => {
+    const XLSX = await import('xlsx');
     if (activeTab === 'vehiculos') {
       const data = filteredDrivers.map(d => ({
         'ID': d.id,
@@ -222,7 +220,9 @@ export default function AdminFletes() {
     }
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF();
     if (activeTab === 'vehiculos') {
       doc.text("Reporte de Vehículos", 14, 15);
