@@ -39,10 +39,9 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // 1. PROTECCIÓN DE SARA APU (/dashboard/*, /modulos/compras/*, /modulos/financiero/*, /modulos/importador/*)
+  // 1. PROTECCIÓN DE SARA APU (/dashboard/*, /modulos/financiero/*, /modulos/importador/*)
   if (
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/modulos/compras') ||
     pathname.startsWith('/modulos/financiero') ||
     pathname.startsWith('/modulos/importador')
   ) {
@@ -202,7 +201,6 @@ export const config = {
     '/stays/mis-reservas/:path*',
     '/modulos/fletes/mi-perfil/:path*',
     '/modulos/talento/mi-perfil/:path*',
-    '/modulos/compras/:path*',
     '/modulos/financiero/:path*',
     '/modulos/importador/:path*',
     '/login',
