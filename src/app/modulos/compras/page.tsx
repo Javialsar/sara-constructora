@@ -48,6 +48,15 @@ import {
 } from '@/lib/services/comprasService';
 import { OrdenCompraVoucherModal } from '@/components/compras/OrdenCompraVoucherModal';
 import { ApuRequisitionComprasWorkflow } from '@/components/compras/ApuRequisitionComprasWorkflow';
+import { 
+  SellerMarketplaceService, 
+  MarketplaceProduct, 
+  SellerProfile, 
+  SELLER_PLANS 
+} from '@/lib/services/sellerMarketplaceService';
+import { MarketplaceProductDetailModal } from '@/components/compras/MarketplaceProductDetailModal';
+import { SellerHubModal } from '@/components/compras/SellerHubModal';
+import { MarketplaceVitrinaSection } from '@/components/compras/MarketplaceVitrinaSection';
 
 type ComprasTab = 
   | 'tablero'
@@ -62,9 +71,40 @@ type ComprasTab =
 
 export default function ModuloComprasMasterPage() {
   // 1. Estados Principales
+  const [primaryMode, setPrimaryMode] = useState<'marketplace' | 'gestion_constructora'>('marketplace');
   const [activeTab, setActiveTab] = useState<ComprasTab>('tablero');
   const [proyectoFiltro, setProyectoFiltro] = useState<string>('TODOS');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Estados del Marketplace B2B y Catálogo de Fabricantes
+  const [marketplaceSearch, setMarketplaceSearch] = useState('');
+  const [marketplaceCategoria, setMarketplaceCategoria] = useState<string>('TODAS');
+  const [marketplaceSellerId, setMarketplaceSellerId] = useState<string>('TODOS');
+  const [marketplacePlanFiltro, setMarketplacePlanFiltro] = useState<string>('TODOS');
+  const [marketplaceSoloMasVendidos, setMarketplaceSoloMasVendidos] = useState(false);
+  const [marketplaceTarifaIva, setMarketplaceTarifaIva] = useState<number | undefined>(undefined);
+
+  // Modales del Marketplace y Seller Hub
+  const [productoParaVerDetalle, setProductoParaVerDetalle] = useState<MarketplaceProduct | null>(null);
+  const [sellerHubModalOpen, setSellerHubModalOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<{ product: MarketplaceProduct; cantidad: number }[]>([]);
+  const [sellerRefreshCounter, setSellerRefreshCounter] = useState(0);
+
+  // Productos del marketplace ordenados por jerarquía de Plan VIP -> Estándar -> Básico
+  const marketplaceProductos = useMemo(() => {
+    return SellerMarketplaceService.getMarketplaceProducts({
+      search: marketplaceSearch,
+      categoria: marketplaceCategoria === 'TODAS' ? undefined : marketplaceCategoria,
+      sellerId: marketplaceSellerId === 'TODOS' ? undefined : marketplaceSellerId,
+      plan: marketplacePlanFiltro === 'TODOS' ? undefined : (marketplacePlanFiltro as any),
+      masVendidos: marketplaceSoloMasVendidos ? true : undefined,
+      tarifaIva: marketplaceTarifaIva
+    });
+  }, [marketplaceSearch, marketplaceCategoria, marketplaceSellerId, marketplacePlanFiltro, marketplaceSoloMasVendidos, marketplaceTarifaIva, sellerRefreshCounter]);
+
+  const sellersList = useMemo(() => {
+    return SellerMarketplaceService.getSellersList();
+  }, [sellerRefreshCounter]);
   
   // Datos reactivos del Servicio de Compras
   const [requisiciones, setRequisiciones] = useState<RequisicionCompra[]>([]);
