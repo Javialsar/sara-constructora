@@ -45,7 +45,10 @@ import {
   RefreshCw,
   Eye,
   Save,
-  CheckCheck
+  CheckCheck,
+  Lock,
+  User,
+  ArrowLeft
 } from 'lucide-react';
 import { 
   SellerMarketplaceService, 
@@ -56,7 +59,6 @@ import {
   SellerBankAccount,
   SellerMobileWallets
 } from '@/lib/services/sellerMarketplaceService';
-import { ComprasService } from '@/lib/services/comprasService';
 
 interface SellerHubModalProps {
   isOpen: boolean;
@@ -76,7 +78,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     return null;
   });
 
-  // Pestañas de navegación tipo Dashboard (Imagen 2)
+  // Pestañas de navegación tipo Dashboard (Imagen 3)
   type TabKey = 
     | 'dashboard' 
     | 'historial_facturas' 
@@ -90,17 +92,20 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
   const [activeTab, setActiveTab] = useState<TabKey>('dashboard');
 
-  // Modo Auth inicial: 'login' | 'register'
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [loginTerm, setLoginTerm] = useState('');
+  // Modo Auth (Imagen 2): isLogin = true (Login) | false (Registro)
+  const [isLogin, setIsLogin] = useState(true);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // Formulario de Registro de Nuevo Proveedor
+  // Formulario de Registro de Nueva Empresa
   const [regForm, setRegForm] = useState({
     ruc: '',
     razonSocial: '',
     nombreComercial: '',
     email: '',
+    password: '',
     telefono: '',
     ciudad: 'Quito',
     direccionMatriz: '',
@@ -125,8 +130,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
   });
 
   // Estado del Archivo Excel Simulador
-  const [excelFile, setExcelFile] = useState<File | null>(null);
-  const [excelPreviewRows, setExcelPreviewRows] = useState<any[]>([]);
   const [excelCargando, setExcelCargando] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
@@ -138,9 +141,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
   const [copiadoApiKey, setCopiadoApiKey] = useState(false);
   const [copiadoCta, setCopiadoCta] = useState(false);
 
-  // ==========================================================================
-  // ESTADOS PARA DATOS DE LA EMPRESA (Requerimiento Usuario)
-  // ==========================================================================
+  // Estados para Datos de la Empresa
   const [empresaForm, setEmpresaForm] = useState({
     razonSocial: '',
     nombreComercial: '',
@@ -156,9 +157,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     ciudadesCobertura: ''
   });
 
-  // ==========================================================================
-  // ESTADOS PARA CUENTAS BANCARIAS & CÓDIGOS QR (Requerimiento Imagen 3)
-  // ==========================================================================
+  // Estados para Cuentas Bancarias & Códigos QR
   const [bankForm, setBankForm] = useState<SellerBankAccount>({
     banco: 'Banco Pichincha',
     tipoCuenta: 'Cuenta Corriente',
@@ -233,37 +232,44 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
   if (!isOpen) return null;
 
-  // Manejador: Autenticación rápida
-  const handleLogin = (e: React.FormEvent) => {
+  // Manejador: Autenticación tipo Imagen 2
+  const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
-    try {
-      const seller = SellerMarketplaceService.authenticateSeller(loginTerm);
-      setCurrentSeller(seller);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('sara_seller_active_id', seller.id);
-      }
-      setFeedbackMsg({ tipo: 'success', texto: `Bienvenido a su entorno corporativo, ${seller.nombreComercial}.` });
-    } catch (err: any) {
-      setAuthError(err.message);
-    }
-  };
+    setAuthLoading(true);
 
-  // Manejador: Registro de Nueva Empresa
-  const handleRegister = (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError(null);
-    try {
-      const nuevo = SellerMarketplaceService.registerSeller(regForm);
-      setCurrentSeller(nuevo);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('sara_seller_active_id', nuevo.id);
+    setTimeout(() => {
+      try {
+        if (isLogin) {
+          const seller = SellerMarketplaceService.authenticateSeller(loginEmail);
+          setCurrentSeller(seller);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sara_seller_active_id', seller.id);
+          }
+          setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${seller.nombreComercial} (${SELLER_PLANS[seller.plan].nombre}).` });
+        } else {
+          const nuevo = SellerMarketplaceService.registerSeller({
+            ruc: regForm.ruc,
+            razonSocial: regForm.razonSocial,
+            nombreComercial: regForm.nombreComercial,
+            email: regForm.email,
+            telefono: regForm.telefono,
+            ciudad: regForm.ciudad,
+            direccionMatriz: regForm.direccionMatriz,
+            plan: regForm.plan
+          });
+          setCurrentSeller(nuevo);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sara_seller_active_id', nuevo.id);
+          }
+          setFeedbackMsg({ tipo: 'success', texto: `Empresa ${nuevo.razonSocial} registrada con éxito en el ${SELLER_PLANS[nuevo.plan].nombre}.` });
+        }
+      } catch (err: any) {
+        setAuthError(err.message || 'Error de autenticación.');
+      } finally {
+        setAuthLoading(false);
       }
-      setFeedbackMsg({ tipo: 'success', texto: `Empresa ${nuevo.razonSocial} registrada con éxito en el ${SELLER_PLANS[nuevo.plan].nombre}.` });
-      setActiveTab('dashboard');
-    } catch (err: any) {
-      setAuthError(err.message);
-    }
+    }, 400);
   };
 
   // Manejador: Cerrar Sesión
@@ -273,7 +279,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     }
     setCurrentSeller(null);
     setActiveTab('dashboard');
-    setFeedbackMsg({ tipo: 'success', texto: 'Sesión finalizada correctamente.' });
+    setFeedbackMsg({ tipo: 'success', texto: 'Sesión de proveedor finalizada correctamente.' });
   };
 
   // Manejador: Guardar Datos de la Empresa
@@ -302,7 +308,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     }
   };
 
-  // Manejador: Guardar Cuentas Bancarias & Códigos QR (Imagen 3)
+  // Manejador: Guardar Cuentas Bancarias & Códigos QR
   const handleGuardarCuentasYQr = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentSeller) return;
@@ -421,8 +427,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
       const res = SellerMarketplaceService.importProductsFromExcel(currentSeller.id, filasExcel);
       setExcelCargando(false);
-      setExcelPreviewRows([]);
-      setExcelFile(null);
       setFeedbackMsg({ 
         tipo: 'success', 
         texto: `¡Carga masiva completada! Se importaron ${res.exitosos} productos nuevos a su catálogo oficial.` 
@@ -431,7 +435,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     }, 1000);
   };
 
-  // Grupos de Navegación del Dashboard (Estructura Modelo Imagen 2)
+  // Grupos de Navegación del Dashboard (Imagen 3)
   const navGroups = [
     {
       title: '1. OPERACIONES & VENTAS',
@@ -470,37 +474,337 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-6 bg-slate-950/85 backdrop-blur-md overflow-hidden">
-      <div className="relative w-full max-w-7xl h-[94vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
-        
-        {/* ================================================================= */}
-        {/* TOPBAR / CABECERA SUPERIOR */}
-        {/* ================================================================= */}
-        <header className="bg-slate-950 text-white px-5 py-3.5 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0">
-              <Building2 className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
-                  SARA SELLER CENTRAL • VENDOR HUB
-                </span>
-                {currentSeller && (
-                  <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-black ${SELLER_PLANS[currentSeller.plan].colorBadge}`}>
-                    {SELLER_PLANS[currentSeller.plan].badge}
-                  </span>
-                )}
+    /* REGLA DEL USUARIO: "pero debes de ampliar toda la pantalla" (fixed inset-0 w-screen h-screen z-50) */
+    <div className="fixed inset-0 z-50 w-screen h-screen bg-slate-950 flex flex-col overflow-hidden text-slate-100 font-sans">
+      
+      {/* ===================================================================== */}
+      {/* PANTALLA 1: AUTENTICACIÓN EXACTA A LA IMAGEN 2 (SI NO HAY SESIÓN)     */}
+      {/* ===================================================================== */}
+      {!currentSeller ? (
+        <div className="w-full h-full bg-slate-950 flex flex-col overflow-y-auto">
+          
+          {/* Topbar idéntico a Imagen 2 */}
+          <div className="w-full bg-slate-950/90 border-b border-slate-800 px-6 py-3.5 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={onClose}
+                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Volver a SARA Compras</span>
+              </button>
+              <div className="h-4 w-[1px] bg-slate-800" />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>SARA Marketplace • Vitrina B2B & Precios de Fábrica</span>
               </div>
-              <h2 className="text-base md:text-lg font-black tracking-tight leading-tight">
-                {currentSeller ? currentSeller.nombreComercial : 'Portal de Proveedores & Fabricantes B2B'}
-              </h2>
+            </div>
+
+            <button 
+              onClick={onClose}
+              className="p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-colors"
+              title="Cerrar ventana"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Tarjeta dividida idéntica al modelo de Imagen 2 */}
+          <div className="flex-1 flex items-center justify-center p-4 md:p-8">
+            <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto">
+              
+              {/* LADO IZQUIERDO (COLUMNA NARANJA / ÁMBAR IDÉNTICA A IMAGEN 2) */}
+              <div className="w-full md:w-5/12 bg-gradient-to-br from-amber-500 to-amber-600 p-8 md:p-10 text-slate-950 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
+                  <Building2 className="w-96 h-96" />
+                </div>
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 font-black text-2xl mb-8">
+                    <div className="bg-slate-950 p-2 rounded-xl text-amber-500 shadow-lg">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                    <span>SARA <span className="text-slate-950">Marketplace</span></span>
+                  </div>
+                  
+                  <h2 className="text-3xl font-black mb-3 leading-tight text-slate-950">
+                    Red Mayorista & Precios de Fábrica.
+                  </h2>
+                  <p className="font-semibold text-amber-950/80 text-sm mb-6 leading-relaxed">
+                    Plataforma especializada de materiales de construcción, venta al por mayor y despacho directo de planta a obra en Ecuador.
+                  </p>
+
+                  <div className="bg-slate-950/10 border border-slate-950/20 p-3.5 rounded-2xl mb-6 backdrop-blur-sm">
+                    <p className="text-xs font-bold text-slate-950 flex items-center gap-1.5 mb-1">
+                      <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                      Servicio Abierto al Público General & Empresas
+                    </p>
+                    <p className="text-[11px] text-slate-900 leading-tight">
+                      Cualquier fábrica nacional, importador, distribuidor mayorista o ferretería puede registrarse, publicar su catálogo y abastecer directamente a constructoras.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative z-10 space-y-3 pt-4 border-t border-amber-600/30">
+                  <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
+                    <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
+                    <span>Comisión reducida por volumen (VIP Fábrica 1.8%, Distribuidor 3.5%)</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
+                    <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
+                    <span>Ingesta masiva por Excel (.xlsx) y sincronización API para ERPs</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-xs font-bold text-slate-950">
+                    <CheckCircle2 className="w-4 h-4 text-slate-950 flex-shrink-0" />
+                    <span>Custodia de pagos blindada con Fideicomiso Escrow y SPI</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* LADO DERECHO: FORMULARIO DE ACCESO Y REGISTRO (IDÉNTICO A IMAGEN 2) */}
+              <div className="w-full md:w-7/12 p-8 md:p-10 bg-slate-900 flex flex-col justify-center">
+                
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-2xl font-black text-white">
+                      {isLogin ? 'Acceso a SARA Marketplace' : 'Crear Cuenta en Marketplace'}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {isLogin ? 'Ingresa con tus credenciales autorizadas' : 'Registra tu perfil de fábrica o ferretería'}
+                    </p>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(!isLogin);
+                      setAuthError(null);
+                    }}
+                    className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    {isLogin ? '¿No tienes cuenta? Regístrate' : 'Ya tengo cuenta'}
+                  </button>
+                </div>
+
+                {/* ALERTA DE ERROR */}
+                {authError && (
+                  <div className="mb-5 p-4 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2.5 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                    <span>{authError}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleAuthSubmit} className="space-y-4">
+                  
+                  {/* SI ES MODO REGISTRO: SELECTOR DE PLAN Y CAMPOS FISCALES */}
+                  {!isLogin && (
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                          Plan de Membresía & Comisión SARA
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(Object.keys(SELLER_PLANS) as SellerPlanType[]).map((pk) => {
+                            const p = SELLER_PLANS[pk];
+                            const isSelected = regForm.plan === pk;
+                            return (
+                              <button
+                                key={p.id}
+                                type="button"
+                                onClick={() => setRegForm({ ...regForm, plan: pk })}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                  isSelected
+                                    ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
+                                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                                }`}
+                              >
+                                <p className="font-bold text-xs text-white leading-tight truncate">
+                                  {p.badge.replace('Proveedor ', '').replace(' Verificado', '')}
+                                </p>
+                                <p className="text-[10px] text-amber-400 font-mono font-bold mt-0.5">
+                                  {p.comisionSaraPct}% Com.
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-300 mb-1">RUC Ecuatoriano (Módulo 11)</label>
+                          <input 
+                            required 
+                            type="text" 
+                            maxLength={13}
+                            value={regForm.ruc}
+                            onChange={(e) => setRegForm({ ...regForm, ruc: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none font-mono" 
+                            placeholder="1790008594001" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-300 mb-1">Razón Social SRI</label>
+                          <input 
+                            required 
+                            type="text" 
+                            value={regForm.razonSocial}
+                            onChange={(e) => setRegForm({ ...regForm, razonSocial: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                            placeholder="ACERÍA DEL ECUADOR C.A." 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre Comercial</label>
+                          <input 
+                            required 
+                            type="text" 
+                            value={regForm.nombreComercial}
+                            onChange={(e) => setRegForm({ ...regForm, nombreComercial: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                            placeholder="ADELCA Planta Industrial" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-300 mb-1">Ciudad Matriz</label>
+                          <input 
+                            required 
+                            type="text" 
+                            value={regForm.ciudad}
+                            onChange={(e) => setRegForm({ ...regForm, ciudad: e.target.value })}
+                            className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                            placeholder="Quito" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CAMPOS COMUNES EMAIL & CONTRASEÑA (COMO IMAGEN 2) */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      {isLogin ? 'Correo Electrónico o RUC Ecuatoriano' : 'Correo Electrónico Corporativo'}
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <input 
+                        required 
+                        type="text" 
+                        value={isLogin ? loginEmail : regForm.email}
+                        onChange={(e) => isLogin ? setLoginEmail(e.target.value) : setRegForm({ ...regForm, email: e.target.value })}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                        placeholder={isLogin ? "correo@ejemplo.com o 1790008594001" : "ventas@empresa.com.ec"} 
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <input 
+                        required 
+                        type="password" 
+                        value={isLogin ? loginPassword : regForm.password}
+                        onChange={(e) => isLogin ? setLoginPassword(e.target.value) : setRegForm({ ...regForm, password: e.target.value })}
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
+                        placeholder="••••••••" 
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={authLoading}
+                    className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black py-3 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-amber-500/20 text-xs mt-2"
+                  >
+                    {authLoading ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2"></span>
+                        Verificando Credenciales y Entorno...
+                      </>
+                    ) : (
+                      <>
+                        {isLogin ? 'Ingresar a SARA Marketplace' : 'Crear Cuenta en Marketplace'}
+                        <ChevronRight className="w-4 h-4 ml-1.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {/* SELECTOR RÁPIDO DEMO DE EMPRESAS CERTIFICADAS (ACCESO EN 1 CLIC) */}
+                <div className="mt-5 pt-4 border-t border-slate-800">
+                  <span className="text-[10px] font-mono text-slate-400 block mb-2 text-center">
+                    Acceso Rápido Demo (1 Clic):
+                  </span>
+                  <div className="flex flex-wrap items-center justify-center gap-1.5">
+                    {SellerMarketplaceService.getSellersList().slice(0, 4).map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setCurrentSeller(s);
+                          if (typeof window !== 'undefined') {
+                            localStorage.setItem('sara_seller_active_id', s.id);
+                          }
+                          setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${s.nombreComercial} (${SELLER_PLANS[s.plan].nombre}).` });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all ${
+                          s.plan === 'VIP_FABRICA' 
+                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-slate-950'
+                            : s.plan === 'ESTANDAR_PRO'
+                            ? 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-white'
+                            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white'
+                        }`}
+                      >
+                        🏢 {s.nombreComercial.split(' ')[0]} ({s.plan === 'VIP_FABRICA' ? 'VIP' : s.plan === 'ESTANDAR_PRO' ? 'PRO' : 'BÁSICO'})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>¿Perteneces a otro módulo SARA?</span>
+                  <button onClick={onClose} className="text-amber-400 hover:underline font-bold">
+                    Portal Maestro SARA →
+                  </button>
+                </div>
+
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {currentSeller && (
-              <div className="hidden sm:flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-mono">
+        </div>
+
+      ) : (
+
+        /* ===================================================================== */
+        /* PANTALLA 2: ENTORNO COMPLETO EXPANDIDO A TODA LA PANTALLA (IMAGEN 3)  */
+        /* ===================================================================== */
+        <div className="w-full h-full flex flex-col bg-slate-950 overflow-hidden animate-in fade-in duration-300">
+          
+          {/* TOPBAR SUPERIOR EXACTO A LA IMAGEN 3 */}
+          <header className="bg-slate-950 text-white px-6 py-3 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-md">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider">
+                    SARA SELLER CENTRAL • VENDOR HUB
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-black ${SELLER_PLANS[currentSeller.plan].colorBadge}`}>
+                    {SELLER_PLANS[currentSeller.plan].badge}
+                  </span>
+                </div>
+                <h2 className="text-base md:text-lg font-black tracking-tight leading-tight">
+                  {currentSeller.nombreComercial}
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs font-mono">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-slate-300">RUC: {currentSeller.ruc}</span>
                 <span className="text-amber-400 font-bold ml-1">
@@ -509,300 +813,36 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                 <button 
                   onClick={handleLogout}
                   className="ml-2 text-slate-400 hover:text-rose-400 transition-colors"
-                  title="Cerrar Sesión / Cambiar de Empresa"
+                  title="Cerrar Sesión Empresa"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
 
-            <button 
-              onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-colors"
-              title="Cerrar Ventana"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
-
-        {/* FEEDBACK TEMPORAL NOTICES */}
-        {feedbackMsg && (
-          <div className={`px-5 py-2 text-xs font-mono flex items-center justify-between shrink-0 ${
-            feedbackMsg.tipo === 'success' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-rose-500 text-white font-bold'
-          }`}>
-            <span>{feedbackMsg.texto}</span>
-            <button onClick={() => setFeedbackMsg(null)} className="ml-4 font-black">✕</button>
-          </div>
-        )}
-
-        {/* ================================================================= */}
-        {/* COMPORTAMIENTO SEGÚN AUTENTICACIÓN: GATEWAY O DASHBOARD COMPLETO */}
-        {/* ================================================================= */}
-        {!currentSeller ? (
-          
-          /* ================================================================= */
-          /* PANTALLA OBLIGATORIA DE AUTENTICACIÓN (IMAGEN 1 / GATEWAY)        */
-          /* ================================================================= */
-          <div className="p-6 md:p-10 overflow-y-auto space-y-8 flex-1 bg-slate-900/40">
-            <div className="max-w-4xl mx-auto text-center space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-xs font-mono text-amber-400 font-bold">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                AUTENTICACIÓN REQUERIDA DE PROVEEDOR
-              </div>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Vende tus Materiales de Construcción en GRUPO SARA
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-                Para ingresar a este entorno administrativo debes identificarte con tu RUC o correo corporativo, o registrar tu empresa seleccionando un plan mayorista.
-              </p>
-              
-              {/* Acceso Rápido Demo con Empresas Certificadas */}
-              <div className="pt-3 flex flex-wrap items-center justify-center gap-2">
-                <span className="text-xs font-mono text-slate-400 mr-1">Ingreso Rápido de Prueba:</span>
-                {SellerMarketplaceService.getSellersList().map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setCurrentSeller(s);
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('sara_seller_active_id', s.id);
-                      }
-                      setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${s.nombreComercial} (${SELLER_PLANS[s.plan].nombre}).` });
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all ${
-                      s.plan === 'VIP_FABRICA' 
-                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-slate-950'
-                        : s.plan === 'ESTANDAR_PRO'
-                        ? 'bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-white'
-                        : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white'
-                    }`}
-                  >
-                    🏢 {s.nombreComercial} ({s.plan === 'VIP_FABRICA' ? 'VIP' : s.plan === 'ESTANDAR_PRO' ? 'PRO' : 'BÁSICO'})
-                  </button>
-                ))}
-              </div>
+              <button 
+                onClick={onClose}
+                className="p-2 text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 rounded-xl border border-slate-800 transition-colors"
+                title="Cerrar Entorno de Proveedor"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
+          </header>
 
-            {/* Alternador Login / Registro */}
-            <div className="max-w-3xl mx-auto">
-              <div className="flex border-b border-slate-200 dark:border-slate-800 mb-6">
-                <button
-                  onClick={() => setAuthMode('login')}
-                  className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${
-                    authMode === 'login'
-                      ? 'border-amber-500 text-amber-500'
-                      : 'border-transparent text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  Iniciar Sesión de Empresa Proveedora
-                </button>
-                <button
-                  onClick={() => setAuthMode('register')}
-                  className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${
-                    authMode === 'register'
-                      ? 'border-amber-500 text-amber-500'
-                      : 'border-transparent text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  Registrar Empresa & Seleccionar Plan
-                </button>
-              </div>
-
-              {authError && (
-                <div className="p-4 mb-6 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-mono text-rose-400 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  {authError}
-                </div>
-              )}
-
-              {authMode === 'login' ? (
-                <form onSubmit={handleLogin} className="space-y-4 bg-slate-50 dark:bg-slate-800/50 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-700">
-                  <div>
-                    <label className="text-xs font-mono text-slate-400 block mb-1">
-                      RUC Ecuatoriano (13 dígitos) o Correo Corporativo:
-                    </label>
-                    <input 
-                      type="text"
-                      required
-                      value={loginTerm}
-                      onChange={(e) => setLoginTerm(e.target.value)}
-                      placeholder="Ej: 1790008594001 o ventas@adelca.com.ec"
-                      className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-lg shadow-amber-500/20"
-                  >
-                    Ingresar al Dashboard de Proveedor
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleRegister} className="space-y-6 bg-slate-50 dark:bg-slate-800/50 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-700">
-                  
-                  {/* Selector de Plan */}
-                  <div className="space-y-3">
-                    <label className="text-xs font-mono text-slate-400 block">
-                      Selecciona el Plan de Exposición Comercial para tu Empresa:
-                    </label>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {(Object.keys(SELLER_PLANS) as SellerPlanType[]).map((planKey) => {
-                        const p = SELLER_PLANS[planKey];
-                        const isSelected = regForm.plan === planKey;
-                        return (
-                          <div
-                            key={p.id}
-                            onClick={() => setRegForm({ ...regForm, plan: planKey })}
-                            className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                              isSelected
-                                ? 'border-amber-500 bg-amber-500/10'
-                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-400'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-black ${p.colorBadge}`}>
-                                {p.badge}
-                              </span>
-                              {isSelected && <Check className="w-4 h-4 text-amber-500" />}
-                            </div>
-                            <div className="text-lg font-black font-mono text-slate-900 dark:text-white">
-                              {p.comisionSaraPct}% <span className="text-xs font-normal text-slate-400">comisión</span>
-                            </div>
-                            <div className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">
-                              ${p.costoMensualUSD} USD / mes
-                            </div>
-                            <ul className="mt-3 space-y-1 text-[11px] text-slate-500 dark:text-slate-400">
-                              <li>• Prioridad: {p.prioridadExhibicion === 1 ? 'VIP Fábrica #1' : p.prioridadExhibicion === 2 ? 'Distribuidor #2' : 'Básica #3'}</li>
-                              <li>• {p.soportaApiSync ? 'API REST + Webhooks' : 'Carga Excel .xlsx'}</li>
-                              <li>• Hasta {p.maxProductos} productos</li>
-                            </ul>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Datos del Formulario de Registro */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        RUC del Proveedor (Validación SRI Módulo 11):
-                      </label>
-                      <input 
-                        type="text"
-                        required
-                        maxLength={13}
-                        value={regForm.ruc}
-                        onChange={(e) => setRegForm({ ...regForm, ruc: e.target.value })}
-                        placeholder="Ej: 1790008594001"
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        Razón Social (según RUC SRI):
-                      </label>
-                      <input 
-                        type="text"
-                        required
-                        value={regForm.razonSocial}
-                        onChange={(e) => setRegForm({ ...regForm, razonSocial: e.target.value })}
-                        placeholder="Ej: ACERÍA DEL ECUADOR C.A."
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        Nombre Comercial / Marca:
-                      </label>
-                      <input 
-                        type="text"
-                        required
-                        value={regForm.nombreComercial}
-                        onChange={(e) => setRegForm({ ...regForm, nombreComercial: e.target.value })}
-                        placeholder="Ej: ADELCA Planta Industrial"
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        Correo Corporativo:
-                      </label>
-                      <input 
-                        type="email"
-                        required
-                        value={regForm.email}
-                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                        placeholder="ventas@empresa.com.ec"
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        Teléfono / PBX de Despacho:
-                      </label>
-                      <input 
-                        type="text"
-                        required
-                        value={regForm.telefono}
-                        onChange={(e) => setRegForm({ ...regForm, telefono: e.target.value })}
-                        placeholder="+593 2 382 7200"
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        Ciudad Matriz:
-                      </label>
-                      <input 
-                        type="text"
-                        required
-                        value={regForm.ciudad}
-                        onChange={(e) => setRegForm({ ...regForm, ciudad: e.target.value })}
-                        placeholder="Ej: Quito / Guayaquil / Cuenca"
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="text-xs font-mono text-slate-400 block mb-1">
-                        Dirección Matriz / Planta de Carga:
-                      </label>
-                      <input 
-                        type="text"
-                        required
-                        value={regForm.direccionMatriz}
-                        onChange={(e) => setRegForm({ ...regForm, direccionMatriz: e.target.value })}
-                        placeholder="Panamericana Sur Km 38, Alóag, Pichincha"
-                        className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-sm transition-all shadow-xl shadow-amber-500/20"
-                  >
-                    Completar Registro y Activar Entorno de Ventas
-                  </button>
-                </form>
-              )}
+          {/* BANNER VERDE DE NOTIFICACIÓN DE SESIÓN INICIADA (COMO EN IMAGEN 3) */}
+          {feedbackMsg && (
+            <div className={`px-6 py-2 text-xs font-mono flex items-center justify-between shrink-0 ${
+              feedbackMsg.tipo === 'success' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-rose-500 text-white font-bold'
+            }`}>
+              <span>{feedbackMsg.texto}</span>
+              <button onClick={() => setFeedbackMsg(null)} className="ml-4 font-black">✕</button>
             </div>
-          </div>
+          )}
 
-        ) : (
-
-          /* ================================================================= */
-          /* DASHBOARD DE EMPRESA CON MENÚ LATERAL (MODELO IMAGEN 2)           */
-          /* ================================================================= */
+          {/* CUERPO PRINCIPAL DEL DASHBOARD: SIDEBAR + MAIN (IMAGEN 3) */}
           <div className="flex-1 flex overflow-hidden">
             
-            {/* SIDEBAR DE NAVEGACIÓN AGRUPADA (ESTILO IMAGEN 2) */}
+            {/* SIDEBAR LATERAL IZQUIERDO EXACTO A IMAGEN 3 */}
             <aside className="w-64 md:w-72 bg-slate-950 border-r border-slate-800 flex flex-col shrink-0 overflow-y-auto">
               
               {/* Tarjeta de Empresa Activa */}
@@ -812,10 +852,10 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                     <img 
                       src={currentSeller.logoUrl} 
                       alt="Logo" 
-                      className="w-10 h-10 rounded-xl object-cover border border-slate-700 bg-white"
+                      className="w-10 h-10 rounded-xl object-cover border border-slate-700 bg-white shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black shrink-0">
                       {currentSeller.nombreComercial.substring(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -835,7 +875,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                 </div>
               </div>
 
-              {/* Items de Navegación por Grupos */}
+              {/* Items de Navegación por Grupos (Imagen 3) */}
               <div className="p-3 space-y-4 flex-1">
                 {navGroups.map((group, gi) => (
                   <div key={gi} className="space-y-1">
@@ -866,7 +906,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                 ))}
               </div>
 
-              {/* Pie del Sidebar: Cerrar Sesión */}
+              {/* Pie del Sidebar: Cerrar Sesión Empresa */}
               <div className="p-3 border-t border-slate-800 bg-slate-900/50">
                 <button
                   onClick={handleLogout}
@@ -878,8 +918,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               </div>
             </aside>
 
-            {/* ÁREA DE CONTENIDO PRINCIPAL DINÁMICA */}
-            <main className="flex-1 bg-slate-50 dark:bg-slate-950 overflow-y-auto p-5 md:p-8 space-y-6">
+            {/* PANEL PRINCIPAL DE CONTENIDO (IMAGEN 3) */}
+            <main className="flex-1 bg-slate-50 dark:bg-slate-950 overflow-y-auto p-6 md:p-8 space-y-6">
               
               {/* Breadcrumb Superior */}
               <div className="flex items-center gap-2 text-xs font-mono text-slate-400 border-b border-slate-200 dark:border-slate-800 pb-3">
@@ -895,26 +935,18 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               {/* ============================================================= */}
               {activeTab === 'dashboard' && dashboardData && (
                 <div className="space-y-6 animate-in fade-in duration-200">
-                  
-                  {/* KPI Cards Superiores */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                      <span className="text-[11px] font-mono text-slate-400 block mb-1">
-                        VENTAS TOTALES (GMV):
-                      </span>
+                      <span className="text-[11px] font-mono text-slate-400 block mb-1">VENTAS TOTALES (GMV):</span>
                       <div className="text-2xl font-black font-mono text-slate-950 dark:text-white">
                         ${dashboardData.kpis.gmvVentasBrutasUSD.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Facturado a constructoras SARA
-                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Facturado a constructoras SARA</span>
                     </div>
 
                     <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 font-bold block">
-                          COMISIÓN GRUPO SARA:
-                        </span>
+                        <span className="text-[11px] font-mono text-amber-600 dark:text-amber-400 font-bold block">COMISIÓN GRUPO SARA:</span>
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500 text-slate-950 font-black">
                           {currentSeller.comisionSaraPct}%
                         </span>
@@ -922,51 +954,34 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       <div className="text-2xl font-black font-mono text-amber-500">
                         ${dashboardData.kpis.comisionSaraTotalUSD.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Retención por plataforma
-                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Retención por plataforma</span>
                     </div>
 
                     <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
-                      <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block mb-1">
-                        VENTAS NETAS A PERCIBIR:
-                      </span>
+                      <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold block mb-1">VENTAS NETAS A PERCIBIR:</span>
                       <div className="text-2xl font-black font-mono text-emerald-500">
                         ${dashboardData.kpis.netoVendedorTotalUSD.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Liquidación directa a cuenta
-                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Liquidación directa a cuenta</span>
                     </div>
 
                     <div className="p-4 bg-sky-500/10 rounded-2xl border border-sky-500/20">
-                      <span className="text-[11px] font-mono text-sky-600 dark:text-sky-400 font-bold block mb-1">
-                        EN CUSTODIA ESCROW:
-                      </span>
+                      <span className="text-[11px] font-mono text-sky-600 dark:text-sky-400 font-bold block mb-1">EN CUSTODIA ESCROW:</span>
                       <div className="text-2xl font-black font-mono text-sky-400">
                         ${dashboardData.kpis.enCustodiaEscrowUSD.toLocaleString('es-EC', { minimumFractionDigits: 2 })}
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Liberación contra entrega en bodega
-                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Liberación contra entrega en bodega</span>
                     </div>
                   </div>
 
-                  {/* Cuadros Estadísticos Interactivos */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    {/* Gráfico 1: Evolución Semanal de Ventas */}
                     <div className="lg:col-span-2 p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                       <div className="flex items-center justify-between mb-4">
                         <div>
-                          <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                            Evolución de Ventas Semanales (USD)
-                          </h4>
+                          <h4 className="text-base font-bold text-slate-900 dark:text-white">Evolución de Ventas Semanales (USD)</h4>
                           <p className="text-xs text-slate-400">Comportamiento diario de pedidos de obra colocados</p>
                         </div>
-                        <span className="text-xs font-mono px-2.5 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-bold">
-                          Últimos 7 días
-                        </span>
+                        <span className="text-xs font-mono px-2.5 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-bold">Últimos 7 días</span>
                       </div>
 
                       <div className="h-48 flex items-end justify-between gap-3 pt-6 px-2">
@@ -984,21 +999,16 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                                   className="w-full bg-gradient-to-t from-amber-600 to-amber-400 rounded-t-lg transition-all group-hover:brightness-125"
                                 />
                               </div>
-                              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                                {d.dia}
-                              </span>
+                              <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{d.dia}</span>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Gráfico 2: Desglose por Categorías */}
                     <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                       <div>
-                        <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                          Mix de Catálogo
-                        </h4>
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white">Mix de Catálogo</h4>
                         <p className="text-xs text-slate-400">Distribución de materiales registrados</p>
                       </div>
 
@@ -1020,42 +1030,10 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-xs font-mono text-slate-400">
-                        Capacidad de catálogo: {dashboardData.kpis.totalProductosCatalogados} / {SELLER_PLANS[currentSeller.plan].maxProductos} ítems
+                        Capacidad: {dashboardData.kpis.totalProductosCatalogados} / {SELLER_PLANS[currentSeller.plan].maxProductos} ítems
                       </div>
                     </div>
-
                   </div>
-
-                  {/* Top Productos Más Vendidos */}
-                  <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                      Top Insumos con Mayor Rotación
-                    </h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {dashboardData.topProductos.map(prod => (
-                        <div key={prod.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-                          <img 
-                            src={prod.imagenUrl} 
-                            alt={prod.nombre} 
-                            className="w-14 h-14 rounded-xl object-cover shrink-0" 
-                          />
-                          <div className="min-w-0 flex-1">
-                            <h5 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                              {prod.nombre}
-                            </h5>
-                            <span className="text-[11px] font-mono text-emerald-500 font-bold block">
-                              ${prod.precioSinIva.toFixed(2)} + {prod.tarifaIvaPct}% IVA
-                            </span>
-                            <span className="text-[10px] font-mono text-slate-400">
-                              {prod.ventasTotales} unidades vendidas
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                 </div>
               )}
 
@@ -1066,12 +1044,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                 <div className="space-y-4 animate-in fade-in duration-200">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                        Historial de Ventas por Facturas
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Registro oficial de compras recibidas por constructoras y dispersión Escrow
-                      </p>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">Historial de Ventas por Facturas</h3>
+                      <p className="text-xs text-slate-400">Registro oficial de compras recibidas por constructoras y dispersión Escrow</p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -1122,9 +1096,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                               <span className="font-bold text-slate-800 dark:text-slate-200 block">{vt.clienteNombre}</span>
                               <span className="text-[11px] text-slate-400">{vt.proyectoObra}</span>
                             </td>
-                            <td className="p-4 text-slate-400">
-                              {new Date(vt.fecha).toLocaleDateString('es-EC')}
-                            </td>
+                            <td className="p-4 text-slate-400">{new Date(vt.fecha).toLocaleDateString('es-EC')}</td>
                             <td className="p-4 text-right">${vt.subtotalUSD.toFixed(2)}</td>
                             <td className="p-4 text-right font-black text-slate-900 dark:text-white">${vt.totalUSD.toFixed(2)}</td>
                             <td className="p-4 text-right text-amber-500">-${vt.comisionSaraUSD.toFixed(2)}</td>
@@ -1152,12 +1124,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               {activeTab === 'historial_articulos' && ventasHistorial && (
                 <div className="space-y-4 animate-in fade-in duration-200">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                      Desglose de Ventas por Artículos & SKUs
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Rendimiento de cada producto en las requisiciones de obras civiles
-                    </p>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">Desglose de Ventas por Artículos & SKUs</h3>
+                    <p className="text-xs text-slate-400">Rendimiento de cada producto en las requisiciones de obras civiles</p>
                   </div>
 
                   <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
@@ -1193,12 +1161,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               {activeTab === 'catalogo_excel' && (
                 <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                      Importador Masivo de Catálogo Excel (.xlsx)
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Carga miles de insumos en segundos con precios, tarifas diferenciadas de IVA (5% vs 15%) y normas INEN
-                    </p>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">Importador Masivo de Catálogo Excel (.xlsx)</h3>
+                    <p className="text-xs text-slate-400">Carga miles de insumos en segundos con precios, tarifas diferenciadas de IVA (5% vs 15%) y normas INEN</p>
                   </div>
 
                   <div className="p-8 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-700 text-center space-y-4">
@@ -1206,12 +1170,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       <FileSpreadsheet className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                        Arrastra tu archivo Excel aquí o haz clic para seleccionarlo
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Formatos compatibles: .xlsx, .xls y .csv (Tamaño máx: 25 MB)
-                      </p>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white">Arrastra tu archivo Excel aquí o haz clic para seleccionarlo</h4>
+                      <p className="text-xs text-slate-400 mt-1">Formatos compatibles: .xlsx, .xls y .csv (Tamaño máx: 25 MB)</p>
                     </div>
 
                     <div className="pt-2 flex flex-wrap justify-center gap-3">
@@ -1251,12 +1211,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               {activeTab === 'catalogo_manual' && (
                 <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                      Registro Manual de Nuevo Material de Construcción
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Publica un ítem individual en la vitrina de SARA Marketplace con cumplimiento tributario SRI
-                    </p>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">Registro Manual de Nuevo Material de Construcción</h3>
+                    <p className="text-xs text-slate-400">Publica un ítem individual en la vitrina de SARA Marketplace con cumplimiento tributario SRI</p>
                   </div>
 
                   <form onSubmit={handleGuardarProductoManual} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -1360,15 +1316,15 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               )}
 
               {/* ============================================================= */}
-              {/* VISTA 6: CONEXIÓN API REST & ERP                              */}
+              {/* VISTA 6: CONEXIÓN API REST & ERP (EXACTO A IMAGEN 3)          */}
               {/* ============================================================= */}
               {activeTab === 'catalogo_api' && (
                 <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                       Conexión API REST & Webhooks para ERPs
                     </h3>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-400 mt-1">
                       Sincroniza inventarios en tiempo real desde SAP, Oracle NetSuite, Odoo o Contifico
                     </p>
                   </div>
@@ -1382,19 +1338,19 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           setCopiadoApiKey(true);
                           setTimeout(() => setCopiadoApiKey(false), 2000);
                         }}
-                        className="text-xs font-mono text-amber-500 hover:underline flex items-center gap-1"
+                        className="text-xs font-mono text-amber-500 hover:underline flex items-center gap-1 font-bold"
                       >
                         {copiadoApiKey ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         {copiadoApiKey ? 'Copiada' : 'Copiar API Key'}
                       </button>
                     </div>
-                    <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-mono text-xs text-slate-900 dark:text-white break-all select-all">
+                    <div className="p-3 bg-slate-100 dark:bg-slate-800/80 rounded-xl font-mono text-xs text-slate-900 dark:text-white break-all select-all border border-slate-200 dark:border-slate-700">
                       {currentSeller.apiKey}
                     </div>
 
                     <div className="pt-2">
                       <span className="text-xs font-mono text-slate-400 block mb-2">Endpoint de Ingesta Masiva:</span>
-                      <div className="p-3 bg-slate-950 text-amber-400 rounded-xl font-mono text-xs">
+                      <div className="p-3.5 bg-slate-950 text-amber-400 rounded-xl font-mono text-xs border border-slate-800 font-bold">
                         POST https://sara-constructora.vercel.app/api/marketplace/ingesta
                       </div>
                     </div>
@@ -1403,18 +1359,14 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               )}
 
               {/* ============================================================= */}
-              {/* VISTA 7: DATOS DE LA EMPRESA & LOGOTIPO (REQUERIMIENTO USUARIO) */}
+              {/* VISTA 7: DATOS DE LA EMPRESA & LOGOTIPO                       */}
               {/* ============================================================= */}
               {activeTab === 'datos_empresa' && (
                 <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                        Datos Corporativos & Ficha de la Empresa
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Administra la razón social, RUC tributario SRI, dirección matriz, teléfonos de despacho y logotipo
-                      </p>
+                      <h3 className="text-lg font-black text-slate-900 dark:text-white">Datos Corporativos & Ficha de la Empresa</h3>
+                      <p className="text-xs text-slate-400">Administra la razón social, RUC tributario SRI, dirección matriz, teléfonos de despacho y logotipo</p>
                     </div>
 
                     <button
@@ -1427,8 +1379,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                   </div>
 
                   <form onSubmit={handleGuardarEmpresa} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-                    
-                    {/* Logotipo y Previsualizador */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-5">
                       <div className="w-20 h-20 rounded-2xl bg-white border border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                         {empresaForm.logoUrl ? (
@@ -1446,9 +1396,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div className="flex-1 min-w-[260px] space-y-2">
-                        <label className="text-xs font-mono text-slate-400 block">
-                          URL del Logotipo Corporativo (PNG/JPG):
-                        </label>
+                        <label className="text-xs font-mono text-slate-400 block">URL del Logotipo Corporativo (PNG/JPG):</label>
                         <div className="flex gap-2">
                           <input 
                             type="url" 
@@ -1471,12 +1419,9 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
                     </div>
 
-                    {/* Ficha Fiscal y RUC */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Razón Social (Oficial SRI):
-                        </label>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Razón Social (Oficial SRI):</label>
                         <input 
                           type="text" 
                           required
@@ -1487,9 +1432,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Nombre Comercial / Marca en Marketplace:
-                        </label>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Nombre Comercial / Marca en Marketplace:</label>
                         <input 
                           type="text" 
                           required
@@ -1501,9 +1444,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <label className="text-xs font-mono text-slate-400 block">
-                            RUC Ecuatoriano:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block">RUC Ecuatoriano:</label>
                           <span className="text-[10px] font-mono text-emerald-500 font-bold flex items-center gap-1">
                             <ShieldCheck className="w-3 h-3" /> Módulo 11 Verificado
                           </span>
@@ -1519,9 +1460,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div>
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Ciudad Matriz:
-                        </label>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Ciudad Matriz:</label>
                         <input 
                           type="text" 
                           required
@@ -1532,9 +1471,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="text-xs font-mono text-slate-400 block mb-1">
-                          Dirección Matriz / Ubicación de Retiro de Carga (Bodega Principal):
-                        </label>
+                        <label className="text-xs font-mono text-slate-400 block mb-1">Dirección Matriz / Ubicación de Retiro de Carga:</label>
                         <input 
                           type="text" 
                           required
@@ -1545,17 +1482,11 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
                     </div>
 
-                    {/* Contactos */}
                     <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                      <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3">
-                        Canales de Contacto & Despachos de Obra
-                      </h4>
-
+                      <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-3">Canales de Contacto & Despachos de Obra</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Teléfono PBX / Fijo:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Teléfono PBX / Fijo:</label>
                           <input 
                             type="text" 
                             value={empresaForm.telefono}
@@ -1565,9 +1496,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Celulares / WhatsApp de Logística (separados por coma):
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Celulares / WhatsApp de Logística:</label>
                           <input 
                             type="text" 
                             value={empresaForm.telefonosAdicionales}
@@ -1578,9 +1507,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Correo Electrónico para Facturación & Pedidos:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Correo para Facturación & Pedidos:</label>
                           <input 
                             type="email" 
                             required
@@ -1591,9 +1518,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Sitio Web Oficial:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Sitio Web Oficial:</label>
                           <input 
                             type="url" 
                             value={empresaForm.sitioWeb}
@@ -1604,9 +1529,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Ciudades con Cobertura de Fletes Directos (separadas por coma):
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Ciudades de Cobertura de Fletes Directos:</label>
                           <input 
                             type="text" 
                             value={empresaForm.ciudadesCobertura}
@@ -1617,9 +1540,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div className="md:col-span-2">
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Reseña de la Empresa / Acreditaciones Técnicas:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Reseña de la Empresa / Acreditaciones Técnicas:</label>
                           <textarea 
                             rows={3}
                             value={empresaForm.descripcionEmpresa}
@@ -1640,18 +1561,16 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         <span>Guardar Cambios de la Empresa</span>
                       </button>
                     </div>
-
                   </form>
                 </div>
               )}
 
               {/* ============================================================= */}
-              {/* VISTA 8: CUENTAS BANCARIAS & CÓDIGOS QR (REPLICA IMAGEN 3)     */}
+              {/* VISTA 8: CUENTAS BANCARIAS & CÓDIGOS QR (IMAGEN 3)            */}
               {/* ============================================================= */}
               {activeTab === 'cuentas_bancarias_qr' && (
                 <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl">
                   
-                  {/* Encabezado Principal Imagen 3 */}
                   <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
@@ -1680,8 +1599,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                   </div>
 
                   <form onSubmit={handleGuardarCuentasYQr} className="space-y-6">
-                    
-                    {/* BLOQUE 1: CUENTA BANCARIA PRINCIPAL SPI ECUADOR */}
                     <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                       <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
                         <Landmark className="w-4 h-4 text-amber-500" />
@@ -1690,9 +1607,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Institución Financiera (Banco / Cooperativa):
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Institución Financiera (Banco / Cooperativa):</label>
                           <select
                             value={bankForm.banco}
                             onChange={(e) => setBankForm({ ...bankForm, banco: e.target.value })}
@@ -1712,9 +1627,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Tipo de Cuenta:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Tipo de Cuenta:</label>
                           <select
                             value={bankForm.tipoCuenta}
                             onChange={(e) => setBankForm({ ...bankForm, tipoCuenta: e.target.value as any })}
@@ -1726,9 +1639,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Número de Cuenta Bancaria:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Número de Cuenta Bancaria:</label>
                           <input 
                             type="text" 
                             required
@@ -1740,9 +1651,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Nombre Completo o Razón Social del Titular:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Nombre Completo o Razón Social del Titular:</label>
                           <input 
                             type="text" 
                             required
@@ -1753,9 +1662,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Identificación del Titular (RUC o Cédula):
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Identificación del Titular (RUC o Cédula):</label>
                           <input 
                             type="text" 
                             required
@@ -1766,9 +1673,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         </div>
 
                         <div>
-                          <label className="text-xs font-mono text-slate-400 block mb-1">
-                            Correo para Comprobantes de Transferencia:
-                          </label>
+                          <label className="text-xs font-mono text-slate-400 block mb-1">Correo para Comprobantes de Transferencia:</label>
                           <input 
                             type="email" 
                             required
@@ -1780,7 +1685,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
                     </div>
 
-                    {/* BLOQUE 2: BILLETERAS MÓVILES ECUADOR */}
                     <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                       <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
                         <Smartphone className="w-4 h-4 text-sky-400" />
@@ -1788,8 +1692,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        
-                        {/* DeUna! */}
                         <div className="p-4 bg-amber-500/5 rounded-2xl border border-amber-500/20 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-amber-500">DeUna! (Banco Pichincha)</span>
@@ -1806,7 +1708,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           <p className="text-[10px] text-slate-400">Cobros inmediatos desde app DeUna! y red Pichincha.</p>
                         </div>
 
-                        {/* Payphone */}
                         <div className="p-4 bg-orange-500/5 rounded-2xl border border-orange-500/20 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-orange-500">Payphone Ecuador</span>
@@ -1823,7 +1724,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           <p className="text-[10px] text-slate-400">Tarjetas Visa / Mastercard y saldo app Payphone.</p>
                         </div>
 
-                        {/* Peigo */}
                         <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/20 space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-purple-400">Peigo (Banco Guayaquil)</span>
@@ -1839,11 +1739,9 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           />
                           <p className="text-[10px] text-slate-400">Transferencias instantáneas sin costo interbancario.</p>
                         </div>
-
                       </div>
                     </div>
 
-                    {/* BLOQUE 3: CÓDIGOS QR OFICIALES DE COBRO (IMAGEN 3) */}
                     <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
@@ -1854,8 +1752,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        
-                        {/* Tarjeta QR 1: DeUna! */}
                         <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
@@ -1871,7 +1767,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           </div>
 
                           <p className="text-[11px] font-mono text-slate-500">Escaneo directo con app DeUna!</p>
-                          
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -1898,7 +1793,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           </div>
                         </div>
 
-                        {/* Tarjeta QR 2: Payphone */}
                         <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-orange-400 animate-pulse" />
@@ -1914,7 +1808,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           </div>
 
                           <p className="text-[11px] font-mono text-slate-500">Escaneo con Payphone o cámara</p>
-                          
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -1941,7 +1834,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           </div>
                         </div>
 
-                        {/* Tarjeta QR 3: Peigo */}
                         <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-3">
                           <div className="flex items-center justify-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse" />
@@ -1950,14 +1842,13 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
                           <div className="w-40 h-40 bg-white p-2 rounded-2xl mx-auto shadow-md border border-slate-200 flex items-center justify-center">
                             <img 
-                              src={walletsForm.peigoQrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=peigo-guayaquil'} 
+                              src={walletsForm.peigoQrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo-guayaquil'} 
                               alt="QR Peigo" 
                               className="w-full h-full object-contain"
                             />
                           </div>
 
                           <p className="text-[11px] font-mono text-slate-500">Transferencias con QR Peigo</p>
-                          
                           <div className="flex gap-2">
                             <button
                               type="button"
@@ -1983,33 +1874,26 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                             </label>
                           </div>
                         </div>
-
                       </div>
                     </div>
 
-                    {/* BLOQUE 4: VISTA PREVIA EN VIVO: PASARELA QUE VERÁ EL CLIENTE (IMAGEN 3) */}
                     <div className="p-6 bg-slate-900 text-white rounded-3xl border border-slate-800 shadow-xl space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Eye className="w-4 h-4 text-emerald-400" />
-                          <h4 className="text-sm font-bold tracking-tight">
-                            Vista Previa en Vivo: Pasarela que Verá el Cliente
-                          </h4>
+                          <h4 className="text-sm font-bold tracking-tight">Vista Previa en Vivo: Pasarela que Verá el Cliente</h4>
                         </div>
                         <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full">
                           Simulación Checkout de Compra de Obra
                         </span>
                       </div>
 
-                      {/* Selector de Tabs de Pasarela */}
                       <div className="flex border-b border-slate-800 text-xs font-mono">
                         <button
                           type="button"
                           onClick={() => setPreviewPasarelaTab('spi')}
                           className={`py-2 px-4 border-b-2 font-bold transition-all ${
-                            previewPasarelaTab === 'spi'
-                              ? 'border-amber-400 text-amber-400'
-                              : 'border-transparent text-slate-400 hover:text-white'
+                            previewPasarelaTab === 'spi' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-white'
                           }`}
                         >
                           Transferencia SPI
@@ -2018,9 +1902,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           type="button"
                           onClick={() => setPreviewPasarelaTab('deuna')}
                           className={`py-2 px-4 border-b-2 font-bold transition-all ${
-                            previewPasarelaTab === 'deuna'
-                              ? 'border-amber-400 text-amber-400'
-                              : 'border-transparent text-slate-400 hover:text-white'
+                            previewPasarelaTab === 'deuna' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-white'
                           }`}
                         >
                           DeUna! Pichincha
@@ -2029,16 +1911,13 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           type="button"
                           onClick={() => setPreviewPasarelaTab('payphone')}
                           className={`py-2 px-4 border-b-2 font-bold transition-all ${
-                            previewPasarelaTab === 'payphone'
-                              ? 'border-amber-400 text-amber-400'
-                              : 'border-transparent text-slate-400 hover:text-white'
+                            previewPasarelaTab === 'payphone' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-400 hover:text-white'
                           }`}
                         >
                           Payphone Ecuador
                         </button>
                       </div>
 
-                      {/* Contenido según Tab Simulado */}
                       <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
                         {previewPasarelaTab === 'spi' && (
                           <div className="space-y-3">
@@ -2120,7 +1999,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
                     </div>
 
-                    {/* Botón Guardar al Pie de Formulario */}
                     <div className="pt-2 flex justify-end">
                       <button
                         type="submit"
@@ -2130,7 +2008,6 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                         <span>Guardar Cuentas Bancarias & Códigos QR</span>
                       </button>
                     </div>
-
                   </form>
                 </div>
               )}
@@ -2178,9 +2055,10 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
           </div>
 
-        )}
+        </div>
 
-      </div>
+      )}
+
     </div>
   );
 }
