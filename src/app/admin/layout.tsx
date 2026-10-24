@@ -26,6 +26,7 @@ import {
   CreditCard, DollarSign
 , ShieldAlert, Trash2 , Activity, Bell , Send, Truck, UserCheck } from "lucide-react"
 import ThemeToggle from "@/components/ThemeToggle"
+import { Store, ShoppingCart } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -155,6 +156,12 @@ export default function AdminLayout({
       title: "GESTIÓN LOGÍSTICA (FLETES)",
       items: [
         { href: "/admin/fletes", label: "SARA Fletes (Transporte)", icon: Truck },
+      ]
+    },
+    {
+      title: "GESTIÓN MARKETPLACE",
+      items: [
+        { href: "/admin/marketplace/planes", label: "Planes", icon: ShoppingCart },
       ]
     },
     {

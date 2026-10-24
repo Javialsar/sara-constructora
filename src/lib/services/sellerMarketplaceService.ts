@@ -8,7 +8,7 @@
 
 import { ComprasService } from './comprasService';
 
-export type SellerPlanType = 'VIP_FABRICA' | 'ESTANDAR_PRO' | 'BASICO_FERRETERIA';
+export type SellerPlanType = 'VIP_FABRICA' | 'ESTANDAR_PRO' | 'BASICO_FERRETERIA' | 'VIP' | 'EMPRESARIAL' | 'BASICO';
 
 export interface SellerPlanConfig {
   id: SellerPlanType;
@@ -24,66 +24,126 @@ export interface SellerPlanConfig {
   maxProductos: number;
 }
 
-export const SELLER_PLANS: Record<SellerPlanType, SellerPlanConfig> = {
-  VIP_FABRICA: {
-    id: 'VIP_FABRICA',
-    nombre: 'Plan Fábrica / Fabricante Industrial',
-    badge: 'Proveedor VIP Fábrica',
-    costoMensualUSD: 249,
-    comisionSaraPct: 1.8,
+export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
+  VIP: {
+    id: 'VIP',
+    nombre: 'Plan VIP Fábrica',
+    badge: 'Proveedor VIP (15%)',
+    costoMensualUSD: 199,
+    comisionSaraPct: 15.0,
     prioridadExhibicion: 1,
     beneficios: [
-      'Comisión mínima del 1.8% sobre ventas netas',
+      'Comisión del 15.0% sobre ventas netas',
       'Máxima prioridad en cuadrícula y vitrina del Marketplace B2B',
       'API REST dedicada y Webhooks para sincronización con SAP/Odoo/Contifico',
       'Importación masiva ilimitada por archivos Excel (.xlsx)',
-      'Insignia dorada de Fabricante Verificado SRI',
+      'Insignia dorada de Proveedor VIP Verificado SRI',
       'Banner corporativo destacado y prioridad en cotizaciones de APU',
-      'Dispersión y liquidación de pagos inmediata vía SARA-PAGOS'
+      'Dispersión y liquidación de pagos inmediata vía Fideicomiso Escrow SARA-PAGOS'
     ],
     colorBadge: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black',
     soportaApiSync: true,
     soportaExcelSync: true,
     maxProductos: 10000
   },
-  ESTANDAR_PRO: {
-    id: 'ESTANDAR_PRO',
-    nombre: 'Plan Distribuidor Pro / Mayorista',
-    badge: 'Distribuidor Pro Verificado',
+  VIP_FABRICA: {
+    id: 'VIP_FABRICA',
+    nombre: 'Plan VIP Fábrica',
+    badge: 'Proveedor VIP (15%)',
+    costoMensualUSD: 199,
+    comisionSaraPct: 15.0,
+    prioridadExhibicion: 1,
+    beneficios: [
+      'Comisión del 15.0% sobre ventas netas',
+      'Máxima prioridad en cuadrícula y vitrina del Marketplace B2B',
+      'API REST dedicada y Webhooks para sincronización con SAP/Odoo/Contifico',
+      'Importación masiva ilimitada por archivos Excel (.xlsx)',
+      'Insignia dorada de Proveedor VIP Verificado SRI',
+      'Banner corporativo destacado y prioridad en cotizaciones de APU',
+      'Dispersión y liquidación de pagos inmediata vía Fideicomiso Escrow SARA-PAGOS'
+    ],
+    colorBadge: 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black',
+    soportaApiSync: true,
+    soportaExcelSync: true,
+    maxProductos: 10000
+  },
+  EMPRESARIAL: {
+    id: 'EMPRESARIAL',
+    nombre: 'Plan Empresarial / Distribuidor Pro',
+    badge: 'Empresarial Pro (10%)',
     costoMensualUSD: 79,
-    comisionSaraPct: 3.5,
+    comisionSaraPct: 10.0,
     prioridadExhibicion: 2,
     beneficios: [
-      'Comisión competitiva del 3.5% sobre ventas netas',
+      'Comisión competitiva del 10.0% sobre ventas netas',
       'Posicionamiento secundario preferencial en la vitrina de compras',
       'Carga masiva periódica mediante plantillas Excel (.xlsx)',
       'Insignia azul de Distribuidor Certificado SRI',
       'Historial completo de ventas desglosado por facturas y artículos',
-      'Liquidación a 7 días contra entrega conforme en bodega'
+      'Liquidación a 7 días contra entrega conforme en bodega de obra'
     ],
     colorBadge: 'bg-sky-500 text-white font-bold',
     soportaApiSync: false,
     soportaExcelSync: true,
-    maxProductos: 1500
+    maxProductos: 2500
   },
-  BASICO_FERRETERIA: {
-    id: 'BASICO_FERRETERIA',
-    nombre: 'Plan Ferretería Local / Básico',
-    badge: 'Ferretería Verificada',
+  ESTANDAR_PRO: {
+    id: 'ESTANDAR_PRO',
+    nombre: 'Plan Empresarial / Distribuidor Pro',
+    badge: 'Empresarial Pro (10%)',
+    costoMensualUSD: 79,
+    comisionSaraPct: 10.0,
+    prioridadExhibicion: 2,
+    beneficios: [
+      'Comisión competitiva del 10.0% sobre ventas netas',
+      'Posicionamiento secundario preferencial en la vitrina de compras',
+      'Carga masiva periódica mediante plantillas Excel (.xlsx)',
+      'Insignia azul de Distribuidor Certificado SRI',
+      'Historial completo de ventas desglosado por facturas y artículos',
+      'Liquidación a 7 días contra entrega conforme en bodega de obra'
+    ],
+    colorBadge: 'bg-sky-500 text-white font-bold',
+    soportaApiSync: false,
+    soportaExcelSync: true,
+    maxProductos: 2500
+  },
+  BASICO: {
+    id: 'BASICO',
+    nombre: 'Plan Básico Ferretería',
+    badge: 'Básico Ferretería (8%)',
     costoMensualUSD: 0,
-    comisionSaraPct: 6.0,
+    comisionSaraPct: 8.0,
     prioridadExhibicion: 3,
     beneficios: [
       'Sin costo mensual ($0 de suscripción fija)',
-      'Comisión del 6.0% aplicable únicamente sobre ventas concretadas',
-      'Carga manual e importación básica de catálogo hasta 150 insumos',
+      'Comisión del 8.0% aplicable únicamente sobre ventas concretadas',
+      'Carga manual e importación básica de catálogo hasta 250 insumos',
       'Acceso a solicitudes de cotización de constructoras locales',
       'Liquidación a 15 días tras confirmación de recepción'
     ],
     colorBadge: 'bg-emerald-600 text-white font-medium',
     soportaApiSync: false,
     soportaExcelSync: true,
-    maxProductos: 150
+    maxProductos: 250
+  },
+  BASICO_FERRETERIA: {
+    id: 'BASICO_FERRETERIA',
+    nombre: 'Plan Básico Ferretería',
+    badge: 'Básico Ferretería (8%)',
+    costoMensualUSD: 0,
+    comisionSaraPct: 8.0,
+    prioridadExhibicion: 3,
+    beneficios: [
+      'Sin costo mensual ($0 de suscripción fija)',
+      'Comisión del 8.0% aplicable únicamente sobre ventas concretadas',
+      'Carga manual e importación básica de catálogo hasta 250 insumos',
+      'Acceso a solicitudes de cotización de constructoras locales',
+      'Liquidación a 15 días tras confirmación de recepción'
+    ],
+    colorBadge: 'bg-emerald-600 text-white font-medium',
+    soportaApiSync: false,
+    soportaExcelSync: true,
+    maxProductos: 250
   }
 };
 
@@ -749,15 +809,18 @@ export class SellerMarketplaceService {
     }
 
     // Ordenamiento por Jerarquía de Plan VIP -> Estándar -> Básico y luego por ventas
-    const planWeights: Record<SellerPlanType, number> = {
+    const planWeights: Record<string, number> = {
+      VIP: 3000,
       VIP_FABRICA: 3000,
+      EMPRESARIAL: 2000,
       ESTANDAR_PRO: 2000,
+      BASICO: 1000,
       BASICO_FERRETERIA: 1000
     };
 
     return list.sort((a, b) => {
-      const weightA = planWeights[a.sellerPlan] + (a.esMasVendido ? 500 : 0) + (a.ventasTotales / 10);
-      const weightB = planWeights[b.sellerPlan] + (b.esMasVendido ? 500 : 0) + (b.ventasTotales / 10);
+      const weightA = (planWeights[a.sellerPlan] || 1000) + (a.esMasVendido ? 500 : 0) + (a.ventasTotales / 10);
+      const weightB = (planWeights[b.sellerPlan] || 1000) + (b.esMasVendido ? 500 : 0) + (b.ventasTotales / 10);
       return weightB - weightA;
     });
   }
@@ -897,6 +960,30 @@ export class SellerMarketplaceService {
 
     seller.cuentaBancaria = { ...bank };
     seller.billeterasMoviles = { ...wallets };
+
+    return { ...seller };
+  }
+
+  /**
+   * Actualiza el Plan de Membresía del Proveedor (VIP 15%, EMPRESARIAL 10%, BÁSICO 8%)
+   */
+  static updateSellerPlan(sellerId: string, newPlan: SellerPlanType): SellerProfile {
+    const seller = SELLERS_DB.find(s => s.id === sellerId);
+    if (!seller) {
+      throw new Error(`Empresa proveedora con ID ${sellerId} no encontrada.`);
+    }
+
+    const planConfig = SELLER_PLANS[newPlan] || SELLER_PLANS['BASICO_FERRETERIA'];
+    seller.plan = newPlan;
+    seller.comisionSaraPct = planConfig.comisionSaraPct;
+
+    // Actualizar el plan asociado a los productos publicados por el proveedor
+    PRODUCTS_DB = PRODUCTS_DB.map(p => {
+      if (p.sellerId === sellerId) {
+        return { ...p, sellerPlan: newPlan };
+      }
+      return p;
+    });
 
     return { ...seller };
   }

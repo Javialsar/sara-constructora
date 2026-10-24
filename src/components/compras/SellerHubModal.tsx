@@ -45,6 +45,7 @@ import {
   ChevronRight,
   RefreshCw,
   Eye,
+  EyeOff,
   Save,
   CheckCheck,
   Lock,
@@ -60,6 +61,10 @@ import {
   SellerBankAccount,
   SellerMobileWallets
 } from '@/lib/services/sellerMarketplaceService';
+import {
+  MarketplacePlansService,
+  MarketplacePlan
+} from '@/lib/services/marketplacePlansService';
 
 interface SellerHubModalProps {
   isOpen: boolean;
@@ -99,6 +104,14 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
   const [loginPassword, setLoginPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Catálogo de Planes sincronizado con /admin/marketplace/planes
+  const [catalogoPlanes, setCatalogoPlanes] = useState<MarketplacePlan[]>(() => MarketplacePlansService.getPlanes());
+
+  // Ref para subida de archivo de logotipo desde equipo local
+  const logoFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Formulario de Registro de Nueva Empresa
   const [regForm, setRegForm] = useState({
@@ -107,10 +120,11 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     nombreComercial: '',
     email: '',
     password: '',
+    confirmPassword: '',
     telefono: '',
     ciudad: 'Quito',
     direccionMatriz: '',
-    plan: 'VIP_FABRICA' as SellerPlanType
+    plan: 'VIP' as SellerPlanType
   });
 
   // Formulario de Producto Manual
@@ -231,12 +245,65 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     });
   }, [currentSeller, historialFiltroTexto, historialFiltroEstado, feedbackMsg]);
 
+  // Refrescar catálogo de planes cuando se abra el modal o cambie de vista
+  useEffect(() => {
+    if (isOpen) {
+      setCatalogoPlanes(MarketplacePlansService.getPlanes());
+    }
+  }, [isOpen, activeTab]);
+
   if (!isOpen) return null;
+
+  // Manejador: Subir archivo de logotipo desde equipo local
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setFeedbackMsg({ tipo: 'error', texto: 'El archivo excede el tamaño máximo de 5MB.' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setEmpresaForm(prev => ({ ...prev, logoUrl: reader.result as string }));
+          setFeedbackMsg({ tipo: 'success', texto: `Logotipo "${file.name}" cargado exitosamente.` });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Manejador: Cambiar o mejorar de Plan
+  const handleCambiarPlan = (nuevoPlanId: string) => {
+    if (!currentSeller) return;
+    try {
+      const planConfig = MarketplacePlansService.getPlanById(nuevoPlanId);
+      const planNombre = planConfig?.nombre || nuevoPlanId;
+      const updated = SellerMarketplaceService.updateSellerPlan(currentSeller.id, nuevoPlanId as any);
+      setCurrentSeller(updated);
+      setFeedbackMsg({ tipo: 'success', texto: `¡Plan actualizado con éxito al Plan ${planNombre} (${updated.comisionSaraPct}% de comisión Grupo SARA)!` });
+    } catch (err: any) {
+      setFeedbackMsg({ tipo: 'error', texto: err.message || 'Error al actualizar plan.' });
+    }
+  };
 
   // Manejador: Autenticación tipo Imagen 2
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+
+    // Validación de contraseñas al registrar (Imagen 1)
+    if (!isLogin) {
+      if (!regForm.password || regForm.password.trim().length < 6) {
+        setAuthError('La contraseña debe tener al menos 6 caracteres.');
+        return;
+      }
+      if (regForm.password !== regForm.confirmPassword) {
+        setAuthError('Las contraseñas no coinciden. Por favor verifica que ambos campos sean idénticos.');
+        return;
+      }
+    }
+
     setAuthLoading(true);
 
     setTimeout(() => {
@@ -247,7 +314,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
           if (typeof window !== 'undefined') {
             localStorage.setItem('sara_seller_active_id', seller.id);
           }
-          setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${seller.nombreComercial} (${SELLER_PLANS[seller.plan].nombre}).` });
+          const planNom = SELLER_PLANS[seller.plan]?.nombre || seller.plan;
+          setFeedbackMsg({ tipo: 'success', texto: `Sesión iniciada como ${seller.nombreComercial} (${planNom}).` });
         } else {
           const nuevo = SellerMarketplaceService.registerSeller({
             ruc: regForm.ruc,
@@ -263,7 +331,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
           if (typeof window !== 'undefined') {
             localStorage.setItem('sara_seller_active_id', nuevo.id);
           }
-          setFeedbackMsg({ tipo: 'success', texto: `Empresa ${nuevo.razonSocial} registrada con éxito en el ${SELLER_PLANS[nuevo.plan].nombre}.` });
+          const planNom = SELLER_PLANS[nuevo.plan]?.nombre || nuevo.plan;
+          setFeedbackMsg({ tipo: 'success', texto: `Empresa ${nuevo.razonSocial} registrada con éxito en el ${planNom}.` });
         }
       } catch (err: any) {
         setAuthError(err.message || 'Error de autenticación.');
@@ -549,9 +618,11 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           onChange={(e) => setRegForm({ ...regForm, plan: e.target.value as SellerPlanType })}
                           className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold focus:border-blue-600 focus:outline-none"
                         >
-                          <option value="VIP_FABRICA">⭐ Plan VIP Fábrica (1.8% Comisión) - Máxima Exposición</option>
-                          <option value="ESTANDAR_PRO">🚀 Plan Distribuidor Pro (3.5% Comisión) - Carga Excel</option>
-                          <option value="BASICO_FERRETERIA">🏪 Plan Ferretería Básica (6.0% Comisión) - Estándar</option>
+                          {catalogoPlanes.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              ⭐ Plan {p.nombre} ({p.porcentajeComision}% Comisión) - {p.badge}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
@@ -613,7 +684,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                     </div>
                   </div>
 
-                  {/* Campo: Contraseña */}
+                  {/* Campo: Contraseña (Con botón visualizar contraseña funcional - Imagen 1) */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="text-xs font-bold text-slate-700">Contraseña</label>
@@ -631,15 +702,66 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input 
                         required 
-                        type="password" 
+                        type={showPassword ? "text" : "password"} 
                         value={isLogin ? loginPassword : regForm.password}
                         onChange={(e) => isLogin ? setLoginPassword(e.target.value) : setRegForm({ ...regForm, password: e.target.value })}
                         className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 focus:outline-none" 
                         placeholder="••••••••" 
                       />
-                      <Eye className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer hover:text-slate-600" />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(prev => !prev)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 p-0.5 focus:outline-none"
+                        title={showPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
+
+                  {/* Campo: Confirmar Contraseña para comparar que se ingrese correctamente (Imagen 1) */}
+                  {!isLogin && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Confirmar Contraseña
+                      </label>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input 
+                          required 
+                          type={showConfirmPassword ? "text" : "password"} 
+                          value={regForm.confirmPassword}
+                          onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
+                          className={`w-full pl-10 pr-10 py-2.5 bg-slate-50 border rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none ${
+                            regForm.confirmPassword && regForm.confirmPassword !== regForm.password 
+                              ? 'border-rose-400 focus:border-rose-500' 
+                              : regForm.confirmPassword && regForm.confirmPassword === regForm.password 
+                                ? 'border-emerald-500 focus:border-emerald-600' 
+                                : 'border-slate-200 focus:border-blue-600'
+                          }`}
+                          placeholder="Repite tu contraseña" 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(prev => !prev)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 p-0.5 focus:outline-none"
+                          title={showConfirmPassword ? "Ocultar contraseña" : "Ver contraseña"}
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {regForm.confirmPassword && regForm.confirmPassword !== regForm.password && (
+                        <p className="text-[10px] text-rose-500 font-semibold mt-1">
+                          Las contraseñas no coinciden.
+                        </p>
+                      )}
+                      {regForm.confirmPassword && regForm.confirmPassword === regForm.password && (
+                        <p className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
+                          <Check className="w-3 h-3" /> Contraseñas coinciden correctamente.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Botón Principal Azul Idéntico a Imagen 1 */}
                   <button 
@@ -1401,7 +1523,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
                   <form onSubmit={handleGuardarEmpresa} className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
                     <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center gap-5">
-                      <div className="w-20 h-20 rounded-2xl bg-white border border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                      <div className="w-20 h-20 rounded-2xl bg-white border border-slate-300 dark:border-slate-600 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
                         {empresaForm.logoUrl ? (
                           <img 
                             src={empresaForm.logoUrl} 
@@ -1417,25 +1539,59 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                       </div>
 
                       <div className="flex-1 min-w-[260px] space-y-2">
-                        <label className="text-xs font-mono text-slate-400 block">URL del Logotipo Corporativo (PNG/JPG):</label>
-                        <div className="flex gap-2">
-                          <input 
-                            type="url" 
-                            value={empresaForm.logoUrl}
-                            onChange={(e) => setEmpresaForm({ ...empresaForm, logoUrl: e.target.value })}
-                            placeholder="https://ejemplo.com/logo-empresa.png"
-                            className="flex-1 p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
-                          />
+                        <label className="text-xs font-mono text-slate-400 block font-bold">
+                          Logotipo Corporativo (Subir archivo de imagen o ingresar URL):
+                        </label>
+
+                        {/* Input tipo archivo para subir logotipo desde el disco local (Imagen 2) */}
+                        <input 
+                          type="file" 
+                          ref={logoFileInputRef}
+                          accept="image/*"
+                          onChange={handleLogoFileChange}
+                          className="hidden" 
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => logoFileInputRef.current?.click()}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center gap-2"
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>Subir Archivo de Logotipo</span>
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => setEmpresaForm({
                               ...empresaForm,
                               logoUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=120&h=120&fit=crop'
                             })}
-                            className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-xs font-bold rounded-xl"
+                            className="px-3 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-xs font-bold rounded-xl text-slate-700 dark:text-slate-200"
                           >
                             Logo Demo
                           </button>
+
+                          {empresaForm.logoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setEmpresaForm({ ...empresaForm, logoUrl: '' })}
+                              className="px-3 py-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-bold rounded-xl"
+                            >
+                              Quitar
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="pt-1">
+                          <input 
+                            type="text" 
+                            value={empresaForm.logoUrl}
+                            onChange={(e) => setEmpresaForm({ ...empresaForm, logoUrl: e.target.value })}
+                            placeholder="O pega una URL: https://ejemplo.com/logo-empresa.png"
+                            className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white"
+                          />
                         </div>
                       </div>
                     </div>
@@ -2034,41 +2190,160 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
               )}
 
               {/* ============================================================= */}
-              {/* VISTA 9: PLAN & CREDENCIALES API                              */}
+              {/* VISTA 9: PLAN & CREDENCIALES API (IMAGEN 3 & IMAGEN 4)         */}
               {/* ============================================================= */}
               {activeTab === 'config_plan' && (
-                <div className="space-y-6 animate-in fade-in duration-200 max-w-4xl">
+                <div className="space-y-8 animate-in fade-in duration-200 max-w-5xl">
+                  
+                  {/* Resumen del Plan Actual Activo */}
                   <div className="p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <span className="text-xs font-mono text-slate-400 block mb-1">PLAN ACTUAL CONTRATADO:</span>
-                        <h4 className="text-xl font-black text-slate-900 dark:text-white">
-                          {SELLER_PLANS[currentSeller.plan].nombre}
+                        <span className="text-xs font-mono text-slate-400 block mb-1">PLAN ACTUALMENTE CONTRATADO:</span>
+                        <h4 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                          <span>{SELLER_PLANS[currentSeller.plan]?.nombre || currentSeller.plan}</span>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                            Activo
+                          </span>
                         </h4>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-black ${SELLER_PLANS[currentSeller.plan].colorBadge}`}>
-                        {SELLER_PLANS[currentSeller.plan].badge}
+                      <span className={`px-4 py-1.5 rounded-full text-xs font-black shadow-sm ${SELLER_PLANS[currentSeller.plan]?.colorBadge || 'bg-blue-600 text-white'}`}>
+                        {SELLER_PLANS[currentSeller.plan]?.badge || currentSeller.plan}
                       </span>
                     </div>
 
-                    <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20 text-xs font-mono space-y-1">
-                      <div className="text-amber-500 font-bold">Porcentaje de Comisión Grupo SARA: {currentSeller.comisionSaraPct}%</div>
-                      <div className="text-slate-400">Costo de Membresía Mensual: ${SELLER_PLANS[currentSeller.plan].costoMensualUSD} USD</div>
-                      <div className="text-slate-400">Capacidad Máxima de Catálogo: {SELLER_PLANS[currentSeller.plan].maxProductos} productos</div>
-                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                      <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                        <span className="text-[10px] font-mono text-amber-500 font-bold block uppercase">COMISIÓN GRUPO SARA</span>
+                        <span className="text-2xl font-black text-amber-500">{currentSeller.comisionSaraPct}%</span>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Porcentaje retenido en dispersión Escrow</p>
+                      </div>
 
-                    <div className="pt-2">
-                      <h5 className="text-xs font-mono text-slate-400 mb-2">Beneficios activos de tu plan:</h5>
-                      <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-                        {SELLER_PLANS[currentSeller.plan].beneficios.map((b, bi) => (
-                          <li key={bi} className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                            <span>{b}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] font-mono text-slate-400 font-bold block uppercase">COSTO MENSUAL</span>
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                          ${SELLER_PLANS[currentSeller.plan]?.costoMensualUSD || 0} <span className="text-xs font-normal text-slate-400">USD</span>
+                        </span>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Suscripción fija mensual facturada</p>
+                      </div>
+
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700">
+                        <span className="text-[10px] font-mono text-slate-400 font-bold block uppercase">CAPACIDAD DE CATÁLOGO</span>
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                          {SELLER_PLANS[currentSeller.plan]?.maxProductos || 250} <span className="text-xs font-normal text-slate-400">SKUs</span>
+                        </span>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Límite de materiales publicados</p>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Catálogo de Planes Sincronizado desde el Módulo de Administración (Imagen 3 & Imagen 4) */}
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                          Planes de Membresía del Marketplace B2B
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          Planes oficiales configurados en Administración (VIP 15%, EMPRESARIAL 10%, BÁSICO 8%). Puedes cambiar de plan en cualquier momento.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-full border border-blue-200 dark:border-blue-800">
+                        Sincronizado con /admin/marketplace/planes
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {catalogoPlanes.map((plan) => {
+                        const esPlanActual = currentSeller.plan === plan.id || 
+                          (plan.id === 'VIP' && currentSeller.plan === 'VIP_FABRICA') ||
+                          (plan.id === 'EMPRESARIAL' && currentSeller.plan === 'ESTANDAR_PRO') ||
+                          (plan.id === 'BASICO' && currentSeller.plan === 'BASICO_FERRETERIA');
+
+                        return (
+                          <div
+                            key={plan.id}
+                            className={`rounded-3xl border p-6 flex flex-col justify-between transition-all ${
+                              esPlanActual 
+                                ? 'bg-white dark:bg-slate-900 border-2 border-emerald-500 shadow-xl shadow-emerald-500/10' 
+                                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-400/50 shadow-sm'
+                            }`}
+                          >
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${plan.colorBadge}`}>
+                                  {plan.badge || plan.nombre}
+                                </span>
+                                {esPlanActual && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500 text-slate-950 flex items-center gap-1">
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                    Tu Plan
+                                  </span>
+                                )}
+                              </div>
+
+                              <div>
+                                <h5 className="text-xl font-black text-slate-900 dark:text-white">
+                                  {plan.nombre}
+                                </h5>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                  {plan.descripcion}
+                                </p>
+                              </div>
+
+                              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-baseline justify-between">
+                                <div>
+                                  <span className="text-[10px] font-mono text-slate-400 block">COMISIÓN GRUPO SARA</span>
+                                  <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{plan.porcentajeComision}%</span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] font-mono text-slate-400 block">SUSCRIPCIÓN</span>
+                                  <span className="text-lg font-bold text-slate-900 dark:text-white">${plan.costoMensualUSD}/mes</span>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 pt-2">
+                                <span className="text-[11px] font-mono text-slate-400 font-bold block uppercase">
+                                  Características & Beneficios:
+                                </span>
+                                <ul className="space-y-2">
+                                  {plan.caracteristicas.map((caract, cIdx) => (
+                                    <li key={cIdx} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-300">
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                                      <span>{caract}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
+                              {esPlanActual ? (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="w-full py-2.5 bg-emerald-500/10 text-emerald-500 font-bold rounded-xl text-xs cursor-default flex items-center justify-center gap-1 border border-emerald-500/30"
+                                >
+                                  <Check className="w-4 h-4" />
+                                  <span>Plan Activo</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCambiarPlan(plan.id)}
+                                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-1.5"
+                                >
+                                  <span>Cambiar a este Plan</span>
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </div>
               )}
 

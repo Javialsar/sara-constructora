@@ -307,7 +307,7 @@ export interface SellerEmpresaRegistradaPayload {
   ruc: string;
   razonSocial: string;
   nombreComercial: string;
-  plan: 'VIP_FABRICA' | 'ESTANDAR_PRO' | 'BASICO_FERRETERIA';
+  plan: 'VIP_FABRICA' | 'ESTANDAR_PRO' | 'BASICO_FERRETERIA' | 'VIP' | 'EMPRESARIAL' | 'BASICO' | string;
   comisionSaraPct: number;
   apiKey: string;
   verificadoSri: boolean;
