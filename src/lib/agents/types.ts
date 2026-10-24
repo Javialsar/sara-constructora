@@ -7,6 +7,9 @@ export type SaraAgentId =
   | 'SARA-CONSTRUCTORA'
   | 'SARA-APU'
   | 'SARA-MARKETPLACE'
+  | 'SARA-SELLER-ONBOARDING-GUARD'
+  | 'SARA-CATALOG-INGESTION-ENGINE'
+  | 'SARA-MARKETPLACE-ESCROW-SETTLER'
   | 'SARA-FLETES'
   | 'SARA-TALENTOHUMANO'
   | 'SARA-INMOBILIARIA'
@@ -17,6 +20,10 @@ export type SaraEventType =
   | 'PROYECTO_CREADO'
   | 'APU_CONSOLIDADO'
   | 'SUMINISTROS_ASIGNADOS'
+  | 'SELLER_EMPRESA_REGISTRADA'
+  | 'CATALOGO_MASIVO_INGESTADO'
+  | 'COMPRA_MARKETPLACE_CONCRETADA'
+  | 'LIQUIDACION_PROVEEDOR_EMITIDA'
   | 'LOGISTICA_PROCESADA'
   | 'CONVOCATORIA_TALENTO_EMITIDA'
   | 'ANALISIS_INMOBILIARIO_COMPLETO'
@@ -293,4 +300,45 @@ export interface CicloAprendizajePayload {
     reglaActualizada: string;
     impactoFuturo: string;
   }>;
+}
+
+export interface SellerEmpresaRegistradaPayload {
+  sellerId: string;
+  ruc: string;
+  razonSocial: string;
+  nombreComercial: string;
+  plan: 'VIP_FABRICA' | 'ESTANDAR_PRO' | 'BASICO_FERRETERIA';
+  comisionSaraPct: number;
+  apiKey: string;
+  verificadoSri: boolean;
+}
+
+export interface CatalogoMasivoIngestadoPayload {
+  sellerId: string;
+  origen: 'EXCEL_XLSX' | 'API_REST_ERP' | 'MANUAL';
+  totalProcesados: number;
+  skusValidados: string[];
+  erroresDetectados: string[];
+}
+
+export interface CompraMarketplaceConcretadaPayload {
+  ordenCompraFolio: string;
+  sellerId: string;
+  clienteRuc: string;
+  proyectoObra: string;
+  subtotalUSD: number;
+  ivaUSD: number;
+  totalUSD: number;
+  comisionSaraUSD: number;
+  netoVendedorUSD: number;
+  estadoCustodia: 'EN_CUSTODIA_ESCROW';
+}
+
+export interface LiquidacionProveedorEmitidaPayload {
+  ordenCompraFolio: string;
+  sellerId: string;
+  montoNetoTransferidoUSD: number;
+  comisionSaraRetenidaUSD: number;
+  actaRecepcionId: string;
+  fechaLiquidacion: string;
 }

@@ -717,9 +717,9 @@ export class SellerMarketplaceService {
     plan: SellerPlanType;
   }): SellerProfile {
     // 1. Validar RUC con algoritmo Módulo 11 oficial
-    const rucValido = ComprasService.validarRucEcuador(payload.ruc);
-    if (!rucValido) {
-      throw new Error(`El RUC ${payload.ruc} no cumple con la regla de validación Módulo 11 del SRI del Ecuador.`);
+    const rucCheck = ComprasService.validarRucEcuador(payload.ruc);
+    if (!rucCheck.valido) {
+      throw new Error(`El RUC ${payload.ruc} no cumple con la regla de validación del SRI del Ecuador: ${rucCheck.error}`);
     }
 
     // 2. Verificar duplicados

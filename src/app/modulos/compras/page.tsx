@@ -330,6 +330,34 @@ export default function ModuloComprasMasterPage() {
         onClose={() => setOcParaVer(null)} 
       />
 
+      {/* MODAL DETALLE DE PRODUCTO (FICHA TÉCNICA, PRECIO, INEN, FLETE) */}
+      <MarketplaceProductDetailModal
+        product={productoParaVerDetalle}
+        onClose={() => setProductoParaVerDetalle(null)}
+        onAddToCart={(prod, cant) => {
+          setCartItems(prev => {
+            const idx = prev.findIndex(item => item.product.id === prod.id);
+            if (idx >= 0) {
+              const copy = [...prev];
+              copy[idx].cantidad += cant;
+              return copy;
+            }
+            return [...prev, { product: prod, cantidad: cant }];
+          });
+          setFeedbackNotice({
+            tipo: 'success',
+            texto: `Se agregaron ${cant} ${prod.unidad} de "${prod.nombre}" al pedido de obra.`
+          });
+        }}
+      />
+
+      {/* MODAL ENTORNO DEL PROVEEDOR (SELLER CENTRAL & VENDOR HUB) */}
+      <SellerHubModal
+        isOpen={sellerHubModalOpen}
+        onClose={() => setSellerHubModalOpen(false)}
+        onProductAdded={() => setSellerRefreshCounter(prev => prev + 1)}
+      />
+
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-20 pb-20 text-slate-900 dark:text-slate-100">
         
         {/* BANNER CORPORATIVO & HEADER */}
@@ -374,44 +402,94 @@ export default function ModuloComprasMasterPage() {
               </div>
             </div>
 
-            {/* BARRA DE NAVEGACIÓN DE PESTAÑAS (8 CAPACIDADES DEL PROMPT MAESTRO) */}
-            <div className="flex items-center gap-2 overflow-x-auto pt-6 border-t border-slate-800/80 mt-6 scrollbar-none">
-              {[
-                { id: 'tablero', label: 'Tablero Operativo & KPIs', icon: Boxes },
-                { id: 'requisiciones', label: 'Requisiciones de Obra', icon: FileText, badge: kpis.requisicionesPendientes },
-                { id: 'cotizaciones', label: 'Cotizaciones & Comparativo', icon: DollarSign },
-                { id: 'ordenes', label: 'Órdenes de Compra (OC)', icon: ShoppingCart, badge: kpis.ordenesActivas },
-                { id: 'recepciones', label: 'Recepciones en Bodega', icon: Warehouse },
-                { id: 'varianza_apu', label: 'Control Varianza APU', icon: TrendingDown },
-                { id: 'sri_match', label: '3-Way Match & Facturas SRI', icon: ShieldCheck },
-                { id: 'proveedores', label: 'Directorio Proveedores', icon: Building2 },
-                { id: 'flujo_agentico', label: 'Procuramiento Autónomo IA', icon: Sparkles },
-              ].map(tab => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as ComprasTab)}
-                    className={`px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap flex items-center gap-2 transition-all ${
-                      isActive
-                        ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                        : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                    {tab.badge !== undefined && tab.badge > 0 && (
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                        isActive ? 'bg-slate-950 text-amber-500' : 'bg-amber-500 text-slate-950'
-                      }`}>
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+            {/* BARRA SUPERIOR: SELECTOR DE MODO (MARKETPLACE B2B VS GESTIÓN CONSTRUCTORA) & ACCESO PROVEEDORES */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-800/80 mt-6">
+              <div className="flex items-center gap-2 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
+                <button
+                  onClick={() => setPrimaryMode('marketplace')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    primaryMode === 'marketplace'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Vitrina Marketplace B2B & Precios de Fábrica
+                </button>
+                <button
+                  onClick={() => setPrimaryMode('gestion_constructora')}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                    primaryMode === 'gestion_constructora'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-4 h-4" />
+                  Gestión de Compras de Obra & APU (8 Módulos)
+                </button>
+              </div>
+
+              {/* Botón Acceso Portal de Proveedores & Carrito */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSellerHubModalOpen(true)}
+                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>💼 Vende en SARA / Portal Proveedores</span>
+                  <span className="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px] font-mono">
+                    Planes & API
+                  </span>
+                </button>
+
+                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 rounded-xl border border-slate-700 text-xs font-mono">
+                  <ShoppingCart className="w-4 h-4 text-amber-400" />
+                  <span className="text-white font-bold">{cartItems.length}</span>
+                  <span className="text-slate-400 hidden sm:inline">en pedido</span>
+                </div>
+              </div>
             </div>
+
+            {/* BARRA DE NAVEGACIÓN DE SUB-PESTAÑAS (Solo visible en Modo Gestión Constructora) */}
+            {primaryMode === 'gestion_constructora' && (
+              <div className="flex items-center gap-2 overflow-x-auto pt-4 scrollbar-none animate-in fade-in duration-200">
+                {[
+                  { id: 'tablero', label: 'Tablero Operativo & KPIs', icon: Boxes },
+                  { id: 'requisiciones', label: 'Requisiciones de Obra', icon: FileText, badge: kpis.requisicionesPendientes },
+                  { id: 'cotizaciones', label: 'Cotizaciones & Comparativo', icon: DollarSign },
+                  { id: 'ordenes', label: 'Órdenes de Compra (OC)', icon: ShoppingCart, badge: kpis.ordenesActivas },
+                  { id: 'recepciones', label: 'Recepciones en Bodega', icon: Warehouse },
+                  { id: 'varianza_apu', label: 'Control Varianza APU', icon: TrendingDown },
+                  { id: 'sri_match', label: '3-Way Match & Facturas SRI', icon: ShieldCheck },
+                  { id: 'proveedores', label: 'Directorio Proveedores', icon: Building2 },
+                  { id: 'flujo_agentico', label: 'Procuramiento Autónomo IA', icon: Sparkles },
+                ].map(tab => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as ComprasTab)}
+                      className={`px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap flex items-center gap-2 transition-all ${
+                        isActive
+                          ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                          : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{tab.label}</span>
+                      {tab.badge !== undefined && tab.badge > 0 && (
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                          isActive ? 'bg-slate-950 text-amber-500' : 'bg-amber-500 text-slate-950'
+                        }`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
@@ -436,9 +514,54 @@ export default function ModuloComprasMasterPage() {
         <div className="max-w-7xl mx-auto px-6 mt-8">
 
           {/* ========================================================================= */}
-          {/* TAB 1: TABLERO OPERATIVO & KPIS                                           */}
+          {/* MODO 1: VITRINA MARKETPLACE B2B (CUADRÍCULA PRIORIZADA VIP -> PRO -> BASE) */}
           {/* ========================================================================= */}
-          {activeTab === 'tablero' && (
+          {primaryMode === 'marketplace' && (
+            <MarketplaceVitrinaSection 
+              productos={marketplaceProductos}
+              sellers={sellersList}
+              searchQuery={marketplaceSearch}
+              setSearchQuery={setMarketplaceSearch}
+              categoria={marketplaceCategoria}
+              setCategoria={setMarketplaceCategoria}
+              sellerId={marketplaceSellerId}
+              setSellerId={setMarketplaceSellerId}
+              planFiltro={marketplacePlanFiltro}
+              setPlanFiltro={setMarketplacePlanFiltro}
+              soloMasVendidos={marketplaceSoloMasVendidos}
+              setSoloMasVendidos={setMarketplaceSoloMasVendidos}
+              tarifaIva={marketplaceTarifaIva}
+              setTarifaIva={setMarketplaceTarifaIva}
+              onVerProducto={(prod) => setProductoParaVerDetalle(prod)}
+              onAddToCart={(prod, cant) => {
+                setCartItems(prev => {
+                  const idx = prev.findIndex(item => item.product.id === prod.id);
+                  if (idx >= 0) {
+                    const copy = [...prev];
+                    copy[idx].cantidad += cant;
+                    return copy;
+                  }
+                  return [...prev, { product: prod, cantidad: cant }];
+                });
+                setFeedbackNotice({
+                  tipo: 'success',
+                  texto: `Se agregaron ${cant} ${prod.unidad} de "${prod.nombre}" al pedido de obra.`
+                });
+              }}
+              onOpenSellerHub={() => setSellerHubModalOpen(true)}
+              cartItemsCount={cartItems.length}
+            />
+          )}
+
+          {/* ========================================================================= */}
+          {/* MODO 2: GESTIÓN DE COMPRAS DE OBRA & APU (8 MÓDULOS OPERATIVOS)           */}
+          {/* ========================================================================= */}
+          {primaryMode === 'gestion_constructora' && (
+            <>
+              {/* ========================================================================= */}
+              {/* TAB 1: TABLERO OPERATIVO & KPIS                                           */}
+              {/* ========================================================================= */}
+              {activeTab === 'tablero' && (
             <div className="space-y-8">
               {/* KPIS CARDS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -1275,6 +1398,9 @@ export default function ModuloComprasMasterPage() {
             <div className="space-y-6">
               <ApuRequisitionComprasWorkflow />
             </div>
+          )}
+
+            </>
           )}
 
         </div>

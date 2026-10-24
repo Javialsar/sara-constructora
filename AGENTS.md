@@ -28,10 +28,10 @@ Cada unidad de negocio cuenta con un agente autónomo especializado y sus *skill
    - **Skills Asociadas:** `sara-apu-ecuadorian-engineering`, `sara-indirects-polynomial-formula`, `sara-vae-calculator-compliance`, `sara-sercop-tender-intelligence`, `sara-machinery-caterpillar-costing`, `sara-evolutionary-yield-tuner`, `sara-regulatory-compliance-2026`.
    - **Evento Principal Emitido:** `APU_CONSOLIDADO`.
 
-3. **`SARA-MARKETPLACE` (`saraMarketplace.ts`, `saraKardexInventory.ts`, `saraPredictivePurchase.ts`) — Abastecimiento Mayorista, Kardex e Inteligencia de Compras**
-   - **Rol:** Cruce automático de materiales requeridos con proveedores mayoristas geolocalizados (*Landed Cost* con factor de sinuosidad vial $1.35$), tarifas diferenciadas de IVA ($5\%$ materiales de construcción Res. NAC-DGERCGC24-00000013 vs $15\%$ general), control de inventario Kardex Multibodega (NIC 2: CPP, $EOQ$, $ROP$) y predicción de volatilidad de precios.
-   - **Skills Asociadas:** `sara-regulatory-compliance-2026`, `sara-process-quality-logic-gate`.
-   - **Evento Principal Emitido:** `SUMINISTROS_ASIGNADOS`.
+3. **`SARA-MARKETPLACE` (`saraMarketplace.ts`, `saraSellerOnboardingGuard.ts`, `saraCatalogIngestionEngine.ts`, `saraMarketplaceEscrowSettler.ts`, `saraKardexInventory.ts`, `saraPredictivePurchase.ts`) — Marketplace B2B de Doble Vía, Abastecimiento Mayorista y Seller Hub**
+   - **Rol:** Plataforma de doble vía con exposición priorizada por planes de membresía (**VIP Fábrica 1.8%**, **Distribuidor Pro 3.5%**, **Ferretería Básica 6.0%**), cruce automático de materiales requeridos con proveedores mayoristas geolocalizados (*Landed Cost* con factor de sinuosidad vial $1.35$), tarifas diferenciadas de IVA ($5\%$ materiales de construcción Res. NAC-DGERCGC24-00000013 vs $15\%$ general), validación SRI Módulo 11, ingesta multicanal (Excel .xlsx y API REST para ERPs), custodia en Fideicomiso Escrow con dispersión contra recepción en obra y control Kardex Multibodega (NIC 2: CPP, $EOQ$, $ROP$).
+   - **Skills Asociadas:** `sara-regulatory-compliance-2026`, `sara-process-quality-logic-gate`, `sara-enterprise-security-zero-trust`.
+   - **Eventos Principales Emitidos:** `SUMINISTROS_ASIGNADOS`, `SELLER_EMPRESA_REGISTRADA`, `CATALOGO_MASIVO_INGESTADO`, `COMPRA_MARKETPLACE_CONCRETADA`, `LIQUIDACION_PROVEEDOR_EMITIDA`.
 
 4. **`SARA-FLETES` (`saraFletes.ts`) — Logística de Carga Pesada, Ruteo MTOP y Optimización Backhaul**
    - **Rol:** Cubicación de carga total (abastecimiento de insumos + desalojo de excavación), asignación de flota pesada bajo Tabla Nacional de Pesos y Dimensiones MTOP (`2DB` $18\,\text{T}$, `V3A` Volqueta $14\,\text{m}^3$ / $27\,\text{T}$, `3S2` $48\,\text{T}$, `3S3` $51\,\text{T}$ PBV), peajes interprovinciales, liquidación inmediata y sincronización de retorno (*Backhaul*) para eliminar viajes en vacío.
