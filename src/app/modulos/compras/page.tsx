@@ -34,7 +34,9 @@ import {
   Send,
   AlertTriangle,
   RotateCcw,
-  Percent
+  Percent,
+  Trash2,
+  Minus
 } from 'lucide-react';
 import { 
   ComprasService, 
@@ -89,7 +91,115 @@ export default function ModuloComprasMasterPage() {
   const [productoParaVerDetalle, setProductoParaVerDetalle] = useState<MarketplaceProduct | null>(null);
   const [sellerHubModalOpen, setSellerHubModalOpen] = useState(false);
   const [cartItems, setCartItems] = useState<{ product: MarketplaceProduct; cantidad: number }[]>([]);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [sellerRefreshCounter, setSellerRefreshCounter] = useState(0);
+
+  // Totales de la Requisición / Carrito de Compras
+  const cartTotals = useMemo(() => {
+    let subtotalSinIva = 0;
+    let iva5 = 0;
+    let iva15 = 0;
+    let pesoTotalKg = 0;
+
+    cartItems.forEach(item => {
+      const lineSubtotal = item.product.precioSinIva * item.cantidad;
+      subtotalSinIva += lineSubtotal;
+      if (item.product.tarifaIvaPct === 5) {
+        iva5 += lineSubtotal * 0.05;
+      } else {
+        iva15 += lineSubtotal * 0.15;
+      }
+      pesoTotalKg += item.product.pesoUnitarioKg * item.cantidad;
+    });
+
+    const fleteEstimado = cartItems.length > 0 ? Math.max(35, (pesoTotalKg / 1000) * 14.50 * 1.35) : 0;
+    const totalConIva = subtotalSinIva + iva5 + iva15;
+    const totalFinalConFlete = totalConIva + fleteEstimado;
+
+    return {
+      subtotalSinIva,
+      iva5,
+      iva15,
+      pesoTotalKg,
+      fleteEstimado,
+      totalConIva,
+      totalFinalConFlete
+    };
+  }, [cartItems]);
+
+  const handleUpdateCartQuantity = (productId: string, delta: number) => {
+    setCartItems(prev => {
+      return prev.map(item => {
+        if (item.product.id === productId) {
+          const nueva = item.cantidad + delta;
+          return nueva > 0 ? { ...item, cantidad: nueva } : null;
+        }
+        return item;
+      }).filter(Boolean) as { product: MarketplaceProduct; cantidad: number }[];
+    });
+  };
+
+  const handleRemoveCartItem = (productId: string) => {
+    setCartItems(prev => prev.filter(i => i.product.id !== productId));
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+  };
+
+  const handleConfirmRequisitionFromCart = () => {
+    if (cartItems.length === 0) return;
+    try {
+      const targetProject = proyectos[0] || { id: 'proy-01', nombre: 'Torres del Mirador Residencial - Loja' };
+
+      const itemsPayload = cartItems.map(item => {
+        let cat: ItemRequisicion['categoria'] = 'ACABADOS';
+        const cUpper = item.product.categoria.toUpperCase();
+        if (cUpper.includes('ACERO') || cUpper.includes('HIERRO')) cat = 'ACERO';
+        else if (cUpper.includes('CEMENTO') || cUpper.includes('HORMIGON')) cat = 'CEMENTO_HORMIGON';
+        else if (cUpper.includes('ARIDO') || cUpper.includes('ÁRIDO') || cUpper.includes('ARENA') || cUpper.includes('RIPIO')) cat = 'ARIDOS';
+        else if (cUpper.includes('MAMPOSTERIA') || cUpper.includes('BLOQUE') || cUpper.includes('LADRILLO')) cat = 'MAMPOSTERIA';
+        else if (cUpper.includes('TUB') || cUpper.includes('PVC') || cUpper.includes('HIDROSANITARIO')) cat = 'TUBERIA_PVC';
+        else if (cUpper.includes('EQUIPO') || cUpper.includes('MAQUINARIA')) cat = 'EQUIPO';
+
+        return {
+          codigoInsumo: item.product.especificacionesTecnicas?.normaInen || `MAT-${item.product.id}`,
+          descripcion: item.product.nombre,
+          categoria: cat,
+          unidad: item.product.unidad,
+          cantidadRequerida: item.cantidad,
+          costoUnitarioReferencialApuUSD: item.product.precioSinIva,
+          rubroApuCodigo: 'APU-MKT',
+          rubroApuNombre: item.product.categoria,
+          proveedorSugerido: item.product.sellerNombre,
+          especificacionesTecnicas: item.product.descripcion
+        };
+      });
+
+      const nuevaReq = ComprasService.crearRequisicion({
+        proyectoId: targetProject.id,
+        frenteTrabajo: 'Frente General - Suministro Marketplace',
+        solicitanteNombre: 'Ing. Comprador / Residente de Obra',
+        solicitanteCargo: 'Jefe de Abastecimiento',
+        fechaRequeridaObra: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+        prioridad: 'URGENTE_24H',
+        justificacion: 'Requisición generada directamente desde el catálogo SARA Marketplace B2B.',
+        items: itemsPayload
+      });
+
+      setCartItems([]);
+      setCartDrawerOpen(false);
+      refrescarDatos();
+      setPrimaryMode('gestion_constructora');
+      setActiveTab('requisiciones');
+      setFeedbackNotice({
+        tipo: 'success',
+        texto: `¡Excelente! Se ha generado la Requisición Oficial ${nuevaReq.folio} con los materiales del Marketplace.`
+      });
+    } catch (err: any) {
+      setFeedbackNotice({ tipo: 'error', texto: err.message || 'Error al generar requisición.' });
+    }
+  };
 
   // Productos del marketplace ordenados por jerarquía de Plan VIP -> Estándar -> Básico
   const marketplaceProductos = useMemo(() => {
@@ -357,40 +467,111 @@ export default function ModuloComprasMasterPage() {
         onProductAdded={() => setSellerRefreshCounter(prev => prev + 1)}
       />
 
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pt-20 pb-20 text-slate-900 dark:text-slate-100">
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
         
-        {/* BANNER CORPORATIVO & HEADER */}
-        <div className="bg-slate-900 text-white border-b border-slate-800">
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg">
-                    SARA COMPRAS & APU
-                  </span>
-                  <span className="text-xs font-mono text-slate-400">
-                    Control de Adquisiciones • Normativa NEC-15 / SRI 2026
-                  </span>
-                </div>
-                <h1 className="text-3xl font-black tracking-tight mt-2 flex items-center gap-3">
-                  <ShoppingCart className="w-8 h-8 text-amber-500" />
-                  Módulo de Compras & Abastecimiento de Obra
-                </h1>
-                <p className="text-sm text-slate-400 max-w-2xl mt-1">
-                  Gestión integral del ciclo de adquisiciones: Requisición con techo APU, cotización multicriterio con flete MTOP, emisión de OC congelada, recepción en bodega e integración 3-Way Match con SRI.
-                </p>
-              </div>
+        {/* BARRA SUPERIOR ELEGANTE & CONMUTADOR DE MODO (MARKETPLACE VS GESTIÓN INTERNA) */}
+        <header className="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-30 px-4 sm:px-6 py-3 transition-all">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            {/* Conmutador de Modo Principal */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-2xl border border-slate-800">
+              <button
+                onClick={() => setPrimaryMode('marketplace')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  primaryMode === 'marketplace'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span>Vitrina Marketplace B2B</span>
+              </button>
+              
+              <button
+                onClick={() => setPrimaryMode('gestion_constructora')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  primaryMode === 'gestion_constructora'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                <span>Gestión de Compras & APU</span>
+              </button>
+            </div>
 
-              {/* Selector de Proyecto Global (Solo visible en Modo Gestión Constructora) */}
-              {primaryMode === 'gestion_constructora' && (
-                <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700 min-w-[280px]">
+            {/* Accesos Rápidos: Landing, Portal Proveedores & Pedido de Obra */}
+            <div className="flex items-center gap-2.5">
+              <Link
+                href="/compras"
+                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl border border-slate-800 flex items-center gap-1.5 transition-colors"
+                title="Ver Landing Page Pública"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Landing Page</span>
+              </Link>
+
+              <button
+                onClick={() => setSellerHubModalOpen(true)}
+                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-2 transition-transform hover:scale-[1.02]"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Vende en SARA / </span>
+                <span>Proveedores</span>
+                <span className="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px] font-mono font-bold">
+                  Planes & API
+                </span>
+              </button>
+
+              <button
+                onClick={() => setCartDrawerOpen(true)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all border ${
+                  cartItems.length > 0 
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 font-black' 
+                    : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300'
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                <span>{cartItems.length}</span>
+                <span className="hidden sm:inline">{cartItems.length === 1 ? 'material' : 'materiales'}</span>
+              </button>
+            </div>
+
+          </div>
+        </header>
+
+        {/* CABECERA ESPECÍFICA PARA GESTIÓN CONSTRUCTORA (SOLO SE MUESTRA EN ESE MODO) */}
+        {primaryMode === 'gestion_constructora' && (
+          <div className="bg-slate-900 border-b border-slate-800 px-6 py-6 animate-in fade-in duration-200">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg">
+                      SARA COMPRAS & APU
+                    </span>
+                    <span className="text-xs font-mono text-slate-400">
+                      Control de Adquisiciones • Normativa NEC-15 / SRI 2026
+                    </span>
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight mt-1 flex items-center gap-2.5">
+                    <Layers className="w-6 h-6 text-amber-500" />
+                    <span>Control Integral de Adquisiciones de Obra</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 max-w-2xl mt-0.5">
+                    Requisición con techo APU, cotización multicriterio con flete MTOP, emisión de OC congelada, recepción en bodega e integración 3-Way Match con SRI.
+                  </p>
+                </div>
+
+                {/* Selector de Proyecto Global */}
+                <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 min-w-[280px]">
                   <label className="text-[11px] font-mono text-slate-400 block mb-1">
                     Filtrar por Obra / Proyecto Civil:
                   </label>
                   <select
                     value={proyectoFiltro}
                     onChange={(e) => setProyectoFiltro(e.target.value)}
-                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                   >
                     <option value="TODOS">Todas las Obras de la Empresa</option>
                     {proyectos.map(p => (
@@ -400,69 +581,10 @@ export default function ModuloComprasMasterPage() {
                     ))}
                   </select>
                 </div>
-              )}
-            </div>
-
-            {/* BARRA SUPERIOR: SELECTOR DE MODO (MARKETPLACE B2B VS GESTIÓN CONSTRUCTORA) & ACCESO PROVEEDORES */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-slate-800/80 mt-6">
-              <div className="flex items-center gap-2 p-1.5 bg-slate-950 rounded-2xl border border-slate-800">
-                <button
-                  onClick={() => setPrimaryMode('marketplace')}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                    primaryMode === 'marketplace'
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Vitrina Marketplace B2B & Precios de Fábrica
-                </button>
-                <button
-                  onClick={() => setPrimaryMode('gestion_constructora')}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                    primaryMode === 'gestion_constructora'
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Layers className="w-4 h-4" />
-                  Gestión de Compras de Obra & APU (8 Módulos)
-                </button>
               </div>
 
-              {/* Botón Acceso Portal de Proveedores, Landing Page & Carrito */}
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/compras"
-                  className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-xs rounded-xl border border-slate-700 flex items-center gap-2 transition-all"
-                  title="Ver Landing Page Pública de Compras & Marketplace"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span className="hidden sm:inline">Landing Page</span>
-                </Link>
-
-                <button
-                  onClick={() => setSellerHubModalOpen(true)}
-                  className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-all hover:scale-[1.02]"
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>💼 Vende en SARA / Portal Proveedores</span>
-                  <span className="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px] font-mono">
-                    Planes & API
-                  </span>
-                </button>
-
-                <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-800 rounded-xl border border-slate-700 text-xs font-mono">
-                  <ShoppingCart className="w-4 h-4 text-amber-400" />
-                  <span className="text-white font-bold">{cartItems.length}</span>
-                  <span className="text-slate-400 hidden sm:inline">en pedido</span>
-                </div>
-              </div>
-            </div>
-
-            {/* BARRA DE NAVEGACIÓN DE SUB-PESTAÑAS (Solo visible en Modo Gestión Constructora) */}
-            {primaryMode === 'gestion_constructora' && (
-              <div className="flex items-center gap-2 overflow-x-auto pt-4 scrollbar-none animate-in fade-in duration-200">
+              {/* Sub-Pestañas de Gestión de Compras */}
+              <div className="flex items-center gap-2 overflow-x-auto pt-2 scrollbar-none border-t border-slate-800/80">
                 {[
                   { id: 'tablero', label: 'Tablero Operativo & KPIs', icon: Boxes },
                   { id: 'requisiciones', label: 'Requisiciones de Obra', icon: FileText, badge: kpis.requisicionesPendientes },
@@ -483,7 +605,7 @@ export default function ModuloComprasMasterPage() {
                       className={`px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap flex items-center gap-2 transition-all ${
                         isActive
                           ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                          : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 hover:text-white'
+                          : 'bg-slate-950 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -499,29 +621,29 @@ export default function ModuloComprasMasterPage() {
                   );
                 })}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* NOTIFICACIÓN / FEEDBACK TEMPORAL */}
         {feedbackNotice && (
-          <div className="max-w-7xl mx-auto px-6 mt-4">
-            <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-mono ${
-              feedbackNotice.tipo === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' :
-              feedbackNotice.tipo === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' :
-              'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-4 w-full">
+            <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-mono shadow-lg ${
+              feedbackNotice.tipo === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
+              feedbackNotice.tipo === 'error' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
+              'bg-blue-500/10 border-blue-500/30 text-blue-400'
             }`}>
               <div className="flex items-center gap-2">
-                {feedbackNotice.tipo === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+                {feedbackNotice.tipo === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />}
                 <span>{feedbackNotice.texto}</span>
               </div>
-              <button onClick={() => setFeedbackNotice(null)} className="opacity-70 hover:opacity-100">✕</button>
+              <button onClick={() => setFeedbackNotice(null)} className="opacity-70 hover:opacity-100 font-bold px-1">✕</button>
             </div>
           </div>
         )}
 
         {/* CONTENEDOR PRINCIPAL */}
-        <div className="max-w-7xl mx-auto px-6 mt-8">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full flex-1">
 
           {/* ========================================================================= */}
           {/* MODO 1: VITRINA MARKETPLACE B2B (CUADRÍCULA PRIORIZADA VIP -> PRO -> BASE) */}
@@ -560,6 +682,8 @@ export default function ModuloComprasMasterPage() {
               }}
               onOpenSellerHub={() => setSellerHubModalOpen(true)}
               cartItemsCount={cartItems.length}
+              cartItems={cartItems}
+              onOpenCartDrawer={() => setCartDrawerOpen(true)}
             />
           )}
 
@@ -1413,7 +1537,7 @@ export default function ModuloComprasMasterPage() {
             </>
           )}
 
-        </div>
+        </main>
 
         {/* ========================================================================= */}
         {/* MODAL: NUEVA REQUISICIÓN DE OBRA                                          */}
@@ -1701,6 +1825,191 @@ export default function ModuloComprasMasterPage() {
             </div>
           </div>
         )}
+
+      {/* ========================================================================= */}
+      {/* DRAWER SLIDE-OVER: REQUISICIÓN DE PEDIDO DE OBRA (CARRITO B2B & ESCROW)   */}
+      {/* ========================================================================= */}
+      {cartDrawerOpen && (
+        <div className="fixed inset-0 z-50 overflow-hidden animate-in fade-in duration-200">
+          <div 
+            onClick={() => setCartDrawerOpen(false)}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" 
+          />
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <aside 
+              aria-label="Panel lateral de Requisición de Obra"
+              className="w-screen max-w-md bg-slate-900 border-l border-slate-800 flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300"
+            >
+              
+              {/* Header del Carrito */}
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-amber-500 text-slate-950 rounded-2xl shadow-md shadow-amber-500/20">
+                    <ShoppingCart className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white">Requisición de Pedido de Obra</h3>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      {cartItems.length} {cartItems.length === 1 ? 'material en lista' : 'materiales en lista'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCartDrawerOpen(false)}
+                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+                  title="Cerrar panel"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Lista de Ítems */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {cartItems.length === 0 ? (
+                  <div className="text-center py-16 space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
+                      <ShoppingCart className="w-8 h-8" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-white">Tu lista de requisición está vacía</h4>
+                      <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                        Explora la vitrina y añade materiales con precios de fábrica mayoristas para tu obra.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {cartItems.map((item) => {
+                      const itemSubtotal = item.product.precioSinIva * item.cantidad;
+                      const itemTotalConIva = itemSubtotal * (1 + item.product.tarifaIvaPct / 100);
+
+                      return (
+                        <div 
+                          key={item.product.id}
+                          className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <span className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block">
+                                {item.product.sellerNombre}
+                              </span>
+                              <h5 className="text-xs font-bold text-white line-clamp-2">
+                                {item.product.nombre}
+                              </h5>
+                              <span className="text-[11px] font-mono text-slate-400">
+                                ${item.product.precioSinIva.toFixed(2)} /{item.product.unidad} (IVA {item.product.tarifaIvaPct}%)
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveCartItem(item.product.id)}
+                              className="text-slate-500 hover:text-rose-400 p-1"
+                              title="Eliminar de la lista"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                            {/* Selector de Cantidad */}
+                            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1">
+                              <button
+                                onClick={() => handleUpdateCartQuantity(item.product.id, -1)}
+                                className="p-1 hover:bg-slate-800 text-slate-300 rounded-lg transition-colors"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="w-8 text-center text-xs font-mono font-bold text-white">
+                                {item.cantidad}
+                              </span>
+                              <button
+                                onClick={() => handleUpdateCartQuantity(item.product.id, 1)}
+                                className="p-1 hover:bg-slate-800 text-slate-300 rounded-lg transition-colors"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Subtotal del Ítem */}
+                            <div className="text-right">
+                              <span className="text-xs font-mono font-black text-white">
+                                ${itemSubtotal.toFixed(2)} USD
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400 block">
+                                c/IVA: ${itemTotalConIva.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    <div className="pt-2 flex justify-end">
+                      <button
+                        onClick={handleClearCart}
+                        className="text-[11px] font-mono text-slate-500 hover:text-rose-400 transition-colors"
+                      >
+                        Vaciar lista de pedido
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer con Desglose Financiero & Botón de Acción */}
+              {cartItems.length > 0 && (
+                <div className="p-6 border-t border-slate-800 bg-slate-950/60 space-y-4">
+                  
+                  <div className="space-y-1.5 text-xs font-mono">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Subtotal Materiales (Sin IVA):</span>
+                      <span className="text-white font-bold">${cartTotals.subtotalSinIva.toFixed(2)}</span>
+                    </div>
+
+                    {cartTotals.iva5 > 0 && (
+                      <div className="flex justify-between text-emerald-400">
+                        <span>IVA 5% (Material Calificado SRI):</span>
+                        <span className="font-bold">+${cartTotals.iva5.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    {cartTotals.iva15 > 0 && (
+                      <div className="flex justify-between text-slate-400">
+                        <span>IVA 15% (Tarifa General):</span>
+                        <span className="font-bold">+${cartTotals.iva15.toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between text-sky-400 pt-1 border-t border-slate-800">
+                      <span>Flete Estimado MTOP ({(cartTotals.pesoTotalKg / 1000).toFixed(2)} Ton):</span>
+                      <span className="font-bold">+${cartTotals.fleteEstimado.toFixed(2)}</span>
+                    </div>
+
+                    <div className="flex justify-between items-baseline pt-2 border-t border-slate-800 text-sm">
+                      <span className="font-bold text-white">Total en Custodia Escrow:</span>
+                      <span className="text-xl font-black font-mono text-amber-400">
+                        ${cartTotals.totalFinalConFlete.toFixed(2)} <span className="text-xs text-slate-400 font-normal">USD</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleConfirmRequisitionFromCart}
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-xl text-xs transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 hover:scale-[1.01]"
+                  >
+                    <span>Generar Requisición Oficial de Obra</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+
+                  <p className="text-[10px] text-center text-slate-500">
+                    Fondos blindados en Fideicomiso Escrow SARA y liberados exclusivamente contra firma electrónica de recepción en obra.
+                  </p>
+                </div>
+              )}
+
+            </aside>
+          </div>
+        </div>
+      )}
 
       </div>
     </>
