@@ -222,6 +222,7 @@ export interface MarketplaceProduct {
   ventasTotales: number;
   calificacion: number;
   esMasVendido?: boolean;
+  bodegaCoordenadas?: { lat: number; lng: number };
 }
 
 export interface VentaHistorialItem {
@@ -451,7 +452,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 45.36,
     ventasTotales: 1840,
     calificacion: 4.9,
-    esMasVendido: true
+    esMasVendido: true,
+    bodegaCoordenadas: { lat: -0.4678, lng: -78.5833 }
   },
   {
     id: 'prod-adelca-malla-electrosoldada',
@@ -478,7 +480,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 32.50,
     ventasTotales: 890,
     calificacion: 4.8,
-    esMasVendido: true
+    esMasVendido: true,
+    bodegaCoordenadas: { lat: -0.4678, lng: -78.5833 }
   },
 
   // --- PRODUCTOS PLAN VIP (HOLCIM) ---
@@ -512,7 +515,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 50.00,
     ventasTotales: 4200,
     calificacion: 4.9,
-    esMasVendido: true
+    esMasVendido: true,
+    bodegaCoordenadas: { lat: -2.1812, lng: -79.9213 }
   },
   {
     id: 'prod-holcim-hormigon-premezclado',
@@ -539,7 +543,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 2400.00,
     ventasTotales: 1560,
     calificacion: 4.8,
-    esMasVendido: true
+    esMasVendido: true,
+    bodegaCoordenadas: { lat: -2.1812, lng: -79.9213 }
   },
 
   // --- PRODUCTOS PLAN ESTÁNDAR (NOVACERO) ---
@@ -567,7 +572,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     tiempoEntregaHoras: 48,
     pesoUnitarioKg: 134.40,
     ventasTotales: 340,
-    calificacion: 4.7
+    calificacion: 4.7,
+    bodegaCoordenadas: { lat: -0.8732, lng: -78.6091 }
   },
 
   // --- PRODUCTOS PLAN ESTÁNDAR (KUBIEC) ---
@@ -595,7 +601,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     tiempoEntregaHoras: 48,
     pesoUnitarioKg: 8.50,
     ventasTotales: 490,
-    calificacion: 4.6
+    calificacion: 4.6,
+    bodegaCoordenadas: { lat: -0.3012, lng: -78.5290 }
   },
 
   // --- PRODUCTOS PLAN BÁSICO (DISENSA) ---
@@ -623,7 +630,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     tiempoEntregaHoras: 24,
     pesoUnitarioKg: 3.20,
     ventasTotales: 210,
-    calificacion: 4.5
+    calificacion: 4.5,
+    bodegaCoordenadas: { lat: -3.9931, lng: -79.2042 }
   },
   {
     id: 'prod-disensa-bloque-15',
@@ -650,7 +658,8 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 11.50,
     ventasTotales: 3800,
     calificacion: 4.4,
-    esMasVendido: true
+    esMasVendido: true,
+    bodegaCoordenadas: { lat: -3.9931, lng: -79.2042 }
   }
 ];
 

@@ -28,9 +28,12 @@ import {
   HelpCircle,
   ChevronRight,
   Info,
-  SlidersHorizontal
+  SlidersHorizontal,
+  MapPin,
+  Zap
 } from 'lucide-react';
 import { MarketplaceProduct, SellerProfile, SELLER_PLANS } from '@/lib/services/sellerMarketplaceService';
+import { CANTONES_ECUADOR, CantonEcuador, GeoDistanceService } from '@/lib/services/geoDistanceService';
 
 interface MarketplaceVitrinaSectionProps {
   productos: MarketplaceProduct[];
@@ -53,6 +56,10 @@ interface MarketplaceVitrinaSectionProps {
   cartItemsCount: number;
   cartItems?: { product: MarketplaceProduct; cantidad: number }[];
   onOpenCartDrawer?: () => void;
+  cantonSeleccionado: CantonEcuador;
+  setCantonSeleccionado: (c: CantonEcuador) => void;
+  ordenarPorCercania: boolean;
+  setOrdenarPorCercania: (val: boolean) => void;
 }
 
 export function MarketplaceVitrinaSection({
@@ -75,12 +82,40 @@ export function MarketplaceVitrinaSection({
   onOpenSellerHub,
   cartItemsCount,
   cartItems = [],
-  onOpenCartDrawer
+  onOpenCartDrawer,
+  cantonSeleccionado,
+  setCantonSeleccionado,
+  ordenarPorCercania,
+  setOrdenarPorCercania
 }: MarketplaceVitrinaSectionProps) {
 
   // Ordenamiento local
   const [ordenamiento, setOrdenamiento] = useState<'prioridad' | 'precio_asc' | 'precio_desc' | 'stock'>('prioridad');
   const [feedbackItemAgregado, setFeedbackItemAgregado] = useState<string | null>(null);
+  const [detectandoGps, setDetectandoGps] = useState(false);
+
+  const handleDetectarGps = () => {
+    if (!navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización.');
+      return;
+    }
+    setDetectandoGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const masCercano = GeoDistanceService.encontrarCantonMasCercano(coords);
+        setCantonSeleccionado(masCercano);
+        setOrdenarPorCercania(true);
+        setDetectandoGps(false);
+      },
+      (err) => {
+        setDetectandoGps(false);
+        // Fallback a Loja si el usuario rechaza
+        setCantonSeleccionado(CANTONES_ECUADOR[3]);
+      },
+      { timeout: 8000 }
+    );
+  };
 
   const categorias = [
     { id: 'TODAS', label: 'Todas las Categorías', icon: Boxes },
@@ -112,7 +147,16 @@ export function MarketplaceVitrinaSection({
 
   // Aplicar ordenamiento
   const productosOrdenados = React.useMemo(() => {
-    const list = [...productos];
+    let list = [...productos];
+    if (ordenarPorCercania) {
+      return list.sort((a, b) => {
+        const coordsA = a.bodegaCoordenadas || { lat: -0.1807, lng: -78.4678 };
+        const coordsB = b.bodegaCoordenadas || { lat: -0.1807, lng: -78.4678 };
+        const distA = GeoDistanceService.distanciaVialEcuadorKm(coordsA, cantonSeleccionado.coordenadas);
+        const distB = GeoDistanceService.distanciaVialEcuadorKm(coordsB, cantonSeleccionado.coordenadas);
+        return distA - distB;
+      });
+    }
     if (ordenamiento === 'precio_asc') {
       return list.sort((a, b) => a.precioSinIva - b.precioSinIva);
     }
@@ -123,7 +167,7 @@ export function MarketplaceVitrinaSection({
       return list.sort((a, b) => b.stockDisponible - a.stockDisponible);
     }
     return list; // Por defecto ya viene ordenado por Jerarquía VIP -> Pro -> Básico
-  }, [productos, ordenamiento]);
+  }, [productos, ordenamiento, ordenarPorCercania, cantonSeleccionado]);
 
   const handleAgregarRapido = (prod: MarketplaceProduct) => {
     onAddToCart(prod, 1);
@@ -252,6 +296,60 @@ export function MarketplaceVitrinaSection({
       {/* ===================================================================== */}
       <div className="bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
         
+        {/* BARRA DE GEOCERCANÍA & UBICACIÓN DE OBRA */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-950 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
+                UBICACIÓN DE TU OBRA / DESCARGA:
+              </span>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <select
+                  value={cantonSeleccionado.id}
+                  onChange={(e) => {
+                    const found = CANTONES_ECUADOR.find(c => c.id === e.target.value);
+                    if (found) setCantonSeleccionado(found);
+                  }}
+                  className="bg-slate-900 border border-slate-700 text-white font-bold text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                >
+                  {CANTONES_ECUADOR.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre} ({c.provincia}) - {c.region}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleDetectarGps}
+                  disabled={detectandoGps}
+                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-[11px] font-bold rounded-lg border border-slate-700 flex items-center gap-1 transition-colors disabled:opacity-50"
+                >
+                  <span>{detectandoGps ? 'Detectando...' : '📍 Detectar mi GPS'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setOrdenarPorCercania(!ordenarPorCercania)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
+                ordenarPorCercania
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5" />
+              <span>⚡ Más Cercanos a mi Obra</span>
+              {ordenarPorCercania && <Check className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
         {/* Fila Principal: Buscador + Dropdowns de Filtrado */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           
@@ -459,6 +557,9 @@ export function MarketplaceVitrinaSection({
             const isVip = prod.sellerPlan === 'VIP_FABRICA' || prod.sellerPlan === 'VIP';
             const isPro = prod.sellerPlan === 'ESTANDAR_PRO' || prod.sellerPlan === 'EMPRESARIAL';
             const precioTotalConIva = prod.precioSinIva * (1 + prod.tarifaIvaPct / 100);
+            const bodegaCoords = prod.bodegaCoordenadas || { lat: -0.1807, lng: -78.4678 };
+            const distVial = GeoDistanceService.distanciaVialEcuadorKm(bodegaCoords, cantonSeleccionado.coordenadas);
+            const tiempoEst = GeoDistanceService.estimarTiempoTransporte(distVial);
 
             return (
               <div 
@@ -569,6 +670,19 @@ export function MarketplaceVitrinaSection({
                         <span className="font-black">${prod.descuentosVolumen[0].precioUnitario.toFixed(2)}</span>
                       </div>
                     )}
+
+                    {/* Distancia y Tiempo de Despacho a la Obra */}
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-[11px] font-mono">
+                      <div className="flex items-center gap-1.5 text-amber-400 font-bold truncate max-w-[170px]">
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">A {distVial} km ({cantonSeleccionado.nombre})</span>
+                      </div>
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        tiempoEst.esExpress ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400'
+                      }`}>
+                        {tiempoEst.esExpress ? 'Express 2h-4h' : `${tiempoEst.tiempoHoras}h`}
+                      </span>
+                    </div>
 
                     {/* Metadatos Logísticos & Stock */}
                     <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-1">

@@ -36,7 +36,10 @@ import {
   RotateCcw,
   Percent,
   Trash2,
-  Minus
+  Minus,
+  MapPin,
+  User,
+  CreditCard
 } from 'lucide-react';
 import { 
   ComprasService, 
@@ -60,6 +63,9 @@ import {
 import { MarketplaceProductDetailModal } from '@/components/compras/MarketplaceProductDetailModal';
 import { SellerHubModal } from '@/components/compras/SellerHubModal';
 import { MarketplaceVitrinaSection } from '@/components/compras/MarketplaceVitrinaSection';
+import { AuthSocialModal, CompradorSession } from '@/components/compras/AuthSocialModal';
+import { CheckoutMultiProveedorModal } from '@/components/compras/CheckoutMultiProveedorModal';
+import { CANTONES_ECUADOR, CantonEcuador } from '@/lib/services/geoDistanceService';
 
 type ComprasTab = 
   | 'tablero'
@@ -93,6 +99,13 @@ export default function ModuloComprasMasterPage() {
   const [cartItems, setCartItems] = useState<{ product: MarketplaceProduct; cantidad: number }[]>([]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [sellerRefreshCounter, setSellerRefreshCounter] = useState(0);
+
+  // Estados de Autenticación Social & Geocercanía
+  const [compradorSession, setCompradorSession] = useState<CompradorSession | null>(null);
+  const [cantonSeleccionado, setCantonSeleccionado] = useState<CantonEcuador>(CANTONES_ECUADOR[3]); // Loja por defecto
+  const [ordenarPorCercania, setOrdenarPorCercania] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
 
   // Totales de la Requisición / Carrito de Compras
   const cartTotals = useMemo(() => {
@@ -511,6 +524,38 @@ export default function ModuloComprasMasterPage() {
                 <span className="hidden sm:inline">Landing Page</span>
               </Link>
 
+              {/* Acceso Compradores (Google / Redes / Invitado) */}
+              {compradorSession ? (
+                <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-xl">
+                  {compradorSession.avatarUrl ? (
+                    <img src={compradorSession.avatarUrl} alt={compradorSession.nombre} className="w-5 h-5 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-[10px] font-bold">
+                      {compradorSession.nombre.substring(0, 1)}
+                    </div>
+                  )}
+                  <span className="text-xs font-bold text-white max-w-[100px] truncate hidden md:inline">
+                    {compradorSession.nombre.split(' ')[0]}
+                  </span>
+                  <button
+                    onClick={() => setCompradorSession(null)}
+                    className="text-[10px] text-slate-500 hover:text-rose-400 font-mono px-1"
+                    title="Cerrar sesión de comprador"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-slate-200 font-bold text-xs rounded-xl border border-slate-800 flex items-center gap-1.5 transition-colors"
+                  title="Identifícate con Google, Facebook o como Invitado"
+                >
+                  <User className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden md:inline">Identifícate</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setSellerHubModalOpen(true)}
                 className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-2 transition-transform hover:scale-[1.02]"
@@ -684,6 +729,10 @@ export default function ModuloComprasMasterPage() {
               cartItemsCount={cartItems.length}
               cartItems={cartItems}
               onOpenCartDrawer={() => setCartDrawerOpen(true)}
+              cantonSeleccionado={cantonSeleccionado}
+              setCantonSeleccionado={setCantonSeleccionado}
+              ordenarPorCercania={ordenarPorCercania}
+              setOrdenarPorCercania={setOrdenarPorCercania}
             />
           )}
 
@@ -1992,12 +2041,28 @@ export default function ModuloComprasMasterPage() {
                     </div>
                   </div>
 
+                  {/* CTA 1: Checkout Multi-Proveedor B2C/B2B (Directo con DeUna, Tarjeta o Transferencia) */}
                   <button
-                    onClick={handleConfirmRequisitionFromCart}
+                    onClick={() => {
+                      if (!compradorSession) {
+                        setAuthModalOpen(true);
+                      } else {
+                        setCheckoutModalOpen(true);
+                      }
+                    }}
                     className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-xl text-xs transition-all shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 hover:scale-[1.01]"
                   >
-                    <span>Generar Requisición Oficial de Obra</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <CreditCard className="w-4 h-4" />
+                    <span>Pagar y Despachar Pedido (${cartTotals.totalFinalConFlete.toFixed(2)} USD)</span>
+                  </button>
+
+                  {/* CTA 2: Requisición Interna para Residentes de Obra Civil */}
+                  <button
+                    onClick={handleConfirmRequisitionFromCart}
+                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-xl text-[11px] transition-colors border border-slate-800 flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-amber-400" />
+                    <span>O Generar Requisición Interna de Obra (REQ)</span>
                   </button>
 
                   <p className="text-[10px] text-center text-slate-500">
@@ -2010,6 +2075,43 @@ export default function ModuloComprasMasterPage() {
           </div>
         </div>
       )}
+
+      {/* MODAL: AUTENTICACIÓN SOCIAL (GOOGLE / FACEBOOK / INVITADO) */}
+      <AuthSocialModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={(comprador) => {
+          setCompradorSession(comprador);
+          setFeedbackNotice({
+            tipo: 'success',
+            texto: `¡Bienvenido, ${comprador.nombre}! Tu sesión está activa para pedidos y facturación SRI.`
+          });
+          if (cartItems.length > 0) {
+            setCheckoutModalOpen(true);
+          }
+        }}
+      />
+
+      {/* MODAL: CHECKOUT MULTI-PROVEEDOR & FLETES SARA */}
+      <CheckoutMultiProveedorModal
+        isOpen={checkoutModalOpen}
+        onClose={() => setCheckoutModalOpen(false)}
+        cartItems={cartItems}
+        comprador={compradorSession}
+        cantonSeleccionado={cantonSeleccionado}
+        onRequireAuth={() => {
+          setCheckoutModalOpen(false);
+          setAuthModalOpen(true);
+        }}
+        onOrderSuccess={(orderResult) => {
+          setCartItems([]);
+          setCartDrawerOpen(false);
+          setFeedbackNotice({
+            tipo: 'success',
+            texto: `¡Orden ${orderResult.folio} confirmada con éxito! Fondos en custodia Escrow y PIN de recepción asignado.`
+          });
+        }}
+      />
 
       </div>
     </>
