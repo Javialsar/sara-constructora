@@ -122,10 +122,38 @@ export function MarketplaceVitrinaSection({
     direccionExactaEntrega ? direccionExactaEntrega.replace(`, ${cantonSeleccionado?.nombre || 'Loja'}`, '') : 'Av. Universitaria y 10 de Agosto'
   );
 
-  // Sincronizar estado local si vienen props externos
+  // Intentar geolocalizar automáticamente la posición real del cliente al montar el componente
   React.useEffect(() => {
-    if (direccionExactaEntrega) setDireccionExacta(direccionExactaEntrega);
-  }, [direccionExactaEntrega]);
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const gps: CoordenadasGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          const masCercano = GeoDistanceService.encontrarCantonMasCercano(gps);
+          setCantonSeleccionado(masCercano);
+          setCiudadVitrina(masCercano.nombre);
+          setCoordsActuales(gps);
+          if (setCoordenadasEntrega) setCoordenadasEntrega(gps);
+          setOrdenarPorCercania(true);
+
+          try {
+            const detalle = await GeoDistanceService.geocodificarInversoDetallado(gps);
+            if (detalle && detalle.calle) {
+              setCalleVitrina(detalle.calle);
+              const dirCompleta = `${detalle.calle}, ${masCercano.nombre}`;
+              setDireccionExacta(dirCompleta);
+              if (setDireccionExactaEntrega) setDireccionExactaEntrega(dirCompleta);
+            }
+          } catch (e) {
+            // Silencioso
+          }
+        },
+        () => {
+          // Si el usuario no otorga permiso, se mantiene el fallback por defecto (Loja)
+        },
+        { timeout: 7000 }
+      );
+    }
+  }, []);
 
   React.useEffect(() => {
     if (cantonSeleccionado) setCiudadVitrina(cantonSeleccionado.nombre);
@@ -461,20 +489,17 @@ export function MarketplaceVitrinaSection({
               {/* Input 2: Calle o Intersección */}
               <div className="flex-1 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5">
                 <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">
-                  {tipoEntrega === 'DOMICILIO' ? 'Calle:' : 'Sector/Bodega:'}
+                  {tipoEntrega === 'DOMICILIO' ? 'Calle:' : 'Calle/Sector:'}
                 </span>
                 <input
                   id="direccionEntregaInput"
                   type="text"
-                  value={tipoEntrega === 'DOMICILIO' ? calleVitrina : `Bodegas y Fábricas en ${ciudadVitrina}`}
-                  readOnly={tipoEntrega === 'RETIRO_BODEGA'}
-                  onChange={(e) => {
-                    if (tipoEntrega === 'DOMICILIO') handleVitrinaCalleChange(e.target.value);
-                  }}
-                  placeholder={tipoEntrega === 'DOMICILIO' ? "Ej: Av. Universitaria y 10 de Agosto..." : "Bodegas más cercanas"}
+                  value={calleVitrina}
+                  onChange={(e) => handleVitrinaCalleChange(e.target.value)}
+                  placeholder={tipoEntrega === 'DOMICILIO' ? "Ej: Av. Universitaria y 10 de Agosto..." : "Ej: Bodega Central, Parque Industrial..."}
                   className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
                 />
-                {geocodificandoVitrina && tipoEntrega === 'DOMICILIO' && (
+                {geocodificandoVitrina && (
                   <span title="Geolocalizando dirección...">
                     <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
                   </span>
@@ -485,23 +510,21 @@ export function MarketplaceVitrinaSection({
 
             {/* Botones: 📍 GPS y 🗺️ MAPA GPS */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {tipoEntrega === 'DOMICILIO' && (
-                <button
-                  type="button"
-                  onClick={handleDetectarGps}
-                  disabled={detectandoGps}
-                  title="Detectar GPS de mi dispositivo"
-                  className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold rounded-2xl border border-slate-800 transition-colors disabled:opacity-50 flex items-center gap-1"
-                >
-                  <Navigation className={`w-3.5 h-3.5 ${detectandoGps ? 'animate-spin' : ''}`} />
-                  <span>{detectandoGps ? 'GPS...' : '📍 GPS'}</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleDetectarGps}
+                disabled={detectandoGps}
+                title="Detectar GPS de mi dispositivo"
+                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold rounded-2xl border border-slate-800 transition-colors disabled:opacity-50 flex items-center gap-1"
+              >
+                <Navigation className={`w-3.5 h-3.5 ${detectandoGps ? 'animate-spin' : ''}`} />
+                <span>{detectandoGps ? 'GPS...' : '📍 GPS'}</span>
+              </button>
 
               <button
                 type="button"
                 onClick={() => setMapModalOpen(true)}
-                title={tipoEntrega === 'DOMICILIO' ? "Abrir mapa para fijar dirección de obra" : "Ver bodegas y centros de distribución"}
+                title={tipoEntrega === 'DOMICILIO' ? "Abrir mapa para fijar dirección de entrega" : "Abrir mapa para fijar dirección de retiro en bodega"}
                 className={`px-3.5 py-2 font-mono text-xs font-black rounded-2xl shadow-md transition-all flex items-center gap-1.5 hover:scale-[1.02] ${
                   tipoEntrega === 'DOMICILIO'
                     ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-amber-500/20'
@@ -509,7 +532,7 @@ export function MarketplaceVitrinaSection({
                 }`}
               >
                 <Map className="w-3.5 h-3.5 text-slate-950" />
-                <span>{tipoEntrega === 'DOMICILIO' ? '🗺️ Mapa GPS' : '🗺️ Ver Bodegas'}</span>
+                <span>{tipoEntrega === 'DOMICILIO' ? '🗺️ Mapa GPS' : '🗺️ Mapa Retiro'}</span>
               </button>
             </div>
 

@@ -169,7 +169,9 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     logoUrl: '',
     sitioWeb: '',
     descripcionEmpresa: '',
-    ciudadesCobertura: ''
+    ciudadesCobertura: '',
+    entregaGratisLocal: false,
+    radioEntregaGratisKm: 20
   });
 
   // Estados para Cuentas Bancarias & Códigos QR
@@ -208,7 +210,9 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
         logoUrl: currentSeller.logoUrl || '',
         sitioWeb: currentSeller.sitioWeb || '',
         descripcionEmpresa: currentSeller.descripcionEmpresa || '',
-        ciudadesCobertura: currentSeller.ciudadesCobertura?.join(', ') || ''
+        ciudadesCobertura: currentSeller.ciudadesCobertura?.join(', ') || '',
+        entregaGratisLocal: Boolean(currentSeller.entregaGratisLocal),
+        radioEntregaGratisKm: currentSeller.radioEntregaGratisKm || 20
       });
 
       if (currentSeller.cuentaBancaria) {
@@ -369,7 +373,9 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
         logoUrl: empresaForm.logoUrl,
         sitioWeb: empresaForm.sitioWeb,
         descripcionEmpresa: empresaForm.descripcionEmpresa,
-        ciudadesCobertura: empresaForm.ciudadesCobertura.split(',').map(s => s.trim()).filter(Boolean)
+        ciudadesCobertura: empresaForm.ciudadesCobertura.split(',').map(s => s.trim()).filter(Boolean),
+        entregaGratisLocal: Boolean(empresaForm.entregaGratisLocal),
+        radioEntregaGratisKm: Number(empresaForm.radioEntregaGratisKm) || 20
       });
       setCurrentSeller(updated);
       setFeedbackMsg({ tipo: 'success', texto: '¡Datos de la empresa y ficha fiscal actualizados exitosamente en SARA Marketplace!' });
@@ -1733,6 +1739,56 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                             placeholder="Quito, Guayaquil, Cuenca, Ambato, Loja"
                             className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
                           />
+                        </div>
+
+                        {/* Política de Despacho y Entrega a Domicilio con Flota Propia */}
+                        <div className="md:col-span-2 p-4 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                              <input 
+                                type="checkbox"
+                                checked={empresaForm.entregaGratisLocal}
+                                onChange={(e) => setEmpresaForm({ ...empresaForm, entregaGratisLocal: e.target.checked })}
+                                className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-amber-400 accent-amber-500 cursor-pointer"
+                              />
+                              <div>
+                                <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                  <Truck className="w-4 h-4 text-amber-500" />
+                                  <span>¿Dispone de vehículos propios para entrega a domicilio sin costo ($0.00)?</span>
+                                </span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                                  Activa esta opción si tu empresa distribuye con flota propia en tu cantón o radio urbano sin cobrar recargo al cliente.
+                                </span>
+                              </div>
+                            </label>
+
+                            <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full ${
+                              empresaForm.entregaGratisLocal 
+                                ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30' 
+                                : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                            }`}>
+                              {empresaForm.entregaGratisLocal ? 'Flota Propia Activa ($0.00)' : 'Flete Estándar'}
+                            </span>
+                          </div>
+
+                          {empresaForm.entregaGratisLocal && (
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 flex items-center gap-3">
+                              <span className="text-xs font-mono text-slate-500 dark:text-slate-400 shrink-0">
+                                Radio de cobertura gratuita desde tu bodega matriz:
+                              </span>
+                              <div className="flex items-center gap-1.5 w-32">
+                                <input 
+                                  type="number"
+                                  min={1}
+                                  max={150}
+                                  value={empresaForm.radioEntregaGratisKm}
+                                  onChange={(e) => setEmpresaForm({ ...empresaForm, radioEntregaGratisKm: Number(e.target.value) || 20 })}
+                                  className="w-full p-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-xs font-mono text-center font-bold text-slate-900 dark:text-white"
+                                />
+                                <span className="text-xs font-mono text-slate-400">Km</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="md:col-span-2">

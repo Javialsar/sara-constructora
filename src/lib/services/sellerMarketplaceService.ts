@@ -979,7 +979,7 @@ export class SellerMarketplaceService {
    */
   static updateSellerCompanyData(sellerId: string, data: Partial<Pick<SellerProfile, 
     'razonSocial' | 'nombreComercial' | 'ruc' | 'direccionMatriz' | 'ciudad' | 'telefono' | 
-    'telefonosAdicionales' | 'email' | 'logoUrl' | 'sitioWeb' | 'descripcionEmpresa' | 'ciudadesCobertura'>>): SellerProfile {
+    'telefonosAdicionales' | 'email' | 'logoUrl' | 'sitioWeb' | 'descripcionEmpresa' | 'ciudadesCobertura' | 'entregaGratisLocal' | 'radioEntregaGratisKm'>>): SellerProfile {
     const seller = SELLERS_DB.find(s => s.id === sellerId);
     if (!seller) {
       throw new Error(`Empresa proveedora con ID ${sellerId} no encontrada.`);
@@ -1004,6 +1004,8 @@ export class SellerMarketplaceService {
     if (data.sitioWeb !== undefined) seller.sitioWeb = data.sitioWeb.trim();
     if (data.descripcionEmpresa !== undefined) seller.descripcionEmpresa = data.descripcionEmpresa.trim();
     if (data.ciudadesCobertura) seller.ciudadesCobertura = data.ciudadesCobertura;
+    if (data.entregaGratisLocal !== undefined) seller.entregaGratisLocal = data.entregaGratisLocal;
+    if (data.radioEntregaGratisKm !== undefined) seller.radioEntregaGratisKm = data.radioEntregaGratisKm;
 
     persistStorage();
     return { ...seller };
