@@ -44,9 +44,13 @@ import {
   ResultadoConciliacion
 } from '@/lib/services/saraFinancieroService';
 import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
+import FactoringProntoPagoTab from '@/components/financiero/FactoringProntoPagoTab';
+import DossierBancarioUafeTab from '@/components/financiero/DossierBancarioUafeTab';
+import SaaSSuscripcionesTab from '@/components/financiero/SaaSSuscripcionesTab';
+import { Zap, Award, Sparkles } from 'lucide-react';
 
 export default function DashboardFinanciero() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tesoreria' | 'cxc' | 'cxp' | 'flujo' | 'proyectos' | 'conciliacion'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tesoreria' | 'cxc' | 'cxp' | 'flujo' | 'proyectos' | 'conciliacion' | 'factoring' | 'dossier' | 'suscripciones'>('dashboard');
   const [loading, setLoading] = useState<boolean>(true);
   const [filtroProyecto, setFiltroProyecto] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -412,6 +416,9 @@ export default function DashboardFinanciero() {
             { id: 'flujo', label: 'Flujo de Caja & Previsiones', icon: Calendar },
             { id: 'proyectos', label: 'Control por Proyecto', icon: Briefcase },
             { id: 'conciliacion', label: 'Conciliación Bancaria', icon: RefreshCw },
+            { id: 'factoring', label: '⚡ Factoring & Pronto Pago', icon: Zap },
+            { id: 'dossier', label: '📑 Dossier Bancario & UAFE', icon: Award },
+            { id: 'suscripciones', label: '💎 Planes SaaS FinTech', icon: Sparkles },
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1127,6 +1134,21 @@ export default function DashboardFinanciero() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* TAB: FACTORING & PRONTO PAGO */}
+            {activeTab === 'factoring' && (
+              <FactoringProntoPagoTab onNotify={showToast} />
+            )}
+
+            {/* TAB: DOSSIER BANCARIO & UAFE */}
+            {activeTab === 'dossier' && (
+              <DossierBancarioUafeTab onNotify={showToast} />
+            )}
+
+            {/* TAB: PLANES SAAS FINTECH */}
+            {activeTab === 'suscripciones' && (
+              <SaaSSuscripcionesTab onNotify={showToast} />
             )}
           </>
         )}
