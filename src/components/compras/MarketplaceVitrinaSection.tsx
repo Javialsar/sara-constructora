@@ -67,6 +67,8 @@ interface MarketplaceVitrinaSectionProps {
   setDireccionExactaEntrega?: (dir: string) => void;
   coordenadasEntrega?: CoordenadasGPS;
   setCoordenadasEntrega?: (coords: CoordenadasGPS) => void;
+  tipoEntrega?: 'DOMICILIO' | 'RETIRO_BODEGA';
+  setTipoEntrega?: (t: 'DOMICILIO' | 'RETIRO_BODEGA') => void;
 }
 
 export function MarketplaceVitrinaSection({
@@ -97,7 +99,9 @@ export function MarketplaceVitrinaSection({
   direccionExactaEntrega,
   setDireccionExactaEntrega,
   coordenadasEntrega,
-  setCoordenadasEntrega
+  setCoordenadasEntrega,
+  tipoEntrega = 'DOMICILIO',
+  setTipoEntrega
 }: MarketplaceVitrinaSectionProps) {
 
   // Ordenamiento local y mapa
@@ -308,34 +312,34 @@ export function MarketplaceVitrinaSection({
     <div className="space-y-6 pb-24">
 
       {/* ===================================================================== */}
-      {/* 1. FRANJA SUPERIOR DE CONFIANZA TEMU-STYLE (1-CLIC BENEFICIOS)          */}
+      {/* 1. FRANJA SUPERIOR COMPACTA DE CONFIANZA TEMU-STYLE                     */}
       {/* ===================================================================== */}
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white py-2 px-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold">
+      <div className="bg-slate-900/90 border border-slate-800 text-slate-300 py-1.5 px-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-[11px] font-medium shadow-sm">
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 mx-auto sm:mx-0">
-          <span className="flex items-center gap-1.5">
-            <Truck className="w-4 h-4 text-emerald-200 shrink-0" />
-            <span>Despacho Pesado MTOP a tu Obra</span>
+          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+            <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Despacho Pesado MTOP a Obra</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-200 shrink-0" />
-            <span>Pago Seguro 100% Escrow SARA</span>
+          <span className="flex items-center gap-1.5 text-sky-400 font-bold">
+            <ShieldCheck className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+            <span>Pago Seguro Escrow SARA</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <BadgePercent className="w-4 h-4 text-yellow-300 shrink-0" />
+          <span className="flex items-center gap-1.5 text-yellow-300 font-bold">
+            <BadgePercent className="w-3.5 h-3.5 text-yellow-300 shrink-0" />
             <span>IVA 5% Obra Calificado SRI</span>
           </span>
-          <span className="hidden md:flex items-center gap-1.5">
-            <CheckCircle className="w-4 h-4 text-emerald-200 shrink-0" />
+          <span className="hidden md:flex items-center gap-1.5 text-slate-300">
+            <CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             <span>Precios Directos de Planta y Mayoristas</span>
           </span>
         </div>
 
         <button
           onClick={onOpenSellerHub}
-          className="hidden lg:flex items-center gap-1 px-3 py-1 bg-white/15 hover:bg-white/25 rounded-xl text-white font-bold transition-colors"
+          className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors"
         >
-          <span>¿Eres Proveedor? Vende en SARA</span>
-          <ChevronRight className="w-3.5 h-3.5" />
+          <span>Vender en SARA como Proveedor</span>
+          <ChevronRight className="w-3 h-3" />
         </button>
       </div>
 
@@ -382,84 +386,155 @@ export function MarketplaceVitrinaSection({
         </div>
 
         {/* ===================================================================== */}
-        {/* BARRA: ENTREGAR MERCADERÍA EN: (CIUDAD + CALLE + GPS + MAPA)         */}
+        {/* SELECTOR OPERATIVO: ¿REQUIERE ENTREGA A DOMICILIO O RETIRO EN BODEGA?   */}
         {/* ===================================================================== */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 pt-2 border-t border-slate-800">
+        <div className="pt-2 border-t border-slate-800 space-y-2.5">
           
-          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-950 border border-slate-800 focus-within:border-amber-400 rounded-2xl p-1.5 transition-colors">
-            
-            <div className="flex items-center gap-1.5 px-2 py-1 shrink-0">
-              <div className="p-1.5 bg-amber-500/10 text-amber-400 rounded-xl shrink-0">
-                <MapPin className="w-4 h-4" />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">
+                Modalidad de Entrega:
+              </span>
+              <div className="flex items-center p-0.5 bg-slate-950 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setTipoEntrega) setTipoEntrega('DOMICILIO');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    tipoEntrega === 'DOMICILIO'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>Entrega en Obra (SARA-Fletes)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (setTipoEntrega) setTipoEntrega('RETIRO_BODEGA');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    tipoEntrega === 'RETIRO_BODEGA'
+                      ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Warehouse className="w-3.5 h-3.5" />
+                  <span>Retiro en Bodega (GRATIS)</span>
+                </button>
               </div>
-              <label 
-                htmlFor="direccionEntregaInput"
-                className="text-[10px] font-mono text-amber-400 font-black uppercase shrink-0 tracking-wider"
-              >
-                ENTREGAR EN:
-              </label>
             </div>
 
-            {/* Input 1: Ciudad o Cantón editable con autocompletado */}
-            <div className="w-full sm:w-48 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5 shrink-0">
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">Ciudad:</span>
-              <input
-                type="text"
-                list="vitrina-cantones-list"
-                value={ciudadVitrina}
-                onChange={(e) => handleVitrinaCiudadChange(e.target.value)}
-                placeholder="Loja, Quito, Cariamanga..."
-                className="w-full bg-transparent text-white font-bold text-xs placeholder-slate-500 focus:outline-none"
-              />
-              <datalist id="vitrina-cantones-list">
-                {CANTONES_ECUADOR.map(c => (
-                  <option key={c.id} value={c.nombre}>{c.provincia} ({c.region})</option>
-                ))}
-              </datalist>
-            </div>
-
-            {/* Input 2: Calle o Intersección */}
-            <div className="flex-1 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5">
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">Calle:</span>
-              <input
-                id="direccionEntregaInput"
-                type="text"
-                value={calleVitrina}
-                onChange={(e) => handleVitrinaCalleChange(e.target.value)}
-                placeholder="Ej: Cariamanga, atahualpa y Cristobal colon..."
-                className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
-              />
-              {geocodificandoVitrina && (
-                <span title="Geolocalizando dirección...">
-                  <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
-                </span>
-              )}
-            </div>
-
+            {tipoEntrega === 'RETIRO_BODEGA' ? (
+              <span className="text-[11px] font-mono text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                <Check className="w-3.5 h-3.5 shrink-0" />
+                <span>Flete $0.00 • Retiro directo con tu propio transporte</span>
+              </span>
+            ) : (
+              <span className="text-[11px] font-mono text-sky-400 font-bold flex items-center gap-1 bg-sky-500/10 px-2.5 py-1 rounded-lg border border-sky-500/20">
+                <Truck className="w-3.5 h-3.5 shrink-0" />
+                <span>Ruteo y cubicación pesada MTOP activada</span>
+              </span>
+            )}
           </div>
 
-          {/* Botones: 📍 GPS y 🗺️ MAPA GPS */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={handleDetectarGps}
-              disabled={detectandoGps}
-              title="Detectar GPS de mi dispositivo"
-              className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold rounded-2xl border border-slate-800 transition-colors disabled:opacity-50 flex items-center gap-1"
-            >
-              <Navigation className={`w-3.5 h-3.5 ${detectandoGps ? 'animate-spin' : ''}`} />
-              <span>{detectandoGps ? 'GPS...' : '📍 GPS'}</span>
-            </button>
+          {/* BARRA: UBICACIÓN DE ENTREGA O BODEGA SEGÚN MODALIDAD */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+            
+            <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-950 border border-slate-800 focus-within:border-amber-400 rounded-2xl p-1.5 transition-colors">
+              
+              <div className="flex items-center gap-1.5 px-2 py-1 shrink-0">
+                <div className={`p-1.5 rounded-xl shrink-0 ${
+                  tipoEntrega === 'DOMICILIO' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                }`}>
+                  {tipoEntrega === 'DOMICILIO' ? <MapPin className="w-4 h-4" /> : <Warehouse className="w-4 h-4" />}
+                </div>
+                <label 
+                  htmlFor="direccionEntregaInput"
+                  className={`text-[10px] font-mono font-black uppercase shrink-0 tracking-wider ${
+                    tipoEntrega === 'DOMICILIO' ? 'text-amber-400' : 'text-emerald-400'
+                  }`}
+                >
+                  {tipoEntrega === 'DOMICILIO' ? 'ENTREGAR MERCADERÍA EN:' : 'RETIRAR MERCADERÍA EN:'}
+                </label>
+              </div>
 
-            <button
-              type="button"
-              onClick={() => setMapModalOpen(true)}
-              title="Abrir mapa interactivo para fijar la ubicación exacta con un clic"
-              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-mono text-xs font-black rounded-2xl shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 hover:scale-[1.02]"
-            >
-              <Map className="w-3.5 h-3.5 text-slate-950" />
-              <span>🗺️ Mapa GPS</span>
-            </button>
+              {/* Input 1: Ciudad o Cantón editable con autocompletado */}
+              <div className="w-full sm:w-48 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5 shrink-0">
+                <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">Ciudad:</span>
+                <input
+                  type="text"
+                  list="vitrina-cantones-list"
+                  value={ciudadVitrina}
+                  onChange={(e) => handleVitrinaCiudadChange(e.target.value)}
+                  placeholder="Loja, Quito, Cariamanga..."
+                  className="w-full bg-transparent text-white font-bold text-xs placeholder-slate-500 focus:outline-none"
+                />
+                <datalist id="vitrina-cantones-list">
+                  {CANTONES_ECUADOR.map(c => (
+                    <option key={c.id} value={c.nombre}>{c.provincia} ({c.region})</option>
+                  ))}
+                </datalist>
+              </div>
+
+              {/* Input 2: Calle o Intersección */}
+              <div className="flex-1 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5">
+                <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">
+                  {tipoEntrega === 'DOMICILIO' ? 'Calle:' : 'Sector/Bodega:'}
+                </span>
+                <input
+                  id="direccionEntregaInput"
+                  type="text"
+                  value={tipoEntrega === 'DOMICILIO' ? calleVitrina : `Bodegas y Fábricas en ${ciudadVitrina}`}
+                  readOnly={tipoEntrega === 'RETIRO_BODEGA'}
+                  onChange={(e) => {
+                    if (tipoEntrega === 'DOMICILIO') handleVitrinaCalleChange(e.target.value);
+                  }}
+                  placeholder={tipoEntrega === 'DOMICILIO' ? "Ej: Av. Universitaria y 10 de Agosto..." : "Bodegas más cercanas"}
+                  className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
+                />
+                {geocodificandoVitrina && tipoEntrega === 'DOMICILIO' && (
+                  <span title="Geolocalizando dirección...">
+                    <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                  </span>
+                )}
+              </div>
+
+            </div>
+
+            {/* Botones: 📍 GPS y 🗺️ MAPA GPS */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {tipoEntrega === 'DOMICILIO' && (
+                <button
+                  type="button"
+                  onClick={handleDetectarGps}
+                  disabled={detectandoGps}
+                  title="Detectar GPS de mi dispositivo"
+                  className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold rounded-2xl border border-slate-800 transition-colors disabled:opacity-50 flex items-center gap-1"
+                >
+                  <Navigation className={`w-3.5 h-3.5 ${detectandoGps ? 'animate-spin' : ''}`} />
+                  <span>{detectandoGps ? 'GPS...' : '📍 GPS'}</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setMapModalOpen(true)}
+                title={tipoEntrega === 'DOMICILIO' ? "Abrir mapa para fijar dirección de obra" : "Ver bodegas y centros de distribución"}
+                className={`px-3.5 py-2 font-mono text-xs font-black rounded-2xl shadow-md transition-all flex items-center gap-1.5 hover:scale-[1.02] ${
+                  tipoEntrega === 'DOMICILIO'
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-amber-500/20'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                }`}
+              >
+                <Map className="w-3.5 h-3.5 text-slate-950" />
+                <span>{tipoEntrega === 'DOMICILIO' ? '🗺️ Mapa GPS' : '🗺️ Ver Bodegas'}</span>
+              </button>
+            </div>
+
           </div>
 
         </div>

@@ -23,6 +23,7 @@ interface CheckoutMultiProveedorModalProps {
   comprador: CompradorSession | null;
   cantonSeleccionado: CantonEcuador;
   direccionEntrega?: string;
+  tipoEntregaInicial?: 'DOMICILIO' | 'RETIRO_BODEGA';
   onRequireAuth: () => void;
   onOrderSuccess: (orderResult: any) => void;
 }
@@ -34,6 +35,7 @@ export function CheckoutMultiProveedorModal({
   comprador,
   cantonSeleccionado,
   direccionEntrega,
+  tipoEntregaInicial,
   onRequireAuth,
   onOrderSuccess
 }: CheckoutMultiProveedorModalProps) {
@@ -41,18 +43,58 @@ export function CheckoutMultiProveedorModal({
   const [step, setStep] = useState<'checkout' | 'confirmacion_exitosa'>('checkout');
 
   // Tipo de entrega: 'DOMICILIO' | 'RETIRO_BODEGA'
-  const [tipoEntrega, setTipoEntrega] = useState<'DOMICILIO' | 'RETIRO_BODEGA'>('DOMICILIO');
+  const [tipoEntrega, setTipoEntrega] = useState<'DOMICILIO' | 'RETIRO_BODEGA'>(
+    tipoEntregaInicial || 'DOMICILIO'
+  );
   const [direccionExacta, setDireccionExacta] = useState(
     direccionEntrega || comprador?.direccionEntrega || 'Frente Principal de Obra, Calle Principal y Secundaria'
   );
   const [referenciaLlegada, setReferenciaLlegada] = useState('Portón metálico azul frente al parque');
   
-  // Sincronizar dirección de entrega si cambia en vitrina
+  // Sincronizar dirección y modalidad de entrega si cambian externamente
   React.useEffect(() => {
     if (direccionEntrega) {
       setDireccionExacta(direccionEntrega);
     }
   }, [direccionEntrega]);
+
+  React.useEffect(() => {
+    if (tipoEntregaInicial) {
+      setTipoEntrega(tipoEntregaInicial);
+    }
+  }, [tipoEntregaInicial]);
+
+  // Estados de Tarjeta de Crédito/Débito (Skill sara-unified-payment-gateway)
+  const [tarjetaNumero, setTarjetaNumero] = useState('');
+  const [tarjetaNombre, setTarjetaNombre] = useState(comprador?.nombre || '');
+  const [tarjetaExp, setTarjetaExp] = useState('');
+  const [tarjetaCvv, setTarjetaCvv] = useState('');
+  const [tarjetaDiferido, setTarjetaDiferido] = useState<'CORRIENTE' | '3_MESES' | '6_MESES' | '12_MESES'>('CORRIENTE');
+  const [tarjetaFranquicia, setTarjetaFranquicia] = useState<'visa' | 'mastercard' | 'amex' | 'diners' | 'desconocida'>('desconocida');
+  const [errorTarjeta, setErrorTarjeta] = useState<string | null>(null);
+
+  const handleTarjetaNumeroChange = (val: string) => {
+    const cleaned = val.replace(/\D/g, '').slice(0, 16);
+    if (cleaned.startsWith('4')) setTarjetaFranquicia('visa');
+    else if (/^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)/.test(cleaned)) setTarjetaFranquicia('mastercard');
+    else if (/^(34|37)/.test(cleaned)) setTarjetaFranquicia('amex');
+    else if (/^(30[0-5]|36|38)/.test(cleaned)) setTarjetaFranquicia('diners');
+    else setTarjetaFranquicia('desconocida');
+
+    const parts = cleaned.match(/.{1,4}/g);
+    setTarjetaNumero(parts ? parts.join(' ') : cleaned);
+    if (errorTarjeta) setErrorTarjeta(null);
+  };
+
+  const handleTarjetaExpChange = (val: string) => {
+    const cleaned = val.replace(/\D/g, '').slice(0, 4);
+    if (cleaned.length >= 3) {
+      setTarjetaExp(`${cleaned.slice(0, 2)}/${cleaned.slice(2)}`);
+    } else {
+      setTarjetaExp(cleaned);
+    }
+    if (errorTarjeta) setErrorTarjeta(null);
+  };
 
   // Método de pago y comprobante de pago
   const [metodoPago, setMetodoPago] = useState<'DEUNA' | 'PAYPHONE' | 'PEIGO' | 'SPI' | 'TARJETA'>('DEUNA');
@@ -197,6 +239,28 @@ export function CheckoutMultiProveedorModal({
     if (!comprador) {
       onRequireAuth();
       return;
+    }
+
+    // Validación estricta para Tarjeta de Crédito / Débito (sara-unified-payment-gateway)
+    if (metodoPago === 'TARJETA') {
+      const numLimpio = tarjetaNumero.replace(/\s/g, '');
+      if (numLimpio.length < 15) {
+        setErrorTarjeta('Por favor ingrese un número de tarjeta válido (mínimo 15 dígitos).');
+        return;
+      }
+      if (tarjetaNombre.trim().length < 3) {
+        setErrorTarjeta('Por favor ingrese el nombre del titular tal como figura en la tarjeta.');
+        return;
+      }
+      if (tarjetaExp.length < 5) {
+        setErrorTarjeta('Por favor ingrese la fecha de vencimiento (MM/AA).');
+        return;
+      }
+      if (tarjetaCvv.length < 3) {
+        setErrorTarjeta('Por favor ingrese el código de seguridad CVV/CVC (3 o 4 dígitos).');
+        return;
+      }
+      setErrorTarjeta(null);
     }
 
     setProcesandoPago(true);
@@ -698,6 +762,143 @@ export function CheckoutMultiProveedorModal({
                     );
                   })()}
 
+                </div>
+              )}
+
+              {/* CONTENEDOR DE PAGO POR TARJETA DE CRÉDITO O DÉBITO (SKILL sara-unified-payment-gateway) */}
+              {metodoPago === 'TARJETA' && (
+                <div className="p-5 rounded-2xl bg-slate-950 border-2 border-amber-500/40 space-y-4 animate-in fade-in duration-200 shadow-xl">
+                  {/* Encabezado Seguro */}
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                          Pasarela de Tarjeta de Crédito / Débito
+                        </h4>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          Visa, Mastercard, Diners Club, American Express • Encriptación TLS 256-Bit
+                        </span>
+                      </div>
+                    </div>
+                    {/* Badge de Franquicia detectada */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
+                      <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">
+                        {tarjetaFranquicia === 'visa' && '💳 VISA'}
+                        {tarjetaFranquicia === 'mastercard' && '💳 MASTERCARD'}
+                        {tarjetaFranquicia === 'amex' && '💳 AMEX'}
+                        {tarjetaFranquicia === 'diners' && '💳 DINERS CLUB'}
+                        {tarjetaFranquicia === 'desconocida' && '💳 TARJETA'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {errorTarjeta && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-xs font-mono flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{errorTarjeta}</span>
+                    </div>
+                  )}
+
+                  {/* Formulario de Tarjeta */}
+                  <div className="space-y-3.5">
+                    {/* Número de Tarjeta */}
+                    <div>
+                      <label className="text-[11px] font-mono text-slate-400 font-bold uppercase block mb-1">
+                        Número de Tarjeta *:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          maxLength={19}
+                          value={tarjetaNumero}
+                          onChange={(e) => handleTarjetaNumeroChange(e.target.value)}
+                          placeholder="0000 0000 0000 0000"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 font-mono tracking-widest focus:outline-none"
+                        />
+                        <Lock className="w-3.5 h-3.5 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2" />
+                      </div>
+                    </div>
+
+                    {/* Nombre del Titular */}
+                    <div>
+                      <label className="text-[11px] font-mono text-slate-400 font-bold uppercase block mb-1">
+                        Nombre del Titular (Como figura en la tarjeta) *:
+                      </label>
+                      <input
+                        type="text"
+                        value={tarjetaNombre}
+                        onChange={(e) => {
+                          setTarjetaNombre(e.target.value.toUpperCase());
+                          if (errorTarjeta) setErrorTarjeta(null);
+                        }}
+                        placeholder="EJ: ROBERTO MORALES CH."
+                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 font-sans uppercase font-bold focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Fecha de Expiración y CVV */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-mono text-slate-400 font-bold uppercase block mb-1">
+                          Vencimiento (MM/AA) *:
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={5}
+                          value={tarjetaExp}
+                          onChange={(e) => handleTarjetaExpChange(e.target.value)}
+                          placeholder="MM/AA"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 font-mono text-center focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-mono text-slate-400 font-bold uppercase block mb-1">
+                          Cód. Seguridad (CVV/CVC) *:
+                        </label>
+                        <input
+                          type="password"
+                          maxLength={4}
+                          value={tarjetaCvv}
+                          onChange={(e) => {
+                            setTarjetaCvv(e.target.value.replace(/\D/g, ''));
+                            if (errorTarjeta) setErrorTarjeta(null);
+                          }}
+                          placeholder="•••"
+                          className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 font-mono text-center tracking-widest focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Selector de Financiamiento / Diferido en Ecuador */}
+                    <div>
+                      <label className="text-[11px] font-mono text-slate-400 font-bold uppercase block mb-1">
+                        Plan de Financiamiento (Ecuador) *:
+                      </label>
+                      <select
+                        value={tarjetaDiferido}
+                        onChange={(e) => setTarjetaDiferido(e.target.value as any)}
+                        className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white font-mono focus:outline-none"
+                      >
+                        <option value="CORRIENTE">Pago Corriente (1 Cuota de ${totalConsolidado.toFixed(2)})</option>
+                        <option value="3_MESES">3 Meses sin intereses (3 cuotas de ${(totalConsolidado / 3).toFixed(2)})</option>
+                        <option value="6_MESES">6 Meses sin intereses (6 cuotas de ${(totalConsolidado / 6).toFixed(2)})</option>
+                        <option value="12_MESES">12 Meses con intereses (12 cuotas referenciales de ${((totalConsolidado * 1.09) / 12).toFixed(2)})</option>
+                      </select>
+                    </div>
+
+                    {/* Badge de Seguridad y Custodia Escrow */}
+                    <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-[10px] font-mono text-slate-400 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-emerald-400">
+                        <ShieldCheck className="w-4 h-4 shrink-0" />
+                        <span>Transacción protegida por Escrow SARA y PCI-DSS Nivel 1</span>
+                      </div>
+                      <span className="text-slate-500">Kushki / Payphone Card Gateway</span>
+                    </div>
+                  </div>
                 </div>
               )}
 

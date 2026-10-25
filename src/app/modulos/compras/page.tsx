@@ -106,6 +106,7 @@ export default function ModuloComprasMasterPage() {
   const [direccionExactaEntrega, setDireccionExactaEntrega] = useState('Av. Universitaria y 10 de Agosto, Frente a Obra');
   const [coordenadasEntrega, setCoordenadasEntrega] = useState<CoordenadasGPS>(CANTONES_ECUADOR[3].coordenadas);
   const [ordenarPorCercania, setOrdenarPorCercania] = useState(false);
+  const [tipoEntregaGlobal, setTipoEntregaGlobal] = useState<'DOMICILIO' | 'RETIRO_BODEGA'>('DOMICILIO');
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
 
@@ -127,7 +128,9 @@ export default function ModuloComprasMasterPage() {
       pesoTotalKg += item.product.pesoUnitarioKg * item.cantidad;
     });
 
-    const fleteEstimado = cartItems.length > 0 ? Math.max(35, (pesoTotalKg / 1000) * 14.50 * 1.35) : 0;
+    const fleteEstimado = (tipoEntregaGlobal === 'DOMICILIO' && cartItems.length > 0)
+      ? Math.max(35, (pesoTotalKg / 1000) * 14.50 * 1.35)
+      : 0;
     const totalConIva = subtotalSinIva + iva5 + iva15;
     const totalFinalConFlete = totalConIva + fleteEstimado;
 
@@ -140,7 +143,7 @@ export default function ModuloComprasMasterPage() {
       totalConIva,
       totalFinalConFlete
     };
-  }, [cartItems]);
+  }, [cartItems, tipoEntregaGlobal]);
 
   const handleUpdateCartQuantity = (productId: string, delta: number) => {
     setCartItems(prev => {
@@ -515,17 +518,8 @@ export default function ModuloComprasMasterPage() {
               </button>
             </div>
 
-            {/* Accesos Rápidos: Landing, Portal Proveedores & Pedido de Obra */}
+            {/* Accesos Rápidos: Portal Proveedores & Pedido de Obra */}
             <div className="flex items-center gap-2.5">
-              <Link
-                href="/compras"
-                className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl border border-slate-800 flex items-center gap-1.5 transition-colors"
-                title="Ver Landing Page Pública"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">Landing Page</span>
-              </Link>
-
               {/* Acceso Compradores (Google / Redes / Invitado) */}
               {compradorSession ? (
                 <div className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-xl">
@@ -739,6 +733,8 @@ export default function ModuloComprasMasterPage() {
               setDireccionExactaEntrega={setDireccionExactaEntrega}
               coordenadasEntrega={coordenadasEntrega}
               setCoordenadasEntrega={setCoordenadasEntrega}
+              tipoEntrega={tipoEntregaGlobal}
+              setTipoEntrega={setTipoEntregaGlobal}
             />
           )}
 
@@ -2014,6 +2010,54 @@ export default function ModuloComprasMasterPage() {
               {cartItems.length > 0 && (
                 <div className="p-6 border-t border-slate-800 bg-slate-950/60 space-y-4">
                   
+                  {/* Selector Operativo de Modalidad de Entrega */}
+                  <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-300 font-bold uppercase">¿Requiere flete a obra?</span>
+                      <span className={`font-bold ${tipoEntregaGlobal === 'DOMICILIO' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {tipoEntregaGlobal === 'DOMICILIO' ? 'Con SARA-FLETES' : 'Retiro en Bodega'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setTipoEntregaGlobal('DOMICILIO')}
+                        className={`p-2 rounded-xl border text-left transition-all ${
+                          tipoEntregaGlobal === 'DOMICILIO'
+                            ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/20'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Truck className="w-3.5 h-3.5 shrink-0" />
+                          <span>Entrega en Obra</span>
+                        </div>
+                        <div className="text-[10px] font-mono mt-0.5 opacity-90">
+                          +${cartTotals.fleteEstimado.toFixed(2)} MTOP
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setTipoEntregaGlobal('RETIRO_BODEGA')}
+                        className={`p-2 rounded-xl border text-left transition-all ${
+                          tipoEntregaGlobal === 'RETIRO_BODEGA'
+                            ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-md shadow-emerald-500/20'
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <Warehouse className="w-3.5 h-3.5 shrink-0" />
+                          <span>Retiro Bodega</span>
+                        </div>
+                        <div className="text-[10px] font-mono mt-0.5 font-bold text-emerald-300">
+                          GRATIS ($0.00)
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5 text-xs font-mono">
                     <div className="flex justify-between text-slate-400">
                       <span>Subtotal Materiales (Sin IVA):</span>
@@ -2034,9 +2078,17 @@ export default function ModuloComprasMasterPage() {
                       </div>
                     )}
 
-                    <div className="flex justify-between text-sky-400 pt-1 border-t border-slate-800">
-                      <span>Flete Estimado MTOP ({(cartTotals.pesoTotalKg / 1000).toFixed(2)} Ton):</span>
-                      <span className="font-bold">+${cartTotals.fleteEstimado.toFixed(2)}</span>
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-800">
+                      <span className={tipoEntregaGlobal === 'DOMICILIO' ? 'text-sky-400' : 'text-slate-400'}>
+                        {tipoEntregaGlobal === 'DOMICILIO' 
+                          ? `Flete SARA-FLETES (${(cartTotals.pesoTotalKg / 1000).toFixed(2)} Ton):` 
+                          : 'Modalidad de Retiro:'}
+                      </span>
+                      <span className={`font-bold ${tipoEntregaGlobal === 'DOMICILIO' ? 'text-sky-400' : 'text-emerald-400'}`}>
+                        {tipoEntregaGlobal === 'DOMICILIO' 
+                          ? `+$${cartTotals.fleteEstimado.toFixed(2)}` 
+                          : 'GRATIS (Retiro en Bodega)'}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-baseline pt-2 border-t border-slate-800 text-sm">
@@ -2106,6 +2158,7 @@ export default function ModuloComprasMasterPage() {
         comprador={compradorSession}
         cantonSeleccionado={cantonSeleccionado}
         direccionEntrega={direccionExactaEntrega}
+        tipoEntregaInicial={tipoEntregaGlobal}
         onRequireAuth={() => {
           setCheckoutModalOpen(false);
           setAuthModalOpen(true);
