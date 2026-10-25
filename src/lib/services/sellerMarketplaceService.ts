@@ -223,6 +223,8 @@ export interface MarketplaceProduct {
   calificacion: number;
   esMasVendido?: boolean;
   bodegaCoordenadas?: { lat: number; lng: number };
+  entregaGratisPropia?: boolean; // Proveedor cuenta con flota propia y entrega sin recargo (ej: hormigoneras, ferreterías con camión local)
+  radioEntregaGratisKm?: number;
 }
 
 export interface VentaHistorialItem {
@@ -544,7 +546,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     ventasTotales: 1560,
     calificacion: 4.8,
     esMasVendido: true,
-    bodegaCoordenadas: { lat: -2.1812, lng: -79.9213 }
+    bodegaCoordenadas: { lat: -2.1812, lng: -79.9213 },
+    entregaGratisPropia: true, // Hormigón premezclado incluye entrega en camión mixer propio
+    radioEntregaGratisKm: 35
   },
 
   // --- PRODUCTOS PLAN ESTÁNDAR (NOVACERO) ---
@@ -631,7 +635,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 3.20,
     ventasTotales: 210,
     calificacion: 4.5,
-    bodegaCoordenadas: { lat: -3.9931, lng: -79.2042 }
+    bodegaCoordenadas: { lat: -3.9931, lng: -79.2042 },
+    entregaGratisPropia: true, // Ferretería Disensa local con reparto propio gratis en zona urbana
+    radioEntregaGratisKm: 15
   },
   {
     id: 'prod-disensa-bloque-15',

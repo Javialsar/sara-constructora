@@ -386,47 +386,25 @@ export function MarketplaceVitrinaSection({
         </div>
 
         {/* ===================================================================== */}
-        {/* SELECTOR OPERATIVO: ¿REQUIERE ENTREGA A DOMICILIO O RETIRO EN BODEGA?   */}
+        {/* SELECTOR OPERATIVO: CHECKLIST ¿REQUIERE FLETE? + ENTREGAR EN:           */}
         {/* ===================================================================== */}
         <div className="pt-2 border-t border-slate-800 space-y-2.5">
           
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono font-bold uppercase text-slate-400 tracking-wider">
-                Modalidad de Entrega:
+            <label className="flex items-center gap-2.5 cursor-pointer select-none bg-slate-950 px-3.5 py-2 rounded-2xl border border-slate-800 hover:border-amber-400 transition-all shadow-inner">
+              <input
+                type="checkbox"
+                checked={tipoEntrega === 'DOMICILIO'}
+                onChange={(e) => {
+                  if (setTipoEntrega) setTipoEntrega(e.target.checked ? 'DOMICILIO' : 'RETIRO_BODEGA');
+                }}
+                className="w-4 h-4 rounded text-amber-500 bg-slate-900 border-slate-700 focus:ring-amber-400 accent-amber-500 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-amber-400" />
+                <span>¿Requiere flete / entrega a domicilio?</span>
               </span>
-              <div className="flex items-center p-0.5 bg-slate-950 rounded-xl border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (setTipoEntrega) setTipoEntrega('DOMICILIO');
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    tipoEntrega === 'DOMICILIO'
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Truck className="w-3.5 h-3.5" />
-                  <span>Entrega en Obra (SARA-Fletes)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (setTipoEntrega) setTipoEntrega('RETIRO_BODEGA');
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    tipoEntrega === 'RETIRO_BODEGA'
-                      ? 'bg-emerald-500 text-slate-950 font-black shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <Warehouse className="w-3.5 h-3.5" />
-                  <span>Retiro en Bodega (GRATIS)</span>
-                </button>
-              </div>
-            </div>
+            </label>
 
             {tipoEntrega === 'RETIRO_BODEGA' ? (
               <span className="text-[11px] font-mono text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
@@ -458,7 +436,7 @@ export function MarketplaceVitrinaSection({
                     tipoEntrega === 'DOMICILIO' ? 'text-amber-400' : 'text-emerald-400'
                   }`}
                 >
-                  {tipoEntrega === 'DOMICILIO' ? 'ENTREGAR MERCADERÍA EN:' : 'RETIRAR MERCADERÍA EN:'}
+                  {tipoEntrega === 'DOMICILIO' ? 'ENTREGAR EN:' : 'RETIRAR EN:'}
                 </label>
               </div>
 

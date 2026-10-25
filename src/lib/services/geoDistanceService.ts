@@ -181,32 +181,35 @@ export class GeoDistanceService {
       return GEOCODE_CACHE[cacheKey];
     }
 
-    // Desglose de posibles calles en intersección (e.g. "Cariamanga, Atahualpa y Cristobal Colon")
+    // Desglose de posibles calles en intersección (e.g. "Centenario e Bolivia", "Atahualpa y Cristobal Colon")
     const partesCalles = cleanStreet
-      .split(/[,ye&]/i)
+      .split(/\s+(?:y|e|con|intersecci[oó]n|esq\.?|esquina)\s+|[,;/]/i)
       .map(p => p.trim())
       .filter(p => p.length >= 3);
 
     const queriesCandidatas: string[] = [];
 
-    // 1. Calle limpia + Ciudad limpia + Ecuador
+    // 1. Si hay intersección de calles, priorizar la primera y segunda calle dentro de la ciudad
+    if (partesCalles.length >= 2 && cleanCity) {
+      queriesCandidatas.push(`${partesCalles[0]}, ${cleanCity}, Ecuador`);
+      queriesCandidatas.push(`${partesCalles[1]}, ${cleanCity}, Ecuador`);
+      queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[1]}, ${cleanCity}, Ecuador`);
+      queriesCandidatas.push(`${partesCalles[0]} e ${partesCalles[1]}, ${cleanCity}, Ecuador`);
+    }
+
+    // 2. Calle completa limpia + Ciudad limpia + Ecuador
     if (cleanStreet && cleanCity) {
       queriesCandidatas.push(`${cleanStreet}, ${cleanCity}, Ecuador`);
     }
 
-    // 2. Si hay múltiples calles, buscar por la última calle y luego la primera dentro de la ciudad
-    if (partesCalles.length >= 2 && cleanCity) {
-      queriesCandidatas.push(`${partesCalles[partesCalles.length - 1]}, ${cleanCity}, Ecuador`);
-      queriesCandidatas.push(`${partesCalles[0]}, ${cleanCity}, Ecuador`);
-      queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[1]}, ${cleanCity}, Ecuador`);
-    }
-
-    // 3. Buscar la calle sin restricción de ciudad por si la ciudad fue escrita con variante
-    if (cleanStreet) {
-      queriesCandidatas.push(`${cleanStreet}, Ecuador`);
+    // 3. Buscar la primera calle sin restricción de ciudad por si la ciudad fue escrita con variante
+    if (partesCalles.length > 0) {
+      queriesCandidatas.push(`${partesCalles[0]}, Ecuador`);
       if (partesCalles.length >= 2) {
-        queriesCandidatas.push(`${partesCalles[0]}, Ecuador`);
+        queriesCandidatas.push(`${partesCalles[1]}, Ecuador`);
       }
+    } else if (cleanStreet) {
+      queriesCandidatas.push(`${cleanStreet}, Ecuador`);
     }
 
     // 4. Si solo hay ciudad o las calles fallaron, centrar en la ciudad
@@ -255,8 +258,18 @@ export class GeoDistanceService {
             };
           });
 
-          GEOCODE_CACHE[cacheKey] = resultados;
-          return resultados;
+          // Deduplicar resultados por coordenadas cercanas (< 50m) o nombre idéntico
+          const deduplicados: ResultadoGeocodificacion[] = [];
+          for (const res of resultados) {
+            const yaExiste = deduplicados.some(d => 
+              d.nombreCorto === res.nombreCorto ||
+              (Math.abs(d.coordenadas.lat - res.coordenadas.lat) < 0.0005 && Math.abs(d.coordenadas.lng - res.coordenadas.lng) < 0.0005)
+            );
+            if (!yaExiste) deduplicados.push(res);
+          }
+
+          GEOCODE_CACHE[cacheKey] = deduplicados;
+          return deduplicados;
         }
       } catch (err) {
         // Continuar con la siguiente query candidata

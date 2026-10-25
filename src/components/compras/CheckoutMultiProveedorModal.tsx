@@ -228,8 +228,11 @@ export function CheckoutMultiProveedorModal({
     ? Math.round(proveedoresList.reduce((acc, p) => acc + p.distanciaKm, 0) / proveedoresList.length)
     : 15;
   
+  // Costo de flete final: verificar si los proveedores cuentan con transporte propio gratuito sin recargo
+  const tieneEntregaPropiaGratis = cartItems.length > 0 && cartItems.every(it => Boolean(it.product.entregaGratisPropia));
+
   const costoFleteTotal = tipoEntrega === 'DOMICILIO' 
-    ? Math.max(25, Math.round(tarifaBaseFlete + (distanciaPromedioKm * 0.35)))
+    ? (tieneEntregaPropiaGratis ? 0 : Math.max(25, Math.round(tarifaBaseFlete + (distanciaPromedioKm * 0.35))))
     : 0;
 
   const totalConsolidado = subtotalMaterialesSinIva + totalIva5 + totalIva15 + costoFleteTotal;
@@ -923,9 +926,21 @@ export function CheckoutMultiProveedorModal({
                     <span className="font-bold">+${totalIva15.toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-sky-400 pt-1 border-t border-slate-800">
-                  <span>Logística SARA-FLETES ({pesoTotalTon} Ton):</span>
-                  <span className="font-bold">{costoFleteTotal > 0 ? `+$${costoFleteTotal.toFixed(2)}` : 'GRATIS (Retiro)'}</span>
+                <div className="flex justify-between items-center text-sky-400 pt-1 border-t border-slate-800">
+                  <span>
+                    {tipoEntrega === 'DOMICILIO'
+                      ? (tieneEntregaPropiaGratis 
+                          ? 'Transporte del Proveedor:' 
+                          : `Logística SARA-FLETES (${pesoTotalTon} Ton):`)
+                      : 'Modalidad de Recepción:'}
+                  </span>
+                  <span className={`font-bold ${costoFleteTotal > 0 ? 'text-sky-400' : 'text-emerald-400'}`}>
+                    {tipoEntrega === 'DOMICILIO'
+                      ? (tieneEntregaPropiaGratis
+                          ? '$0.00 (Entrega sin recargo - Flota propia del Proveedor)'
+                          : `+$${costoFleteTotal.toFixed(2)}`)
+                      : 'GRATIS ($0.00 Retiro en Bodega)'}
+                  </span>
                 </div>
                 <div className="flex justify-between items-baseline pt-2 border-t border-slate-800 text-sm">
                   <span className="font-bold text-white">Total a Pagar (Custodia Escrow):</span>

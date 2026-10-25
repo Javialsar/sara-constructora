@@ -116,6 +116,12 @@ export default function ModuloComprasMasterPage() {
     let iva5 = 0;
     let iva15 = 0;
     let pesoTotalKg = 0;
+    let tieneEntregaPropiaGratis = false;
+
+    // Verificar si todos los productos del carrito cuentan con entrega propia gratuita del proveedor
+    if (cartItems.length > 0) {
+      tieneEntregaPropiaGratis = cartItems.every(it => Boolean(it.product.entregaGratisPropia));
+    }
 
     cartItems.forEach(item => {
       const lineSubtotal = item.product.precioSinIva * item.cantidad;
@@ -128,8 +134,9 @@ export default function ModuloComprasMasterPage() {
       pesoTotalKg += item.product.pesoUnitarioKg * item.cantidad;
     });
 
+    // Si el proveedor entrega gratis con su propia flota, flete = $0.00
     const fleteEstimado = (tipoEntregaGlobal === 'DOMICILIO' && cartItems.length > 0)
-      ? Math.max(35, (pesoTotalKg / 1000) * 14.50 * 1.35)
+      ? (tieneEntregaPropiaGratis ? 0 : Math.max(35, (pesoTotalKg / 1000) * 14.50 * 1.35))
       : 0;
     const totalConIva = subtotalSinIva + iva5 + iva15;
     const totalFinalConFlete = totalConIva + fleteEstimado;
@@ -140,6 +147,7 @@ export default function ModuloComprasMasterPage() {
       iva15,
       pesoTotalKg,
       fleteEstimado,
+      tieneEntregaPropiaGratis,
       totalConIva,
       totalFinalConFlete
     };
@@ -2010,51 +2018,33 @@ export default function ModuloComprasMasterPage() {
               {cartItems.length > 0 && (
                 <div className="p-6 border-t border-slate-800 bg-slate-950/60 space-y-4">
                   
-                  {/* Selector Operativo de Modalidad de Entrega */}
+                  {/* Selector Operativo de Modalidad de Entrega con Checklist */}
                   <div className="p-3 bg-slate-900 border border-slate-800 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-mono">
-                      <span className="text-slate-300 font-bold uppercase">¿Requiere flete a obra?</span>
-                      <span className={`font-bold ${tipoEntregaGlobal === 'DOMICILIO' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                        {tipoEntregaGlobal === 'DOMICILIO' ? 'Con SARA-FLETES' : 'Retiro en Bodega'}
+                    <label className="flex items-center justify-between cursor-pointer select-none">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={tipoEntregaGlobal === 'DOMICILIO'}
+                          onChange={(e) => setTipoEntregaGlobal(e.target.checked ? 'DOMICILIO' : 'RETIRO_BODEGA')}
+                          className="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700 focus:ring-amber-400 accent-amber-500 cursor-pointer"
+                        />
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-amber-400" />
+                          <span>¿Requiere flete / entrega a domicilio?</span>
+                        </span>
+                      </div>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                        tipoEntregaGlobal === 'DOMICILIO' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {tipoEntregaGlobal === 'DOMICILIO' ? 'Flete Obra' : 'Retiro Bodega'}
                       </span>
-                    </div>
+                    </label>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setTipoEntregaGlobal('DOMICILIO')}
-                        className={`p-2 rounded-xl border text-left transition-all ${
-                          tipoEntregaGlobal === 'DOMICILIO'
-                            ? 'bg-amber-500 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-500/20'
-                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <Truck className="w-3.5 h-3.5 shrink-0" />
-                          <span>Entrega en Obra</span>
-                        </div>
-                        <div className="text-[10px] font-mono mt-0.5 opacity-90">
-                          +${cartTotals.fleteEstimado.toFixed(2)} MTOP
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setTipoEntregaGlobal('RETIRO_BODEGA')}
-                        className={`p-2 rounded-xl border text-left transition-all ${
-                          tipoEntregaGlobal === 'RETIRO_BODEGA'
-                            ? 'bg-emerald-500 text-slate-950 font-black border-emerald-400 shadow-md shadow-emerald-500/20'
-                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <Warehouse className="w-3.5 h-3.5 shrink-0" />
-                          <span>Retiro Bodega</span>
-                        </div>
-                        <div className="text-[10px] font-mono mt-0.5 font-bold text-emerald-300">
-                          GRATIS ($0.00)
-                        </div>
-                      </button>
+                    <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800/80 flex items-center justify-between">
+                      <span>Destino de Recepción:</span>
+                      <span className="text-white font-medium truncate max-w-[200px]" title={direccionExactaEntrega}>
+                        {tipoEntregaGlobal === 'DOMICILIO' ? `ENTREGAR EN: ${direccionExactaEntrega.split(',')[0]}` : `RETIRAR EN: Bodegas en ${cantonSeleccionado.nombre}`}
+                      </span>
                     </div>
                   </div>
 
@@ -2081,13 +2071,17 @@ export default function ModuloComprasMasterPage() {
                     <div className="flex justify-between items-center pt-1 border-t border-slate-800">
                       <span className={tipoEntregaGlobal === 'DOMICILIO' ? 'text-sky-400' : 'text-slate-400'}>
                         {tipoEntregaGlobal === 'DOMICILIO' 
-                          ? `Flete SARA-FLETES (${(cartTotals.pesoTotalKg / 1000).toFixed(2)} Ton):` 
+                          ? (cartTotals.tieneEntregaPropiaGratis 
+                              ? 'Transporte del Proveedor:' 
+                              : `Flete SARA-FLETES (${(cartTotals.pesoTotalKg / 1000).toFixed(2)} Ton):`) 
                           : 'Modalidad de Retiro:'}
                       </span>
-                      <span className={`font-bold ${tipoEntregaGlobal === 'DOMICILIO' ? 'text-sky-400' : 'text-emerald-400'}`}>
+                      <span className={`font-bold ${tipoEntregaGlobal === 'DOMICILIO' ? (cartTotals.tieneEntregaPropiaGratis ? 'text-emerald-400' : 'text-sky-400') : 'text-emerald-400'}`}>
                         {tipoEntregaGlobal === 'DOMICILIO' 
-                          ? `+$${cartTotals.fleteEstimado.toFixed(2)}` 
-                          : 'GRATIS (Retiro en Bodega)'}
+                          ? (cartTotals.tieneEntregaPropiaGratis 
+                              ? '$0.00 (Entrega sin recargo - Flota propia del Proveedor)' 
+                              : `+$${cartTotals.fleteEstimado.toFixed(2)}`) 
+                          : 'GRATIS ($0.00 Retiro en Bodega)'}
                       </span>
                     </div>
 

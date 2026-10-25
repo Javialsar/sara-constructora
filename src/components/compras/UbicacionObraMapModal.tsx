@@ -274,7 +274,7 @@ export default function UbicacionObraMapModal({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
-                  Ubicación Exacta de Entrega en Obra
+                  ENTREGAR EN: Ubicación Exacta de Entrega
                 </h3>
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
                   <Truck className="w-3 h-3" />
@@ -299,7 +299,10 @@ export default function UbicacionObraMapModal({
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           
           {/* Lado Izquierdo / Superior: Mapa Interactivo con Leaflet */}
-          <div className="flex-1 min-h-[320px] sm:min-h-[420px] relative bg-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800">
+          <div 
+            className="flex-1 min-h-[320px] sm:min-h-[420px] relative bg-slate-950 border-b lg:border-b-0 lg:border-r border-slate-800"
+            onWheel={(e) => e.stopPropagation()}
+          >
             <DynamicModalMap
               lat={coords.lat}
               lng={coords.lng}
