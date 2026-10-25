@@ -8,7 +8,8 @@ import {
   ToneStyle, 
   COLOR_TONES, 
   DEFAULT_MODULE_THEMES, 
-  getSavedModuleThemes 
+  getSavedModuleThemes,
+  getCustomCanvaPalettes 
 } from './moduleThemes';
 
 export interface UseModuleThemeReturn {
@@ -24,20 +25,36 @@ export function useModuleTheme(modKey: ModuloKey): UseModuleThemeReturn {
     return saved[modKey] || DEFAULT_MODULE_THEMES[modKey] || 'amber';
   });
 
+  const [customPalette, setCustomPalette] = useState<CanvaFourColors | null>(() => {
+    const customs = getCustomCanvaPalettes();
+    return customs[modKey] || null;
+  });
+
   useEffect(() => {
     const syncTheme = () => {
       const saved = getSavedModuleThemes();
       const current = saved[modKey] || DEFAULT_MODULE_THEMES[modKey] || 'amber';
       setToneKey(current);
+      const customs = getCustomCanvaPalettes();
+      setCustomPalette(customs[modKey] || null);
     };
 
     syncTheme();
 
     const handler = (e: any) => {
       if (e?.detail && typeof e.detail === 'object') {
-        const newTone = e.detail[modKey] as ColorTone;
-        if (newTone && COLOR_TONES[newTone]) {
-          setToneKey(newTone);
+        if (e.detail[modKey]) {
+          const newTone = e.detail[modKey] as ColorTone;
+          if (newTone && COLOR_TONES[newTone]) {
+            setToneKey(newTone);
+            setCustomPalette(null);
+          }
+        }
+        if (e.detail.canva_palettes) {
+          const pal = e.detail.canva_palettes[modKey];
+          if (pal) {
+            setCustomPalette(pal);
+          }
         }
       }
     };
@@ -47,7 +64,7 @@ export function useModuleTheme(modKey: ModuloKey): UseModuleThemeReturn {
   }, [modKey]);
 
   const style = COLOR_TONES[toneKey] || COLOR_TONES.amber;
-  const palette = style.canva;
+  const palette = customPalette || style.canva;
 
   const cssVariables = {
     '--mod-bg': palette.bgBase,

@@ -29,7 +29,8 @@ export async function GET() {
     if (!error && data?.indirectos_default) {
       const tema = data.indirectos_default.tema_activo || ""
       const modulos = data.indirectos_default.temas_modulos || null
-      return NextResponse.json({ success: true, tema, modulos })
+      const paletas_canva = data.indirectos_default.paletas_canva || null
+      return NextResponse.json({ success: true, tema, modulos, paletas_canva })
     }
   } catch (err: any) {
     console.warn("Error leyendo tema de Supabase:", err.message)
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Acceso denegado. Se requieren privilegios de administrador." }, { status: 403 })
     }
 
-    const { tema, modulos } = await req.json()
+    const { tema, modulos, paletas_canva } = await req.json()
     const safeTema = typeof tema === "string" ? tema.trim() : ""
 
     const { data: globalParam, error: fetchErr } = await supabase
@@ -75,7 +76,8 @@ export async function POST(req: Request) {
     const updatedIndirectos = {
       ...indirectos,
       ...(safeTema ? { tema_activo: safeTema } : {}),
-      ...(modulos && typeof modulos === "object" ? { temas_modulos: modulos } : {})
+      ...(modulos && typeof modulos === "object" ? { temas_modulos: modulos } : {}),
+      ...(paletas_canva && typeof paletas_canva === "object" ? { paletas_canva } : {})
     }
 
     const { error: updateErr } = await supabase

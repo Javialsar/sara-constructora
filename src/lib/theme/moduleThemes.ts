@@ -411,3 +411,41 @@ export function saveModuleThemes(config: Record<ModuloKey, ColorTone>) {
     window.dispatchEvent(new CustomEvent('sara_module_themes_change', { detail: config }));
   } catch (e) {}
 }
+
+export const STORAGE_KEY_CUSTOM_CANVA_PALETTES = 'sara_custom_canva_palettes';
+
+/**
+ * Obtiene las paletas personalizadas de Canva para los módulos
+ */
+export function getCustomCanvaPalettes(): Partial<Record<ModuloKey, CanvaFourColors>> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CUSTOM_CANVA_PALETTES);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return {};
+}
+
+/**
+ * Guarda una paleta Canva específica para un módulo
+ */
+export function saveCustomCanvaPalette(modKey: ModuloKey, canvaPalette: CanvaFourColors) {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getCustomCanvaPalettes();
+    const updated = { ...current, [modKey]: canvaPalette };
+    localStorage.setItem(STORAGE_KEY_CUSTOM_CANVA_PALETTES, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent('sara_module_themes_change', { detail: { canva_palettes: updated, targetModule: modKey } }));
+  } catch (e) {}
+}
+
+/**
+ * Restablece las paletas personalizadas de Canva
+ */
+export function clearCustomCanvaPalettes() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEY_CUSTOM_CANVA_PALETTES);
+    window.dispatchEvent(new CustomEvent('sara_module_themes_change', { detail: { canva_palettes: {} } }));
+  } catch (e) {}
+}

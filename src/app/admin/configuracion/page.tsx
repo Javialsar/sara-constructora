@@ -12,8 +12,12 @@ import {
   ModuloKey, 
   ColorTone, 
   getSavedModuleThemes, 
-  saveModuleThemes 
+  saveModuleThemes,
+  saveCustomCanvaPalette,
+  clearCustomCanvaPalettes 
 } from "@/lib/theme/moduleThemes"
+import { CanvaPalettesModal } from "@/components/admin/CanvaPalettesModal"
+import { CanvaPaletteItem } from "@/lib/theme/canva100Palettes"
 
 interface MiembroEquipo {
   id: string
@@ -76,6 +80,7 @@ export default function ConfiguracionPage() {
   const [activeTabApariencia, setActiveTabApariencia] = useState<'modulos' | 'general'>('modulos')
   const [guardandoTemaModulos, setGuardandoTemaModulos] = useState(false)
   const [avisoTemaModulos, setAvisoTemaModulos] = useState<string | null>(null)
+  const [canvaModalOpen, setCanvaModalOpen] = useState(false)
 
   useEffect(() => {
     loadConfig()
@@ -232,14 +237,41 @@ export default function ConfiguracionPage() {
   const handleRestablecerTemasModulares = async () => {
     setModuleThemes(DEFAULT_MODULE_THEMES);
     saveModuleThemes(DEFAULT_MODULE_THEMES);
+    clearCustomCanvaPalettes();
     try {
       await fetch('/api/configuracion/tema', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modulos: DEFAULT_MODULE_THEMES })
+        body: JSON.stringify({ modulos: DEFAULT_MODULE_THEMES, paletas_canva: {} })
       });
       setAvisoTemaModulos('Se han restablecido las paletas oficiales de cada unidad de negocio.');
       setTimeout(() => setAvisoTemaModulos(null), 3000);
+    } catch (e) {}
+  };
+
+  const handleApplyCanvaPalette = async (pal: CanvaPaletteItem, targetMod: ModuloKey) => {
+    const canvaFour = {
+      bgBase: pal.color1,
+      bgSurface: pal.color2,
+      accent: pal.color3,
+      accentHover: pal.color3,
+      textContrast: pal.color4 || '#ffffff',
+      textMuted: pal.color2,
+      border: pal.color2,
+      glow: `${pal.color3}50`
+    };
+    saveCustomCanvaPalette(targetMod, canvaFour);
+    setAvisoTemaModulos(`¡Paleta Canva #${pal.id} "${pal.nombreEs}" aplicada con éxito a ${targetMod.toUpperCase()}!`);
+    setTimeout(() => setAvisoTemaModulos(null), 4500);
+
+    try {
+      await fetch('/api/configuracion/tema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paletas_canva: { [targetMod]: canvaFour }
+        })
+      });
     } catch (e) {}
   };
 
@@ -1356,6 +1388,15 @@ export default function ConfiguracionPage() {
               <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
                 <button
                   type="button"
+                  onClick={() => setCanvaModalOpen(true)}
+                  className="px-3.5 py-2 text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:opacity-95 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5"
+                  title="Abrir el catálogo de 150 combinaciones de colores de Canva"
+                >
+                  <Sparkles size={13} className="text-yellow-300" />
+                  <span>Explorador 100+ Paletas Canva</span>
+                </button>
+                <button
+                  type="button"
                   onClick={handleRestablecerTemasModulares}
                   className="px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all flex items-center gap-1.5"
                   title="Restablecer combinaciones recomendadas por GRUPO SARA"
@@ -1601,6 +1642,13 @@ export default function ConfiguracionPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Explorador de 100+ Paletas Armónicas Canva */}
+      <CanvaPalettesModal
+        isOpen={canvaModalOpen}
+        onClose={() => setCanvaModalOpen(false)}
+        onApplyPalette={handleApplyCanvaPalette}
+      />
     </div>
   )
 }
