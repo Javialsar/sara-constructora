@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { 
   Search, 
-  Filter, 
   Building2, 
   ShieldCheck, 
   Truck, 
@@ -15,22 +14,22 @@ import {
   CheckCircle2, 
   Percent, 
   Layers, 
-  ArrowRight,
-  TrendingUp,
-  Warehouse,
-  Check,
-  X,
-  FileText,
-  Clock,
-  ArrowUpDown,
-  Tag,
-  Boxes,
-  HelpCircle,
+  ArrowRight, 
+  TrendingUp, 
+  Warehouse, 
+  Check, 
+  X, 
+  Clock, 
+  ArrowUpDown, 
+  Tag, 
+  Boxes, 
+  MapPin, 
+  Zap,
+  Flame,
   ChevronRight,
-  Info,
   SlidersHorizontal,
-  MapPin,
-  Zap
+  BadgePercent,
+  CheckCircle
 } from 'lucide-react';
 import { MarketplaceProduct, SellerProfile, SELLER_PLANS } from '@/lib/services/sellerMarketplaceService';
 import { CANTONES_ECUADOR, CantonEcuador, GeoDistanceService } from '@/lib/services/geoDistanceService';
@@ -96,7 +95,7 @@ export function MarketplaceVitrinaSection({
 
   const handleDetectarGps = () => {
     if (!navigator.geolocation) {
-      alert('Tu navegador no soporta geolocalización.');
+      alert('Tu dispositivo no soporta geolocalización.');
       return;
     }
     setDetectandoGps(true);
@@ -110,39 +109,30 @@ export function MarketplaceVitrinaSection({
       },
       (err) => {
         setDetectandoGps(false);
-        // Fallback a Loja si el usuario rechaza
-        setCantonSeleccionado(CANTONES_ECUADOR[3]);
+        setCantonSeleccionado(CANTONES_ECUADOR[3]); // Fallback Loja
       },
       { timeout: 8000 }
     );
   };
 
   const categorias = [
-    { id: 'TODAS', label: 'Todas las Categorías', icon: Boxes },
-    { id: 'ACERO', label: 'Acero & Metales', icon: Layers },
+    { id: 'TODAS', label: 'Todo el Catálogo', icon: Boxes },
     { id: 'CEMENTO_HORMIGON', label: 'Cemento & Hormigón', icon: Warehouse },
-    { id: 'ARIDOS_PETREOS', label: 'Áridos de Cantera', icon: Package },
-    { id: 'ACABADOS', label: 'Acabados & Pinturas', icon: Sparkles },
-    { id: 'TUBERIAS_PLOMERIA', label: 'Tuberías & Plomería', icon: Building2 },
-    { id: 'ELECTRICIDAD', label: 'Material Eléctrico', icon: ZapIcon },
-    { id: 'MAQUINARIA_EQUIPOS', label: 'Maquinaria & Equipos', icon: Truck }
+    { id: 'ACERO', label: 'Acero & Hierro', icon: Layers },
+    { id: 'ARIDOS_PETREOS', label: 'Áridos & Arena', icon: Package },
+    { id: 'TUBERIAS_PLOMERIA', label: 'Tuberías & PVC', icon: Building2 },
+    { id: 'ACABADOS', label: 'Acabados & Paneles', icon: Sparkles },
+    { id: 'ELECTRICIDAD', label: 'Material Eléctrico', icon: Zap },
+    { id: 'MAQUINARIA_EQUIPOS', label: 'Maquinaria', icon: Truck }
   ];
 
-  function ZapIcon(props: any) {
-    return (
-      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-      </svg>
-    );
-  }
-
-  // Tags rápidos de búsqueda
+  // Tags populares de búsqueda
   const quickTags = [
-    { label: 'Varilla fy=4200 Ø12mm', query: 'Varilla 12mm' },
-    { label: 'Cemento GU 50kg', query: 'Cemento' },
-    { label: 'Malla Electrosoldada', query: 'Malla' },
-    { label: 'Bloque Prensado 15x20x40', query: 'Bloque' },
-    { label: 'Tubo Desagüe 110mm', query: 'Tubo 110' }
+    { label: '🔥 Cemento GU $7.90', query: 'Cemento' },
+    { label: '⚡ Varilla 12mm $44.00', query: 'Varilla' },
+    { label: '🧱 Bloque $0.52', query: 'Bloque' },
+    { label: '💧 Tubo PVC 110mm', query: 'Tubo' },
+    { label: '🏗️ Malla R-100', query: 'Malla' }
   ];
 
   // Aplicar ordenamiento
@@ -166,8 +156,13 @@ export function MarketplaceVitrinaSection({
     if (ordenamiento === 'stock') {
       return list.sort((a, b) => b.stockDisponible - a.stockDisponible);
     }
-    return list; // Por defecto ya viene ordenado por Jerarquía VIP -> Pro -> Básico
+    return list;
   }, [productos, ordenamiento, ordenarPorCercania, cantonSeleccionado]);
+
+  // Productos destacados para "Ofertas Relámpago de Fábrica"
+  const ofertasRelampago = React.useMemo(() => {
+    return productos.filter(p => p.esMasVendido || p.descuentosVolumen?.length).slice(0, 4);
+  }, [productos]);
 
   const handleAgregarRapido = (prod: MarketplaceProduct) => {
     onAddToCart(prod, 1);
@@ -186,588 +181,494 @@ export function MarketplaceVitrinaSection({
     setPlanFiltro('TODOS');
     setSoloMasVendidos(false);
     setTarifaIva(undefined);
+    setOrdenarPorCercania(false);
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      
+    <div className="space-y-6 pb-24">
+
       {/* ===================================================================== */}
-      {/* 1. HERO BANNER DE ALTO IMPACTO CORPORATIVO (WORLD-CLASS B2B MARKETPLACE) */}
+      {/* 1. FRANJA SUPERIOR DE CONFIANZA TEMU-STYLE (1-CLIC BENEFICIOS)          */}
       {/* ===================================================================== */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800 shadow-2xl p-6 sm:p-8 md:p-10">
-        
-        {/* Glow ambiental de fondo */}
-        <div className="absolute top-0 right-0 -mt-16 -mr-16 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-          
-          <div className="space-y-4 max-w-3xl">
-            {/* Badges de Certificación y Cumplimiento Normativo */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 shadow-md shadow-amber-500/20">
-                <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-                SARA MARKETPLACE B2B
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                IVA 5% Calificado SRI Res. NAC-DGERCGC24-00000013
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30">
-                <Truck className="w-3.5 h-3.5" />
-                Despacho MTOP Nacional
-              </span>
-            </div>
-
-            {/* Título Principal */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.1] text-balance">
-              Materiales de Construcción con <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500">Precios de Fábrica</span> & Mayoristas
-            </h1>
-
-            {/* Subtítulo descriptivo con los nuevos porcentajes de comisión */}
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal max-w-2xl text-pretty">
-              Conexión directa entre plantas industriales, distribuidores certificados y obras civiles en todo el Ecuador. Adquisiciones blindadas mediante <strong className="text-amber-400 font-bold">Fideicomiso Escrow SARA</strong>, cubicación de carga pesada y prioridad por membresía: 
-              <span className="text-amber-300 font-semibold ml-1">1º VIP Fábrica (15%)</span>, 
-              <span className="text-sky-300 font-semibold ml-1">2º Empresarial Pro (10%)</span> y 
-              <span className="text-emerald-300 font-semibold ml-1">3º Ferreterías (8%)</span>.
-            </p>
-
-            {/* Micro KPIs de Confianza para Compradores y Constructoras */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-              <div className="p-3 rounded-2xl bg-slate-800/50 border border-slate-700/60 backdrop-blur-sm">
-                <span className="text-[10px] font-mono text-slate-400 block uppercase">AHORRO TRIBUTARIO</span>
-                <span className="text-base sm:text-lg font-black text-emerald-400 font-mono">5% IVA Obra</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">vs 15% tarifa estándar</p>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-slate-800/50 border border-slate-700/60 backdrop-blur-sm">
-                <span className="text-[10px] font-mono text-slate-400 block uppercase">BLINDAJE FINANCIERO</span>
-                <span className="text-base sm:text-lg font-black text-amber-400 font-mono">100% Escrow</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">Pago retenido hasta bodega</p>
-              </div>
-
-              <div className="col-span-2 sm:col-span-1 p-3 rounded-2xl bg-slate-800/50 border border-slate-700/60 backdrop-blur-sm">
-                <span className="text-[10px] font-mono text-slate-400 block uppercase">CUBICACIÓN Y LOGÍSTICA</span>
-                <span className="text-base sm:text-lg font-black text-sky-400 font-mono">24h - 48h MTOP</span>
-                <p className="text-[10px] text-slate-400 mt-0.5">Volquetas, mulas y plataformas</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Acciones Rápidas del Proveedor / Pedido */}
-          <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full lg:w-72">
-            <button
-              onClick={onOpenSellerHub}
-              className="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs transition-all shadow-xl shadow-amber-500/20 hover:scale-[1.02] flex items-center justify-between group"
-            >
-              <div className="flex items-center gap-3 text-left">
-                <div className="p-2 bg-slate-950 text-amber-400 rounded-xl">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <span className="block text-slate-950 font-black text-xs uppercase tracking-tight">Portal Vendedores</span>
-                  <span className="block text-[10px] text-slate-900 font-mono font-bold">Publicar Catálogo & Fichas</span>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {cartItemsCount > 0 && onOpenCartDrawer && (
-              <button
-                onClick={onOpenCartDrawer}
-                className="w-full p-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all shadow-lg shadow-blue-600/30 flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <ShoppingCart className="w-4 h-4 text-white" />
-                  <span>Ver Pedido de Obra</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-white text-blue-600 text-xs font-black">
-                  {cartItemsCount} {cartItemsCount === 1 ? 'ítem' : 'ítems'}
-                </span>
-              </button>
-            )}
-          </div>
-
+      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white py-2 px-4 rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mx-auto sm:mx-0">
+          <span className="flex items-center gap-1.5">
+            <Truck className="w-4 h-4 text-emerald-200 shrink-0" />
+            <span>Despacho Pesado MTOP a tu Obra</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-emerald-200 shrink-0" />
+            <span>Pago Seguro 100% Escrow SARA</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <BadgePercent className="w-4 h-4 text-yellow-300 shrink-0" />
+            <span>IVA 5% Obra Calificado SRI</span>
+          </span>
+          <span className="hidden md:flex items-center gap-1.5">
+            <CheckCircle className="w-4 h-4 text-emerald-200 shrink-0" />
+            <span>Precios Directos de Planta y Mayoristas</span>
+          </span>
         </div>
+
+        <button
+          onClick={onOpenSellerHub}
+          className="hidden lg:flex items-center gap-1 px-3 py-1 bg-white/15 hover:bg-white/25 rounded-xl text-white font-bold transition-colors"
+        >
+          <span>¿Eres Proveedor? Vende en SARA</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* ===================================================================== */}
-      {/* 2. CONSOLA ENTERPRISE DE BÚSQUEDA, FILTROS Y CATEGORÍAS                 */}
+      {/* 2. BARRA DE BÚSQUEDA ANCHA & GEOLOCALIZACIÓN DE OBRA                    */}
       {/* ===================================================================== */}
-      <div className="bg-slate-900/90 backdrop-blur-md p-5 sm:p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
-        
-        {/* BARRA DE GEOCERCANÍA & UBICACIÓN DE OBRA */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-slate-950 rounded-2xl border border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-                UBICACIÓN DE TU OBRA / DESCARGA:
-              </span>
-              <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                <select
-                  value={cantonSeleccionado.id}
-                  onChange={(e) => {
-                    const found = CANTONES_ECUADOR.find(c => c.id === e.target.value);
-                    if (found) setCantonSeleccionado(found);
-                  }}
-                  className="bg-slate-900 border border-slate-700 text-white font-bold text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                >
-                  {CANTONES_ECUADOR.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre} ({c.provincia}) - {c.region}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleDetectarGps}
-                  disabled={detectandoGps}
-                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-[11px] font-bold rounded-lg border border-slate-700 flex items-center gap-1 transition-colors disabled:opacity-50"
-                >
-                  <span>{detectandoGps ? 'Detectando...' : '📍 Detectar mi GPS'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setOrdenarPorCercania(!ordenarPorCercania)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all ${
-                ordenarPorCercania
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>⚡ Más Cercanos a mi Obra</span>
-              {ordenarPorCercania && <Check className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Fila Principal: Buscador + Dropdowns de Filtrado */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
           
-          {/* Input de Búsqueda Principal */}
-          <div className="md:col-span-5 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input 
+          {/* Buscador Central Protagonista */}
+          <div className="relative flex-1">
+            <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar varilla, cemento, áridos, tubería, SKU, marca..."
-              className="w-full pl-10 pr-9 py-3 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-amber-500 rounded-2xl text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
+              placeholder="Buscar cemento, varilla 12mm, bloque, arena, tubería PVC, fábrica..."
+              className="w-full pl-11 pr-10 py-3.5 bg-slate-950 border-2 border-amber-500/50 hover:border-amber-400 focus:border-amber-400 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-sans shadow-inner transition-colors"
             />
+            <Search className="w-5 h-5 text-amber-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
-                title="Limpiar búsqueda"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Filtro por Empresa Proveedora */}
-          <div className="md:col-span-3">
-            <select
-              value={sellerId}
-              onChange={(e) => setSellerId(e.target.value)}
-              className="w-full py-3 px-3.5 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-amber-500 rounded-2xl text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
-            >
-              <option value="TODOS">🏢 Todos los Fabricantes</option>
-              {sellers.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.nombreComercial} ({s.plan === 'VIP_FABRICA' || s.plan === 'VIP' ? '★ VIP' : s.plan === 'ESTANDAR_PRO' || s.plan === 'EMPRESARIAL' ? 'Pro' : 'Básico'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtro por Nivel de Membresía */}
-          <div className="md:col-span-2">
-            <select
-              value={planFiltro}
-              onChange={(e) => setPlanFiltro(e.target.value)}
-              className="w-full py-3 px-3.5 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-amber-500 rounded-2xl text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
-            >
-              <option value="TODOS">⭐ Todos los Planes</option>
-              <option value="VIP_FABRICA">★ VIP Fábrica (15%)</option>
-              <option value="ESTANDAR_PRO">Empresarial Pro (10%)</option>
-              <option value="BASICO_FERRETERIA">Básico Ferretería (8%)</option>
-            </select>
-          </div>
-
-          {/* Filtro por Tarifa IVA SRI */}
-          <div className="md:col-span-2">
-            <select
-              value={tarifaIva === undefined ? 'TODOS' : tarifaIva.toString()}
-              onChange={(e) => setTarifaIva(e.target.value === 'TODOS' ? undefined : parseInt(e.target.value))}
-              className="w-full py-3 px-3.5 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-amber-500 rounded-2xl text-xs font-mono text-white focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
-            >
-              <option value="TODOS">🧾 Cualquier IVA</option>
-              <option value="5">IVA 5% (Material Calificado SRI)</option>
-              <option value="15">IVA 15% (Tarifa General)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Fila de Tags Rápidos de Búsqueda */}
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <span className="text-[11px] font-mono text-slate-500 flex items-center gap-1">
-            <Tag className="w-3 h-3" /> Frecuentes:
-          </span>
-          {quickTags.map((t, idx) => (
-            <button
-              key={idx}
-              onClick={() => setSearchQuery(t.query)}
-              className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-colors"
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Fila de Categorías & Ordenamiento */}
-        <div className="pt-3 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          
-          {/* Scroll Horizontal de Píldoras de Categorías */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
-            {categorias.map(cat => {
-              const Icon = cat.icon;
-              const isActive = categoria === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoria(cat.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs whitespace-nowrap font-bold flex items-center gap-2 transition-all shrink-0 ${
-                    isActive
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-black scale-[1.02]'
-                      : 'bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
-                  <span>{cat.label}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Filtro Más Vendidos & Selector de Orden */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setSoloMasVendidos(!soloMasVendidos)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all border shrink-0 ${
-                soloMasVendidos
-                  ? 'bg-amber-500/10 border-amber-500 text-amber-400 font-black'
-                  : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-400'
-              }`}
-            >
-              <Star className={`w-3.5 h-3.5 ${soloMasVendidos ? 'text-amber-400 fill-amber-400' : 'text-slate-500'}`} />
-              <span>Más Vendidos</span>
-            </button>
-
-            <div className="relative shrink-0">
-              <select
-                value={ordenamiento}
-                onChange={(e) => setOrdenamiento(e.target.value as any)}
-                className="py-2 pl-3 pr-8 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 focus:outline-none focus:border-amber-500"
-              >
-                <option value="prioridad">⭐ Prioridad Fábrica VIP</option>
-                <option value="precio_asc">Menor Precio</option>
-                <option value="precio_desc">Mayor Precio</option>
-                <option value="stock">Mayor Stock en Bodega</option>
-              </select>
-              <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {hayFiltrosActivos && (
-              <button
-                onClick={limpiarFiltros}
-                className="p-2 text-rose-400 hover:bg-rose-950/30 rounded-xl border border-rose-500/30 transition-colors"
-                title="Limpiar todos los filtros"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-        </div>
-
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 3. BARRA DE ESTADO & CONTADOR DE RESULTADOS                            */}
-      {/* ===================================================================== */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono px-1">
-        <div className="flex items-center gap-2 text-slate-400">
-          <span>Mostrando <strong className="text-white font-bold">{productosOrdenados.length}</strong> materiales certificados</span>
-          {hayFiltrosActivos && (
-            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px]">
-              Filtros activos
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 text-slate-400 text-[11px]">
-          <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-            <ShieldCheck className="w-4 h-4" />
-            Normas NTE INEN / ASTM Verificadas
-          </span>
-          <span className="hidden sm:inline text-slate-600">•</span>
-          <span className="hidden sm:inline text-slate-400">
-            Flete calculado automáticamente con factor de sinuosidad 1.35
-          </span>
-        </div>
-      </div>
-
-      {/* ===================================================================== */}
-      {/* 4. CUADRÍCULA DE PRODUCTOS (HIGH-END B2B CARDS)                       */}
-      {/* ===================================================================== */}
-      {productosOrdenados.length === 0 ? (
-        <div className="p-16 text-center bg-slate-900/60 rounded-3xl border border-slate-800 space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-slate-500">
-            <Package className="w-8 h-8" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-white">
-              No se encontraron materiales con los filtros seleccionados
-            </h3>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Intenta cambiar la categoría, el proveedor o eliminar los términos de búsqueda aplicados.
-            </p>
-          </div>
-          <button
-            onClick={limpiarFiltros}
-            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md shadow-amber-500/20"
-          >
-            Limpiar Filtros y Ver Todo el Catálogo
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {productosOrdenados.map((prod) => {
-            const plan = SELLER_PLANS[prod.sellerPlan] || SELLER_PLANS['BASICO_FERRETERIA'];
-            const isVip = prod.sellerPlan === 'VIP_FABRICA' || prod.sellerPlan === 'VIP';
-            const isPro = prod.sellerPlan === 'ESTANDAR_PRO' || prod.sellerPlan === 'EMPRESARIAL';
-            const precioTotalConIva = prod.precioSinIva * (1 + prod.tarifaIvaPct / 100);
-            const bodegaCoords = prod.bodegaCoordenadas || { lat: -0.1807, lng: -78.4678 };
-            const distVial = GeoDistanceService.distanciaVialEcuadorKm(bodegaCoords, cantonSeleccionado.coordenadas);
-            const tiempoEst = GeoDistanceService.estimarTiempoTransporte(distVial);
-
-            return (
-              <div 
-                key={prod.id}
-                className={`group relative bg-slate-900/90 hover:bg-slate-900 rounded-3xl overflow-hidden border transition-all duration-300 hover:shadow-2xl flex flex-col justify-between ${
-                  isVip 
-                    ? 'border-amber-500/40 hover:border-amber-400 shadow-amber-500/5' 
-                    : isPro 
-                    ? 'border-sky-500/30 hover:border-sky-400 shadow-sky-500/5'
-                    : 'border-slate-800 hover:border-slate-700 shadow-slate-950/50'
-                }`}
+          {/* Selector de Obra / Ubicación GPS */}
+          <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-2xl p-1.5 shrink-0">
+            <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div className="text-left pr-2">
+              <span className="text-[9px] font-mono text-slate-400 block uppercase font-bold">
+                Entrega en Obra:
+              </span>
+              <select
+                value={cantonSeleccionado.id}
+                onChange={(e) => {
+                  const found = CANTONES_ECUADOR.find(c => c.id === e.target.value);
+                  if (found) setCantonSeleccionado(found);
+                }}
+                className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
               >
-                <div>
-                  {/* IMAGEN Y BADGES FLOTANTES */}
-                  <div className="relative h-48 bg-slate-950 overflow-hidden">
-                    <img 
-                      src={prod.imagenUrl} 
-                      alt={prod.nombre}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                    
-                    {/* Badge del Plan de Membresía */}
-                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-lg ${
-                        isVip 
-                          ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950' 
-                          : isPro 
-                          ? 'bg-sky-500 text-white font-bold' 
-                          : 'bg-emerald-600 text-white font-bold'
-                      }`}>
-                        ★ {isVip ? 'VIP Fábrica' : isPro ? 'Empresarial Pro' : 'Ferretería'}
-                      </span>
-                      {prod.esMasVendido && (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950 flex items-center gap-1 shadow-md w-fit">
-                          <Star className="w-2.5 h-2.5 fill-slate-950" />
-                          Más Vendido
-                        </span>
-                      )}
+                {CANTONES_ECUADOR.map(c => (
+                  <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                    {c.nombre} ({c.provincia})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={handleDetectarGps}
+              disabled={detectandoGps}
+              title="Detectar GPS de mi dispositivo"
+              className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-[10px] font-bold rounded-xl border border-slate-800 transition-colors disabled:opacity-50"
+            >
+              {detectandoGps ? 'GPS...' : '📍 GPS'}
+            </button>
+          </div>
+
+          {/* Toggle Rápido: Más Cercanos */}
+          <button
+            onClick={() => setOrdenarPorCercania(!ordenarPorCercania)}
+            className={`px-4 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 ${
+              ordenarPorCercania
+                ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 font-black'
+                : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Más Cercanos a mi Obra</span>
+            {ordenarPorCercania && <Check className="w-3.5 h-3.5" />}
+          </button>
+
+        </div>
+
+        {/* Tags Rápidos de Búsqueda */}
+        <div className="flex items-center gap-2 overflow-x-auto pt-1 pb-1 scrollbar-none text-[11px]">
+          <span className="text-slate-400 font-bold shrink-0 hidden sm:inline">Populares:</span>
+          {quickTags.map((t, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSearchQuery(t.query)}
+              className="px-3 py-1 rounded-full bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-800 whitespace-nowrap transition-colors font-medium"
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 3. PÍLDORAS DE CATEGORÍAS TÁCTILES                                     */}
+      {/* ===================================================================== */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {categorias.map(cat => {
+          const Icon = cat.icon;
+          const isActive = categoria === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setCategoria(cat.id)}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+                isActive
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{cat.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 4. SECCIÓN TEMU: ⚡ OFERTAS RELÁMPAGO DE FÁBRICA                       */}
+      {/* ===================================================================== */}
+      {!searchQuery && categoria === 'TODAS' && (
+        <div className="bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="p-2 bg-amber-500 text-slate-950 rounded-xl shadow-md shadow-amber-500/20">
+                <Flame className="w-5 h-5 fill-slate-950" />
+              </span>
+              <div>
+                <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                  <span>OFERTAS RELÁMPAGO DE FÁBRICA</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold">
+                    PRECIO DIRECTO
+                  </span>
+                </h2>
+                <span className="text-xs text-slate-400">
+                  Descuentos mayoristas aplicados directamente por los fabricantes certificados
+                </span>
+              </div>
+            </div>
+
+            <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              <span>Oferta por tiempo limitado</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {ofertasRelampago.map(p => {
+              const precioFerreteriaRef = +(p.precioSinIva * 1.18).toFixed(2);
+              const ahorroPct = Math.round(((precioFerreteriaRef - p.precioSinIva) / precioFerreteriaRef) * 100);
+              const bodegaCoords = p.bodegaCoordenadas || { lat: -0.1807, lng: -78.4678 };
+              const dist = GeoDistanceService.distanciaVialEcuadorKm(bodegaCoords, cantonSeleccionado.coordenadas);
+
+              return (
+                <div
+                  key={p.id}
+                  className="bg-slate-950 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-3 flex flex-col justify-between group transition-all hover:shadow-xl"
+                >
+                  <div className="space-y-2.5">
+                    {/* Imagen con Badges de Ahorro */}
+                    <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-900">
+                      <img
+                        src={p.imagenUrl}
+                        alt={p.nombre}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute top-2 left-2 bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded-lg shadow-md">
+                        -{ahorroPct}%
+                      </div>
+                      <div className="absolute bottom-2 left-2 right-2 bg-slate-950/80 backdrop-blur-sm rounded-lg px-2 py-1 text-[9px] font-mono text-amber-400 truncate border border-slate-800">
+                        📍 {dist} km • {cantonSeleccionado.nombre}
+                      </div>
                     </div>
 
-                    {/* Tarifa IVA SRI Badge */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className={`px-2.5 py-1 rounded-xl text-[10px] font-mono font-black shadow-lg ${
-                        prod.tarifaIvaPct === 5
-                          ? 'bg-emerald-500 text-slate-950 border border-emerald-400'
-                          : 'bg-slate-950/90 text-slate-200 border border-slate-700'
-                      }`}>
-                        IVA {prod.tarifaIvaPct}% {prod.tarifaIvaPct === 5 ? '✓ SRI' : ''}
-                      </span>
-                    </div>
-
-                    {/* Fila Inferior de Imagen: Fabricante y Valoración */}
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs z-10">
-                      <span className="font-bold truncate text-[11px] flex items-center gap-1.5 text-slate-200 bg-slate-950/80 px-2 py-1 rounded-lg backdrop-blur-sm border border-slate-800">
-                        <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                        <span className="truncate max-w-[140px]">{prod.sellerNombre}</span>
-                      </span>
-                      <span className="text-[10px] font-mono font-bold flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-lg text-amber-400 backdrop-blur-sm border border-slate-800">
-                        ★ {prod.calificacion}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* CUERPO PRINCIPAL DEL PRODUCTO */}
-                  <div className="p-5 space-y-4">
-                    
+                    {/* Título & Fabricante */}
                     <div>
-                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-                        <span>{prod.categoria.replace('_', ' ')}</span>
-                        {prod.especificacionesTecnicas?.normaInen && (
-                          <span className="text-amber-400/90 truncate max-w-[150px]">
-                            {prod.especificacionesTecnicas.normaInen}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-sm text-white line-clamp-2 leading-snug group-hover:text-amber-400 transition-colors">
-                        {prod.nombre}
-                      </h3>
+                      <span className="text-[10px] font-mono text-slate-400 block truncate">
+                        {p.sellerNombre}
+                      </span>
+                      <h4 className="text-xs font-bold text-white line-clamp-2 leading-tight">
+                        {p.nombre}
+                      </h4>
                     </div>
 
-                    {/* CAJA DE PRECIOS ENTERPRISE */}
-                    <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800/80 space-y-1">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[10px] font-mono text-slate-400">PRECIO UNITARIO:</span>
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold">Sin IVA</span>
-                      </div>
-                      
+                    {/* Precios Estilo TEMU */}
+                    <div className="pt-1">
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-2xl font-black font-mono text-white tracking-tight">
-                          ${prod.precioSinIva.toFixed(2)}
+                        <span className="text-lg font-black font-mono text-amber-400">
+                          ${p.precioSinIva.toFixed(2)}
                         </span>
-                        <span className="text-xs font-mono text-slate-400">
-                          / {prod.unidad}
+                        <span className="text-xs font-mono text-slate-500 line-through">
+                          ${precioFerreteriaRef.toFixed(2)}
                         </span>
                       </div>
-
-                      <div className="pt-1 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
-                        <span className="text-slate-400">Total inc. IVA:</span>
-                        <span className="font-bold text-slate-200">${precioTotalConIva.toFixed(2)}</span>
-                      </div>
-                    </div>
-
-                    {/* Descuento por Volumen (Si existe) */}
-                    {prod.descuentosVolumen && prod.descuentosVolumen.length > 0 && (
-                      <div className="p-2 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[10px] font-mono text-amber-400 flex items-center justify-between">
-                        <span>Mayorista: desde {prod.descuentosVolumen[0].desdeCantidad} {prod.unidad.split(' ')[0]}</span>
-                        <span className="font-black">${prod.descuentosVolumen[0].precioUnitario.toFixed(2)}</span>
-                      </div>
-                    )}
-
-                    {/* Distancia y Tiempo de Despacho a la Obra */}
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-[11px] font-mono">
-                      <div className="flex items-center gap-1.5 text-amber-400 font-bold truncate max-w-[170px]">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">A {distVial} km ({cantonSeleccionado.nombre})</span>
-                      </div>
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        tiempoEst.esExpress ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'text-slate-400'
-                      }`}>
-                        {tiempoEst.esExpress ? 'Express 2h-4h' : `${tiempoEst.tiempoHoras}h`}
+                      <span className="text-[10px] font-mono text-emerald-400 block font-bold">
+                        Ahorras ${(precioFerreteriaRef - p.precioSinIva).toFixed(2)} /{p.unidad}
                       </span>
                     </div>
 
-                    {/* Metadatos Logísticos & Stock */}
-                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-1">
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Warehouse className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Stock: <strong className="text-white">{prod.stockDisponible}</strong></span>
+                    {/* Barra de Progreso de Stock */}
+                    <div className="space-y-1">
+                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-3/4 h-full bg-gradient-to-r from-amber-500 to-rose-500 rounded-full" />
                       </div>
-                      <div className="flex items-center gap-1.5 text-sky-400 justify-end">
-                        <Truck className="w-3.5 h-3.5" />
-                        <span>{prod.tiempoEntregaHoras}h a obra</span>
-                      </div>
+                      <span className="text-[9px] font-mono text-slate-400 block">
+                        Stock en planta: <strong className="text-white">{p.stockDisponible} {p.unidad}</strong>
+                      </span>
                     </div>
-
                   </div>
-                </div>
-
-                {/* BOTONES DE ACCIÓN DE LA TARJETA */}
-                <div className="p-5 pt-0 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => onVerProducto(prod)}
-                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-slate-700"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Ficha Técnica</span>
-                  </button>
 
                   <button
-                    onClick={() => handleAgregarRapido(prod)}
-                    className={`py-2.5 px-3 font-black text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 ${
-                      feedbackItemAgregado === prod.id
-                        ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
-                        : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20 active:scale-95'
-                    }`}
+                    onClick={() => handleAgregarRapido(p)}
+                    className="w-full mt-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95"
                   >
-                    {feedbackItemAgregado === prod.id ? (
+                    {feedbackItemAgregado === p.id ? (
                       <>
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        <Check className="w-3.5 h-3.5" />
                         <span>¡Agregado!</span>
                       </>
                     ) : (
                       <>
                         <ShoppingCart className="w-3.5 h-3.5" />
-                        <span>Pedir</span>
+                        <span>Pedir a Fábrica</span>
                       </>
                     )}
                   </button>
                 </div>
-
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* ===================================================================== */}
-      {/* 5. BARRA FLOTANTE DE PEDIDO / REQUISICIÓN DE OBRA                      */}
+      {/* 5. CUADRÍCULA GENERAL DE MATERIALES (ESTILO TEMU LIMPIO Y RÁPIDO)      */}
       {/* ===================================================================== */}
-      {cartItemsCount > 0 && onOpenCartDrawer && (
-        <aside 
-          aria-label="Resumen de Requisición de Obra"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-11/12 max-w-2xl bg-slate-900/95 backdrop-blur-xl border border-amber-500/40 p-4 rounded-3xl shadow-2xl shadow-slate-950/80 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-6"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-amber-500 text-slate-950 rounded-2xl shadow-lg shadow-amber-500/30">
-              <ShoppingCart className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-xs font-bold text-white block">
-                {cartItemsCount} {cartItemsCount === 1 ? 'material seleccionado' : 'materiales seleccionados'} para obra
-              </span>
-              <span className="text-[11px] font-mono text-amber-400 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                Custodia garantizada vía Fideicomiso Escrow
-              </span>
-            </div>
+      <div className="space-y-4">
+        
+        {/* Encabezado de la cuadrícula con filtros secundarios */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-1 text-xs font-mono">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-white text-sm">
+              {categoria === 'TODAS' ? 'Todos los Materiales Disponibles' : `Categoría: ${categoria}`}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-bold">
+              {productosOrdenados.length}
+            </span>
+            {hayFiltrosActivos && (
+              <button
+                onClick={limpiarFiltros}
+                className="text-amber-400 hover:underline text-[11px] ml-2"
+              >
+                Limpiar filtros
+              </button>
+            )}
           </div>
 
-          <button
-            onClick={onOpenCartDrawer}
-            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 hover:scale-[1.02]"
-          >
-            <span>Revisar Requisición</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </aside>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">Ordenar por:</span>
+            <select
+              value={ordenamiento}
+              onChange={(e) => setOrdenamiento(e.target.value as any)}
+              className="bg-slate-900 border border-slate-800 text-white font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            >
+              <option value="prioridad">★ Recomendados / Fábrica VIP</option>
+              <option value="precio_asc">Precio: Menor a Mayor</option>
+              <option value="precio_desc">Precio: Mayor a Menor</option>
+              <option value="stock">Mayor Stock Disponible</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Cuadrícula */}
+        {productosOrdenados.length === 0 ? (
+          <div className="p-16 text-center bg-slate-900 rounded-3xl border border-slate-800 space-y-4">
+            <Package className="w-12 h-12 text-slate-500 mx-auto" />
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-white">No se encontraron materiales</h3>
+              <p className="text-xs text-slate-400">Prueba con otra palabra clave o limpia los filtros aplicados.</p>
+            </div>
+            <button
+              onClick={limpiarFiltros}
+              className="px-4 py-2 bg-amber-500 text-slate-950 font-black rounded-xl text-xs"
+            >
+              Ver todo el catálogo
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            {productosOrdenados.map((prod) => {
+              const precioFerreteriaRef = +(prod.precioSinIva * 1.15).toFixed(2);
+              const ahorroPct = Math.round(((precioFerreteriaRef - prod.precioSinIva) / precioFerreteriaRef) * 100);
+              const bodegaCoords = prod.bodegaCoordenadas || { lat: -0.1807, lng: -78.4678 };
+              const dist = GeoDistanceService.distanciaVialEcuadorKm(bodegaCoords, cantonSeleccionado.coordenadas);
+              const tiempo = GeoDistanceService.estimarTiempoTransporte(dist);
+              const isVip = prod.sellerPlan === 'VIP_FABRICA' || prod.sellerPlan === 'VIP';
+
+              return (
+                <div
+                  key={prod.id}
+                  className="bg-slate-900 border border-slate-800 hover:border-amber-500/60 rounded-3xl p-3 flex flex-col justify-between group transition-all duration-200 hover:shadow-2xl"
+                >
+                  <div className="space-y-2.5">
+                    
+                    {/* Imagen Cuadrada 1:1 con Badges */}
+                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950">
+                      <img
+                        src={prod.imagenUrl}
+                        alt={prod.nombre}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+
+                      {/* Badge Plan / Fábrica */}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase shadow-md ${
+                          isVip ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-200'
+                        }`}>
+                          {isVip ? '★ FÁBRICA' : 'DISTRIBUIDOR'}
+                        </span>
+                        {ahorroPct > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-rose-600 text-white font-black text-[9px] shadow-md w-fit">
+                            -{ahorroPct}%
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tarifa IVA 5% */}
+                      <div className="absolute top-2 right-2">
+                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold shadow-md ${
+                          prod.tarifaIvaPct === 5 ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900/90 text-slate-300'
+                        }`}>
+                          IVA {prod.tarifaIvaPct}%
+                        </span>
+                      </div>
+
+                      {/* Insignia de Distancia en la Foto */}
+                      <div className="absolute bottom-2 left-2 right-2 bg-slate-950/85 backdrop-blur-sm rounded-xl px-2 py-1 text-[10px] font-mono flex items-center justify-between text-slate-200 border border-slate-800">
+                        <span className="flex items-center gap-1 text-amber-400 font-bold truncate">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span>A {dist} km</span>
+                        </span>
+                        <span className="text-[9px] text-slate-400">
+                          {tiempo.esExpress ? '2h - 4h' : `${tiempo.tiempoHoras}h`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Nombre y Proveedor */}
+                    <div>
+                      <span className="text-[10px] font-mono text-slate-400 block truncate font-medium">
+                        {prod.sellerNombre}
+                      </span>
+                      <h3 className="font-bold text-xs text-white line-clamp-2 leading-tight group-hover:text-amber-400 transition-colors">
+                        {prod.nombre}
+                      </h3>
+                    </div>
+
+                    {/* Precios Grandes Estilo TEMU */}
+                    <div className="pt-0.5">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black font-mono text-amber-400">
+                          ${prod.precioSinIva.toFixed(2)}
+                        </span>
+                        <span className="text-xs font-mono text-slate-500 line-through">
+                          ${precioFerreteriaRef.toFixed(2)}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400 block">
+                        por {prod.unidad} (c/IVA: ${(prod.precioSinIva * (1 + prod.tarifaIvaPct / 100)).toFixed(2)})
+                      </span>
+                    </div>
+
+                    {/* Calificación y Compras */}
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5">
+                      <span className="flex items-center gap-1 text-amber-400 font-bold">
+                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <span>{prod.calificacion}</span>
+                      </span>
+                      <span>{prod.ventasTotales} vendidos</span>
+                    </div>
+
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="pt-3 space-y-1.5">
+                    <button
+                      onClick={() => handleAgregarRapido(prod)}
+                      className={`w-full py-2.5 rounded-xl font-black text-xs transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95 ${
+                        feedbackItemAgregado === prod.id
+                          ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+                          : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+                      }`}
+                    >
+                      {feedbackItemAgregado === prod.id ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          <span>¡En el Pedido!</span>
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>Añadir</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => onVerProducto(prod)}
+                      className="w-full py-1 text-[10px] font-mono text-slate-400 hover:text-amber-400 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Ficha Técnica INEN</span>
+                    </button>
+                  </div>
+
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+      </div>
+
+      {/* ===================================================================== */}
+      {/* 6. BARRA FLOTANTE DE PEDIDO INMEDIATO (BOTTOM CHECKOUT BAR)           */}
+      {/* ===================================================================== */}
+      {cartItemsCount > 0 && onOpenCartDrawer && (
+        <div className="fixed bottom-4 left-4 right-4 max-w-4xl mx-auto z-40 animate-in slide-in-from-bottom duration-300">
+          <div className="p-3 sm:p-4 bg-slate-900/95 backdrop-blur-xl border-2 border-amber-500 rounded-3xl shadow-2xl flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-500 text-slate-950 rounded-2xl shadow-md shadow-amber-500/20 font-black">
+                <ShoppingCart className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-black text-white block">
+                  {cartItemsCount} {cartItemsCount === 1 ? 'material seleccionado' : 'materiales en tu lista'}
+                </span>
+                <span className="text-[11px] font-mono text-amber-400">
+                  Entrega coordinada con SARA-FLETES en {cantonSeleccionado.nombre}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={onOpenCartDrawer}
+              className="px-5 sm:px-6 py-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl text-xs sm:text-sm transition-all shadow-xl shadow-amber-500/20 flex items-center gap-2 hover:scale-[1.02]"
+            >
+              <span>Ver Pedido y Pagar</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       )}
 
     </div>
