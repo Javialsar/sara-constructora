@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import { 
   X, CheckCircle2, ShieldCheck, Truck, Store, MapPin, 
   CreditCard, QrCode, ArrowRight, Building2, Package, Sparkles, 
-  Phone, User, Lock, AlertCircle, ExternalLink, Copy
+  Phone, User, Lock, AlertCircle, ExternalLink, Copy,
+  Upload, FileCheck, Image as ImageIcon, Trash2, Check, RefreshCw
 } from 'lucide-react';
-import { MarketplaceProduct } from '@/lib/services/sellerMarketplaceService';
+import { MarketplaceProduct, SellerMarketplaceService, SellerProfile } from '@/lib/services/sellerMarketplaceService';
 import { CompradorSession } from './AuthSocialModal';
 import { CANTONES_ECUADOR, CantonEcuador, GeoDistanceService } from '@/lib/services/geoDistanceService';
 
@@ -21,6 +22,7 @@ interface CheckoutMultiProveedorModalProps {
   cartItems: CartItem[];
   comprador: CompradorSession | null;
   cantonSeleccionado: CantonEcuador;
+  direccionEntrega?: string;
   onRequireAuth: () => void;
   onOrderSuccess: (orderResult: any) => void;
 }
@@ -31,6 +33,7 @@ export function CheckoutMultiProveedorModal({
   cartItems,
   comprador,
   cantonSeleccionado,
+  direccionEntrega,
   onRequireAuth,
   onOrderSuccess
 }: CheckoutMultiProveedorModalProps) {
@@ -39,11 +42,25 @@ export function CheckoutMultiProveedorModal({
 
   // Tipo de entrega: 'DOMICILIO' | 'RETIRO_BODEGA'
   const [tipoEntrega, setTipoEntrega] = useState<'DOMICILIO' | 'RETIRO_BODEGA'>('DOMICILIO');
-  const [direccionExacta, setDireccionExacta] = useState(comprador?.direccionEntrega || 'Frente Principal de Obra, Calle Principal y Secundaria');
+  const [direccionExacta, setDireccionExacta] = useState(
+    direccionEntrega || comprador?.direccionEntrega || 'Frente Principal de Obra, Calle Principal y Secundaria'
+  );
   const [referenciaLlegada, setReferenciaLlegada] = useState('Portón metálico azul frente al parque');
   
-  // Método de pago
-  const [metodoPago, setMetodoPago] = useState<'DEUNA' | 'PAYPHONE' | 'SPI' | 'TARJETA'>('DEUNA');
+  // Sincronizar dirección de entrega si cambia en vitrina
+  React.useEffect(() => {
+    if (direccionEntrega) {
+      setDireccionExacta(direccionEntrega);
+    }
+  }, [direccionEntrega]);
+
+  // Método de pago y comprobante de pago
+  const [metodoPago, setMetodoPago] = useState<'DEUNA' | 'PAYPHONE' | 'PEIGO' | 'SPI' | 'TARJETA'>('DEUNA');
+  const [destinatarioPago, setDestinatarioPago] = useState<'escrow_sara' | string>('escrow_sara');
+  const [voucherDataUrl, setVoucherDataUrl] = useState<string | null>(null);
+  const [voucherNombre, setVoucherNombre] = useState<string | null>(null);
+  const [voucherSize, setVoucherSize] = useState<string | null>(null);
+  const [avisoVoucher, setAvisoVoucher] = useState<string | null>(null);
   const [procesandoPago, setProcesandoPago] = useState(false);
 
   // Orden generada final
@@ -53,7 +70,36 @@ export function CheckoutMultiProveedorModal({
     totalUSD: number;
     subOrdenesCount: number;
     enlaceRastreo: string;
+    voucherAdjunto?: string | null;
+    metodoPagoUsado?: string;
   } | null>(null);
+
+  // Manejador de subida de comprobante
+  const handleVoucherUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    setVoucherNombre(file.name);
+    setVoucherSize(`${sizeMb} MB`);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setVoucherDataUrl(result);
+        setAvisoVoucher('¡Comprobante adjuntado con éxito para validación!');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleEliminarVoucher = () => {
+    setVoucherDataUrl(null);
+    setVoucherNombre(null);
+    setVoucherSize(null);
+    setAvisoVoucher(null);
+  };
 
   if (!isOpen) return null;
 
@@ -164,7 +210,9 @@ export function CheckoutMultiProveedorModal({
         pinSeguridad: pinGen,
         totalUSD: totalConsolidado,
         subOrdenesCount: proveedoresList.length,
-        enlaceRastreo: `https://sara-constructora.vercel.app/fletes/rastreo/${folioGen}`
+        enlaceRastreo: `https://sara-constructora.vercel.app/fletes/rastreo/${folioGen}`,
+        voucherAdjunto: voucherNombre,
+        metodoPagoUsado: metodoPago
       });
 
       setProcesandoPago(false);
@@ -172,9 +220,11 @@ export function CheckoutMultiProveedorModal({
       onOrderSuccess({
         folio: folioGen,
         pin: pinGen,
-        totalUSD: totalConsolidado
+        totalUSD: totalConsolidado,
+        voucherAdjunto: voucherNombre,
+        metodoPagoUsado: metodoPago
       });
-    }, 1800);
+    }, 1500);
   };
 
   return (
@@ -399,16 +449,25 @@ export function CheckoutMultiProveedorModal({
             </div>
 
             {/* SECCIÓN 4: SELECCIÓN DE MÉTODO DE PAGO */}
-            <div className="space-y-3">
-              <span className="text-xs font-mono font-bold uppercase text-slate-400 block">
-                Método de Pago Blindado (Fideicomiso Escrow):
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold uppercase text-slate-400 block">
+                  Método de Pago Blindado (Fideicomiso Escrow):
+                </span>
+                <span className="text-[11px] font-mono text-emerald-400 font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  100% Protegido
+                </span>
+              </div>
+
+              {/* Botones de Métodos de Pago */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
-                  { id: 'DEUNA', label: 'DeUna! Pichincha', desc: 'QR o Celular', icon: QrCode },
-                  { id: 'PAYPHONE', label: 'Payphone Ecuador', desc: 'Tarjetas / Saldo', icon: CreditCard },
-                  { id: 'SPI', label: 'Transferencia SPI', desc: 'Bancos / Cooperativas', icon: Building2 },
-                  { id: 'TARJETA', label: 'Tarjeta Crédito', desc: 'Visa / Mastercard', icon: Lock },
+                  { id: 'DEUNA', label: 'DeUna! Pichincha', desc: 'QR Oficial', icon: QrCode },
+                  { id: 'PAYPHONE', label: 'Payphone Ecuador', desc: 'QR o Saldo', icon: CreditCard },
+                  { id: 'PEIGO', label: 'Peigo Guayaquil', desc: 'QR Banco Guayaquil', icon: QrCode },
+                  { id: 'SPI', label: 'Transferencia SPI', desc: 'Bancos / Coop.', icon: Building2 },
+                  { id: 'TARJETA', label: 'Tarjeta de Crédito', desc: 'Visa / Mastercard', icon: Lock },
                 ].map(m => {
                   const Icon = m.icon;
                   const isSelected = metodoPago === m.id;
@@ -432,6 +491,216 @@ export function CheckoutMultiProveedorModal({
                   );
                 })}
               </div>
+
+              {/* CONTENEDOR DE PAGO POR QR / TRANSFERENCIA Y CARGA DE VOUCHER */}
+              {metodoPago !== 'TARJETA' && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-amber-500/30 space-y-4 animate-in fade-in duration-200">
+                  
+                  {/* Selector de Destinatario: GRUPO SARA Escrow vs Proveedores de la orden */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-mono text-slate-400 font-bold uppercase block">
+                      Selecciona la cuenta de la empresa para ver el Código QR oficial:
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDestinatarioPago('escrow_sara')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          destinatarioPago === 'escrow_sara'
+                            ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                            : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>GRUPO SARA Escrow (Fideicomiso Oficial)</span>
+                      </button>
+
+                      {proveedoresList.map(prov => (
+                        <button
+                          key={prov.sellerId}
+                          type="button"
+                          onClick={() => setDestinatarioPago(prov.sellerId)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            destinatarioPago === prov.sellerId
+                              ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                          }`}
+                        >
+                          <Store className="w-3.5 h-3.5" />
+                          <span>{prov.sellerNombre}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Detalle del QR y Datos Bancarios según Selección */}
+                  {(() => {
+                    const sellerObj = destinatarioPago !== 'escrow_sara'
+                      ? SellerMarketplaceService.getSellerById(destinatarioPago)
+                      : null;
+
+                    const nombreEmpresa = sellerObj?.nombreComercial || 'GRUPO SARA CONSTRUCTORA S.A.S. (Fideicomiso Escrow)';
+                    const rucEmpresa = sellerObj?.ruc || '1790008594001';
+                    const bancoNombre = sellerObj?.cuentaBancaria?.banco || 'Banco Pichincha';
+                    const tipoCta = sellerObj?.cuentaBancaria?.tipoCuenta || 'Cuenta Corriente';
+                    const numCta = sellerObj?.cuentaBancaria?.numeroCuenta || '2100849201';
+                    const titularCta = sellerObj?.cuentaBancaria?.titular || 'GRUPO SARA CONSTRUCTORA S.A.S.';
+
+                    // URLs de códigos QR según método
+                    let qrUrl = '';
+                    let walletLabel = '';
+                    let walletPhone = '';
+
+                    if (metodoPago === 'DEUNA') {
+                      walletLabel = 'DeUna! Banco Pichincha';
+                      walletPhone = sellerObj?.billeterasMoviles?.deUnaCelular || '0992348190';
+                      qrUrl = sellerObj?.billeterasMoviles?.deUnaQrUrl 
+                        || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D${walletPhone}%26merchant%3D${encodeURIComponent(nombreEmpresa)}%26amount%3D${totalConsolidado.toFixed(2)}`;
+                    } else if (metodoPago === 'PAYPHONE') {
+                      walletLabel = 'Payphone Ecuador';
+                      walletPhone = sellerObj?.billeterasMoviles?.payphoneCelular || '0992348190';
+                      qrUrl = sellerObj?.billeterasMoviles?.payphoneQrUrl
+                        || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D${walletPhone}%26client%3D${encodeURIComponent(nombreEmpresa)}%26amount%3D${totalConsolidado.toFixed(2)}`;
+                    } else if (metodoPago === 'PEIGO') {
+                      walletLabel = 'Peigo Banco Guayaquil';
+                      walletPhone = sellerObj?.billeterasMoviles?.peigoCelular || '0992348190';
+                      qrUrl = sellerObj?.billeterasMoviles?.peigoQrUrl
+                        || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D${walletPhone}%26holder%3D${encodeURIComponent(nombreEmpresa)}`;
+                    } else if (metodoPago === 'SPI') {
+                      walletLabel = 'Transferencia SPI / Interbancaria';
+                      qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=spi%3A%2F%2Fbce%3Faccount%3D${numCta}%26bank%3D${encodeURIComponent(bancoNombre)}%26amount%3D${totalConsolidado.toFixed(2)}`;
+                    }
+
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center pt-2 border-t border-slate-800">
+                        
+                        {/* Lado QR Imagen */}
+                        <div className="flex flex-col items-center justify-center p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-2">
+                          <div className="w-48 h-48 bg-white p-2.5 rounded-2xl shadow-lg border border-slate-200 flex items-center justify-center">
+                            <img
+                              src={qrUrl}
+                              alt={`QR ${walletLabel}`}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="text-center">
+                            <span className="text-xs font-black text-white block">
+                              Escanear con App {walletLabel}
+                            </span>
+                            <span className="text-[11px] font-mono text-amber-400 font-bold">
+                              Monto exacto: ${totalConsolidado.toFixed(2)} USD
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Lado Datos de Cuenta y Comprobante */}
+                        <div className="space-y-3">
+                          <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-1.5 text-xs font-mono">
+                            <div className="text-amber-400 font-bold text-[11px] uppercase flex items-center gap-1">
+                              <Building2 className="w-3.5 h-3.5" />
+                              <span>Datos de Transferencia Bancaria:</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Banco:</span>
+                              <span className="text-white font-bold">{bancoNombre}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Tipo de Cuenta:</span>
+                              <span className="text-white">{tipoCta}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Nº de Cuenta:</span>
+                              <span className="text-amber-300 font-black tracking-wider">{numCta}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Titular:</span>
+                              <span className="text-white text-[11px] text-right truncate max-w-[180px]">{titularCta}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">RUC:</span>
+                              <span className="text-white font-mono">{rucEmpresa}</span>
+                            </div>
+                            {walletPhone && (
+                              <div className="flex justify-between pt-1 border-t border-slate-800">
+                                <span className="text-slate-400">Celular Afiliado:</span>
+                                <span className="text-amber-400 font-bold">{walletPhone}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* SECCIÓN DE CARGA DE COMPROBANTE DE PAGO */}
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block">
+                              📎 Subir Comprobante de Pago (Voucher / Foto / PDF) *:
+                            </label>
+
+                            {!voucherDataUrl ? (
+                              <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-amber-500/40 hover:border-amber-400 bg-slate-900/60 hover:bg-slate-900 rounded-2xl cursor-pointer transition-all group">
+                                <Upload className="w-6 h-6 text-amber-400 mb-1 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold text-white group-hover:text-amber-300">
+                                  Haz clic para subir comprobante
+                                </span>
+                                <span className="text-[10px] font-mono text-slate-400">
+                                  Formatos: PNG, JPG, PDF (Máx. 10MB)
+                                </span>
+                                <input
+                                  type="file"
+                                  accept="image/*,application/pdf"
+                                  onChange={handleVoucherUpload}
+                                  className="hidden"
+                                />
+                              </label>
+                            ) : (
+                              <div className="p-3 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5 overflow-hidden">
+                                  {voucherDataUrl.startsWith('data:image') ? (
+                                    <img
+                                      src={voucherDataUrl}
+                                      alt="Voucher Preview"
+                                      className="w-10 h-10 object-cover rounded-lg border border-emerald-400 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg shrink-0">
+                                      <FileCheck className="w-5 h-5" />
+                                    </div>
+                                  )}
+                                  <div className="overflow-hidden">
+                                    <span className="text-xs font-bold text-white block truncate">
+                                      {voucherNombre}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-emerald-400 block">
+                                      {voucherSize} • Listo para conciliar
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={handleEliminarVoucher}
+                                  className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-lg transition-colors"
+                                  title="Quitar comprobante"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            )}
+
+                            {avisoVoucher && (
+                              <span className="text-[11px] font-mono text-emerald-400 block">
+                                ✓ {avisoVoucher}
+                              </span>
+                            )}
+                          </div>
+
+                        </div>
+
+                      </div>
+                    );
+                  })()}
+
+                </div>
+              )}
+
             </div>
 
             {/* SECCIÓN 5: RESUMEN FINANCIERO Y EXPLICACIÓN DE FACTURACIÓN */}
@@ -527,6 +796,28 @@ export function CheckoutMultiProveedorModal({
                 Guarda este código. Solo entrégaselo al chofer o bodeguero cuando hayas revisado físicamente que el material llegó completo y en perfecto estado.
               </p>
             </div>
+
+            {/* Comprobante de Pago Adjuntado */}
+            {ordenGenerada.voucherAdjunto && (
+              <div className="p-3.5 bg-slate-950 border border-emerald-500/30 rounded-2xl max-w-md mx-auto flex items-center justify-between gap-3 text-left">
+                <div className="flex items-center gap-2.5 overflow-hidden">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl shrink-0">
+                    <FileCheck className="w-5 h-5" />
+                  </div>
+                  <div className="overflow-hidden">
+                    <span className="text-xs font-bold text-white block truncate">
+                      {ordenGenerada.voucherAdjunto}
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-400">
+                      Comprobante en auditoría contable y conciliación Three-Way Match
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold shrink-0">
+                  Registrado
+                </span>
+              </div>
+            )}
 
             {/* Botones de Acción */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">

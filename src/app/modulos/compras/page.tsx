@@ -65,7 +65,7 @@ import { SellerHubModal } from '@/components/compras/SellerHubModal';
 import { MarketplaceVitrinaSection } from '@/components/compras/MarketplaceVitrinaSection';
 import { AuthSocialModal, CompradorSession } from '@/components/compras/AuthSocialModal';
 import { CheckoutMultiProveedorModal } from '@/components/compras/CheckoutMultiProveedorModal';
-import { CANTONES_ECUADOR, CantonEcuador } from '@/lib/services/geoDistanceService';
+import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS } from '@/lib/services/geoDistanceService';
 
 type ComprasTab = 
   | 'tablero'
@@ -103,6 +103,8 @@ export default function ModuloComprasMasterPage() {
   // Estados de Autenticación Social & Geocercanía
   const [compradorSession, setCompradorSession] = useState<CompradorSession | null>(null);
   const [cantonSeleccionado, setCantonSeleccionado] = useState<CantonEcuador>(CANTONES_ECUADOR[3]); // Loja por defecto
+  const [direccionExactaEntrega, setDireccionExactaEntrega] = useState('Av. Universitaria y 10 de Agosto, Frente a Obra');
+  const [coordenadasEntrega, setCoordenadasEntrega] = useState<CoordenadasGPS>(CANTONES_ECUADOR[3].coordenadas);
   const [ordenarPorCercania, setOrdenarPorCercania] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
@@ -733,6 +735,10 @@ export default function ModuloComprasMasterPage() {
               setCantonSeleccionado={setCantonSeleccionado}
               ordenarPorCercania={ordenarPorCercania}
               setOrdenarPorCercania={setOrdenarPorCercania}
+              direccionExactaEntrega={direccionExactaEntrega}
+              setDireccionExactaEntrega={setDireccionExactaEntrega}
+              coordenadasEntrega={coordenadasEntrega}
+              setCoordenadasEntrega={setCoordenadasEntrega}
             />
           )}
 
@@ -2099,6 +2105,7 @@ export default function ModuloComprasMasterPage() {
         cartItems={cartItems}
         comprador={compradorSession}
         cantonSeleccionado={cantonSeleccionado}
+        direccionEntrega={direccionExactaEntrega}
         onRequireAuth={() => {
           setCheckoutModalOpen(false);
           setAuthModalOpen(true);

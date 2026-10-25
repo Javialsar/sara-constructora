@@ -29,10 +29,13 @@ import {
   ChevronRight,
   SlidersHorizontal,
   BadgePercent,
-  CheckCircle
+  CheckCircle,
+  Map,
+  Navigation
 } from 'lucide-react';
 import { MarketplaceProduct, SellerProfile, SELLER_PLANS } from '@/lib/services/sellerMarketplaceService';
-import { CANTONES_ECUADOR, CantonEcuador, GeoDistanceService } from '@/lib/services/geoDistanceService';
+import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS, GeoDistanceService } from '@/lib/services/geoDistanceService';
+import UbicacionObraMapModal from './UbicacionObraMapModal';
 
 interface MarketplaceVitrinaSectionProps {
   productos: MarketplaceProduct[];
@@ -59,6 +62,10 @@ interface MarketplaceVitrinaSectionProps {
   setCantonSeleccionado: (c: CantonEcuador) => void;
   ordenarPorCercania: boolean;
   setOrdenarPorCercania: (val: boolean) => void;
+  direccionExactaEntrega?: string;
+  setDireccionExactaEntrega?: (dir: string) => void;
+  coordenadasEntrega?: CoordenadasGPS;
+  setCoordenadasEntrega?: (coords: CoordenadasGPS) => void;
 }
 
 export function MarketplaceVitrinaSection({
@@ -85,13 +92,33 @@ export function MarketplaceVitrinaSection({
   cantonSeleccionado,
   setCantonSeleccionado,
   ordenarPorCercania,
-  setOrdenarPorCercania
+  setOrdenarPorCercania,
+  direccionExactaEntrega,
+  setDireccionExactaEntrega,
+  coordenadasEntrega,
+  setCoordenadasEntrega
 }: MarketplaceVitrinaSectionProps) {
 
-  // Ordenamiento local
+  // Ordenamiento local y mapa
   const [ordenamiento, setOrdenamiento] = useState<'prioridad' | 'precio_asc' | 'precio_desc' | 'stock'>('prioridad');
   const [feedbackItemAgregado, setFeedbackItemAgregado] = useState<string | null>(null);
   const [detectandoGps, setDetectandoGps] = useState(false);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [direccionExacta, setDireccionExacta] = useState(
+    direccionExactaEntrega || 'Av. Universitaria y 10 de Agosto, Frente a Obra'
+  );
+  const [coordsActuales, setCoordsActuales] = useState<CoordenadasGPS>(
+    coordenadasEntrega || cantonSeleccionado.coordenadas
+  );
+
+  // Sincronizar estado local si vienen props externos
+  React.useEffect(() => {
+    if (direccionExactaEntrega) setDireccionExacta(direccionExactaEntrega);
+  }, [direccionExactaEntrega]);
+
+  React.useEffect(() => {
+    if (coordenadasEntrega) setCoordsActuales(coordenadasEntrega);
+  }, [coordenadasEntrega]);
 
   const handleDetectarGps = () => {
     if (!navigator.geolocation) {
@@ -245,40 +272,6 @@ export function MarketplaceVitrinaSection({
             )}
           </div>
 
-          {/* Selector de Obra / Ubicación GPS */}
-          <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-2xl p-1.5 shrink-0">
-            <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div className="text-left pr-2">
-              <span className="text-[9px] font-mono text-slate-400 block uppercase font-bold">
-                Entrega en Obra:
-              </span>
-              <select
-                value={cantonSeleccionado.id}
-                onChange={(e) => {
-                  const found = CANTONES_ECUADOR.find(c => c.id === e.target.value);
-                  if (found) setCantonSeleccionado(found);
-                }}
-                className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
-              >
-                {CANTONES_ECUADOR.map(c => (
-                  <option key={c.id} value={c.id} className="bg-slate-900 text-white">
-                    {c.nombre} ({c.provincia})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              onClick={handleDetectarGps}
-              disabled={detectandoGps}
-              title="Detectar GPS de mi dispositivo"
-              className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-[10px] font-bold rounded-xl border border-slate-800 transition-colors disabled:opacity-50"
-            >
-              {detectandoGps ? 'GPS...' : '📍 GPS'}
-            </button>
-          </div>
-
           {/* Toggle Rápido: Más Cercanos */}
           <button
             onClick={() => setOrdenarPorCercania(!ordenarPorCercania)}
@@ -292,6 +285,87 @@ export function MarketplaceVitrinaSection({
             <span>Más Cercanos a mi Obra</span>
             {ordenarPorCercania && <Check className="w-3.5 h-3.5" />}
           </button>
+
+        </div>
+
+        {/* ===================================================================== */}
+        {/* BARRA: ENTREGAR MERCADERÍA EN: (DIRECCIÓN EXACTA + GPS + MAPA)       */}
+        {/* ===================================================================== */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 pt-2 border-t border-slate-800">
+          
+          {/* Campo de Dirección Exacta */}
+          <div className="flex-1 flex items-center gap-2.5 bg-slate-950 border border-slate-800 focus-within:border-amber-400 rounded-2xl px-3.5 py-2 transition-colors">
+            <div className="p-1.5 bg-amber-500/10 text-amber-400 rounded-xl shrink-0">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <label 
+                htmlFor="direccionEntregaInput"
+                className="text-[10px] font-mono text-amber-400 font-black uppercase shrink-0 tracking-wider"
+              >
+                ENTREGAR MERCADERÍA EN:
+              </label>
+              <input
+                id="direccionEntregaInput"
+                type="text"
+                value={direccionExacta}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDireccionExacta(val);
+                  if (setDireccionExactaEntrega) setDireccionExactaEntrega(val);
+                }}
+                placeholder="Ingresa ciudad, calles principales, intersección o lote de obra..."
+                className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Selector de Cantón / Ciudad */}
+          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 shrink-0">
+            <span className="text-[10px] font-mono text-slate-400 uppercase font-bold hidden sm:inline">Ciudad:</span>
+            <select
+              value={cantonSeleccionado.id}
+              onChange={(e) => {
+                const found = CANTONES_ECUADOR.find(c => c.id === e.target.value);
+                if (found) {
+                  setCantonSeleccionado(found);
+                  setCoordsActuales(found.coordenadas);
+                  if (setCoordenadasEntrega) setCoordenadasEntrega(found.coordenadas);
+                }
+              }}
+              className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
+            >
+              {CANTONES_ECUADOR.map(c => (
+                <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                  {c.nombre} ({c.provincia})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Botones: 📍 GPS y 🗺️ MAPA GPS */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleDetectarGps}
+              disabled={detectandoGps}
+              title="Detectar GPS de mi dispositivo"
+              className="px-3 py-2 bg-slate-950 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold rounded-2xl border border-slate-800 transition-colors disabled:opacity-50 flex items-center gap-1"
+            >
+              <Navigation className={`w-3.5 h-3.5 ${detectandoGps ? 'animate-spin' : ''}`} />
+              <span>{detectandoGps ? 'GPS...' : '📍 GPS'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMapModalOpen(true)}
+              title="Abrir mapa interactivo para fijar la ubicación exacta con un clic"
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-mono text-xs font-black rounded-2xl shadow-md shadow-amber-500/20 transition-all flex items-center gap-1.5 hover:scale-[1.02]"
+            >
+              <Map className="w-3.5 h-3.5 text-slate-950" />
+              <span>🗺️ Mapa GPS</span>
+            </button>
+          </div>
 
         </div>
 
@@ -670,6 +744,25 @@ export function MarketplaceVitrinaSection({
           </div>
         </div>
       )}
+
+      {/* ===================================================================== */}
+      {/* MODAL DE MAPA INTERACTIVO OPENSTREETMAP PARA GEOLOCALIZAR LA ENTREGA */}
+      {/* ===================================================================== */}
+      <UbicacionObraMapModal
+        isOpen={mapModalOpen}
+        onClose={() => setMapModalOpen(false)}
+        coordenadasIniciales={coordsActuales}
+        direccionInicial={direccionExacta}
+        cantonActual={cantonSeleccionado}
+        onConfirmarUbicacion={({ coordenadas, direccion, canton }) => {
+          setCoordsActuales(coordenadas);
+          setDireccionExacta(direccion);
+          setCantonSeleccionado(canton);
+          setOrdenarPorCercania(true);
+          if (setDireccionExactaEntrega) setDireccionExactaEntrega(direccion);
+          if (setCoordenadasEntrega) setCoordenadasEntrega(coordenadas);
+        }}
+      />
 
     </div>
   );

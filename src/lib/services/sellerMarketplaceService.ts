@@ -757,6 +757,30 @@ let VENTAS_HISTORIAL_DB: VentaHistorialItem[] = [
 // SERVICIO PRINCIPAL EXPORTADO
 // ============================================================================
 
+function initStorage() {
+  if (typeof window !== 'undefined') {
+    try {
+      const storedSellers = localStorage.getItem('sara_marketplace_sellers_db');
+      if (storedSellers) {
+        SELLERS_DB = JSON.parse(storedSellers);
+      }
+      const storedProducts = localStorage.getItem('sara_marketplace_products_db');
+      if (storedProducts) {
+        PRODUCTS_DB = JSON.parse(storedProducts);
+      }
+    } catch (e) {}
+  }
+}
+
+function persistStorage() {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('sara_marketplace_sellers_db', JSON.stringify(SELLERS_DB));
+      localStorage.setItem('sara_marketplace_products_db', JSON.stringify(PRODUCTS_DB));
+    } catch (e) {}
+  }
+}
+
 export class SellerMarketplaceService {
 
   /**
@@ -845,6 +869,7 @@ export class SellerMarketplaceService {
    * Obtiene todos los proveedores registrados para filtros
    */
   static getSellersList(): SellerProfile[] {
+    initStorage();
     return [...SELLERS_DB];
   }
 
@@ -852,6 +877,7 @@ export class SellerMarketplaceService {
    * Obtiene perfil de proveedor por ID o API Key
    */
   static getSellerById(id: string): SellerProfile | undefined {
+    initStorage();
     return SELLERS_DB.find(s => s.id === id);
   }
 
@@ -955,6 +981,7 @@ export class SellerMarketplaceService {
     if (data.descripcionEmpresa !== undefined) seller.descripcionEmpresa = data.descripcionEmpresa.trim();
     if (data.ciudadesCobertura) seller.ciudadesCobertura = data.ciudadesCobertura;
 
+    persistStorage();
     return { ...seller };
   }
 
@@ -969,6 +996,7 @@ export class SellerMarketplaceService {
 
     seller.cuentaBancaria = { ...bank };
     seller.billeterasMoviles = { ...wallets };
+    persistStorage();
 
     return { ...seller };
   }

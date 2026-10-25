@@ -391,29 +391,48 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
     }
   };
 
+  // Manejador: Subir Archivo de Código QR Real y Persistir
+  const handleUploadQrFile = (wallet: 'deuna' | 'payphone' | 'peigo', file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (dataUrl) {
+        const fieldKey = wallet === 'deuna' ? 'deUnaQrUrl' : wallet === 'payphone' ? 'payphoneQrUrl' : 'peigoQrUrl';
+        const updatedWallets = {
+          ...walletsForm,
+          [fieldKey]: dataUrl
+        };
+        setWalletsForm(updatedWallets);
+        if (currentSeller) {
+          const updatedSeller = SellerMarketplaceService.updateSellerBankDetails(currentSeller.id, bankForm, updatedWallets);
+          setCurrentSeller(updatedSeller);
+        }
+        setFeedbackMsg({ tipo: 'success', texto: `¡Código QR de ${wallet.toUpperCase()} subido y guardado exitosamente!` });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Manejador: Regenerar Códigos QR Dinámicos
   const handleRegenerarQr = (wallet: 'deuna' | 'payphone' | 'peigo') => {
+    let updatedWallets = { ...walletsForm };
     if (wallet === 'deuna') {
       const phone = walletsForm.deUnaCelular || '0992348190';
       const merchant = encodeURIComponent(currentSeller?.nombreComercial || 'PROVEEDOR');
-      setWalletsForm({
-        ...walletsForm,
-        deUnaQrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D${phone}%26merchant%3D${merchant}`
-      });
+      updatedWallets.deUnaQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=deuna%3A%2F%2Fpay%3Fphone%3D${phone}%26merchant%3D${merchant}`;
     } else if (wallet === 'payphone') {
       const phone = walletsForm.payphoneCelular || '0992348190';
       const client = encodeURIComponent(currentSeller?.nombreComercial || 'PROVEEDOR');
-      setWalletsForm({
-        ...walletsForm,
-        payphoneQrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D${phone}%26client%3D${client}`
-      });
+      updatedWallets.payphoneQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=payphone%3A%2F%2Fpay%3Fphone%3D${phone}%26client%3D${client}`;
     } else if (wallet === 'peigo') {
       const phone = walletsForm.peigoCelular || '0992348190';
       const holder = encodeURIComponent(currentSeller?.razonSocial || 'EMPRESA');
-      setWalletsForm({
-        ...walletsForm,
-        peigoQrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D${phone}%26holder%3D${holder}`
-      });
+      updatedWallets.peigoQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=peigo%3A%2F%2Ftransfer%3Faccount%3D${phone}%26holder%3D${holder}`;
+    }
+    setWalletsForm(updatedWallets);
+    if (currentSeller) {
+      const updatedSeller = SellerMarketplaceService.updateSellerBankDetails(currentSeller.id, bankForm, updatedWallets);
+      setCurrentSeller(updatedSeller);
     }
     setFeedbackMsg({ tipo: 'success', texto: `Código QR para ${wallet.toUpperCase()} autogenerado y calibrado.` });
   };
@@ -1961,9 +1980,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                                 accept="image/*" 
                                 className="hidden" 
                                 onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    setFeedbackMsg({ tipo: 'success', texto: 'QR personalizado de DeUna cargado.' });
-                                  }
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadQrFile('deuna', file);
                                 }} 
                               />
                             </label>
@@ -2002,9 +2020,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                                 accept="image/*" 
                                 className="hidden" 
                                 onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    setFeedbackMsg({ tipo: 'success', texto: 'QR personalizado de Payphone cargado.' });
-                                  }
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadQrFile('payphone', file);
                                 }} 
                               />
                             </label>
@@ -2043,9 +2060,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                                 accept="image/*" 
                                 className="hidden" 
                                 onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    setFeedbackMsg({ tipo: 'success', texto: 'QR personalizado de Peigo cargado.' });
-                                  }
+                                  const file = e.target.files?.[0];
+                                  if (file) handleUploadQrFile('peigo', file);
                                 }} 
                               />
                             </label>
