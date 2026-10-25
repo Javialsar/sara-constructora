@@ -1445,16 +1445,31 @@ export default function ConfiguracionPage() {
                       </div>
                     </div>
 
-                    {/* Barra de Muestra / Preview UI */}
-                    <div className="pt-3 border-t border-gray-100">
-                      <div className="text-[10px] text-gray-400 mb-1 font-medium flex items-center justify-between">
-                        <span>Vista previa de acento:</span>
-                        <span className="font-mono text-[9px] uppercase">{toneConfig.hex}</span>
+                    {/* Barra de Muestra / Preview UI Canva 4 Colores */}
+                    <div className="pt-3 border-t border-gray-100 space-y-1.5">
+                      <div className="text-[10px] text-gray-400 font-medium flex items-center justify-between">
+                        <span>Gama Canva (4 Colores):</span>
+                        <span className="font-mono text-[9px] uppercase">{toneConfig.canva.accent}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: toneConfig.hex }} />
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded shadow-xs border ${toneConfig.badgeClass}`}>
-                          Acento / Tag
+                      <div 
+                        className="p-2 rounded-lg border border-gray-800/20 flex items-center justify-between shadow-inner" 
+                        style={{ backgroundColor: toneConfig.canva.bgBase }}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <div 
+                            className="w-4 h-4 rounded shadow-sm border border-white/20" 
+                            style={{ backgroundColor: toneConfig.canva.bgSurface }} 
+                            title="Superficie / Cards (30%)" 
+                          />
+                          <span className="text-[10px] font-medium" style={{ color: toneConfig.canva.textMuted }}>
+                            Fondo & Cards
+                          </span>
+                        </div>
+                        <span 
+                          className="text-[10px] font-bold px-2 py-0.5 rounded shadow-xs"
+                          style={{ backgroundColor: toneConfig.canva.accent, color: toneConfig.canva.textContrast }}
+                        >
+                          Botón CTA
                         </span>
                       </div>
                     </div>

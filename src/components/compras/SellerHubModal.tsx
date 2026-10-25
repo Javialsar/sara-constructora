@@ -65,6 +65,7 @@ import {
   MarketplacePlansService,
   MarketplacePlan
 } from '@/lib/services/marketplacePlansService';
+import { useModuleTheme } from '@/lib/theme/useModuleTheme';
 
 interface SellerHubModalProps {
   isOpen: boolean;
@@ -73,6 +74,7 @@ interface SellerHubModalProps {
 }
 
 export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubModalProps) {
+  const modTheme = useModuleTheme('compras');
   // 1. REGLA: Para ingresar a esta página debe primero autenticarse (null por defecto o recuperado de sesión persistente)
   const [currentSeller, setCurrentSeller] = useState<SellerProfile | null>(() => {
     if (typeof window !== 'undefined') {
@@ -595,14 +597,14 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
                 {/* Logo & Marca SARA Marketplace */}
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="bg-blue-600 text-white p-2.5 rounded-2xl shadow-md shadow-blue-600/30">
+                  <div className="text-white p-2.5 rounded-2xl shadow-md transition-colors" style={{ backgroundColor: modTheme.palette.accent, boxShadow: `0 8px 16px -2px ${modTheme.palette.glow}` }}>
                     <Store className="w-6 h-6" />
                   </div>
                   <div>
                     <h4 className="font-black text-slate-900 text-lg leading-tight tracking-tight">
                       SARA Marketplace
                     </h4>
-                    <span className="text-[10px] font-bold font-mono tracking-wider uppercase text-blue-600">
+                    <span className="text-[10px] font-bold font-mono tracking-wider uppercase transition-colors" style={{ color: modTheme.palette.accent }}>
                       PROVEEDORES & FÁBRICAS
                     </span>
                   </div>
@@ -792,7 +794,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                   <button 
                     type="submit" 
                     disabled={authLoading}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-600/20 text-xs mt-2"
+                    className="w-full hover:opacity-95 disabled:opacity-50 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md text-xs mt-2" style={{ backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 8px 16px -2px ${modTheme.palette.glow}` }}
                   >
                     {authLoading ? (
                       <>
@@ -854,7 +856,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
             </div>
 
             {/* LADO DERECHO: PANEL AZUL MARINO OSCURO CON BENEFICIOS & TESTIMONIO (IDÉNTICO A IMAGEN 1) */}
-            <div className="w-full md:w-1/2 p-8 md:p-10 bg-[#0c162d] text-white flex flex-col justify-between relative overflow-hidden">
+            <div className="w-full md:w-1/2 p-8 md:p-10 text-white flex flex-col justify-between relative overflow-hidden transition-colors" style={{ backgroundColor: modTheme.palette.bgSurface }}>
               <div className="space-y-8 relative z-10">
                 
                 {/* Título de Propuesta */}
@@ -911,7 +913,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
 
                   {/* Autor */}
                   <div className="flex items-center gap-3 pt-1">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs text-white shadow-md">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shadow-md transition-colors" style={{ backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast }}>
                       FA
                     </div>
                     <div>
@@ -953,7 +955,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
           {/* TOPBAR SUPERIOR EXACTO A LA IMAGEN 3 */}
           <header className="bg-slate-950 text-white px-6 py-3 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-md">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 shadow-md transition-colors" style={{ backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast }}>
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
@@ -1149,7 +1151,7 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                           <h4 className="text-base font-bold text-slate-900 dark:text-white">Evolución de Ventas Semanales (USD)</h4>
                           <p className="text-xs text-slate-400">Comportamiento diario de pedidos de obra colocados</p>
                         </div>
-                        <span className="text-xs font-mono px-2.5 py-1 bg-amber-500/10 text-amber-500 rounded-lg font-bold">Últimos 7 días</span>
+                        <span className="text-xs font-mono px-2.5 py-1 rounded-lg font-bold" style={{ backgroundColor: `${modTheme.palette.accent}20`, color: modTheme.palette.accent }}>Últimos 7 días</span>
                       </div>
 
                       <div className="h-48 flex items-end justify-between gap-3 pt-6 px-2">
@@ -1189,8 +1191,8 @@ export function SellerHubModal({ isOpen, onClose, onProductAdded }: SellerHubMod
                             </div>
                             <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                               <div 
-                                style={{ width: `${Math.min(100, (cant / 10) * 100)}%` }} 
-                                className="h-full bg-amber-500 rounded-full"
+                                style={{ width: `${Math.min(100, (cant / 10) * 100)}%`, backgroundColor: modTheme.palette.accent }} 
+                                className="h-full rounded-full transition-all"
                               />
                             </div>
                           </div>

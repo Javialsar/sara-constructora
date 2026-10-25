@@ -37,6 +37,7 @@ import {
 import { MarketplaceProduct, SellerProfile, SELLER_PLANS } from '@/lib/services/sellerMarketplaceService';
 import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS, GeoDistanceService } from '@/lib/services/geoDistanceService';
 import UbicacionObraMapModal from './UbicacionObraMapModal';
+import { useModuleTheme } from '@/lib/theme/useModuleTheme';
 
 interface MarketplaceVitrinaSectionProps {
   productos: MarketplaceProduct[];
@@ -103,6 +104,7 @@ export function MarketplaceVitrinaSection({
   tipoEntrega = 'DOMICILIO',
   setTipoEntrega
 }: MarketplaceVitrinaSectionProps) {
+  const modTheme = useModuleTheme('compras');
 
   // Ordenamiento local y mapa
   const [ordenamiento, setOrdenamiento] = useState<'prioridad' | 'precio_asc' | 'precio_desc' | 'stock'>('prioridad');
@@ -384,9 +386,9 @@ export function MarketplaceVitrinaSection({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar cemento, varilla 12mm, bloque, arena, tubería PVC, fábrica..."
-              className="w-full pl-11 pr-10 py-3.5 bg-slate-950 border-2 border-amber-500/50 hover:border-amber-400 focus:border-amber-400 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-sans shadow-inner transition-colors"
+              className="w-full pl-11 pr-10 py-3.5 bg-slate-950 border-2 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none font-sans shadow-inner transition-colors" style={{ borderColor: `${modTheme.palette.accent}90`, boxShadow: `0 0 16px -4px ${modTheme.palette.glow}` }}
             />
-            <Search className="w-5 h-5 text-amber-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: modTheme.palette.accent }} />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
@@ -402,9 +404,10 @@ export function MarketplaceVitrinaSection({
             onClick={() => setOrdenarPorCercania(!ordenarPorCercania)}
             className={`px-4 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 ${
               ordenarPorCercania
-                ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 font-black'
+                ? 'shadow-lg font-black'
                 : 'bg-slate-950 text-slate-300 hover:text-white border border-slate-800'
             }`}
+            style={ordenarPorCercania ? { backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 8px 16px -2px ${modTheme.palette.glow}` } : undefined}
           >
             <Zap className="w-4 h-4" />
             <span>Más Cercanos a mi Obra</span>
@@ -568,9 +571,10 @@ export function MarketplaceVitrinaSection({
               onClick={() => setCategoria(cat.id)}
               className={`px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
                 isActive
-                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 font-black shadow-md shadow-amber-500/20 scale-[1.02]'
+                  ? 'font-black shadow-md scale-[1.02]'
                   : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
               }`}
+              style={isActive ? { backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 4px 12px -2px ${modTheme.palette.glow}` } : undefined}
             >
               <Icon className="w-4 h-4" />
               <span>{cat.label}</span>
@@ -583,10 +587,10 @@ export function MarketplaceVitrinaSection({
       {/* 4. SECCIÓN TEMU: ⚡ OFERTAS RELÁMPAGO DE FÁBRICA                       */}
       {/* ===================================================================== */}
       {!searchQuery && categoria === 'TODAS' && (
-        <div className="bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+        <div className="border rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl transition-colors" style={{ background: `linear-gradient(135deg, ${modTheme.palette.accent}25 0%, ${modTheme.palette.bgSurface} 60%, ${modTheme.palette.bgBase} 100%)`, borderColor: `${modTheme.palette.accent}60` }}>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
             <div className="flex items-center gap-2.5">
-              <span className="p-2 bg-amber-500 text-slate-950 rounded-xl shadow-md shadow-amber-500/20">
+              <span className="p-2 rounded-xl shadow-md transition-colors" style={{ backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast }}>
                 <Flame className="w-5 h-5 fill-slate-950" />
               </span>
               <div>
@@ -674,7 +678,7 @@ export function MarketplaceVitrinaSection({
 
                   <button
                     onClick={() => handleAgregarRapido(p)}
-                    className="w-full mt-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95"
+                    className="w-full mt-3 py-2 font-black rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95 hover:opacity-95" style={{ backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 4px 10px -2px ${modTheme.palette.glow}` }}
                   >
                     {feedbackItemAgregado === p.id ? (
                       <>
@@ -776,9 +780,12 @@ export function MarketplaceVitrinaSection({
 
                       {/* Badge Plan / Fábrica */}
                       <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase shadow-md ${
-                          isVip ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-200'
-                        }`}>
+                        <span 
+                          className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase shadow-md ${
+                            isVip ? 'text-white' : 'bg-slate-800 text-slate-200'
+                          }`}
+                          style={isVip ? { backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast } : undefined}
+                        >
                           {isVip ? '★ FÁBRICA' : 'DISTRIBUIDOR'}
                         </span>
                         {ahorroPct > 0 && (
@@ -852,8 +859,17 @@ export function MarketplaceVitrinaSection({
                       className={`w-full py-2.5 rounded-xl font-black text-xs transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95 ${
                         feedbackItemAgregado === prod.id
                           ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
-                          : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+                          : 'hover:opacity-95 shadow-md'
                       }`}
+                      style={
+                        feedbackItemAgregado === prod.id
+                          ? undefined
+                          : {
+                              backgroundColor: modTheme.palette.accent,
+                              color: modTheme.palette.textContrast,
+                              boxShadow: `0 4px 10px -2px ${modTheme.palette.glow}`
+                            }
+                      }
                     >
                       {feedbackItemAgregado === prod.id ? (
                         <>

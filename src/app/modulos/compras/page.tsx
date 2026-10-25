@@ -67,6 +67,7 @@ import { AuthSocialModal, CompradorSession } from '@/components/compras/AuthSoci
 import { CheckoutMultiProveedorModal } from '@/components/compras/CheckoutMultiProveedorModal';
 import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS, GeoDistanceService } from '@/lib/services/geoDistanceService';
 import { SaraFreightPricingService, CategoriaVehiculo } from '@/lib/services/saraFreightPricingService';
+import { useModuleTheme } from '@/lib/theme/useModuleTheme';
 
 type ComprasTab = 
   | 'tablero'
@@ -80,6 +81,7 @@ type ComprasTab =
   | 'flujo_agentico';
 
 export default function ModuloComprasMasterPage() {
+  const modTheme = useModuleTheme('compras');
   // 1. Estados Principales
   const [primaryMode, setPrimaryMode] = useState<'marketplace' | 'gestion_constructora'>('marketplace');
   const [activeTab, setActiveTab] = useState<ComprasTab>('tablero');
@@ -546,10 +548,10 @@ export default function ModuloComprasMasterPage() {
         onProductAdded={() => setSellerRefreshCounter(prev => prev + 1)}
       />
 
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+      <div className="min-h-screen text-slate-100 flex flex-col font-sans transition-colors duration-300" style={{ backgroundColor: modTheme.palette.bgBase }}>
         
         {/* BARRA SUPERIOR ELEGANTE & CONMUTADOR DE MODO (MARKETPLACE VS GESTIÓN INTERNA) */}
-        <header className="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl sticky top-0 z-30 px-4 sm:px-6 py-3 transition-all">
+        <header className="border-b border-slate-800/80 backdrop-blur-xl sticky top-0 z-30 px-4 sm:px-6 py-3 transition-all" style={{ backgroundColor: `${modTheme.palette.bgSurface}e6` }}>
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
             
             {/* Conmutador de Modo Principal */}
@@ -558,9 +560,10 @@ export default function ModuloComprasMasterPage() {
                 onClick={() => setPrimaryMode('marketplace')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                   primaryMode === 'marketplace'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                    ? 'font-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
+                style={primaryMode === 'marketplace' ? { backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 4px 10px -1px ${modTheme.palette.glow}` } : undefined}
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>Vitrina Marketplace B2B</span>
@@ -570,9 +573,10 @@ export default function ModuloComprasMasterPage() {
                 onClick={() => setPrimaryMode('gestion_constructora')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                   primaryMode === 'gestion_constructora'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                    ? 'font-black shadow-md'
                     : 'text-slate-400 hover:text-white'
                 }`}
+                style={primaryMode === 'gestion_constructora' ? { backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 4px 10px -1px ${modTheme.palette.glow}` } : undefined}
               >
                 <Layers className="w-4 h-4" />
                 <span>Gestión de Compras & APU</span>
@@ -615,12 +619,12 @@ export default function ModuloComprasMasterPage() {
 
               <button
                 onClick={() => setSellerHubModalOpen(true)}
-                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/20 flex items-center gap-2 transition-transform hover:scale-[1.02]"
+                className="px-3.5 py-2 font-black text-xs rounded-xl shadow-md flex items-center gap-2 transition-transform hover:scale-[1.02]" style={{ backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 4px 12px -2px ${modTheme.palette.glow}` }}
               >
                 <Building2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Vende en SARA / </span>
                 <span>Proveedores</span>
-                <span className="px-1.5 py-0.5 rounded bg-slate-950 text-amber-400 text-[10px] font-mono font-bold">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold" style={{ backgroundColor: modTheme.palette.bgSurface, color: modTheme.palette.textContrast }}>
                   Planes & API
                 </span>
               </button>
@@ -629,9 +633,10 @@ export default function ModuloComprasMasterPage() {
                 onClick={() => setCartDrawerOpen(true)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all border ${
                   cartItems.length > 0 
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20 font-black' 
+                    ? 'border-transparent font-black shadow-md' 
                     : 'bg-slate-950 hover:bg-slate-800 border-slate-800 text-slate-300'
                 }`}
+                style={cartItems.length > 0 ? { backgroundColor: modTheme.palette.accent, color: modTheme.palette.textContrast, boxShadow: `0 4px 10px -2px ${modTheme.palette.glow}` } : undefined}
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>{cartItems.length}</span>
