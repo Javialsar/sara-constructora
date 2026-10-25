@@ -112,40 +112,89 @@ export function MarketplaceVitrinaSection({
     coordenadasEntrega || cantonSeleccionado.coordenadas
   );
 
+  // Estados locales para Ciudad y Calle por separado
+  const [ciudadVitrina, setCiudadVitrina] = useState(cantonSeleccionado?.nombre || 'Loja');
+  const [calleVitrina, setCalleVitrina] = useState(
+    direccionExactaEntrega ? direccionExactaEntrega.replace(`, ${cantonSeleccionado?.nombre || 'Loja'}`, '') : 'Av. Universitaria y 10 de Agosto'
+  );
+
   // Sincronizar estado local si vienen props externos
   React.useEffect(() => {
     if (direccionExactaEntrega) setDireccionExacta(direccionExactaEntrega);
   }, [direccionExactaEntrega]);
 
   React.useEffect(() => {
+    if (cantonSeleccionado) setCiudadVitrina(cantonSeleccionado.nombre);
+  }, [cantonSeleccionado]);
+
+  React.useEffect(() => {
     if (coordenadasEntrega) setCoordsActuales(coordenadasEntrega);
   }, [coordenadasEntrega]);
 
-  // Geocodificación automática al escribir en la barra de vitrina
+  // Geocodificación automática al escribir Ciudad o Calle en la vitrina
   const [geocodificandoVitrina, setGeocodificandoVitrina] = useState(false);
   const vitrinaDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  const handleVitrinaDireccionChange = (nuevaDir: string) => {
-    setDireccionExacta(nuevaDir);
-    if (setDireccionExactaEntrega) setDireccionExactaEntrega(nuevaDir);
-
-    if (vitrinaDebounceRef.current) {
-      clearTimeout(vitrinaDebounceRef.current);
+  const handleVitrinaCiudadChange = (nuevaCiudad: string) => {
+    setCiudadVitrina(nuevaCiudad);
+    const match = CANTONES_ECUADOR.find(
+      c => c.nombre.toLowerCase() === nuevaCiudad.trim().toLowerCase()
+    );
+    if (match) {
+      setCantonSeleccionado(match);
+      if (!calleVitrina.trim()) {
+        setCoordsActuales(match.coordenadas);
+        if (setCoordenadasEntrega) setCoordenadasEntrega(match.coordenadas);
+      }
     }
+    const combined = [calleVitrina.trim(), nuevaCiudad.trim()].filter(Boolean).join(', ');
+    setDireccionExacta(combined);
+    if (setDireccionExactaEntrega) setDireccionExactaEntrega(combined);
 
-    if (nuevaDir.trim().length >= 4) {
+    if (vitrinaDebounceRef.current) clearTimeout(vitrinaDebounceRef.current);
+    vitrinaDebounceRef.current = setTimeout(async () => {
+      setGeocodificandoVitrina(true);
+      try {
+        const res = await GeoDistanceService.geocodificarDireccionEcuador(
+          calleVitrina || nuevaCiudad,
+          calleVitrina ? nuevaCiudad : ''
+        );
+        if (res && res.length > 0) {
+          const matchResult = res[0];
+          setCoordsActuales(matchResult.coordenadas);
+          if (setCoordenadasEntrega) setCoordenadasEntrega(matchResult.coordenadas);
+          const masCercano = GeoDistanceService.encontrarCantonMasCercano(matchResult.coordenadas);
+          setCantonSeleccionado(masCercano);
+          setOrdenarPorCercania(true);
+        }
+      } catch (e) {
+        // Ignorar error de red
+      } finally {
+        setGeocodificandoVitrina(false);
+      }
+    }, 550);
+  };
+
+  const handleVitrinaCalleChange = (nuevaCalle: string) => {
+    setCalleVitrina(nuevaCalle);
+    const combined = [nuevaCalle.trim(), ciudadVitrina.trim()].filter(Boolean).join(', ');
+    setDireccionExacta(combined);
+    if (setDireccionExactaEntrega) setDireccionExactaEntrega(combined);
+
+    if (vitrinaDebounceRef.current) clearTimeout(vitrinaDebounceRef.current);
+    if (nuevaCalle.trim().length >= 3) {
       vitrinaDebounceRef.current = setTimeout(async () => {
         setGeocodificandoVitrina(true);
         try {
           const res = await GeoDistanceService.geocodificarDireccionEcuador(
-            nuevaDir,
-            cantonSeleccionado.nombre
+            nuevaCalle,
+            ciudadVitrina
           );
           if (res && res.length > 0) {
-            const match = res[0];
-            setCoordsActuales(match.coordenadas);
-            if (setCoordenadasEntrega) setCoordenadasEntrega(match.coordenadas);
-            const masCercano = GeoDistanceService.encontrarCantonMasCercano(match.coordenadas);
+            const matchResult = res[0];
+            setCoordsActuales(matchResult.coordenadas);
+            if (setCoordenadasEntrega) setCoordenadasEntrega(matchResult.coordenadas);
+            const masCercano = GeoDistanceService.encontrarCantonMasCercano(matchResult.coordenadas);
             setCantonSeleccionado(masCercano);
             setOrdenarPorCercania(true);
           }
@@ -154,7 +203,7 @@ export function MarketplaceVitrinaSection({
         } finally {
           setGeocodificandoVitrina(false);
         }
-      }, 700);
+      }, 550);
     }
   };
 
@@ -327,61 +376,60 @@ export function MarketplaceVitrinaSection({
         </div>
 
         {/* ===================================================================== */}
-        {/* BARRA: ENTREGAR MERCADERÍA EN: (DIRECCIÓN EXACTA + GPS + MAPA)       */}
+        {/* BARRA: ENTREGAR MERCADERÍA EN: (CIUDAD + CALLE + GPS + MAPA)         */}
         {/* ===================================================================== */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 pt-2 border-t border-slate-800">
           
-          {/* Campo de Dirección Exacta */}
-          <div className="flex-1 flex items-center gap-2.5 bg-slate-950 border border-slate-800 focus-within:border-amber-400 rounded-2xl px-3.5 py-2 transition-colors">
-            <div className="p-1.5 bg-amber-500/10 text-amber-400 rounded-xl shrink-0">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-950 border border-slate-800 focus-within:border-amber-400 rounded-2xl p-1.5 transition-colors">
+            
+            <div className="flex items-center gap-1.5 px-2 py-1 shrink-0">
+              <div className="p-1.5 bg-amber-500/10 text-amber-400 rounded-xl shrink-0">
+                <MapPin className="w-4 h-4" />
+              </div>
               <label 
                 htmlFor="direccionEntregaInput"
                 className="text-[10px] font-mono text-amber-400 font-black uppercase shrink-0 tracking-wider"
               >
-                ENTREGAR MERCADERÍA EN:
+                ENTREGAR EN:
               </label>
-              <div className="flex-1 flex items-center gap-1.5">
-                <input
-                  id="direccionEntregaInput"
-                  type="text"
-                  value={direccionExacta}
-                  onChange={(e) => handleVitrinaDireccionChange(e.target.value)}
-                  placeholder="Ingresa ciudad, calles principales, intersección o lote de obra..."
-                  className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
-                />
-                {geocodificandoVitrina && (
-                  <span title="Geolocalizando dirección...">
-                    <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
-                  </span>
-                )}
-              </div>
             </div>
-          </div>
 
-          {/* Selector de Cantón / Ciudad */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-2xl px-3 py-2 shrink-0">
-            <span className="text-[10px] font-mono text-slate-400 uppercase font-bold hidden sm:inline">Ciudad:</span>
-            <select
-              value={cantonSeleccionado.id}
-              onChange={(e) => {
-                const found = CANTONES_ECUADOR.find(c => c.id === e.target.value);
-                if (found) {
-                  setCantonSeleccionado(found);
-                  setCoordsActuales(found.coordenadas);
-                  if (setCoordenadasEntrega) setCoordenadasEntrega(found.coordenadas);
-                }
-              }}
-              className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
-            >
-              {CANTONES_ECUADOR.map(c => (
-                <option key={c.id} value={c.id} className="bg-slate-900 text-white">
-                  {c.nombre} ({c.provincia})
-                </option>
-              ))}
-            </select>
+            {/* Input 1: Ciudad o Cantón editable con autocompletado */}
+            <div className="w-full sm:w-48 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5 shrink-0">
+              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">Ciudad:</span>
+              <input
+                type="text"
+                list="vitrina-cantones-list"
+                value={ciudadVitrina}
+                onChange={(e) => handleVitrinaCiudadChange(e.target.value)}
+                placeholder="Loja, Quito, Cariamanga..."
+                className="w-full bg-transparent text-white font-bold text-xs placeholder-slate-500 focus:outline-none"
+              />
+              <datalist id="vitrina-cantones-list">
+                {CANTONES_ECUADOR.map(c => (
+                  <option key={c.id} value={c.nombre}>{c.provincia} ({c.region})</option>
+                ))}
+              </datalist>
+            </div>
+
+            {/* Input 2: Calle o Intersección */}
+            <div className="flex-1 flex items-center gap-1.5 bg-slate-900 border border-slate-800 focus-within:border-amber-500/50 rounded-xl px-2.5 py-1.5">
+              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold shrink-0">Calle:</span>
+              <input
+                id="direccionEntregaInput"
+                type="text"
+                value={calleVitrina}
+                onChange={(e) => handleVitrinaCalleChange(e.target.value)}
+                placeholder="Ej: Cariamanga, atahualpa y Cristobal colon..."
+                className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
+              />
+              {geocodificandoVitrina && (
+                <span title="Geolocalizando dirección...">
+                  <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                </span>
+              )}
+            </div>
+
           </div>
 
           {/* Botones: 📍 GPS y 🗺️ MAPA GPS */}
@@ -799,6 +847,13 @@ export function MarketplaceVitrinaSection({
           setCoordsActuales(coordenadas);
           setDireccionExacta(direccion);
           setCantonSeleccionado(canton);
+          setCiudadVitrina(canton.nombre);
+          const parts = direccion.split(',');
+          if (parts.length > 1) {
+            setCalleVitrina(parts.slice(0, -1).join(',').trim());
+          } else {
+            setCalleVitrina(direccion);
+          }
           setOrdenarPorCercania(true);
           if (setDireccionExactaEntrega) setDireccionExactaEntrega(direccion);
           if (setCoordenadasEntrega) setCoordenadasEntrega(coordenadas);

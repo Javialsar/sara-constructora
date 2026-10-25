@@ -31,15 +31,25 @@ export interface ResultadoGeocodificacion {
   provincia?: string;
 }
 
+export interface ResultadoGeocodificacionInversa {
+  calle: string;
+  ciudad: string;
+  barrio?: string;
+  direccionCompleta: string;
+}
+
 // Caché en memoria para evitar llamadas redundantes a OpenStreetMap
 const GEOCODE_CACHE: Record<string, ResultadoGeocodificacion[]> = {};
 const REVERSE_CACHE: Record<string, string> = {};
+const REVERSE_DETALLADO_CACHE: Record<string, ResultadoGeocodificacionInversa> = {};
 
 export const CANTONES_ECUADOR: CantonEcuador[] = [
   { id: 'uio', nombre: 'Quito', provincia: 'Pichincha', region: 'SIERRA', coordenadas: { lat: -0.1807, lng: -78.4678 } },
   { id: 'gye', nombre: 'Guayaquil', provincia: 'Guayas', region: 'COSTA', coordenadas: { lat: -2.1894, lng: -79.8891 } },
   { id: 'cue', nombre: 'Cuenca', provincia: 'Azuay', region: 'SIERRA', coordenadas: { lat: -2.9001, lng: -79.0059 } },
   { id: 'loj', nombre: 'Loja', provincia: 'Loja', region: 'SIERRA', coordenadas: { lat: -3.9931, lng: -79.2042 } },
+  { id: 'car', nombre: 'Cariamanga (Calvas)', provincia: 'Loja', region: 'SIERRA', coordenadas: { lat: -4.3260, lng: -79.5559 } },
+  { id: 'cat', nombre: 'Catamayo', provincia: 'Loja', region: 'SIERRA', coordenadas: { lat: -3.9845, lng: -79.3542 } },
   { id: 'amb', nombre: 'Ambato', provincia: 'Tungurahua', region: 'SIERRA', coordenadas: { lat: -1.2491, lng: -78.6168 } },
   { id: 'rio', nombre: 'Riobamba', provincia: 'Chimborazo', region: 'SIERRA', coordenadas: { lat: -1.6636, lng: -78.6546 } },
   { id: 'mta', nombre: 'Manta', provincia: 'Manabí', region: 'COSTA', coordenadas: { lat: -0.9677, lng: -80.7089 } },
@@ -47,11 +57,18 @@ export const CANTONES_ECUADOR: CantonEcuador[] = [
   { id: 'mch', nombre: 'Machala', provincia: 'El Oro', region: 'COSTA', coordenadas: { lat: -3.2581, lng: -79.9554 } },
   { id: 'sto', nombre: 'Santo Domingo', provincia: 'Santo Domingo de los Tsáchilas', region: 'COSTA', coordenadas: { lat: -0.2530, lng: -79.1754 } },
   { id: 'iba', nombre: 'Ibarra', provincia: 'Imbabura', region: 'SIERRA', coordenadas: { lat: 0.3517, lng: -78.1223 } },
+  { id: 'ota', nombre: 'Otavalo', provincia: 'Imbabura', region: 'SIERRA', coordenadas: { lat: 0.2346, lng: -78.2625 } },
   { id: 'esl', nombre: 'Esmeraldas', provincia: 'Esmeraldas', region: 'COSTA', coordenadas: { lat: 0.9682, lng: -79.6517 } },
   { id: 'lat', nombre: 'Latacunga / Lasso', provincia: 'Cotopaxi', region: 'SIERRA', coordenadas: { lat: -0.9316, lng: -78.6155 } },
   { id: 'bab', nombre: 'Babahoyo', provincia: 'Los Ríos', region: 'COSTA', coordenadas: { lat: -1.8022, lng: -79.5344 } },
   { id: 'que', nombre: 'Quevedo', provincia: 'Los Ríos', region: 'COSTA', coordenadas: { lat: -1.0286, lng: -79.4635 } },
-  { id: 'pau', nombre: 'Paute', provincia: 'Azuay', region: 'SIERRA', coordenadas: { lat: -2.7758, lng: -78.7562 } }
+  { id: 'pau', nombre: 'Paute', provincia: 'Azuay', region: 'SIERRA', coordenadas: { lat: -2.7758, lng: -78.7562 } },
+  { id: 'gua', nombre: 'Gualaceo', provincia: 'Azuay', region: 'SIERRA', coordenadas: { lat: -2.8942, lng: -78.7778 } },
+  { id: 'sam', nombre: 'Samborondón', provincia: 'Guayas', region: 'COSTA', coordenadas: { lat: -1.9628, lng: -79.7228 } },
+  { id: 'dau', nombre: 'Daule', provincia: 'Guayas', region: 'COSTA', coordenadas: { lat: -1.8631, lng: -79.9772 } },
+  { id: 'dur', nombre: 'Durán', provincia: 'Guayas', region: 'COSTA', coordenadas: { lat: -2.1691, lng: -79.8247 } },
+  { id: 'rum', nombre: 'Rumiñahui (Sangolquí)', provincia: 'Pichincha', region: 'SIERRA', coordenadas: { lat: -0.3342, lng: -78.4439 } },
+  { id: 'tul', nombre: 'Tulcán', provincia: 'Carchi', region: 'SIERRA', coordenadas: { lat: 0.8116, lng: -77.7176 } }
 ];
 
 export class GeoDistanceService {
@@ -284,6 +301,56 @@ export class GeoDistanceService {
           REVERSE_CACHE[key] = direccionGenerada;
           return direccionGenerada;
         }
+      }
+    } catch (e) {
+      // Ignorar timeout o red
+    }
+    return null;
+  }
+
+  /**
+   * Geocodificación inversa detallada: Devuelve calle y ciudad separadas
+   */
+  static async geocodificarInversoDetallado(coords: CoordenadasGPS): Promise<ResultadoGeocodificacionInversa | null> {
+    const lat = Number(coords.lat.toFixed(5));
+    const lng = Number(coords.lng.toFixed(5));
+    const key = `${lat},${lng}`;
+
+    if (REVERSE_DETALLADO_CACHE[key]) {
+      return REVERSE_DETALLADO_CACHE[key];
+    }
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept-Language': 'es-EC,es;q=0.9',
+          'User-Agent': 'GrupoSaraMarketplace/1.0 (constructorasara@gmail.com)'
+        }
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (data && data.address) {
+        const a = data.address;
+        const calle = a.road || a.pedestrian || a.suburb || '';
+        const ciudad = a.city || a.town || a.municipality || a.county || 'Ecuador';
+        const barrio = a.neighbourhood || a.suburb || '';
+
+        const resultado: ResultadoGeocodificacionInversa = {
+          calle,
+          ciudad,
+          barrio,
+          direccionCompleta: [calle, barrio, ciudad].filter(Boolean).join(', ')
+        };
+
+        REVERSE_DETALLADO_CACHE[key] = resultado;
+        return resultado;
       }
     } catch (e) {
       // Ignorar timeout o red
