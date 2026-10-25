@@ -10,6 +10,7 @@ import {
 import { MarketplaceProduct, SellerMarketplaceService, SellerProfile } from '@/lib/services/sellerMarketplaceService';
 import { CompradorSession } from './AuthSocialModal';
 import { CANTONES_ECUADOR, CantonEcuador, GeoDistanceService } from '@/lib/services/geoDistanceService';
+import { SaraFreightPricingService, CategoriaVehiculo } from '@/lib/services/saraFreightPricingService';
 
 export interface CartItem {
   product: MarketplaceProduct;
@@ -209,33 +210,58 @@ export function CheckoutMultiProveedorModal({
   const proveedoresList = Object.values(itemsPorProveedor);
   const pesoTotalTon = +(pesoTotalKg / 1000).toFixed(2);
 
-  // 2. Cálculo Inteligente de Flota SARA-FLETES
-  let tipoVehiculoMtop = 'Camioneta Cabina Simple (1.5 Ton)';
-  let tarifaBaseFlete = 25;
-  if (pesoTotalTon > 1.5 && pesoTotalTon <= 5.0) {
+  // 2. Cálculo Inteligente y Realista de Flete con SARA-FREIGHT-DYNAMIC-PRICING
+  let categoriaVehiculo: CategoriaVehiculo = 'PICKUP_1T';
+  let tipoVehiculoMtop = 'Camioneta Pickup (1.2 Ton)';
+  if (pesoTotalTon <= 1.2) {
+    categoriaVehiculo = 'PICKUP_1T';
+    tipoVehiculoMtop = 'Camioneta Pickup (1.2 Ton)';
+  } else if (pesoTotalTon <= 3.5) {
+    categoriaVehiculo = 'FURGON_3T';
+    tipoVehiculoMtop = 'Furgón Urbano Cerrado (3.5 Ton)';
+  } else if (pesoTotalTon <= 5.0) {
+    categoriaVehiculo = 'CAMION_5T';
     tipoVehiculoMtop = 'Camión Ligero 2DB (5.0 Ton)';
-    tarifaBaseFlete = 45;
-  } else if (pesoTotalTon > 5.0 && pesoTotalTon <= 14.0) {
+  } else if (pesoTotalTon <= 14.0) {
+    categoriaVehiculo = 'VOLQUETA_V3A';
     tipoVehiculoMtop = 'Volqueta / Camión Mediano (14.0 Ton)';
-    tarifaBaseFlete = 85;
-  } else if (pesoTotalTon > 14.0) {
-    tipoVehiculoMtop = 'Tractocamión Mula 3S3 Plataforma (30 Ton)';
-    tarifaBaseFlete = 160;
+  } else {
+    categoriaVehiculo = 'TRACTO_3S3';
+    tipoVehiculoMtop = 'Tractocamión Mula 3S3 Plataforma (32 Ton)';
   }
 
-  // Costo de flete final: tarifa base + peajes proporcionales según distancia media
+  // Distancia promedio real entre bodegas de los materiales y el cantón de entrega
   const distanciaPromedioKm = proveedoresList.length > 0 
-    ? Math.round(proveedoresList.reduce((acc, p) => acc + p.distanciaKm, 0) / proveedoresList.length)
-    : 15;
-  
-  // Costo de flete final: verificar si los proveedores cuentan con transporte propio gratuito sin recargo
-  const tieneEntregaPropiaGratis = cartItems.length > 0 && cartItems.every(it => Boolean(it.product.entregaGratisPropia));
+    ? Math.max(1.5, +(proveedoresList.reduce((acc, p) => acc + p.distanciaKm, 0) / proveedoresList.length).toFixed(1))
+    : 2.5;
 
-  const costoFleteTotal = tipoEntrega === 'DOMICILIO' 
-    ? (tieneEntregaPropiaGratis ? 0 : Math.max(25, Math.round(tarifaBaseFlete + (distanciaPromedioKm * 0.35))))
-    : 0;
+  // Verificar si todas las empresas proveedoras entregan con flota propia gratis en su localidad
+  const tieneEntregaPropiaGratis = cartItems.length > 0 && cartItems.every(it => {
+    if (it.product.entregaGratisPropia) return true;
+    const seller = SellerMarketplaceService.getSellerById(it.product.sellerId);
+    return Boolean(seller?.entregaGratisLocal);
+  });
 
-  const totalConsolidado = subtotalMaterialesSinIva + totalIva5 + totalIva15 + costoFleteTotal;
+  // Cálculo del motor de precios de flete MTOP / Local Urbano
+  let costoFleteTotal = 0;
+  let esFleteLocal = distanciaPromedioKm <= 5.0;
+
+  if (tipoEntrega === 'DOMICILIO') {
+    if (tieneEntregaPropiaGratis) {
+      costoFleteTotal = 0;
+    } else {
+      const cotizacion = SaraFreightPricingService.calcularTarifa(
+        distanciaPromedioKm,
+        pesoTotalTon,
+        categoriaVehiculo,
+        'Materiales de Construcción'
+      );
+      costoFleteTotal = cotizacion.tarifaSugeridaUSD;
+      esFleteLocal = cotizacion.esFleteLocal;
+    }
+  }
+
+  const totalConsolidado = +(subtotalMaterialesSinIva + totalIva5 + totalIva15 + costoFleteTotal).toFixed(2);
 
   // Manejar el pago
   const handleProcesarPago = () => {
@@ -931,14 +957,14 @@ export function CheckoutMultiProveedorModal({
                     {tipoEntrega === 'DOMICILIO'
                       ? (tieneEntregaPropiaGratis 
                           ? 'Transporte del Proveedor:' 
-                          : `Logística SARA-FLETES (${pesoTotalTon} Ton):`)
+                          : `Logística SARA-FLETES (${pesoTotalTon} Ton - ${esFleteLocal ? 'Urbano' : 'Interprovincial'}):`)
                       : 'Modalidad de Recepción:'}
                   </span>
                   <span className={`font-bold ${costoFleteTotal > 0 ? 'text-sky-400' : 'text-emerald-400'}`}>
                     {tipoEntrega === 'DOMICILIO'
                       ? (tieneEntregaPropiaGratis
-                          ? '$0.00 (Entrega sin recargo - Flota propia del Proveedor)'
-                          : `+$${costoFleteTotal.toFixed(2)}`)
+                          ? '$0.00 (Entrega sin recargo - Flota propia de la Empresa)'
+                          : `+$${costoFleteTotal.toFixed(2)} USD`)
                       : 'GRATIS ($0.00 Retiro en Bodega)'}
                   </span>
                 </div>

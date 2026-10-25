@@ -65,7 +65,8 @@ import { SellerHubModal } from '@/components/compras/SellerHubModal';
 import { MarketplaceVitrinaSection } from '@/components/compras/MarketplaceVitrinaSection';
 import { AuthSocialModal, CompradorSession } from '@/components/compras/AuthSocialModal';
 import { CheckoutMultiProveedorModal } from '@/components/compras/CheckoutMultiProveedorModal';
-import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS } from '@/lib/services/geoDistanceService';
+import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS, GeoDistanceService } from '@/lib/services/geoDistanceService';
+import { SaraFreightPricingService, CategoriaVehiculo } from '@/lib/services/saraFreightPricingService';
 
 type ComprasTab = 
   | 'tablero'
@@ -110,18 +111,12 @@ export default function ModuloComprasMasterPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
 
-  // Totales de la Requisición / Carrito de Compras
+  // Totales de la Requisición / Carrito de Compras (SARA-FREIGHT-DYNAMIC-PRICING)
   const cartTotals = useMemo(() => {
     let subtotalSinIva = 0;
     let iva5 = 0;
     let iva15 = 0;
     let pesoTotalKg = 0;
-    let tieneEntregaPropiaGratis = false;
-
-    // Verificar si todos los productos del carrito cuentan con entrega propia gratuita del proveedor
-    if (cartItems.length > 0) {
-      tieneEntregaPropiaGratis = cartItems.every(it => Boolean(it.product.entregaGratisPropia));
-    }
 
     cartItems.forEach(item => {
       const lineSubtotal = item.product.precioSinIva * item.cantidad;
@@ -131,27 +126,85 @@ export default function ModuloComprasMasterPage() {
       } else {
         iva15 += lineSubtotal * 0.15;
       }
-      pesoTotalKg += item.product.pesoUnitarioKg * item.cantidad;
+      pesoTotalKg += (item.product.pesoUnitarioKg || 10) * item.cantidad;
     });
 
-    // Si el proveedor entrega gratis con su propia flota, flete = $0.00
-    const fleteEstimado = (tipoEntregaGlobal === 'DOMICILIO' && cartItems.length > 0)
-      ? (tieneEntregaPropiaGratis ? 0 : Math.max(35, (pesoTotalKg / 1000) * 14.50 * 1.35))
-      : 0;
+    const pesoTotalTon = +(pesoTotalKg / 1000).toFixed(2);
+
+    // 1. Verificar si los proveedores involucrados entregan con flota propia gratis en su localidad
+    let tieneEntregaPropiaGratis = false;
+    let todosProveedoresEntreganPropio = false;
+
+    if (cartItems.length > 0) {
+      // Un producto cuenta con entrega propia gratis si el flag está activo o si el perfil del proveedor lo indica
+      todosProveedoresEntreganPropio = cartItems.every(it => {
+        if (it.product.entregaGratisPropia) return true;
+        const seller = SellerMarketplaceService.getSellerById(it.product.sellerId);
+        return Boolean(seller?.entregaGratisLocal);
+      });
+      tieneEntregaPropiaGratis = todosProveedoresEntreganPropio;
+    }
+
+    // 2. Si no es entrega gratuita del proveedor, calcular con el motor econométrico SaraFreightPricingService
+    let fleteEstimado = 0;
+    let tipoVehiculoMtop: CategoriaVehiculo = 'PICKUP_1T';
+    let esFleteLocal = true;
+
+    if (tipoEntregaGlobal === 'DOMICILIO' && cartItems.length > 0) {
+      if (tieneEntregaPropiaGratis) {
+        fleteEstimado = 0;
+      } else {
+        // Estimar distancia mínima/promedio a las bodegas de los materiales
+        const distancias = cartItems.map(it => {
+          const bodegaCoords = it.product.bodegaCoordenadas || cantonSeleccionado.coordenadas;
+          return GeoDistanceService.distanciaVialEcuadorKm(bodegaCoords, coordenadasEntrega || cantonSeleccionado.coordenadas);
+        });
+        const distPromedio = distancias.length > 0 
+          ? Math.max(1.2, +(distancias.reduce((a, b) => a + b, 0) / distancias.length).toFixed(1))
+          : 2.5;
+
+        // Selección óptima de vehículo según capacidad de carga MTOP
+        if (pesoTotalTon <= 1.2) {
+          tipoVehiculoMtop = 'PICKUP_1T';
+        } else if (pesoTotalTon <= 3.5) {
+          tipoVehiculoMtop = 'FURGON_3T';
+        } else if (pesoTotalTon <= 5.0) {
+          tipoVehiculoMtop = 'CAMION_5T';
+        } else if (pesoTotalTon <= 14.0) {
+          tipoVehiculoMtop = 'VOLQUETA_V3A';
+        } else {
+          tipoVehiculoMtop = 'TRACTO_3S3';
+        }
+
+        const cotizacionFlete = SaraFreightPricingService.calcularTarifa(
+          distPromedio,
+          pesoTotalTon,
+          tipoVehiculoMtop,
+          'Materiales de Construcción'
+        );
+
+        fleteEstimado = cotizacionFlete.tarifaSugeridaUSD;
+        esFleteLocal = cotizacionFlete.esFleteLocal;
+      }
+    }
+
     const totalConIva = subtotalSinIva + iva5 + iva15;
-    const totalFinalConFlete = totalConIva + fleteEstimado;
+    const totalFinalConFlete = +(totalConIva + fleteEstimado).toFixed(2);
 
     return {
       subtotalSinIva,
       iva5,
       iva15,
       pesoTotalKg,
+      pesoTotalTon,
       fleteEstimado,
+      tipoVehiculoMtop,
+      esFleteLocal,
       tieneEntregaPropiaGratis,
       totalConIva,
       totalFinalConFlete
     };
-  }, [cartItems, tipoEntregaGlobal]);
+  }, [cartItems, tipoEntregaGlobal, cantonSeleccionado, coordenadasEntrega]);
 
   const handleUpdateCartQuantity = (productId: string, delta: number) => {
     setCartItems(prev => {
@@ -2073,14 +2126,14 @@ export default function ModuloComprasMasterPage() {
                         {tipoEntregaGlobal === 'DOMICILIO' 
                           ? (cartTotals.tieneEntregaPropiaGratis 
                               ? 'Transporte del Proveedor:' 
-                              : `Flete SARA-FLETES (${(cartTotals.pesoTotalKg / 1000).toFixed(2)} Ton):`) 
+                              : `Flete SARA-FLETES (${cartTotals.pesoTotalTon} Ton - ${cartTotals.esFleteLocal ? 'Urbano' : 'Interprovincial'}):`) 
                           : 'Modalidad de Retiro:'}
                       </span>
                       <span className={`font-bold ${tipoEntregaGlobal === 'DOMICILIO' ? (cartTotals.tieneEntregaPropiaGratis ? 'text-emerald-400' : 'text-sky-400') : 'text-emerald-400'}`}>
                         {tipoEntregaGlobal === 'DOMICILIO' 
                           ? (cartTotals.tieneEntregaPropiaGratis 
-                              ? '$0.00 (Entrega sin recargo - Flota propia del Proveedor)' 
-                              : `+$${cartTotals.fleteEstimado.toFixed(2)}`) 
+                              ? '$0.00 (Entrega sin recargo - Flota propia de la Empresa)' 
+                              : `+$${cartTotals.fleteEstimado.toFixed(2)} USD`) 
                           : 'GRATIS ($0.00 Retiro en Bodega)'}
                       </span>
                     </div>

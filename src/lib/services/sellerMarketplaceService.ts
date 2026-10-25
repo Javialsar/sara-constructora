@@ -190,6 +190,8 @@ export interface SellerProfile {
   fechaRegistro: string;
   cuentaBancaria?: SellerBankAccount;
   billeterasMoviles?: SellerMobileWallets;
+  entregaGratisLocal?: boolean; // Empresa dispone de flota propia para despachos en su misma ciudad/área metropolitana
+  radioEntregaGratisKm?: number;
 }
 
 export interface MarketplaceProduct {
@@ -323,6 +325,8 @@ let SELLERS_DB: SellerProfile[] = [
     totalOrdenes: 38,
     calificacionPromedio: 4.8,
     fechaRegistro: '2026-01-20',
+    entregaGratisLocal: true,
+    radioEntregaGratisKm: 35,
     cuentaBancaria: {
       banco: 'Banco Guayaquil',
       tipoCuenta: 'Cuenta Corriente',
@@ -418,7 +422,9 @@ let SELLERS_DB: SellerProfile[] = [
     totalVentasUsd: 14200.00,
     totalOrdenes: 11,
     calificacionPromedio: 4.5,
-    fechaRegistro: '2026-03-01'
+    fechaRegistro: '2026-03-01',
+    entregaGratisLocal: true,
+    radioEntregaGratisKm: 20
   }
 ];
 
@@ -455,7 +461,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     ventasTotales: 1840,
     calificacion: 4.9,
     esMasVendido: true,
-    bodegaCoordenadas: { lat: -0.4678, lng: -78.5833 }
+    bodegaCoordenadas: { lat: -0.4678, lng: -78.5833 },
+    entregaGratisPropia: true,
+    radioEntregaGratisKm: 30
   },
   {
     id: 'prod-adelca-malla-electrosoldada',
@@ -483,7 +491,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     ventasTotales: 890,
     calificacion: 4.8,
     esMasVendido: true,
-    bodegaCoordenadas: { lat: -0.4678, lng: -78.5833 }
+    bodegaCoordenadas: { lat: -0.4678, lng: -78.5833 },
+    entregaGratisPropia: true,
+    radioEntregaGratisKm: 25
   },
 
   // --- PRODUCTOS PLAN VIP (HOLCIM) ---
@@ -518,7 +528,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     ventasTotales: 4200,
     calificacion: 4.9,
     esMasVendido: true,
-    bodegaCoordenadas: { lat: -2.1812, lng: -79.9213 }
+    bodegaCoordenadas: { lat: -2.1812, lng: -79.9213 },
+    entregaGratisPropia: true, // Holcim cuenta con distribución y camiones de reparto propios de fábrica
+    radioEntregaGratisKm: 30
   },
   {
     id: 'prod-holcim-hormigon-premezclado',
@@ -577,7 +589,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 134.40,
     ventasTotales: 340,
     calificacion: 4.7,
-    bodegaCoordenadas: { lat: -0.8732, lng: -78.6091 }
+    bodegaCoordenadas: { lat: -0.8732, lng: -78.6091 },
+    entregaGratisPropia: true,
+    radioEntregaGratisKm: 25
   },
 
   // --- PRODUCTOS PLAN ESTÁNDAR (KUBIEC) ---
@@ -606,7 +620,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     pesoUnitarioKg: 8.50,
     ventasTotales: 490,
     calificacion: 4.6,
-    bodegaCoordenadas: { lat: -0.3012, lng: -78.5290 }
+    bodegaCoordenadas: { lat: -0.3012, lng: -78.5290 },
+    entregaGratisPropia: true,
+    radioEntregaGratisKm: 25
   },
 
   // --- PRODUCTOS PLAN BÁSICO (DISENSA) ---
@@ -665,7 +681,9 @@ let PRODUCTS_DB: MarketplaceProduct[] = [
     ventasTotales: 3800,
     calificacion: 4.4,
     esMasVendido: true,
-    bodegaCoordenadas: { lat: -3.9931, lng: -79.2042 }
+    bodegaCoordenadas: { lat: -3.9931, lng: -79.2042 },
+    entregaGratisPropia: true,
+    radioEntregaGratisKm: 20
   }
 ];
 
