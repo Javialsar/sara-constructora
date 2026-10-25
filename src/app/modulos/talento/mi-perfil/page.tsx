@@ -19,12 +19,14 @@ import {
   Mail,
 } from 'lucide-react';
 import Link from 'next/link';
-import PaymentGatewayModal from '@/components/sara/PaymentGatewayModal';
 import {
   SaraTalentoRequestsService,
   SolicitudPersonalEmpresa,
 } from '@/lib/services/saraTalentoRequestsService';
 import { ObraPersonalRequestService } from '@/lib/services/obraPersonalRequestService';
+import { TalentoPlanesService, TalentoPlan } from '@/lib/services/talentoPlanesService';
+import { PROVINCIAS_CANTONES_ECUADOR, getCantonesPorProvincia, LISTA_PROVINCIAS_ECUADOR } from '@/lib/constants/ecuadorGeo';
+import { Sparkles, Zap, Award, Calculator } from 'lucide-react';
 
 export default function MiPerfilTalento() {
   const [activeTab, setActiveTab] = useState<'datos' | 'documentos' | 'planes' | 'historial'>('historial');
@@ -61,10 +63,39 @@ export default function MiPerfilTalento() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Estados de Pago
-  const [selectedPlan, setSelectedPlan] = useState<'Basico' | 'Estandar' | 'VIP'>('VIP');
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  // Estados de Planes de Colocación (Modelo Success-Fee $0 Inicial)
+  const [planes, setPlanes] = useState<TalentoPlan[]>(() => TalentoPlanesService.getPlanes());
+  const [planActivoId, setPlanActivoId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sara_candidato_plan') || 'vip';
+    }
+    return 'vip';
+  });
+  const [planConfirmadoBanner, setPlanConfirmadoBanner] = useState<string | null>(null);
+  const [simuladorSalario, setSimuladorSalario] = useState<number>(1400);
+
+  useEffect(() => {
+    const syncPlanes = () => {
+      setPlanes(TalentoPlanesService.getPlanes());
+      const saved = localStorage.getItem('sara_candidato_plan');
+      if (saved) setPlanActivoId(saved);
+    };
+    syncPlanes();
+    window.addEventListener('sara_talento_planes_change', syncPlanes);
+    return () => window.removeEventListener('sara_talento_planes_change', syncPlanes);
+  }, []);
+
+  const handleActivarPlan = (plan: TalentoPlan) => {
+    setPlanActivoId(plan.id);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sara_candidato_plan', plan.id);
+      window.dispatchEvent(new CustomEvent('sara_candidato_plan_changed', { detail: plan.id }));
+    }
+    setPlanConfirmadoBanner(
+      `¡Has activado exitosamente el ${plan.nombre}! Tu perfil cuenta ahora con prioridad ${plan.prioridadMultiplicador}x en el Radar Geográfico y Bolsa de Empleo de GRUPO SARA. Recuerda que no pagas nada hoy ($0 inicial); la comisión única del ${plan.porcentajePrimerMes}% sobre tu primer mes se cancelará exclusivamente al cumplir los 30 días de labores en obra civil contratada.`
+    );
+    setTimeout(() => setPlanConfirmadoBanner(null), 12000);
+  };
 
   useEffect(() => {
     const sync = () => {
@@ -482,26 +513,39 @@ export default function MiPerfilTalento() {
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Provincia</label>
-                      <input
+                      <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Provincia ({LISTA_PROVINCIAS_ECUADOR.length} Provincias)</span>
+                        <span className="text-[11px] text-blue-600 font-bold">Oficial Ecuador</span>
+                      </label>
+                      <select
                         value={provincia}
-                        onChange={e => setProvincia(e.target.value)}
-                        type="text"
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2"
-                        placeholder="Ej. Loja"
-                      />
+                        onChange={e => {
+                          const nuevaProv = e.target.value;
+                          setProvincia(nuevaProv);
+                          const cantones = getCantonesPorProvincia(nuevaProv);
+                          setCiudad(cantones[0] || 'Centro');
+                        }}
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 bg-white text-slate-800 text-sm font-medium cursor-pointer"
+                      >
+                        {LISTA_PROVINCIAS_ECUADOR.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Ciudad / Cantón
+                      <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Cantón / Sector Destino</span>
+                        <span className="text-[11px] text-slate-500">{getCantonesPorProvincia(provincia).length} cantones disponibles</span>
                       </label>
-                      <input
+                      <select
                         value={ciudad}
                         onChange={e => setCiudad(e.target.value)}
-                        type="text"
-                        className="w-full border border-slate-300 rounded-lg px-4 py-2"
-                        placeholder="Ej. Loja"
-                      />
+                        className="w-full border border-slate-300 rounded-lg px-4 py-2.5 outline-none focus:border-blue-500 bg-white text-slate-800 text-sm font-medium cursor-pointer"
+                      >
+                        {getCantonesPorProvincia(provincia).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -667,81 +711,275 @@ export default function MiPerfilTalento() {
             </div>
           )}
 
-          {/* TAB: PLANES */}
+          {/* TAB: PLANES (IDÉNTICO A IMAGEN 3 - SUCCESS-FEE 25% VIP, 15% PROFESIONAL, 10% BÁSICO) */}
           {activeTab === 'planes' && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h2 className="text-3xl font-bold mb-6">Mi Plan de Visibilidad</h2>
-              {paymentSuccess ? (
-                <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-2xl text-center">
-                  <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-emerald-900 mb-2">
-                    ¡Plan {selectedPlan} Activo!
-                  </h3>
-                  <p className="text-emerald-700">
-                    Tu perfil ahora goza de los beneficios y posicionamiento del plan seleccionado.
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+              
+              {/* Header de Planes */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-300 mb-2">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Modelo Success-Fee • $0 Costo Inicial</span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Mi Plan de Colocación y Visibilidad Laboral
+                  </h2>
+                  <p className="text-slate-500 text-sm mt-1 max-w-2xl">
+                    A mayor porcentaje, los agentes IA de SARA otorgan prioridad máxima en el radar GPS, licitaciones SERCOP y contratación directa de constructoras.
                   </p>
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div
-                      onClick={() => setSelectedPlan('Basico')}
-                      className={`border-2 rounded-xl p-6 cursor-pointer bg-white transition-all ${
-                        selectedPlan === 'Basico'
-                          ? 'border-blue-600 ring-2 ring-blue-100'
-                          : 'border-slate-200'
-                      }`}
-                    >
-                      <h3 className="text-lg font-bold mb-1">Plan Básico</h3>
-                      <p className="text-slate-500 text-sm mb-4">Comisión: 10%</p>
-                    </div>
-                    <div
-                      onClick={() => setSelectedPlan('Estandar')}
-                      className={`border-2 rounded-xl p-6 cursor-pointer bg-white transition-all ${
-                        selectedPlan === 'Estandar'
-                          ? 'border-blue-600 ring-2 ring-blue-100'
-                          : 'border-slate-200'
-                      }`}
-                    >
-                      <h3 className="text-lg font-bold mb-1">Plan Estándar</h3>
-                      <p className="text-slate-500 text-sm mb-4">Comisión: 20%</p>
-                    </div>
-                    <div
-                      onClick={() => setSelectedPlan('VIP')}
-                      className={`border-2 rounded-xl p-6 cursor-pointer bg-white transition-all relative ${
-                        selectedPlan === 'VIP'
-                          ? 'border-amber-400 ring-2 ring-amber-100'
-                          : 'border-slate-200'
-                      }`}
-                    >
-                      <h3 className="text-lg font-bold mb-1 flex items-center text-amber-900">
-                        <Crown className="w-5 h-5 mr-2" /> Plan VIP
-                      </h3>
-                      <p className="text-amber-700 text-sm mb-4">Comisión: 50%</p>
-                    </div>
+
+                <div className="text-right bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase block">Plan Actual Activo</span>
+                  <span className="font-extrabold text-base text-slate-900 capitalize flex items-center justify-end gap-1.5">
+                    {planActivoId === 'vip' ? (
+                      <span className="text-amber-600 flex items-center gap-1">
+                        <Crown className="w-4 h-4 text-amber-500" /> Plan VIP Obra & Fábrica
+                      </span>
+                    ) : planActivoId === 'profesional' ? (
+                      <span className="text-blue-600 flex items-center gap-1">
+                        <Sparkles className="w-4 h-4 text-blue-500" /> Plan Profesional Pro
+                      </span>
+                    ) : (
+                      <span className="text-slate-700">Plan Básico Estándar</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Banner de Confirmación */}
+              {planConfirmadoBanner && (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-900 flex items-start gap-3 shadow-sm animate-in fade-in duration-300">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="flex-1 text-sm font-medium leading-relaxed">
+                    {planConfirmadoBanner}
                   </div>
                   <button
-                    onClick={() => setShowPayment(true)}
-                    className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl text-lg hover:bg-slate-800 transition-colors shadow-lg cursor-pointer"
+                    onClick={() => setPlanConfirmadoBanner(null)}
+                    className="text-slate-400 hover:text-slate-600 text-sm font-bold"
                   >
-                    Actualizar a {selectedPlan} (Pagar Fee)
+                    ✕
                   </button>
-                </>
+                </div>
               )}
+
+              {/* Banner Informativo de Garantía de Cero Riesgo */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
+                    <span className="font-bold text-sm tracking-wide">Compromiso Cero Riesgo para el Profesional</span>
+                  </div>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    No pagas ni un solo dólar por adelantado. Tu inversión hoy es <strong>$0.00 USD</strong>. La comisión acordada se liquida únicamente al finalizar el día 30 de labores en la obra conseguida, con factura electrónica SRI y respaldo legal.
+                  </p>
+                </div>
+                <div className="shrink-0 bg-white/10 px-4 py-2.5 rounded-xl border border-white/20 text-center font-mono">
+                  <span className="block text-[10px] uppercase text-emerald-300 font-bold">Costo Inicial</span>
+                  <span className="text-xl font-black text-white">$0.00 USD</span>
+                </div>
+              </div>
+
+              {/* Grid de Tarjetas de Planes (Exacto a Imagen 3 de Administrador) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {planes.map((plan) => {
+                  const esActivo = plan.id === planActivoId;
+                  const isVip = plan.id === 'vip';
+                  const isProf = plan.id === 'profesional';
+
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`rounded-2xl border transition-all flex flex-col relative overflow-hidden bg-white shadow-sm ${
+                        esActivo
+                          ? isVip
+                            ? 'border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-950/10'
+                            : isProf
+                            ? 'border-blue-500 ring-2 ring-blue-400/50 shadow-lg shadow-blue-950/10'
+                            : 'border-slate-400 ring-2 ring-slate-300 shadow-md'
+                          : isVip
+                          ? 'border-amber-300/70 hover:border-amber-400'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {/* Badge Recomendado SARA para VIP */}
+                      {isVip && (
+                        <div className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider py-1 text-center shadow-sm">
+                          ★ RECOMENDADO GRUPO SARA
+                        </div>
+                      )}
+
+                      <div className="p-6 flex-grow flex flex-col justify-between">
+                        <div>
+                          {/* Header de la tarjeta */}
+                          <div className="flex items-start justify-between gap-2 mb-3">
+                            <h3 className="text-lg font-extrabold text-slate-900 leading-snug">
+                              {plan.nombre}
+                            </h3>
+                            <span className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-md ${
+                              isVip 
+                                ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                                : isProf 
+                                ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                                : 'bg-slate-100 text-slate-700 border border-slate-300'
+                            }`}>
+                              {plan.id.toUpperCase()}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-slate-500 mb-5 leading-relaxed min-h-[36px]">
+                            {plan.tagline}
+                          </p>
+
+                          {/* Bloque de Porcentaje y Métricas */}
+                          <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 mb-5 space-y-2">
+                            <div className="flex items-baseline justify-between">
+                              <div className="flex items-baseline gap-1.5">
+                                <span className="text-3xl font-black text-slate-900 font-mono">
+                                  {plan.porcentajePrimerMes}%
+                                </span>
+                                <span className="text-xs text-slate-500 font-medium">del primer mes</span>
+                              </div>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                $0.00 inicial
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200 font-mono">
+                              <span className="text-slate-500 font-sans">Prioridad Algorítmica:</span>
+                              <span className={`font-bold ${
+                                isVip ? 'text-amber-600' : isProf ? 'text-blue-600' : 'text-slate-700'
+                              }`}>
+                                {plan.prioridadMultiplicador}x Exposición
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Estadísticas de Éxito en Red */}
+                          <div className="grid grid-cols-2 gap-2 mb-5 p-2.5 rounded-xl bg-slate-100/70 text-center font-mono text-xs">
+                            <div>
+                              <span className="text-[10px] text-slate-500 block font-sans">Inscritos</span>
+                              <span className="font-extrabold text-slate-800">{plan.candidatosInscritos}</span>
+                            </div>
+                            <div className="border-l border-slate-200">
+                              <span className="text-[10px] text-slate-500 block font-sans">Colocados en Obra</span>
+                              <span className="font-extrabold text-emerald-700">{plan.colocacionesExitosas}</span>
+                            </div>
+                          </div>
+
+                          {/* Lista de Beneficios */}
+                          <div className="space-y-2 mb-6">
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                              BENEFICIOS DEL PLAN:
+                            </span>
+                            {plan.beneficios.map((b, idx) => (
+                              <div key={idx} className="flex items-start gap-2 text-xs text-slate-700 leading-snug">
+                                <CheckCircle className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
+                                  isVip ? 'text-amber-500' : isProf ? 'text-blue-500' : 'text-slate-400'
+                                }`} />
+                                <span>{b}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Botón de Selección / Activación */}
+                        <div>
+                          {esActivo ? (
+                            <div className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow">
+                              <CheckCircle2 size={16} /> Plan Actualmente Activo
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleActivarPlan(plan)}
+                              className={`w-full py-3 rounded-xl font-bold text-xs transition-all shadow cursor-pointer flex items-center justify-center gap-2 ${
+                                isVip
+                                  ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black'
+                                  : isProf
+                                  ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                                  : 'bg-slate-900 hover:bg-slate-800 text-white'
+                              }`}
+                            >
+                              <Sparkles size={14} /> Seleccionar {plan.nombre.split(' ')[0]} {plan.nombre.split(' ')[1] || ''} ($0 Inicial)
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Simulador Interactivo de Honorarios de Primer Mes */}
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm mt-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700">
+                    <Calculator className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-base text-slate-900">
+                      Simulador de Liquidación de Primer Mes (Transparencia Financiera)
+                    </h4>
+                    <p className="text-xs text-slate-500">
+                      Calcula exactamente cuánto percibirás en tu cuenta bancaria y la liquidación única de intermediación.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center font-mono">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 font-sans mb-1">
+                      Salario Mensual Previsto (USD):
+                    </label>
+                    <input
+                      type="number"
+                      min={482}
+                      step={50}
+                      value={simuladorSalario}
+                      onChange={(e) => setSimuladorSalario(Number(e.target.value) || 482)}
+                      className="w-full border border-slate-300 rounded-xl px-3.5 py-2 text-sm text-slate-900 font-bold outline-none focus:border-purple-500"
+                    />
+                    <span className="text-[10px] text-slate-400 font-sans">Min. SBU 2026: $482.00</span>
+                  </div>
+
+                  {planes.map((p) => {
+                    const comision = +(simuladorSalario * (p.porcentajePrimerMes / 100)).toFixed(2);
+                    const neto = +(simuladorSalario - comision).toFixed(2);
+                    const esPlanActivo = p.id === planActivoId;
+
+                    return (
+                      <div 
+                        key={p.id}
+                        className={`p-3.5 rounded-xl border ${
+                          esPlanActivo ? 'bg-purple-50/60 border-purple-300 ring-1 ring-purple-300' : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="font-bold text-slate-800 font-sans">{p.nombre.split(' ')[1] || p.nombre}:</span>
+                          <span className="text-[10px] font-bold text-purple-700 font-sans">{p.porcentajePrimerMes}%</span>
+                        </div>
+                        <div className="text-xs text-slate-500 flex justify-between">
+                          <span>Comisión:</span>
+                          <span className="text-rose-600 font-bold">${comision}</span>
+                        </div>
+                        <div className="text-xs font-bold text-slate-900 flex justify-between pt-1 border-t border-slate-200 mt-1">
+                          <span>Neto Recibes:</span>
+                          <span className="text-emerald-700 font-extrabold">${neto}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
             </div>
           )}
         </div>
       </div>
 
-      <PaymentGatewayModal
-        isOpen={showPayment}
-        onClose={() => setShowPayment(false)}
-        onSuccess={() => {
-          setShowPayment(false);
-          setPaymentSuccess(true);
-        }}
-        planName={selectedPlan}
-      />
+      
     </div>
   );
 }

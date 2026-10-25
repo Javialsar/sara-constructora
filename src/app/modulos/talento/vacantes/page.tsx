@@ -36,17 +36,9 @@ import {
   TipoContratoLaboral,
   CategoriaCICS
 } from '@/lib/services/saraVacantesService';
+import { LISTA_PROVINCIAS_ECUADOR } from '@/lib/constants/ecuadorGeo';
 
-const PROVINCIAS_LISTA = [
-  'Todas',
-  'Pichincha',
-  'Guayas',
-  'Azuay',
-  'Loja',
-  'Manabí',
-  'Tungurahua',
-  'El Oro'
-];
+const PROVINCIAS_LISTA = ['Todas', ...LISTA_PROVINCIAS_ECUADOR];
 
 const ESPECIALIDADES_LISTA = [
   'Todas',

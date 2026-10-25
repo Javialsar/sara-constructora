@@ -36,6 +36,7 @@ import {
   List
 } from 'lucide-react';
 import TalentoSubNav from '@/components/sara/TalentoSubNav';
+import { LISTA_PROVINCIAS_ECUADOR, getCantonesPorProvincia } from '@/lib/constants/ecuadorGeo';
 import {
   SaraVacantesService,
   VacanteEmpleo,
@@ -1018,32 +1019,34 @@ export default function PanelReclutamientoPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Provincia</label>
+                  <label className="text-xs font-semibold text-slate-300">Provincia ({LISTA_PROVINCIAS_ECUADOR.length} Provincias)</label>
                   <select
                     value={nuevaVacProvincia}
-                    onChange={(e) => setNuevaVacProvincia(e.target.value)}
+                    onChange={(e) => {
+                      const p = e.target.value;
+                      setNuevaVacProvincia(p);
+                      const cList = getCantonesPorProvincia(p);
+                      setNuevaVacCanton(cList[0] || 'Centro');
+                    }}
                     className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-blue-500 outline-none cursor-pointer"
                   >
-                    <option value="Pichincha">Pichincha</option>
-                    <option value="Guayas">Guayas</option>
-                    <option value="Azuay">Azuay</option>
-                    <option value="Loja">Loja</option>
-                    <option value="Manabí">Manabí</option>
-                    <option value="Tungurahua">Tungurahua</option>
-                    <option value="El Oro">El Oro</option>
+                    {LISTA_PROVINCIAS_ECUADOR.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300">Cantón / Sector</label>
-                  <input
-                    type="text"
-                    required
+                  <label className="text-xs font-semibold text-slate-300">Cantón / Sector Destino</label>
+                  <select
                     value={nuevaVacCanton}
                     onChange={(e) => setNuevaVacCanton(e.target.value)}
-                    placeholder="ej: Quito (La Carolina) o Cuenca (El Vergel)"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-blue-500 outline-none"
-                  />
+                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-blue-500 outline-none cursor-pointer"
+                  >
+                    {getCantonesPorProvincia(nuevaVacProvincia).map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1.5">

@@ -15,20 +15,10 @@ import { SaraTalentoRequestsService } from '@/lib/services/saraTalentoRequestsSe
 import { PlanesExitoTalentoModal } from '@/components/talento/PlanesExitoTalentoModal';
 
 // ============================================================================
-// CATÁLOGO DE REGIONES Y CANTONES DEL ECUADOR
+// CATÁLOGO COMPLETO DE LAS 24 PROVINCIAS Y TODOS LOS CANTONES DEL ECUADOR
 // ============================================================================
-const PROVINCIAS_ECUADOR: Record<string, string[]> = {
-  Pichincha: ['Quito (Iñaquito)', 'Quito (Cumbayá)', 'Quito (La Carolina)', 'Quito (Sur)', 'Rumiñahui (Sangolquí)', 'Mejía (Machachi)'],
-  Guayas: ['Guayaquil (Norte)', 'Guayaquil (Centro)', 'Samborondón', 'Daule (La Aurora)', 'Durán'],
-  Azuay: ['Cuenca (Centro)', 'Cuenca (El Vergel)', 'Cuenca (Ricaurte)', 'Gualaceo', 'Paute'],
-  Loja: ['Loja (Centro)', 'Loja (San Sebastián)', 'Loja (El Valle)', 'Catamayo', 'Cariamanga'],
-  Manabí: ['Manta (Tarqui)', 'Manta (Barbasquillo)', 'Portoviejo', 'Montecristi'],
-  Tungurahua: ['Ambato (Centro)', 'Ambato (Ficoa)', 'Pelileo', 'Baños'],
-  'El Oro': ['Machala', 'Pasaje', 'Santa Rosa'],
-  Chimborazo: ['Riobamba', 'Guano'],
-  Imbabura: ['Ibarra', 'Otavalo', 'Cotacachi'],
-  'Santo Domingo': ['Santo Domingo de los Tsáchilas']
-};
+import { PROVINCIAS_CANTONES_ECUADOR } from '@/lib/constants/ecuadorGeo';
+const PROVINCIAS_ECUADOR = PROVINCIAS_CANTONES_ECUADOR;
 
 export interface TalentUI extends TalentDB {
   disponibilidad?: 'Inmediata' | 'Por proyecto' | 'Fin de semana';
