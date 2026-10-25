@@ -12,6 +12,7 @@ import Link from 'next/link';
 import TalentoSubNav from '@/components/sara/TalentoSubNav';
 import { getTalentsFromDB, createJobEscrowApplication, TalentDB } from '@/lib/services/talentoService';
 import { SaraTalentoRequestsService } from '@/lib/services/saraTalentoRequestsService';
+import { PlanesExitoTalentoModal } from '@/components/talento/PlanesExitoTalentoModal';
 
 // ============================================================================
 // CATÁLOGO DE REGIONES Y CANTONES DEL ECUADOR
@@ -67,6 +68,7 @@ export default function TalentMatching() {
   const [nombreObraContrato, setNombreObraContrato] = useState('Edificio Residencial El Mirador');
   const [contratandoProceso, setContratandoProceso] = useState(false);
   const [toastNotificacion, setToastNotificacion] = useState<{ tipo: 'exito' | 'error'; mensaje: string } | null>(null);
+  const [planesModalOpen, setPlanesModalOpen] = useState(false);
 
   // ---------------------------------------------------------------------------
   // CARGA DE DATOS DE LA BASE DE DATOS
@@ -117,7 +119,12 @@ export default function TalentMatching() {
   // ---------------------------------------------------------------------------
   // LÓGICA DE FILTRADO Y RANKING GEOGRÁFICO
   // ---------------------------------------------------------------------------
-  const planWeight = { 'VIP': 3, 'Estandar': 2, 'Basico': 1 };
+    const getPlanWeight = (plan?: string) => {
+    const p = (plan || '').toLowerCase();
+    if (p === 'vip') return 3;
+    if (p === 'profesional' || p === 'estandar') return 2;
+    return 1;
+  };
 
   const filteredTalents = useMemo(() => {
     return talents.filter(t => {
@@ -142,6 +149,11 @@ export default function TalentMatching() {
 
       return true;
     }).sort((a, b) => {
+      // Prioridad garantizada por Plan de Éxito SARA (VIP > Profesional > Básico)
+      const wA = getPlanWeight(a.plan);
+      const wB = getPlanWeight(b.plan);
+      if (wB !== wA) return wB - wA;
+
       if (ordenarPor === 'rating') {
         if (b.rating !== a.rating) return b.rating - a.rating;
         return a.distanceKm - b.distanceKm;
@@ -268,6 +280,14 @@ export default function TalentMatching() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <button 
+              onClick={() => setPlanesModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-sm flex items-center gap-2 shadow-lg shadow-amber-500/25 hover:scale-[1.02] transition-all cursor-pointer ring-1 ring-amber-400/60"
+            >
+              <Crown className="w-4 h-4 text-slate-950 fill-slate-950" />
+              <span>Planes de Éxito ($0 Inicial)</span>
+            </button>
+
             <button 
               onClick={handleAnalyzeAPU}
               disabled={isAiProcessing}
@@ -635,7 +655,9 @@ export default function TalentMatching() {
         {!loading && filteredTalents.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredTalents.map((talent) => {
-              const isVip = talent.plan === 'VIP';
+              const planNormalized = (talent.plan || '').toLowerCase();
+              const isVip = planNormalized === 'vip';
+              const isProfesional = planNormalized === 'profesional' || planNormalized === 'estandar';
               const isClose = talent.distanceKm <= 10;
 
               return (
@@ -643,14 +665,21 @@ export default function TalentMatching() {
                   key={talent.id} 
                   className={`bg-slate-800/90 rounded-2xl border transition-all flex flex-col relative overflow-hidden backdrop-blur-sm ${
                     isVip 
-                      ? 'border-amber-500/40 shadow-lg shadow-amber-950/20 ring-1 ring-amber-500/20' 
+                      ? 'border-amber-500/50 shadow-xl shadow-amber-950/30 ring-1 ring-amber-500/30 bg-gradient-to-b from-amber-500/5 to-slate-800/95' 
+                      : isProfesional
+                      ? 'border-blue-500/40 shadow-lg shadow-blue-950/20'
                       : 'border-slate-700/80 hover:border-slate-600'
                   }`}
                 >
-                  {/* Badge VIP o Destacado */}
+                  {/* Badge de Plan de Éxito */}
                   {isVip && (
-                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-slate-950 text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1 shadow">
-                      <Crown size={12} /> Profesional Destacado
+                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-400 via-amber-500 to-yellow-500 text-slate-950 text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1 shadow-md">
+                      <Crown size={12} className="fill-slate-950" /> 👑 Candidato VIP (Prioridad #1)
+                    </div>
+                  )}
+                  {isProfesional && !isVip && (
+                    <div className="absolute top-0 right-0 bg-gradient-to-l from-blue-600 to-indigo-600 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1 shadow">
+                      <Sparkles size={11} className="text-blue-200" /> ★ Profesional Destacado
                     </div>
                   )}
 
@@ -853,6 +882,12 @@ export default function TalentMatching() {
           </div>
         </div>
       )}
+
+      {/* MODAL DE PLANES DE ÉXITO ($0 COSTO INICIAL) */}
+      <PlanesExitoTalentoModal 
+        isOpen={planesModalOpen} 
+        onClose={() => setPlanesModalOpen(false)} 
+      />
 
     </div>
   );

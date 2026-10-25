@@ -150,6 +150,7 @@ export default function AdminLayout({
       title: "GESTIÓN DE TALENTO",
       items: [
         { href: "/admin/talento", label: "SARA Talento", icon: Users },
+        { href: "/admin/talento/planes", label: "Planes de Colocación", icon: Sparkles },
       ]
     },
     {
