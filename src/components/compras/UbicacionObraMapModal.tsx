@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   MapPin, 
@@ -12,13 +12,16 @@ import {
   Compass, 
   Truck, 
   Info,
-  Layers
+  Layers,
+  Search,
+  Loader2
 } from 'lucide-react';
 import { 
   CANTONES_ECUADOR, 
   CantonEcuador, 
   CoordenadasGPS, 
-  GeoDistanceService 
+  GeoDistanceService,
+  ResultadoGeocodificacion
 } from '@/lib/services/geoDistanceService';
 
 // Importación dinámica segura para SSR en Next.js App Router
@@ -63,6 +66,12 @@ export default function UbicacionObraMapModal({
   const [obteniendoGps, setObteniendoGps] = useState(false);
   const [mensajeGps, setMensajeGps] = useState<string | null>(null);
 
+  // Estados para Geocodificación Automática (Dirección -> Pin del Mapa)
+  const [buscandoGeocode, setBuscandoGeocode] = useState(false);
+  const [sugerenciasGeocode, setSugerenciasGeocode] = useState<ResultadoGeocodificacion[]>([]);
+  const [geocodificacionFeedback, setGeocodificacionFeedback] = useState<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       setCoords(coordenadasIniciales || { lat: -0.1807, lng: -78.4678 });
@@ -70,15 +79,86 @@ export default function UbicacionObraMapModal({
       setReferencia(referenciaInicial || '');
       setCantonDetectado(cantonActual);
       setMensajeGps(null);
+      setSugerenciasGeocode([]);
+      setGeocodificacionFeedback(null);
     }
   }, [isOpen, coordenadasIniciales, direccionInicial, referenciaInicial, cantonActual]);
 
+  // Ejecutar Geocodificación: Texto escrito -> Mover Marcador en el mapa
+  const ejecutarGeocodificacion = async (texto: string) => {
+    if (!texto || texto.trim().length < 3) {
+      setSugerenciasGeocode([]);
+      setGeocodificacionFeedback(null);
+      return;
+    }
+
+    setBuscandoGeocode(true);
+    try {
+      const resultados = await GeoDistanceService.geocodificarDireccionEcuador(
+        texto,
+        cantonDetectado.nombre
+      );
+
+      if (resultados && resultados.length > 0) {
+        const principal = resultados[0];
+        setCoords(principal.coordenadas);
+        const nuevoCanton = GeoDistanceService.encontrarCantonMasCercano(principal.coordenadas);
+        setCantonDetectado(nuevoCanton);
+        setSugerenciasGeocode(resultados);
+        setGeocodificacionFeedback(`Marcador ubicado: ${principal.nombreCorto}`);
+      } else {
+        setSugerenciasGeocode([]);
+        setGeocodificacionFeedback('Dirección no indexada exactamente. Puedes mover el marcador directamente en el mapa.');
+      }
+    } catch (e) {
+      // Ignorar error de red
+    } finally {
+      setBuscandoGeocode(false);
+    }
+  };
+
+  // Disparador con debounce de 600ms al tipear
+  const handleTriggerGeocoding = (texto: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      ejecutarGeocodificacion(texto);
+    }, 600);
+  };
+
+  // Ejecución directa inmediata (botón o Enter)
+  const handleEjecutarGeocodeDirecto = (texto: string) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    ejecutarGeocodificacion(texto);
+  };
+
+  const handleSeleccionarSugerencia = (sug: ResultadoGeocodificacion) => {
+    setCoords(sug.coordenadas);
+    const nuevoCanton = GeoDistanceService.encontrarCantonMasCercano(sug.coordenadas);
+    setCantonDetectado(nuevoCanton);
+    setGeocodificacionFeedback(`Marcador ubicado: ${sug.nombreCorto}`);
+    setSugerenciasGeocode([]);
+  };
+
   // Actualizar cantón automáticamente cuando cambian las coordenadas
-  const handleMapCoordsChange = (lat: number, lng: number) => {
+  const handleMapCoordsChange = async (lat: number, lng: number) => {
     const newCoords = { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
     setCoords(newCoords);
     const masCercano = GeoDistanceService.encontrarCantonMasCercano(newCoords);
     setCantonDetectado(masCercano);
+
+    // Geocodificación inversa para obtener la calle tocada en el mapa
+    try {
+      const direccionInversa = await GeoDistanceService.geocodificarInversoEcuador(newCoords);
+      if (direccionInversa) {
+        setGeocodificacionFeedback(`Ubicación satelital: ${direccionInversa}`);
+      }
+    } catch (e) {
+      // Fallback
+    }
   };
 
   // Obtener geolocalización del navegador del cliente
@@ -241,30 +321,100 @@ export default function UbicacionObraMapModal({
                 </select>
               </div>
 
-              {/* Input Dirección Exacta */}
-              <div>
-                <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block mb-1.5">
-                  Dirección Exacta (Calles e Intersección) *:
-                </label>
-                <input
-                  type="text"
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  placeholder="Ej: Av. 10 de Agosto N34-120 y Colón, Lote 5"
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
-                />
+              {/* Input Dirección Exacta con Geocodificación Automática */}
+              <div className="relative">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block">
+                    Dirección Exacta (Calles e Intersección) *:
+                  </label>
+                  {buscandoGeocode && (
+                    <span className="text-[10px] font-mono text-amber-400 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Ubicando en mapa...</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={direccion}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDireccion(val);
+                      handleTriggerGeocoding(val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleEjecutarGeocodeDirecto(direccion);
+                      }
+                    }}
+                    placeholder="Ej: Cariamanga, Atahualpa y Cristobal Colon"
+                    className="w-full pl-3.5 pr-20 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleEjecutarGeocodeDirecto(direccion)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-sm"
+                    title="Buscar y ubicar en el mapa inmediatamente"
+                  >
+                    <Search className="w-3 h-3" />
+                    <span>Ubicar</span>
+                  </button>
+                </div>
+
+                {/* Badge de confirmación o feedback */}
+                {geocodificacionFeedback && (
+                  <div className="mt-1.5 text-[10px] font-mono text-emerald-400 flex items-center gap-1 bg-slate-950/80 p-1.5 rounded-lg border border-emerald-500/20">
+                    <Check className="w-3 h-3 shrink-0 text-emerald-400" />
+                    <span className="truncate">{geocodificacionFeedback}</span>
+                  </div>
+                )}
+
+                {/* Desplegable de Sugerencias Múltiples */}
+                {sugerenciasGeocode.length > 1 && (
+                  <div className="mt-2 p-2 bg-slate-950 border border-amber-500/30 rounded-xl space-y-1 max-h-36 overflow-y-auto shadow-xl">
+                    <span className="text-[9px] font-mono text-slate-400 uppercase font-bold block px-1">
+                      Lugares encontrados en {cantonDetectado.nombre}:
+                    </span>
+                    {sugerenciasGeocode.map((sug, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleSeleccionarSugerencia(sug)}
+                        className="w-full text-left p-1.5 rounded-lg hover:bg-slate-800 text-[11px] text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors"
+                      >
+                        <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
+                        <span className="truncate">{sug.nombreCorto}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Input Referencia de Obra */}
               <div>
-                <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block mb-1.5">
-                  Referencia de Obra / Acceso para Camiones:
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block">
+                    Referencia de Obra / Acceso para Camiones:
+                  </label>
+                  {referencia.trim().length >= 3 && (
+                    <button
+                      type="button"
+                      onClick={() => handleEjecutarGeocodeDirecto(referencia)}
+                      className="text-[10px] font-mono text-amber-400 hover:text-amber-300 font-bold flex items-center gap-0.5"
+                    >
+                      <Crosshair className="w-2.5 h-2.5" />
+                      <span>Ubicar ref.</span>
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={referencia}
                   onChange={(e) => setReferencia(e.target.value)}
-                  placeholder="Ej: Portón metálico azul, frente al parque, apto para volquetas"
+                  placeholder="Ej: Cerca de la Unidad Educativa Ambato, frente al parque"
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
                 />
               </div>

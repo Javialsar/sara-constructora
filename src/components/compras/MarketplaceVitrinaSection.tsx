@@ -31,7 +31,8 @@ import {
   BadgePercent,
   CheckCircle,
   Map,
-  Navigation
+  Navigation,
+  Loader2
 } from 'lucide-react';
 import { MarketplaceProduct, SellerProfile, SELLER_PLANS } from '@/lib/services/sellerMarketplaceService';
 import { CANTONES_ECUADOR, CantonEcuador, CoordenadasGPS, GeoDistanceService } from '@/lib/services/geoDistanceService';
@@ -119,6 +120,43 @@ export function MarketplaceVitrinaSection({
   React.useEffect(() => {
     if (coordenadasEntrega) setCoordsActuales(coordenadasEntrega);
   }, [coordenadasEntrega]);
+
+  // Geocodificación automática al escribir en la barra de vitrina
+  const [geocodificandoVitrina, setGeocodificandoVitrina] = useState(false);
+  const vitrinaDebounceRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleVitrinaDireccionChange = (nuevaDir: string) => {
+    setDireccionExacta(nuevaDir);
+    if (setDireccionExactaEntrega) setDireccionExactaEntrega(nuevaDir);
+
+    if (vitrinaDebounceRef.current) {
+      clearTimeout(vitrinaDebounceRef.current);
+    }
+
+    if (nuevaDir.trim().length >= 4) {
+      vitrinaDebounceRef.current = setTimeout(async () => {
+        setGeocodificandoVitrina(true);
+        try {
+          const res = await GeoDistanceService.geocodificarDireccionEcuador(
+            nuevaDir,
+            cantonSeleccionado.nombre
+          );
+          if (res && res.length > 0) {
+            const match = res[0];
+            setCoordsActuales(match.coordenadas);
+            if (setCoordenadasEntrega) setCoordenadasEntrega(match.coordenadas);
+            const masCercano = GeoDistanceService.encontrarCantonMasCercano(match.coordenadas);
+            setCantonSeleccionado(masCercano);
+            setOrdenarPorCercania(true);
+          }
+        } catch (e) {
+          // Ignorar error de red
+        } finally {
+          setGeocodificandoVitrina(false);
+        }
+      }, 700);
+    }
+  };
 
   const handleDetectarGps = () => {
     if (!navigator.geolocation) {
@@ -305,18 +343,21 @@ export function MarketplaceVitrinaSection({
               >
                 ENTREGAR MERCADERÍA EN:
               </label>
-              <input
-                id="direccionEntregaInput"
-                type="text"
-                value={direccionExacta}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setDireccionExacta(val);
-                  if (setDireccionExactaEntrega) setDireccionExactaEntrega(val);
-                }}
-                placeholder="Ingresa ciudad, calles principales, intersección o lote de obra..."
-                className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
-              />
+              <div className="flex-1 flex items-center gap-1.5">
+                <input
+                  id="direccionEntregaInput"
+                  type="text"
+                  value={direccionExacta}
+                  onChange={(e) => handleVitrinaDireccionChange(e.target.value)}
+                  placeholder="Ingresa ciudad, calles principales, intersección o lote de obra..."
+                  className="flex-1 bg-transparent text-white font-medium text-xs placeholder-slate-500 focus:outline-none"
+                />
+                {geocodificandoVitrina && (
+                  <span title="Geolocalizando dirección...">
+                    <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin shrink-0" />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

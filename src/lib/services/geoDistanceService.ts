@@ -21,6 +21,20 @@ export interface CantonEcuador {
   coordenadas: CoordenadasGPS;
 }
 
+export interface ResultadoGeocodificacion {
+  nombreCompleto: string;
+  nombreCorto: string;
+  coordenadas: CoordenadasGPS;
+  calle?: string;
+  barrio?: string;
+  ciudad?: string;
+  provincia?: string;
+}
+
+// Caché en memoria para evitar llamadas redundantes a OpenStreetMap
+const GEOCODE_CACHE: Record<string, ResultadoGeocodificacion[]> = {};
+const REVERSE_CACHE: Record<string, string> = {};
+
 export const CANTONES_ECUADOR: CantonEcuador[] = [
   { id: 'uio', nombre: 'Quito', provincia: 'Pichincha', region: 'SIERRA', coordenadas: { lat: -0.1807, lng: -78.4678 } },
   { id: 'gye', nombre: 'Guayaquil', provincia: 'Guayas', region: 'COSTA', coordenadas: { lat: -2.1894, lng: -79.8891 } },
@@ -124,5 +138,156 @@ export class GeoDistanceService {
       }
     }
     return cantonCercano;
+  }
+
+  /**
+   * Geocodificación inteligente directa en OpenStreetMap Nominatim para Ecuador.
+   * Ubica automáticamente el marcador y centra el mapa conforme el usuario escribe calles o referencias.
+   */
+  static async geocodificarDireccionEcuador(
+    textoDireccion: string,
+    cantonNombre?: string
+  ): Promise<ResultadoGeocodificacion[]> {
+    if (!textoDireccion || textoDireccion.trim().length < 3) {
+      return [];
+    }
+
+    const textoLimpio = textoDireccion.trim().replace(/[#]/g, '');
+    const cacheKey = `${textoLimpio.toLowerCase()}_${cantonNombre || ''}`;
+
+    if (GEOCODE_CACHE[cacheKey]) {
+      return GEOCODE_CACHE[cacheKey];
+    }
+
+    // Desglose de posibles calles en intersección (e.g. "Cariamanga, Atahualpa y Cristobal Colon")
+    const partesCalles = textoLimpio
+      .split(/[,ye&]/i)
+      .map(p => p.trim())
+      .filter(p => p.length >= 3 && !['cerca', 'obra', 'frente', 'frente a', 'calle', 'avenida', 'lote'].includes(p.toLowerCase()));
+
+    const queriesCandidatas: string[] = [];
+    const ciudad = cantonNombre || '';
+
+    // Candidato 1: Frase completa + Ciudad
+    queriesCandidatas.push(`${textoLimpio}, ${ciudad}, Ecuador`);
+
+    // Candidato 2: Intersección primera y última calle
+    if (partesCalles.length >= 2) {
+      queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[1]}, ${ciudad}, Ecuador`);
+      if (partesCalles.length >= 3) {
+        queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[2]}, ${ciudad}, Ecuador`);
+        queriesCandidatas.push(`${partesCalles[1]} y ${partesCalles[2]}, ${ciudad}, Ecuador`);
+      }
+    }
+
+    // Candidato 3: Calles individuales con ciudad
+    for (const calle of partesCalles) {
+      queriesCandidatas.push(`${calle}, ${ciudad}, Ecuador`);
+    }
+
+    // Candidato 4: Solo texto + Ecuador
+    queriesCandidatas.push(`${textoLimpio}, Ecuador`);
+
+    for (const query of queriesCandidatas) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ec&limit=4&addressdetails=1`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+        const response = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            'Accept-Language': 'es-EC,es;q=0.9',
+            'User-Agent': 'GrupoSaraMarketplace/1.0 (constructorasara@gmail.com)'
+          }
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const resultados: ResultadoGeocodificacion[] = data.map((item: any) => {
+            const addr = item.address || {};
+            const calleNombre = addr.road || addr.pedestrian || addr.suburb || item.name;
+            const ciudadNombre = addr.city || addr.town || addr.municipality || addr.county || ciudad;
+            const nombreCorto = calleNombre 
+              ? `${calleNombre}${ciudadNombre ? `, ${ciudadNombre}` : ''}`
+              : item.display_name.split(',').slice(0, 3).join(',');
+
+            return {
+              nombreCompleto: item.display_name,
+              nombreCorto,
+              coordenadas: {
+                lat: Number(parseFloat(item.lat).toFixed(6)),
+                lng: Number(parseFloat(item.lon).toFixed(6))
+              },
+              calle: addr.road,
+              barrio: addr.neighbourhood || addr.suburb,
+              ciudad: ciudadNombre,
+              provincia: addr.state
+            };
+          });
+
+          GEOCODE_CACHE[cacheKey] = resultados;
+          return resultados;
+        }
+      } catch (err) {
+        // Continuar con la siguiente query candidata
+      }
+    }
+
+    return [];
+  }
+
+  /**
+   * Geocodificación inversa: Coordenadas GPS -> Nombre de calle y sector en Ecuador
+   */
+  static async geocodificarInversoEcuador(coords: CoordenadasGPS): Promise<string | null> {
+    const lat = Number(coords.lat.toFixed(5));
+    const lng = Number(coords.lng.toFixed(5));
+    const key = `${lat},${lng}`;
+
+    if (REVERSE_CACHE[key]) {
+      return REVERSE_CACHE[key];
+    }
+
+    try {
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept-Language': 'es-EC,es;q=0.9',
+          'User-Agent': 'GrupoSaraMarketplace/1.0 (constructorasara@gmail.com)'
+        }
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (data && data.address) {
+        const a = data.address;
+        const partes: string[] = [];
+        if (a.road) partes.push(a.road);
+        if (a.neighbourhood && a.neighbourhood !== a.road) partes.push(a.neighbourhood);
+        if (a.suburb && a.suburb !== a.neighbourhood) partes.push(a.suburb);
+        if (a.city || a.town || a.county) partes.push(a.city || a.town || a.county);
+
+        const direccionGenerada = partes.length > 0 
+          ? partes.join(', ')
+          : data.display_name?.split(',').slice(0, 3).join(', ') || null;
+
+        if (direccionGenerada) {
+          REVERSE_CACHE[key] = direccionGenerada;
+          return direccionGenerada;
+        }
+      }
+    } catch (e) {
+      // Ignorar timeout o red
+    }
+    return null;
   }
 }
