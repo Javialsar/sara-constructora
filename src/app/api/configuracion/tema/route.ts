@@ -28,13 +28,14 @@ export async function GET() {
 
     if (!error && data?.indirectos_default) {
       const tema = data.indirectos_default.tema_activo || ""
-      return NextResponse.json({ success: true, tema })
+      const modulos = data.indirectos_default.temas_modulos || null
+      return NextResponse.json({ success: true, tema, modulos })
     }
   } catch (err: any) {
     console.warn("Error leyendo tema de Supabase:", err.message)
   }
 
-  return NextResponse.json({ success: true, tema: "" })
+  return NextResponse.json({ success: true, tema: "", modulos: null })
 }
 
 // POST: Actualizar el tema global de todo el ecosistema
@@ -57,7 +58,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Acceso denegado. Se requieren privilegios de administrador." }, { status: 403 })
     }
 
-    const { tema } = await req.json()
+    const { tema, modulos } = await req.json()
     const safeTema = typeof tema === "string" ? tema.trim() : ""
 
     const { data: globalParam, error: fetchErr } = await supabase
@@ -73,7 +74,8 @@ export async function POST(req: Request) {
     const indirectos = globalParam.indirectos_default || {}
     const updatedIndirectos = {
       ...indirectos,
-      tema_activo: safeTema
+      ...(safeTema ? { tema_activo: safeTema } : {}),
+      ...(modulos && typeof modulos === "object" ? { temas_modulos: modulos } : {})
     }
 
     const { error: updateErr } = await supabase

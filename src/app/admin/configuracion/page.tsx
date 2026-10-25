@@ -1,9 +1,19 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard, Sparkles, RefreshCw, Home, Compass } from "lucide-react"
+import { Settings, Shield, Bell, Key, Save, Camera, Plus, Trash2, Link as LinkIcon, Phone, MapPin, Mail, Loader2, Upload, Check, Palette, Building, CreditCard, Sparkles, RefreshCw, Home, Compass, RotateCcw, CheckCircle2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { getCuentasBancarias, saveCuentasBancarias, CuentaBancariaEmpresa } from "@/lib/services/datosBancariosService"
 import { getLogosEmpresa, saveLogosEmpresa, LogosEmpresa, DEFAULT_LOGOS_EMPRESA } from "@/lib/services/logosService"
+import { 
+  SARA_MODULES_LIST, 
+  COLOR_TONES, 
+  DEFAULT_MODULE_THEMES, 
+  MODULE_ICONS,
+  ModuloKey, 
+  ColorTone, 
+  getSavedModuleThemes, 
+  saveModuleThemes 
+} from "@/lib/theme/moduleThemes"
 
 interface MiembroEquipo {
   id: string
@@ -62,11 +72,30 @@ export default function ConfiguracionPage() {
   const [uploadingLogoKey, setUploadingLogoKey] = useState<string | null>(null)
 
   const [currentTheme, setCurrentTheme] = useState<string>('')
+  const [moduleThemes, setModuleThemes] = useState<Record<ModuloKey, ColorTone>>(DEFAULT_MODULE_THEMES)
+  const [activeTabApariencia, setActiveTabApariencia] = useState<'modulos' | 'general'>('modulos')
+  const [guardandoTemaModulos, setGuardandoTemaModulos] = useState(false)
+  const [avisoTemaModulos, setAvisoTemaModulos] = useState<string | null>(null)
 
   useEffect(() => {
     loadConfig()
     const saved = localStorage.getItem('sara_theme') || ''
     setCurrentTheme(saved)
+    setModuleThemes(getSavedModuleThemes())
+
+    const fetchServerThemes = async () => {
+      try {
+        const res = await fetch('/api/configuracion/tema')
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.modulos && typeof data.modulos === 'object') {
+            setModuleThemes(prev => ({ ...prev, ...data.modulos }))
+            saveModuleThemes(data.modulos)
+          }
+        }
+      } catch (e) {}
+    }
+    fetchServerThemes()
   }, [])
 
   const loadConfig = async () => {
@@ -170,6 +199,50 @@ export default function ConfiguracionPage() {
       console.warn('Error sincronizando tema con Supabase:', err)
     }
   }
+
+  const handleUpdateModuleTone = (modKey: ModuloKey, tone: ColorTone) => {
+    const updated = { ...moduleThemes, [modKey]: tone };
+    setModuleThemes(updated);
+    saveModuleThemes(updated);
+  };
+
+  const handleGuardarTemasModulares = async () => {
+    setGuardandoTemaModulos(true);
+    setAvisoTemaModulos(null);
+    try {
+      const res = await fetch('/api/configuracion/tema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modulos: moduleThemes })
+      });
+      if (res.ok) {
+        saveModuleThemes(moduleThemes);
+        setAvisoTemaModulos('¡Paletas de colores modulares guardadas con éxito en todo el ecosistema!');
+        setTimeout(() => setAvisoTemaModulos(null), 4000);
+      } else {
+        throw new Error('Fallo al sincronizar con el servidor');
+      }
+    } catch (err: any) {
+      setAvisoTemaModulos('Error: ' + (err?.message || 'Fallo de red'));
+    } finally {
+      setGuardandoTemaModulos(false);
+    }
+  };
+
+  const handleRestablecerTemasModulares = async () => {
+    setModuleThemes(DEFAULT_MODULE_THEMES);
+    saveModuleThemes(DEFAULT_MODULE_THEMES);
+    try {
+      await fetch('/api/configuracion/tema', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modulos: DEFAULT_MODULE_THEMES })
+      });
+      setAvisoTemaModulos('Se han restablecido las paletas oficiales de cada unidad de negocio.');
+      setTimeout(() => setAvisoTemaModulos(null), 3000);
+    } catch (e) {}
+  };
+
 
   const addMiembro = () => {
     setEquipo([...equipo, { id: Date.now().toString(), nombre: "", cargo: "", imagen_url: "", telefono: "", email: "" }])
@@ -1206,135 +1279,313 @@ export default function ConfiguracionPage() {
         </div>
       </div>
 
-      {/* Selector de Temas */}
-      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-brand-sage overflow-hidden mt-6">
-        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+      {/* Selector de Temas y Paletas Modulares */}
+      <div className="bg-white rounded-xl shadow border border-gray-200 border-t-4 border-t-indigo-600 overflow-hidden mt-6">
+        <div className="bg-gray-50 border-b border-gray-100 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600">
-              <Palette size={18} />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-sm">
+              <Palette size={20} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Apariencia y Tema (Administrador)</h2>
-              <p className="text-xs text-gray-500">Personaliza la paleta cromática de la suite administrativa de SARA Constructora</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-gray-800">Diseño y Personalización Cromática</h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  Multimodular
+                </span>
+              </div>
+              <p className="text-xs text-gray-500">Configura la identidad de color para cada unidad de negocio o selecciona el estilo visual global</p>
             </div>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-            6 Estilos Disponibles
-          </span>
+
+          {/* Selector de Pestañas de Apariencia */}
+          <div className="flex items-center bg-gray-200/70 p-1 rounded-xl self-start md:self-auto border border-gray-300/60">
+            <button
+              type="button"
+              onClick={() => setActiveTabApariencia('modulos')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTabApariencia === 'modulos'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Sparkles size={14} className={activeTabApariencia === 'modulos' ? 'text-indigo-600' : 'text-gray-400'} />
+              <span>Colores por Módulo (8 Unidades)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTabApariencia('general')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTabApariencia === 'general'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Compass size={14} className={activeTabApariencia === 'general' ? 'text-indigo-600' : 'text-gray-400'} />
+              <span>Tema Global (6 Estilos)</span>
+            </button>
+          </div>
         </div>
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[
-            {
-              id: '',
-              name: 'Sara Sage',
-              category: 'Corporativo Oficial',
-              desc: 'Verde esmeralda y bosque profundo característico de SARA',
-              c1: '#07130d',
-              c2: '#3c7a52',
-              c3: '#f4fbf6',
-              accentRing: 'ring-emerald-500'
-            },
-            {
-              id: 'theme-sunset',
-              name: 'Zafiro & Naranja',
-              category: 'Contraste Moderno',
-              desc: 'Azul zafiro ejecutivo combinado con naranja dinámico de alta visibilidad',
-              c1: '#0f172a',
-              c2: '#ea580c',
-              c3: '#fff7ed',
-              accentRing: 'ring-orange-500'
-            },
-            {
-              id: 'theme-ocean',
-              name: 'Constructor Ocean',
-              category: 'Técnico Marítimo',
-              desc: 'Tonos azul pizarra y cobalto brillante para ingeniería y planos',
-              c1: '#1e293b',
-              c2: '#3b82f6',
-              c3: '#eff6ff',
-              accentRing: 'ring-blue-500'
-            },
-            {
-              id: 'theme-nordic',
-              name: 'Nórdico Glaciar',
-              category: 'Glaciar Minimal',
-              desc: 'Aguamarina ártica y turquesa glaciar de balance cromático limpio',
-              c1: '#042f2e',
-              c2: '#06b6d4',
-              c3: '#ecfeff',
-              accentRing: 'ring-cyan-500'
-            },
-            {
-              id: 'theme-ruby',
-              name: 'Titanio & Rubí',
-              category: 'Lujo Vanguardista',
-              desc: 'Base zinc y carbón mate con acentos rubí neón de alto impacto',
-              c1: '#18181b',
-              c2: '#e11d48',
-              c3: '#fff1f2',
-              accentRing: 'ring-rose-500'
-            },
-            {
-              id: 'theme-gold',
-              name: 'Elegante Dark',
-              category: 'Premium Dorado',
-              desc: 'Negro obsidian de máximo contraste con sutil oro metálico',
-              c1: '#171717',
-              c2: '#d4af37',
-              c3: '#fefce8',
-              accentRing: 'ring-yellow-500'
-            },
-          ].map((theme) => {
-            const isActive = currentTheme === theme.id;
-            return (
-              <button
-                key={theme.id}
-                type="button"
-                onClick={() => changeTheme(theme.id)}
-                className={`relative group text-left p-4 rounded-xl border-2 transition-all duration-200 flex flex-col justify-between hover:shadow-md ${
-                  isActive 
-                    ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-500/20 shadow-sm' 
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-              >
-                {isActive && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                    <Check size={12} strokeWidth={3} />
-                    <span>Activo</span>
-                  </div>
-                )}
-                
-                <div>
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex -space-x-1.5 p-1 rounded-lg bg-gray-100/80 border border-gray-200">
-                      <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c1 }} title="Color Primario" />
-                      <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c2 }} title="Color Acento" />
-                      <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c3 }} title="Color Fondo Suave" />
+
+        {/* Notificación Toast de guardado */}
+        {avisoTemaModulos && (
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center gap-2.5 text-xs text-emerald-800 font-medium">
+              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+              <span>{avisoTemaModulos}</span>
+            </div>
+            <button onClick={() => setAvisoTemaModulos(null)} className="text-emerald-600 hover:text-emerald-900 text-xs font-bold px-2">✕</button>
+          </div>
+        )}
+
+        {/* PESTAÑA 1: PALETA MODULAR POR UNIDAD DE NEGOCIO */}
+        {activeTabApariencia === 'modulos' && (
+          <div className="p-6 space-y-6">
+            {/* Banner Informativo y de Blindaje */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 rounded-xl p-4 text-white border border-slate-700/60 shadow-inner flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Blindaje de Marca Corporativa</span>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                  Cada módulo operativo (Constructora, APU, Compras, Fletes, Talento, Inmobiliaria, Stays, Financiero) adopta de forma autónoma su tono cromático en la barra superior (<code className="text-indigo-300">ModuleTopBar</code>), App Launcher y acentos. 
+                  <strong className="text-white ml-1">La Landing Page principal (/) se mantiene blindada</strong> con la paleta oficial institucional de GRUPO SARA.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={handleRestablecerTemasModulares}
+                  className="px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-600 rounded-lg transition-all flex items-center gap-1.5"
+                  title="Restablecer combinaciones recomendadas por GRUPO SARA"
+                >
+                  <RotateCcw size={13} />
+                  <span>Restablecer</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGuardarTemasModulares}
+                  disabled={guardandoTemaModulos}
+                  className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {guardandoTemaModulos ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Sincronizando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save size={14} />
+                      <span>Guardar Paletas Modulares</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Parrilla de los 8 Módulos */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {SARA_MODULES_LIST.map((mod) => {
+                const currentTone = moduleThemes[mod.key] || mod.defaultTone;
+                const toneConfig = COLOR_TONES[currentTone] || COLOR_TONES.blue;
+                const modIcon = MODULE_ICONS[mod.key] || '📦';
+
+                return (
+                  <div
+                    key={mod.key}
+                    className="border border-gray-200 rounded-xl p-4 bg-white hover:border-gray-300 transition-all shadow-sm flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Cabecera del Módulo */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl" role="img" aria-label={mod.name}>
+                            {modIcon}
+                          </span>
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-900 leading-tight">{mod.name}</h3>
+                            <span className="text-[10px] text-gray-500 font-medium">{mod.subtitle}</span>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${toneConfig.badgeClass}`}
+                        >
+                          {toneConfig.label}
+                        </span>
+                      </div>
+
+                      {/* Selector de Tonos Disponibles */}
+                      <div className="space-y-1.5 my-3">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                          Tono Cromático:
+                        </label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(Object.keys(COLOR_TONES) as ColorTone[]).map((tKey) => {
+                            const t = COLOR_TONES[tKey];
+                            const isSelected = currentTone === tKey;
+                            return (
+                              <button
+                                key={tKey}
+                                type="button"
+                                onClick={() => handleUpdateModuleTone(mod.key, tKey)}
+                                title={t.label}
+                                className={`w-6 h-6 rounded-full transition-all flex items-center justify-center border-2 ${
+                                  isSelected
+                                    ? 'ring-2 ring-indigo-500 ring-offset-1 scale-110 border-white shadow-sm'
+                                    : 'border-transparent opacity-80 hover:opacity-100 hover:scale-105'
+                                }`}
+                                style={{ backgroundColor: t.hex }}
+                              >
+                                {isSelected && <Check size={11} className="text-white drop-shadow" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{theme.category}</span>
-                  </div>
 
-                  <h3 className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors flex items-center gap-2">
-                    {theme.name}
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    {theme.desc}
-                  </p>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                  <span className="text-gray-400 text-[11px]">Vista previa:</span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-3 w-8 rounded-sm" style={{ backgroundColor: theme.c1 }} />
-                    <div className="h-3 w-12 rounded-sm" style={{ backgroundColor: theme.c2 }} />
+                    {/* Barra de Muestra / Preview UI */}
+                    <div className="pt-3 border-t border-gray-100">
+                      <div className="text-[10px] text-gray-400 mb-1 font-medium flex items-center justify-between">
+                        <span>Vista previa de acento:</span>
+                        <span className="font-mono text-[9px] uppercase">{toneConfig.hex}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 rounded-full" style={{ backgroundColor: toneConfig.hex }} />
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded shadow-xs border ${toneConfig.badgeClass}`}>
+                          Acento / Tag
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 2: TEMAS GLOBALES PRECONFIGURADOS */}
+        {activeTabApariencia === 'general' && (
+          <div className="p-6">
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-gray-800">Estilos Cromáticos Globales</h3>
+              <p className="text-xs text-gray-500">Aplica un tema integral a toda la interfaz administrativa de SARA</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                {
+                  id: '',
+                  name: 'Sara Sage',
+                  category: 'Corporativo Oficial',
+                  desc: 'Verde esmeralda y bosque profundo característico de SARA',
+                  c1: '#07130d',
+                  c2: '#3c7a52',
+                  c3: '#f4fbf6',
+                  accentRing: 'ring-emerald-500'
+                },
+                {
+                  id: 'theme-sunset',
+                  name: 'Zafiro & Naranja',
+                  category: 'Contraste Moderno',
+                  desc: 'Azul zafiro ejecutivo combinado con naranja dinámico de alta visibilidad',
+                  c1: '#0f172a',
+                  c2: '#ea580c',
+                  c3: '#fff7ed',
+                  accentRing: 'ring-orange-500'
+                },
+                {
+                  id: 'theme-ocean',
+                  name: 'Constructor Ocean',
+                  category: 'Técnico Marítimo',
+                  desc: 'Tonos azul pizarra y cobalto brillante para ingeniería y planos',
+                  c1: '#1e293b',
+                  c2: '#3b82f6',
+                  c3: '#eff6ff',
+                  accentRing: 'ring-blue-500'
+                },
+                {
+                  id: 'theme-nordic',
+                  name: 'Nórdico Glaciar',
+                  category: 'Glaciar Minimal',
+                  desc: 'Aguamarina ártica y turquesa glaciar de balance cromático limpio',
+                  c1: '#042f2e',
+                  c2: '#06b6d4',
+                  c3: '#ecfeff',
+                  accentRing: 'ring-cyan-500'
+                },
+                {
+                  id: 'theme-ruby',
+                  name: 'Titanio & Rubí',
+                  category: 'Lujo Vanguardista',
+                  desc: 'Base zinc y carbón mate con acentos rubí neón de alto impacto',
+                  c1: '#18181b',
+                  c2: '#e11d48',
+                  c3: '#fff1f2',
+                  accentRing: 'ring-rose-500'
+                },
+                {
+                  id: 'theme-gold',
+                  name: 'Elegante Dark',
+                  category: 'Premium Dorado',
+                  desc: 'Negro obsidian de máximo contraste con sutil oro metálico',
+                  c1: '#171717',
+                  c2: '#eab308',
+                  c3: '#fefce8',
+                  accentRing: 'ring-yellow-500'
+                }
+              ].map((theme) => {
+                const isActive = currentTheme === theme.id;
+                return (
+                  <button
+                    key={theme.name}
+                    type="button"
+                    onClick={() => changeTheme(theme.id)}
+                    className={`text-left p-5 rounded-xl border-2 transition-all relative flex flex-col justify-between group overflow-hidden ${
+                      isActive
+                        ? `border-indigo-600 bg-indigo-50/20 shadow-md ring-2 ${theme.accentRing} ring-offset-2`
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                    }`}
+                  >
+                    {isActive && (
+                      <div className="absolute top-3 right-3 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <Check size={10} />
+                        <span>Activo</span>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="flex -space-x-1.5 p-1 rounded-lg bg-gray-100/80 border border-gray-200">
+                          <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c1 }} title="Color Primario" />
+                          <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c2 }} title="Color Acento" />
+                          <div className="w-5 h-5 rounded-full shadow-sm border border-white" style={{ backgroundColor: theme.c3 }} title="Color Fondo Suave" />
+                        </div>
+                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{theme.category}</span>
+                      </div>
+
+                      <h3 className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors flex items-center gap-2">
+                        {theme.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                        {theme.desc}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
+                      <span className="text-gray-400 text-[11px]">Vista previa:</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-3 w-8 rounded-sm" style={{ backgroundColor: theme.c1 }} />
+                        <div className="h-3 w-12 rounded-sm" style={{ backgroundColor: theme.c2 }} />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
 }
-

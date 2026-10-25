@@ -18,6 +18,13 @@ import {
   LayoutDashboard,
   FileSpreadsheet
 } from 'lucide-react';
+import { 
+  getSavedModuleThemes, 
+  COLOR_TONES, 
+  ModuloKey, 
+  ColorTone,
+  DEFAULT_MODULE_THEMES 
+} from '@/lib/theme/moduleThemes';
 
 const ECOSYSTEM_MODULES = [
   {
@@ -86,30 +93,69 @@ const ECOSYSTEM_MODULES = [
   }
 ];
 
-function getModuleBadge(pathname: string) {
+function getModuleBadge(pathname: string, themes: Record<ModuloKey, ColorTone>) {
+  const getTone = (key: ModuloKey, fallback: ColorTone) => {
+    const toneKey = (themes && themes[key]) ? themes[key] : fallback;
+    return COLOR_TONES[toneKey] || COLOR_TONES[fallback];
+  };
+
   if (pathname.startsWith('/modulos/compras')) {
-    return { label: 'SARA Marketplace & Compras', dotColor: 'bg-amber-400', badgeStyle: 'bg-amber-500/10 text-amber-300 border-amber-500/20' };
+    const tone = getTone('compras', 'amber');
+    return { label: 'SARA Marketplace & Compras', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
   }
   if (pathname.startsWith('/modulos/fletes')) {
-    return { label: 'SARA Fletes & Carga Pesada', dotColor: 'bg-orange-400', badgeStyle: 'bg-orange-500/10 text-orange-300 border-orange-500/20' };
+    const tone = getTone('fletes', 'orange');
+    return { label: 'SARA Fletes & Carga Pesada', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
   }
   if (pathname.startsWith('/modulos/talento')) {
-    return { label: 'SARA Talento Humano', dotColor: 'bg-emerald-400', badgeStyle: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' };
+    const tone = getTone('talento', 'emerald');
+    return { label: 'SARA Talento Humano', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
   }
   if (pathname.startsWith('/modulos/financiero')) {
-    return { label: 'SARA Pagos & Escrow', dotColor: 'bg-teal-400', badgeStyle: 'bg-teal-500/10 text-teal-300 border-teal-500/20' };
+    const tone = getTone('financiero', 'teal');
+    return { label: 'SARA Pagos & Escrow', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
+  }
+  if (pathname.startsWith('/apu')) {
+    const tone = getTone('apu', 'cyan');
+    return { label: 'SARA APU & Costos', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
+  }
+  if (pathname.startsWith('/inmobiliaria')) {
+    const tone = getTone('inmobiliaria', 'purple');
+    return { label: 'SARA Inmobiliaria', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
+  }
+  if (pathname.startsWith('/stays')) {
+    const tone = getTone('stays', 'rose');
+    return { label: 'SARA Stays', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
+  }
+  if (pathname.startsWith('/constructora')) {
+    const tone = getTone('constructora', 'blue');
+    return { label: 'SARA Constructora', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
   }
   if (pathname.startsWith('/modulos/importador')) {
     return { label: 'SARA Importador Excel/CSV', dotColor: 'bg-cyan-400', badgeStyle: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20' };
   }
-  return { label: 'Ecosistema SARA', dotColor: 'bg-blue-400', badgeStyle: 'bg-blue-500/10 text-blue-300 border-blue-500/20' };
+  return { label: 'Ecosistema SARA', dotColor: 'bg-emerald-400', badgeStyle: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' };
 }
 
 export default function ModuleTopBar() {
   const pathname = usePathname() || '';
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [moduleThemes, setModuleThemes] = useState(DEFAULT_MODULE_THEMES);
   const menuRef = useRef<HTMLDivElement>(null);
-  const currentModule = getModuleBadge(pathname);
+
+  useEffect(() => {
+    setModuleThemes(getSavedModuleThemes());
+
+    const handleThemeChange = (e: any) => {
+      if (e.detail && typeof e.detail === 'object') {
+        setModuleThemes(e.detail);
+      }
+    };
+    window.addEventListener('sara_module_themes_change', handleThemeChange);
+    return () => window.removeEventListener('sara_module_themes_change', handleThemeChange);
+  }, []);
+
+  const currentModule = getModuleBadge(pathname, moduleThemes);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -181,6 +227,10 @@ export default function ModuleTopBar() {
                   {ECOSYSTEM_MODULES.map((mod) => {
                     const Icon = mod.icon;
                     const isActive = pathname.startsWith(mod.href);
+                    // Obtener tono configurado dinámicamente para este módulo
+                    const modKey = (mod.href.replace('/modulos/', '').replace('/', '') || 'constructora') as ModuloKey;
+                    const currentTone = COLOR_TONES[moduleThemes[modKey]] || COLOR_TONES.blue;
+
                     return (
                       <Link
                         key={mod.href}
@@ -191,7 +241,7 @@ export default function ModuleTopBar() {
                             : 'bg-slate-950/60 hover:bg-white/[0.06] border-white/[0.06] text-slate-300 hover:text-white'
                         }`}
                       >
-                        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${mod.bg} ${mod.color}`}>
+                        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${currentTone.bgLightClass} ${currentTone.borderClass} ${currentTone.textClass}`}>
                           <Icon size={18} />
                         </div>
                         <div className="min-w-0">
