@@ -5,6 +5,7 @@ import Hero from '@/components/sections/Hero';
 import EcosystemMatrix from './EcosystemMatrix';
 import FAQ from '@/components/sections/FAQ';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
+import DynamicModuleQuoteModal from '@/components/modals/DynamicModuleQuoteModal';
 import { CheckCircle2 } from 'lucide-react';
 
 export default function LandingMaster() {
@@ -14,12 +15,22 @@ export default function LandingMaster() {
     amount: number;
     badgeText: string;
     isSubscription?: boolean;
+    subscriptionInterval?: string;
   }>({
     isOpen: false,
     title: 'Suscripción Plan Constructor Pro',
     amount: 19.99,
     badgeText: 'Grupo SARA',
     isSubscription: false
+  });
+
+  const [quoteModalConfig, setQuoteModalConfig] = useState<{
+    isOpen: boolean;
+    moduleId: string;
+    moduleLogoUrl?: string;
+  }>({
+    isOpen: false,
+    moduleId: 'constructora'
   });
 
   const [paymentSuccessToast, setPaymentSuccessToast] = useState<string | null>(null);
@@ -29,13 +40,44 @@ export default function LandingMaster() {
     amount: number;
     badgeText: string;
     isSubscription?: boolean;
+    subscriptionInterval?: string;
   }) => {
     setCheckoutConfig({
       isOpen: true,
       title: item.title,
       amount: item.amount,
       badgeText: item.badgeText,
-      isSubscription: item.isSubscription || false
+      isSubscription: item.isSubscription || false,
+      subscriptionInterval: item.subscriptionInterval
+    });
+  };
+
+  const handleOpenQuoteModal = (item: {
+    id: string;
+    title: string;
+    logoUrl?: string;
+  }) => {
+    setQuoteModalConfig({
+      isOpen: true,
+      moduleId: item.id,
+      moduleLogoUrl: item.logoUrl
+    });
+  };
+
+  const handleSelectPlanForCheckout = (planData: {
+    title: string;
+    amount: number;
+    badgeText: string;
+    isSubscription?: boolean;
+    subscriptionInterval?: string;
+  }) => {
+    setCheckoutConfig({
+      isOpen: true,
+      title: planData.title,
+      amount: planData.amount,
+      badgeText: planData.badgeText,
+      isSubscription: planData.isSubscription || false,
+      subscriptionInterval: planData.subscriptionInterval
     });
   };
 
@@ -58,17 +100,28 @@ export default function LandingMaster() {
       {/* 1. Hero Principal Dinámico: logos rotativos flotantes sin cuadro */}
       <Hero 
         onOpenCheckout={handleOpenCheckout}
+        onOpenQuoteModal={handleOpenQuoteModal}
       />
 
       {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA) */}
       <EcosystemMatrix 
         onOpenCheckout={handleOpenCheckout}
+        onOpenQuoteModal={handleOpenQuoteModal}
       />
 
       {/* 3. Sección de Preguntas Frecuentes (FAQ) */}
       <div id="faq">
         <FAQ />
       </div>
+
+      {/* Modal Inteligente de Selección de Planes Reales por Módulo */}
+      <DynamicModuleQuoteModal
+        isOpen={quoteModalConfig.isOpen}
+        onClose={() => setQuoteModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        moduleId={quoteModalConfig.moduleId}
+        moduleLogoUrl={quoteModalConfig.moduleLogoUrl}
+        onSelectPlanForCheckout={handleSelectPlanForCheckout}
+      />
 
       {/* Unified Standard Checkout Modal */}
       <StandardCheckoutModal
@@ -79,6 +132,7 @@ export default function LandingMaster() {
         amount={checkoutConfig.amount}
         badgeText={checkoutConfig.badgeText}
         isSubscription={checkoutConfig.isSubscription}
+        subscriptionInterval={checkoutConfig.subscriptionInterval}
         items={[
           { label: checkoutConfig.title, amount: checkoutConfig.amount }
         ]}

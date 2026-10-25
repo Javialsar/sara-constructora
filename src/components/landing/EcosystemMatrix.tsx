@@ -20,10 +20,11 @@ import { getLogosEmpresa, LogosEmpresa, DEFAULT_LOGOS_EMPRESA } from '@/lib/serv
 
 interface EcosystemMatrixProps {
   onOpenCheckout: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void;
+  onOpenQuoteModal?: (moduleData: { id: string; title: string; logoUrl?: string }) => void;
   initialLogos?: LogosEmpresa;
 }
 
-export default function EcosystemMatrix({ onOpenCheckout, initialLogos }: EcosystemMatrixProps) {
+export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, initialLogos }: EcosystemMatrixProps) {
   const [logos, setLogos] = useState<LogosEmpresa>(initialLogos || DEFAULT_LOGOS_EMPRESA);
 
   useEffect(() => {
@@ -213,17 +214,27 @@ export default function EcosystemMatrix({ onOpenCheckout, initialLogos }: Ecosys
                     </span>
                     
                     <button
-                      onClick={() => onOpenCheckout({
-                        title: m.pricePreview.title,
-                        amount: m.pricePreview.amount,
-                        badgeText: m.title,
-                        isSubscription: m.pricePreview.isSub
-                      })}
-                      className="min-h-[36px] inline-flex items-center gap-1 text-[11px] font-mono font-bold tabular-nums text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-2.5 py-1 rounded-lg transition-all duration-200 ease-out active:scale-[0.97]"
-                      title="Cobro estándar para este servicio"
+                      onClick={() => {
+                        if (onOpenQuoteModal) {
+                          onOpenQuoteModal({
+                            id: m.id,
+                            title: m.title,
+                            logoUrl: m.logoUrl
+                          });
+                        } else {
+                          onOpenCheckout({
+                            title: m.pricePreview.title,
+                            amount: m.pricePreview.amount,
+                            badgeText: m.title,
+                            isSubscription: m.pricePreview.isSub
+                          });
+                        }
+                      }}
+                      className="min-h-[36px] inline-flex items-center gap-1.5 text-[11px] font-mono font-bold tabular-nums text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-3 py-1.5 rounded-xl transition-all duration-200 ease-out active:scale-[0.97]"
+                      title={`Ver planes y cotización de ${m.title}`}
                     >
                       <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                      <span>${Number(m.pricePreview.amount).toFixed(2)}</span>
+                      <span>{m.id === 'talento' ? 'Planes $0 Inicial' : 'Ver Planes'}</span>
                     </button>
                   </div>
 

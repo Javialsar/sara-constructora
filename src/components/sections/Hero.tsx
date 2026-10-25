@@ -8,9 +8,10 @@ import { createClient } from "@/lib/supabase/client"
 
 interface HeroProps {
   onOpenCheckout?: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void
+  onOpenQuoteModal?: (moduleData: { id: string; title: string; logoUrl?: string }) => void
 }
 
-export default function Hero({ onOpenCheckout }: HeroProps) {
+export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
   const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA)
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -253,16 +254,27 @@ export default function Hero({ onOpenCheckout }: HeroProps) {
                     <ArrowRight className="w-4 h-4" />
                   </a>
 
-                  {onOpenCheckout && (
+                  {(onOpenQuoteModal || onOpenCheckout) && (
                     <button
                       type="button"
-                      onClick={() => onOpenCheckout({
-                        title: `Consulta Técnica - ${currentSlide.title}`,
-                        amount: 49.99,
-                        badgeText: "Grupo SARA Oficial",
-                        isSubscription: false
-                      })}
+                      onClick={() => {
+                        if (onOpenQuoteModal) {
+                          onOpenQuoteModal({
+                            id: currentSlide.id,
+                            title: currentSlide.title,
+                            logoUrl: currentSlide.logo
+                          });
+                        } else if (onOpenCheckout) {
+                          onOpenCheckout({
+                            title: `Consulta Técnica - ${currentSlide.title}`,
+                            amount: 49.99,
+                            badgeText: "Grupo SARA Oficial",
+                            isSubscription: false
+                          });
+                        }
+                      }}
                       className="min-h-[48px] px-5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all duration-200 ease-out hover:border-brand-sage active:scale-[0.98] ring-1 ring-black/[0.05]"
+                      title={`Ver planes y cotización de ${currentSlide.title}`}
                     >
                       <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       <span>Cotizar Servicio</span>
