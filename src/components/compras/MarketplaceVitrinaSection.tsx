@@ -137,16 +137,22 @@ export function MarketplaceVitrinaSection({
 
   const handleVitrinaCiudadChange = (nuevaCiudad: string) => {
     setCiudadVitrina(nuevaCiudad);
-    const match = CANTONES_ECUADOR.find(
-      c => c.nombre.toLowerCase() === nuevaCiudad.trim().toLowerCase()
-    );
-    if (match) {
-      setCantonSeleccionado(match);
-      if (!calleVitrina.trim()) {
+    
+    // Autoubicación inmediata si coincide con cantón de Ecuador
+    const cleanInputCity = nuevaCiudad.replace(/\([^)]*\)/g, '').trim().toLowerCase();
+    if (cleanInputCity.length >= 3) {
+      const match = CANTONES_ECUADOR.find(c => {
+        const cleanCName = c.nombre.replace(/\([^)]*\)/g, '').trim().toLowerCase();
+        return cleanCName === cleanInputCity || cleanCName.includes(cleanInputCity) || cleanInputCity.includes(cleanCName);
+      });
+      if (match) {
+        setCantonSeleccionado(match);
         setCoordsActuales(match.coordenadas);
         if (setCoordenadasEntrega) setCoordenadasEntrega(match.coordenadas);
+        setOrdenarPorCercania(true);
       }
     }
+
     const combined = [calleVitrina.trim(), nuevaCiudad.trim()].filter(Boolean).join(', ');
     setDireccionExacta(combined);
     if (setDireccionExactaEntrega) setDireccionExactaEntrega(combined);
@@ -172,7 +178,7 @@ export function MarketplaceVitrinaSection({
       } finally {
         setGeocodificandoVitrina(false);
       }
-    }, 550);
+    }, 300);
   };
 
   const handleVitrinaCalleChange = (nuevaCalle: string) => {
@@ -203,7 +209,7 @@ export function MarketplaceVitrinaSection({
         } finally {
           setGeocodificandoVitrina(false);
         }
-      }, 550);
+      }, 300);
     }
   };
 

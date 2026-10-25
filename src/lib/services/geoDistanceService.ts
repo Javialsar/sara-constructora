@@ -165,45 +165,54 @@ export class GeoDistanceService {
     textoDireccion: string,
     cantonNombre?: string
   ): Promise<ResultadoGeocodificacion[]> {
-    if (!textoDireccion || textoDireccion.trim().length < 3) {
+    const cleanCity = (cantonNombre || '').replace(/\([^)]*\)/g, '').trim();
+    const cleanStreet = (textoDireccion || '')
+      .replace(/\b(calle|calles|av\.?|avenida|pasaje|intersecci[oó]n|sector|barrio|lote)\b/gi, '')
+      .trim()
+      .replace(/[#]/g, '');
+
+    if (!cleanStreet && !cleanCity) {
       return [];
     }
 
-    const textoLimpio = textoDireccion.trim().replace(/[#]/g, '');
-    const cacheKey = `${textoLimpio.toLowerCase()}_${cantonNombre || ''}`;
+    const cacheKey = `${cleanStreet.toLowerCase()}_${cleanCity.toLowerCase()}`;
 
     if (GEOCODE_CACHE[cacheKey]) {
       return GEOCODE_CACHE[cacheKey];
     }
 
     // Desglose de posibles calles en intersección (e.g. "Cariamanga, Atahualpa y Cristobal Colon")
-    const partesCalles = textoLimpio
+    const partesCalles = cleanStreet
       .split(/[,ye&]/i)
       .map(p => p.trim())
-      .filter(p => p.length >= 3 && !['cerca', 'obra', 'frente', 'frente a', 'calle', 'avenida', 'lote'].includes(p.toLowerCase()));
+      .filter(p => p.length >= 3);
 
     const queriesCandidatas: string[] = [];
-    const ciudad = cantonNombre || '';
 
-    // Candidato 1: Frase completa + Ciudad
-    queriesCandidatas.push(`${textoLimpio}, ${ciudad}, Ecuador`);
+    // 1. Calle limpia + Ciudad limpia + Ecuador
+    if (cleanStreet && cleanCity) {
+      queriesCandidatas.push(`${cleanStreet}, ${cleanCity}, Ecuador`);
+    }
 
-    // Candidato 2: Intersección primera y última calle
-    if (partesCalles.length >= 2) {
-      queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[1]}, ${ciudad}, Ecuador`);
-      if (partesCalles.length >= 3) {
-        queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[2]}, ${ciudad}, Ecuador`);
-        queriesCandidatas.push(`${partesCalles[1]} y ${partesCalles[2]}, ${ciudad}, Ecuador`);
+    // 2. Si hay múltiples calles, buscar por la última calle y luego la primera dentro de la ciudad
+    if (partesCalles.length >= 2 && cleanCity) {
+      queriesCandidatas.push(`${partesCalles[partesCalles.length - 1]}, ${cleanCity}, Ecuador`);
+      queriesCandidatas.push(`${partesCalles[0]}, ${cleanCity}, Ecuador`);
+      queriesCandidatas.push(`${partesCalles[0]} y ${partesCalles[1]}, ${cleanCity}, Ecuador`);
+    }
+
+    // 3. Buscar la calle sin restricción de ciudad por si la ciudad fue escrita con variante
+    if (cleanStreet) {
+      queriesCandidatas.push(`${cleanStreet}, Ecuador`);
+      if (partesCalles.length >= 2) {
+        queriesCandidatas.push(`${partesCalles[0]}, Ecuador`);
       }
     }
 
-    // Candidato 3: Calles individuales con ciudad
-    for (const calle of partesCalles) {
-      queriesCandidatas.push(`${calle}, ${ciudad}, Ecuador`);
+    // 4. Si solo hay ciudad o las calles fallaron, centrar en la ciudad
+    if (cleanCity) {
+      queriesCandidatas.push(`${cleanCity}, Ecuador`);
     }
-
-    // Candidato 4: Solo texto + Ecuador
-    queriesCandidatas.push(`${textoLimpio}, Ecuador`);
 
     for (const query of queriesCandidatas) {
       try {
@@ -227,7 +236,7 @@ export class GeoDistanceService {
           const resultados: ResultadoGeocodificacion[] = data.map((item: any) => {
             const addr = item.address || {};
             const calleNombre = addr.road || addr.pedestrian || addr.suburb || item.name;
-            const ciudadNombre = addr.city || addr.town || addr.municipality || addr.county || ciudad;
+            const ciudadNombre = addr.city || addr.town || addr.municipality || addr.county || cleanCity;
             const nombreCorto = calleNombre 
               ? `${calleNombre}${ciudadNombre ? `, ${ciudadNombre}` : ''}`
               : item.display_name.split(',').slice(0, 3).join(',');
@@ -239,7 +248,7 @@ export class GeoDistanceService {
                 lat: Number(parseFloat(item.lat).toFixed(6)),
                 lng: Number(parseFloat(item.lon).toFixed(6))
               },
-              calle: addr.road,
+              calle: addr.road || calleNombre,
               barrio: addr.neighbourhood || addr.suburb,
               ciudad: ciudadNombre,
               provincia: addr.state

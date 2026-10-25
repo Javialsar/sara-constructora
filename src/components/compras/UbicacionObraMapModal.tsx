@@ -86,9 +86,9 @@ export default function UbicacionObraMapModal({
     }
   }, [isOpen, coordenadasIniciales, direccionInicial, referenciaInicial, cantonActual]);
 
-  // Ejecutar Geocodificación Combinada: Ciudad + Calle -> Mover Marcador en el mapa
+  // Ejecutar Geocodificación Combinada: Ciudad + Calle -> Mover Marcador en el mapa en tiempo real
   const ejecutarGeocodificacionCombinada = async (ciudad: string, calle: string) => {
-    const ciudadClean = ciudad.trim();
+    const ciudadClean = ciudad.replace(/\([^)]*\)/g, '').trim();
     const calleClean = calle.trim();
 
     if (!ciudadClean && !calleClean) {
@@ -116,7 +116,19 @@ export default function UbicacionObraMapModal({
         setGeocodificacionFeedback(`Marcador ubicado: ${principal.nombreCorto}`);
       } else {
         setSugerenciasGeocode([]);
-        setGeocodificacionFeedback(`Búsqueda sin coincidencias directas para "${calleClean || ciudadClean}". Mueve el pin en el mapa.`);
+        // Si no se encontró la calle pero la ciudad es válida, mantener feedback de ciudad
+        if (ciudadClean) {
+          const matchCity = CANTONES_ECUADOR.find(c => 
+            c.nombre.toLowerCase().includes(ciudadClean.toLowerCase()) || ciudadClean.toLowerCase().includes(c.nombre.toLowerCase())
+          );
+          if (matchCity) {
+            setCoords(matchCity.coordenadas);
+            setCantonDetectado(matchCity);
+            setGeocodificacionFeedback(`Ubicado en ciudad: ${matchCity.nombre}`);
+          } else {
+            setGeocodificacionFeedback(null);
+          }
+        }
       }
     } catch (e) {
       // Ignorar error de red
@@ -125,38 +137,48 @@ export default function UbicacionObraMapModal({
     }
   };
 
-  // Manejador al tipear Ciudad (Autoubicación en el mapa con debounce)
+  // Manejador al tipear Ciudad (Autoubicación instantánea en el mapa en tiempo real)
   const handleCiudadChange = (nuevaCiudad: string) => {
     setCiudadTexto(nuevaCiudad);
-    const match = CANTONES_ECUADOR.find(
-      c => c.nombre.toLowerCase() === nuevaCiudad.trim().toLowerCase()
-    );
-    if (match) {
-      setCantonDetectado(match);
-      if (!calleTexto.trim()) {
+
+    // Detección instantánea en el catálogo de cantones para mover el mapa sin esperar red
+    const cleanInputCity = nuevaCiudad.replace(/\([^)]*\)/g, '').trim().toLowerCase();
+    if (cleanInputCity.length >= 3) {
+      const match = CANTONES_ECUADOR.find(c => {
+        const cleanCName = c.nombre.replace(/\([^)]*\)/g, '').trim().toLowerCase();
+        return cleanCName === cleanInputCity || cleanCName.includes(cleanInputCity) || cleanInputCity.includes(cleanCName);
+      });
+      if (match) {
+        setCantonDetectado(match);
         setCoords(match.coordenadas);
+        setGeocodificacionFeedback(`Ciudad ubicada: ${match.nombre} (${match.provincia})`);
       }
     }
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       ejecutarGeocodificacionCombinada(nuevaCiudad, calleTexto);
-    }, 450);
+    }, 300);
   };
 
-  // Manejador al tipear Calle (Autoubicación de la calle en la ciudad con debounce)
+  // Manejador al tipear Calle (Autoubicación en tiempo real en el mapa mientras se escribe)
   const handleCalleChange = (nuevaCalle: string) => {
     setCalleTexto(nuevaCalle);
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       ejecutarGeocodificacionCombinada(ciudadTexto, nuevaCalle);
-    }, 450);
+    }, 300);
   };
 
-  // Ejecución directa inmediata (botón Ubicar o tecla Enter)
-  const handleEjecutarGeocodeDirecto = () => {
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    ejecutarGeocodificacionCombinada(ciudadTexto, calleTexto);
+  // Manejador al tipear Referencia (Autoubicación si no hay calle)
+  const handleReferenciaChange = (nuevaRef: string) => {
+    setReferencia(nuevaRef);
+    if (!calleTexto.trim() && nuevaRef.trim().length >= 4) {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        ejecutarGeocodificacionCombinada(ciudadTexto, nuevaRef);
+      }, 350);
+    }
   };
 
   const handleSeleccionarSugerencia = (sug: ResultadoGeocodificacion) => {
@@ -353,7 +375,8 @@ export default function UbicacionObraMapModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleEjecutarGeocodeDirecto();
+                        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                        ejecutarGeocodificacionCombinada(ciudadTexto, calleTexto);
                       }
                     }}
                     placeholder="Escribe la ciudad: Loja, Quito, Cariamanga, Cuenca..."
@@ -373,6 +396,9 @@ export default function UbicacionObraMapModal({
                   <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block">
                     2. Calle(s) e Intersección *:
                   </label>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Se ubica automáticamente
+                  </span>
                 </div>
 
                 <div className="relative">
@@ -383,21 +409,13 @@ export default function UbicacionObraMapModal({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleEjecutarGeocodeDirecto();
+                        if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+                        ejecutarGeocodificacionCombinada(ciudadTexto, calleTexto);
                       }
                     }}
                     placeholder="Ej: Cariamanga, atahualpa y Cristobal colon"
-                    className="w-full pl-3.5 pr-20 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
                   />
-                  <button
-                    type="button"
-                    onClick={handleEjecutarGeocodeDirecto}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold font-mono text-[10px] rounded-lg transition-all flex items-center gap-1 shadow-sm"
-                    title="Ubicar calle en el mapa inmediatamente"
-                  >
-                    <Search className="w-3 h-3" />
-                    <span>Ubicar</span>
-                  </button>
                 </div>
 
                 {/* Badge de confirmación o feedback */}
@@ -435,21 +453,11 @@ export default function UbicacionObraMapModal({
                   <label className="text-[11px] font-mono font-bold uppercase text-slate-300 block">
                     3. Referencia de Obra / Acceso para Camiones:
                   </label>
-                  {referencia.trim().length >= 3 && (
-                    <button
-                      type="button"
-                      onClick={() => ejecutarGeocodificacionCombinada(ciudadTexto, referencia)}
-                      className="text-[10px] font-mono text-amber-400 hover:text-amber-300 font-bold flex items-center gap-0.5"
-                    >
-                      <Crosshair className="w-2.5 h-2.5" />
-                      <span>Ubicar ref.</span>
-                    </button>
-                  )}
                 </div>
                 <input
                   type="text"
                   value={referencia}
-                  onChange={(e) => setReferencia(e.target.value)}
+                  onChange={(e) => handleReferenciaChange(e.target.value)}
                   placeholder="Ej: Cerca de la Unidad Educativa Ambato, frente al parque"
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none"
                 />
