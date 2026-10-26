@@ -117,6 +117,16 @@ export default function AdminFacturacionFirmasClientesPage() {
   const [isAutoValidating, setIsAutoValidating] = useState<boolean>(false);
   const [docModalFirma, setDocModalFirma] = useState<SolicitudFirma | null>(null);
 
+  // Estados del Modal de Entrega de Firma .p12
+  const [entregaModalFirma, setEntregaModalFirma] = useState<SolicitudFirma | null>(null);
+  const [eciProveedor, setEciProveedor] = useState<string>('UANATACA');
+  const [claveP12, setClaveP12] = useState<string>('');
+  const [nombreArchivoP12, setNombreArchivoP12] = useState<string>('');
+  const [archivoP12Base64, setArchivoP12Base64] = useState<string>('');
+  const [notificarWhatsApp, setNotificarWhatsApp] = useState<boolean>(true);
+  const [notificarEmail, setNotificarEmail] = useState<boolean>(true);
+  const [isSubmittingEntrega, setIsSubmittingEntrega] = useState<boolean>(false);
+
   // Carga inicial y sincronización con Supabase
   const sincronizarFirmas = async (mostrarToastAviso = false) => {
     try {
@@ -212,6 +222,64 @@ export default function AdminFacturacionFirmasClientesPage() {
       mostrarToast('Error al conectar con el Agente de Conciliación Bancaria.');
     } finally {
       setIsAutoValidating(false);
+    }
+  };
+
+  const abrirModalEntrega = (s: SolicitudFirma) => {
+    setEntregaModalFirma(s);
+    setClaveP12(s.cedula_ruc);
+    setNombreArchivoP12(`FIRMA_${s.cedula_ruc}.p12`);
+    setArchivoP12Base64('');
+    setEciProveedor('UANATACA');
+  };
+
+  const handleArchivoP12Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNombreArchivoP12(file.name);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setArchivoP12Base64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleConfirmarEntrega = async () => {
+    if (!entregaModalFirma || !claveP12) {
+      alert('Por favor ingresa la clave asignada al certificado .p12');
+      return;
+    }
+    setIsSubmittingEntrega(true);
+    try {
+      const res = await fetch('/api/facturacion/firmas/entregar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          solicitudId: entregaModalFirma.id,
+          archivoP12Base64,
+          nombreArchivo: nombreArchivoP12,
+          claveP12,
+          eciProveedor,
+          vigenciaAnios: entregaModalFirma.vigencia_anios,
+          notificarEmail
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast('¡Firma .p12 entregada con éxito y precargada en el portal emisor!');
+        if (notificarWhatsApp && data.whatsappUrl) {
+          window.open(data.whatsappUrl, '_blank');
+        }
+        setEntregaModalFirma(null);
+        await sincronizarFirmas(false);
+      } else {
+        alert(data.error || 'Error al entregar la firma');
+      }
+    } catch (err: any) {
+      alert('Error de conexión al entregar el certificado digital.');
+    } finally {
+      setIsSubmittingEntrega(false);
     }
   };
 
@@ -389,6 +457,164 @@ export default function AdminFacturacionFirmasClientesPage() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Oficial de Entrega de Certificado .p12 */}
+      {entregaModalFirma && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 space-y-6 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Entrega de Firma Electrónica (.p12)</h3>
+                  <p className="text-xs text-slate-500">Carga el certificado emitido y notifícalo con 1 clic al cliente.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEntregaModalFirma(null)}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Datos del Cliente */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-bold">Titular:</span>
+                <strong className="text-slate-900 font-extrabold text-sm truncate block">{entregaModalFirma.nombres}</strong>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-bold">Identificación:</span>
+                <span className="font-mono font-bold text-slate-800">{entregaModalFirma.cedula_ruc}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-bold">Plan / Vigencia:</span>
+                <span className="font-bold text-amber-700">{entregaModalFirma.plan_nombre} ({entregaModalFirma.vigencia_anios} {entregaModalFirma.vigencia_anios === 1 ? 'Año' : 'Años'})</span>
+              </div>
+              <div>
+                <span className="text-slate-500 block text-[10px] uppercase font-bold">WhatsApp de Entrega:</span>
+                <span className="font-mono text-slate-700">{entregaModalFirma.telefono}</span>
+              </div>
+            </div>
+
+            {/* Formulario de Carga del Archivo .p12 */}
+            <div className="space-y-4 text-xs">
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  1. Entidad de Certificación Acreditada (ECI ARCOTEL)
+                </label>
+                <select
+                  value={eciProveedor}
+                  onChange={(e) => setEciProveedor(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 font-semibold text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="UANATACA">Uanataca Ecuador S.A. (Recomendado Partner Oficial)</option>
+                  <option value="SECURITY_DATA">Security Data Seguridad en Datos y Firma Digital</option>
+                  <option value="REGISTRO_CIVIL">Dirección General de Registro Civil del Ecuador</option>
+                  <option value="ANF_AC">ANF Autoridad de Certificación Ecuador</option>
+                  <option value="BANCO_CENTRAL">Banco Central del Ecuador (BCE)</option>
+                  <option value="CONSEJO_JUDICATURA">Consejo de la Judicatura</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  2. Archivo del Certificado (.p12 / .pfx)
+                </label>
+                <div className="border-2 border-dashed border-slate-300 hover:border-amber-500 rounded-2xl p-4 text-center cursor-pointer relative bg-slate-50/50 transition-colors">
+                  <input
+                    type="file"
+                    accept=".p12,.pfx"
+                    onChange={handleArchivoP12Change}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
+                  <div className="font-bold text-slate-800 text-xs">
+                    {nombreArchivoP12 ? `Archivo: ${nombreArchivoP12}` : 'Seleccionar o arrastrar archivo .p12 emitido'}
+                  </div>
+                  <span className="text-[10px] text-slate-500">Formato estándar PKCS#12 compatible con SRI y FirmaEC</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1.5">
+                  3. Contraseña asignada al Certificado .p12
+                </label>
+                <input
+                  type="text"
+                  value={claveP12}
+                  onChange={(e) => setClaveP12(e.target.value)}
+                  placeholder="Ej: 1102978630 o clave provista por la ECI"
+                  className="w-full px-3.5 py-2.5 font-mono font-bold text-sm rounded-xl border border-slate-300 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">
+                  Esta clave será enviada al cliente para que pueda firmar en Adobe Reader o FirmaEC.
+                </span>
+              </div>
+
+              {/* Opciones de Automatización */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+                <span className="text-[11px] font-black text-amber-900 uppercase tracking-wide block">
+                  Acciones Automáticas al Entregar:
+                </span>
+                
+                <label className="flex items-center gap-2 cursor-pointer text-slate-800 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={notificarWhatsApp}
+                    onChange={(e) => setNotificarWhatsApp(e.target.checked)}
+                    className="rounded text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>Generar enlace de <strong>WhatsApp Oficial</strong> con link de descarga y contraseña</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-slate-800 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={notificarEmail}
+                    onChange={(e) => setNotificarEmail(e.target.checked)}
+                    className="rounded text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>Enviar correo de confirmación con credenciales y guía paso a paso</span>
+                </label>
+
+                <div className="flex items-center gap-2 text-[11px] text-emerald-700 font-bold pt-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Precarga automática en la Bóveda de SARA Facturación (Cero Java para el cliente)</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Botones de Acción */}
+            <div className="pt-2 flex justify-end gap-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEntregaModalFirma(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleConfirmarEntrega}
+                disabled={isSubmittingEntrega}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>{isSubmittingEntrega ? 'Entregando y Notificando...' : 'Aprobar & Entregar Firma Digital'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}
@@ -653,16 +879,28 @@ export default function AdminFacturacionFirmasClientesPage() {
                           {/* Emitir / Cargar .p12 */}
                           {s.estado_tramite !== 'EMITIDO_ACTIVO' && s.pago_validado && (
                             <button
-                              onClick={() => handleEmitirCertificado(s.id)}
-                              title="Aprobar y Emitir Certificado .p12"
-                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
+                              onClick={() => abrirModalEntrega(s)}
+                              title="Cargar Certificado Oficial .p12 y Entregar"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer active:scale-95 transition-all"
                             >
-                              <KeyRound className="w-3.5 h-3.5" />
-                              <span>Emitir .p12</span>
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>Cargar & Entregar .p12</span>
                             </button>
                           )}
 
-                          {/* WhatsApp Recordatorio */}
+                          {/* Descargar .p12 para firmas ya emitidas */}
+                          {s.estado_tramite === 'EMITIDO_ACTIVO' && (
+                            <a
+                              href={`/api/facturacion/firmas/descargar?id=${s.id}`}
+                              title="Descargar Certificado .p12"
+                              className="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-colors"
+                            >
+                              <Download className="w-3.5 h-3.5 text-amber-600" />
+                              <span className="hidden sm:inline">.p12</span>
+                            </a>
+                          )}
+
+                          {/* WhatsApp Recordatorio / Entrega */}
                           <button
                             onClick={() => enviarWhatsAppRenovacionFirma(s)}
                             title="Enviar aviso o recordatorio por WhatsApp"
