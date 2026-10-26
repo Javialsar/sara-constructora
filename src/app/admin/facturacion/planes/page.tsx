@@ -42,8 +42,8 @@ export interface PlanFacturacion {
 const PLANES_INICIALES: PlanFacturacion[] = [
   {
     id: 'plan-1',
-    codigo: 'PASE_DIARIO_24H',
-    nombre: 'Pase Diario 24h',
+    codigo: 'PLAN_DIARIO_24H',
+    nombre: 'Plan Diario 24h',
     descripcion: 'Emisión ilimitada durante 24 horas continuas para liquidar trabajos urgentes.',
     tipo_plan: 'tiempo',
     precio_usd: 1.50,
@@ -61,8 +61,8 @@ const PLANES_INICIALES: PlanFacturacion[] = [
   },
   {
     id: 'plan-2',
-    codigo: 'PASE_SEMANAL_7D',
-    nombre: 'Pase Semanal Sprint',
+    codigo: 'PLAN_SEMANAL_7D',
+    nombre: 'Plan Semanal (7 Días)',
     descripcion: 'Facturación ilimitada durante 7 días continuos para consultores e inspectores.',
     tipo_plan: 'tiempo',
     precio_usd: 4.50,
@@ -308,7 +308,7 @@ export default function AdminFacturacionPlanesPage() {
             Planes de Facturación Electrónica SRI
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Administra los pases diarios, bolsas prepago sin caducidad y suscripciones que se ofertan en la landing y cotizadores.
+            Administra los planes diarios, bolsas prepago sin caducidad y suscripciones que se ofertan en la landing y cotizadores.
           </p>
         </div>
 
@@ -547,7 +547,7 @@ export default function AdminFacturacionPlanesPage() {
                     className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
                   >
                     <option value="bolsa">Bolsa Prepago (Docs)</option>
-                    <option value="tiempo">Pase por Tiempo (Días)</option>
+                    <option value="tiempo">Plan por Tiempo (Días)</option>
                     <option value="suscripcion">Suscripción Periódica</option>
                   </select>
                 </div>

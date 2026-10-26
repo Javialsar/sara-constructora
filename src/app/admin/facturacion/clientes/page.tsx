@@ -102,8 +102,8 @@ const CLIENTES_DEMO: ClienteFacturacion[] = [
     razon_social: 'TOPOGRAFÍA & GEODESIA LOJA CIA. LTDA.',
     email: 'contacto@topolojaservicios.ec',
     telefono: '+593984561230',
-    plan_codigo: 'PASE_DIARIO_24H',
-    plan_nombre: 'Pase Diario 24h',
+    plan_codigo: 'PLAN_DIARIO_24H',
+    plan_nombre: 'Plan Diario 24h',
     tipo_plan: 'tiempo',
     documentos_emitidos: 6,
     documentos_limite: 0,
@@ -290,7 +290,7 @@ export default function AdminFacturacionClientesPage() {
             Clientes & Vencimientos de Facturación SRI
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Monitorea el consumo de comprobantes, vigencias de pases y envía recordatorios inmediatos por WhatsApp o correo para volver a contratar.
+            Monitorea el consumo de comprobantes, vigencias de planes y envía recordatorios inmediatos por WhatsApp o correo para volver a contratar.
           </p>
         </div>
 

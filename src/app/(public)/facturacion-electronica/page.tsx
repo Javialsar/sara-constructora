@@ -126,7 +126,7 @@ export default function FacturacionElectronicaLanding() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <a href="#planes" className="px-3 py-1.5 rounded-lg hover:bg-white/[0.05] text-slate-300 hover:text-white">
-              Planes & Pases
+              Planes & Precios
             </a>
             <button 
               type="button"
@@ -167,7 +167,7 @@ export default function FacturacionElectronicaLanding() {
           </h1>
 
           <p className="text-slate-300 text-base sm:text-xl max-w-3xl mx-auto mb-10 leading-relaxed font-normal">
-            Emite facturas y retenciones legales ante el SRI desde tu teléfono en 30 segundos. Paga solo lo que usas con <strong className="text-white">Pases Diarios ($1.50)</strong>, <strong className="text-white">Bolsas Prepago ($3.99)</strong> o tramita tu <strong className="text-white">Firma Electrónica (.p12)</strong> hoy mismo con verificación biométrica.
+            Emite facturas y retenciones legales ante el SRI desde tu teléfono en 30 segundos. Paga solo lo que usas con <strong className="text-white">Planes Diarios ($1.50)</strong>, <strong className="text-white">Bolsas Prepago ($3.99)</strong> o tramita tu <strong className="text-white">Firma Electrónica (.p12)</strong> hoy mismo con verificación biométrica.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -200,7 +200,7 @@ export default function FacturacionElectronicaLanding() {
             </div>
             <div>
               <div className="font-display text-2xl md:text-3xl font-extrabold text-emerald-400">Desde $1.50</div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Pase Diario 24h</div>
+              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Plan Diario 24h</div>
             </div>
             <div>
               <div className="font-display text-2xl md:text-3xl font-extrabold text-purple-400">Cero Java</div>
@@ -397,27 +397,27 @@ export default function FacturacionElectronicaLanding() {
         </div>
       </section>
 
-      {/* 4. TABLA DE PLANES & PASES FLEXIBLES */}
+      {/* 4. TABLA DE PLANES FLEXIBLES & BOLSAS DE FACTURAS */}
       <section id="planes" className="py-20 md:py-28 px-6 lg:px-12 bg-slate-900/60 border-t border-white/[0.08]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">Precios Transparentes</span>
             <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight mt-2 mb-4">
-              Pases por Tiempo & Bolsas Prepago
+              Planes por Días, Semanas & Bolsas de Facturas
             </h2>
             <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Elige entre pases ultra-cortos de 24 horas o 7 días para liquidar trabajos específicos, bolsas sin caducidad o suscripciones completas.
+              Elige entre planes de 24 horas o 7 días para liquidar trabajos específicos, paquetes de facturas sin caducidad o suscripciones completas.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Plan 1: Day Pass */}
+            {/* Plan 1: Plan Diario */}
             <div className="rounded-3xl bg-slate-950/80 border border-white/[0.08] hover:border-amber-400/40 p-6 sm:p-8 flex flex-col justify-between transition-all">
               <div>
                 <span className="text-[10px] font-mono font-bold tracking-wider px-2.5 py-1 rounded-full bg-white/[0.05] text-slate-300 uppercase">
-                  Pase por Tiempo (24h)
+                  Plan por Día (24 Horas)
                 </span>
-                <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Pase Diario 24h</h3>
+                <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Plan Diario 24h</h3>
                 <p className="text-xs text-slate-400 mb-6">Emisión ilimitada durante 24 horas continuas. Ideal para liquidar trabajos urgentes de fin de semana.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
                   $1.50 <span className="text-xs text-slate-400 font-sans font-normal">/ 24 horas</span>
@@ -430,20 +430,20 @@ export default function FacturacionElectronicaLanding() {
                 </ul>
               </div>
               <button
-                onClick={() => abrirCheckout({ title: 'Pase Diario (24 Horas) Facturación', amount: 1.50, badgeText: 'SARA Day Pass' })}
+                onClick={() => abrirCheckout({ title: 'Plan Diario (24 Horas) Facturación', amount: 1.50, badgeText: 'SARA Plan Diario' })}
                 className="w-full min-h-[46px] rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 border border-white/[0.08] font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Activar Pase Diario ($1.50)
+                Contratar Plan Diario ($1.50)
               </button>
             </div>
 
-            {/* Plan 2: Week Pass */}
+            {/* Plan 2: Plan Semanal */}
             <div className="rounded-3xl bg-slate-950/80 border border-white/[0.08] hover:border-amber-400/40 p-6 sm:p-8 flex flex-col justify-between transition-all">
               <div>
                 <span className="text-[10px] font-mono font-bold tracking-wider px-2.5 py-1 rounded-full bg-white/[0.05] text-slate-300 uppercase">
-                  Pase Semanal (7 días)
+                  Plan Semanal (7 Días)
                 </span>
-                <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Pase Semanal Sprint</h3>
+                <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Plan Semanal Sprint</h3>
                 <p className="text-xs text-slate-400 mb-6">Facturación ilimitada durante 7 días. Diseñado para fiscalizadores, consultores e inspectores.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
                   $4.50 <span className="text-xs text-slate-400 font-sans font-normal">/ 7 días</span>
@@ -456,10 +456,10 @@ export default function FacturacionElectronicaLanding() {
                 </ul>
               </div>
               <button
-                onClick={() => abrirCheckout({ title: 'Pase Semanal (7 Días) Facturación', amount: 4.50, badgeText: 'SARA Week Pass' })}
+                onClick={() => abrirCheckout({ title: 'Plan Semanal (7 Días) Facturación', amount: 4.50, badgeText: 'SARA Plan Semanal' })}
                 className="w-full min-h-[46px] rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 border border-white/[0.08] font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Activar Pase Semanal ($4.50)
+                Contratar Plan Semanal ($4.50)
               </button>
             </div>
 

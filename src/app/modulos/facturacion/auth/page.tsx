@@ -120,7 +120,7 @@ export default function FacturacionAuthPage() {
                 Acreditado ARCOTEL & Homologado SRI
               </p>
               <p className="text-[11px] text-slate-900 leading-tight">
-                Pases diarios on-demand ($1.50), bolsas prepago que no caducan ($3.99) y certificados de firma digital .p12 para personas naturales y empresas.
+                Planes diarios on-demand ($1.50), bolsas prepago que no caducan ($3.99) y certificados de firma digital .p12 para personas naturales y empresas.
               </p>
             </div>
           </div>
