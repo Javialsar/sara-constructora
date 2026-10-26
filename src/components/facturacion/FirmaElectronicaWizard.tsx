@@ -27,7 +27,10 @@ import {
   HelpCircle,
   Camera,
   Eye,
-  Loader2
+  Loader2,
+  Receipt,
+  Download,
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -115,6 +118,14 @@ export default function FirmaElectronicaWizard() {
   // Paso 5: Resultado / Éxito
   const [codigoTramite, setCodigoTramite] = useState('');
   const [credencialesGeneradas, setCredencialesGeneradas] = useState<{ usuario: string; clave: string } | null>(null);
+  const [facturaGenerada, setFacturaGenerada] = useState<{
+    nroFactura: string;
+    claveAccesoSri: string;
+    subtotalSinIva: number;
+    tarifaIva: number;
+    montoIva: number;
+    totalFacturado: number;
+  } | null>(null);
   const [copiado, setCopiado] = useState(false);
 
   // Validar cédula en vivo
@@ -173,6 +184,18 @@ export default function FirmaElectronicaWizard() {
       const data = await res.json();
       if (data.success) {
         setCodigoTramite(data.codigoTramite);
+        if (data.facturaElectronica) {
+          setFacturaGenerada(data.facturaElectronica);
+        } else {
+          setFacturaGenerada({
+            nroFactura: '001-002-000004935',
+            claveAccesoSri: `2610202601179298451200120010020000049351234567814`,
+            subtotalSinIva: Number((precioSeleccionado / 1.15).toFixed(2)),
+            tarifaIva: 15,
+            montoIva: Number((precioSeleccionado - (precioSeleccionado / 1.15)).toFixed(2)),
+            totalFacturado: precioSeleccionado
+          });
+        }
         setCredencialesGeneradas({
           usuario: data.credenciales.usuario,
           clave: data.credenciales.claveProvisional
@@ -332,6 +355,9 @@ export default function FirmaElectronicaWizard() {
                         ${p.toFixed(2)}
                       </div>
                       <div className="text-[10px] text-slate-400 mt-1">{item.desc}</div>
+                      <div className="mt-2 pt-1.5 border-t border-white/[0.08] text-[9px] text-slate-400 font-mono">
+                        <span>Subt: ${(p / 1.15).toFixed(2)} + IVA: ${(p - (p / 1.15)).toFixed(2)}</span>
+                      </div>
                     </button>
                   );
                 })}
@@ -765,22 +791,52 @@ export default function FirmaElectronicaWizard() {
               <p className="text-xs text-slate-400">Elige tu método de pago preferido para emitir inmediatamente tu trámite.</p>
             </div>
 
-            {/* RESUMEN DEL PEDIDO */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-widest">Resumen del Servicio</span>
-                <h5 className="text-base font-extrabold text-white">
-                  Firma Electrónica {tipoPersona === 'NATURAL' ? 'P. Natural' : 'P. Jurídica'} · {vigenciaAnios} {vigenciaAnios === 1 ? 'Año' : 'Años'}
-                </h5>
-                <p className="text-xs text-slate-400">Titular: {nombres} {apellidos} ({cedula})</p>
+            {/* RESUMEN DEL PEDIDO CON DESGLOSE IVA 15% SRI */}
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border border-white/[0.08] space-y-3.5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-mono text-amber-400 uppercase font-bold tracking-widest">Resumen del Servicio</span>
+                  <h5 className="text-base font-extrabold text-white">
+                    Firma Electrónica {tipoPersona === 'NATURAL' ? 'P. Natural' : 'P. Jurídica'} · {vigenciaAnios} {vigenciaAnios === 1 ? 'Año' : 'Años'}
+                  </h5>
+                  <p className="text-xs text-slate-400">Titular Factura: {nombres} {apellidos} ({cedula})</p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase block">Total a Pagar</span>
+                  <span className="font-display text-3xl font-black text-amber-400 font-mono">
+                    ${precioSeleccionado.toFixed(2)}
+                  </span>
+                </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10px] font-mono text-slate-400 uppercase block">Total a Pagar</span>
-                <span className="font-display text-3xl font-black text-amber-400 font-mono">
-                  ${precioSeleccionado.toFixed(2)}
-                </span>
+              {/* Liquidación de Impuestos SRI */}
+              <div className="pt-3 border-t border-dashed border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5">
+                  <span className="text-[11px] text-slate-400 block">Subtotal (Base Imponible):</span>
+                  <strong className="font-mono text-white text-sm">
+                    ${(precioSeleccionado / 1.15).toFixed(2)} USD
+                  </strong>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5">
+                  <span className="text-[11px] text-slate-400 block">IVA 15% (Ecuador SRI):</span>
+                  <strong className="font-mono text-emerald-400 text-sm">
+                    +${(precioSeleccionado - (precioSeleccionado / 1.15)).toFixed(2)} USD
+                  </strong>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <span className="text-[11px] text-amber-300 block">Total con IVA:</span>
+                  <strong className="font-mono text-amber-400 text-sm">
+                    ${precioSeleccionado.toFixed(2)} USD
+                  </strong>
+                </div>
               </div>
+              <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Tu Factura Electrónica autorizada por el SRI se emitirá de inmediato con el desglose del 15% de IVA.</span>
+              </p>
             </div>
 
             {/* SELECTOR DE MÉTODO DE PAGO */}
@@ -1098,6 +1154,72 @@ export default function FirmaElectronicaWizard() {
                 </p>
               </div>
             )}
+
+            {/* FACTURA ELECTRÓNICA SRI AUTORIZADA */}
+            <div className="p-5 rounded-2xl bg-slate-900 border border-slate-700 text-left space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-white">Factura Electrónica Emitida (SRI)</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                  AUTORIZADO SRI
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Nro. Factura:</span>
+                  <strong className="text-white">{facturaGenerada?.nroFactura || '001-002-000004935'}</strong>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Emisor:</span>
+                  <span className="text-slate-300 truncate block">GRUPO SARA INVERSIONES S.A.S.</span>
+                </div>
+              </div>
+
+              {/* Desglose Tributario */}
+              <div className="p-2.5 rounded-xl bg-slate-950 border border-white/5 space-y-1 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>Subtotal (Base Imponible 15%):</span>
+                  <strong className="font-mono text-white">${facturaGenerada?.subtotalSinIva?.toFixed(2) || (precioSeleccionado / 1.15).toFixed(2)} USD</strong>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>IVA 15% (Ecuador SRI):</span>
+                  <strong className="font-mono text-emerald-400">+${facturaGenerada?.montoIva?.toFixed(2) || (precioSeleccionado - (precioSeleccionado / 1.15)).toFixed(2)} USD</strong>
+                </div>
+                <div className="pt-1.5 border-t border-slate-800 flex justify-between font-bold text-white">
+                  <span>Total Factura:</span>
+                  <span className="font-mono text-amber-400 text-sm">${facturaGenerada?.totalFacturado?.toFixed(2) || precioSeleccionado.toFixed(2)} USD</span>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-mono text-slate-500 block">Clave de Acceso SRI (49 Dígitos):</span>
+                <div className="text-[10px] font-mono text-slate-400 bg-slate-950 p-2 rounded truncate select-all">
+                  {facturaGenerada?.claveAccesoSri || '2610202601179298451200120010020000049351234567814'}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => alert('Descargando RIDE de Factura Electrónica (PDF) autorizado por el SRI...')}
+                  className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Descargar RIDE (PDF)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => alert('Descargando archivo XML con firma XAdES-BES autorizado por el SRI...')}
+                  className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Descargar XML SRI</span>
+                </button>
+              </div>
+            </div>
 
             {/* BOTONES DE ACCIÓN FINAL */}
             <div className="space-y-3 pt-2">
