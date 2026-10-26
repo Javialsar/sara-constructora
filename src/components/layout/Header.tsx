@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client"
 
 const navLinks: { name: string; href: string; isFeatured?: boolean }[] = [
   { name: "Inicio", href: "/" },
+  { name: "Factura & Firma", href: "/facturacion-electronica", isFeatured: true },
   { name: "Fletes & Renta", href: "/modulos/fletes", isFeatured: true },
   { name: "Nosotros", href: "/nosotros" },
   { name: "Noticias", href: "/noticias" },

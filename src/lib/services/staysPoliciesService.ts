@@ -95,7 +95,7 @@ export async function getStaysPolicies(): Promise<StaysPolicies> {
   // 2. Si estamos en servidor, intentar leer de Supabase
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (supabaseUrl && serviceRoleKey) {
       const { createClient: createSupabaseClient } = await import("@supabase/supabase-js")
       const admin = createSupabaseClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } })

@@ -13,12 +13,36 @@ function getSupabaseAdmin() {
 /**
  * POST /api/airbnb/pagos/webhook
  * Webhook de confirmación de pagos (Stripe, Kushki, Datafast, Payphone)
- * Valida idempotencia, actualiza estado de la reserva y genera clave de acceso temporal
+ * Valida firma criptográfica, idempotencia, actualiza estado de la reserva y genera clave de acceso temporal
  */
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text()
     const signature = request.headers.get("x-signature") || request.headers.get("stripe-signature") || ""
+    const webhookSecret = process.env.STAYS_PAYMENT_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET
+
+    // Validación Criptográfica Zero-Trust de Firma de Webhook
+    if (process.env.NODE_ENV === "production" && !webhookSecret) {
+      console.error("[CRITICAL] STAYS_PAYMENT_WEBHOOK_SECRET no está configurado en producción.")
+      return NextResponse.json({ error: "Configuración de webhook inválida en producción" }, { status: 500 })
+    }
+
+    if (webhookSecret) {
+      if (!signature) {
+        return NextResponse.json({ error: "Firma criptográfica obligatoria ausente (x-signature)" }, { status: 401 })
+      }
+
+      const expectedHmac = crypto.createHmac("sha256", webhookSecret).update(rawBody).digest("hex")
+      const sigClean = signature.replace(/^sha256=/i, "").trim()
+
+      const isSignatureValid =
+        sigClean.length === expectedHmac.length &&
+        crypto.timingSafeEqual(Buffer.from(sigClean, "utf8"), Buffer.from(expectedHmac, "utf8"))
+
+      if (!isSignatureValid) {
+        return NextResponse.json({ error: "Firma criptográfica de webhook inválida" }, { status: 401 })
+      }
+    }
 
     let event: any = {}
     try {
@@ -60,10 +84,10 @@ export async function POST(request: Request) {
       })
     }
 
-    // 2. Generar PIN de cerradura inteligente dinámico si el pago fue aprobado
+    // 2. Generar PIN de cerradura inteligente criptográficamente seguro si el pago fue aprobado
     let dynamicSmartLockPIN = ""
     if (status === "aprobado") {
-      const pinNumero = Math.floor(1000 + Math.random() * 9000)
+      const pinNumero = crypto.randomInt(100000, 999999)
       dynamicSmartLockPIN = `#${pinNumero}#`
     }
 

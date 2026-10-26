@@ -47,20 +47,33 @@ export async function POST(req: NextRequest) {
       cliente: 'cliente_constructora',
     };
 
-    const selectedRole = roleMap[tipoProfesional] || 'representante_legal';
+    const requestedRole = roleMap[tipoProfesional] || 'cliente_constructora';
     const adminClient = await createSupabaseAdminClient();
 
-    // Extraer nombre y apellido de forma limpia para satisfacer la restricción NOT NULL del trigger handle_new_user
+    // Extraer nombre y apellido de forma limpia
     const nameParts = fullName.trim().split(/\s+/);
     const nombre = nameParts[0] || 'Usuario';
     const apellido = nameParts.slice(1).join(' ') || nameParts[0] || 'Constructora';
     const cleanPhone = phone?.trim() || '';
 
-    // 1. Crear el usuario en auth.users con permisos de Admin (con metadata requerida por el trigger on_auth_user_created)
+    // Principio de Menor Privilegio Zero-Trust:
+    // Los nuevos profesionales se registran con estado 'pendiente_aprobacion'.
+    // Requieren verificación de SENESCYT y aprobación de Master Admin antes de acceder a la suite técnica.
+    const initialStatus = requestedRole === 'cliente_constructora' ? 'activo' : 'pendiente_aprobacion';
+
+    // 1. Crear el usuario en auth.users
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: email.trim(),
       password: password.trim(),
       email_confirm: true,
+      app_metadata: {
+        role: requestedRole,
+        status: initialStatus,
+        modulo_origen: 'sara_constructora',
+        modulos_autorizados: ['sara_constructora'],
+        es_admin: false,
+        aprobado_por_admin: requestedRole === 'cliente_constructora'
+      },
       user_metadata: {
         nombre: nombre,
         apellido: apellido,
@@ -68,7 +81,7 @@ export async function POST(req: NextRequest) {
         full_name: fullName.trim(),
         phone: cleanPhone,
         tipo_profesional: tipoProfesional,
-        role: selectedRole,
+        role: requestedRole,
         identificacion: identificacionRuc.trim(),
         ruc: identificacionRuc.trim(),
         registro_profesional: registroSenescyt?.trim() || null,
@@ -77,8 +90,7 @@ export async function POST(req: NextRequest) {
         empresa: razonSocial?.trim() || fullName.trim(),
         codigo_contrato_obra: codigoContratoObra?.trim() || null,
         modulo_origen: 'sara_constructora',
-        modulos_autorizados: ['sara_constructora'],
-        status: 'activo',
+        status: initialStatus,
         created_at: new Date().toISOString(),
       },
     });
@@ -100,7 +112,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Upsert idempotente en la tabla pública 'clientes' para garantizar integridad referencial
+    // 2. Upsert idempotente en la tabla pública 'clientes'
     const { error: dbError } = await adminClient.from('clientes').upsert({
       id: authData.user.id,
       nombre: nombre,
@@ -108,20 +120,23 @@ export async function POST(req: NextRequest) {
       email: email.trim(),
       telefono: cleanPhone || null,
       es_admin: false,
-      estado: 'activo',
+      estado: initialStatus,
     }, { onConflict: 'id' });
 
     if (dbError) {
       console.warn('Advertencia al insertar en tabla pública clientes:', dbError.message);
-      // No bloqueamos el usuario ya creado en auth
     }
 
     return NextResponse.json({
       success: true,
+      mensaje: initialStatus === 'pendiente_aprobacion'
+        ? 'Cuenta profesional registrada con éxito. Su perfil está en proceso de validación técnica de credenciales SENESCYT.'
+        : 'Cuenta creada y activada con éxito.',
       user: {
         id: authData.user.id,
         email: authData.user.email,
-        role: selectedRole,
+        role: requestedRole,
+        status: initialStatus
       },
     });
   } catch (error: any) {

@@ -11,6 +11,7 @@ import {
   Truck, 
   Users, 
   Wallet, 
+  FileText,
   ArrowUpRight,
   Sparkles,
   CheckCircle2,
@@ -59,6 +60,19 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
       badge: 'SaaS Constructor',
       stats: 'Cálculo al Instante',
       pricePreview: { title: 'Suscripción APU Constructor Pro', amount: 19.99, isSub: true }
+    },
+    {
+      id: 'facturacion',
+      title: 'SARA-FACTURACION',
+      tagline: 'Facturación SRI & Firma Digital',
+      desc: 'Emisión para profesionales y pymes. Pases diarios ($1.50), bolsas prepago y obtención de firma digital acreditada por ARCOTEL en 15 minutos.',
+      logoUrl: logos.fintech,
+      iconFallback: FileText,
+      href: '/facturacion-electronica',
+      accentColor: 'from-blue-500 to-indigo-700',
+      badge: 'Pases On-Demand & ARCOTEL',
+      stats: 'Day Pass $1.50 | Firma $18',
+      pricePreview: { title: 'Pase Diario 24h Facturación', amount: 1.50, isSub: false }
     },
     {
       id: 'marketplace',
@@ -150,7 +164,7 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
         <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Los 8 Servicios de Grupo SARA</span>
+            <span>Los Servicios Integrados de Grupo SARA</span>
           </div>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
             Ecosistema de Módulos SARA
@@ -160,8 +174,8 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
           </p>
         </div>
 
-        {/* 8 Module Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
+        {/* 9 Module Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7">
           {modules.map((m) => {
             const Icon = m.iconFallback;
             return (

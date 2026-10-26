@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import { createSupabaseServerClient } from "@/lib/supabase-server"
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -12,6 +13,44 @@ function getSupabaseAdmin() {
 function formatDateToICal(dateStr: string): string {
   // Convierte YYYY-MM-DD a YYYYMMDD
   return dateStr.replace(/-/g, "")
+}
+
+// Lista blanca estricta de dominios autorizados para prevenir SSRF
+const ALLOWED_ICAL_HOSTS = [
+  "airbnb.com",
+  "www.airbnb.com",
+  "airbnb.es",
+  "booking.com",
+  "www.booking.com",
+  "vrbo.com",
+  "www.vrbo.com",
+  "calendar.google.com",
+  "ical.gruposara.ec"
+]
+
+function isSafeUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl)
+    if (parsed.protocol !== "https:") return false
+    const hostname = parsed.hostname.toLowerCase()
+
+    // Bloquear explícitamente localhost, IPs privadas y metadatos de nube
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("172.16.") ||
+      hostname.startsWith("172.31.") ||
+      hostname === "169.254.169.254"
+    ) {
+      return false
+    }
+
+    return ALLOWED_ICAL_HOSTS.some(allowed => hostname === allowed || hostname.endsWith("." + allowed))
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -114,10 +153,20 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/airbnb/ical
- * Importa un feed externo de Airbnb / Booking / VRBO para sincronizar disponibilidad bidireccional
+ * Importa un feed externo de Airbnb / Booking / VRBO con mitigación anti-SSRF y autenticación
  */
 export async function POST(request: Request) {
   try {
+    // 1. Verificación de sesión obligatoria
+    const serverClient = await createSupabaseServerClient()
+    const { data: { user } } = await serverClient.auth.getUser()
+    if (!user) {
+      return NextResponse.json(
+        { error: "No autorizado: Inicie sesión para sincronizar calendarios externos iCal." },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { stayCode, iCalUrl, rawIcsContent } = body
 
@@ -127,9 +176,20 @@ export async function POST(request: Request) {
 
     let icsText = rawIcsContent || ""
     if (iCalUrl) {
-      const res = await fetch(iCalUrl)
+      if (!isSafeUrl(iCalUrl)) {
+        return NextResponse.json(
+          { error: "URL de feed iCal no permitida. Solo se admiten conexiones HTTPS hacia dominios autorizados (Airbnb, Booking, VRBO, Google)." },
+          { status: 400 }
+        )
+      }
+
+      const res = await fetch(iCalUrl, {
+        headers: { "User-Agent": "SARA-Stays-iCal-Sync/1.0" },
+        signal: AbortSignal.timeout(10000)
+      })
+
       if (!res.ok) {
-        return NextResponse.json({ error: `No se pudo descargar el feed iCal desde ${iCalUrl}` }, { status: 400 })
+        return NextResponse.json({ error: `No se pudo descargar el feed iCal desde el proveedor externo` }, { status: 400 })
       }
       icsText = await res.text()
     }

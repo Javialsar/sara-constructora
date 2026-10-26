@@ -1,8 +1,9 @@
 /**
  * SARA STAYS - SMART LOCK IOT GATEWAY ADAPTER
- * Genera claves de acceso dinámicas con ventana temporal estricta:
+ * Genera claves de acceso dinámicas con ventana temporal estricta y aleatoriedad criptográfica:
  * Válidas únicamente entre la hora oficial de check-in (15:00) y la hora de check-out (11:00).
  */
+import crypto from "crypto"
 
 export interface SmartLockAccess {
   stayCode: string
@@ -21,8 +22,8 @@ export function generateDynamicSmartLockPIN(
   checkInDate: string,
   checkOutDate: string
 ): SmartLockAccess {
-  // Genera un código de 6 dígitos con formato estándar de cerraduras inteligentes #XXXXXX#
-  const randomSuffix = Math.floor(100000 + Math.random() * 900000)
+  // Genera un código de 6 dígitos criptográficamente seguro (#XXXXXX#)
+  const randomSuffix = crypto.randomInt(100000, 999999)
   const pin = `#${randomSuffix}#`
 
   // Ventana temporal de acceso (Hora estándar check-in: 15:00 UTC-5 / Check-out: 11:00 UTC-5)

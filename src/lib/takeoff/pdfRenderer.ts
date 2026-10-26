@@ -67,10 +67,13 @@ export async function loadPdfDocument(fileOrBuffer: File | ArrayBuffer): Promise
   }
 
   currentPdfData = buffer
+  // Mitigación Zero-Trust contra CVE-2024-4367: Deshabilitar ejecución de eval() y fuentes maliciosas
   const loadingTask = pdfjs.getDocument({
     data: new Uint8Array(buffer),
     cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-    cMapPacked: true
+    cMapPacked: true,
+    isEvalSupported: false,
+    disableFontFace: true
   })
 
   cachedPdfDoc = await loadingTask.promise
