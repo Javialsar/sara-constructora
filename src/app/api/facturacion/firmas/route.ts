@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { SaraBankReconciliationService } from '@/lib/services/bankReconciliationService';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -151,8 +152,24 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { id, accion } = body;
 
-    if (!id || !accion) {
-      return NextResponse.json({ error: 'id y accion son obligatorios' }, { status: 400 });
+    if (!accion) {
+      return NextResponse.json({ error: 'accion es obligatoria' }, { status: 400 });
+    }
+
+    // Acción Masiva de Auto-Validación Autónoma por IA
+    if (accion === 'AUTO_VALIDAR_IA_MASIVO') {
+      const resAuto = await SaraBankReconciliationService.autoValidarPendientes();
+      return NextResponse.json({
+        success: true,
+        accion: 'AUTO_VALIDAR_IA_MASIVO',
+        totalAprobadas: resAuto.totalAprobadas,
+        detalles: resAuto.detalles,
+        mensaje: `Agente Autónomo SARA-PAGOS validó ${resAuto.totalAprobadas} solicitudes pendientes sin intervención humana.`
+      });
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'id es obligatorio para esta acción' }, { status: 400 });
     }
 
     let nuevoEstado = 'EN_TRAMITE_ARCOTEL';

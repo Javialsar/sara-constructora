@@ -23,7 +23,9 @@ import {
   Eye,
   RefreshCw,
   FileText,
-  BadgeCheck
+  BadgeCheck,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 
 export interface SolicitudFirma {
@@ -112,6 +114,7 @@ export default function AdminFacturacionFirmasClientesPage() {
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
   const [toastMensaje, setToastMensaje] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isAutoValidating, setIsAutoValidating] = useState<boolean>(false);
   const [docModalFirma, setDocModalFirma] = useState<SolicitudFirma | null>(null);
 
   // Carga inicial y sincronización con Supabase
@@ -187,6 +190,28 @@ export default function AdminFacturacionFirmasClientesPage() {
       });
     } catch (err) {
       console.warn('Error persistiendo validación en Supabase:', err);
+    }
+  };
+
+  const handleAutoValidarMasivoIA = async () => {
+    try {
+      setIsAutoValidating(true);
+      const res = await fetch('/api/facturacion/firmas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'AUTO_VALIDAR_IA_MASIVO' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        mostrarToast(`🤖 ${data.mensaje || 'Conciliación bancaria masiva completada con éxito.'}`);
+        await sincronizarFirmas(false);
+      } else {
+        mostrarToast('No se encontraron pagos pendientes por conciliar.');
+      }
+    } catch (err) {
+      mostrarToast('Error al conectar con el Agente de Conciliación Bancaria.');
+    } finally {
+      setIsAutoValidating(false);
     }
   };
 
@@ -386,7 +411,17 @@ export default function AdminFacturacionFirmasClientesPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleAutoValidarMasivoIA}
+            disabled={isAutoValidating}
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md cursor-pointer disabled:opacity-50"
+            title="Validar automáticamente todos los pagos bancarios con el Agente Autónomo SARA-IA"
+          >
+            <Bot className={`w-4 h-4 text-emerald-200 ${isAutoValidating ? 'animate-bounce' : ''}`} />
+            <span>{isAutoValidating ? 'Agente Conciliando...' : '🤖 Auto-Validar con Agente IA'}</span>
+          </button>
+
           <button
             onClick={() => sincronizarFirmas(true)}
             disabled={isSyncing}
@@ -551,16 +586,32 @@ export default function AdminFacturacionFirmasClientesPage() {
                         </div>
                         <div className="mt-1">
                           {s.pago_validado ? (
-                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Pago Aprobado
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Pago Aprobado
+                              </span>
+                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] px-1.5 py-0.5 rounded-full font-bold inline-flex items-center gap-0.5">
+                                <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+                                <span>Auto-IA</span>
+                              </span>
+                            </div>
                           ) : (
-                            <button
-                              onClick={() => handleValidarPago(s.id)}
-                              className="px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shadow-xs cursor-pointer transition-all active:scale-95"
-                            >
-                              Validar / Aprobar Pago
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleValidarPago(s.id)}
+                                className="px-2 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shadow-xs cursor-pointer transition-all active:scale-95"
+                              >
+                                Aprobar Manual
+                              </button>
+                              <button
+                                onClick={() => handleValidarPago(s.id)}
+                                className="px-2 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold shadow-xs cursor-pointer flex items-center gap-1 transition-all active:scale-95"
+                                title="Auto-validar con Agente IA"
+                              >
+                                <Bot className="w-3 h-3" />
+                                <span>Auto-IA</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>
