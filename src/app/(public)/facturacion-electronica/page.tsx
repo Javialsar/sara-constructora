@@ -15,6 +15,7 @@ import {
   CreditCard, 
   Clock, 
   Building2, 
+  User,
   UserCheck, 
   Percent, 
   HelpCircle,
@@ -25,8 +26,12 @@ import {
 } from 'lucide-react';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import FirmaElectronicaWizard from '@/components/facturacion/FirmaElectronicaWizard';
+import FirmaElectronicaModal from '@/components/facturacion/FirmaElectronicaModal';
 
 export default function FacturacionElectronicaLanding() {
+  // Modal de Firma Electrónica flotante para máxima comodidad
+  const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+
   // Estado para la calculadora de ahorro
   const [facturasAlMes, setFacturasAlMes] = useState<number>(5);
 
@@ -123,13 +128,14 @@ export default function FacturacionElectronicaLanding() {
             <a href="#planes" className="px-3 py-1.5 rounded-lg hover:bg-white/[0.05] text-slate-300 hover:text-white">
               Planes & Pases
             </a>
-            <a 
-              href="#firma-electronica" 
-              className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 font-bold"
+            <button 
+              type="button"
+              onClick={() => setIsFirmaModalOpen(true)} 
+              className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/30 flex items-center gap-1.5 font-bold cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5" />
               Obtener Firma Digital
-            </a>
+            </button>
             <a href="#consulta-publica" className="px-3 py-1.5 rounded-lg hover:bg-white/[0.05] text-slate-300 hover:text-white flex items-center gap-1">
               <Search className="w-3.5 h-3.5" /> Descargar Facturas
             </a>
@@ -165,13 +171,14 @@ export default function FacturacionElectronicaLanding() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="#firma-electronica"
-              className="w-full sm:w-auto min-h-[52px] px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all"
+            <button
+              type="button"
+              onClick={() => setIsFirmaModalOpen(true)}
+              className="w-full sm:w-auto min-h-[52px] px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all cursor-pointer"
             >
               <KeyRound className="w-5 h-5" />
               Obtener Firma Electrónica ($18)
-            </a>
+            </button>
             <a
               href="#planes"
               className="w-full sm:w-auto min-h-[52px] px-8 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
@@ -205,7 +212,134 @@ export default function FacturacionElectronicaLanding() {
 
       {/* 2. MÓDULO ESTRELLA: OBTENCIÓN DE FIRMA ELECTRÓNICA INTEGRADA (ONE-FLOW EXPRESS) */}
       <section id="firma-electronica" className="py-20 md:py-28 px-4 sm:px-6 lg:px-12 bg-slate-900 border-y border-white/[0.08] relative">
-        <FirmaElectronicaWizard />
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-3">
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Emisión Digital Acreditada ARCOTEL</span>
+            </div>
+            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
+              Obtención de Firma Electrónica Express
+            </h2>
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              Válida para el SRI, Quipux, Notarías, SENAE, Compras Públicas (SERCOP) y contratos en PDF. Proceso 100% online con biometría facial, creación automática de tu cuenta y Factura Electrónica con IVA 15% desglosado.
+            </p>
+          </div>
+
+          {/* Tarjetas de Planes Resumen */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            {/* Persona Natural */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-slate-950/80 border border-white/10 hover:border-amber-400/40 transition-all shadow-xl flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <User className="w-6 h-6" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Desde $18.00 USD
+                  </span>
+                </div>
+                <h3 className="font-display text-2xl font-bold text-white">Persona Natural</h3>
+                <p className="text-xs text-slate-400 mt-1">Profesionales, arquitectos, ingenieros, técnicos y comerciantes.</p>
+
+                <div className="mt-6 space-y-2 text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Archivo <strong>.p12 descargable</strong> + Bóveda Cloud SARA</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Vigencia: 1 Año ($18), 2 Años ($30), 5 Años ($55)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="text-amber-400 font-bold">15 facturas electrónicas GRATIS incluidas</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-white/[0.08] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-mono">Subtotal: $15.65 + IVA 15%: $2.35</span>
+                  <span className="font-display text-2xl font-black text-amber-400 font-mono">$18.00 <span className="text-xs text-slate-400 font-normal">/ 1 año</span></span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFirmaModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Solicitar</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Persona Jurídica */}
+            <div className="p-6 sm:p-8 rounded-3xl bg-slate-950/80 border border-white/10 hover:border-amber-400/40 transition-all shadow-xl flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    Desde $22.00 USD
+                  </span>
+                </div>
+                <h3 className="font-display text-2xl font-bold text-white">Persona Jurídica (Empresa)</h3>
+                <p className="text-xs text-slate-400 mt-1">Representantes legales de Compañías S.A., Cía. Ltda., S.A.S. o Entidades.</p>
+
+                <div className="mt-6 space-y-2 text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Emisión con Razón Social y RUC de la Empresa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Vigencia: 1 Año ($22), 2 Años ($38), 5 Años ($65)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="text-amber-400 font-bold">15 facturas electrónicas GRATIS incluidas</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-white/[0.08] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-mono">Subtotal: $19.13 + IVA 15%: $2.87</span>
+                  <span className="font-display text-2xl font-black text-amber-400 font-mono">$22.00 <span className="text-xs text-slate-400 font-normal">/ 1 año</span></span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFirmaModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Solicitar</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Gran Botón CTA Central para abrir el Modal */}
+          <div className="text-center bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border border-amber-500/30 p-8 rounded-3xl">
+            <h3 className="font-display text-2xl font-black text-white mb-2">
+              ¿Listo para obtener tu Firma Electrónica hoy mismo?
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto mb-6">
+              Abre el formulario express en modal para ingresar tus datos, subir tus fotos con vista previa real y pagar en segundos con DeUna, Tarjeta o Transferencia.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsFirmaModalOpen(true)}
+              className="min-h-[54px] px-10 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 mx-auto active:scale-98 transition-all cursor-pointer"
+            >
+              <KeyRound className="w-5 h-5" />
+              <span>Abrir Formulario de Solicitud en Modal Express</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* 3. CALCULADORA INTERACTIVA DE AHORRO */}
@@ -542,6 +676,12 @@ export default function FacturacionElectronicaLanding() {
           </div>
         </div>
       </section>
+
+      {/* MODAL DE SOLICITUD DE FIRMA ELECTRÓNICA (.p12) EXPRESS */}
+      <FirmaElectronicaModal
+        isOpen={isFirmaModalOpen}
+        onClose={() => setIsFirmaModalOpen(false)}
+      />
 
       {/* CHECKOUT MODAL UNIFICADO */}
       <StandardCheckoutModal
