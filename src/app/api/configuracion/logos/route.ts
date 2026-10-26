@@ -56,6 +56,8 @@ export async function GET() {
         fletes: sanitize(dbLogos.fletes, DEFAULT_LOGOS_EMPRESA.fletes),
         talento: sanitize(dbLogos.talento, DEFAULT_LOGOS_EMPRESA.talento),
         fintech: sanitize(dbLogos.fintech, DEFAULT_LOGOS_EMPRESA.fintech),
+        facturacion: sanitize(dbLogos.facturacion, DEFAULT_LOGOS_EMPRESA.facturacion || "/images/sara-facturacion.png"),
+        firma: sanitize(dbLogos.firma, DEFAULT_LOGOS_EMPRESA.firma || "/images/sara-firma.png"),
       }
 
       return NextResponse.json({ success: true, logos: merged, origin: "supabase" })
@@ -115,6 +117,8 @@ export async function POST(req: Request) {
       fletes: body.fletes?.trim() || currentLogos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
       talento: body.talento?.trim() || currentLogos.talento || DEFAULT_LOGOS_EMPRESA.talento,
       fintech: body.fintech?.trim() || currentLogos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
+      facturacion: body.facturacion?.trim() || currentLogos.facturacion || DEFAULT_LOGOS_EMPRESA.facturacion,
+      firma: body.firma?.trim() || currentLogos.firma || DEFAULT_LOGOS_EMPRESA.firma,
     }
 
     // 2. Guardar en parametros_globales (indirectos_default.logos_servicios)

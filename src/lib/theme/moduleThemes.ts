@@ -12,7 +12,8 @@ export type ModuloKey =
   | 'talento' 
   | 'inmobiliaria' 
   | 'stays' 
-  | 'financiero';
+  | 'financiero'
+  | 'facturacion';
 
 export type ColorTone = 
   | 'wine'        // 🍷 Conchovino / Borgoña
@@ -301,7 +302,8 @@ export const DEFAULT_MODULE_THEMES: Record<ModuloKey, ColorTone> = {
   talento: 'emerald',
   inmobiliaria: 'purple',
   stays: 'rose',
-  financiero: 'teal'
+  financiero: 'teal',
+  facturacion: 'amber'
 };
 
 export const SARA_MODULES_LIST: ModuleThemeConfig[] = [
@@ -360,6 +362,13 @@ export const SARA_MODULES_LIST: ModuleThemeConfig[] = [
     subtitle: 'Fideicomiso, SRI & UAFE',
     route: '/modulos/financiero',
     defaultTone: 'teal'
+  },
+  {
+    key: 'facturacion',
+    name: 'SARA Facturación & Firma',
+    subtitle: 'Comprobantes SRI & Firma .p12',
+    route: '/modulos/facturacion',
+    defaultTone: 'amber'
   }
 ];
 
@@ -371,7 +380,8 @@ export const MODULE_ICONS: Record<ModuloKey, string> = {
   talento: '👷',
   inmobiliaria: '🏢',
   stays: '🏡',
-  financiero: '💳'
+  financiero: '💳',
+  facturacion: '✍️'
 };
 
 export const STORAGE_KEY_MODULE_THEMES = 'sara_module_themes_config';

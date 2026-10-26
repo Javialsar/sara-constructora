@@ -134,6 +134,9 @@ function getModuleBadge(pathname: string, themes: Record<ModuloKey, ColorTone>) 
   if (pathname.startsWith('/modulos/importador')) {
     return { label: 'SARA Importador Excel/CSV', dotColor: 'bg-cyan-400', badgeStyle: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20' };
   }
+  if (pathname.startsWith('/modulos/facturacion')) {
+    return { label: 'SARA Facturación & SRI', dotColor: 'bg-amber-400', badgeStyle: 'bg-amber-500/10 text-amber-300 border-amber-500/20' };
+  }
   return { label: 'Ecosistema SARA', dotColor: 'bg-emerald-400', badgeStyle: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' };
 }
 

@@ -38,10 +38,15 @@ import {
   Building2,
   Check,
   X,
-  CreditCard
+  CreditCard,
+  UserCheck,
+  MapPin,
+  Phone,
+  Save
 } from 'lucide-react';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import { createClient } from '@/lib/supabase/client';
+import { PROVINCIAS_CANTONES_ECUADOR } from '@/lib/constants/ecuadorGeo';
 
 interface FacturaItem {
   id: string;
@@ -93,11 +98,28 @@ export default function FacturacionDashboardPage() {
     badgeText: 'Recarga Prepago'
   });
 
-  // Datos del Tenant / Usuario
+  // Datos del Tenant / Emisor SRI
   const [tenantInfo, setTenantInfo] = useState({
     ruc: '1792345678001',
+    nombres: 'Carlos Patricio',
+    apellidos: 'Mendoza Andrade',
     razonSocial: 'ING. CARLOS MENDOZA ARQUITECTURA & CONSTRUCCIÓN',
+    nombreComercial: 'Mendoza Arquitectura & Obras',
     email: 'carlos.mendoza@mendozaconstr.ec',
+    emailContador: 'contabilidad@mendozaconstr.ec',
+    contacto: '+593 99 876 5432',
+    telefonoFijo: '02 245 8900',
+    provincia: 'Pichincha',
+    ciudad: 'Quito',
+    calles: 'Av. República de El Salvador N36-84 y Naciones Unidas',
+    referencia: 'Edificio Platinum Plaza, Piso 4, Oficina 402',
+    tipoContribuyente: 'CONSTRUCCION',
+    regimen: 'Régimen RIMPE - Negocio Emprendedor',
+    obligadoContabilidad: 'NO',
+    contribuyenteEspecial: 'NO',
+    resolucionAgenteRetencion: '',
+    establecimiento: '001',
+    puntoEmision: '001',
     ambiente: 'PRODUCCIÓN (2)',
     planActivo: 'Bolsa Prepago Micro',
     creditosRestantes: 12,
@@ -107,17 +129,72 @@ export default function FacturacionDashboardPage() {
     firmaEmisor: 'SECURITY DATA (ARCOTEL)'
   });
 
-  // Verificar si hay datos guardados de autenticación
+  // Manejo de Cerrar y retorno a landing page de Grupo SARA
+  const handleCerrar = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Aviso al cerrar sesión:', e);
+    }
+    // Redirigir a landing page de Grupo SARA
+    window.location.href = '/';
+  };
+
+  // Guardar datos del emisor
+  const handleSaveDatosEmisor = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!tenantInfo.ruc || tenantInfo.ruc.length !== 13) {
+      showToast('El RUC del emisor debe tener exactamente 13 dígitos.');
+      return;
+    }
+    if (!tenantInfo.razonSocial && (!tenantInfo.nombres || !tenantInfo.apellidos)) {
+      showToast('Por favor ingresa los nombres y apellidos o la razón social.');
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sara_facturacion_emisor_data', JSON.stringify(tenantInfo));
+      localStorage.setItem('sara_facturacion_auth_ruc', tenantInfo.ruc);
+      localStorage.setItem('sara_facturacion_auth_razon', tenantInfo.razonSocial);
+      localStorage.setItem('sara_facturacion_auth_email', tenantInfo.email);
+    }
+
+    showToast('¡Datos del emisor actualizados y sincronizados con éxito!');
+  };
+
+  // Verificar si hay datos guardados de autenticación o emisor
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const savedEmisorRaw = localStorage.getItem('sara_facturacion_emisor_data');
+      if (savedEmisorRaw) {
+        try {
+          const parsed = JSON.parse(savedEmisorRaw);
+          setTenantInfo(prev => ({
+            ...prev,
+            ...parsed,
+            nombres: parsed.nombres || prev.nombres,
+            apellidos: parsed.apellidos || prev.apellidos,
+            razonSocial: parsed.razonSocial || prev.razonSocial,
+            ruc: parsed.ruc || prev.ruc,
+            provincia: parsed.direccion?.provincia || parsed.provincia || prev.provincia,
+            ciudad: parsed.direccion?.ciudad || parsed.ciudad || prev.ciudad,
+            calles: parsed.direccion?.calles || parsed.calles || prev.calles,
+            contacto: parsed.contacto || prev.contacto,
+            email: parsed.email || prev.email
+          }));
+        } catch (e) {
+          console.warn('Error al leer datos guardados del emisor:', e);
+        }
+      }
       const savedRuc = localStorage.getItem('sara_facturacion_auth_ruc');
       const savedRazon = localStorage.getItem('sara_facturacion_auth_razon');
       const savedEmail = localStorage.getItem('sara_facturacion_auth_email');
-      if (savedRuc && savedRazon) {
+      if (savedRuc || savedRazon || savedEmail) {
         setTenantInfo(prev => ({
           ...prev,
-          ruc: savedRuc,
-          razonSocial: savedRazon,
+          ruc: savedRuc || prev.ruc,
+          razonSocial: savedRazon || prev.razonSocial,
           email: savedEmail || prev.email
         }));
       }
@@ -468,13 +545,23 @@ export default function FacturacionDashboardPage() {
                     {tenantInfo.ambiente}
                   </span>
                 </div>
-                <button
-                  onClick={() => setAuthModalOpen(true)}
-                  className="text-[10px] text-slate-400 hover:text-white uppercase font-bold tracking-wider cursor-pointer"
-                  title="Cambiar Contribuyente o Iniciar Sesión"
-                >
-                  Cambiar
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('CONFIG')}
+                    className="text-[10px] text-amber-400 hover:text-amber-300 uppercase font-bold tracking-wider cursor-pointer"
+                    title="Editar Datos del Emisor SRI"
+                  >
+                    Editar
+                  </button>
+                  <span className="text-slate-600 text-[10px]">|</span>
+                  <button
+                    onClick={() => setAuthModalOpen(true)}
+                    className="text-[10px] text-slate-400 hover:text-white uppercase font-bold tracking-wider cursor-pointer"
+                    title="Cambiar Contribuyente o Iniciar Sesión"
+                  >
+                    Cuenta
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -634,8 +721,8 @@ export default function FacturacionDashboardPage() {
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Settings className="w-4 h-4 shrink-0" />
-                  <span>Configuración Emisor</span>
+                  <UserCheck className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Datos Emisor</span>
                 </div>
                 <span className="text-[10px] font-mono text-slate-500">001-001</span>
               </button>
@@ -678,11 +765,13 @@ export default function FacturacionDashboardPage() {
                 <ExternalLink className="w-3 h-3" />
               </Link>
               <button 
-                onClick={() => setAuthModalOpen(true)}
-                className="hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+                type="button"
+                onClick={handleCerrar}
+                className="hover:text-rose-400 text-slate-400 transition-colors flex items-center gap-1.5 cursor-pointer font-bold"
+                title="Cerrar sesión y volver al Landing Page de Grupo SARA"
               >
-                <LogOut className="w-3 h-3" />
-                <span>Salir</span>
+                <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                <span>Cerrar</span>
               </button>
             </div>
           </div>
@@ -711,11 +800,11 @@ export default function FacturacionDashboardPage() {
                 {activeTab === 'CATALOGOS' && 'Directorio de Clientes & Catálogo de Rubros'}
                 {activeTab === 'FIRMA' && 'Bóveda Cifrada de Certificado Digital (.p12)'}
                 {activeTab === 'PLANES' && 'Catálogo de Planes, Pases y Firma Electrónica'}
-                {activeTab === 'CONFIG' && 'Configuración de Contribuyente & Puntos de Emisión'}
+                {activeTab === 'CONFIG' && 'Datos del Emisor SRI & Puntos de Emisión'}
               </h2>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               {activeTab !== 'EMITIR' && (
                 <button
                   onClick={() => setActiveTab('EMITIR')}
@@ -728,11 +817,21 @@ export default function FacturacionDashboardPage() {
               <Link
                 href="/facturacion-electronica"
                 target="_blank"
-                className="px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                className="px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                title="Ver landing page comercial de facturación"
               >
-                <span>Landing Oficial</span>
+                <span>Landing Facturación</span>
                 <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
               </Link>
+              <button
+                type="button"
+                onClick={handleCerrar}
+                className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                title="Cerrar sesión y volver al Landing Page de Grupo SARA"
+              >
+                <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                <span>Cerrar</span>
+              </button>
             </div>
           </div>
 
@@ -1322,29 +1421,405 @@ export default function FacturacionDashboardPage() {
           )}
 
           {/* ===================================================================
-              VISTA 8: CONFIGURACIÓN
+              VISTA 8: DATOS DEL EMISOR SRI (INCREMENTADO CON TODOS LOS CAMPOS)
               =================================================================== */}
           {activeTab === 'CONFIG' && (
-            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6 animate-in fade-in duration-200">
-              <h3 className="text-xl font-bold text-white">Configuración del Emisor SRI</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div>
-                  <label className="block text-slate-400 uppercase font-bold mb-1">RUC Emisor</label>
-                  <input type="text" readOnly value={tenantInfo.ruc} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-slate-300" />
+            <div className="space-y-8 animate-in fade-in duration-200">
+              
+              {/* Header de la Sección */}
+              <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                    <UserCheck className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                        SRI Ecuador 2026
+                      </span>
+                      <span className="text-xs text-slate-400">Puntos de Emisión 001-001</span>
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                      Datos del Emisor & Establecimiento SRI
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                      Actualiza y sincroniza tu identidad tributaria, domicilio fiscal y contacto para la emisión legal de comprobantes electrónicos.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-slate-400 uppercase font-bold mb-1">Razón Social</label>
-                  <input type="text" readOnly value={tenantInfo.razonSocial} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] text-slate-300" />
-                </div>
-                <div>
-                  <label className="block text-slate-400 uppercase font-bold mb-1">Establecimiento y Punto de Emisión</label>
-                  <input type="text" readOnly value="001-001" className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-slate-300" />
-                </div>
-                <div>
-                  <label className="block text-slate-400 uppercase font-bold mb-1">Ambiente SRI</label>
-                  <input type="text" readOnly value={tenantInfo.ambiente} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] text-emerald-400 font-bold" />
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleSaveDatosEmisor}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer transition-all"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Guardar Cambios</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Formulario Completo de Datos del Emisor */}
+              <form onSubmit={handleSaveDatosEmisor} className="space-y-8">
+                
+                {/* 1. IDENTIFICACIÓN DEL CONTRIBUYENTE */}
+                <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-2 pb-4 border-b border-white/[0.06]">
+                    <Building2 className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-base font-bold text-white uppercase tracking-wider">
+                      1. Identificación Legal & Tributaria
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Nombres del Emisor *
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={tenantInfo.nombres || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, nombres: e.target.value })}
+                        placeholder="Carlos Patricio"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Apellidos *
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={tenantInfo.apellidos || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, apellidos: e.target.value })}
+                        placeholder="Mendoza Andrade"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        RUC del Contribuyente (13 Dígitos) *
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        maxLength={13}
+                        value={tenantInfo.ruc} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, ruc: e.target.value.replace(/\D/g, '') })}
+                        placeholder="1792345678001"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-amber-400 font-extrabold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Razón Social Completa *
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={tenantInfo.razonSocial} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, razonSocial: e.target.value })}
+                        placeholder="ING. CARLOS MENDOZA ARQUITECTURA & CONSTRUCCIÓN"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Nombre Comercial (Rótulo)
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tenantInfo.nombreComercial || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, nombreComercial: e.target.value })}
+                        placeholder="Mendoza Arquitectura & Obras"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Tipo de Contribuyente
+                      </label>
+                      <select
+                        value={tenantInfo.tipoContribuyente || 'CONSTRUCCION'}
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, tipoContribuyente: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="PROFESIONAL">Persona Natural / Profesional</option>
+                        <option value="CONSTRUCCION">Contratista / Obras Civiles</option>
+                        <option value="PYME">Comercio / PYME</option>
+                        <option value="EMPRESA">Compañía S.A. / Cía. Ltda.</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Régimen Tributario SRI
+                      </label>
+                      <select
+                        value={tenantInfo.regimen || 'Régimen RIMPE - Negocio Emprendedor'}
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, regimen: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="Régimen General">Régimen General</option>
+                        <option value="Régimen RIMPE - Negocio Emprendedor">Régimen RIMPE - Negocio Emprendedor</option>
+                        <option value="Régimen RIMPE - Negocio Popular">Régimen RIMPE - Negocio Popular</option>
+                        <option value="Contribuyente Especial">Contribuyente Especial</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Obligado a Llevar Contabilidad
+                      </label>
+                      <select
+                        value={tenantInfo.obligadoContabilidad || 'NO'}
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, obligadoContabilidad: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="NO">NO (Persona Natural / RIMPE)</option>
+                        <option value="SI">SÍ (Sociedad / Contabilidad Legal)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. DIRECCIÓN Y DOMICILIO TRIBUTARIO */}
+                <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-2 pb-4 border-b border-white/[0.06]">
+                    <MapPin className="w-5 h-5 text-emerald-400" />
+                    <h4 className="text-base font-bold text-white uppercase tracking-wider">
+                      2. Dirección del Domicilio Tributario / Matriz
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Provincia *
+                      </label>
+                      <select
+                        value={tenantInfo.provincia || 'Pichincha'}
+                        onChange={(e) => {
+                          const prov = e.target.value;
+                          const cantones = PROVINCIAS_CANTONES_ECUADOR[prov] || ['Quito'];
+                          setTenantInfo({ 
+                            ...tenantInfo, 
+                            provincia: prov, 
+                            ciudad: cantones[0] 
+                          });
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        {Object.keys(PROVINCIAS_CANTONES_ECUADOR).map(prov => (
+                          <option key={prov} value={prov}>{prov}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Ciudad / Cantón *
+                      </label>
+                      <select
+                        value={tenantInfo.ciudad || 'Quito'}
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, ciudad: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        {(PROVINCIAS_CANTONES_ECUADOR[tenantInfo.provincia] || ['Quito']).map(cant => (
+                          <option key={cant} value={cant}>{cant}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2 lg:col-span-1">
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Referencia o Piso / Oficina
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tenantInfo.referencia || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, referencia: e.target.value })}
+                        placeholder="Edificio Platinum Plaza, Piso 4, Oficina 402"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 lg:col-span-3">
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Calles (Calle Principal y Secundaria / Numeración) *
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={tenantInfo.calles || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, calles: e.target.value })}
+                        placeholder="Av. República de El Salvador N36-84 y Naciones Unidas"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. CONTACTO Y NOTIFICACIONES */}
+                <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-2 pb-4 border-b border-white/[0.06]">
+                    <Phone className="w-5 h-5 text-blue-400" />
+                    <h4 className="text-base font-bold text-white uppercase tracking-wider">
+                      3. Información de Contacto & Notificaciones SRI
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs">
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Teléfono Celular / WhatsApp *
+                      </label>
+                      <input 
+                        type="text" 
+                        required
+                        value={tenantInfo.contacto || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, contacto: e.target.value })}
+                        placeholder="+593 99 876 5432"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Teléfono Fijo Convencional
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tenantInfo.telefonoFijo || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, telefonoFijo: e.target.value })}
+                        placeholder="02 245 8900"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Correo Electrónico Principal (Notificaciones SRI & Clientes) *
+                      </label>
+                      <input 
+                        type="email" 
+                        required
+                        value={tenantInfo.email} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, email: e.target.value })}
+                        placeholder="carlos.mendoza@mendozaconstr.ec"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Correo Electrónico Copia / Contador
+                      </label>
+                      <input 
+                        type="email" 
+                        value={tenantInfo.emailContador || ''} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, emailContador: e.target.value })}
+                        placeholder="contabilidad@mendozaconstr.ec"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-slate-300 font-medium focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. CONFIGURACIÓN TÉCNICA DEL ESTABLECIMIENTO Y PUNTOS DE EMISIÓN */}
+                <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6">
+                  <div className="flex items-center gap-2 pb-4 border-b border-white/[0.06]">
+                    <Settings className="w-5 h-5 text-purple-400" />
+                    <h4 className="text-base font-bold text-white uppercase tracking-wider">
+                      4. Puntos de Emisión & Configuración SRI
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-xs">
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Establecimiento
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tenantInfo.establecimiento || '001'} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, establecimiento: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Punto de Emisión
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tenantInfo.puntoEmision || '001'} 
+                        onChange={(e) => setTenantInfo({ ...tenantInfo, puntoEmision: e.target.value })}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-white font-bold focus:outline-none focus:ring-2 focus:ring-amber-500" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Ambiente SRI
+                      </label>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={tenantInfo.ambiente} 
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-emerald-400 font-bold" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 uppercase font-bold tracking-wider mb-1.5">
+                        Firma Digital .p12
+                      </label>
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={`${tenantInfo.firmaEmisor} (${tenantInfo.firmaVenceDias} días)`} 
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-slate-300 font-mono" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* BOTÓN INFERIOR DE GUARDADO */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/[0.08]">
+                  <p className="text-xs text-slate-500">
+                    Los cambios guardados se aplicarán de inmediato a los nuevos XML emitidos y al membrete de las facturas RIDE PDF.
+                  </p>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('DASHBOARD')}
+                      className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                    >
+                      Volver al Dashboard
+                    </button>
+                    <button
+                      type="submit"
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>Guardar Datos del Emisor</span>
+                    </button>
+                  </div>
+                </div>
+
+              </form>
+
             </div>
           )}
 

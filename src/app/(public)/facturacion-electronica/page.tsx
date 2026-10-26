@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   FileText, 
   KeyRound, 
@@ -29,8 +30,26 @@ import FirmaElectronicaWizard from '@/components/facturacion/FirmaElectronicaWiz
 import FirmaElectronicaModal from '@/components/facturacion/FirmaElectronicaModal';
 
 export default function FacturacionElectronicaLanding() {
+  const router = useRouter();
+
   // Modal de Firma Electrónica flotante para máxima comodidad
   const [isFirmaModalOpen, setIsFirmaModalOpen] = useState(false);
+
+  const handleIrAlPortal = () => {
+    if (typeof window !== 'undefined') {
+      const isAuth = Boolean(
+        localStorage.getItem('sara_facturacion_auth_email') ||
+        localStorage.getItem('sara_facturacion_auth_ruc')
+      );
+      if (isAuth) {
+        router.push('/modulos/facturacion');
+      } else {
+        router.push('/modulos/facturacion/auth');
+      }
+    } else {
+      router.push('/modulos/facturacion/auth');
+    }
+  };
 
   // Estado para la calculadora de ahorro
   const [facturasAlMes, setFacturasAlMes] = useState<number>(5);
@@ -139,12 +158,14 @@ export default function FacturacionElectronicaLanding() {
             <a href="#consulta-publica" className="px-3 py-1.5 rounded-lg hover:bg-white/[0.05] text-slate-300 hover:text-white flex items-center gap-1">
               <Search className="w-3.5 h-3.5" /> Descargar Facturas
             </a>
-            <Link 
-              href="/modulos/facturacion" 
-              className="ml-2 px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold flex items-center gap-1 transition-colors"
+            <button 
+              type="button"
+              onClick={handleIrAlPortal} 
+              className="ml-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 text-[11px] sm:text-xs uppercase tracking-wider cursor-pointer"
             >
-              Entrar al Portal <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+              <span>PORTAL FACTURACION ELECTRONICA</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </nav>
@@ -667,12 +688,13 @@ export default function FacturacionElectronicaLanding() {
             Únete a la plataforma que democratizó la facturación en el Ecuador. Sin tarifas ocultas, con respaldo fiduciario y cumplimiento normativo estricto.
           </p>
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/modulos/facturacion"
-              className="w-full sm:w-auto min-h-[50px] px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 transition-all"
+            <button
+              type="button"
+              onClick={handleIrAlPortal}
+              className="w-full sm:w-auto min-h-[50px] px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 transition-all cursor-pointer"
             >
-              Ingresar al Entorno de Facturación <ArrowRight className="w-4 h-4" />
-            </Link>
+              PORTAL FACTURACION ELECTRONICA <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </section>
