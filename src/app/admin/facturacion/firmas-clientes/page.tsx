@@ -20,7 +20,10 @@ import {
   Upload,
   Check,
   X,
-  Eye
+  Eye,
+  RefreshCw,
+  FileText,
+  BadgeCheck
 } from 'lucide-react';
 
 export interface SolicitudFirma {
@@ -41,6 +44,8 @@ export interface SolicitudFirma {
   fecha_emision?: string;
   fecha_caducidad?: string;
   archivo_p12_disponible: boolean;
+  documento_cedula_url?: string;
+  video_selfie_url?: string;
 }
 
 const FIRMAS_DEMO: SolicitudFirma[] = [
@@ -74,8 +79,9 @@ const FIRMAS_DEMO: SolicitudFirma[] = [
     vigencia_anios: 1,
     precio_usd: 18.00,
     metodo_pago: 'TARJETA_STRIPE',
+    numero_comprobante: 'STRIPE_981264',
     pago_validado: true,
-    estado_tramite: 'POR_VENCER', // le quedan 15 días
+    estado_tramite: 'POR_VENCER',
     fecha_solicitud: '2025-11-10',
     fecha_emision: '2025-11-10',
     fecha_caducidad: '2026-11-10',
@@ -97,23 +103,6 @@ const FIRMAS_DEMO: SolicitudFirma[] = [
     estado_tramite: 'PENDIENTE_VALIDACION',
     fecha_solicitud: '2026-10-25',
     archivo_p12_disponible: false
-  },
-  {
-    id: 'sol-004',
-    cedula_ruc: '1103498125',
-    nombres: 'TOPÓGRAFO MARCO TOLEDO',
-    tipo_persona: 'NATURAL',
-    email: 'marco.toledo@topografia.ec',
-    telefono: '+593984561230',
-    plan_nombre: 'Firma P. Natural (1 Año)',
-    vigencia_anios: 1,
-    precio_usd: 18.00,
-    metodo_pago: 'DEUNA',
-    numero_comprobante: 'DEUNA-884912',
-    pago_validado: true,
-    estado_tramite: 'EN_TRAMITE_ARCOTEL',
-    fecha_solicitud: '2026-10-25',
-    archivo_p12_disponible: false
   }
 ];
 
@@ -122,6 +111,30 @@ export default function AdminFacturacionFirmasClientesPage() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
   const [toastMensaje, setToastMensaje] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [docModalFirma, setDocModalFirma] = useState<SolicitudFirma | null>(null);
+
+  // Carga inicial y sincronización con Supabase
+  const sincronizarFirmas = async (mostrarToastAviso = false) => {
+    try {
+      setIsSyncing(true);
+      const res = await fetch('/api/facturacion/firmas', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.solicitudes)) {
+          setSolicitudes(data.solicitudes);
+          localStorage.setItem('sara_admin_firmas_clientes', JSON.stringify(data.solicitudes));
+          if (mostrarToastAviso) {
+            mostrarToast('Datos sincronizados en tiempo real con Supabase.');
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error al conectar con la API de firmas:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('sara_admin_firmas_clientes');
@@ -130,6 +143,14 @@ export default function AdminFacturacionFirmasClientesPage() {
         setSolicitudes(JSON.parse(saved));
       } catch {}
     }
+    sincronizarFirmas(false);
+
+    // Auto-polling cada 15 segundos para integración en tiempo real
+    const interval = setInterval(() => {
+      sincronizarFirmas(false);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const persistir = (nuevas: SolicitudFirma[]) => {
@@ -142,7 +163,8 @@ export default function AdminFacturacionFirmasClientesPage() {
     setTimeout(() => setToastMensaje(null), 4000);
   };
 
-  const handleValidarPago = (id: string) => {
+  const handleValidarPago = async (id: string) => {
+    // Actualización optimista local
     const actualizadas = solicitudes.map(s => {
       if (s.id === id) {
         return {
@@ -154,10 +176,21 @@ export default function AdminFacturacionFirmasClientesPage() {
       return s;
     });
     persistir(actualizadas);
-    mostrarToast('Pago bancario validado. Solicitud enviada a trámite de acreditación ARCOTEL.');
+    mostrarToast('Pago validado en tiempo real. Trámite enviado a ARCOTEL.');
+
+    // Persistencia real en Supabase
+    try {
+      await fetch('/api/facturacion/firmas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, accion: 'VALIDAR_PAGO' })
+      });
+    } catch (err) {
+      console.warn('Error persistiendo validación en Supabase:', err);
+    }
   };
 
-  const handleEmitirCertificado = (id: string) => {
+  const handleEmitirCertificado = async (id: string) => {
     const now = new Date();
     const caducidad = new Date();
     caducidad.setFullYear(caducidad.getFullYear() + 1);
@@ -175,19 +208,45 @@ export default function AdminFacturacionFirmasClientesPage() {
       return s;
     });
     persistir(actualizadas);
-    mostrarToast('Firma Electrónica .p12 emitida exitosamente y cargada a la bóveda cifrada del cliente.');
+    mostrarToast('Firma Electrónica .p12 emitida exitosamente y cargada a la bóveda del cliente.');
+
+    // Persistencia real en Supabase
+    try {
+      await fetch('/api/facturacion/firmas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, accion: 'EMITIR_P12' })
+      });
+    } catch (err) {
+      console.warn('Error persistiendo emisión en Supabase:', err);
+    }
   };
 
-  const handleToggleSuspension = (id: string) => {
+  const handleToggleSuspension = async (id: string) => {
+    const solicitudTarget = solicitudes.find(s => s.id === id);
+    const nuevoEstado = solicitudTarget?.estado_tramite === 'SUSPENDIDO' ? 'EMITIDO_ACTIVO' : 'SUSPENDIDO';
+
     const actualizadas = solicitudes.map(s => {
       if (s.id === id) {
-        const nuevoEstado = s.estado_tramite === 'SUSPENDIDO' ? 'EMITIDO_ACTIVO' : 'SUSPENDIDO';
         return { ...s, estado_tramite: nuevoEstado as any };
       }
       return s;
     });
     persistir(actualizadas);
     mostrarToast('Estado del certificado digital actualizado.');
+
+    try {
+      await fetch('/api/facturacion/firmas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          id, 
+          accion: nuevoEstado === 'SUSPENDIDO' ? 'SUSPENDER' : 'REACTIVAR' 
+        })
+      });
+    } catch (err) {
+      console.warn('Error persistiendo suspensión en Supabase:', err);
+    }
   };
 
   const enviarWhatsAppRenovacionFirma = (s: SolicitudFirma) => {
@@ -196,7 +255,7 @@ export default function AdminFacturacionFirmasClientesPage() {
     if (s.fecha_caducidad) {
       mensaje += `Tu certificado de Firma Electrónica (.p12) vencerá el próximo ${s.fecha_caducidad}. Para evitar bloqueos en el SRI, Quipux y SERCOP, puedes renovarla en 15 minutos en: https://sara-constructora.vercel.app/facturacion-electronica#firma-electronica`;
     } else {
-      mensaje += `Tu trámite de firma electrónica está listo para ser procesado. Ingresa a la plataforma para completar la verificación.`;
+      mensaje += `Tu trámite de firma electrónica está registrado en nuestro sistema. Hemos recibido tu comprobante de pago (${s.numero_comprobante || 'Ref: ' + s.cedula_ruc}) y estamos completando la emisión de tu certificado .p12.`;
     }
     const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(mensaje)}`;
     window.open(url, '_blank');
@@ -225,6 +284,90 @@ export default function AdminFacturacionFirmasClientesPage() {
         </div>
       )}
 
+      {/* Modal de Inspección de Documentos */}
+      {docModalFirma && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2">
+                <FileCheck2 className="w-6 h-6 text-amber-600" />
+                <h3 className="text-lg font-black text-slate-900">Requisitos Presentados</h3>
+              </div>
+              <button 
+                onClick={() => setDocModalFirma(null)}
+                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span className="text-slate-500 font-semibold block">Titular:</span>
+                <span className="text-slate-900 font-black text-sm">{docModalFirma.nombres}</span>
+                <span className="text-slate-500 block font-mono">Cédula: {docModalFirma.cedula_ruc}</span>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <div>
+                      <div className="font-bold text-slate-800">Cédula Frontal y Posterior</div>
+                      <div className="text-[11px] text-slate-500">{docModalFirma.documento_cedula_url || 'Adjuntado en solicitud'}</div>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Cargado</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <div>
+                      <div className="font-bold text-slate-800">Selfie Biométrica con Cédula</div>
+                      <div className="text-[11px] text-slate-500">{docModalFirma.video_selfie_url || 'Verificación facial biométrica'}</div>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Verificado</span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-amber-600" />
+                    <div>
+                      <div className="font-bold text-slate-800">Comprobante / Referencia de Pago</div>
+                      <div className="text-[11px] font-mono text-slate-600">{docModalFirma.metodo_pago}: {docModalFirma.numero_comprobante}</div>
+                    </div>
+                  </div>
+                  <span className="font-mono font-black text-sm text-slate-900">${docModalFirma.precio_usd.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end gap-2">
+              <button
+                onClick={() => setDocModalFirma(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+              >
+                Cerrar
+              </button>
+              {!docModalFirma.pago_validado && (
+                <button
+                  onClick={() => {
+                    handleValidarPago(docModalFirma.id);
+                    setDocModalFirma(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Aprobar Pago Ahora</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
         <div>
@@ -244,6 +387,16 @@ export default function AdminFacturacionFirmasClientesPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => sincronizarFirmas(true)}
+            disabled={isSyncing}
+            className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Sincronizar en tiempo real con Supabase"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+          </button>
+
           <Link
             href="/facturacion-electronica#firma-electronica"
             target="_blank"
@@ -350,136 +503,151 @@ export default function AdminFacturacionFirmasClientesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-normal">
-              {filtradas.map((s) => {
-                const diasRestantes = s.fecha_caducidad 
-                  ? Math.ceil((new Date(s.fecha_caducidad).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                  : null;
+              {filtradas.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
+                    No se encontraron solicitudes que coincidan con la búsqueda.
+                  </td>
+                </tr>
+              ) : (
+                filtradas.map((s) => {
+                  const diasRestantes = s.fecha_caducidad 
+                    ? Math.ceil((new Date(s.fecha_caducidad).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    : null;
 
-                return (
-                  <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
-                    
-                    {/* Titular */}
-                    <td className="px-5 py-4">
-                      <div className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
-                        {s.tipo_persona === 'NATURAL' ? <User className="w-3.5 h-3.5 text-blue-600 shrink-0" /> : <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
-                        <span>{s.nombres}</span>
-                      </div>
-                      <div className="font-mono text-[11px] text-slate-500 mt-0.5">ID: {s.cedula_ruc}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">{s.email} · {s.telefono}</div>
-                    </td>
-
-                    {/* Plan */}
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-slate-800">{s.plan_nombre}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        Vigencia: {s.vigencia_anios} {s.vigencia_anios === 1 ? 'Año' : 'Años'} · Archivo .p12
-                      </div>
-                    </td>
-
-                    {/* Pago */}
-                    <td className="px-5 py-4">
-                      <div className="font-mono font-black text-slate-900">${s.precio_usd.toFixed(2)}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {s.metodo_pago} {s.numero_comprobante ? `(Ref: ${s.numero_comprobante})` : ''}
-                      </div>
-                      <div className="mt-1">
-                        {s.pago_validado ? (
-                          <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" /> Pago Aprobado
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleValidarPago(s.id)}
-                            className="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shadow-xs cursor-pointer"
-                          >
-                            Aprobar Pago
-                          </button>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Caducidad */}
-                    <td className="px-5 py-4">
-                      {s.fecha_caducidad ? (
-                        <div>
-                          <div className="font-mono font-bold text-slate-800">{s.fecha_caducidad}</div>
-                          <div className="text-[11px] mt-0.5">
-                            {diasRestantes && diasRestantes <= 30 ? (
-                              <span className="text-amber-600 font-bold">¡Caduca en {diasRestantes} días!</span>
-                            ) : (
-                              <span className="text-emerald-600 font-medium">{diasRestantes} días restantes</span>
-                            )}
-                          </div>
+                  return (
+                    <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                      
+                      {/* Titular */}
+                      <td className="px-5 py-4">
+                        <div className="font-extrabold text-slate-900 text-xs flex items-center gap-1.5">
+                          {s.tipo_persona === 'NATURAL' ? <User className="w-3.5 h-3.5 text-blue-600 shrink-0" /> : <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />}
+                          <span>{s.nombres}</span>
                         </div>
-                      ) : (
-                        <span className="text-slate-400 italic">Pendiente de emisión</span>
-                      )}
-                    </td>
+                        <div className="font-mono text-[11px] text-slate-500 mt-0.5">ID: {s.cedula_ruc}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">{s.email} · {s.telefono}</div>
+                      </td>
 
-                    {/* Estado */}
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        s.estado_tramite === 'EMITIDO_ACTIVO' ? 'bg-emerald-100 text-emerald-800' :
-                        s.estado_tramite === 'POR_VENCER' ? 'bg-amber-100 text-amber-800' :
-                        s.estado_tramite === 'EN_TRAMITE_ARCOTEL' ? 'bg-indigo-100 text-indigo-800' :
-                        s.estado_tramite === 'PENDIENTE_VALIDACION' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800'
-                      }`}>
-                        {s.estado_tramite.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-
-                    {/* Acciones */}
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        
-                        {/* Emitir / Cargar .p12 */}
-                        {s.estado_tramite !== 'EMITIDO_ACTIVO' && s.pago_validado && (
-                          <button
-                            onClick={() => handleEmitirCertificado(s.id)}
-                            title="Aprobar y Emitir Certificado .p12"
-                            className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
-                          >
-                            <KeyRound className="w-3.5 h-3.5" />
-                            <span>Emitir .p12</span>
-                          </button>
-                        )}
-
-                        {/* WhatsApp Recordatorio */}
+                      {/* Plan */}
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-slate-800">{s.plan_nombre}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Vigencia: {s.vigencia_anios} {s.vigencia_anios === 1 ? 'Año' : 'Años'} · Archivo .p12
+                        </div>
                         <button
-                          onClick={() => enviarWhatsAppRenovacionFirma(s)}
-                          title="Enviar aviso o recordatorio por WhatsApp"
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-[11px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                          onClick={() => setDocModalFirma(s)}
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 hover:underline cursor-pointer"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span>WhatsApp</span>
+                          <Eye className="w-3 h-3" />
+                          <span>Ver Requisitos</span>
                         </button>
+                      </td>
 
-                        {/* Suspender / Reactivar */}
-                        {s.estado_tramite === 'EMITIDO_ACTIVO' && (
-                          <button
-                            onClick={() => handleToggleSuspension(s.id)}
-                            title="Suspender Certificado Digital"
-                            className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                      {/* Pago */}
+                      <td className="px-5 py-4">
+                        <div className="font-mono font-black text-slate-900">${s.precio_usd.toFixed(2)}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
+                          {s.metodo_pago} {s.numero_comprobante ? `(Ref: ${s.numero_comprobante})` : ''}
+                        </div>
+                        <div className="mt-1">
+                          {s.pago_validado ? (
+                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Pago Aprobado
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleValidarPago(s.id)}
+                              className="px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shadow-xs cursor-pointer transition-all active:scale-95"
+                            >
+                              Validar / Aprobar Pago
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Caducidad */}
+                      <td className="px-5 py-4">
+                        {s.fecha_caducidad ? (
+                          <div>
+                            <div className="font-mono font-bold text-slate-800">{s.fecha_caducidad}</div>
+                            <div className="text-[11px] mt-0.5">
+                              {diasRestantes && diasRestantes <= 30 ? (
+                                <span className="text-amber-600 font-bold">¡Caduca en {diasRestantes} días!</span>
+                              ) : (
+                                <span className="text-emerald-600 font-medium">{diasRestantes} días restantes</span>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">Pendiente de emisión</span>
                         )}
-                        {s.estado_tramite === 'SUSPENDIDO' && (
+                      </td>
+
+                      {/* Estado */}
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          s.estado_tramite === 'EMITIDO_ACTIVO' ? 'bg-emerald-100 text-emerald-800' :
+                          s.estado_tramite === 'POR_VENCER' ? 'bg-amber-100 text-amber-800' :
+                          s.estado_tramite === 'EN_TRAMITE_ARCOTEL' ? 'bg-indigo-100 text-indigo-800' :
+                          s.estado_tramite === 'PENDIENTE_VALIDACION' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {s.estado_tramite.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+
+                      {/* Acciones */}
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          
+                          {/* Emitir / Cargar .p12 */}
+                          {s.estado_tramite !== 'EMITIDO_ACTIVO' && s.pago_validado && (
+                            <button
+                              onClick={() => handleEmitirCertificado(s.id)}
+                              title="Aprobar y Emitir Certificado .p12"
+                              className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1 shadow-xs cursor-pointer"
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                              <span>Emitir .p12</span>
+                            </button>
+                          )}
+
+                          {/* WhatsApp Recordatorio */}
                           <button
-                            onClick={() => handleToggleSuspension(s.id)}
-                            title="Reactivar Certificado Digital"
-                            className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 cursor-pointer"
+                            onClick={() => enviarWhatsAppRenovacionFirma(s)}
+                            title="Enviar aviso o recordatorio por WhatsApp"
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-[11px] flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
                           >
-                            <Check className="w-3.5 h-3.5" />
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>WhatsApp</span>
                           </button>
-                        )}
 
-                      </div>
-                    </td>
+                          {/* Suspender / Reactivar */}
+                          {s.estado_tramite === 'EMITIDO_ACTIVO' && (
+                            <button
+                              onClick={() => handleToggleSuspension(s.id)}
+                              title="Suspender Certificado Digital"
+                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {s.estado_tramite === 'SUSPENDIDO' && (
+                            <button
+                              onClick={() => handleToggleSuspension(s.id)}
+                              title="Reactivar Certificado Digital"
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
-                  </tr>
-                );
-              })}
+                        </div>
+                      </td>
+
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

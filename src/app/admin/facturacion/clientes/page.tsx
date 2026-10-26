@@ -137,6 +137,28 @@ export default function AdminFacturacionClientesPage() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState<string>('TODOS');
   const [toastMensaje, setToastMensaje] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const sincronizarClientes = async (mostrarToastAviso = false) => {
+    try {
+      setIsSyncing(true);
+      const res = await fetch('/api/facturacion/clientes', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.clientes)) {
+          setClientes(data.clientes);
+          localStorage.setItem('sara_admin_clientes_facturacion', JSON.stringify(data.clientes));
+          if (mostrarToastAviso) {
+            mostrarToast('Clientes sincronizados en tiempo real con Supabase.');
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Error sincronizando clientes:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem('sara_admin_clientes_facturacion');
@@ -145,6 +167,13 @@ export default function AdminFacturacionClientesPage() {
         setClientes(JSON.parse(saved));
       } catch {}
     }
+    sincronizarClientes(false);
+
+    const interval = setInterval(() => {
+      sincronizarClientes(false);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const persistirClientes = (nuevos: ClienteFacturacion[]) => {
@@ -266,6 +295,16 @@ export default function AdminFacturacionClientesPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => sincronizarClientes(true)}
+            disabled={isSyncing}
+            className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer disabled:opacity-50"
+            title="Sincronizar en tiempo real con Supabase"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-amber-600 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar'}</span>
+          </button>
+
           <Link
             href="/modulos/facturacion"
             target="_blank"
