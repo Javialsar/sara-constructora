@@ -21,7 +21,9 @@ export type ModuloId =
   | 'fletes' 
   | 'talento' 
   | 'pagos' 
-  | 'financiero';
+  | 'financiero'
+  | 'facturacion'
+  | 'facturacion-electronica';
 
 export interface PlanGenericoModulo {
   id: string;
@@ -446,6 +448,116 @@ export class SaraModulePlansService {
           ],
           urlModulo: '/inmobiliaria',
           etiquetaBotonSecundario: 'Explorar Catálogo de Inmuebles'
+        };
+      }
+
+      // ----------------------------------------------------------------------
+      // 9. SARA-FACTURACIÓN & FIRMA ELECTRÓNICA SRI
+      // ----------------------------------------------------------------------
+      case 'facturacion':
+      case 'facturacion-electronica': {
+        return {
+          id: 'facturacion',
+          titulo: 'SARA-FACTURACIÓN & FIRMA',
+          tagline: 'Facturación Electrónica SRI & Firma Digital Acreditada ARCOTEL',
+          tipoModelo: 'saas',
+          descripcion: 'Emisión instantánea de facturas y retenciones electrónicas autorizadas por el SRI (tarifas 5% y 15%). Pases diarios, bolsas sin caducidad, suscripciones mensuales y obtención express de firma digital .p12.',
+          explicacionModelo: 'Adquiere pases diarios, bolsas prepagadas de comprobantes o planes con firma electrónica incluida.',
+          planes: [
+            {
+              id: 'plan-pase-diario',
+              codigo: 'PASE_DIARIO_24H',
+              nombre: 'Pase Diario 24h',
+              descripcion: 'Acceso total para emitir facturas y retenciones ilimitadas durante 24 horas continuas.',
+              precioFijo: 1.50,
+              moneda: 'USD',
+              badge: 'On-Demand',
+              esRecomendado: false,
+              caracteristicas: [
+                'Facturas y retenciones ilimitadas por 24 horas',
+                'Cálculo automático de tarifas IVA 5% y 15%',
+                'Autorización directa en el Web Service del SRI',
+                'Descarga inmediata de RIDE (PDF) y XML firmado',
+                'Envío automático por correo electrónico al cliente'
+              ],
+              accionTipo: 'checkout'
+            },
+            {
+              id: 'plan-bolsa-15',
+              codigo: 'BOLSA_15_DOCS',
+              nombre: 'Bolsa Micro 15 Comprobantes',
+              descripcion: 'Saldo de 15 comprobantes electrónicos prepagados que NUNCA caducan. Ideal para honorarios esporádicos.',
+              precioFijo: 3.99,
+              moneda: 'USD',
+              badge: 'Sin Caducidad',
+              esRecomendado: false,
+              caracteristicas: [
+                '15 comprobantes electrónicos (facturas o retenciones)',
+                'Saldo sin caducidad (se consumen solo al emitir)',
+                'Portal Web + PWA móvil para emitir en campo u obra',
+                'Buzón de recepción y consulta de gastos deducibles',
+                'Soporte técnico SRI incluido'
+              ],
+              accionTipo: 'checkout'
+            },
+            {
+              id: 'plan-mensual-pro',
+              codigo: 'MENSUAL_PROFESIONAL',
+              nombre: 'Plan Profesional Mensual',
+              descripcion: 'Comprobantes ilimitados para ingenieros, arquitectos, contratistas y negocios en crecimiento.',
+              precioMensual: 7.99,
+              precioAnual: 79.90,
+              moneda: 'USD',
+              badge: 'Más Popular',
+              esRecomendado: true,
+              caracteristicas: [
+                'Facturas y retenciones electrónicas ILIMITADAS',
+                'Proyección automática Formulario 104 SRI',
+                'Multisucursal y puntos de emisión ilimitados',
+                'Buzón de recepción con deducción automática de gastos',
+                'Acceso al API REST para integración con ERP'
+              ],
+              accionTipo: 'checkout'
+            },
+            {
+              id: 'plan-firma-1ano',
+              codigo: 'FIRMA_1_ANIO',
+              nombre: 'Firma Electrónica .p12 (1 Año)',
+              descripcion: 'Certificado de firma electrónica para personas naturales o jurídicas emitido en 15 minutos.',
+              precioFijo: 18.00,
+              moneda: 'USD',
+              badge: 'Acreditada ARCOTEL',
+              esRecomendado: false,
+              caracteristicas: [
+                'Archivo .p12 con vigencia legal de 1 año',
+                'Acreditación oficial por Entidad de Certificación ARCOTEL',
+                'Emisión express en 15 minutos con cédula',
+                'Compatible con SARA, FirmaEC, SRI y Quipux',
+                'Instalación directa en la bóveda cifrada de SARA'
+              ],
+              accionTipo: 'checkout'
+            },
+            {
+              id: 'plan-anual-combo',
+              codigo: 'ANUAL_COMBO_FIRMA',
+              nombre: 'Combo Anual Pro + Firma Gratis',
+              descripcion: '1 año completo de facturación ilimitada con certificado de firma electrónica .p12 sin costo adicional.',
+              precioAnual: 59.99,
+              moneda: 'USD',
+              badge: 'Mejor Ahorro (-40%)',
+              esRecomendado: false,
+              caracteristicas: [
+                'Facturación ilimitada por 365 días',
+                'Firma Electrónica .p12 de 1 año INCLUIDA GRATIS ($18 de ahorro)',
+                'Configuración y puesta a punto asistida',
+                'Reportes tributarios consolidados para contador',
+                'Soporte VIP 24/7 vía WhatsApp prioritario'
+              ],
+              accionTipo: 'checkout'
+            }
+          ],
+          urlModulo: '/facturacion-electronica',
+          etiquetaBotonSecundario: 'Ver Landing SARA-FACTURACIÓN & FIRMA'
         };
       }
 

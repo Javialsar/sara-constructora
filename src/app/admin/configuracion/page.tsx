@@ -62,6 +62,7 @@ export default function ConfiguracionPage() {
     fletes: File | null
     talento: File | null
     fintech: File | null
+    facturacion: File | null
   }>({
     grupo_sara: null,
     constructora: null,
@@ -71,7 +72,8 @@ export default function ConfiguracionPage() {
     compras: null,
     fletes: null,
     talento: null,
-    fintech: null
+    fintech: null,
+    facturacion: null
   })
   const [uploadingLogoKey, setUploadingLogoKey] = useState<string | null>(null)
 
@@ -317,7 +319,7 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     let finalLogos: LogosEmpresa = { ...logos }
-    const logoKeys: (keyof LogosEmpresa)[] = ['grupo_sara', 'constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech']
+    const logoKeys: (keyof LogosEmpresa)[] = ['grupo_sara', 'constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech', 'facturacion']
 
     for (const key of logoKeys) {
       const file = logoFiles[key]
@@ -344,7 +346,7 @@ export default function ConfiguracionPage() {
 
     setUploadingLogoKey(null)
     setLogos(finalLogos)
-    setLogoFiles({ grupo_sara: null, constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null })
+    setLogoFiles({ grupo_sara: null, constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null, facturacion: null })
 
     // 1. Guardar logos de Grupo SARA y servicios en Supabase (parametros_globales y configuracion_empresa)
     const logosSaved = await saveLogosEmpresa(finalLogos)
@@ -960,6 +962,36 @@ export default function ConfiguracionPage() {
                 <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, fintech: null })); setLogos(prev => ({ ...prev, fintech: "/logo-grupo-sara.png" })) }} className="text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
                 <span className="text-emerald-700 font-medium truncate max-w-[140px]" title={logos.fintech}>
                   {logoFiles.fintech ? "Archivo seleccionado" : (logos.fintech || "").split('/').pop()}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 9. SARA FACTURACIÓN & FIRMA ELECTRÓNICA */}
+          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-950 text-amber-400 uppercase"><Sparkles size={12} /> Facturación & Firma</span>
+                <span className="text-[11px] font-semibold text-gray-400">SRI & Firma .p12</span>
+              </div>
+              <h3 className="font-bold text-gray-900 text-base">SARA Facturación & Firma</h3>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Logotipo Oficial <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/facturacion-electronica</code>.
+              </p>
+            </div>
+            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
+              {uploadingLogoKey === "facturacion" && <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10"><Loader2 className="animate-spin text-amber-400" size={26} /></div>}
+              {logoFiles.facturacion ? ( <img src={URL.createObjectURL(logoFiles.facturacion)} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : logos.facturacion ? ( <img src={logos.facturacion} alt="Logo SARA Facturación" onError={(e) => { e.currentTarget.src = "/images/sara-facturacion.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" /> ) : ( <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span> )}
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo</label>
+                <input type="file" accept="image/*" onChange={(e) => { if (e.target.files && e.target.files.length > 0) { const file = e.target.files[0]; setLogoFiles(prev => ({ ...prev, facturacion: file })) } }} className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500/20 file:text-amber-900 hover:file:bg-amber-500/30 cursor-pointer" />
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                <button type="button" onClick={() => { setLogoFiles(prev => ({ ...prev, facturacion: null })); setLogos(prev => ({ ...prev, facturacion: "/images/sara-facturacion.png" })) }} className="text-gray-500 hover:text-amber-700 flex items-center gap-1 transition-colors font-medium"><RefreshCw size={11} /> Logo Original</button>
+                <span className="text-amber-700 font-medium truncate max-w-[140px]" title={logos.facturacion}>
+                  {logoFiles.facturacion ? "Archivo seleccionado" : (logos.facturacion || "").split('/').pop()}
                 </span>
               </div>
             </div>

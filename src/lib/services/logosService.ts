@@ -10,6 +10,7 @@ export interface LogosEmpresa {
   fletes: string
   talento: string
   fintech: string
+  facturacion?: string
 }
 
 export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
@@ -22,6 +23,7 @@ export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
   fletes: "/images/sara-fletes.png",
   talento: "/images/sara-talento.png",
   fintech: "/logo-hero.png",
+  facturacion: "/images/sara-facturacion.png",
 }
 
 function sanitizeLogoUrl(url: string | undefined | null, fallback: string): string {
@@ -46,6 +48,7 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
             fletes: sanitizeLogoUrl(json.logos.fletes, DEFAULT_LOGOS_EMPRESA.fletes),
             talento: sanitizeLogoUrl(json.logos.talento, DEFAULT_LOGOS_EMPRESA.talento),
             fintech: sanitizeLogoUrl(json.logos.fintech, DEFAULT_LOGOS_EMPRESA.fintech),
+            facturacion: sanitizeLogoUrl(json.logos.facturacion, DEFAULT_LOGOS_EMPRESA.facturacion || "/images/sara-facturacion.png"),
           }
         }
       }
@@ -83,6 +86,7 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
         fletes: dbLogos.fletes || DEFAULT_LOGOS_EMPRESA.fletes,
         talento: dbLogos.talento || DEFAULT_LOGOS_EMPRESA.talento,
         fintech: dbLogos.fintech || DEFAULT_LOGOS_EMPRESA.fintech,
+        facturacion: dbLogos.facturacion || DEFAULT_LOGOS_EMPRESA.facturacion,
       }
     }
 

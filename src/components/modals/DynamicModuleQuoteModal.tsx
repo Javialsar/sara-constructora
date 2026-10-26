@@ -20,7 +20,8 @@ import {
   Clock, 
   Zap, 
   CheckCircle2,
-  Calendar
+  Calendar,
+  FileCheck2
 } from 'lucide-react';
 import { 
   SaraModulePlansService, 
@@ -70,6 +71,8 @@ export default function DynamicModuleQuoteModal({
       case 'stays': return Hotel;
       case 'pagos':
       case 'financiero': return Wallet;
+      case 'facturacion':
+      case 'facturacion-electronica': return FileCheck2;
       default: return ShieldCheck;
     }
   };

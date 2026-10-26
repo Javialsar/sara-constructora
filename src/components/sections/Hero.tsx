@@ -46,6 +46,7 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
           fletes: dbLogos.fletes && !dbLogos.fletes.includes("supabase.co/storage") ? dbLogos.fletes : prev.fletes,
           talento: dbLogos.talento && !dbLogos.talento.includes("supabase.co/storage") ? dbLogos.talento : prev.talento,
           fintech: dbLogos.fintech && !dbLogos.fintech.includes("supabase.co/storage") ? dbLogos.fintech : prev.fintech,
+          facturacion: dbLogos.facturacion && !dbLogos.facturacion.includes("supabase.co/storage") ? dbLogos.facturacion : prev.facturacion,
         }))
       } catch (err) {
         console.warn("Hero DB fetch fallback:", err)
@@ -172,6 +173,19 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
       badgeColor: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
       label: "SARA PAGOS · FINANZAS BLINDADAS",
       href: "/modulos/financiero"
+    },
+    {
+      id: "facturacion",
+      indexNum: "10",
+      tag: "SRI & Firma Digital Express",
+      title: "SARA-FACTURACIÓN & FIRMA",
+      description: "Emisión de facturas y retenciones electrónicas autorizadas por el SRI en segundos (tarifas 5% y 15%). Pases diarios ($1.50), bolsas prepago sin caducidad ($3.99) y obtención de Firma Electrónica .p12 certificada ARCOTEL en 15 minutos para profesionales, contratistas y empresas.",
+      logo: logos.facturacion || "/images/sara-facturacion.png",
+      accentColor: "text-amber-300",
+      glowColor: "from-amber-500/30 via-emerald-500/10 to-transparent",
+      badgeColor: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+      label: "SARA FACTURACIÓN · FIRMA DIGITAL",
+      href: "/facturacion-electronica"
     }
   ]
 
@@ -226,7 +240,7 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
                 {/* Tag de Categoría e Indicador de Progreso */}
                 <div className="flex items-center gap-3">
                   <span className={`px-3 py-1 rounded-lg text-xs font-mono font-bold tabular-nums border ${currentSlide.badgeColor}`}>
-                    {currentSlide.indexNum} / 09
+                    {currentSlide.indexNum} / {String(servicesSlides.length).padStart(2, '0')}
                   </span>
                   <div className="w-8 h-px bg-brand-sage/60" />
                   <span className={`${currentSlide.accentColor} font-mono font-bold tracking-[0.2em] uppercase text-xs sm:text-sm drop-shadow-md`}>
