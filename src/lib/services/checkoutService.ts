@@ -91,7 +91,7 @@ async function recordPaymentInDatabase(data: PaymentDetails & { transactionId: s
     // Mapear módulo permitido ('saas', 'inmobiliaria', 'stays', 'constructora')
     const serviceLower = (data.serviceName || '').toLowerCase();
     let modulo: 'saas' | 'inmobiliaria' | 'stays' | 'constructora' = 'constructora';
-    if (serviceLower.includes('saas') || serviceLower.includes('apu')) {
+    if (serviceLower.includes('saas') || serviceLower.includes('apu') || serviceLower.includes('factura') || serviceLower.includes('firma')) {
       modulo = 'saas';
     } else if (serviceLower.includes('inmob') || serviceLower.includes('depto') || serviceLower.includes('casa')) {
       modulo = 'inmobiliaria';

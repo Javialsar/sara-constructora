@@ -338,7 +338,7 @@ export default function StandardCheckoutModal({
                 
                 <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-200 bg-white">
                   
-                  {/* OPCION 1: Tarjeta */}
+                  {/* OPCION 1: Tarjeta / Stripe */}
                   <label 
                     className={`flex items-start p-3.5 cursor-pointer transition-colors ${paymentMethod === 'card' ? 'bg-slate-50/80' : 'hover:bg-slate-50/40'}`}
                   >
@@ -352,9 +352,10 @@ export default function StandardCheckoutModal({
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                          <CreditCard className="w-4 h-4 text-slate-700" /> Tarjeta (Crédito / Débito)
+                          <CreditCard className="w-4 h-4 text-indigo-600" /> Tarjeta Crédito / Débito (Stripe)
                         </span>
-                        <div className="flex items-center gap-1.5 opacity-80">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-black bg-indigo-600 text-white px-1.5 py-0.5 rounded tracking-wide">STRIPE</span>
                           <span className="text-[10px] font-black bg-blue-900 text-white px-1.5 py-0.5 rounded">VISA</span>
                           <span className="text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded">MC</span>
                           <span className="text-[10px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded">AMEX</span>
@@ -374,7 +375,7 @@ export default function StandardCheckoutModal({
                                 setCardNumber(val);
                               }}
                               placeholder="Número de tarjeta (0000 0000 0000 0000)"
-                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono bg-white"
+                              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-slate-950 bg-white placeholder:text-slate-400"
                             />
                           </div>
 
@@ -390,7 +391,7 @@ export default function StandardCheckoutModal({
                                 setExpiry(val);
                               }}
                               placeholder="MM / AA"
-                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono bg-white"
+                              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-slate-950 bg-white placeholder:text-slate-400"
                             />
                             <input
                               type="password"
@@ -399,7 +400,7 @@ export default function StandardCheckoutModal({
                               value={cvc}
                               onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
                               placeholder="CVC / CVV"
-                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 font-mono bg-white"
+                              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold text-slate-950 bg-white placeholder:text-slate-400"
                             />
                           </div>
 
@@ -409,14 +410,14 @@ export default function StandardCheckoutModal({
                             value={cardHolder}
                             onChange={(e) => setCardHolder(e.target.value)}
                             placeholder="Nombre en la tarjeta"
-                            className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                            className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-950 bg-white placeholder:text-slate-400"
                           />
 
                           <div>
                             <select
                               value={country}
                               onChange={(e) => setCountry(e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white text-slate-700"
+                              className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900 font-semibold"
                             >
                               <option value="Ecuador">Ecuador</option>
                               <option value="Colombia">Colombia</option>
@@ -597,19 +598,36 @@ export default function StandardCheckoutModal({
                           </div>
 
                           {/* Reference & Voucher */}
-                          <div className="space-y-2">
+                          <div className="space-y-3 pt-1">
                             <div>
-                              <label className="block text-xs font-medium text-slate-600 mb-1">
-                                Número de Comprobante / Transacción
-                              </label>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="block text-xs font-bold text-slate-700">
+                                  Número de Comprobante / Transacción *
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const text = await navigator.clipboard.readText();
+                                      if (text) setReferenceNumber(text.trim());
+                                    } catch {}
+                                  }}
+                                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer"
+                                >
+                                  Pegar del portapapeles
+                                </button>
+                              </div>
                               <input
                                 type="text"
                                 required
                                 value={referenceNumber}
                                 onChange={(e) => setReferenceNumber(e.target.value)}
-                                placeholder="Ej. 98124912"
-                                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white font-mono"
+                                placeholder="Ej. 098124912 o código de autorización"
+                                className="w-full px-3.5 py-2.5 text-sm font-mono font-bold text-slate-950 bg-white border-2 border-slate-300 rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder:text-slate-400 placeholder:font-normal shadow-xs transition-all"
                               />
+                              <p className="text-[11px] text-slate-500 mt-1">
+                                Digita los números de tu comprobante bancario para validar tu acreditación en tiempo real.
+                              </p>
                             </div>
 
                             <div>

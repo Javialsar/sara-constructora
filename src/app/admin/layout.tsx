@@ -24,7 +24,7 @@ import {
   Building2,
   Sparkles,
   CreditCard, DollarSign
-, ShieldAlert, Trash2 , Activity, Bell , Send, Truck, UserCheck } from "lucide-react"
+, ShieldAlert, Trash2 , Activity, Bell , Send, Truck, UserCheck, FileCheck2, KeyRound, ShieldCheck } from "lucide-react"
 import ThemeToggle from "@/components/ThemeToggle"
 import { Store, ShoppingCart } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -193,6 +193,15 @@ export default function AdminLayout({
       title: "GESTIÓN STAYS (HOSPÉDATE)",
       items: [
         { href: "/admin/airbnb", label: "Gestión Stays (Hospédate)", icon: Sparkles },
+      ]
+    },
+    {
+      title: "GESTIÓN FACTURACIÓN & FIRMAS",
+      items: [
+        { href: "/admin/facturacion/planes", label: "Planes Facturación SRI", icon: FileCheck2 },
+        { href: "/admin/facturacion/firmas-planes", label: "Planes Firmas .p12", icon: KeyRound },
+        { href: "/admin/facturacion/clientes", label: "Clientes & Vencimientos", icon: Users },
+        { href: "/admin/facturacion/firmas-clientes", label: "Emisión de Firmas & Pagos", icon: ShieldCheck },
       ]
     },
     {

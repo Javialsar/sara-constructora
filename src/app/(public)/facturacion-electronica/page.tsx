@@ -167,7 +167,7 @@ export default function FacturacionElectronicaLanding() {
           </h1>
 
           <p className="text-slate-300 text-base sm:text-xl max-w-3xl mx-auto mb-10 leading-relaxed font-normal">
-            Emite facturas y retenciones legales ante el SRI desde tu teléfono en 30 segundos. Paga solo lo que usas con <strong className="text-white">Pases Diarios (\$1.50)</strong>, <strong className="text-white">Bolsas Prepago (\$3.99)</strong> o tramita tu <strong className="text-white">Firma Electrónica (.p12)</strong> hoy mismo con verificación biométrica.
+            Emite facturas y retenciones legales ante el SRI desde tu teléfono en 30 segundos. Paga solo lo que usas con <strong className="text-white">Pases Diarios ($1.50)</strong>, <strong className="text-white">Bolsas Prepago ($3.99)</strong> o tramita tu <strong className="text-white">Firma Electrónica (.p12)</strong> hoy mismo con verificación biométrica.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -176,7 +176,7 @@ export default function FacturacionElectronicaLanding() {
               className="w-full sm:w-auto min-h-[52px] px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all"
             >
               <KeyRound className="w-5 h-5" />
-              Obtener Firma Electrónica (\$18)
+              Obtener Firma Electrónica ($18)
             </a>
             <a
               href="#planes"
@@ -198,7 +198,7 @@ export default function FacturacionElectronicaLanding() {
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Entrega Firma Express</div>
             </div>
             <div>
-              <div className="font-display text-2xl md:text-3xl font-extrabold text-emerald-400">Desde \$1.50</div>
+              <div className="font-display text-2xl md:text-3xl font-extrabold text-emerald-400">Desde $1.50</div>
               <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Pase Diario 24h</div>
             </div>
             <div>
@@ -329,7 +329,7 @@ export default function FacturacionElectronicaLanding() {
                 <div className="mt-8 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3">
                   <div className="flex justify-between text-xs text-slate-400">
                     <span>Certificado Digital ({vigenciaFirma} año/s):</span>
-                    <span className="font-mono text-white font-bold">\${precioFirma.toFixed(2)}</span>
+                    <span className="font-mono text-white font-bold">${precioFirma.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-400">
                     <span>Validación Biométrica:</span>
@@ -341,7 +341,7 @@ export default function FacturacionElectronicaLanding() {
                   </div>
                   <div className="pt-3 border-t border-white/[0.08] flex justify-between items-baseline">
                     <span className="font-bold text-sm text-white">Total a Pagar:</span>
-                    <span className="font-display text-3xl font-extrabold text-amber-400 font-mono">\${precioFirma.toFixed(2)}</span>
+                    <span className="font-display text-3xl font-extrabold text-amber-400 font-mono">${precioFirma.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -445,7 +445,7 @@ export default function FacturacionElectronicaLanding() {
                 <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Pase Diario 24h</h3>
                 <p className="text-xs text-slate-400 mb-6">Emisión ilimitada durante 24 horas continuas. Ideal para liquidar trabajos urgentes de fin de semana.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
-                  \$1.50 <span className="text-xs text-slate-400 font-sans font-normal">/ 24 horas</span>
+                  $1.50 <span className="text-xs text-slate-400 font-sans font-normal">/ 24 horas</span>
                 </div>
                 <ul className="space-y-3 text-xs text-slate-300 border-t border-white/[0.08] pt-6 mb-8">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Facturas y retenciones ilimitadas por 24h</li>
@@ -458,7 +458,7 @@ export default function FacturacionElectronicaLanding() {
                 onClick={() => abrirCheckout({ title: 'Pase Diario (24 Horas) Facturación', amount: 1.50, badgeText: 'SARA Day Pass' })}
                 className="w-full min-h-[46px] rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 border border-white/[0.08] font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Activar Pase Diario (\$1.50)
+                Activar Pase Diario ($1.50)
               </button>
             </div>
 
@@ -471,7 +471,7 @@ export default function FacturacionElectronicaLanding() {
                 <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Pase Semanal Sprint</h3>
                 <p className="text-xs text-slate-400 mb-6">Facturación ilimitada durante 7 días. Diseñado para fiscalizadores, consultores e inspectores.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
-                  \$4.50 <span className="text-xs text-slate-400 font-sans font-normal">/ 7 días</span>
+                  $4.50 <span className="text-xs text-slate-400 font-sans font-normal">/ 7 días</span>
                 </div>
                 <ul className="space-y-3 text-xs text-slate-300 border-t border-white/[0.08] pt-6 mb-8">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 7 Días de facturación ilimitada</li>
@@ -484,7 +484,7 @@ export default function FacturacionElectronicaLanding() {
                 onClick={() => abrirCheckout({ title: 'Pase Semanal (7 Días) Facturación', amount: 4.50, badgeText: 'SARA Week Pass' })}
                 className="w-full min-h-[46px] rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 border border-white/[0.08] font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Activar Pase Semanal (\$4.50)
+                Activar Pase Semanal ($4.50)
               </button>
             </div>
 
@@ -500,7 +500,7 @@ export default function FacturacionElectronicaLanding() {
                 <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Bolsa Micro (15 Docs)</h3>
                 <p className="text-xs text-slate-400 mb-6">15 comprobantes electrónicos que se descuentan según emites. Sin fecha de vencimiento.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
-                  \$3.99 <span className="text-xs text-slate-400 font-sans font-normal">pago único</span>
+                  $3.99 <span className="text-xs text-slate-400 font-sans font-normal">pago único</span>
                 </div>
                 <ul className="space-y-3 text-xs text-slate-300 border-t border-white/[0.08] pt-6 mb-8">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 15 Comprobantes que NO caducan</li>
@@ -513,7 +513,7 @@ export default function FacturacionElectronicaLanding() {
                 onClick={() => abrirCheckout({ title: 'Bolsa Prepago Micro (15 Comprobantes)', amount: 3.99, badgeText: 'Bolsa Prepago' })}
                 className="w-full min-h-[46px] rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg shadow-amber-500/20"
               >
-                Comprar Bolsa 15 Docs (\$3.99)
+                Comprar Bolsa 15 Docs ($3.99)
               </button>
             </div>
 
@@ -526,7 +526,7 @@ export default function FacturacionElectronicaLanding() {
                 <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Bolsa Estándar (60 Docs)</h3>
                 <p className="text-xs text-slate-400 mb-6">Para técnicos, ingenieros residentes y transportistas con emisión moderada regular.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
-                  \$11.99 <span className="text-xs text-slate-400 font-sans font-normal">pago único</span>
+                  $11.99 <span className="text-xs text-slate-400 font-sans font-normal">pago único</span>
                 </div>
                 <ul className="space-y-3 text-xs text-slate-300 border-t border-white/[0.08] pt-6 mb-8">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 60 Comprobantes sin caducidad</li>
@@ -539,7 +539,7 @@ export default function FacturacionElectronicaLanding() {
                 onClick={() => abrirCheckout({ title: 'Bolsa Prepago Estándar (60 Comprobantes)', amount: 11.99, badgeText: 'Bolsa Prepago' })}
                 className="w-full min-h-[46px] rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 border border-white/[0.08] font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Comprar Bolsa 60 Docs (\$11.99)
+                Comprar Bolsa 60 Docs ($11.99)
               </button>
             </div>
 
@@ -552,7 +552,7 @@ export default function FacturacionElectronicaLanding() {
                 <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Plan Mensual Pro</h3>
                 <p className="text-xs text-slate-400 mb-6">Facturación ilimitada mensual, cotizaciones, cuentas por cobrar y catálogo de productos.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
-                  \$7.99 <span className="text-xs text-slate-400 font-sans font-normal">/ mes</span>
+                  $7.99 <span className="text-xs text-slate-400 font-sans font-normal">/ mes</span>
                 </div>
                 <ul className="space-y-3 text-xs text-slate-300 border-t border-white/[0.08] pt-6 mb-8">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Facturación ilimitada sin límites</li>
@@ -565,7 +565,7 @@ export default function FacturacionElectronicaLanding() {
                 onClick={() => abrirCheckout({ title: 'Plan Mensual Profesional Ilimitado', amount: 7.99, badgeText: 'Suscripción Mensual', isSubscription: true, subscriptionInterval: 'month' })}
                 className="w-full min-h-[46px] rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 border border-white/[0.08] font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Suscribirme por \$7.99/mes
+                Suscribirme por $7.99/mes
               </button>
             </div>
 
@@ -581,7 +581,7 @@ export default function FacturacionElectronicaLanding() {
                 <h3 className="font-display text-xl font-extrabold text-white mt-3 mb-1">Anual VIP + Firma Gratis</h3>
                 <p className="text-xs text-slate-400 mb-6">Un año entero de facturación ilimitada con la emisión de tu Firma Electrónica de 1 año incluida.</p>
                 <div className="font-display text-4xl font-extrabold text-amber-400 font-mono mb-6">
-                  \$59.99 <span className="text-xs text-slate-400 font-sans font-normal">/ año</span>
+                  $59.99 <span className="text-xs text-slate-400 font-sans font-normal">/ año</span>
                 </div>
                 <ul className="space-y-3 text-xs text-slate-300 border-t border-white/[0.08] pt-6 mb-8">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 365 Días de facturación ilimitada</li>
@@ -594,7 +594,7 @@ export default function FacturacionElectronicaLanding() {
                 onClick={() => abrirCheckout({ title: 'Plan Anual Corporativo + Firma Electrónica Gratis', amount: 59.99, badgeText: 'Combo Anual VIP', isSubscription: true, subscriptionInterval: 'year' })}
                 className="w-full min-h-[46px] rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-extrabold text-xs uppercase tracking-wider transition-all shadow-lg shadow-blue-500/25"
               >
-                Adquirir Combo Anual (\$59.99)
+                Adquirir Combo Anual ($59.99)
               </button>
             </div>
           </div>
@@ -658,7 +658,7 @@ export default function FacturacionElectronicaLanding() {
                     Emisor: GRUPO SARA CONSTRUCTORA CIA. LTDA. · Fecha: 24/10/2026
                   </div>
                   <div className="font-mono text-xs text-amber-400 font-bold mt-1">
-                    Total: \$ 145.00 USD (IVA 15% incluido)
+                    Total: $145.00 USD (IVA 15% incluido)
                   </div>
                 </div>
 

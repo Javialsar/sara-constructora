@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   FileText, 
@@ -27,8 +27,21 @@ import {
   Sparkles,
   ArrowUpRight,
   Filter,
-  Percent
+  Percent,
+  ChevronRight,
+  Layers,
+  Settings,
+  LogOut,
+  ExternalLink,
+  Lock,
+  Mail,
+  Building2,
+  Check,
+  X,
+  CreditCard
 } from 'lucide-react';
+import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
+import { createClient } from '@/lib/supabase/client';
 
 interface FacturaItem {
   id: string;
@@ -52,12 +65,39 @@ interface ComprobanteEmitido {
 }
 
 export default function FacturacionDashboardPage() {
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'EMITIR' | 'BUZON' | 'HISTORIAL' | 'CATALOGOS' | 'FIRMA'>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'EMITIR' | 'BUZON' | 'HISTORIAL' | 'CATALOGOS' | 'FIRMA' | 'PLANES' | 'CONFIG'>('DASHBOARD');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Datos del Tenant / Usuario simulado
-  const tenantInfo = {
+  // Modal de Autenticación
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isAuthLogin, setIsAuthLogin] = useState(true);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authRuc, setAuthRuc] = useState('');
+  const [authRazonSocial, setAuthRazonSocial] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Modal de Recargas / Checkout
+  const [checkoutConfig, setCheckoutConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    amount: number;
+    badgeText: string;
+    isSubscription?: boolean;
+    subscriptionInterval?: string;
+  }>({
+    isOpen: false,
+    title: 'Bolsa Prepago Micro (15 Docs)',
+    amount: 3.99,
+    badgeText: 'Recarga Prepago'
+  });
+
+  // Datos del Tenant / Usuario
+  const [tenantInfo, setTenantInfo] = useState({
     ruc: '1792345678001',
     razonSocial: 'ING. CARLOS MENDOZA ARQUITECTURA & CONSTRUCCIÓN',
+    email: 'carlos.mendoza@mendozaconstr.ec',
     ambiente: 'PRODUCCIÓN (2)',
     planActivo: 'Bolsa Prepago Micro',
     creditosRestantes: 12,
@@ -65,9 +105,26 @@ export default function FacturacionDashboardPage() {
     firmaEstado: 'ACTIVA',
     firmaVenceDias: 284,
     firmaEmisor: 'SECURITY DATA (ARCOTEL)'
-  };
+  });
 
-  // Estado para el emisor de facturas
+  // Verificar si hay datos guardados de autenticación
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedRuc = localStorage.getItem('sara_facturacion_auth_ruc');
+      const savedRazon = localStorage.getItem('sara_facturacion_auth_razon');
+      const savedEmail = localStorage.getItem('sara_facturacion_auth_email');
+      if (savedRuc && savedRazon) {
+        setTenantInfo(prev => ({
+          ...prev,
+          ruc: savedRuc,
+          razonSocial: savedRazon,
+          email: savedEmail || prev.email
+        }));
+      }
+    }
+  }, []);
+
+  // Emisor de comprobantes
   const [tipoComprobante, setTipoComprobante] = useState<'01' | '07' | '04'>('01');
   const [clienteTipoId, setClienteTipoId] = useState<'04' | '05' | '07'>('05');
   const [clienteId, setClienteId] = useState<string>('0104567890');
@@ -153,7 +210,7 @@ export default function FacturacionDashboardPage() {
     const nuevo: FacturaItem = {
       id: `item-${Date.now()}`,
       codigo: 'SRV-NEW',
-      descripcion: 'Nuevo Servicio o Rubro',
+      descripcion: 'Nuevo Servicio o Rubro Profesional',
       cantidad: 1,
       precioUnitario: 100.00,
       tarifaIvaPct: 15.00
@@ -188,533 +245,903 @@ export default function FacturacionDashboardPage() {
     };
 
     setComprobantes([nuevaFac, ...comprobantes]);
-    tenantInfo.creditosRestantes -= 1;
+    setTenantInfo(prev => ({ ...prev, creditosRestantes: Math.max(0, prev.creditosRestantes - 1) }));
     showToast(`¡Factura Nº ${nuevaFac.numero} firmada con XAdES-BES y AUTORIZADA por el SRI con éxito!`);
     setActiveTab('HISTORIAL');
   };
 
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      const supabase = createClient();
+      if (isAuthLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword
+        });
+        if (error) throw error;
+        setTenantInfo(prev => ({
+          ...prev,
+          email: authEmail,
+          razonSocial: data.user.user_metadata?.full_name || prev.razonSocial,
+          ruc: data.user.user_metadata?.ruc || prev.ruc
+        }));
+        showToast('¡Sesión iniciada con éxito!');
+      } else {
+        if (!authRuc || authRuc.length !== 13) {
+          throw new Error('El RUC debe tener 13 dígitos.');
+        }
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: {
+            data: {
+              full_name: authRazonSocial,
+              ruc: authRuc,
+              role: 'emisor_facturacion'
+            }
+          }
+        });
+        if (error) throw error;
+        setTenantInfo(prev => ({
+          ...prev,
+          email: authEmail,
+          razonSocial: authRazonSocial,
+          ruc: authRuc
+        }));
+        showToast('¡Cuenta de emisor creada exitosamente!');
+      }
+      setAuthModalOpen(false);
+    } catch (err: any) {
+      setAuthError(err.message || 'Error en autenticación');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const abrirCheckoutPlan = (plan: { title: string; amount: number; badgeText: string; isSub?: boolean; interval?: string }) => {
+    setCheckoutConfig({
+      isOpen: true,
+      title: plan.title,
+      amount: plan.amount,
+      badgeText: plan.badgeText,
+      isSubscription: plan.isSub || false,
+      subscriptionInterval: plan.interval
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pt-20 pb-16">
-      {/* Toast */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+      
+      {/* Toast Flotante */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-500 text-slate-950 font-bold shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="w-6 h-6" />
+          <CheckCircle2 className="w-5 h-5" />
           <div className="text-sm">{toast}</div>
         </div>
       )}
 
-      {/* TOP BAR / ESTADO FISCAL DEL TENANT */}
-      <div className="bg-slate-900 border-b border-white/[0.08] px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-mono text-xs font-bold text-amber-400 uppercase tracking-widest">
-                SRI {tenantInfo.ambiente}
-              </span>
-              <span className="text-xs text-slate-500 font-mono">|</span>
-              <span className="font-mono text-xs text-slate-400">RUC: {tenantInfo.ruc}</span>
-            </div>
-            <h1 className="font-display text-lg font-extrabold text-white tracking-tight uppercase mt-0.5">
-              {tenantInfo.razonSocial}
-            </h1>
-          </div>
+      {/* MODAL DE CHECKOUT ESTÁNDAR INTEGRADO */}
+      <StandardCheckoutModal
+        isOpen={checkoutConfig.isOpen}
+        onClose={() => setCheckoutConfig(prev => ({ ...prev, isOpen: false }))}
+        title={checkoutConfig.title}
+        amount={checkoutConfig.amount}
+        badgeText={checkoutConfig.badgeText}
+        isSubscription={checkoutConfig.isSubscription}
+        subscriptionInterval={checkoutConfig.subscriptionInterval}
+        defaultEmail={tenantInfo.email}
+        defaultCustomerName={tenantInfo.razonSocial}
+        onSuccess={(txId) => {
+          showToast(`¡Transacción confirmada (${txId})! Créditos y plan activados.`);
+          setTenantInfo(prev => ({ ...prev, creditosRestantes: prev.creditosRestantes + 15 }));
+        }}
+      />
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Badge Plan Activo */}
-            <div className="px-3.5 py-2 rounded-xl bg-slate-950 border border-white/[0.08] text-xs font-mono flex items-center gap-2">
-              <Receipt className="w-4 h-4 text-amber-400" />
-              <div>
-                <span className="text-slate-400 text-[10px] block uppercase">Plan Activo</span>
-                <strong className="text-white">{tenantInfo.planActivo}: {tenantInfo.creditosRestantes} docs rest.</strong>
-              </div>
-            </div>
-
-            {/* Badge Semáforo Firma */}
-            <div className="px-3.5 py-2 rounded-xl bg-slate-950 border border-white/[0.08] text-xs font-mono flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-emerald-400" />
-              <div>
-                <span className="text-slate-400 text-[10px] block uppercase">Firma Digital .p12</span>
-                <strong className="text-emerald-400">Válida ({tenantInfo.firmaVenceDias} días)</strong>
-              </div>
-            </div>
-
-            <Link
-              href="/facturacion-electronica#planes"
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20"
-            >
-              <PlusCircle className="w-4 h-4" /> Recargar Créditos
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* NAVEGACIÓN POR SUBMÓDULOS */}
-      <div className="bg-slate-950/80 border-b border-white/[0.08] px-6 sticky top-20 z-30 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto py-2 text-xs font-bold uppercase tracking-wider">
-          <button
-            onClick={() => setActiveTab('DASHBOARD')}
-            className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'DASHBOARD' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <TrendingUp className="w-4 h-4" /> Resumen & Balance SRI
-          </button>
-          <button
-            onClick={() => setActiveTab('EMITIR')}
-            className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'EMITIR' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <PlusCircle className="w-4 h-4" /> Nueva Factura / Retención
-          </button>
-          <button
-            onClick={() => setActiveTab('HISTORIAL')}
-            className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'HISTORIAL' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <FileText className="w-4 h-4" /> Comprobantes Emitidos
-          </button>
-          <button
-            onClick={() => setActiveTab('BUZON')}
-            className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'BUZON' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <Upload className="w-4 h-4" /> Buzón & Gastos Deducibles
-          </button>
-          <button
-            onClick={() => setActiveTab('CATALOGOS')}
-            className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'CATALOGOS' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <Users className="w-4 h-4" /> Clientes & Rubros
-          </button>
-          <button
-            onClick={() => setActiveTab('FIRMA')}
-            className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
-              activeTab === 'FIRMA' ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-            }`}
-          >
-            <KeyRound className="w-4 h-4" /> Bóveda de Firma (.p12)
-          </button>
-        </div>
-      </div>
-
-      {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA */}
-      <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
-        {/* ========================================================= */}
-        {/* TAB 1: DASHBOARD & BALANCE FISCAL                         */}
-        {/* ========================================================= */}
-        {activeTab === 'DASHBOARD' && (
-          <div className="space-y-8 animate-in fade-in-50">
-            {/* Tarjetas Métricas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08]">
-                <div className="flex items-center justify-between text-slate-400 text-xs font-mono uppercase">
-                  <span>Facturado Mes (Ventas)</span>
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
+      {/* MODAL DE AUTENTICACIÓN / CAMBIO DE EMISOR */}
+      {authModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl animate-in zoom-in-95">
+            <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500 text-slate-950">
+                  <Receipt className="w-5 h-5" />
                 </div>
-                <div className="font-display text-3xl font-extrabold text-white mt-2 font-mono">\$ 2,412.50</div>
-                <div className="text-[11px] text-emerald-400 mt-2 flex items-center gap-1 font-medium">
-                  <TrendingUp className="w-3.5 h-3.5" /> +18% frente al mes anterior
-                </div>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08]">
-                <div className="flex items-center justify-between text-slate-400 text-xs font-mono uppercase">
-                  <span>IVA Cobrado en Ventas</span>
-                  <Percent className="w-4 h-4 text-blue-400" />
-                </div>
-                <div className="font-display text-3xl font-extrabold text-blue-400 mt-2 font-mono">\$ 278.40</div>
-                <div className="text-[11px] text-slate-400 mt-2">
-                  Desglose dual: IVA 15% (\$262) e IVA 5% (\$16.40)
-                </div>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08]">
-                <div className="flex items-center justify-between text-slate-400 text-xs font-mono uppercase">
-                  <span>IVA Soportado (Compras)</span>
-                  <Receipt className="w-4 h-4 text-purple-400" />
-                </div>
-                <div className="font-display text-3xl font-extrabold text-purple-400 mt-2 font-mono">\$ 142.00</div>
-                <div className="text-[11px] text-slate-400 mt-2">
-                  Crédito tributario de facturas registradas
-                </div>
-              </div>
-
-              <div className="p-6 rounded-3xl bg-slate-900 border border-amber-400/30 bg-gradient-to-br from-slate-900 to-amber-950/20">
-                <div className="flex items-center justify-between text-amber-400 text-xs font-mono uppercase font-bold">
-                  <span>Proyección IVA SRI (Form. 104)</span>
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="font-display text-3xl font-extrabold text-amber-400 mt-2 font-mono">\$ 136.40</div>
-                <div className="text-[11px] text-slate-300 mt-2 font-medium">
-                  Estimado neto a pagar en próxima declaración
-                </div>
-              </div>
-            </div>
-
-            {/* Accesos rápidos & Comprobantes Recientes */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 rounded-3xl bg-slate-900 border border-white/[0.08] p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-display text-base font-bold text-white uppercase tracking-tight">
-                    Últimas Facturas Emitidas
+                <div>
+                  <h3 className="text-lg font-black text-white">
+                    {isAuthLogin ? 'Iniciar Sesión Emisor' : 'Crear Cuenta Emisor SRI'}
                   </h3>
-                  <button 
-                    onClick={() => setActiveTab('HISTORIAL')}
-                    className="text-xs font-bold text-amber-400 hover:underline uppercase flex items-center gap-1"
+                  <p className="text-xs text-slate-400">Portal de Facturación & Firma Grupo SARA</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setAuthModalOpen(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {authError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-950/40 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{authError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              {!isAuthLogin && (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">RUC (13 dígitos) *</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={13}
+                      value={authRuc}
+                      onChange={(e) => setAuthRuc(e.target.value.replace(/\D/g, ''))}
+                      placeholder="1792984512001"
+                      className="w-full px-3.5 py-2.5 text-xs font-mono font-bold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Razón Social *</label>
+                    <input
+                      type="text"
+                      required
+                      value={authRazonSocial}
+                      onChange={(e) => setAuthRazonSocial(e.target.value)}
+                      placeholder="ING. CARLOS MENDOZA"
+                      className="w-full px-3.5 py-2.5 text-xs font-bold bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Correo Electrónico *</label>
+                <input
+                  type="email"
+                  required
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  placeholder="contribuyente@sara.com"
+                  className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Contraseña *</label>
+                <input
+                  type="password"
+                  required
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full px-3.5 py-2.5 text-xs font-medium bg-slate-800 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
+              >
+                {authLoading ? 'Verificando...' : (isAuthLogin ? 'Acceder al Portal' : 'Registrar Emisor')}
+              </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAuthLogin(!isAuthLogin)}
+                  className="text-xs text-amber-400 hover:text-amber-300 font-bold"
+                >
+                  {isAuthLogin ? '¿No tienes cuenta? Regístrate aquí' : '¿Ya tienes cuenta? Inicia sesión'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          ARQUITECTURA DE DOS PANELES (PANEL IZQUIERDO MENÚ + PANEL DERECHO WORKSPACE)
+          ========================================================================= */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        {/* =====================================================================
+            PANEL IZQUIERDO: MENÚS, ESTADO TRIBUTARIO Y PLAN
+            ===================================================================== */}
+        <aside className="w-full md:w-72 lg:w-80 shrink-0 bg-slate-900 border-r border-white/[0.08] flex flex-col justify-between p-5 space-y-6">
+          
+          <div className="space-y-6">
+            
+            {/* Header Emisor / RUC */}
+            <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] shadow-inner space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-mono text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                    {tenantInfo.ambiente}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setAuthModalOpen(true)}
+                  className="text-[10px] text-slate-400 hover:text-white uppercase font-bold tracking-wider cursor-pointer"
+                  title="Cambiar Contribuyente o Iniciar Sesión"
+                >
+                  Cambiar
+                </button>
+              </div>
+
+              <div>
+                <h2 className="font-display text-sm font-extrabold text-white leading-snug line-clamp-2">
+                  {tenantInfo.razonSocial}
+                </h2>
+                <div className="font-mono text-[11px] text-slate-400 mt-0.5">
+                  RUC: <strong className="text-slate-300">{tenantInfo.ruc}</strong>
+                </div>
+              </div>
+
+              {/* Mini Status Firma */}
+              <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
+                <span className="text-slate-400 flex items-center gap-1">
+                  <KeyRound className="w-3.5 h-3.5 text-emerald-400" /> Firma .p12
+                </span>
+                <span className="font-mono font-bold text-emerald-400">
+                  {tenantInfo.firmaVenceDias} días
+                </span>
+              </div>
+            </div>
+
+            {/* Menús de Navegación Vertical */}
+            <nav className="space-y-1">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+                Operaciones SRI
+              </div>
+
+              <button
+                onClick={() => setActiveTab('DASHBOARD')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'DASHBOARD'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <TrendingUp className="w-4 h-4 shrink-0" />
+                  <span>Resumen & Balance SRI</span>
+                </div>
+                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                  activeTab === 'DASHBOARD' ? 'bg-amber-600 text-slate-950 font-black' : 'bg-white/[0.08] text-amber-400'
+                }`}>
+                  $136.40
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('EMITIR')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'EMITIR'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <PlusCircle className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>Emitir Comprobante</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                  SRI 2026
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('HISTORIAL')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'HISTORIAL'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span>Comprobantes Emitidos</span>
+                </div>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300">
+                  {comprobantes.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('BUZON')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'BUZON'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Upload className="w-4 h-4 shrink-0" />
+                  <span>Buzón & Gastos Deducibles</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold">
+                  Form 104
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('CATALOGOS')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'CATALOGOS'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Users className="w-4 h-4 shrink-0" />
+                  <span>Clientes & Rubros</span>
+                </div>
+              </button>
+
+              <div className="pt-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+                Seguridad & Servicios
+              </div>
+
+              <button
+                onClick={() => setActiveTab('FIRMA')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'FIRMA'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <KeyRound className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Bóveda de Firma (.p12)</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold">
+                  Válida
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('PLANES')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'PLANES'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Sparkles className="w-4 h-4 shrink-0 text-blue-400" />
+                  <span>Planes & Recargas</span>
+                </div>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold">
+                  Desde $1.50
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('CONFIG')}
+                className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                  activeTab === 'CONFIG'
+                    ? 'bg-amber-500 text-slate-950 font-extrabold shadow-sm'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.04]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Settings className="w-4 h-4 shrink-0" />
+                  <span>Configuración Emisor</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">001-001</span>
+              </button>
+            </nav>
+
+          </div>
+
+          {/* Footer del Panel Izquierdo: Saldo de Plan y Botón de Recarga */}
+          <div className="space-y-3 pt-4 border-t border-white/[0.08]">
+            <div className="p-3.5 rounded-2xl bg-slate-950 border border-white/[0.08] space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-400 font-medium">Plan Activo:</span>
+                <span className="font-bold text-amber-400">{tenantInfo.planActivo}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-xl font-black text-white font-mono">
+                  {tenantInfo.creditosRestantes} <span className="text-xs text-slate-400 font-normal">/ {tenantInfo.creditosTotales} docs</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold">Sin Caducidad</span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div 
+                  className="bg-amber-500 h-full rounded-full transition-all"
+                  style={{ width: `${(tenantInfo.creditosRestantes / tenantInfo.creditosTotales) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => abrirCheckoutPlan({ title: 'Bolsa Prepago Micro (15 Comprobantes)', amount: 3.99, badgeText: 'Bolsa Prepago' })}
+              className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 cursor-pointer transition-all"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Recargar Saldo ($3.99)</span>
+            </button>
+
+            <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 pt-1">
+              <Link href="/portal-comprobantes" className="hover:text-amber-400 transition-colors flex items-center gap-1">
+                <span>Consulta RIDE</span>
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+              <button 
+                onClick={() => setAuthModalOpen(true)}
+                className="hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Salir</span>
+              </button>
+            </div>
+          </div>
+
+        </aside>
+
+        {/* =====================================================================
+            PANEL DERECHO: ÁREA DE TRABAJO DINÁMICA
+            ===================================================================== */}
+        <main className="flex-1 bg-slate-950 p-6 md:p-8 overflow-y-auto space-y-8">
+          
+          {/* Header Superior del Área de Trabajo */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-white/[0.08]">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ● Web Service SRI Online (soap.sri.gob.ec)
+                </span>
+                <span className="text-xs text-slate-500">Módulo 11 Verificado</span>
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
+                {activeTab === 'DASHBOARD' && 'Resumen Ejecutivo & Balance Tributario SRI'}
+                {activeTab === 'EMITIR' && 'Emisión de Facturas & Retenciones Electrónicas'}
+                {activeTab === 'HISTORIAL' && 'Historial de Comprobantes Autorizados'}
+                {activeTab === 'BUZON' && 'Buzón de Compras & Deducción de Gastos (Form. 104)'}
+                {activeTab === 'CATALOGOS' && 'Directorio de Clientes & Catálogo de Rubros'}
+                {activeTab === 'FIRMA' && 'Bóveda Cifrada de Certificado Digital (.p12)'}
+                {activeTab === 'PLANES' && 'Catálogo de Planes, Pases y Firma Electrónica'}
+                {activeTab === 'CONFIG' && 'Configuración de Contribuyente & Puntos de Emisión'}
+              </h2>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {activeTab !== 'EMITIR' && (
+                <button
+                  onClick={() => setActiveTab('EMITIR')}
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer transition-all"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  <span>+ Nueva Factura</span>
+                </button>
+              )}
+              <Link
+                href="/facturacion-electronica"
+                target="_blank"
+                className="px-3.5 py-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <span>Landing Oficial</span>
+                <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+              </Link>
+            </div>
+          </div>
+
+          {/* ===================================================================
+              VISTA 1: DASHBOARD / BALANCE SRI (SIN \$ ESCAPADOS, TODO CON $)
+              =================================================================== */}
+          {activeTab === 'DASHBOARD' && (
+            <div className="space-y-8 animate-in fade-in duration-200">
+              
+              {/* Tarjetas de Métricas de Balance */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08] relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Facturado Mes (Ventas)</span>
+                    <DollarSign className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div className="font-display text-3xl font-extrabold text-white mt-2 font-mono">
+                    $ 2,412.50
+                  </div>
+                  <div className="text-xs text-emerald-400 font-bold mt-2 flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5" /> +18% frente al mes anterior
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08] relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">IVA Cobrado en Ventas</span>
+                    <Percent className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div className="font-display text-3xl font-extrabold text-blue-400 mt-2 font-mono">
+                    $ 278.40
+                  </div>
+                  <div className="text-xs text-slate-400 mt-2">
+                    Desglose dual: IVA 15% ($262) e IVA 5% ($16.40)
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08] relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">IVA Soportado (Compras)</span>
+                    <Receipt className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div className="font-display text-3xl font-extrabold text-purple-400 mt-2 font-mono">
+                    $ 142.00
+                  </div>
+                  <div className="text-xs text-slate-400 mt-2">
+                    Crédito tributario de facturas registradas
+                  </div>
+                </div>
+
+                {/* Proyección Form. 104 */}
+                <div className="p-6 rounded-3xl bg-amber-500/10 border-2 border-amber-400/40 relative overflow-hidden">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs text-amber-300 font-bold uppercase tracking-wider">Proyección IVA SRI (Form. 104)</span>
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div className="font-display text-3xl font-extrabold text-amber-400 mt-2 font-mono">
+                    $ 136.40
+                  </div>
+                  <div className="text-xs text-amber-200/80 mt-2">
+                    Estimado neto a pagar en próxima declaración
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid 2 Columnas: Últimas Facturas y Herramientas Fiscales */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* Últimos Comprobantes Emitidos */}
+                <div className="lg:col-span-7 bg-slate-900 border border-white/[0.08] rounded-3xl p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-display text-lg font-bold text-white">Últimas Facturas Emitidas</h3>
+                    <button 
+                      onClick={() => setActiveTab('HISTORIAL')} 
+                      className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      Ver todas <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {comprobantes.map(c => (
+                      <div key={c.id} className="p-4 rounded-2xl bg-slate-950 border border-white/[0.06] flex items-center justify-between hover:border-amber-400/30 transition-all">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              {c.estado}
+                            </span>
+                            <span className="font-mono text-xs font-bold text-white">{c.numero}</span>
+                          </div>
+                          <div className="text-xs text-slate-300 font-semibold">{c.cliente}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">Fecha: {c.fecha}</div>
+                        </div>
+
+                        <div className="text-right space-y-1.5">
+                          <div className="font-mono text-base font-extrabold text-amber-400">
+                            ${c.total.toFixed(2)}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => showToast(`Descargando RIDE PDF de ${c.numero}...`)}
+                              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-red-400 transition-colors cursor-pointer"
+                              title="Descargar RIDE PDF"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => showToast(`Descargando XML firmado XAdES-BES de ${c.numero}...`)}
+                              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-emerald-400 transition-colors cursor-pointer"
+                              title="Descargar XML"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Herramientas Fiscales SARA */}
+                <div className="lg:col-span-5 bg-slate-900 border border-white/[0.08] rounded-3xl p-6 space-y-4">
+                  <h3 className="font-display text-lg font-bold text-white">Herramientas Fiscales SARA</h3>
+                  
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.06] space-y-2">
+                    <div className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                      <Percent className="w-4 h-4" /> Tarifa 5% Materiales de Construcción
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Aplica automáticamente el 5% en varillas, cemento, bloques y áridos bajo Res. NAC-DGERCGC24-00000013.
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.06] space-y-2">
+                    <div className="text-xs font-bold text-blue-400 flex items-center gap-1.5">
+                      <Receipt className="w-4 h-4" /> Retenciones Automáticas
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Genera el XML de retención 07 aplicando códigos Cód. 312 (1.75%), Cód. 344 (1.75%) y Cód. 303 (10%).
+                    </p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.06] space-y-2">
+                    <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4" /> Algoritmo Módulo 11 Verificador
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Cálculo estricto de los 49 dígitos de la clave de acceso para cero rechazos en el Web Service del SRI.
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================
+              VISTA 2: FORMULARIO DE EMISIÓN DE FACTURA / RETENCIÓN
+              =================================================================== */}
+          {activeTab === 'EMITIR' && (
+            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-8 animate-in fade-in duration-200">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-white/[0.08]">
+                <div>
+                  <h3 className="text-xl font-bold text-white">Datos del Comprobante</h3>
+                  <p className="text-xs text-slate-400">Punto de Emisión: 001-001 · Secuencia automática asignada</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTipoComprobante('01')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      tipoComprobante === '01' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                    }`}
                   >
-                    Ver todas <ArrowUpRight className="w-3.5 h-3.5" />
+                    Factura (01)
+                  </button>
+                  <button
+                    onClick={() => setTipoComprobante('07')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      tipoComprobante === '07' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+                    }`}
+                  >
+                    Retención (07)
+                  </button>
+                </div>
+              </div>
+
+              {/* Datos del Cliente */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Tipo Identificación</label>
+                  <select
+                    value={clienteTipoId}
+                    onChange={(e) => setClienteTipoId(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-xs font-bold text-white"
+                  >
+                    <option value="05">Cédula (05)</option>
+                    <option value="04">RUC (04)</option>
+                    <option value="07">Consumidor Final (07)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Cédula / RUC *</label>
+                  <input
+                    type="text"
+                    value={clienteId}
+                    onChange={(e) => setClienteId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-xs font-mono font-bold text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Razón Social / Nombre *</label>
+                  <input
+                    type="text"
+                    value={clienteNombre}
+                    onChange={(e) => setClienteNombre(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-white/[0.08] text-xs font-bold text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Ítems / Rubros de la Factura */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">Detalle de Rubros y Suministros</h4>
+                  <button
+                    onClick={agregarItem}
+                    className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-xs font-bold text-amber-400 flex items-center gap-1 cursor-pointer"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" /> Agregar Ítem
                   </button>
                 </div>
 
                 <div className="space-y-3">
-                  {comprobantes.map((c) => (
-                    <div key={c.id} className="p-4 rounded-2xl bg-slate-950/60 border border-white/[0.06] flex items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            {c.estado}
-                          </span>
-                          <span className="font-mono text-xs font-bold text-white">{c.numero}</span>
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1">{c.cliente}</div>
+                  {items.map((item, idx) => (
+                    <div key={item.id} className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] text-slate-500 uppercase">Código</label>
+                        <input
+                          type="text"
+                          value={item.codigo}
+                          onChange={(e) => {
+                            const actualizados = [...items];
+                            actualizados[idx].codigo = e.target.value;
+                            setItems(actualizados);
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/[0.08] text-xs font-mono text-white"
+                        />
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono text-sm font-extrabold text-amber-400 font-bold">\${c.total.toFixed(2)}</div>
-                        <div className="text-[10px] text-slate-500 font-mono mt-0.5">{c.fecha}</div>
+
+                      <div className="md:col-span-4">
+                        <label className="block text-[10px] text-slate-500 uppercase">Descripción</label>
+                        <input
+                          type="text"
+                          value={item.descripcion}
+                          onChange={(e) => {
+                            const actualizados = [...items];
+                            actualizados[idx].descripcion = e.target.value;
+                            setItems(actualizados);
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/[0.08] text-xs text-white"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] text-slate-500 uppercase">Cantidad</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.cantidad}
+                          onChange={(e) => {
+                            const actualizados = [...items];
+                            actualizados[idx].cantidad = parseFloat(e.target.value) || 0;
+                            setItems(actualizados);
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/[0.08] text-xs font-mono text-white"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-[10px] text-slate-500 uppercase">P. Unitario ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={item.precioUnitario}
+                          onChange={(e) => {
+                            const actualizados = [...items];
+                            actualizados[idx].precioUnitario = parseFloat(e.target.value) || 0;
+                            setItems(actualizados);
+                          }}
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/[0.08] text-xs font-mono text-white"
+                        />
+                      </div>
+
+                      <div className="md:col-span-1">
+                        <label className="block text-[10px] text-slate-500 uppercase">IVA</label>
+                        <select
+                          value={item.tarifaIvaPct}
+                          onChange={(e) => {
+                            const actualizados = [...items];
+                            actualizados[idx].tarifaIvaPct = parseInt(e.target.value);
+                            setItems(actualizados);
+                          }}
+                          className="w-full px-1.5 py-1.5 rounded-lg bg-slate-900 border border-white/[0.08] text-xs font-mono font-bold text-amber-400"
+                        >
+                          <option value={15}>15%</option>
+                          <option value={5}>5%</option>
+                          <option value={0}>0%</option>
+                        </select>
+                      </div>
+
+                      <div className="md:col-span-1 flex justify-end">
+                        <button
+                          onClick={() => eliminarItem(item.id)}
+                          className="p-2 rounded-lg text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Guía Rápida de Emisión */}
-              <div className="rounded-3xl bg-slate-900 border border-white/[0.08] p-6 space-y-4">
-                <h3 className="font-display text-base font-bold text-white uppercase tracking-tight">
-                  Herramientas Fiscales SARA
-                </h3>
-                
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase">
-                    <Percent className="w-4 h-4" /> Tarifa 5% Materiales
+              {/* Resumen de Totales e IVA */}
+              <div className="flex flex-col md:flex-row justify-between items-end gap-6 pt-6 border-t border-white/[0.08]">
+                <div className="space-y-1 text-xs text-slate-400">
+                  <div>Subtotal 15%: <strong className="text-white">${subtotal15.toFixed(2)}</strong> (IVA: ${iva15.toFixed(2)})</div>
+                  <div>Subtotal 5% (Construcción): <strong className="text-white">${subtotal5.toFixed(2)}</strong> (IVA: ${iva5.toFixed(2)})</div>
+                  <div>Subtotal 0%: <strong className="text-white">${subtotal0.toFixed(2)}</strong></div>
+                  <div className="font-bold text-amber-400 pt-1 text-sm">
+                    TOTAL A PAGAR: ${totalFactura.toFixed(2)} USD
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Aplica automáticamente el 5% en varillas, cemento, bloques y áridos bajo Res. NAC-DGERCGC24-00000013.
-                  </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.06] space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-blue-400 uppercase">
-                    <Receipt className="w-4 h-4" /> Retenciones Automáticas
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Genera el XML de retención 07 aplicando códigos Cód. 312 (1.75%), Cód. 344 (1.75%) y Cód. 303 (10%).
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setActiveTab('EMITIR')}
-                  className="w-full min-h-[46px] rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-amber-500/20"
-                >
-                  <PlusCircle className="w-4 h-4" /> Crear Factura Ahora
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* TAB 2: EMISOR MULTI-COMPROBANTE                           */}
-        {/* ========================================================= */}
-        {activeTab === 'EMITIR' && (
-          <div className="max-w-4xl mx-auto rounded-3xl bg-slate-900 border border-white/[0.08] p-6 md:p-8 space-y-8 animate-in fade-in-50">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
-              <div>
-                <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">Punto de Emisión 001-001</span>
-                <h2 className="font-display text-2xl font-extrabold text-white mt-1">Emisión de Comprobante Electrónico</h2>
-              </div>
-              
-              {/* Selector de Comprobante */}
-              <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-2xl border border-white/[0.08]">
-                <button
-                  onClick={() => setTipoComprobante('01')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    tipoComprobante === '01' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Factura (01)
-                </button>
-                <button
-                  onClick={() => setTipoComprobante('07')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    tipoComprobante === '07' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Retención (07)
-                </button>
-                <button
-                  onClick={() => setTipoComprobante('04')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    tipoComprobante === '04' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  N. Crédito (04)
-                </button>
-              </div>
-            </div>
-
-            {/* Datos del Cliente */}
-            <div className="space-y-4">
-              <h3 className="text-xs font-mono uppercase text-slate-400 font-bold tracking-wider">1. Datos del Cliente / Receptor</h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1 font-medium">Tipo Identificación</label>
-                  <select
-                    value={clienteTipoId}
-                    onChange={(e) => setClienteTipoId(e.target.value as any)}
-                    className="w-full min-h-[44px] px-3 rounded-xl bg-slate-950 border border-white/[0.12] text-xs text-white outline-none focus:border-amber-400"
+                <div className="flex gap-3 w-full md:w-auto">
+                  <button
+                    onClick={() => setActiveTab('HISTORIAL')}
+                    className="px-5 py-3 rounded-xl border border-white/[0.08] hover:bg-white/[0.06] text-xs font-bold text-white transition-all cursor-pointer"
                   >
-                    <option value="05">Cédula de Identidad</option>
-                    <option value="04">RUC</option>
-                    <option value="07">Consumidor Final</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1 font-medium">Número Cédula / RUC</label>
-                  <input
-                    type="text"
-                    value={clienteId}
-                    onChange={(e) => setClienteId(e.target.value)}
-                    className="w-full min-h-[44px] px-3 rounded-xl bg-slate-950 border border-white/[0.12] text-xs text-white font-mono outline-none focus:border-amber-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1 font-medium">Razón Social / Nombre</label>
-                  <input
-                    type="text"
-                    value={clienteNombre}
-                    onChange={(e) => setClienteNombre(e.target.value)}
-                    className="w-full min-h-[44px] px-3 rounded-xl bg-slate-950 border border-white/[0.12] text-xs text-white outline-none focus:border-amber-400"
-                  />
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={emitirFacturaSRI}
+                    className="flex-1 md:flex-none px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Firmar con .p12 & Emitir al SRI</span>
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1 font-medium">Correo Electrónico (para envío de XML y RIDE)</label>
-                  <input
-                    type="email"
-                    value={clienteEmail}
-                    onChange={(e) => setClienteEmail(e.target.value)}
-                    className="w-full min-h-[44px] px-3 rounded-xl bg-slate-950 border border-white/[0.12] text-xs text-white outline-none focus:border-amber-400"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-400 block mb-1 font-medium">Dirección</label>
-                  <input
-                    type="text"
-                    value={clienteDireccion}
-                    onChange={(e) => setClienteDireccion(e.target.value)}
-                    className="w-full min-h-[44px] px-3 rounded-xl bg-slate-950 border border-white/[0.12] text-xs text-white outline-none focus:border-amber-400"
-                  />
-                </div>
-              </div>
             </div>
+          )}
 
-            {/* Ítems y Rubros */}
-            <div className="space-y-4 pt-4 border-t border-white/[0.08]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-mono uppercase text-slate-400 font-bold tracking-wider">2. Detalle de Bienes y Servicios</h3>
-                <button
-                  onClick={agregarItem}
-                  className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-bold text-amber-400 flex items-center gap-1.5 transition-all"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" /> Agregar Ítem
-                </button>
+          {/* ===================================================================
+              VISTA 3: HISTORIAL DE COMPROBANTES EMITIDOS
+              =================================================================== */}
+          {activeTab === 'HISTORIAL' && (
+            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 space-y-6 animate-in fade-in duration-200">
+              <div className="flex justify-between items-center">
+                <h3 className="font-display text-lg font-bold text-white">Comprobantes Autorizados por el SRI</h3>
+                <span className="text-xs text-slate-400 font-mono">Total emitidos: {comprobantes.length}</span>
               </div>
 
-              <div className="space-y-3">
-                {items.map((it, idx) => (
-                  <div key={it.id} className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                    <div className="sm:col-span-5">
-                      <label className="text-[10px] text-slate-500 uppercase block mb-1">Descripción</label>
-                      <input
-                        type="text"
-                        value={it.descripcion}
-                        onChange={(e) => {
-                          const updated = [...items];
-                          updated[idx].descripcion = e.target.value;
-                          setItems(updated);
-                        }}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/[0.08] text-xs text-white outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] text-slate-500 uppercase block mb-1">Cant.</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={it.cantidad}
-                        onChange={(e) => {
-                          const updated = [...items];
-                          updated[idx].cantidad = parseFloat(e.target.value) || 1;
-                          setItems(updated);
-                        }}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/[0.08] text-xs text-white font-mono outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] text-slate-500 uppercase block mb-1">Precio U.</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={it.precioUnitario}
-                        onChange={(e) => {
-                          const updated = [...items];
-                          updated[idx].precioUnitario = parseFloat(e.target.value) || 0;
-                          setItems(updated);
-                        }}
-                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-white/[0.08] text-xs text-white font-mono outline-none focus:border-amber-400"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] text-slate-500 uppercase block mb-1">IVA SRI</label>
-                      <select
-                        value={it.tarifaIvaPct}
-                        onChange={(e) => {
-                          const updated = [...items];
-                          updated[idx].tarifaIvaPct = parseFloat(e.target.value);
-                          setItems(updated);
-                        }}
-                        className="w-full px-2 py-2 rounded-lg bg-slate-900 border border-white/[0.08] text-xs text-white outline-none focus:border-amber-400"
-                      >
-                        <option value="15">15% General</option>
-                        <option value="5">5% Construcción</option>
-                        <option value="8">8% Turismo</option>
-                        <option value="0">0% Exento</option>
-                      </select>
-                    </div>
-
-                    <div className="sm:col-span-1 flex justify-end">
-                      <button
-                        onClick={() => eliminarItem(it.id)}
-                        className="p-2 text-slate-500 hover:text-red-400 transition-colors"
-                        title="Eliminar ítem"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Resumen de Totales y Botón de Firma */}
-            <div className="pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="space-y-1.5 text-xs text-slate-400 font-mono">
-                <div>Subtotal 15%: <strong className="text-white">\${subtotal15.toFixed(2)}</strong> (IVA: \${iva15.toFixed(2)})</div>
-                <div>Subtotal 5% (Construcción): <strong className="text-white">\${subtotal5.toFixed(2)}</strong> (IVA: \${iva5.toFixed(2)})</div>
-                <div>Subtotal 0%: <strong className="text-white">\${subtotal0.toFixed(2)}</strong></div>
-                <div className="text-sm font-bold text-amber-400 pt-2 border-t border-white/[0.08]">
-                  TOTAL A PAGAR: \${totalFactura.toFixed(2)} USD
-                </div>
-              </div>
-
-              <button
-                onClick={emitirFacturaSRI}
-                className="w-full sm:w-auto min-h-[50px] px-8 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all"
-              >
-                <KeyRound className="w-4 h-4" /> Firmar XAdES-BES y Enviar al SRI
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* TAB 3: HISTORIAL DE COMPROBANTES EMITIDOS                 */}
-        {/* ========================================================= */}
-        {activeTab === 'HISTORIAL' && (
-          <div className="space-y-6 animate-in fade-in-50">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="font-display text-2xl font-extrabold text-white">Historial de Comprobantes SRI</h2>
-                <p className="text-xs text-slate-400">Descarga RIDE (PDF) con código QR oficial y XML firmado en cualquier momento.</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setActiveTab('EMITIR')}
-                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all"
-                >
-                  <PlusCircle className="w-4 h-4" /> Nueva Factura
-                </button>
-              </div>
-            </div>
-
-            <div className="rounded-3xl bg-slate-900 border border-white/[0.08] overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/80 text-slate-400 font-mono uppercase text-[10px] border-b border-white/[0.08]">
+                  <thead className="bg-slate-950 text-slate-400 font-bold uppercase tracking-wider border-b border-white/[0.08]">
                     <tr>
-                      <th className="px-6 py-4">Tipo & Secuencial</th>
-                      <th className="px-6 py-4">Cliente / Identificación</th>
-                      <th className="px-6 py-4">Fecha</th>
-                      <th className="px-6 py-4">Total USD</th>
-                      <th className="px-6 py-4">Estado SRI</th>
-                      <th className="px-6 py-4 text-right">Descargas</th>
+                      <th className="px-5 py-4">Secuencia</th>
+                      <th className="px-5 py-4">Cliente / Contratista</th>
+                      <th className="px-5 py-4">Fecha</th>
+                      <th className="px-5 py-4">Total</th>
+                      <th className="px-5 py-4">Estado SRI</th>
+                      <th className="px-5 py-4 text-right">Descargas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.06]">
-                    {comprobantes.map((c) => (
-                      <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="px-6 py-4">
-                          <span className="font-mono font-bold text-white block">{c.numero}</span>
-                          <span className="text-[10px] text-slate-500 uppercase">{c.tipo === '01' ? 'Factura' : c.tipo === '07' ? 'Retención' : 'N. Crédito'}</span>
+                    {comprobantes.map(c => (
+                      <tr key={c.id} className="hover:bg-slate-950/40 transition-colors">
+                        <td className="px-5 py-4 font-mono font-bold text-white">{c.numero}</td>
+                        <td className="px-5 py-4">
+                          <div className="font-bold text-slate-200">{c.cliente}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">ID: {c.identificacion}</div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-white font-medium block">{c.cliente}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{c.identificacion}</span>
-                        </td>
-                        <td className="px-6 py-4 text-slate-400 font-mono">{c.fecha}</td>
-                        <td className="px-6 py-4 font-mono font-bold text-amber-400">\${c.total.toFixed(2)}</td>
-                        <td className="px-6 py-4">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <td className="px-5 py-4 text-slate-400 font-mono">{c.fecha}</td>
+                        <td className="px-5 py-4 font-mono font-bold text-amber-400">${c.total.toFixed(2)}</td>
+                        <td className="px-5 py-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             {c.estado}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <button
-                            onClick={() => showToast(`Descargando RIDE (PDF) con QR para ${c.numero}...`)}
-                            className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white transition-all"
-                            title="Descargar RIDE PDF"
-                          >
-                            <Download className="w-4 h-4 text-red-400" />
-                          </button>
-                          <button
-                            onClick={() => showToast(`Descargando XML firmado para ${c.numero}...`)}
-                            className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white transition-all"
-                            title="Descargar XML Firmado"
-                          >
-                            <FileText className="w-4 h-4 text-blue-400" />
-                          </button>
-                          <button
-                            onClick={() => showToast(`Comprobante ${c.numero} reenviado por correo al cliente.`)}
-                            className="p-2 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white transition-all"
-                            title="Reenviar por Email"
-                          >
-                            <Send className="w-4 h-4 text-emerald-400" />
-                          </button>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => showToast(`Descargando RIDE PDF de ${c.numero}...`)}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-xs font-bold text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5" /> RIDE (PDF)
+                            </button>
+                            <button
+                              onClick={() => showToast(`Descargando XML firmado XAdES-BES de ${c.numero}...`)}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-xs font-bold text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5" /> XML
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -722,147 +1149,209 @@ export default function FacturacionDashboardPage() {
                 </table>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ========================================================= */}
-        {/* TAB 4: BUZÓN DE GASTOS DEDUCIBLES                         */}
-        {/* ========================================================= */}
-        {activeTab === 'BUZON' && (
-          <div className="space-y-6 animate-in fade-in-50">
-            <div>
-              <h2 className="font-display text-2xl font-extrabold text-white">Buzón Inteligente de Gastos Deducibles</h2>
-              <p className="text-xs text-slate-400">Carga los XMLs de tus compras para calcular tu crédito tributario y deducir gastos en tu Impuesto a la Renta.</p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Zona de Subida */}
-              <div className="lg:col-span-2 rounded-3xl bg-slate-900 border border-white/[0.08] p-8 text-center border-dashed border-white/[0.2] hover:border-amber-400/50 transition-all flex flex-col items-center justify-center space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-                  <Upload className="w-8 h-8" />
-                </div>
-                <div>
-                  <h3 className="font-display text-base font-bold text-white">Arrastra tus facturas electrónicas (.XML o .PDF)</h3>
-                  <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                    El agente clasificará automáticamente tus compras en Salud, Alimentación, Educación, Vivienda, Vestimenta o Turismo.
-                  </p>
-                </div>
-                <button
-                  onClick={() => showToast('Selecciona los archivos XML emitidos por tus proveedores.')}
-                  className="px-6 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-xs font-bold uppercase tracking-wider text-white"
-                >
-                  Examinar Archivos
-                </button>
-              </div>
-
-              {/* Clasificador de Gastos SRI */}
-              <div className="rounded-3xl bg-slate-900 border border-white/[0.08] p-6 space-y-4">
-                <h3 className="font-display text-sm font-bold text-white uppercase tracking-tight">
-                  Acumulado Gastos Personales 2026
-                </h3>
-
-                <div className="space-y-3 text-xs">
-                  <div className="flex justify-between items-center text-slate-300">
-                    <span>🥗 Alimentación:</span>
-                    <span className="font-mono font-bold text-white">\$ 450.00</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-300">
-                    <span>🏥 Salud:</span>
-                    <span className="font-mono font-bold text-white">\$ 180.00</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-300">
-                    <span>🏠 Vivienda:</span>
-                    <span className="font-mono font-bold text-white">\$ 320.00</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-300">
-                    <span>🎓 Educación:</span>
-                    <span className="font-mono font-bold text-white">\$ 95.00</span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-300">
-                    <span>🏖️ Turismo Nacional:</span>
-                    <span className="font-mono font-bold text-white">\$ 140.00</span>
-                  </div>
-                  <div className="pt-3 border-t border-white/[0.08] flex justify-between font-bold text-amber-400">
-                    <span>TOTAL DEDUCIBLE:</span>
-                    <span className="font-mono">\$ 1,185.00 USD</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* TAB 5: BÓVEDA DE FIRMA ELECTRÓNICA                        */}
-        {/* ========================================================= */}
-        {activeTab === 'FIRMA' && (
-          <div className="max-w-3xl mx-auto rounded-3xl bg-slate-900 border border-white/[0.08] p-8 space-y-6 animate-in fade-in-50">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0">
-                <KeyRound className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="font-display text-xl font-extrabold text-white">Bóveda Criptográfica de Firma Digital</h2>
-                <p className="text-xs text-slate-400">Certificados almacenados bajo cifrado bancario AES-256 en Supabase Vault.</p>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-slate-950 border border-emerald-500/30 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> CERTIFICADO ACTIVO & HOMOLOGADO
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.05] text-slate-300">
-                  ARCOTEL Validado
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                <div>
-                  <span className="text-slate-500 text-[10px] block uppercase">Emisor Autorizado:</span>
-                  <span className="text-white font-bold">{tenantInfo.firmaEmisor}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-[10px] block uppercase">Días Restantes de Validez:</span>
-                  <span className="text-emerald-400 font-bold">{tenantInfo.firmaVenceDias} días</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+          {/* ===================================================================
+              VISTA 4: BUZÓN & GASTOS DEDUCIBLES
+              =================================================================== */}
+          {activeTab === 'BUZON' && (
+            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6 animate-in fade-in duration-200">
+              <h3 className="text-xl font-bold text-white">Buzón de Compras Electrónicas & Deducción de Gastos</h3>
               <p className="text-xs text-slate-400">
-                ¿Necesitas actualizar o renovar tu certificado antes de que caduque?
+                Facturas emitidas hacia tu RUC que aplican como crédito tributario y deducción de Impuesto a la Renta.
               </p>
-              <Link
-                href="/facturacion-electronica#firma-electronica"
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shrink-0"
-              >
-                Renovar Firma (\$18)
-              </Link>
-            </div>
-          </div>
-        )}
 
-        {/* ========================================================= */}
-        {/* TAB 6: CATÁLOGOS DE CLIENTES & RUBROS                     */}
-        {/* ========================================================= */}
-        {activeTab === 'CATALOGOS' && (
-          <div className="space-y-6 animate-in fade-in-50">
-            <div>
-              <h2 className="font-display text-2xl font-extrabold text-white">Catálogo de Clientes & Servicios</h2>
-              <p className="text-xs text-slate-400">Administra tus contactos frecuentes para emitir facturas en menos de 10 segundos.</p>
-            </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] space-y-1">
+                  <div className="text-xs text-slate-400 font-bold uppercase">Materiales de Construcción</div>
+                  <div className="font-mono text-2xl font-bold text-emerald-400">$ 450.00</div>
+                  <div className="text-[11px] text-slate-500">Tarifa 5% IVA acreditado</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] space-y-1">
+                  <div className="text-xs text-slate-400 font-bold uppercase">Alimentación & Viáticos Obra</div>
+                  <div className="font-mono text-2xl font-bold text-blue-400">$ 180.00</div>
+                  <div className="text-[11px] text-slate-500">Gasto 100% deducible</div>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] space-y-1">
+                  <div className="text-xs text-slate-400 font-bold uppercase">Servicios Técnicos & Fletes</div>
+                  <div className="font-mono text-2xl font-bold text-purple-400">$ 320.00</div>
+                  <div className="text-[11px] text-slate-500">Retenciones practicadas</div>
+                </div>
+              </div>
 
-            <div className="p-8 rounded-3xl bg-slate-900 border border-white/[0.08] text-center space-y-3">
-              <Users className="w-10 h-10 text-amber-400 mx-auto opacity-70" />
-              <h3 className="font-display text-base font-bold text-white">Directorio Centralizado SARA</h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Tus clientes quedan guardados automáticamente cada vez que emites una factura, permitiendo autocompletado instantáneo por Cédula o RUC.
-              </p>
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20 flex justify-between items-center">
+                <span className="text-xs font-bold text-amber-300">Total Gastos Personales Deducibles Registrados:</span>
+                <span className="font-mono text-lg font-black text-amber-400">$ 1,185.00 USD</span>
+              </div>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+
+          {/* ===================================================================
+              VISTA 5: CATÁLOGO DE CLIENTES Y RUBROS
+              =================================================================== */}
+          {activeTab === 'CATALOGOS' && (
+            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6 animate-in fade-in duration-200">
+              <h3 className="text-xl font-bold text-white">Directorio de Clientes Frecuentes</h3>
+              <p className="text-xs text-slate-400">Guarda datos de tus clientes para emitir facturas en menos de 10 segundos.</p>
+              
+              <div className="space-y-3">
+                <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-white text-sm">HORMIGONES DEL AUSTRO S.A.</div>
+                    <div className="font-mono text-xs text-slate-400">RUC: 0190123456001 · Cuenca, Ecuador</div>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-mono font-bold">Cliente Frecuente</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-white text-sm">PROMOTORA INMOBILIARIA URBANA</div>
+                    <div className="font-mono text-xs text-slate-400">RUC: 1791827364001 · Quito, Ecuador</div>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-mono font-bold">Cliente Frecuente</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================
+              VISTA 6: BÓVEDA DE FIRMA ELECTRÓNICA (.p12)
+              =================================================================== */}
+          {activeTab === 'FIRMA' && (
+            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6 animate-in fade-in duration-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-bold text-white">Bóveda Cifrada de Firma Digital (.p12)</h3>
+                  <p className="text-xs text-slate-400">Tu archivo criptográfico está protegido con cifrado AES-256 en servidores locales.</p>
+                </div>
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  ESTADO: ACTIVA & SEGURA
+                </span>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-950 border border-white/[0.08] space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <span className="text-slate-400 block uppercase">Titular:</span>
+                    <strong className="text-white text-sm">{tenantInfo.razonSocial}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase">Entidad Emisora:</span>
+                    <strong className="text-white text-sm">{tenantInfo.firmaEmisor}</strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block uppercase">Días Restantes:</span>
+                    <strong className="text-emerald-400 text-sm font-mono">{tenantInfo.firmaVenceDias} días</strong>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between">
+                  <span className="text-xs text-slate-400">
+                    ¿Deseas renovar tu certificado antes del vencimiento?
+                  </span>
+                  <button
+                    onClick={() => abrirCheckoutPlan({ title: 'Renovación de Firma Electrónica .p12 (1 Año)', amount: 18.00, badgeText: 'Firma Digital SRI' })}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase cursor-pointer"
+                  >
+                    Renovar Firma ($18)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================
+              VISTA 7: PLANES & RECARGAS
+              =================================================================== */}
+          {activeTab === 'PLANES' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div>
+                <h3 className="text-xl font-bold text-white">Planes & Recargas Disponibles</h3>
+                <p className="text-xs text-slate-400">Adquiere pases diarios, bolsas prepago o suscríbete para facturación ilimitada.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08] flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Pase por Horas</span>
+                    <h4 className="text-lg font-bold text-white mt-1">Pase Diario 24h</h4>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">Facturación ilimitada por 24 horas continuas.</p>
+                    <div className="text-3xl font-black text-amber-400 font-mono mb-4">$1.50</div>
+                  </div>
+                  <button
+                    onClick={() => abrirCheckoutPlan({ title: 'Pase Diario 24h Facturación', amount: 1.50, badgeText: 'Day Pass' })}
+                    className="w-full py-2.5 rounded-xl bg-white/[0.06] hover:bg-amber-500 hover:text-slate-950 font-bold text-xs uppercase cursor-pointer transition-all"
+                  >
+                    Activar por $1.50
+                  </button>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-slate-900 border-2 border-amber-400/60 flex flex-col justify-between relative shadow-xl">
+                  <div className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase">
+                    ⭐ Popular
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Sin Caducidad</span>
+                    <h4 className="text-lg font-bold text-white mt-1">Bolsa Micro (15 Docs)</h4>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">15 comprobantes electrónicos que nunca vencen.</p>
+                    <div className="text-3xl font-black text-amber-400 font-mono mb-4">$3.99</div>
+                  </div>
+                  <button
+                    onClick={() => abrirCheckoutPlan({ title: 'Bolsa Prepago Micro (15 Docs)', amount: 3.99, badgeText: 'Bolsa Prepago' })}
+                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase cursor-pointer shadow-md shadow-amber-500/20 transition-all"
+                  >
+                    Comprar Bolsa ($3.99)
+                  </button>
+                </div>
+
+                <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08] flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Suscripción</span>
+                    <h4 className="text-lg font-bold text-white mt-1">Plan Mensual Pro</h4>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">Comprobantes ilimitados + Formulario 104.</p>
+                    <div className="text-3xl font-black text-amber-400 font-mono mb-4">$7.99 <span className="text-xs text-slate-400 font-normal">/ mes</span></div>
+                  </div>
+                  <button
+                    onClick={() => abrirCheckoutPlan({ title: 'Plan Mensual Profesional Ilimitado', amount: 7.99, badgeText: 'Suscripción Mensual', isSub: true, interval: 'month' })}
+                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase cursor-pointer transition-all"
+                  >
+                    Suscribirme ($7.99)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================
+              VISTA 8: CONFIGURACIÓN
+              =================================================================== */}
+          {activeTab === 'CONFIG' && (
+            <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-6 animate-in fade-in duration-200">
+              <h3 className="text-xl font-bold text-white">Configuración del Emisor SRI</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="block text-slate-400 uppercase font-bold mb-1">RUC Emisor</label>
+                  <input type="text" readOnly value={tenantInfo.ruc} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-slate-300" />
+                </div>
+                <div>
+                  <label className="block text-slate-400 uppercase font-bold mb-1">Razón Social</label>
+                  <input type="text" readOnly value={tenantInfo.razonSocial} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] text-slate-300" />
+                </div>
+                <div>
+                  <label className="block text-slate-400 uppercase font-bold mb-1">Establecimiento y Punto de Emisión</label>
+                  <input type="text" readOnly value="001-001" className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] font-mono text-slate-300" />
+                </div>
+                <div>
+                  <label className="block text-slate-400 uppercase font-bold mb-1">Ambiente SRI</label>
+                  <input type="text" readOnly value={tenantInfo.ambiente} className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/[0.08] text-emerald-400 font-bold" />
+                </div>
+              </div>
+            </div>
+          )}
+
+        </main>
+
+      </div>
+
     </div>
   );
 }
