@@ -100,38 +100,57 @@ export default function SaraFreightPaymentGatewayModal({
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
     setIsProcessing(true);
+    let ref = referenceCode.trim();
+    let methodName = 'Tarjeta de Crédito / Débito';
+    let methodType: 'tarjeta' | 'deuna_qr' | 'payphone_qr' | 'transferencia' = 'tarjeta';
+
+    if (activeTab === 'card') {
+      methodType = 'tarjeta';
+      methodName = 'Tarjeta Visa/Mastercard';
+      ref = ref || `TX-CARD-${Math.floor(100000 + Math.random() * 900000)}`;
+    } else if (activeTab === 'qr') {
+      if (selectedQrPlatform === 'deuna') {
+        methodType = 'deuna_qr';
+        methodName = 'QR Deuna! (Pichincha)';
+        ref = ref || `DU-${Math.floor(100000 + Math.random() * 900000)}`;
+      } else if (selectedQrPlatform === 'payphone') {
+        methodType = 'payphone_qr';
+        methodName = 'QR Payphone Ecuador';
+        ref = ref || `PP-${Math.floor(100000 + Math.random() * 900000)}`;
+      } else {
+        methodType = 'deuna_qr';
+        methodName = 'QR Banco Guayaquil / Peigo';
+        ref = ref || `BG-${Math.floor(100000 + Math.random() * 900000)}`;
+      }
+    } else {
+      methodType = 'transferencia';
+      methodName = `Transferencia ${driverBankInfo.bankName}`;
+      ref = ref || `TR-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      // Notificar al motor de conciliación bancaria autónomo de SARA-PAGOS
+      try {
+        await fetch('/api/pagos/validar-comprobante-ia', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identificacion: driverBankInfo.holderId,
+            monto: amount,
+            referencia: ref,
+            banco: driverBankInfo.bankName,
+            tipoModulo: 'fletes',
+            tramiteId: fleteId,
+            nombreTitular: driverBankInfo.holderName
+          })
+        });
+      } catch (e) {
+        console.warn('Auto-conciliación fletes en modo silente:', e);
+      }
+    }
+
     setTimeout(() => {
       setIsProcessing(false);
-      let ref = referenceCode.trim();
-      let methodName = 'Tarjeta de Crédito / Débito';
-      let methodType: 'tarjeta' | 'deuna_qr' | 'payphone_qr' | 'transferencia' = 'tarjeta';
-
-      if (activeTab === 'card') {
-        methodType = 'tarjeta';
-        methodName = 'Tarjeta Visa/Mastercard';
-        ref = ref || `TX-CARD-${Math.floor(100000 + Math.random() * 900000)}`;
-      } else if (activeTab === 'qr') {
-        if (selectedQrPlatform === 'deuna') {
-          methodType = 'deuna_qr';
-          methodName = 'QR Deuna! (Pichincha)';
-          ref = ref || `DU-${Math.floor(100000 + Math.random() * 900000)}`;
-        } else if (selectedQrPlatform === 'payphone') {
-          methodType = 'payphone_qr';
-          methodName = 'QR Payphone Ecuador';
-          ref = ref || `PP-${Math.floor(100000 + Math.random() * 900000)}`;
-        } else {
-          methodType = 'deuna_qr';
-          methodName = 'QR Banco Guayaquil / Peigo';
-          ref = ref || `BG-${Math.floor(100000 + Math.random() * 900000)}`;
-        }
-      } else {
-        methodType = 'transferencia';
-        methodName = `Transferencia ${driverBankInfo.bankName}`;
-        ref = ref || `TR-${Math.floor(100000 + Math.random() * 900000)}`;
-      }
-
       onPaymentSuccess({
         method: methodType,
         methodName,

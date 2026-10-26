@@ -5,10 +5,11 @@ export interface BankTransactionMatchRequest {
   monto: number;
   referencia: string;
   banco?: string;
-  tipoModulo?: 'firmas' | 'facturacion' | 'saas' | 'constructora' | 'fletes' | 'stays' | 'inmobiliaria';
+  tipoModulo?: 'firmas' | 'facturacion' | 'saas' | 'apu' | 'constructora' | 'fletes' | 'stays' | 'inmobiliaria' | 'marketplace' | 'talento';
   tramiteId?: string;
   comprobanteUrl?: string;
   nombreTitular?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface BankTransactionMatchResult {
@@ -113,21 +114,122 @@ export class SaraBankReconciliationService {
       // 3. Conciliar en tabla central de órdenes de pago del ecosistema
       try {
         let ordQuery = supabaseAdmin.from('ordenes_pago').select('*');
-        if (cleanId) {
+        if (req.tramiteId) {
+          ordQuery = ordQuery.or(`id.eq.${req.tramiteId},referencia_id.eq.${req.tramiteId}`);
+        } else if (cleanId) {
           ordQuery = ordQuery.ilike('concepto', `%${cleanId}%`);
         }
         const { data: ordenes } = await ordQuery.order('created_at', { ascending: false }).limit(1);
         if (ordenes && ordenes.length > 0) {
+          const ord = ordenes[0];
           await supabaseAdmin
             .from('ordenes_pago')
             .update({
-              estado: 'completado',
+              estado: 'completada',
               updated_at: ahora
             })
-            .eq('id', ordenes[0].id);
+            .eq('id', ord.id);
+
+          // Actualizar transacciones vinculadas
+          await supabaseAdmin
+            .from('transacciones')
+            .update({
+              estado_aprobacion: 'aprobada',
+              observaciones_admin: `Auto-conciliado por Agente Autónomo SARA-PAGOS (${bancoIdentificado}: Ref. ${cleanRef})`
+            })
+            .eq('orden_id', ord.id);
+
+          // Si la orden pertenece a suscripciones SaaS (APU / Facturación)
+          if (ord.user_id && (ord.modulo === 'saas' || req.tipoModulo === 'saas' || req.tipoModulo === 'apu' || req.tipoModulo === 'facturacion')) {
+            const hoy = new Date();
+            const mesSiguiente = new Date(hoy);
+            mesSiguiente.setDate(mesSiguiente.getDate() + 30);
+
+            const { data: subExistente } = await supabaseAdmin
+              .from('suscripciones_saas')
+              .select('id')
+              .eq('user_id', ord.user_id)
+              .maybeSingle();
+
+            if (subExistente) {
+              await supabaseAdmin
+                .from('suscripciones_saas')
+                .update({
+                  estado: 'activa',
+                  ultima_orden_id: ord.id,
+                  fecha_fin: mesSiguiente.toISOString()
+                })
+                .eq('user_id', ord.user_id);
+            } else {
+              await supabaseAdmin
+                .from('suscripciones_saas')
+                .insert({
+                  user_id: ord.user_id,
+                  plan_id: ord.referencia_id || 'plan_profesional',
+                  estado: 'activa',
+                  ultima_orden_id: ord.id,
+                  fecha_inicio: hoy.toISOString(),
+                  fecha_fin: mesSiguiente.toISOString()
+                });
+            }
+          }
         }
       } catch (ordErr) {
         console.warn('Orden pago conciliación silente:', ordErr);
+      }
+
+      // 4. Conciliación específica de SARA-ALOJAMIENTO (Stays)
+      if (req.tipoModulo === 'stays' || (req.tramiteId && req.tramiteId.startsWith('RES-'))) {
+        try {
+          const pinNumero = Math.floor(100000 + Math.random() * 900000);
+          const dynamicSmartLockPIN = `#${pinNumero}#`;
+          const resCode = req.tramiteId || `RES-${cleanRef.slice(-6)}`;
+
+          await supabaseAdmin
+            .from('stays_reservations')
+            .update({
+              payment_status: 'aprobado',
+              reservation_status: 'confirmada',
+              smart_lock_pin: dynamicSmartLockPIN,
+              updated_at: ahora
+            })
+            .or(`reservation_code.eq.${resCode},id.eq.${resCode}`);
+        } catch (staysErr) {
+          console.warn('Stays auto-conciliación silente:', staysErr);
+        }
+      }
+
+      // 5. Conciliación específica de SARA-FLETES
+      if (req.tipoModulo === 'fletes' || (req.tramiteId && req.tramiteId.startsWith('FLT-'))) {
+        try {
+          const fltId = req.tramiteId || `FLT-${cleanRef.slice(-6)}`;
+          await supabaseAdmin
+            .from('freight_shipments')
+            .update({
+              estado_pago: 'PAGADO_EN_CUSTODIA',
+              estado_envio: 'ASIGNADO',
+              updated_at: ahora
+            })
+            .or(`folio.eq.${fltId},id.eq.${fltId}`);
+        } catch (fltErr) {
+          console.warn('Fletes auto-conciliación silente:', fltErr);
+        }
+      }
+
+      // 6. Conciliación específica de SARA-MARKETPLACE (Compras de obra)
+      if (req.tipoModulo === 'marketplace' || (req.tramiteId && req.tramiteId.startsWith('SARA-ORD-'))) {
+        try {
+          const ordFolio = req.tramiteId || `SARA-ORD-${cleanRef.slice(-6)}`;
+          await supabaseAdmin
+            .from('compras_ordenes')
+            .update({
+              estado: 'pagada_en_custodia',
+              updated_at: ahora
+            })
+            .or(`folio.eq.${ordFolio},id.eq.${ordFolio}`);
+        } catch (mkpErr) {
+          console.warn('Marketplace auto-conciliación silente:', mkpErr);
+        }
       }
 
       // Clave de acceso ficticia o real SRI
