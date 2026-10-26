@@ -24,14 +24,11 @@ import {
   ExternalLink
 } from 'lucide-react';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
+import FirmaElectronicaWizard from '@/components/facturacion/FirmaElectronicaWizard';
 
 export default function FacturacionElectronicaLanding() {
   // Estado para la calculadora de ahorro
   const [facturasAlMes, setFacturasAlMes] = useState<number>(5);
-
-  // Estado para el asistente de Firma Electrónica
-  const [tipoPersonaFirma, setTipoPersonaFirma] = useState<'NATURAL' | 'JURIDICA'>('NATURAL');
-  const [vigenciaFirma, setVigenciaFirma] = useState<number>(1);
 
   // Estado para la consulta pública de comprobantes estilo BusPlace
   const [cedulaBusqueda, setCedulaBusqueda] = useState<string>('');
@@ -75,9 +72,6 @@ export default function FacturacionElectronicaLanding() {
       subscriptionInterval: plan.subscriptionInterval
     });
   };
-
-  // Precios de Firma
-  const precioFirma = vigenciaFirma === 1 ? 18.00 : vigenciaFirma === 2 ? 30.00 : 55.00;
 
   // Recomendación de la calculadora
   const getRecomendacionCalculadora = () => {
@@ -209,162 +203,9 @@ export default function FacturacionElectronicaLanding() {
         </div>
       </section>
 
-      {/* 2. MÓDULO ESTRELLA: OBTENCIÓN DE FIRMA ELECTRÓNICA */}
-      <section id="firma-electronica" className="py-20 md:py-28 px-6 lg:px-12 bg-slate-900 border-y border-white/[0.08] relative">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-3">
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>Emisión Digital Acreditada ARCOTEL</span>
-            </div>
-            <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
-              Obtención de Firma Electrónica Express
-            </h2>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Válida para el SRI, Quipux, Notarías, SENAE, Compras Públicas (SERCOP) y firma de contratos en PDF. Proceso 100% online con biometría facial.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Paso 1: Configurar Firma */}
-            <div className="lg:col-span-2 rounded-3xl bg-slate-950/80 border border-white/[0.08] p-6 sm:p-8 space-y-6">
-              <h3 className="font-display text-xl font-bold text-white flex items-center gap-2">
-                <span className="w-7 h-7 rounded-full bg-amber-500 text-slate-950 text-xs font-extrabold flex items-center justify-center">1</span>
-                Configura tu Certificado Digital
-              </h3>
-
-              {/* Selector Tipo de Persona */}
-              <div>
-                <label className="text-xs font-mono uppercase text-slate-400 block mb-2 font-bold">Tipo de Solicitante</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setTipoPersonaFirma('NATURAL')}
-                    className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
-                      tipoPersonaFirma === 'NATURAL'
-                        ? 'border-amber-400 bg-amber-500/10 text-white'
-                        : 'border-white/[0.08] bg-slate-900/50 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <UserCheck className="w-5 h-5 shrink-0 text-amber-400" />
-                    <div>
-                      <div className="font-bold text-sm">Persona Natural</div>
-                      <div className="text-xs text-slate-400">Profesionales, técnicos, comerciantes</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setTipoPersonaFirma('JURIDICA')}
-                    className={`p-4 rounded-2xl border text-left flex items-start gap-3 transition-all ${
-                      tipoPersonaFirma === 'JURIDICA'
-                        ? 'border-amber-400 bg-amber-500/10 text-white'
-                        : 'border-white/[0.08] bg-slate-900/50 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Building2 className="w-5 h-5 shrink-0 text-amber-400" />
-                    <div>
-                      <div className="font-bold text-sm">Persona Jurídica</div>
-                      <div className="text-xs text-slate-400">Empresas, constructoras, apoderados</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Selector de Vigencia */}
-              <div>
-                <label className="text-xs font-mono uppercase text-slate-400 block mb-2 font-bold">Vigencia del Certificado</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { anios: 1, precio: '$18.00', badge: 'Estándar' },
-                    { anios: 2, precio: '$30.00', badge: 'Más Popular' },
-                    { anios: 5, precio: '$55.00', badge: 'Mayor Ahorro' }
-                  ].map((item) => (
-                    <button
-                      key={item.anios}
-                      onClick={() => setVigenciaFirma(item.anios)}
-                      className={`p-4 rounded-2xl border text-center transition-all ${
-                        vigenciaFirma === item.anios
-                          ? 'border-amber-400 bg-amber-500/10 text-white ring-2 ring-amber-400/30'
-                          : 'border-white/[0.08] bg-slate-900/50 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/[0.05] block mb-1">
-                        {item.badge}
-                      </span>
-                      <div className="font-display text-lg font-extrabold text-white">{item.anios} {item.anios === 1 ? 'Año' : 'Años'}</div>
-                      <div className="font-mono text-amber-400 font-bold text-sm mt-1">{item.precio}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Beneficios incluidos */}
-              <div className="pt-4 border-t border-white/[0.08] space-y-2 text-xs text-slate-300">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Formato archivo <strong>.p12 descargable</strong> + Resguardo en Bóveda Cloud SARA.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Emisión express en 15 a 30 minutos con verificación biométrica en tu celular.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-amber-400 font-bold">¡INCLUYE 15 FACTURAS ELECTRÓNICAS GRATIS de bienvenida en SARA!</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Resumen de Compra de Firma */}
-            <div className="rounded-3xl bg-gradient-to-b from-slate-950 to-slate-900 border border-amber-400/30 p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative">
-              <div className="absolute top-4 right-4">
-                <ShieldCheck className="w-8 h-8 text-amber-400 opacity-60" />
-              </div>
-
-              <div>
-                <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">Resumen del Trámite</span>
-                <h4 className="font-display text-2xl font-extrabold text-white mt-1">Firma Electrónica</h4>
-                <p className="text-xs text-slate-400 mt-1">
-                  Titular: {tipoPersonaFirma === 'NATURAL' ? 'Persona Natural' : 'Persona Jurídica'} · {vigenciaFirma} {vigenciaFirma === 1 ? 'Año' : 'Años'}
-                </p>
-
-                <div className="mt-8 p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3">
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Certificado Digital ({vigenciaFirma} año/s):</span>
-                    <span className="font-mono text-white font-bold">${precioFirma.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Validación Biométrica:</span>
-                    <span className="font-mono text-emerald-400 font-bold">GRATIS</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Bono Facturación SARA (15 docs):</span>
-                    <span className="font-mono text-amber-400 font-bold">INCLUIDO</span>
-                  </div>
-                  <div className="pt-3 border-t border-white/[0.08] flex justify-between items-baseline">
-                    <span className="font-bold text-sm text-white">Total a Pagar:</span>
-                    <span className="font-display text-3xl font-extrabold text-amber-400 font-mono">${precioFirma.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 space-y-3">
-                <button
-                  onClick={() => abrirCheckout({
-                    title: `Firma Electrónica (${tipoPersonaFirma === 'NATURAL' ? 'P. Natural' : 'P. Jurídica'}) - ${vigenciaFirma} Año(s)`,
-                    amount: precioFirma,
-                    badgeText: 'Firma Digital SRI'
-                  })}
-                  className="w-full min-h-[50px] rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-all"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  Tramitar y Pagar Ahora
-                </button>
-                <p className="text-[11px] text-center text-slate-400">
-                  🔒 Pago seguro con Deuna QR, Tarjetas de Débito/Crédito y Transferencias.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* 2. MÓDULO ESTRELLA: OBTENCIÓN DE FIRMA ELECTRÓNICA INTEGRADA (ONE-FLOW EXPRESS) */}
+      <section id="firma-electronica" className="py-20 md:py-28 px-4 sm:px-6 lg:px-12 bg-slate-900 border-y border-white/[0.08] relative">
+        <FirmaElectronicaWizard />
       </section>
 
       {/* 3. CALCULADORA INTERACTIVA DE AHORRO */}

@@ -82,6 +82,27 @@ export default function StandardCheckoutModal({
   const [completedSuccess, setCompletedSuccess] = useState(false);
   const [successTxId, setSuccessTxId] = useState('');
 
+  // Reset modal state whenever it is opened to prevent sticking on success screen
+  React.useEffect(() => {
+    if (isOpen) {
+      setCompletedSuccess(false);
+      setIsProcessing(false);
+      setSuccessTxId('');
+      setReferenceNumber('');
+      setVoucherFile(null);
+      setVoucherFileName(null);
+    }
+  }, [isOpen]);
+
+  const handleResetForNewPayment = () => {
+    setCompletedSuccess(false);
+    setIsProcessing(false);
+    setSuccessTxId('');
+    setReferenceNumber('');
+    setVoucherFile(null);
+    setVoucherFileName(null);
+  };
+
   if (!isOpen) return null;
 
   const finalTotal = Math.max(0, amount - discount);
@@ -269,18 +290,61 @@ export default function StandardCheckoutModal({
         <div className="w-full md:w-7/12 p-6 md:p-8 overflow-y-auto flex flex-col justify-between">
           
           {completedSuccess ? (
-            <div className="my-auto py-12 flex flex-col items-center text-center animate-in zoom-in-90 duration-300">
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-sm">
+            <div className="my-auto py-10 px-4 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-md ring-8 ring-emerald-50">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 mb-1">¡Pago Registrado con Éxito!</h3>
-              <p className="text-slate-500 text-sm max-w-sm mb-4">
-                Tu transacción ha sido procesada correctamente en la pasarela de Grupo SARA.
+              <h3 className="text-2xl font-black text-slate-900 mb-1.5">¡Pago Registrado con Éxito!</h3>
+              <p className="text-slate-600 text-sm max-w-sm mb-4">
+                Tu transacción ha sido validada y acreditada en la pasarela oficial de Grupo SARA.
               </p>
-              <div className="bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl font-mono text-xs font-bold text-slate-700">
-                REF: {successTxId}
+              
+              <div className="bg-slate-50 border border-slate-200 px-5 py-3 rounded-2xl font-mono text-xs font-bold text-slate-800 shadow-xs mb-6 w-full max-w-xs">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-0.5">Código de Transacción</div>
+                <div className="text-sm font-black text-slate-900 flex items-center justify-center gap-2">
+                  <span>{successTxId || 'TX-SARA-PROCESADA'}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(successTxId || 'TX-SARA-PROCESADA', 'success_tx')}
+                    className="text-slate-400 hover:text-slate-800 p-1"
+                    title="Copiar comprobante"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 mt-4 animate-pulse">Redirigiendo a tu cuenta...</p>
+
+              {/* Botones de Acción para evitar que se quede congelado */}
+              <div className="w-full max-w-xs space-y-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSuccess(successTxId || 'TX-SARA-PROCESADA');
+                    onClose();
+                  }}
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <span>Continuar a mi Cuenta / Facturación</span>
+                  <ArrowLeft className="w-4 h-4 rotate-180" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResetForNewPayment}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition-colors flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="w-3.5 h-3.5" />
+                  <span>Realizar Otro Pago</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full py-2 text-slate-400 hover:text-slate-600 text-xs font-medium transition-colors"
+                >
+                  Cerrar ventana
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={(e) => handleSubmit(e)} className="space-y-6">
@@ -488,17 +552,34 @@ export default function StandardCheckoutModal({
                           </div>
 
                           <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1">
-                              Número de referencia o comprobante DeUna
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-xs font-bold text-slate-700">
+                                Número de referencia o comprobante DeUna *
+                              </label>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const text = await navigator.clipboard.readText();
+                                    if (text) setReferenceNumber(text.trim());
+                                  } catch {}
+                                }}
+                                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-800 transition-colors cursor-pointer"
+                              >
+                                Pegar del portapapeles
+                              </button>
+                            </div>
                             <input
                               type="text"
                               required
                               value={referenceNumber}
                               onChange={(e) => setReferenceNumber(e.target.value)}
-                              placeholder="Ej. DU-98124018"
-                              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white font-mono"
+                              placeholder="Ej. DU-98124018 o código numérico"
+                              className="w-full px-3.5 py-2.5 text-sm font-mono font-bold text-slate-950 bg-white border-2 border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-slate-400 placeholder:font-normal shadow-xs transition-all"
                             />
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              Pega o digita el código de confirmación generado por DeUna al enviar el pago.
+                            </p>
                           </div>
                         </div>
                       )}
