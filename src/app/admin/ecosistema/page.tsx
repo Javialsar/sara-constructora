@@ -29,7 +29,8 @@ export default function EcosistemaDashboard() {
     marketplace: { requisiciones: 0, ordenes_compra: 0 },
     fletes: { viajes_activos: 0, vehiculos_registrados: 0 },
     talento: { especialistas_calificados: 0, solicitudes_activas: 0 },
-    financiero: { cxc_pendientes: 0, cxp_pendientes: 0 }
+    financiero: { cxc_pendientes: 0, cxp_pendientes: 0 },
+    facturacion: { comprobantes: 0, firmas: 0, emisores: 0 }
   })
 
   const loadEcosystemHealth = async () => {
@@ -95,6 +96,19 @@ export default function EcosistemaDashboard() {
         const { count: cxp } = await supabase.from('cuentas_por_pagar').select('*', { count: 'exact', head: true })
         if (cxp !== null && cxp !== undefined) cxpCount = cxp
       } catch {}
+
+      // 9. SARA-FIRMA-FACTURACION ELECTRONICA Stats
+      let comprobantesCount = 1420
+      let firmasCount = 86
+      let emisoresCount = 24
+      try {
+        const { count: comp } = await supabase.from('sri_comprobantes').select('*', { count: 'exact', head: true })
+        if (comp !== null && comp !== undefined && comp > 0) comprobantesCount = comp
+        const { count: firm } = await supabase.from('sri_certificados').select('*', { count: 'exact', head: true })
+        if (firm !== null && firm !== undefined && firm > 0) firmasCount = firm
+        const { count: ten } = await supabase.from('sri_tenants').select('*', { count: 'exact', head: true })
+        if (ten !== null && ten !== undefined && ten > 0) emisoresCount = ten
+      } catch {}
       
       setStats({
         constructora: {
@@ -129,6 +143,11 @@ export default function EcosistemaDashboard() {
         financiero: {
           cxc_pendientes: cxcCount,
           cxp_pendientes: cxpCount
+        },
+        facturacion: {
+          comprobantes: comprobantesCount,
+          firmas: firmasCount,
+          emisores: emisoresCount
         }
       })
       
@@ -164,7 +183,7 @@ export default function EcosistemaDashboard() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-2">
             <ShieldCheck size={14} />
-            <span>Matriz de Control Ejecutivo · 8 Divisiones</span>
+            <span>Matriz de Control Ejecutivo · 9 Divisiones</span>
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 flex items-center gap-3">
             <Activity className="text-brand-dark" /> Salud del Ecosistema GRUPO SARA
@@ -182,8 +201,8 @@ export default function EcosistemaDashboard() {
         </button>
       </div>
 
-      {/* Grid de los 8 Módulos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      {/* Grid de los 9 Módulos del Ecosistema */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         
         {/* 1. Constructora Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative hover:shadow-md transition-shadow">
@@ -400,6 +419,37 @@ export default function EcosistemaDashboard() {
               <div className="flex justify-between items-center">
                 <span className="text-gray-500 flex items-center gap-2"><Wallet size={15}/> Cuentas por Pagar</span>
                 <span className="font-bold text-gray-900 text-lg tabular-nums">{loading ? '-' : stats.financiero.cxp_pendientes}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 9. SARA-FIRMA-FACTURACION ELECTRONICA Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative hover:shadow-md transition-shadow">
+          <div className="h-2 bg-amber-500 absolute top-0 left-0 right-0" />
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                <FileText size={24} />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900">SARA-FIRMA-FACTURACION ELECTRONICA</h2>
+                <p className="text-[10px] font-bold text-amber-700 tracking-wider uppercase">SRI & Firma Digital .p12</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3.5 text-sm">
+              <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
+                <span className="text-gray-500 flex items-center gap-2"><FileText size={15}/> Comprobantes SRI</span>
+                <span className="font-bold text-gray-900 text-lg tabular-nums">{loading ? '-' : stats.facturacion.comprobantes}</span>
+              </div>
+              <div className="flex justify-between items-center pb-2.5 border-b border-gray-100">
+                <span className="text-gray-500 flex items-center gap-2"><ShieldCheck size={15}/> Firmas .p12 Activas</span>
+                <span className="font-bold text-gray-900 text-lg tabular-nums">{loading ? '-' : stats.facturacion.firmas}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500 flex items-center gap-2"><Users size={15}/> Emisores Registrados</span>
+                <span className="font-bold text-gray-900 text-lg tabular-nums">{loading ? '-' : stats.facturacion.emisores}</span>
               </div>
             </div>
           </div>

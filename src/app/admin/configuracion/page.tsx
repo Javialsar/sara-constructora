@@ -63,7 +63,6 @@ export default function ConfiguracionPage() {
     talento: File | null
     fintech: File | null
     facturacion: File | null
-    firma: File | null
   }>({
     grupo_sara: null,
     constructora: null,
@@ -74,8 +73,7 @@ export default function ConfiguracionPage() {
     fletes: null,
     talento: null,
     fintech: null,
-    facturacion: null,
-    firma: null
+    facturacion: null
   })
   const [uploadingLogoKey, setUploadingLogoKey] = useState<string | null>(null)
 
@@ -321,10 +319,10 @@ export default function ConfiguracionPage() {
   const handleSave = async () => {
     setSaving(true)
     let finalLogos: LogosEmpresa = { ...logos }
-    const logoKeys: (keyof LogosEmpresa)[] = ['grupo_sara', 'constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech', 'facturacion', 'firma']
+    const logoKeys: (keyof LogosEmpresa)[] = ['grupo_sara', 'constructora', 'inmobiliaria', 'stays', 'apu', 'compras', 'fletes', 'talento', 'fintech', 'facturacion']
 
     for (const key of logoKeys) {
-      const file = logoFiles[key]
+      const file = logoFiles[key as keyof typeof logoFiles]
       if (file) {
         setUploadingLogoKey(key)
         const fileExt = file.name.split('.').pop()
@@ -348,7 +346,7 @@ export default function ConfiguracionPage() {
 
     setUploadingLogoKey(null)
     setLogos(finalLogos)
-    setLogoFiles({ grupo_sara: null, constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null, facturacion: null, firma: null })
+    setLogoFiles({ grupo_sara: null, constructora: null, inmobiliaria: null, stays: null, apu: null, compras: null, fletes: null, talento: null, fintech: null, facturacion: null })
 
     // 1. Guardar logos de Grupo SARA y servicios en Supabase (parametros_globales y configuracion_empresa)
     const logosSaved = await saveLogosEmpresa(finalLogos)
@@ -415,7 +413,7 @@ export default function ConfiguracionPage() {
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit">
             <Sparkles size={12} className="text-emerald-500" />
-            11 Logotipos Sincronizados (Grupo SARA + 9 Módulos & Firma Digital)
+            10 Logotipos Sincronizados (Grupo SARA + 9 Módulos del Ecosistema)
           </span>
         </div>
 
@@ -969,18 +967,18 @@ export default function ConfiguracionPage() {
             </div>
           </div>
 
-          {/* 9. SARA FACTURACIÓN ELECTRÓNICA */}
+          {/* 9. SARA FIRMA Y FACTURACIÓN ELECTRÓNICA (MÓDULO UNIFICADO) */}
           <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-amber-500/50 transition-all flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-950 text-amber-400 uppercase">
-                  <Sparkles size={12} /> Facturación SRI
+                  <Sparkles size={12} /> Firma & Factura SRI
                 </span>
-                <span className="text-[11px] font-semibold text-gray-400">SRI & RIDE PDF</span>
+                <span className="text-[11px] font-semibold text-gray-400">SRI & Firma .p12</span>
               </div>
-              <h3 className="font-bold text-gray-900 text-base">SARA Facturación Electrónica</h3>
+              <h3 className="font-bold text-gray-900 text-base">SARA Firma y Facturación Electrónica</h3>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para comprobantes electrónicos SRI, RIDE PDF y portal <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/modulos/facturacion</code>.
+                Logotipo oficial único para emisión de comprobantes SRI (RIDE PDF), validación tributaria y certificados digitales de firma electrónica <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">.p12</code> en <code className="text-[10px] bg-slate-200 px-1 py-0.5 rounded">/modulos/facturacion</code>.
               </p>
             </div>
             <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
@@ -990,16 +988,16 @@ export default function ConfiguracionPage() {
                 </div>
               )}
               {logoFiles.facturacion ? (
-                <img src={URL.createObjectURL(logoFiles.facturacion)} alt="Nuevo Logo Facturación" className="max-w-full max-h-full object-contain filter drop-shadow" />
+                <img src={URL.createObjectURL(logoFiles.facturacion)} alt="Nuevo Logo Facturación y Firma" className="max-w-full max-h-full object-contain filter drop-shadow" />
               ) : logos.facturacion ? (
-                <img src={logos.facturacion} alt="Logo SARA Facturación" onError={(e) => { e.currentTarget.src = "/images/sara-facturacion.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" />
+                <img src={logos.facturacion} alt="Logo SARA Firma y Facturación" onError={(e) => { e.currentTarget.src = "/images/sara-facturacion.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" />
               ) : (
                 <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
               )}
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo Facturación</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo (PNG transparente)</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -1020,74 +1018,12 @@ export default function ConfiguracionPage() {
                     setLogos(prev => ({ ...prev, facturacion: "/images/sara-facturacion.png" }))
                   }}
                   className="text-gray-500 hover:text-amber-700 flex items-center gap-1 transition-colors font-medium cursor-pointer"
-                  title="Restablecer al logo predeterminado de facturación"
+                  title="Restablecer al logo predeterminado de facturación y firma"
                 >
                   <RefreshCw size={11} /> Logo Original
                 </button>
                 <span className="text-amber-700 font-medium truncate max-w-[140px]" title={logos.facturacion}>
                   {logoFiles.facturacion ? "Archivo seleccionado" : (logos.facturacion || "").split('/').pop()}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* 10. SARA FIRMA ELECTRÓNICA */}
-          <div className="bg-slate-50/70 rounded-xl p-5 border border-slate-200 hover:border-emerald-500/50 transition-all flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950 text-emerald-400 uppercase">
-                  <ShieldCheck size={12} /> Firma Digital
-                </span>
-                <span className="text-[11px] font-semibold text-gray-400">Certificados .p12</span>
-              </div>
-              <h3 className="font-bold text-gray-900 text-base">SARA Firma Electrónica</h3>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Logotipo para emisión de certificados digitales .p12, ARCOTEL y validación de firma criptográfica.
-              </p>
-            </div>
-            <div className="w-full h-36 bg-slate-900 rounded-xl flex items-center justify-center border-2 border-dashed border-slate-700 relative overflow-hidden p-3 shadow-inner">
-              {uploadingLogoKey === "firma" && (
-                <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center z-10">
-                  <Loader2 className="animate-spin text-emerald-400" size={26} />
-                </div>
-              )}
-              {logoFiles.firma ? (
-                <img src={URL.createObjectURL(logoFiles.firma)} alt="Nuevo Logo Firma" className="max-w-full max-h-full object-contain filter drop-shadow" />
-              ) : logos.firma ? (
-                <img src={logos.firma} alt="Logo SARA Firma" onError={(e) => { e.currentTarget.src = "/images/sara-firma.png"; }} className="max-w-full max-h-full object-contain filter drop-shadow" />
-              ) : (
-                <span className="text-gray-400 text-xs font-medium">Sin Logotipo</span>
-              )}
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">Subir nuevo logotipo Firma Digital</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      const file = e.target.files[0];
-                      setLogoFiles(prev => ({ ...prev, firma: file }))
-                    }
-                  }}
-                  className="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-500/20 file:text-emerald-900 hover:file:bg-emerald-500/30 cursor-pointer"
-                />
-              </div>
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLogoFiles(prev => ({ ...prev, firma: null }));
-                    setLogos(prev => ({ ...prev, firma: "/images/sara-firma.png" }))
-                  }}
-                  className="text-gray-500 hover:text-emerald-700 flex items-center gap-1 transition-colors font-medium cursor-pointer"
-                  title="Restablecer al logo predeterminado de firma"
-                >
-                  <RefreshCw size={11} /> Logo Original
-                </button>
-                <span className="text-emerald-700 font-medium truncate max-w-[140px]" title={logos.firma}>
-                  {logoFiles.firma ? "Archivo seleccionado" : (logos.firma || "").split('/').pop()}
                 </span>
               </div>
             </div>
