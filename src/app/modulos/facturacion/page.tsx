@@ -12,6 +12,7 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle, 
+  AlertCircle,
   Search, 
   RefreshCw, 
   TrendingUp, 
@@ -67,6 +68,7 @@ interface ComprobanteEmitido {
   total: number;
   estado: 'AUTORIZADO' | 'EN_PROCESO' | 'DEVUELTA';
   claveAcceso: string;
+  xmlAutorizado?: string;
 }
 
 export default function FacturacionDashboardPage() {
@@ -100,19 +102,19 @@ export default function FacturacionDashboardPage() {
 
   // Datos del Tenant / Emisor SRI
   const [tenantInfo, setTenantInfo] = useState({
-    ruc: '1792345678001',
-    nombres: 'Carlos Patricio',
-    apellidos: 'Mendoza Andrade',
-    razonSocial: 'ING. CARLOS MENDOZA ARQUITECTURA & CONSTRUCCIÓN',
-    nombreComercial: 'Mendoza Arquitectura & Obras',
-    email: 'carlos.mendoza@mendozaconstr.ec',
-    emailContador: 'contabilidad@mendozaconstr.ec',
-    contacto: '+593 99 876 5432',
+    ruc: '1111111111001',
+    nombres: 'RODRIGO ISRAEL',
+    apellidos: 'BETANCOURT SRANGO',
+    razonSocial: 'RODRIGO ISRAEL BETANCOURT SRANGO',
+    nombreComercial: 'Betancourt Ingeniería & Obras',
+    email: 'israel@gmail.com',
+    emailContador: 'contabilidad@israel.ec',
+    contacto: '0998765432',
     telefonoFijo: '02 245 8900',
     provincia: 'Pichincha',
     ciudad: 'Quito',
-    calles: 'Av. República de El Salvador N36-84 y Naciones Unidas',
-    referencia: 'Edificio Platinum Plaza, Piso 4, Oficina 402',
+    calles: 'Av. Amazonas y Naciones Unidas',
+    referencia: 'Edificio Amazonas Plaza, Piso 5',
     tipoContribuyente: 'CONSTRUCCION',
     regimen: 'Régimen RIMPE - Negocio Emprendedor',
     obligadoContabilidad: 'NO',
@@ -122,12 +124,15 @@ export default function FacturacionDashboardPage() {
     puntoEmision: '001',
     ambiente: 'PRODUCCIÓN (2)',
     planActivo: 'Bolsa Prepago Micro',
-    creditosRestantes: 12,
+    creditosRestantes: 15,
     creditosTotales: 15,
     firmaEstado: 'ACTIVA',
-    firmaVenceDias: 284,
+    firmaVenceDias: 360,
     firmaEmisor: 'SECURITY DATA (ARCOTEL)'
   });
+
+  const [emisionLoading, setEmisionLoading] = useState(false);
+  const [emisionStep, setEmisionStep] = useState<string>('');
 
   // Manejo de Cerrar sesión activa del cliente y retorno al landing page comercial (Imagen 1)
   const handleCerrar = async () => {
@@ -411,28 +416,98 @@ export default function FacturacionDashboardPage() {
     setItems(items.filter(i => i.id !== id));
   };
 
-  const emitirFacturaSRI = () => {
+  const emitirFacturaSRI = async () => {
     if (tenantInfo.creditosRestantes <= 0) {
       showToast('No tienes créditos disponibles en tu plan. Por favor recarga o activa un Pase Diario.');
       return;
     }
 
-    const nuevaFac: ComprobanteEmitido = {
-      id: `cmp-${Date.now()}`,
-      tipo: tipoComprobante,
-      numero: `001-001-000000${143 + comprobantes.length}`,
-      cliente: clienteNombre,
-      identificacion: clienteId,
-      fecha: new Date().toLocaleDateString('es-EC'),
-      total: totalFactura,
-      estado: 'AUTORIZADO',
-      claveAcceso: `25102026${tipoComprobante}${tenantInfo.ruc}20010010000001431234567811`
-    };
+    setEmisionLoading(true);
+    setEmisionStep('1/4: Generando Clave de Acceso de 49 dígitos (Módulo 11 oficial SRI)...');
 
-    setComprobantes([nuevaFac, ...comprobantes]);
-    setTenantInfo(prev => ({ ...prev, creditosRestantes: Math.max(0, prev.creditosRestantes - 1) }));
-    showToast(`¡Factura Nº ${nuevaFac.numero} firmada con XAdES-BES y AUTORIZADA por el SRI con éxito!`);
-    setActiveTab('HISTORIAL');
+    try {
+      await new Promise(r => setTimeout(r, 350));
+      setEmisionStep('2/4: Estructurando XML canónico v2.1.0 (IVA 15% General + IVA 5% Construcción)...');
+
+      await new Promise(r => setTimeout(r, 350));
+      setEmisionStep('3/4: Firmando digitalmente comprobante con estándar XAdES-BES y certificado X.509...');
+
+      const res = await fetch('/api/facturacion/emitir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emisor: {
+            ruc: tenantInfo.ruc,
+            razonSocial: tenantInfo.razonSocial,
+            nombreComercial: tenantInfo.nombreComercial,
+            dirMatriz: tenantInfo.calles,
+            establecimiento: tenantInfo.establecimiento || '001',
+            puntoEmision: tenantInfo.puntoEmision || '001',
+            obligadoContabilidad: tenantInfo.obligadoContabilidad || 'NO',
+            regimen: tenantInfo.regimen,
+            ambiente: tenantInfo.ambiente?.includes('2') ? '2' : '1'
+          },
+          comprador: {
+            tipoIdentificacion: clienteTipoId,
+            identificacion: clienteId,
+            razonSocial: clienteNombre,
+            direccion: clienteDireccion,
+            email: clienteEmail
+          },
+          items: items.map(i => ({
+            codigo: i.codigo,
+            descripcion: i.descripcion,
+            cantidad: i.cantidad,
+            precioUnitario: i.precioUnitario,
+            descuento: 0,
+            ivaTarifa: i.tarifaIvaPct === 5 ? 5 : i.tarifaIvaPct === 0 ? 0 : 15
+          }))
+        })
+      });
+
+      setEmisionStep('4/4: Transmitiendo en tiempo real a Web Service SRI (RecepcionComprobantesOffline)...');
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || 'Fallo en la autorización del SRI.');
+      }
+
+      const cmp = json.comprobante;
+      const nuevaFac: ComprobanteEmitido = {
+        id: cmp.claveAcceso,
+        tipo: tipoComprobante,
+        numero: cmp.numeroComprobante,
+        cliente: clienteNombre,
+        identificacion: clienteId,
+        fecha: new Date().toLocaleDateString('es-EC'),
+        total: cmp.totalFactura,
+        estado: 'AUTORIZADO',
+        claveAcceso: cmp.claveAcceso,
+        xmlAutorizado: cmp.xmlAutorizado
+      };
+
+      setComprobantes([nuevaFac, ...comprobantes]);
+      setTenantInfo(prev => ({ ...prev, creditosRestantes: Math.max(0, prev.creditosRestantes - 1) }));
+      showToast(`¡Factura Nº ${nuevaFac.numero} firmada con XAdES-BES y AUTORIZADA inmediatamente por el SRI (Cero Multas Art. 314 CT)!`);
+      setActiveTab('HISTORIAL');
+    } catch (err: any) {
+      showToast(`Error al emitir al SRI: ${err.message}`);
+    } finally {
+      setEmisionLoading(false);
+      setEmisionStep('');
+    }
+  };
+
+  const handleDescargarPdf = (c: ComprobanteEmitido) => {
+    const url = `/api/facturacion/descargar?claveAcceso=${encodeURIComponent(c.claveAcceso)}&tipo=pdf&numero=${encodeURIComponent(c.numero)}&cliente=${encodeURIComponent(c.cliente)}&ruc=${encodeURIComponent(tenantInfo.ruc)}&razonSocial=${encodeURIComponent(tenantInfo.razonSocial)}&total=${c.total}`;
+    window.open(url, '_blank');
+    showToast(`Generando y descargando RIDE oficial en PDF de ${c.numero}...`);
+  };
+
+  const handleDescargarXml = (c: ComprobanteEmitido) => {
+    const url = `/api/facturacion/descargar?claveAcceso=${encodeURIComponent(c.claveAcceso)}&tipo=xml&numero=${encodeURIComponent(c.numero)}&cliente=${encodeURIComponent(c.cliente)}&ruc=${encodeURIComponent(tenantInfo.ruc)}&razonSocial=${encodeURIComponent(tenantInfo.razonSocial)}&total=${c.total}`;
+    window.open(url, '_blank');
+    showToast(`Descargando archivo XML firmado XAdES-BES de ${c.numero}...`);
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -949,6 +1024,35 @@ export default function FacturacionDashboardPage() {
           {activeTab === 'DASHBOARD' && (
             <div className="space-y-8 animate-in fade-in duration-200">
               
+              {/* BANNER NORMATIVO SRI 2026: PROCESAMIENTO INMEDIATO EN LÍNEA & CERO MULTAS ART. 314 CT */}
+              <div className="bg-gradient-to-r from-emerald-950/70 via-slate-900 to-amber-950/30 border border-emerald-500/30 rounded-3xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                        Transmisión Inmediata en Línea SRI (Art. 314 y 318 Código Tributario)
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
+                        ● WEB SERVICE SRI ONLINE
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 mt-1 max-w-3xl leading-relaxed">
+                      Emisión y procesamiento en tiempo real con firma digital XAdES-BES. Blindaje absoluto contra sanciones de $30 a $1,500 y clausura de 7 días por emisión tardía o falta de entrega. Aplicación automática de tarifa 5% IVA en Materiales de Construcción (Res. NAC-DGERCGC24-00000013) y 15% General.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 bg-slate-950/60 px-4 py-2.5 rounded-2xl border border-white/[0.06]">
+                  <div className="text-right">
+                    <div className="text-[10px] text-slate-400 uppercase font-mono font-bold">Firma Digital .p12</div>
+                    <div className="text-xs font-bold text-amber-400 font-mono">XAdES-BES Activa</div>
+                  </div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50 animate-ping"></div>
+                </div>
+              </div>
+
               {/* Tarjetas de Métricas de Balance */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div className="p-6 rounded-3xl bg-slate-900 border border-white/[0.08] relative overflow-hidden">
@@ -1040,16 +1144,16 @@ export default function FacturacionDashboardPage() {
                           </div>
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => showToast(`Descargando RIDE PDF de ${c.numero}...`)}
-                              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-red-400 transition-colors cursor-pointer"
-                              title="Descargar RIDE PDF"
+                              onClick={() => handleDescargarPdf(c)}
+                              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
+                              title="Descargar RIDE PDF Oficial"
                             >
                               <Download className="w-3.5 h-3.5" />
                             </button>
                             <button
-                              onClick={() => showToast(`Descargando XML firmado XAdES-BES de ${c.numero}...`)}
-                              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-emerald-400 transition-colors cursor-pointer"
-                              title="Descargar XML"
+                              onClick={() => handleDescargarXml(c)}
+                              className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-emerald-500/20 text-emerald-400 transition-colors cursor-pointer"
+                              title="Descargar XML Autorizado SRI"
                             >
                               <FileText className="w-3.5 h-3.5" />
                             </button>
@@ -1102,6 +1206,15 @@ export default function FacturacionDashboardPage() {
           {activeTab === 'EMITIR' && (
             <div className="bg-slate-900 border border-white/[0.08] rounded-3xl p-6 md:p-8 space-y-8 animate-in fade-in duration-200">
               
+              {/* AVISO LEGAL PROCESAMIENTO INMEDIATO OBLIGATORIO */}
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-400/30 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-300 leading-relaxed">
+                  <strong className="text-amber-400 uppercase tracking-wide block mb-0.5">Disposición Legal Vigente SRI (Procesamiento en Línea Inmediato Obligatorio):</strong>
+                  El SRI eliminó la emisión diferida. Toda factura electrónica debe ser transmitida en el momento mismo de la transacción al Web Service del SRI para su inmediata autorización. El sistema calcula automáticamente la clave de 49 dígitos con el algoritmo Módulo 11 oficial y firma con XAdES-BES para entrega instantánea al comprador, garantizando cero multas bajo los Art. 314 y 318 del Código Tributario.
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-white/[0.08]">
                 <div>
                   <h3 className="text-xl font-bold text-white">Datos del Comprobante</h3>
@@ -1285,11 +1398,21 @@ export default function FacturacionDashboardPage() {
                     Cancelar
                   </button>
                   <button
+                    disabled={emisionLoading}
                     onClick={emitirFacturaSRI}
-                    className="flex-1 md:flex-none px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 md:flex-none px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl shadow-amber-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    <Send className="w-4 h-4" />
-                    <span>Firmar con .p12 & Emitir al SRI</span>
+                    {emisionLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Transmitiendo en Línea al SRI...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span>Firmar con .p12 & Emitir al SRI (En Línea)</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1337,14 +1460,16 @@ export default function FacturacionDashboardPage() {
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => showToast(`Descargando RIDE PDF de ${c.numero}...`)}
-                              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-xs font-bold text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              onClick={() => handleDescargarPdf(c)}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-red-500/20 text-xs font-bold text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Descargar RIDE PDF Oficial"
                             >
                               <Download className="w-3.5 h-3.5" /> RIDE (PDF)
                             </button>
                             <button
-                              onClick={() => showToast(`Descargando XML firmado XAdES-BES de ${c.numero}...`)}
-                              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] text-xs font-bold text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              onClick={() => handleDescargarXml(c)}
+                              className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-emerald-500/20 text-xs font-bold text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Descargar XML Autorizado SRI"
                             >
                               <FileText className="w-3.5 h-3.5" /> XML
                             </button>
@@ -1934,6 +2059,30 @@ export default function FacturacionDashboardPage() {
         </main>
 
       </div>
+
+      {/* MODAL DE PROCESAMIENTO INMEDIATO EN TIEMPO REAL AL SRI */}
+      {emisionLoading && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-7 max-w-md w-full shadow-2xl text-center space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 mx-auto flex items-center justify-center animate-bounce">
+              <Send className="w-8 h-8" />
+            </div>
+            <div>
+              <h4 className="font-display text-lg font-black text-white">Transmisión Inmediata en Línea SRI</h4>
+              <p className="text-xs text-slate-400 mt-1">Conforme al Art. 314 y 318 del Código Tributario (Cero Sanciones)</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-white/[0.08] text-xs font-mono font-bold text-amber-400 min-h-[44px] flex items-center justify-center">
+              {emisionStep || 'Procesando comprobante...'}
+            </div>
+            <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+              <div className="bg-gradient-to-r from-amber-500 to-emerald-400 h-full w-full animate-pulse"></div>
+            </div>
+            <p className="text-[11px] text-slate-500 font-mono">
+              Entorno Seguro XAdES-BES · soap.sri.gob.ec · Web Service Oficial
+            </p>
+          </div>
+        </div>
+      )}
 
     </div>
   );
