@@ -188,6 +188,9 @@ export default function AdminFacturacionPlanesPage() {
   const persistirPlanes = (nuevos: PlanFacturacion[]) => {
     setPlanes(nuevos);
     localStorage.setItem('sara_admin_planes_facturacion', JSON.stringify(nuevos));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('sara_admin_planes_updated'));
+    }
     setGuardadoExito(true);
     setTimeout(() => setGuardadoExito(false), 3000);
   };
