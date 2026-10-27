@@ -25,7 +25,8 @@ import {
   Layers,
   ArrowRight,
   CheckCircle2,
-  Calendar
+  Calendar,
+  BarChart3
 } from "lucide-react"
 import { 
   BarChart, 
@@ -42,6 +43,7 @@ import {
   Area,
   Legend
 } from "recharts"
+import ModalControlFinancieroModulo from "@/components/admin/ModalControlFinancieroModulo"
 
 export interface ModuloRecaudacion {
   key: string
@@ -62,6 +64,15 @@ export default function AdminDashboardPage() {
 
   // Filtro de temporalidad para métricas de recaudación
   const [periodoRecaudacion, setPeriodoRecaudacion] = useState<'historico' | 'mes_actual' | 'trimestre'>('historico')
+
+  // Modal Ejecutivo de Control Financiero (Ingresos vs. Gastos) por Módulo
+  const [modalFinanciero, setModalFinanciero] = useState<{
+    isOpen: boolean
+    key: string
+  }>({
+    isOpen: false,
+    key: 'constructora'
+  })
 
   // Datos de recaudación por módulo (9 Unidades de Negocio)
   const [recaudacionModulos, setRecaudacionModulos] = useState<ModuloRecaudacion[]>([
@@ -281,41 +292,52 @@ export default function AdminDashboardPage() {
               </p>
             </div>
 
-            {/* Selector de Periodo */}
-            <div className="flex items-center bg-slate-900 p-1.5 rounded-xl border border-slate-700/80 self-start lg:self-auto shrink-0 shadow-inner">
+            {/* Acciones de Auditoría & Selector de Periodo */}
+            <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto shrink-0">
               <button
                 type="button"
-                onClick={() => setPeriodoRecaudacion('historico')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  periodoRecaudacion === 'historico'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                onClick={() => setModalFinanciero({ isOpen: true, key: 'constructora' })}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer border border-amber-400/50"
               >
-                Histórico Total
+                <BarChart3 size={15} />
+                <span>Control Ingresos vs Gastos</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setPeriodoRecaudacion('trimestre')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  periodoRecaudacion === 'trimestre'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Último Trimestre
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriodoRecaudacion('mes_actual')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  periodoRecaudacion === 'mes_actual'
-                    ? 'bg-amber-500 text-slate-950 shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Octubre 2026
-              </button>
+
+              <div className="flex items-center bg-slate-900 p-1.5 rounded-xl border border-slate-700/80 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setPeriodoRecaudacion('historico')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    periodoRecaudacion === 'historico'
+                      ? 'bg-amber-500 text-slate-950 shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Histórico Total
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodoRecaudacion('trimestre')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    periodoRecaudacion === 'trimestre'
+                      ? 'bg-amber-500 text-slate-950 shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Último Trimestre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodoRecaudacion('mes_actual')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    periodoRecaudacion === 'mes_actual'
+                      ? 'bg-amber-500 text-slate-950 shadow'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Octubre 2026
+                </button>
+              </div>
             </div>
           </div>
 
@@ -404,10 +426,10 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-3.5">
               {recaudacionFiltrada.map((mod) => (
-                <Link
+                <div
                   key={mod.key}
-                  href={mod.href}
-                  className="group bg-slate-900/80 hover:bg-slate-800/90 rounded-xl p-4 border border-slate-800 hover:border-slate-600 transition-all flex flex-col justify-between"
+                  onClick={() => setModalFinanciero({ isOpen: true, key: mod.key })}
+                  className="group bg-slate-900/80 hover:bg-slate-800/90 rounded-xl p-4 border border-slate-800 hover:border-amber-500/50 transition-all flex flex-col justify-between cursor-pointer"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -415,9 +437,20 @@ export default function AdminDashboardPage() {
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: mod.color }} />
                         {mod.name}
                       </span>
-                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
-                        {mod.tendencia}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-emerald-400 border border-slate-700">
+                          {mod.tendencia}
+                        </span>
+                        <Link
+                          href={mod.href}
+                          target="_blank"
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-1 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-400 transition-colors"
+                          title={`Acceso directo al portal de ${mod.name}`}
+                        >
+                          <ArrowUpRight size={13} />
+                        </Link>
+                      </div>
                     </div>
                     <div className="text-xs text-slate-400 mb-2 truncate">
                       {mod.sector}
@@ -431,14 +464,19 @@ export default function AdminDashboardPage() {
                         ${mod.montoAjustado.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs text-slate-500 font-semibold">Cuota</div>
-                      <div className="text-sm font-bold text-amber-400 font-mono">
-                        {mod.porcentaje}%
+                    <div className="text-right flex items-center gap-2">
+                      <div>
+                        <div className="text-xs text-slate-500 font-semibold">Cuota</div>
+                        <div className="text-sm font-bold text-amber-400 font-mono">
+                          {mod.porcentaje}%
+                        </div>
                       </div>
+                      <span className="text-[10px] font-bold text-amber-400/90 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-slate-950 transition-all">
+                        Auditoría →
+                      </span>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>
@@ -645,6 +683,15 @@ export default function AdminDashboardPage() {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MODAL EJECUTIVO DE CONTROL FINANCIERO (INGRESOS VS. GASTOS)             */}
+      {/* ========================================================================= */}
+      <ModalControlFinancieroModulo
+        isOpen={modalFinanciero.isOpen}
+        initialModuleKey={modalFinanciero.key}
+        onClose={() => setModalFinanciero(prev => ({ ...prev, isOpen: false }))}
+      />
 
     </div>
   )

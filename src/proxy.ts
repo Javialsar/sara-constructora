@@ -181,10 +181,36 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // 8. PROTECCIÓN SARA FIRMA Y FACTURACIÓN ELECTRÓNICA SRI (/modulos/facturacion/*)
+  // Permite acceso libre a /modulos/facturacion/auth para registro e inicio de sesión de emisores.
+  // Protege /modulos/facturacion y subrutas privadas exigiendo sesión activa con tokens SRI válidos.
+  if (pathname.startsWith('/modulos/facturacion') && !pathname.startsWith('/modulos/facturacion/auth')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/modulos/facturacion/auth'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    if (!canAccessModule(metadata, 'sara_facturacion')) {
+      const redirectUrl = getUserPortalUrl(metadata)
+      const url = request.nextUrl.clone()
+      url.pathname = redirectUrl
+      url.searchParams.set('warning', 'modulo_no_autorizado_facturacion')
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Si usuario autenticado visita la página de login de un módulo específico y ya pertenece a él
   if (pathname === '/login' && user && canAccessModule(metadata, 'sara_apu')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  if (pathname === '/modulos/facturacion/auth' && user && canAccessModule(metadata, 'sara_facturacion')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/modulos/facturacion'
     return NextResponse.redirect(url)
   }
 
@@ -201,6 +227,8 @@ export const config = {
     '/stays/mis-reservas/:path*',
     '/modulos/fletes/mi-perfil/:path*',
     '/modulos/talento/mi-perfil/:path*',
+    '/modulos/facturacion/:path*',
+    '/modulos/facturacion',
     '/modulos/financiero/:path*',
     '/modulos/importador/:path*',
     '/login',

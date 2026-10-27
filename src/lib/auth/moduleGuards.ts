@@ -10,6 +10,7 @@ export type SaraModule =
   | 'sara_constructora'
   | 'sara_fletes'
   | 'sara_talento'
+  | 'sara_facturacion'
   | 'sara_master'
 
 export interface ModuleDefinition {
@@ -115,6 +116,26 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
     allowedRoles: ['cuadrilla', 'trabajador', 'obrero', 'admin', 'superadmin'],
     color: 'teal'
   },
+  sara_facturacion: {
+    id: 'sara_facturacion',
+    name: 'SARA Firma y Facturación Electrónica SRI',
+    shortName: 'Facturación SRI',
+    description: 'Emisión electrónica SRI, comprobantes RIDE/XML, retenciones y certificados de firma digital .p12.',
+    loginUrl: '/modulos/facturacion/auth',
+    portalUrl: '/modulos/facturacion',
+    allowedRoles: [
+      'emisor_facturacion', 
+      'contador', 
+      'profesional', 
+      'empresa', 
+      'cliente_constructora', 
+      'transportista', 
+      'admin', 
+      'superadmin', 
+      'tecnico'
+    ],
+    color: 'amber'
+  },
   sara_master: {
     id: 'sara_master',
     name: 'GRUPO SARA - Acceso Corporativo Maestro',
@@ -184,6 +205,7 @@ export function getUserModule(rawMetadata: any): SaraModule {
     role === 'propietario_vehiculo'
   ) return 'sara_fletes'
   if (role === 'cuadrilla' || role === 'trabajador' || role === 'obrero') return 'sara_talento'
+  if (role === 'emisor_facturacion') return 'sara_facturacion'
 
   return 'sara_apu'
 }
@@ -211,6 +233,12 @@ export function canAccessModule(rawMetadata: any, targetModule: SaraModule): boo
   // Cualquier usuario autenticado (cliente particular, empresa, profesional o conductor)
   // tiene autorización de uso y acceso a SARA Fletes sin restricciones entre módulos.
   if (targetModule === 'sara_fletes') {
+    return true
+  }
+
+  // 4. SARA FACTURACIÓN SRI: SERVICIO TRANSVERSAL DE EMISIÓN ELECTRÓNICA & FIRMA
+  // Cualquier usuario autenticado del ecosistema tiene autorización para acceder al portal emisor
+  if (targetModule === 'sara_facturacion') {
     return true
   }
 
