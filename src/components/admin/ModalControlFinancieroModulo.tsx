@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   X,
@@ -21,7 +21,8 @@ import {
   CreditCard,
   Percent,
   Download,
-  AlertCircle
+  AlertCircle,
+  Maximize2
 } from 'lucide-react'
 import {
   BarChart,
@@ -36,6 +37,7 @@ import {
   Cell,
   Legend
 } from 'recharts'
+import { ModuloRecaudacion } from '@/app/admin/page'
 
 export interface CentroCosto {
   nombre: string
@@ -85,7 +87,7 @@ export interface ModuloFinancieroDetalle {
   operaciones: OperacionAuditoria[]
 }
 
-export const MODULOS_FINANCIEROS_ECOSISTEMA: Record<string, ModuloFinancieroDetalle> = {
+export const MODULOS_FINANCIEROS_BASE: Record<string, ModuloFinancieroDetalle> = {
   constructora: {
     key: 'constructora',
     name: 'SARA Constructora',
@@ -486,31 +488,119 @@ interface ModalControlFinancieroModuloProps {
   isOpen: boolean
   onClose: () => void
   initialModuleKey?: string
+  recaudacionModulos?: (ModuloRecaudacion & { montoAjustado?: number })[]
+  periodoLabel?: string
 }
 
 export default function ModalControlFinancieroModulo({
   isOpen,
   onClose,
-  initialModuleKey = 'constructora'
+  initialModuleKey = 'constructora',
+  recaudacionModulos,
+  periodoLabel = 'Histórico Total'
 }: ModalControlFinancieroModuloProps) {
+  // Clave del módulo seleccionado actualmente
   const [selectedKey, setSelectedKey] = useState<string>(initialModuleKey)
   const [activeTab, setActiveTab] = useState<'detalle' | 'comparativo'>('detalle')
 
+  // SINCRONIZACIÓN REACTIVA: Cada vez que el modal se abre o cambia la prop initialModuleKey,
+  // se fuerza el estado al módulo exacto cliqueado por el usuario (resuelve la discrepancia visual)
+  useEffect(() => {
+    if (initialModuleKey) {
+      setSelectedKey(initialModuleKey)
+      setActiveTab('detalle')
+    }
+  }, [initialModuleKey, isOpen])
+
   if (!isOpen) return null
 
-  const mod = MODULOS_FINANCIEROS_ECOSISTEMA[selectedKey] || MODULOS_FINANCIEROS_ECOSISTEMA.constructora
+  // Módulo base
+  const modBase = MODULOS_FINANCIEROS_BASE[selectedKey] || MODULOS_FINANCIEROS_BASE.constructora
 
-  // Totales globales para pestaña comparativa
-  const listaModulos = Object.values(MODULOS_FINANCIEROS_ECOSISTEMA)
+  // Módulo live sincronizado con la tarjeta del dashboard
+  const modLive = recaudacionModulos?.find(m => m.key === selectedKey)
+
+  // 100% Sincronizado en tiempo real con el valor de la tarjeta
+  const liveIngresos = modLive?.montoAjustado !== undefined ? modLive.montoAjustado : (modLive?.monto ?? modBase.ingresos)
+  const ratioGastos = modBase.gastos / modBase.ingresos
+  const liveGastos = Math.round(liveIngresos * ratioGastos)
+  const liveMargen = liveIngresos - liveGastos
+  const liveMargenPct = liveIngresos > 0 ? Number(((liveMargen / liveIngresos) * 100).toFixed(1)) : modBase.margenPct
+  const liveEbitda = Math.round(liveMargen * 1.087)
+  const liveRetenciones = Math.round(liveIngresos * 0.05)
+  const liveTransacciones = modLive?.transacciones ?? modBase.transacciones
+  const liveTendencia = modLive?.tendencia ?? modBase.tendencia
+
+  // Centros de costos recalculados para sumar exactamente liveGastos
+  const centrosCostoSincronizados = modBase.centrosCosto.map(c => ({
+    ...c,
+    monto: Math.round(liveGastos * (c.porcentaje / 100))
+  }))
+
+  // Histórico mensual ajustado para que el último mes (Oct) coincida con liveIngresos
+  const historicoMensualSincronizado = modBase.historicoMensual.map((h, i, arr) => {
+    if (i === arr.length - 1) {
+      return {
+        ...h,
+        ingresos: liveIngresos,
+        gastos: liveGastos,
+        margen: liveMargen
+      }
+    }
+    const factor = liveIngresos / modBase.ingresos
+    const ingr = Math.round(h.ingresos * factor)
+    const gast = Math.round(h.gastos * factor)
+    return {
+      ...h,
+      ingresos: ingr,
+      gastos: gast,
+      margen: ingr - gast
+    }
+  })
+
+  // Módulo final enriquecido y sincronizado
+  const mod: ModuloFinancieroDetalle = {
+    ...modBase,
+    ingresos: liveIngresos,
+    gastos: liveGastos,
+    margenNeto: liveMargen,
+    margenPct: liveMargenPct,
+    ebitda: liveEbitda,
+    impuestosRetenciones: liveRetenciones,
+    transacciones: liveTransacciones,
+    tendencia: liveTendencia,
+    centrosCosto: centrosCostoSincronizados,
+    historicoMensual: historicoMensualSincronizado
+  }
+
+  // Lista de todos los 9 módulos sincronizados para la pestaña comparativa
+  const listaModulos = Object.values(MODULOS_FINANCIEROS_BASE).map(base => {
+    const live = recaudacionModulos?.find(m => m.key === base.key)
+    const ing = live?.montoAjustado !== undefined ? live.montoAjustado : (live?.monto ?? base.ingresos)
+    const gst = Math.round(ing * (base.gastos / base.ingresos))
+    const mrg = ing - gst
+    const pct = ing > 0 ? Number(((mrg / ing) * 100).toFixed(1)) : base.margenPct
+    return {
+      ...base,
+      ingresos: ing,
+      gastos: gst,
+      margenNeto: mrg,
+      margenPct: pct,
+      transacciones: live?.transacciones ?? base.transacciones
+    }
+  })
+
   const totalIngresos = listaModulos.reduce((acc, m) => acc + m.ingresos, 0)
   const totalGastos = listaModulos.reduce((acc, m) => acc + m.gastos, 0)
   const totalMargen = totalIngresos - totalGastos
-  const totalMargenPct = Number(((totalMargen / totalIngresos) * 100).toFixed(1))
+  const totalMargenPct = totalIngresos > 0 ? Number(((totalMargen / totalIngresos) * 100).toFixed(1)) : 0
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-200">
+      
+      {/* CONTENEDOR AMPLIADO: Tamaño extra grande (max-w-[1550px], w-[96vw], h-[92vh]) para máxima visibilidad */}
       <div 
-        className="max-w-5xl w-full max-h-[92vh] bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100"
+        className="w-full max-w-[96vw] xl:max-w-7xl 2xl:max-w-[1550px] max-h-[95vh] h-[92vh] bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100 ring-1 ring-white/10"
         role="dialog"
         aria-modal="true"
       >
@@ -519,48 +609,51 @@ export default function ModalControlFinancieroModulo({
         {/* HEADER DEL MODAL EJECUTIVO                                           */}
         {/* =================================================================== */}
         <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3.5">
             <div 
-              className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg text-white font-black"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg text-white font-black text-xl shrink-0"
               style={{ backgroundColor: mod.color }}
             >
-              <DollarSign size={22} />
+              <DollarSign size={26} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-amber-400">
-                  Control Financiero Ejecutivo
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-amber-400">
+                  Control Financiero Ejecutivo GRUPO SARA
                 </span>
-                <span className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-1">
-                  <ShieldCheck size={13} /> Conciliación SRI & Escrow
+                <span className="text-xs font-mono text-emerald-400 font-semibold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <ShieldCheck size={13} /> Sincronizado en Tiempo Real
+                </span>
+                <span className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-full border border-slate-700">
+                  Periodo: <strong className="text-amber-300 font-bold">{periodoLabel}</strong>
                 </span>
               </div>
-              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2 mt-0.5">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2.5 mt-1">
                 <span>{mod.name}</span>
                 <span className="text-xs font-normal text-slate-400 hidden sm:inline">— {mod.sector}</span>
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {/* BOTÓN DE ACCESO DIRECTO AL PORTAL DEL MÓDULO */}
             <Link
               href={mod.portalUrl}
               target="_blank"
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-amber-500/20"
+              className="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-amber-500/20"
               title={`Ir al portal oficial de ${mod.name}`}
             >
               <span>{mod.portalLabel}</span>
-              <ArrowUpRight size={15} />
+              <ArrowUpRight size={16} />
             </Link>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors border border-slate-700 cursor-pointer"
               title="Cerrar modal"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </div>
         </div>
@@ -568,7 +661,7 @@ export default function ModalControlFinancieroModulo({
         {/* =================================================================== */}
         {/* SUBHEADER: SELECTOR RÁPIDO DE LOS 9 MÓDULOS + CONSOLIDADO           */}
         {/* =================================================================== */}
-        <div className="px-6 py-2.5 bg-slate-950/80 border-b border-slate-800 overflow-x-auto flex items-center gap-2 shrink-0 scrollbar-none">
+        <div className="px-6 py-2.5 bg-slate-950/90 border-b border-slate-800 overflow-x-auto flex items-center gap-2 shrink-0 scrollbar-none">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
             <Layers size={13} className="text-amber-400" /> Unidad:
           </span>
@@ -582,17 +675,20 @@ export default function ModalControlFinancieroModulo({
                   setSelectedKey(item.key)
                   setActiveTab('detalle')
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 cursor-pointer border ${
                   isSelected
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md font-extrabold'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg font-black scale-102'
                     : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800 hover:text-white'
                 }`}
               >
                 <span 
-                  className="w-2 h-2 rounded-full" 
+                  className="w-2.5 h-2.5 rounded-full" 
                   style={{ backgroundColor: isSelected ? '#020617' : item.color }} 
                 />
                 <span>{item.shortName}</span>
+                <span className={`text-[10px] font-mono font-black px-1.5 py-0.2 rounded ${isSelected ? 'bg-slate-950 text-amber-400' : 'bg-slate-800 text-slate-400'}`}>
+                  ${(item.ingresos / 1000).toFixed(1)}k
+                </span>
               </button>
             )
           })}
@@ -600,125 +696,138 @@ export default function ModalControlFinancieroModulo({
           <button
             type="button"
             onClick={() => setActiveTab('comparativo')}
-            className={`ml-auto px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer border ${
+            className={`ml-auto px-4 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-2 cursor-pointer border ${
               activeTab === 'comparativo'
-                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md font-extrabold'
-                : 'bg-slate-900 hover:bg-slate-800 text-emerald-400 border-emerald-500/30'
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg font-black'
+                : 'bg-slate-900 hover:bg-slate-800 text-emerald-400 border-emerald-500/40'
             }`}
           >
-            <Sparkles size={13} />
-            <span>Consolidado General (9 Módulos)</span>
+            <Sparkles size={14} />
+            <span>Matriz Consolidada (9 Módulos)</span>
           </button>
         </div>
 
         {/* =================================================================== */}
-        {/* CUERPO DEL MODAL CON CONTENIDO DINÁMICO                             */}
+        {/* CUERPO DEL MODAL CON CONTENIDO DINÁMICO & EXPANDIDO                 */}
         {/* =================================================================== */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-7">
 
           {activeTab === 'detalle' ? (
             <>
+              {/* ALERTA DE SINCRONIZACIÓN CLARA DE LECTURA */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 text-slate-300">
+                  <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                  <span>
+                    Detalle financiero sincronizado con la tarjeta: <strong className="text-white font-bold">{mod.name}</strong>. Valor recaudado en dashboard: <strong className="text-emerald-400 font-mono font-bold">${mod.ingresos.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD</strong>.
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-slate-500">
+                  Conciliación 100% Three-Way Match con Fideicomiso Escrow
+                </span>
+              </div>
+
               {/* 1. FILA DE 4 TARJETAS KPI FINANCIERAS DEL MÓDULO */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5">
                 
-                {/* Ingresos Brutos */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4.5 relative overflow-hidden">
-                  <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider">Ingresos Brutos</span>
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-mono">
+                {/* Ingresos Brutos (Coincide exactamente con la tarjeta del dashboard) */}
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 relative overflow-hidden shadow-lg">
+                  <div className="flex items-center justify-between text-slate-400 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Ingresos Brutos Recaudados</span>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20 font-mono">
                       {mod.tendencia}
                     </span>
                   </div>
-                  <div className="text-2xl font-black text-white font-mono tabular-nums">
+                  <div className="text-3xl font-black text-white font-mono tabular-nums">
                     ${mod.ingresos.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                    <TrendingUp size={12} className="text-emerald-400" />
+                  <div className="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+                    <TrendingUp size={13} className="text-emerald-400" />
                     <span>{mod.transacciones} operaciones procesadas</span>
                   </div>
                 </div>
 
                 {/* Gastos y Costos Directos */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4.5">
-                  <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider">Costos & Gastos</span>
-                    <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 font-mono">
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                  <div className="flex items-center justify-between text-slate-400 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300">Costos & Gastos Operativos</span>
+                    <span className="text-[10px] font-bold text-rose-400 bg-rose-500/10 px-2.5 py-0.5 rounded-full border border-rose-500/20 font-mono">
                       {Math.round((mod.gastos / mod.ingresos) * 100)}% de ventas
                     </span>
                   </div>
-                  <div className="text-2xl font-black text-rose-300 font-mono tabular-nums">
+                  <div className="text-3xl font-black text-rose-300 font-mono tabular-nums">
                     ${mod.gastos.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                    <TrendingDown size={12} className="text-rose-400" />
-                    <span>Costos operativos y directos</span>
+                  <div className="text-xs text-slate-400 mt-2 flex items-center gap-1.5">
+                    <TrendingDown size={13} className="text-rose-400" />
+                    <span>Costos directos, insumos y AIU</span>
                   </div>
                 </div>
 
                 {/* Margen Operativo Neto */}
-                <div className="bg-slate-950/70 border border-emerald-500/30 rounded-2xl p-4.5 bg-gradient-to-br from-emerald-950/20 to-slate-950/80">
-                  <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">Margen Neto (Utilidad)</span>
-                    <span className="text-[10px] font-black text-emerald-950 bg-emerald-400 px-2 py-0.5 rounded-full font-mono">
+                <div className="bg-slate-950/70 border border-emerald-500/40 rounded-2xl p-5 bg-gradient-to-br from-emerald-950/25 to-slate-950/80 shadow-lg">
+                  <div className="flex items-center justify-between text-slate-400 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Margen Neto (Utilidad)</span>
+                    <span className="text-[11px] font-black text-emerald-950 bg-emerald-400 px-2.5 py-0.5 rounded-full font-mono">
                       {mod.margenPct}%
                     </span>
                   </div>
-                  <div className="text-2xl font-black text-emerald-300 font-mono tabular-nums">
+                  <div className="text-3xl font-black text-emerald-300 font-mono tabular-nums">
                     ${mod.margenNeto.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-[11px] text-emerald-400/80 mt-1 flex items-center gap-1">
-                    <CheckCircle2 size={12} />
+                  <div className="text-xs text-emerald-400/90 mt-2 flex items-center gap-1.5">
+                    <CheckCircle2 size={13} />
                     <span>ROI del {mod.roi}% sobre inversión</span>
                   </div>
                 </div>
 
                 {/* EBITDA & Retenciones SRI */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4.5">
-                  <div className="flex items-center justify-between text-slate-400 mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider">EBITDA Estimado</span>
-                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 shadow-lg">
+                  <div className="flex items-center justify-between text-slate-400 mb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-300">EBITDA Estimado</span>
+                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
                       SRI 2026
                     </span>
                   </div>
-                  <div className="text-2xl font-black text-amber-400 font-mono tabular-nums">
+                  <div className="text-3xl font-black text-amber-400 font-mono tabular-nums">
                     ${mod.ebitda.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </div>
-                  <div className="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+                  <div className="text-xs text-slate-400 mt-2 flex items-center justify-between">
                     <span>Retenciones IR/IVA:</span>
-                    <strong className="text-slate-300 font-mono">${mod.impuestosRetenciones}</strong>
+                    <strong className="text-slate-300 font-mono">${mod.impuestosRetenciones.toLocaleString('en-US')}</strong>
                   </div>
                 </div>
 
               </div>
 
-              {/* 2. FILA DE GRÁFICAS DEL MÓDULO (BARRAS Y DONUT) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              {/* 2. FILA DE GRÁFICAS DEL MÓDULO (BARRAS Y DONUT) CON TAMAÑO EXPANDIDO */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* Gráfica A: Evolución Histórica Ingresos vs Gastos */}
-                <div className="lg:col-span-7 bg-slate-950/70 border border-slate-800 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="lg:col-span-7 bg-slate-950/70 border border-slate-800 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h4 className="text-sm font-extrabold text-white flex items-center gap-2">
-                        <BarChart3 size={16} className="text-amber-400" />
+                      <h4 className="text-base font-extrabold text-white flex items-center gap-2">
+                        <BarChart3 size={18} className="text-amber-400" />
                         Evolución Mensual: Ingresos vs. Costos (USD)
                       </h4>
-                      <p className="text-[11px] text-slate-400">Histórico de rendimiento semestral con margen neto calculado</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Histórico semestral comparando ingresos brutos y gastos directos</p>
                     </div>
-                    <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800">
+                    <span className="text-xs font-mono font-bold px-3 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800">
                       Mayo - Octubre 2026
                     </span>
                   </div>
 
-                  <div className="h-64 w-full">
+                  <div className="h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={mod.historicoMensual}
                         margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                        <XAxis dataKey="mes" tick={{ fontSize: 11, fill: '#94a3b8' }} />
+                        <XAxis dataKey="mes" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                         <YAxis 
-                          tick={{ fontSize: 10, fill: '#64748b' }}
+                          tick={{ fontSize: 11, fill: '#64748b' }}
                           tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
                         />
                         <Tooltip
@@ -735,38 +844,38 @@ export default function ModalControlFinancieroModulo({
                           }}
                         />
                         <Legend 
-                          wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
-                          formatter={(value) => value === 'ingresos' ? 'Ingresos' : value === 'gastos' ? 'Gastos' : 'Margen Neto'}
+                          wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                          formatter={(value) => value === 'ingresos' ? 'Ingresos Brutos' : value === 'gastos' ? 'Costos & Gastos' : 'Margen Neto'}
                         />
-                        <Bar dataKey="ingresos" fill={mod.color} radius={[4, 4, 0, 0]} name="ingresos" />
-                        <Bar dataKey="gastos" fill="#f43f5e" radius={[4, 4, 0, 0]} name="gastos" />
+                        <Bar dataKey="ingresos" fill={mod.color} radius={[5, 5, 0, 0]} name="ingresos" />
+                        <Bar dataKey="gastos" fill="#f43f5e" radius={[5, 5, 0, 0]} name="gastos" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
                 {/* Gráfica B: Centros de Costo y Distribución de Gastos */}
-                <div className="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                <div className="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-2xl p-6 shadow-lg flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h4 className="text-sm font-extrabold text-white flex items-center gap-2">
-                          <PieIcon size={16} className="text-rose-400" />
+                        <h4 className="text-base font-extrabold text-white flex items-center gap-2">
+                          <PieIcon size={18} className="text-rose-400" />
                           Desglose de Centros de Costos
                         </h4>
-                        <p className="text-[11px] text-slate-400">Distribución de los ${mod.gastos.toLocaleString('en-US')} de gastos</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Distribución total de los ${mod.gastos.toLocaleString('en-US')} en egresos</p>
                       </div>
                     </div>
 
-                    <div className="h-44 w-full flex items-center justify-center">
+                    <div className="h-48 w-full flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={mod.centrosCosto}
                             cx="50%"
                             cy="50%"
-                            innerRadius={45}
-                            outerRadius={68}
+                            innerRadius={50}
+                            outerRadius={78}
                             paddingAngle={3}
                             dataKey="monto"
                           >
@@ -784,7 +893,7 @@ export default function ModalControlFinancieroModulo({
                               borderRadius: '8px',
                               border: '1px solid #334155',
                               color: '#ffffff',
-                              fontSize: '11px'
+                              fontSize: '12px'
                             }}
                           />
                         </PieChart>
@@ -793,10 +902,10 @@ export default function ModalControlFinancieroModulo({
                   </div>
 
                   {/* Lista de Centros de Costo */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800 text-[11px]">
+                  <div className="space-y-2 pt-3 border-t border-slate-800 text-xs">
                     {mod.centrosCosto.map((costo, idx) => (
                       <div key={idx} className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 truncate">
+                        <div className="flex items-center gap-2 truncate">
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: costo.color }} />
                           <span className="text-slate-300 truncate">{costo.nombre}</span>
                         </div>
@@ -813,17 +922,17 @@ export default function ModalControlFinancieroModulo({
               </div>
 
               {/* 3. FILA DE INFORMACIÓN CUALITATIVA & OPERACIONES AUDITADAS */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 
                 {/* Fuentes de Ingreso Clave */}
-                <div className="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-2xl p-5">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
-                    <Sparkles size={14} /> Fuentes de Monetización & Captura de Valor
+                <div className="lg:col-span-5 bg-slate-950/70 border border-slate-800 rounded-2xl p-6 shadow-lg">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 mb-4 flex items-center gap-2">
+                    <Sparkles size={15} /> Fuentes de Monetización & Captura de Valor
                   </h4>
-                  <ul className="space-y-2 text-xs text-slate-300">
+                  <ul className="space-y-2.5 text-xs text-slate-300">
                     {mod.fuentesIngresos.map((fuente, i) => (
-                      <li key={i} className="flex items-start gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
-                        <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                      <li key={i} className="flex items-start gap-2.5 bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+                        <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
                         <span className="leading-snug">{fuente}</span>
                       </li>
                     ))}
@@ -831,37 +940,37 @@ export default function ModalControlFinancieroModulo({
                 </div>
 
                 {/* Últimas Transacciones Conciliadas */}
-                <div className="lg:col-span-7 bg-slate-950/70 border border-slate-800 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="lg:col-span-7 bg-slate-950/70 border border-slate-800 rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
                     <h4 className="text-xs font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                      <CreditCard size={14} className="text-cyan-400" /> Registro de Operaciones y Conciliación Reciente
+                      <CreditCard size={15} className="text-cyan-400" /> Registro de Operaciones y Conciliación Reciente
                     </h4>
-                    <span className="text-[10px] text-slate-400 font-mono">Últimas 72 Horas</span>
+                    <span className="text-xs text-slate-400 font-mono">Últimas 72 Horas</span>
                   </div>
 
-                  <div className="space-y-2 overflow-x-auto">
+                  <div className="space-y-2.5 overflow-x-auto">
                     {mod.operaciones.map((op) => (
                       <div 
                         key={op.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs gap-3"
+                        className="flex items-center justify-between p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs gap-3"
                       >
-                        <div className="flex items-center gap-2.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black font-mono ${
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2.5 py-0.5 rounded text-[10px] font-black font-mono ${
                             op.tipo === 'INGRESO' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
                           }`}>
                             {op.tipo === 'INGRESO' ? '+ INGRESO' : '- GASTO'}
                           </span>
                           <div>
                             <div className="font-bold text-white leading-tight">{op.concepto}</div>
-                            <div className="text-[10px] text-slate-500 font-mono mt-0.5">Ref: {op.referencia} • {op.fecha}</div>
+                            <div className="text-[11px] text-slate-500 font-mono mt-0.5">Ref: {op.referencia} • {op.fecha}</div>
                           </div>
                         </div>
 
                         <div className="text-right shrink-0">
-                          <div className={`font-black font-mono text-sm ${op.tipo === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          <div className={`font-black font-mono text-base ${op.tipo === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {op.tipo === 'INGRESO' ? '+' : '-'}${op.monto.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </div>
-                          <span className="inline-block text-[9px] uppercase font-bold text-cyan-400 font-mono bg-cyan-950/50 px-1.5 py-0.2 rounded border border-cyan-800/40">
+                          <span className="inline-block text-[10px] uppercase font-bold text-cyan-400 font-mono bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/40">
                             {op.estado}
                           </span>
                         </div>
@@ -878,79 +987,91 @@ export default function ModalControlFinancieroModulo({
             /* =============================================================== */
             <div className="space-y-6">
               {/* Tarjetas de Totales del Ecosistema */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Ingresos Totales (9 Módulos)</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 shadow-lg">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Ingresos Totales (9 Módulos)</div>
                   <div className="text-3xl font-black text-white font-mono">${totalIngresos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                  <div className="text-xs text-emerald-400 mt-1 font-semibold">+18.2% vs periodo anterior</div>
+                  <div className="text-xs text-emerald-400 mt-1.5 font-semibold">+18.2% vs periodo anterior</div>
                 </div>
-                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5">
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Gastos Operativos Totales</div>
+                <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-6 shadow-lg">
+                  <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Gastos Operativos Totales</div>
                   <div className="text-3xl font-black text-rose-400 font-mono">${totalGastos.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                  <div className="text-xs text-slate-400 mt-1 font-semibold">{Math.round((totalGastos / totalIngresos) * 100)}% de absorción de ingresos</div>
+                  <div className="text-xs text-slate-400 mt-1.5 font-semibold">{Math.round((totalGastos / (totalIngresos || 1)) * 100)}% de absorción de ingresos</div>
                 </div>
-                <div className="bg-slate-950/80 border border-emerald-500/40 rounded-2xl p-5 bg-emerald-950/10">
-                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">Utilidad Neta Consolidada</div>
+                <div className="bg-slate-950/80 border border-emerald-500/40 rounded-2xl p-6 bg-emerald-950/15 shadow-lg">
+                  <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1.5">Utilidad Neta Consolidada</div>
                   <div className="text-3xl font-black text-emerald-300 font-mono">${totalMargen.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
-                  <div className="text-xs text-emerald-400 mt-1 font-bold">Margen Global {totalMargenPct}% EBITDA</div>
+                  <div className="text-xs text-emerald-400 mt-1.5 font-bold">Margen Global {totalMargenPct}% EBITDA</div>
                 </div>
               </div>
 
               {/* Matriz Comparativa Detallada */}
-              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 overflow-x-auto">
+              <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-6 shadow-lg overflow-x-auto">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
                     <Layers size={16} className="text-amber-400" /> Matriz Financiera por Unidad de Negocio (9 Módulos)
                   </h4>
-                  <span className="text-xs text-slate-400 font-mono">Valores en USD con retenciones</span>
+                  <span className="text-xs text-slate-400 font-mono">Valores en USD con retenciones SRI</span>
                 </div>
 
                 <table className="w-full text-xs text-left">
                   <thead className="bg-slate-900 text-slate-400 uppercase font-bold text-[10px] tracking-wider border-b border-slate-800">
                     <tr>
-                      <th className="py-3 px-3">Unidad de Negocio</th>
-                      <th className="py-3 px-3 text-right">Ingresos</th>
-                      <th className="py-3 px-3 text-right">Gastos</th>
-                      <th className="py-3 px-3 text-right">Margen Neto</th>
-                      <th className="py-3 px-3 text-right">Rentabilidad</th>
-                      <th className="py-3 px-3 text-right">Ops</th>
-                      <th className="py-3 px-3 text-center">Acción Directa</th>
+                      <th className="py-3.5 px-3">Unidad de Negocio</th>
+                      <th className="py-3.5 px-3 text-right">Ingresos</th>
+                      <th className="py-3.5 px-3 text-right">Gastos</th>
+                      <th className="py-3.5 px-3 text-right">Margen Neto</th>
+                      <th className="py-3.5 px-3 text-right">Rentabilidad</th>
+                      <th className="py-3.5 px-3 text-right">Ops</th>
+                      <th className="py-3.5 px-3 text-center">Acción Directa</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {listaModulos.map((m) => (
                       <tr key={m.key} className="hover:bg-slate-900/60 transition-colors">
-                        <td className="py-3 px-3 font-sans font-bold text-white flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} />
+                        <td className="py-3.5 px-3 font-sans font-bold text-white flex items-center gap-2.5">
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: m.color }} />
                           <span>{m.name}</span>
                         </td>
-                        <td className="py-3 px-3 text-right text-white font-bold">
+                        <td className="py-3.5 px-3 text-right text-white font-bold">
                           ${m.ingresos.toLocaleString('en-US')}
                         </td>
-                        <td className="py-3 px-3 text-right text-rose-300">
+                        <td className="py-3.5 px-3 text-right text-rose-300">
                           ${m.gastos.toLocaleString('en-US')}
                         </td>
-                        <td className="py-3 px-3 text-right text-emerald-400 font-bold">
+                        <td className="py-3.5 px-3 text-right text-emerald-400 font-bold">
                           ${m.margenNeto.toLocaleString('en-US')}
                         </td>
-                        <td className="py-3 px-3 text-right">
+                        <td className="py-3.5 px-3 text-right">
                           <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
                             {m.margenPct}%
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-right text-slate-300">
+                        <td className="py-3.5 px-3 text-right text-slate-300">
                           {m.transacciones}
                         </td>
-                        <td className="py-3 px-3 text-center">
-                          <Link
-                            href={m.portalUrl}
-                            target="_blank"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 text-[11px] font-sans font-bold transition-all border border-slate-700"
-                            title={`Abrir portal de ${m.name}`}
-                          >
-                            <span>Ir al Portal</span>
-                            <ArrowUpRight size={12} />
-                          </Link>
+                        <td className="py-3.5 px-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedKey(m.key)
+                                setActiveTab('detalle')
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500 hover:text-slate-950 text-amber-400 text-[11px] font-sans font-bold transition-all border border-amber-500/30 cursor-pointer"
+                            >
+                              Ver Detalle
+                            </button>
+                            <Link
+                              href={m.portalUrl}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-sans font-bold transition-all border border-slate-700"
+                              title={`Abrir portal de ${m.name}`}
+                            >
+                              <span>Portal</span>
+                              <ArrowUpRight size={12} />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -965,17 +1086,17 @@ export default function ModalControlFinancieroModulo({
         {/* =================================================================== */}
         {/* FOOTER DEL MODAL EJECUTIVO                                           */}
         {/* =================================================================== */}
-        <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="text-[11px] text-slate-400 flex items-center gap-2">
-            <ShieldCheck size={15} className="text-emerald-400" />
-            <span>Gobernanza GRUPO SARA • Cuentas Escrow segregadas bajo supervisión UAFE y SRI</span>
+        <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+          <div className="text-xs text-slate-400 flex items-center gap-2">
+            <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+            <span>Gobernanza GRUPO SARA • Cuentas Escrow segregadas bajo supervisión UAFE y SRI Ecuador</span>
           </div>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
             <Link
               href={mod.portalUrl}
               target="_blank"
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20"
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-amber-500/20"
             >
               <span>{mod.portalLabel}</span>
               <ExternalLink size={14} />
@@ -984,7 +1105,7 @@ export default function ModalControlFinancieroModulo({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer border border-slate-700"
+              className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer border border-slate-700"
             >
               Cerrar
             </button>

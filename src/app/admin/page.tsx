@@ -690,6 +690,14 @@ export default function AdminDashboardPage() {
       <ModalControlFinancieroModulo
         isOpen={modalFinanciero.isOpen}
         initialModuleKey={modalFinanciero.key}
+        recaudacionModulos={recaudacionFiltrada}
+        periodoLabel={
+          periodoRecaudacion === 'historico'
+            ? 'Histórico Total'
+            : periodoRecaudacion === 'trimestre'
+            ? 'Último Trimestre'
+            : 'Octubre 2026'
+        }
         onClose={() => setModalFinanciero(prev => ({ ...prev, isOpen: false }))}
       />
 
