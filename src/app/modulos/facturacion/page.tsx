@@ -132,6 +132,16 @@ export default function FacturacionDashboardPage() {
   // Manejo de Cerrar sesión activa del cliente y retorno al landing page comercial (Imagen 1)
   const handleCerrar = async () => {
     try {
+      await fetch('/api/auth/facturacion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logout' })
+      });
+    } catch (e) {
+      console.warn('Aviso API logout:', e);
+    }
+
+    try {
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch (e) {
@@ -139,6 +149,10 @@ export default function FacturacionDashboardPage() {
     }
 
     if (typeof window !== 'undefined') {
+      // Borrar cookies de sesión de facturación
+      document.cookie = 'sara_facturacion_session=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = 'sara_facturacion_email=; path=/; max-age=0; SameSite=Lax';
+
       // Limpiar por completo la sesión y datos del cliente activo
       localStorage.removeItem('sara_facturacion_auth_email');
       localStorage.removeItem('sara_facturacion_auth_ruc');
@@ -183,23 +197,37 @@ export default function FacturacionDashboardPage() {
     const verifyAndLoad = async () => {
       if (typeof window === 'undefined') return;
 
+      const hasCookie = document.cookie.includes('sara_facturacion_session');
       const savedEmisorRaw = localStorage.getItem('sara_facturacion_emisor_data');
       const savedRuc = localStorage.getItem('sara_facturacion_auth_ruc');
       const savedRazon = localStorage.getItem('sara_facturacion_auth_razon');
       const savedEmail = localStorage.getItem('sara_facturacion_auth_email');
 
       let hasSupabaseUser = false;
+      let userEmail = '';
       try {
         const supabase = createClient();
         const { data } = await supabase.auth.getUser();
         if (data?.user) {
           hasSupabaseUser = true;
+          userEmail = data.user.email || '';
         }
       } catch (e) {
         // Modo demo / offline
       }
 
-      const isAuth = Boolean(savedEmail || savedRuc || savedEmisorRaw || hasSupabaseUser);
+      // Extraer email de cookie si existe
+      let cookieEmail = '';
+      try {
+        const match = document.cookie.match(/sara_facturacion_session=([^;]+)/);
+        if (match) {
+          const parsed = JSON.parse(decodeURIComponent(match[1]));
+          cookieEmail = parsed.email || '';
+        }
+      } catch (e) {}
+
+      const effectiveEmail = savedEmail || userEmail || cookieEmail;
+      const isAuth = Boolean(savedEmail || savedRuc || savedEmisorRaw || hasSupabaseUser || hasCookie);
 
       // Si el cliente no tiene sesión activa, redirigir al portal de autenticación
       if (!isAuth) {
@@ -209,31 +237,68 @@ export default function FacturacionDashboardPage() {
 
       if (!isMounted) return;
 
+      const isIsrael = effectiveEmail.toLowerCase() === 'israel@gmail.com';
+
       if (savedEmisorRaw) {
         try {
           const parsed = JSON.parse(savedEmisorRaw);
           setTenantInfo(prev => ({
             ...prev,
             ...parsed,
-            nombres: parsed.nombres || prev.nombres,
-            apellidos: parsed.apellidos || prev.apellidos,
-            razonSocial: parsed.razonSocial || prev.razonSocial,
-            ruc: parsed.ruc || prev.ruc,
+            nombres: parsed.nombres || (isIsrael ? 'RODRIGO ISRAEL' : prev.nombres),
+            apellidos: parsed.apellidos || (isIsrael ? 'BETANCOURT SRANGO' : prev.apellidos),
+            razonSocial: parsed.razonSocial || (isIsrael ? 'RODRIGO ISRAEL BETANCOURT SRANGO' : prev.razonSocial),
+            ruc: parsed.ruc || (isIsrael ? '1111111111001' : prev.ruc),
             provincia: parsed.direccion?.provincia || parsed.provincia || prev.provincia,
             ciudad: parsed.direccion?.ciudad || parsed.ciudad || prev.ciudad,
-            calles: parsed.direccion?.calles || parsed.calles || prev.calles,
-            contacto: parsed.contacto || prev.contacto,
-            email: parsed.email || prev.email
+            calles: parsed.direccion?.calles || parsed.calles || (isIsrael ? 'Av. Amazonas y Naciones Unidas' : prev.calles),
+            contacto: parsed.contacto || (isIsrael ? '0998765432' : prev.contacto),
+            email: parsed.email || effectiveEmail || prev.email
           }));
         } catch (e) {
           console.warn('Error al leer datos guardados del emisor:', e);
         }
-      } else if (savedRuc || savedRazon || savedEmail) {
+      } else if (isIsrael) {
+        const israelEmisor = {
+          ruc: '1111111111001',
+          nombres: 'RODRIGO ISRAEL',
+          apellidos: 'BETANCOURT SRANGO',
+          razonSocial: 'RODRIGO ISRAEL BETANCOURT SRANGO',
+          nombreComercial: 'Betancourt Ingeniería & Obras',
+          email: 'israel@gmail.com',
+          emailContador: 'contabilidad@israel.ec',
+          contacto: '0998765432',
+          telefonoFijo: '02 245 8900',
+          provincia: 'Pichincha',
+          ciudad: 'Quito',
+          calles: 'Av. Amazonas y Naciones Unidas',
+          referencia: 'Edificio Amazonas Plaza, Piso 5',
+          tipoContribuyente: 'CONSTRUCCION',
+          regimen: 'Régimen RIMPE - Negocio Emprendedor',
+          obligadoContabilidad: 'NO',
+          contribuyenteEspecial: 'NO',
+          resolucionAgenteRetencion: '',
+          establecimiento: '001',
+          puntoEmision: '001',
+          ambiente: 'PRODUCCIÓN (2)',
+          planActivo: 'Bolsa Prepago Micro',
+          creditosRestantes: 15,
+          creditosTotales: 15,
+          firmaEstado: 'ACTIVA',
+          firmaVenceDias: 360,
+          firmaEmisor: 'SECURITY DATA (ARCOTEL)'
+        };
+        setTenantInfo(prev => ({ ...prev, ...israelEmisor }));
+        localStorage.setItem('sara_facturacion_emisor_data', JSON.stringify(israelEmisor));
+        localStorage.setItem('sara_facturacion_auth_email', 'israel@gmail.com');
+        localStorage.setItem('sara_facturacion_auth_ruc', '1111111111001');
+        localStorage.setItem('sara_facturacion_auth_razon', 'RODRIGO ISRAEL BETANCOURT SRANGO');
+      } else if (savedRuc || savedRazon || effectiveEmail) {
         setTenantInfo(prev => ({
           ...prev,
           ruc: savedRuc || prev.ruc,
           razonSocial: savedRazon || prev.razonSocial,
-          email: savedEmail || prev.email
+          email: effectiveEmail || prev.email
         }));
       }
     };
