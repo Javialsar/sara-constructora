@@ -22,12 +22,13 @@ export default function PublicLayoutChrome({
 }: PublicLayoutChromeProps) {
   const pathname = usePathname()
 
-  // Ocultar cabecera corporativa en portales independientes (stays, airbnb, inmobiliaria, apu)
+  // Ocultar cabecera corporativa en portales independientes (stays, airbnb, inmobiliaria, apu, facturacion-electronica)
   const isStandaloneModule = 
     pathname?.startsWith("/stays") ||
     pathname?.startsWith("/airbnb") || 
     pathname?.startsWith("/inmobiliaria") ||
-    pathname?.startsWith("/apu")
+    pathname?.startsWith("/apu") ||
+    pathname?.startsWith("/facturacion-electronica")
 
   if (isStandaloneModule) {
     return (

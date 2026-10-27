@@ -129,16 +129,29 @@ export default function FacturacionDashboardPage() {
     firmaEmisor: 'SECURITY DATA (ARCOTEL)'
   });
 
-  // Manejo de Cerrar y retorno a landing page de Grupo SARA
+  // Manejo de Cerrar sesión activa del cliente y retorno al landing page comercial (Imagen 1)
   const handleCerrar = async () => {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch (e) {
-      console.warn('Aviso al cerrar sesión:', e);
+      console.warn('Aviso al cerrar sesión Supabase:', e);
     }
-    // Redirigir a landing page de Grupo SARA
-    window.location.href = '/';
+
+    if (typeof window !== 'undefined') {
+      // Limpiar por completo la sesión y datos del cliente activo
+      localStorage.removeItem('sara_facturacion_auth_email');
+      localStorage.removeItem('sara_facturacion_auth_ruc');
+      localStorage.removeItem('sara_facturacion_auth_razon');
+      localStorage.removeItem('sara_facturacion_emisor_data');
+      localStorage.removeItem('sri_active_emisor');
+      localStorage.removeItem('sri_tenant_id');
+      localStorage.removeItem('sri_current_session');
+      sessionStorage.clear();
+    }
+
+    // Redirigir a landing page comercial de facturación (Imagen 1)
+    window.location.href = '/facturacion-electronica';
   };
 
   // Guardar datos del emisor
@@ -163,10 +176,39 @@ export default function FacturacionDashboardPage() {
     showToast('¡Datos del emisor actualizados y sincronizados con éxito!');
   };
 
-  // Verificar si hay datos guardados de autenticación o emisor
+  // Verificar sesión activa y cargar datos del emisor
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    let isMounted = true;
+
+    const verifyAndLoad = async () => {
+      if (typeof window === 'undefined') return;
+
       const savedEmisorRaw = localStorage.getItem('sara_facturacion_emisor_data');
+      const savedRuc = localStorage.getItem('sara_facturacion_auth_ruc');
+      const savedRazon = localStorage.getItem('sara_facturacion_auth_razon');
+      const savedEmail = localStorage.getItem('sara_facturacion_auth_email');
+
+      let hasSupabaseUser = false;
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.auth.getUser();
+        if (data?.user) {
+          hasSupabaseUser = true;
+        }
+      } catch (e) {
+        // Modo demo / offline
+      }
+
+      const isAuth = Boolean(savedEmail || savedRuc || savedEmisorRaw || hasSupabaseUser);
+
+      // Si el cliente no tiene sesión activa, redirigir al portal de autenticación
+      if (!isAuth) {
+        window.location.href = '/modulos/facturacion/auth';
+        return;
+      }
+
+      if (!isMounted) return;
+
       if (savedEmisorRaw) {
         try {
           const parsed = JSON.parse(savedEmisorRaw);
@@ -186,11 +228,7 @@ export default function FacturacionDashboardPage() {
         } catch (e) {
           console.warn('Error al leer datos guardados del emisor:', e);
         }
-      }
-      const savedRuc = localStorage.getItem('sara_facturacion_auth_ruc');
-      const savedRazon = localStorage.getItem('sara_facturacion_auth_razon');
-      const savedEmail = localStorage.getItem('sara_facturacion_auth_email');
-      if (savedRuc || savedRazon || savedEmail) {
+      } else if (savedRuc || savedRazon || savedEmail) {
         setTenantInfo(prev => ({
           ...prev,
           ruc: savedRuc || prev.ruc,
@@ -198,7 +236,12 @@ export default function FacturacionDashboardPage() {
           email: savedEmail || prev.email
         }));
       }
-    }
+    };
+
+    verifyAndLoad();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Emisor de comprobantes
@@ -768,7 +811,7 @@ export default function FacturacionDashboardPage() {
                 type="button"
                 onClick={handleCerrar}
                 className="hover:text-rose-400 text-slate-400 transition-colors flex items-center gap-1.5 cursor-pointer font-bold"
-                title="Cerrar sesión y volver al Landing Page de Grupo SARA"
+                title="Cerrar sesión activa y volver a SARA Facturación"
               >
                 <LogOut className="w-3.5 h-3.5 text-rose-400" />
                 <span>Cerrar</span>
@@ -827,7 +870,7 @@ export default function FacturacionDashboardPage() {
                 type="button"
                 onClick={handleCerrar}
                 className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
-                title="Cerrar sesión y volver al Landing Page de Grupo SARA"
+                title="Cerrar sesión activa y volver a SARA Facturación"
               >
                 <LogOut className="w-3.5 h-3.5 text-rose-400" />
                 <span>Cerrar</span>

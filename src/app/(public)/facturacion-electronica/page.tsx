@@ -12,6 +12,7 @@ import {
   CheckCircle2, 
   Sparkles, 
   ArrowRight, 
+  ArrowLeft, 
   Download, 
   CreditCard, 
   Clock, 
@@ -126,7 +127,7 @@ export default function FacturacionElectronicaLanding() {
   const recomendacion = getRecomendacionCalculadora();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pt-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pt-0">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-emerald-500 text-slate-950 font-bold shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-5">
@@ -135,10 +136,18 @@ export default function FacturacionElectronicaLanding() {
         </div>
       )}
 
-      {/* SUB-HEADER NAVEGACIÓN RÁPIDA */}
-      <nav className="sticky top-16 z-40 bg-slate-900/90 backdrop-blur-md border-b border-white/[0.08] px-4 py-2.5">
+      {/* SUB-HEADER NAVEGACIÓN RÁPIDA (BARRA SUPERIOR PRINCIPAL DEL MÓDULO) */}
+      <nav className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-white/[0.08] px-4 py-2.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between overflow-x-auto gap-4 text-xs font-semibold uppercase tracking-wider">
           <div className="flex items-center gap-3 shrink-0">
+            <Link
+              href="/"
+              className="text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors pr-3 border-r border-slate-800"
+              title="Volver a Grupo SARA"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-bold">Grupo SARA</span>
+            </Link>
             <span className="text-amber-400 font-extrabold flex items-center gap-1.5">
               <FileText className="w-4 h-4" /> SARA FACTURACIÓN
             </span>
@@ -722,6 +731,25 @@ export default function FacturacionElectronicaLanding() {
           { label: checkoutModal.title, amount: checkoutModal.amount }
         ]}
       />
+
+      {/* FOOTER OFICIAL SARA FACTURACIÓN ELECTRÓNICA */}
+      <footer className="border-t border-white/10 bg-slate-950 py-10 px-4 md:px-8 text-center text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-white text-sm">GRUPO SARA</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-amber-400 font-semibold">SARA Facturación SRI</span>
+          </div>
+          <div className="flex items-center gap-6 text-[11px] text-slate-400">
+            <Link href="/" className="hover:text-white transition-colors">Portal Grupo SARA</Link>
+            <Link href="/portal-comprobantes" className="hover:text-white transition-colors">Consulta RIDE</Link>
+            <Link href="/modulos/facturacion/auth" className="hover:text-white transition-colors">Acceso Emisores</Link>
+          </div>
+          <p className="text-[11px] text-slate-500">
+            © 2026 GRUPO SARA. Sistema Autorizado SRI Ecuador & Firma Digital Acreditada ARCOTEL.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
