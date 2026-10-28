@@ -38,11 +38,28 @@ import {
   Check,
   UserCheck,
   FileSpreadsheet,
-  Lock
+  Lock,
+  Star,
+  Navigation,
+  Crosshair,
+  Compass
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { EmpresaConfigService, ProfesionalStaff } from '@/lib/services/empresaConfigService';
 import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
+import { createClientAccount } from '@/app/admin/clientes/actions';
+import { CANTONES_ECUADOR } from '@/lib/services/geoDistanceService';
+
+const DynamicModalMap = dynamic(() => import('@/components/inmobiliaria/ModalMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[260px] bg-slate-900 rounded-xl flex flex-col items-center justify-center gap-2 text-slate-400">
+      <Compass className="w-6 h-6 text-amber-400 animate-spin" />
+      <span className="text-xs font-mono">Cargando mapa satelital OpenStreetMap...</span>
+    </div>
+  ),
+});
 
 export type AvanceTabType = 'datos' | 'fotos' | 'videos' | 'tecnico';
 
@@ -113,11 +130,71 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   const [filterDocFecha, setFilterDocFecha] = useState<string>('');
   const [searchDocTerm, setSearchDocTerm] = useState('');
 
-  // Modales
+  // Modales y Estado de Proyecto (Datos Generales + Presupuesto y Honorarios + Mapa GPS)
   const [modalProyectoOpen, setModalProyectoOpen] = useState(false);
   const [editingProyecto, setEditingProyecto] = useState<any | null>(null);
   const [clientesList, setClientesList] = useState<any[]>([]);
   const [savingProyecto, setSavingProyecto] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState<'generales' | 'cotizacion'>('generales');
+  const [cotizadorParams, setCotizadorParams] = useState<any>({
+    costo_base_construccion_m2: 450,
+    tarifa_diseno_arq_m2: 12,
+    tarifa_diseno_est_m2: 8,
+    tarifa_diseno_mep_m2: 6,
+    tarifa_topografia_base: 350,
+    factor_pendiente_plana: 1,
+    factor_pendiente_media: 1.08,
+    factor_pendiente_fuerte: 1.18,
+    factor_acabados_economico: 0.85,
+    factor_acabados_estandar: 1,
+    factor_acabados_premium: 1.3,
+    factor_tipologia_unifamiliar: 1,
+    factor_tipologia_multifamiliar: 1.15,
+    factor_tipologia_comercial: 1.25,
+    factor_tipologia_industrial: 0.85,
+    porcentaje_adicional_por_piso: 0.03,
+    factor_sotano: 1.4,
+    porcentaje_iva_base: 15,
+  });
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [pendingCoverIndex, setPendingCoverIndex] = useState<number | null>(null);
+  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
+  const [isSubmittingClient, setIsSubmittingClient] = useState(false);
+  const [obteniendoGps, setObteniendoGps] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    nombre: '',
+    apellido: '',
+    email: '',
+    telefono: '',
+    password: '',
+  });
+
+  const defaultDatosFinancieros = {
+    areaConstruccion: 100,
+    areaTerreno: 150,
+    plantasSobreRasante: 1,
+    plantasBajoRasante: 0,
+    tipologia: 'unifamiliar',
+    pendiente: 'plana',
+    acabados: 'estandar',
+    incArquitectura: true,
+    incEstructura: true,
+    incMep: true,
+    incTopografia: true,
+    totalObra: 0,
+    totalHonorarios: 0,
+    honorariosArq: 0,
+    honorariosEst: 0,
+    honorariosMep: 0,
+    honorariosTop: 0,
+    subtotalHonorarios: 0,
+    valorIva: 0,
+    aplicaIva: false,
+    porcentajeIva: 15,
+    desgloseHonorarios: {} as Record<string, number>,
+  };
+
   const [proyectoForm, setProyectoForm] = useState<{
     nombre: string;
     ubicacion: string;
@@ -129,17 +206,31 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
     ingeniero_residente: string;
     cliente_id: string;
     avance: number;
+    latitud: string;
+    longitud: string;
+    imagen_url: string;
+    destacado: boolean;
+    galeria: string[];
+    servicio_id: string;
+    datos_financieros: typeof defaultDatosFinancieros;
   }>({
     nombre: '',
     ubicacion: 'Loja, Ecuador',
     descripcion: '',
     tipo_obra: 'Edificación Sismorresistente Hormigón Armado',
-    estado: 'en_construccion',
+    estado: 'en_diseno',
     presupuesto_total: 320000,
-    area_m2: 850,
+    area_m2: 100,
     ingeniero_residente: user?.nombre || 'Ing. Residente de Obra',
     cliente_id: '',
     avance: 0,
+    latitud: '-3.9931',
+    longitud: '-79.2042',
+    imagen_url: '',
+    destacado: false,
+    galeria: [],
+    servicio_id: 'diseno-arquitectonico',
+    datos_financieros: defaultDatosFinancieros,
   });
 
   const [modalAvanceOpen, setModalAvanceOpen] = useState(false);
@@ -230,16 +321,26 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       const { data: clis } = await supabase.from('clientes').select('id, nombre, apellido').order('nombre', { ascending: true });
       if (clis) setClientesList(clis);
 
+      const { data: cParams } = await supabase.from('cotizador_parametros').select('*').eq('id', 1).single();
+      if (cParams) setCotizadorParams((prev: any) => ({ ...prev, ...cParams }));
+
       if (proys && proys.length > 0) {
-        const normalized = proys.map((p: any, idx: number) => ({
-          ...p,
-          avance: typeof p.avance === 'number' ? p.avance : (Number(p.avance) || 0),
-          presupuesto_total: Number(p.presupuesto_total || p.presupuesto || (320000 + idx * 75000)),
-          ingeniero_residente: p.ingeniero_residente || user?.nombre || 'Ing. Residente Juan',
-          area_m2: p.area_m2 || 850,
-          tipo_obra: p.tipo_obra || 'Edificación Sismorresistente Hormigón Armado',
-          estado: p.estado || 'en_construccion',
-        }));
+        const normalized = proys.map((p: any, idx: number) => {
+          const df = p.datos_financieros
+            ? typeof p.datos_financieros === 'string'
+              ? JSON.parse(p.datos_financieros)
+              : p.datos_financieros
+            : null;
+          return {
+            ...p,
+            avance: typeof p.avance === 'number' ? p.avance : Number(p.avance || df?.avance || 0),
+            presupuesto_total: Number(p.presupuesto_total || p.presupuesto || df?.totalObra || (320000 + idx * 75000)),
+            ingeniero_residente: p.ingeniero_residente || df?.ingeniero_residente || user?.nombre || 'Ing. Residente Juan',
+            area_m2: Number(p.area_m2 || df?.areaConstruccion || 850),
+            tipo_obra: p.tipo_obra || df?.tipologia_label || 'Edificación Sismorresistente Hormigón Armado',
+            estado: p.estado || 'en_construccion',
+          };
+        });
         setProyectos(normalized);
       } else if (isCliente) {
         // En modo cliente autenticado, reflejar estado vacío real sin inyectar obras ajenas
@@ -583,38 +684,232 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   });
 
   // ============================================================================
-  // HANDLERS: MODAL NUEVO / EDITAR PROYECTO (OBRA CIVIL)
+  // HANDLERS: MODAL NUEVO / EDITAR PROYECTO (FORMULARIO COMPLETO + MAPA GPS)
   // ============================================================================
+  const calcularFinanzas = (dfSnapshot: any, params: any) => {
+    const result = { ...dfSnapshot };
+    if (!params) return result;
+
+    let fPendiente = params.factor_pendiente_plana || 1;
+    if (result.pendiente === 'media') fPendiente = params.factor_pendiente_media || 1.08;
+    if (result.pendiente === 'fuerte') fPendiente = params.factor_pendiente_fuerte || 1.18;
+
+    let fAcabados = params.factor_acabados_estandar || 1;
+    if (result.acabados === 'economico') fAcabados = params.factor_acabados_economico || 0.85;
+    if (result.acabados === 'premium') fAcabados = params.factor_acabados_premium || 1.3;
+
+    let fTipologia = params.factor_tipologia_unifamiliar || 1;
+    if (result.tipologia === 'multifamiliar') fTipologia = params.factor_tipologia_multifamiliar || 1.15;
+    if (result.tipologia === 'comercial') fTipologia = params.factor_tipologia_comercial || 1.25;
+    if (result.tipologia === 'industrial') fTipologia = params.factor_tipologia_industrial || 0.85;
+
+    const fAltura = 1 + Math.max(0, (result.plantasSobreRasante || 1) - 2) * (params.porcentaje_adicional_por_piso || 0.03);
+    const fSotano = (result.plantasBajoRasante || 0) > 0 ? (params.factor_sotano || 1.4) : 1;
+
+    const costoObra =
+      (result.areaConstruccion || 100) *
+      (params.costo_base_construccion_m2 || 450) *
+      fPendiente *
+      fAcabados *
+      fTipologia *
+      fAltura *
+      fSotano;
+
+    const honorariosArq = result.incArquitectura
+      ? (result.areaConstruccion || 100) * (params.tarifa_diseno_arq_m2 || 12) * fTipologia * fAltura
+      : 0;
+    const honorariosEst = result.incEstructura
+      ? (result.areaConstruccion || 100) * (params.tarifa_diseno_est_m2 || 8) * fTipologia * fAltura
+      : 0;
+    const honorariosMep = result.incMep
+      ? (result.areaConstruccion || 100) * (params.tarifa_diseno_mep_m2 || 6) * fTipologia
+      : 0;
+    const honorariosTop = result.incTopografia ? (params.tarifa_topografia_base || 350) : 0;
+
+    const subtotalHonorarios = honorariosArq + honorariosEst + honorariosMep + honorariosTop;
+    const porcentajeIvaBase = params.porcentaje_iva_base ?? 15;
+    const porcentajeIvaFinal = result.porcentajeIva ?? porcentajeIvaBase;
+    const valorIva = result.aplicaIva ? subtotalHonorarios * (porcentajeIvaFinal / 100) : 0;
+
+    result.totalObra = costoObra;
+    result.honorariosArq = honorariosArq;
+    result.honorariosEst = honorariosEst;
+    result.honorariosMep = honorariosMep;
+    result.honorariosTop = honorariosTop;
+    result.subtotalHonorarios = subtotalHonorarios;
+    result.porcentajeIva = porcentajeIvaFinal;
+    result.valorIva = valorIva;
+    result.totalHonorarios = subtotalHonorarios + valorIva;
+
+    return result;
+  };
+
+  const liveFinanzas = calcularFinanzas(proyectoForm.datos_financieros, cotizadorParams);
+
+  const handleCreateClientFromProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingClient(true);
+    try {
+      const res = await createClientAccount(newClientData);
+      setIsSubmittingClient(false);
+      if (res.success && res.client) {
+        setClientesList(prev => [
+          { id: res.client.id, nombre: res.client.nombre, apellido: res.client.apellido },
+          ...prev,
+        ]);
+        setProyectoForm(prev => ({
+          ...prev,
+          cliente_id: res.client.id,
+        }));
+        setIsAddClientModalOpen(false);
+        setNewClientData({ nombre: '', apellido: '', email: '', telefono: '', password: '' });
+      } else {
+        alert('Error al crear cliente: ' + (res.error || 'Ocurrió un error'));
+      }
+    } catch (err: any) {
+      setIsSubmittingClient(false);
+      alert('Error al crear cliente: ' + err.message);
+    }
+  };
+
+  const setAsCover = (url: string) => {
+    setPendingCoverIndex(null);
+    const newGaleria = proyectoForm.galeria.filter(u => u !== url);
+    if (proyectoForm.imagen_url) {
+      newGaleria.push(proyectoForm.imagen_url);
+    }
+    setProyectoForm({ ...proyectoForm, imagen_url: url, galeria: newGaleria });
+  };
+
+  const removeExistingUrl = (index: number) => {
+    const allImages = [...(proyectoForm.imagen_url ? [proyectoForm.imagen_url] : []), ...proyectoForm.galeria];
+    const urlToRemove = allImages[index];
+
+    if (urlToRemove === proyectoForm.imagen_url && index === 0) {
+      if (proyectoForm.galeria.length > 0) {
+        const newGaleria = [...proyectoForm.galeria];
+        const nextCover = newGaleria.shift()!;
+        setProyectoForm({ ...proyectoForm, imagen_url: nextCover, galeria: newGaleria });
+      } else {
+        setProyectoForm({ ...proyectoForm, imagen_url: '', galeria: [] });
+      }
+    } else {
+      const offset = proyectoForm.imagen_url ? 1 : 0;
+      const galeriaIndex = index - offset;
+      const newGaleria = [...proyectoForm.galeria];
+      newGaleria.splice(galeriaIndex, 1);
+      setProyectoForm({ ...proyectoForm, galeria: newGaleria });
+    }
+  };
+
+  const removePendingFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
+    if (pendingCoverIndex === index) {
+      setPendingCoverIndex(null);
+    } else if (pendingCoverIndex !== null && pendingCoverIndex > index) {
+      setPendingCoverIndex(pendingCoverIndex - 1);
+    }
+  };
+
+  const handleUbicarCiudadEnMapa = (textoUbicacion?: string) => {
+    const q = (textoUbicacion ?? proyectoForm.ubicacion).toLowerCase().trim();
+    if (!q) return;
+    const match = CANTONES_ECUADOR.find(
+      c =>
+        q.includes(c.nombre.toLowerCase()) ||
+        c.nombre.toLowerCase().includes(q) ||
+        q.includes(c.provincia.toLowerCase())
+    );
+    if (match) {
+      setProyectoForm(prev => ({
+        ...prev,
+        latitud: match.coordenadas.lat.toFixed(6),
+        longitud: match.coordenadas.lng.toFixed(6),
+      }));
+    }
+  };
+
+  const handleObtenerMiUbicacionGps = () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    setObteniendoGps(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setProyectoForm(prev => ({
+          ...prev,
+          latitud: pos.coords.latitude.toFixed(6),
+          longitud: pos.coords.longitude.toFixed(6),
+        }));
+        setObteniendoGps(false);
+      },
+      () => {
+        setObteniendoGps(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
   const handleAbrirModalNuevoProyecto = () => {
     setEditingProyecto(null);
+    setFiles([]);
+    setPendingCoverIndex(null);
+    setActiveModalTab('generales');
     setProyectoForm({
       nombre: '',
       ubicacion: 'Loja, Ecuador',
       descripcion: '',
       tipo_obra: 'Edificación Sismorresistente Hormigón Armado',
-      estado: 'en_construccion',
+      estado: 'en_diseno',
       presupuesto_total: 320000,
-      area_m2: 850,
+      area_m2: 100,
       ingeniero_residente: user?.nombre || 'Ing. Residente de Obra',
       cliente_id: '',
       avance: 0,
+      latitud: '-3.9931',
+      longitud: '-79.2042',
+      imagen_url: '',
+      destacado: false,
+      galeria: [],
+      servicio_id: 'diseno-arquitectonico',
+      datos_financieros: defaultDatosFinancieros,
     });
     setModalProyectoOpen(true);
   };
 
   const handleEditarProyecto = (proy: any) => {
     setEditingProyecto(proy);
+    setFiles([]);
+    setPendingCoverIndex(null);
+    setActiveModalTab('generales');
+
+    const df = proy.datos_financieros
+      ? typeof proy.datos_financieros === 'string'
+        ? JSON.parse(proy.datos_financieros)
+        : proy.datos_financieros
+      : defaultDatosFinancieros;
+    const safeDf = {
+      ...defaultDatosFinancieros,
+      ...df,
+      areaConstruccion: Number(df?.areaConstruccion || proy.area_m2 || 100),
+    };
+
     setProyectoForm({
       nombre: proy.nombre || '',
-      ubicacion: proy.ubicacion || 'Ecuador',
+      ubicacion: proy.ubicacion || 'Loja, Ecuador',
       descripcion: proy.descripcion || '',
       tipo_obra: proy.tipo_obra || 'Edificación Sismorresistente Hormigón Armado',
       estado: proy.estado || 'en_construccion',
-      presupuesto_total: Number(proy.presupuesto_total || 320000),
-      area_m2: Number(proy.area_m2 || 850),
-      ingeniero_residente: proy.ingeniero_residente || user?.nombre || 'Ing. Residente de Obra',
+      presupuesto_total: Number(proy.presupuesto_total || safeDf.totalObra || 320000),
+      area_m2: Number(proy.area_m2 || safeDf.areaConstruccion || 100),
+      ingeniero_residente: proy.ingeniero_residente || df?.ingeniero_residente || user?.nombre || 'Ing. Residente de Obra',
       cliente_id: proy.cliente_id || '',
-      avance: Number(proy.avance || 0),
+      avance: Number(proy.avance || df?.avance || 0),
+      latitud: proy.latitud ? String(proy.latitud) : '-3.9931',
+      longitud: proy.longitud ? String(proy.longitud) : '-79.2042',
+      imagen_url: proy.imagen_url || '',
+      destacado: Boolean(proy.destacado),
+      galeria: Array.isArray(proy.galeria) ? proy.galeria : [],
+      servicio_id: proy.servicio_id || 'diseno-arquitectonico',
+      datos_financieros: safeDf,
     });
     setModalProyectoOpen(true);
   };
@@ -625,14 +920,74 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
     setSavingProyecto(true);
 
     try {
+      let finalUrl = proyectoForm.imagen_url;
+      const finalGaleria = [...proyectoForm.galeria];
+
+      if (files.length > 0) {
+        setUploadingFile(true);
+        const uploadedUrls: string[] = [];
+
+        for (const f of files) {
+          const fileExt = f.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `galeria/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('avances')
+            .upload(filePath, f, { cacheControl: '3600', upsert: false });
+
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage.from('avances').getPublicUrl(filePath);
+            uploadedUrls.push(publicUrlData.publicUrl);
+          }
+        }
+
+        if (pendingCoverIndex !== null && pendingCoverIndex < uploadedUrls.length) {
+          if (finalUrl) {
+            finalGaleria.push(finalUrl);
+          }
+          finalUrl = uploadedUrls[pendingCoverIndex];
+          uploadedUrls.forEach((url, i) => {
+            if (i !== pendingCoverIndex) {
+              finalGaleria.push(url);
+            }
+          });
+        } else {
+          uploadedUrls.forEach(url => {
+            if (!finalUrl) {
+              finalUrl = url;
+            } else {
+              finalGaleria.push(url);
+            }
+          });
+        }
+        setUploadingFile(false);
+      }
+
+      const dfSnapshot = {
+        ...calcularFinanzas(proyectoForm.datos_financieros, cotizadorParams),
+        ingeniero_residente: proyectoForm.ingeniero_residente,
+        avance: Number(proyectoForm.avance || 0),
+        tipologia_label: proyectoForm.tipo_obra,
+      };
+
       const payloadDb: any = {
         nombre: proyectoForm.nombre.trim(),
         ubicacion: proyectoForm.ubicacion.trim() || 'Ecuador',
-        descripcion: proyectoForm.descripcion.trim() || `${proyectoForm.tipo_obra} • ${proyectoForm.area_m2} m²`,
+        descripcion: proyectoForm.descripcion.trim(),
         estado: proyectoForm.estado,
-        avance: Number(proyectoForm.avance || 0),
+        latitud: proyectoForm.latitud ? parseFloat(proyectoForm.latitud) : null,
+        longitud: proyectoForm.longitud ? parseFloat(proyectoForm.longitud) : null,
         cliente_id: proyectoForm.cliente_id ? proyectoForm.cliente_id : null,
+        imagen_url: finalUrl,
+        destacado: proyectoForm.destacado,
+        galeria: finalGaleria,
+        servicio_id: proyectoForm.servicio_id,
+        datos_financieros: dfSnapshot,
       };
+
+      const presupuestoCalculado = Number(dfSnapshot.totalObra || proyectoForm.presupuesto_total || 320000);
+      const areaCalculada = Number(dfSnapshot.areaConstruccion || proyectoForm.area_m2 || 100);
 
       if (editingProyecto) {
         try {
@@ -646,9 +1001,10 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
               ? {
                   ...p,
                   ...payloadDb,
+                  avance: Number(proyectoForm.avance || 0),
                   tipo_obra: proyectoForm.tipo_obra,
-                  presupuesto_total: Number(proyectoForm.presupuesto_total),
-                  area_m2: Number(proyectoForm.area_m2),
+                  presupuesto_total: presupuestoCalculado,
+                  area_m2: areaCalculada,
                   ingeniero_residente: proyectoForm.ingeniero_residente,
                 }
               : p
@@ -666,9 +1022,10 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
         const nuevaObra = {
           id: insertedRow?.id || `proy-${Date.now()}`,
           ...payloadDb,
+          avance: Number(proyectoForm.avance || 0),
           tipo_obra: proyectoForm.tipo_obra,
-          presupuesto_total: Number(proyectoForm.presupuesto_total),
-          area_m2: Number(proyectoForm.area_m2),
+          presupuesto_total: presupuestoCalculado,
+          area_m2: areaCalculada,
           ingeniero_residente: proyectoForm.ingeniero_residente,
           created_at: new Date().toISOString(),
         };
@@ -3014,201 +3371,873 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       })()}
 
       {/* ==================================================================== */}
-      {/* MODAL CREAR / EDITAR PROYECTO (OBRA CIVIL)                           */}
+      {/* MODAL CREAR / EDITAR PROYECTO (FORMULARIO COMPLETO DE OBRAS + MAPA)  */}
       {/* ==================================================================== */}
       {modalProyectoOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] border border-gray-200 dark:border-slate-800">
+            <div className="flex justify-between items-center p-5 sm:p-6 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900 shrink-0">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 font-bold block">
                   DIRECCIÓN TÉCNICA • SARA CONSTRUCTORA
                 </span>
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-amber-500" />
-                  <span>{editingProyecto ? `Editar Obra: ${editingProyecto.nombre}` : 'Crear Nuevo Proyecto / Obra Civil'}</span>
+                  <span>{editingProyecto ? `Editar Proyecto: ${editingProyecto.nombre}` : 'Crear Nuevo Proyecto'}</span>
                 </h3>
               </div>
               <button
                 type="button"
-                onClick={() => { setModalProyectoOpen(false); setEditingProyecto(null); }}
-                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer"
+                onClick={() => {
+                  setModalProyectoOpen(false);
+                  setEditingProyecto(null);
+                }}
+                className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleGuardarProyecto} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Nombre del Proyecto / Obra *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={proyectoForm.nombre}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, nombre: e.target.value })}
-                    placeholder="Ej: Edificio Mirador del Valle"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+            <div className="flex border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
+              <button
+                type="button"
+                onClick={() => setActiveModalTab('generales')}
+                className={`flex-1 py-3.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+                  activeModalTab === 'generales'
+                    ? 'border-amber-500 text-slate-900 dark:text-amber-400 bg-amber-500/5'
+                    : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'
+                }`}
+              >
+                1. Datos Generales & Geolocalización
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveModalTab('cotizacion')}
+                className={`flex-1 py-3.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
+                  activeModalTab === 'cotizacion'
+                    ? 'border-amber-500 text-slate-900 dark:text-amber-400 bg-amber-500/5'
+                    : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'
+                }`}
+              >
+                2. Presupuesto y Honorarios
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarProyecto} className="flex-1 overflow-hidden flex flex-col">
+              <div className="p-6 overflow-y-auto flex-1">
+                {/* PESTAÑA 1: DATOS GENERALES Y MAPA DE GEOLOCALIZACIÓN */}
+                <div className={`${activeModalTab === 'generales' ? 'grid' : 'hidden'} grid-cols-1 md:grid-cols-2 gap-5`}>
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Nombre del Proyecto *</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="Ej. Casa Familia Pérez / Edificio Mirador"
+                      className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm"
+                      value={proyectoForm.nombre}
+                      onChange={e => setProyectoForm({ ...proyectoForm, nombre: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Cliente Asignado</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewClientData({ nombre: '', apellido: '', email: '', telefono: '', password: '' });
+                          setIsAddClientModalOpen(true);
+                        }}
+                        className="text-xs font-bold text-slate-900 dark:text-amber-300 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/50 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
+                        title="Registrar un nuevo cliente en el sistema"
+                      >
+                        <Plus size={13} className="stroke-[2.5]" />
+                        <span>(Agregar Cliente)</span>
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                        value={proyectoForm.cliente_id}
+                        onChange={e => setProyectoForm({ ...proyectoForm, cliente_id: e.target.value })}
+                      >
+                        <option value="">-- Ninguno (Proyecto Público / Propio) --</option>
+                        {clientesList.map((c: any) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre} {c.apellido || ''}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewClientData({ nombre: '', apellido: '', email: '', telefono: '', password: '' });
+                          setIsAddClientModalOpen(true);
+                        }}
+                        className="p-2.5 bg-slate-900 hover:bg-amber-500 hover:text-slate-950 text-white rounded-lg transition-colors flex items-center justify-center shrink-0 shadow-sm cursor-pointer"
+                        title="Crear y agregar nuevo cliente"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Ciudad / Sector *</label>
+                    <div className="flex gap-2">
+                      <input
+                        required
+                        type="text"
+                        placeholder="Ej. Loja, Ecuador / Calvas, Loja"
+                        className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm"
+                        value={proyectoForm.ubicacion}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setProyectoForm({ ...proyectoForm, ubicacion: val });
+                          handleUbicarCiudadEnMapa(val);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Servicio Asociado *</label>
+                    <select
+                      className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      value={proyectoForm.servicio_id}
+                      onChange={e => setProyectoForm({ ...proyectoForm, servicio_id: e.target.value })}
+                      required
+                    >
+                      <option value="diseno-arquitectonico">Diseño Arquitectónico</option>
+                      <option value="construccion-de-obras">Construcción de Obras</option>
+                      <option value="ingenieria-y-calculo-estructural">Ingeniería y Cálculo Estructural</option>
+                      <option value="estudios-de-suelos">Estudios de Suelos</option>
+                      <option value="topografia-y-planimetria">Topografía y Planimetría</option>
+                      <option value="presupuestos-y-apu">Presupuestos y APU</option>
+                      <option value="remodelaciones-y-ampliaciones">Remodelaciones y Ampliaciones</option>
+                      <option value="direccion-y-supervision">Dirección y Supervisión de Obras</option>
+                      <option value="modelado-3d-y-renders">Modelado 3D y Renders</option>
+                      <option value="consultoria-tecnica">Consultoría Técnica</option>
+                      <option value="otros">Otros</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Ingeniero Residente / Responsable</label>
+                    <input
+                      type="text"
+                      placeholder="Nombre del Ingeniero Residente"
+                      className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm"
+                      value={proyectoForm.ingeniero_residente}
+                      onChange={e => setProyectoForm({ ...proyectoForm, ingeniero_residente: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Avance Físico Actual (%)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm font-mono"
+                      value={proyectoForm.avance}
+                      onChange={e => setProyectoForm({ ...proyectoForm, avance: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Descripción del Proyecto</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Describe los detalles del proyecto, tipo de edificación, metros cuadrados, zonificación NEC-15..."
+                      className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none resize-none text-sm"
+                      value={proyectoForm.descripcion}
+                      onChange={e => setProyectoForm({ ...proyectoForm, descripcion: e.target.value })}
+                    />
+                  </div>
+
+                  {/* GALERÍA DE IMÁGENES CON PORTADA ⭐ */}
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Galería de Imágenes</label>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mb-2">
+                      Selecciona múltiples imágenes. Marca con la estrella (⭐) la que quieres que sea la Portada.
+                    </p>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-3">
+                      {[...(proyectoForm.imagen_url ? [proyectoForm.imagen_url] : []), ...proyectoForm.galeria].map((url, idx) => {
+                        const isCover = url === proyectoForm.imagen_url && idx === 0 && pendingCoverIndex === null;
+                        return (
+                          <div
+                            key={`${url}-${idx}`}
+                            className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${
+                              isCover ? 'border-amber-500 shadow-md' : 'border-gray-200 dark:border-slate-700'
+                            }`}
+                          >
+                            <img src={url} alt="Proyecto" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setAsCover(url)}
+                              title={isCover ? 'Portada actual' : 'Elegir como portada'}
+                              className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors cursor-pointer ${
+                                isCover ? 'bg-amber-500 text-slate-950' : 'bg-black/50 text-white hover:bg-black/70'
+                              }`}
+                            >
+                              <Star size={14} className={isCover ? 'fill-slate-950' : ''} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeExistingUrl(idx)}
+                              title="Eliminar foto"
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            {isCover && (
+                              <div className="absolute bottom-0 inset-x-0 bg-amber-500 text-slate-950 text-[10px] font-bold text-center py-0.5 uppercase tracking-wider">
+                                Portada
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {files.map((f, idx) => {
+                        const isCover = pendingCoverIndex === idx;
+                        return (
+                          <div
+                            key={idx}
+                            className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 ${
+                              isCover
+                                ? 'border-amber-500 border-solid shadow-md opacity-100'
+                                : 'border-dashed border-gray-300 dark:border-slate-700 opacity-75'
+                            } hover:opacity-100 transition-opacity`}
+                          >
+                            <img src={URL.createObjectURL(f)} alt="Nuevo" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/20" />
+                            <button
+                              type="button"
+                              onClick={() => setPendingCoverIndex(idx)}
+                              title={isCover ? 'Portada actual (pendiente)' : 'Elegir como portada'}
+                              className={`absolute top-2 left-2 p-1.5 rounded-full transition-colors z-10 cursor-pointer ${
+                                isCover ? 'bg-amber-500 text-slate-950' : 'bg-black/50 text-white hover:bg-black/70'
+                              }`}
+                            >
+                              <Star size={14} className={isCover ? 'fill-slate-950' : ''} />
+                            </button>
+                            <span className="absolute bottom-2 left-2 right-2 text-[10px] font-bold text-white bg-black/50 px-2 py-0.5 rounded truncate text-center">
+                              Nuevo (Se subirá)
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removePendingFile(idx)}
+                              className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors z-10 cursor-pointer"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            {isCover && (
+                              <div className="absolute bottom-0 inset-x-0 bg-amber-500 text-slate-950 text-[10px] font-bold text-center py-0.5 uppercase tracking-wider z-10">
+                                Portada
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={e => {
+                        if (e.target.files) {
+                          setFiles([...files, ...Array.from(e.target.files)]);
+                        }
+                      }}
+                      className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-500/15 file:text-amber-600 dark:file:text-amber-400 hover:file:bg-amber-500/25 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Estado Actual</label>
+                    <select
+                      className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm"
+                      value={proyectoForm.estado}
+                      onChange={e => setProyectoForm({ ...proyectoForm, estado: e.target.value })}
+                    >
+                      <option value="en_diseno">En Diseño</option>
+                      <option value="en_construccion">En Construcción</option>
+                      <option value="paralizado">Paralizado</option>
+                      <option value="finalizado">Finalizado</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1 flex flex-col justify-center mt-5">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-amber-500 rounded border-gray-300 focus:ring-amber-500 accent-amber-500"
+                        checked={proyectoForm.destacado}
+                        onChange={e => setProyectoForm({ ...proyectoForm, destacado: e.target.checked })}
+                      />
+                      <span className="text-sm font-bold text-gray-700 dark:text-slate-300">
+                        Mostrar en Landing Page (Destacado)
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* SECCIÓN VITAL: COORDENADAS Y MAPA INTERACTIVO DE GEOLOCALIZACIÓN */}
+                  <div className="space-y-3 md:col-span-2 mt-2 pt-4 border-t border-gray-200 dark:border-slate-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 text-sm">
+                          <MapPin className="w-4 h-4 text-amber-500" />
+                          <span>Punto de Geolocalización del Proyecto en el Mapa *</span>
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">
+                          Haz clic en el mapa o arrastra el marcador para ubicar con precisión satelital la obra en el mapa de proyectos.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleUbicarCiudadEnMapa()}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Centrar mapa según la ciudad escrita arriba"
+                        >
+                          <Search size={13} className="text-amber-500" />
+                          <span>Ubicar Ciudad</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleObtenerMiUbicacionGps}
+                          disabled={obteniendoGps}
+                          className="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Capturar coordenadas desde tu GPS actual"
+                        >
+                          <Crosshair size={13} className={obteniendoGps ? 'animate-spin' : ''} />
+                          <span>{obteniendoGps ? 'Obteniendo GPS...' : 'Mi Ubicación GPS'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-700 dark:text-slate-300">Latitud (GPS)</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. -3.9931"
+                          className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-3.5 py-2 focus:ring-2 focus:ring-amber-500 outline-none text-xs font-mono"
+                          value={proyectoForm.latitud}
+                          onChange={e => setProyectoForm({ ...proyectoForm, latitud: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-gray-700 dark:text-slate-300">Longitud (GPS)</label>
+                        <input
+                          type="text"
+                          placeholder="Ej. -79.2042"
+                          className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-3.5 py-2 focus:ring-2 focus:ring-amber-500 outline-none text-xs font-mono"
+                          value={proyectoForm.longitud}
+                          onChange={e => setProyectoForm({ ...proyectoForm, longitud: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* MAPA INTERACTIVO OPENSTREETMAP / LEAFLET */}
+                    <div className="w-full h-64 rounded-xl overflow-hidden border-2 border-amber-500/40 shadow-inner relative">
+                      <DynamicModalMap
+                        lat={parseFloat(proyectoForm.latitud) || -3.9931}
+                        lng={parseFloat(proyectoForm.longitud) || -79.2042}
+                        zoom={15}
+                        onChange={(newLat: number, newLng: number) => {
+                          setProyectoForm(prev => ({
+                            ...prev,
+                            latitud: newLat.toFixed(6),
+                            longitud: newLng.toFixed(6),
+                          }));
+                        }}
+                      />
+                      <div className="absolute bottom-2 left-2 z-[400] bg-slate-950/85 backdrop-blur-sm text-white px-2.5 py-1 rounded-lg text-[10px] font-mono border border-amber-500/30 pointer-events-none flex items-center gap-1.5">
+                        <MapPin size={11} className="text-amber-400" />
+                        <span>
+                          Pin Obra: {proyectoForm.latitud || '-3.9931'}, {proyectoForm.longitud || '-79.2042'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ubicación (Ciudad / Sector) *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={proyectoForm.ubicacion}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, ubicacion: e.target.value })}
-                    placeholder="Ej: Calvas - Loja"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
+                {/* PESTAÑA 2: PRESUPUESTO Y HONORARIOS (COTIZACIÓN AUTOMÁTICA) */}
+                <div className={`${activeModalTab === 'cotizacion' ? 'block' : 'hidden'} space-y-6`}>
+                  <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
+                    <p className="text-xs sm:text-sm text-slate-800 dark:text-amber-200">
+                      Al guardar el proyecto, se calculará automáticamente el presupuesto y se guardará como un historial financiero inalterable usando las tarifas actuales configuradas en el Cotizador.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">
+                        Área de Construcción (m²)
+                      </label>
+                      <input
+                        type="number"
+                        value={proyectoForm.datos_financieros.areaConstruccion}
+                        onChange={e =>
+                          setProyectoForm({
+                            ...proyectoForm,
+                            area_m2: Number(e.target.value),
+                            datos_financieros: {
+                              ...proyectoForm.datos_financieros,
+                              areaConstruccion: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 text-base font-mono font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">
+                        Área del Terreno (m²) - Para topografía
+                      </label>
+                      <input
+                        type="number"
+                        value={proyectoForm.datos_financieros.areaTerreno}
+                        onChange={e =>
+                          setProyectoForm({
+                            ...proyectoForm,
+                            datos_financieros: {
+                              ...proyectoForm.datos_financieros,
+                              areaTerreno: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 text-base font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">
+                        Plantas Sobre Rasante
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={proyectoForm.datos_financieros.plantasSobreRasante}
+                        onChange={e =>
+                          setProyectoForm({
+                            ...proyectoForm,
+                            datos_financieros: {
+                              ...proyectoForm.datos_financieros,
+                              plantasSobreRasante: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">
+                        Sótanos (Bajo rasante)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={proyectoForm.datos_financieros.plantasBajoRasante}
+                        onChange={e =>
+                          setProyectoForm({
+                            ...proyectoForm,
+                            datos_financieros: {
+                              ...proyectoForm.datos_financieros,
+                              plantasBajoRasante: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 font-mono"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">Tipología</label>
+                        <select
+                          value={proyectoForm.datos_financieros.tipologia}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: { ...proyectoForm.datos_financieros, tipologia: e.target.value },
+                            })
+                          }
+                          className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 text-sm"
+                        >
+                          <option value="unifamiliar">Unifamiliar</option>
+                          <option value="multifamiliar">Multifamiliar</option>
+                          <option value="comercial">Comercial / Clínicas</option>
+                          <option value="industrial">Industrial / Bodegas</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">Topografía</label>
+                        <select
+                          value={proyectoForm.datos_financieros.pendiente}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: { ...proyectoForm.datos_financieros, pendiente: e.target.value },
+                            })
+                          }
+                          className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 text-sm"
+                        >
+                          <option value="plana">Plana (&lt; 5%)</option>
+                          <option value="media">Media (5% - 20%)</option>
+                          <option value="fuerte">Fuerte (&gt; 20%)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1.5">Acabados</label>
+                        <select
+                          value={proyectoForm.datos_financieros.acabados}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: { ...proyectoForm.datos_financieros, acabados: e.target.value },
+                            })
+                          }
+                          className="w-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-4 py-2 outline-none focus:border-amber-500 text-sm"
+                        >
+                          <option value="economico">Económico / Social</option>
+                          <option value="estandar">Estándar / Comercial</option>
+                          <option value="premium">Premium / Lujo</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
+                    <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-3">
+                      Alcance Cotizado para este Proyecto
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <label
+                        className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${
+                          proyectoForm.datos_financieros.incArquitectura
+                            ? 'bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white font-bold'
+                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={proyectoForm.datos_financieros.incArquitectura}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: {
+                                ...proyectoForm.datos_financieros,
+                                incArquitectura: e.target.checked,
+                              },
+                            })
+                          }
+                          className="w-5 h-5 accent-amber-500"
+                        />
+                        <span className="text-sm">Diseño Arquitectónico</span>
+                      </label>
+                      <label
+                        className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${
+                          proyectoForm.datos_financieros.incEstructura
+                            ? 'bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white font-bold'
+                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={proyectoForm.datos_financieros.incEstructura}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: {
+                                ...proyectoForm.datos_financieros,
+                                incEstructura: e.target.checked,
+                              },
+                            })
+                          }
+                          className="w-5 h-5 accent-amber-500"
+                        />
+                        <span className="text-sm">Diseño Estructural</span>
+                      </label>
+                      <label
+                        className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${
+                          proyectoForm.datos_financieros.incMep
+                            ? 'bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white font-bold'
+                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={proyectoForm.datos_financieros.incMep}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: {
+                                ...proyectoForm.datos_financieros,
+                                incMep: e.target.checked,
+                              },
+                            })
+                          }
+                          className="w-5 h-5 accent-amber-500"
+                        />
+                        <span className="text-sm">Ingenierías MEP</span>
+                      </label>
+                      <label
+                        className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors ${
+                          proyectoForm.datos_financieros.incTopografia
+                            ? 'bg-amber-500/10 border-amber-500 text-slate-900 dark:text-white font-bold'
+                            : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={proyectoForm.datos_financieros.incTopografia}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: {
+                                ...proyectoForm.datos_financieros,
+                                incTopografia: e.target.checked,
+                              },
+                            })
+                          }
+                          className="w-5 h-5 accent-amber-500"
+                        />
+                        <span className="text-sm">Topografía Base</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <label
+                      className={`flex items-center gap-3 cursor-pointer p-3 border rounded-lg transition-colors flex-1 ${
+                        proyectoForm.datos_financieros.aplicaIva
+                          ? 'bg-amber-500/10 border-amber-500 font-bold'
+                          : 'border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={proyectoForm.datos_financieros.aplicaIva}
+                        onChange={e =>
+                          setProyectoForm({
+                            ...proyectoForm,
+                            datos_financieros: {
+                              ...proyectoForm.datos_financieros,
+                              aplicaIva: e.target.checked,
+                            },
+                          })
+                        }
+                        className="w-5 h-5 accent-amber-500"
+                      />
+                      <span className="text-sm">Emitir Factura (Aplica IVA)</span>
+                    </label>
+                    {proyectoForm.datos_financieros.aplicaIva && (
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-bold text-gray-700 dark:text-slate-300">% IVA:</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={proyectoForm.datos_financieros.porcentajeIva}
+                          onChange={e =>
+                            setProyectoForm({
+                              ...proyectoForm,
+                              datos_financieros: {
+                                ...proyectoForm.datos_financieros,
+                                porcentajeIva: Number(e.target.value),
+                              },
+                            })
+                          }
+                          className="w-24 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg px-3 py-2 outline-none focus:border-amber-500 text-center font-mono"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-950 text-white p-6 rounded-xl border border-slate-800">
+                    <h4 className="font-bold mb-4 uppercase tracking-wider text-xs text-amber-400">
+                      Previsualización en Tiempo Real
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-400">Subtotal Honorarios:</p>
+                        <p className="text-lg font-bold font-mono">
+                          ${(liveFinanzas.subtotalHonorarios || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </p>
+                        {proyectoForm.datos_financieros.aplicaIva && (
+                          <>
+                            <p className="text-sm text-gray-400 mt-2">
+                              IVA ({proyectoForm.datos_financieros.porcentajeIva}%):
+                            </p>
+                            <p className="text-md font-bold font-mono">
+                              ${(liveFinanzas.valorIva || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-sm text-amber-400 mt-2">Total a Facturar:</p>
+                            <p className="text-2xl font-bold text-amber-400 font-mono">
+                              ${(liveFinanzas.totalHonorarios || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </p>
+                          </>
+                        )}
+                        {!proyectoForm.datos_financieros.aplicaIva && (
+                          <p className="text-2xl font-bold text-amber-400 mt-1 font-mono">
+                            ${(liveFinanzas.totalHonorarios || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-400">Proyección Obra Civil:</p>
+                        <p className="text-2xl font-bold text-amber-400 font-mono">
+                          ${(liveFinanzas.totalObra || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          *Costo de ejecución estimado independiente del diseño.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Tipología Estructural (NEC-15)
-                  </label>
-                  <select
-                    value={proyectoForm.tipo_obra}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, tipo_obra: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  >
-                    <option value="Edificación Sismorresistente Hormigón Armado">Edificación Sismorresistente Hormigón Armado</option>
-                    <option value="Estructura Metálica & Cubiertas Industriales">Estructura Metálica & Cubiertas Industriales</option>
-                    <option value="Viviendas Unifamiliares / Urbanización">Viviendas Unifamiliares / Urbanización</option>
-                    <option value="Infraestructura Vial & Movimiento de Tierras">Infraestructura Vial & Movimiento de Tierras</option>
-                    <option value="Obra Hidrosanitaria & Alcantarillado">Obra Hidrosanitaria & Alcantarillado</option>
-                    <option value="Remodelación & Adecuación Corporativa">Remodelación & Adecuación Corporativa</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Estado de la Obra
-                  </label>
-                  <select
-                    value={proyectoForm.estado}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, estado: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  >
-                    <option value="en_diseno">En Diseño / Planificación BIM</option>
-                    <option value="en_construccion">En Construcción (Ejecución Activa)</option>
-                    <option value="paralizado">Paralizado / Suspendido</option>
-                    <option value="finalizado">Culminado / Entregado</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Presupuesto Total ($ USD)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="100"
-                    value={proyectoForm.presupuesto_total}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, presupuesto_total: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Área de Construcción (m²)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={proyectoForm.area_m2}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, area_m2: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Avance Físico Inicial (%)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={proyectoForm.avance}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, avance: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Ingeniero Residente / Responsable Técnico
-                  </label>
-                  <input
-                    type="text"
-                    value={proyectoForm.ingeniero_residente}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, ingeniero_residente: e.target.value })}
-                    placeholder="Nombre del Ingeniero Residente"
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Cliente Asignado (Opcional)
-                  </label>
-                  <select
-                    value={proyectoForm.cliente_id}
-                    onChange={(e) => setProyectoForm({ ...proyectoForm, cliente_id: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                  >
-                    <option value="">-- Obra Propia / Sin Cliente Vinculado --</option>
-                    {clientesList.map((cli: any) => (
-                      <option key={cli.id} value={cli.id}>
-                        {cli.nombre} {cli.apellido || ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Memoria Descriptiva / Alcance Técnico
-                </label>
-                <textarea
-                  rows={2}
-                  value={proyectoForm.descripcion}
-                  onChange={(e) => setProyectoForm({ ...proyectoForm, descripcion: e.target.value })}
-                  placeholder="Descripción técnica de la obra, número de niveles, zonificación sísmica NEC-15..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+              <div className="p-5 sm:p-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900 flex justify-end gap-3 shrink-0">
                 <button
                   type="button"
-                  onClick={() => { setModalProyectoOpen(false); setEditingProyecto(null); }}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 cursor-pointer"
+                  onClick={() => {
+                    setModalProyectoOpen(false);
+                    setEditingProyecto(null);
+                  }}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  disabled={uploadingFile || savingProyecto}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={savingProyecto}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  disabled={uploadingFile || savingProyecto}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-md cursor-pointer"
                 >
-                  <CheckCircle2 size={15} />
-                  <span>{savingProyecto ? 'Guardando...' : editingProyecto ? 'Guardar Cambios' : 'Crear Proyecto'}</span>
+                  {uploadingFile || savingProyecto ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} />
+                      <span>{editingProyecto ? 'Guardar Cambios' : 'Guardar Proyecto'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Crear Cuenta de Cliente (Invocado desde Nuevo Proyecto) */}
+      {isAddClientModalOpen && (
+        <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-200 dark:border-slate-800">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-900">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Crear Cuenta de Cliente</h3>
+              <button
+                type="button"
+                onClick={() => setIsAddClientModalOpen(false)}
+                className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateClientFromProject} className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">Nombre *</label>
+                  <input
+                    required
+                    type="text"
+                    value={newClientData.nombre}
+                    onChange={e => setNewClientData({ ...newClientData, nombre: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="Ej. Carlos"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">Apellido *</label>
+                  <input
+                    required
+                    type="text"
+                    value={newClientData.apellido}
+                    onChange={e => setNewClientData({ ...newClientData, apellido: e.target.value })}
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="Ej. Mendoza"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">
+                  Correo Electrónico *
+                </label>
+                <input
+                  required
+                  type="email"
+                  value={newClientData.email}
+                  onChange={e => setNewClientData({ ...newClientData, email: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  placeholder="carlos@empresa.com"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">
+                  Teléfono / WhatsApp
+                </label>
+                <input
+                  type="text"
+                  value={newClientData.telefono}
+                  onChange={e => setNewClientData({ ...newClientData, telefono: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  placeholder="Ej. 098 765 4321"
+                />
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-700 dark:text-slate-300 mb-1">
+                  Contraseña Temporal *
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={newClientData.password}
+                  onChange={e => setNewClientData({ ...newClientData, password: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-amber-500 outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  placeholder="Ej. Sara2026"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Comparte esta clave con el cliente. Podrá cambiarla desde su panel.
+                </p>
+              </div>
+
+              <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddClientModalOpen(false)}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  disabled={isSubmittingClient}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingClient}
+                  className="px-6 py-2.5 rounded-lg text-sm font-bold bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  {isSubmittingClient ? 'Creando...' : 'Crear Cliente'}
                 </button>
               </div>
             </form>

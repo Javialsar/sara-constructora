@@ -33,8 +33,20 @@ export async function createClientAccount(data: {
       throw new Error("No autorizado: Debe iniciar sesión en el panel administrativo.")
     }
     
-    const role = user.user_metadata?.role
-    if (role !== 'admin' && role !== 'tecnico') {
+    const meta = user.user_metadata || {}
+    const role = meta.role || (meta.es_admin ? 'admin' : '')
+    const ALLOWED_ROLES = [
+      'admin',
+      'superadmin',
+      'tecnico',
+      'representante_legal',
+      'gerente',
+      'profesional_constructora',
+      'ingeniero_residente',
+      'arquitecto_bim',
+      'contratista_general',
+    ]
+    if (!ALLOWED_ROLES.includes(role) && !meta.modulos_autorizados?.includes('sara_constructora')) {
       throw new Error("No autorizado: Permisos insuficientes para registrar clientes.")
     }
     // 1. Crear el usuario en Auth (Supabase)

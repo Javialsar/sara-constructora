@@ -126,7 +126,6 @@ export default function AdminLayout({
     {
       title: "DIRECTORIO Y RECURSOS",
       items: [
-        { href: "/admin/clientes", label: "Clientes (CRM)", icon: Users },
         { href: "/admin/proveedores", label: "Proveedores", icon: Briefcase },
         { href: "/admin/trabajadores", label: "Personal de Obra", icon: Wrench },
       ]

@@ -69,6 +69,7 @@ import { EquipoAccesosSection } from '@/components/constructora/EquipoAccesosSec
 import { PedidosMaterialesResidenteSection } from '@/components/constructora/PedidosMaterialesResidenteSection';
 import { SolicitarPersonalObraSection } from '@/components/constructora/SolicitarPersonalObraSection';
 import { ContratacionPersonalSection } from '@/components/constructora/ContratacionPersonalSection';
+import AdminClientes from '@/app/admin/clientes/page';
 import {
   ObraMaterialRequestService,
   SolicitudCompraDesdeBodega,
@@ -95,6 +96,7 @@ export type SuiteTab =
   | 'procura'
   | 'match'
   | 'nomina'
+  | 'clientes_crm'
   | 'contratacion_personal'
   | 'directorio'
   | 'talento'
@@ -708,6 +710,7 @@ export default function EcosistemaAvanzadoPage() {
     {
       title: "DIRECTORIO Y RECURSOS",
       items: [
+        { id: "clientes_crm", label: "Clientes (CRM)", icon: Users },
         { id: "contratacion_personal", label: "Contratación Personal", icon: UserCheck },
         { id: "directorio", label: "Directorio Central", icon: Users },
         { id: "talento", label: "SARA Talento", icon: HardHat },
@@ -758,6 +761,9 @@ export default function EcosistemaAvanzadoPage() {
     } else if (tab === 'solicitar_personal_obra' || tab === 'solicitar_personal') {
       setActiveTab('solicitar_personal_obra');
       setOpenGroup('REQUERIMIENTOS MATERIALES/TRABAJADORES');
+    } else if (tab === 'clientes_crm' || tab === 'clientes') {
+      setActiveTab('clientes_crm');
+      setOpenGroup('DIRECTORIO Y RECURSOS');
     } else if (tab === 'contratacion_personal' || tab === 'contratacion') {
       setActiveTab('contratacion_personal');
       setOpenGroup('DIRECTORIO Y RECURSOS');
@@ -820,6 +826,8 @@ export default function EcosistemaAvanzadoPage() {
         return { group: 'CONTABILIDAD Y FINANZAS', title: 'Three-Way Match SRI (XML vs OC vs Bodega)' };
       case 'nomina':
         return { group: 'CONTABILIDAD Y FINANZAS', title: 'Nómina CICS / IESS & Tareo Diario' };
+      case 'clientes_crm':
+        return { group: 'DIRECTORIO Y RECURSOS', title: 'Directorio de Clientes (CRM)' };
       case 'contratacion_personal':
         return { group: 'DIRECTORIO Y RECURSOS', title: 'Contratación de Personal con Agente IA SARA-TALENTO' };
       case 'directorio':
@@ -1207,6 +1215,10 @@ export default function EcosistemaAvanzadoPage() {
           )}
 
           {/* VISTA 3: DIRECTORIO Y RECURSOS */}
+          {activeTab === 'clientes_crm' && suscripcionActual?.hasAccess && (
+            <AdminClientes />
+          )}
+
           {activeTab === 'contratacion_personal' && suscripcionActual?.hasAccess && (
             <ContratacionPersonalSection
               onIrASaraTalento={() => handleNavigate('talento')}
