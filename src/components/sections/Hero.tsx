@@ -9,19 +9,20 @@ import { createClient } from "@/lib/supabase/client"
 interface HeroProps {
   onOpenCheckout?: (item: { title: string; amount: number; badgeText: string; isSubscription?: boolean }) => void
   onOpenQuoteModal?: (moduleData: { id: string; title: string; logoUrl?: string }) => void
+  initialLogos?: LogosEmpresa
 }
 
-export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
-  const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA)
+export default function Hero({ onOpenCheckout, onOpenQuoteModal, initialLogos }: HeroProps) {
+  const [logos, setLogos] = useState<LogosEmpresa>(initialLogos || DEFAULT_LOGOS_EMPRESA)
   const [currentIndex, setCurrentIndex] = useState(0)
 
   useEffect(() => {
-    // 1. Obtener logos via servicio
+    // 1. Obtener logos via servicio oficial conectado a BD
     getLogosEmpresa().then((fetched) => {
       if (fetched) setLogos(fetched)
     })
 
-    // 2. Consulta directa en tiempo real a Supabase para sincronizar URLs actualizadas
+    // 2. Consulta directa en tiempo real a Supabase respetando todas las URLs grabadas en BD
     const fetchDirectDb = async () => {
       try {
         const supabase = createClient()
@@ -31,22 +32,21 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
         ])
 
         const dbLogos = paramData?.indirectos_default?.logos_servicios || {}
-        const corporateLogo = configData?.logo_url && !configData.logo_url.includes("supabase.co/storage")
-          ? configData.logo_url 
-          : (dbLogos.grupo_sara || "/logo-hero.png")
+        const corporateLogo = dbLogos.grupo_sara || configData?.logo_url || "/logo-hero.png"
 
         setLogos(prev => ({
           ...prev,
           grupo_sara: corporateLogo,
-          constructora: dbLogos.constructora && !dbLogos.constructora.includes("supabase.co/storage") ? dbLogos.constructora : prev.constructora,
-          inmobiliaria: dbLogos.inmobiliaria && !dbLogos.inmobiliaria.includes("supabase.co/storage") ? dbLogos.inmobiliaria : prev.inmobiliaria,
-          stays: dbLogos.stays && !dbLogos.stays.includes("supabase.co/storage") ? dbLogos.stays : prev.stays,
-          apu: dbLogos.apu && !dbLogos.apu.includes("supabase.co/storage") ? dbLogos.apu : prev.apu,
-          compras: dbLogos.compras && !dbLogos.compras.includes("supabase.co/storage") ? dbLogos.compras : prev.compras,
-          fletes: dbLogos.fletes && !dbLogos.fletes.includes("supabase.co/storage") ? dbLogos.fletes : prev.fletes,
-          talento: dbLogos.talento && !dbLogos.talento.includes("supabase.co/storage") ? dbLogos.talento : prev.talento,
-          fintech: dbLogos.fintech && !dbLogos.fintech.includes("supabase.co/storage") ? dbLogos.fintech : prev.fintech,
-          facturacion: dbLogos.facturacion && !dbLogos.facturacion.includes("supabase.co/storage") ? dbLogos.facturacion : prev.facturacion,
+          constructora: dbLogos.constructora || prev.constructora,
+          inmobiliaria: dbLogos.inmobiliaria || prev.inmobiliaria,
+          stays: dbLogos.stays || prev.stays,
+          apu: dbLogos.apu || prev.apu,
+          compras: dbLogos.compras || prev.compras,
+          fletes: dbLogos.fletes || prev.fletes,
+          talento: dbLogos.talento || prev.talento,
+          fintech: dbLogos.fintech || prev.fintech,
+          facturacion: dbLogos.facturacion || prev.facturacion,
+          firma: dbLogos.firma || prev.firma,
         }))
       } catch (err) {
         console.warn("Hero DB fetch fallback:", err)

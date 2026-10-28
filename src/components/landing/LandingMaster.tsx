@@ -7,8 +7,13 @@ import FAQ from '@/components/sections/FAQ';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
 import DynamicModuleQuoteModal from '@/components/modals/DynamicModuleQuoteModal';
 import { CheckCircle2 } from 'lucide-react';
+import { LogosEmpresa } from '@/lib/services/logosService';
 
-export default function LandingMaster() {
+interface LandingMasterProps {
+  initialLogos?: LogosEmpresa;
+}
+
+export default function LandingMaster({ initialLogos }: LandingMasterProps) {
   const [checkoutConfig, setCheckoutConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -97,16 +102,18 @@ export default function LandingMaster() {
         </div>
       )}
 
-      {/* 1. Hero Principal Dinámico: logos rotativos flotantes sin cuadro */}
+      {/* 1. Hero Principal Dinámico: logos rotativos oficiales desde BD */}
       <Hero 
         onOpenCheckout={handleOpenCheckout}
         onOpenQuoteModal={handleOpenQuoteModal}
+        initialLogos={initialLogos}
       />
 
-      {/* 2. Ecosystem Matrix (Los 8 Módulos de Grupo SARA) */}
+      {/* 2. Ecosystem Matrix (Los Módulos de Grupo SARA con sus logos de BD) */}
       <EcosystemMatrix 
         onOpenCheckout={handleOpenCheckout}
         onOpenQuoteModal={handleOpenQuoteModal}
+        initialLogos={initialLogos}
       />
 
       {/* 3. Sección de Preguntas Frecuentes (FAQ) */}

@@ -23,9 +23,9 @@ export const DEFAULT_LOGOS_EMPRESA: LogosEmpresa = {
   compras: "/images/sara-grupo.png",
   fletes: "/images/sara-fletes.png",
   talento: "/images/sara-talento.png",
-  fintech: "/logo-hero.png",
+  fintech: "/images/sara-facturacion.png",
   facturacion: "/images/sara-facturacion.png",
-  firma: "/images/sara-firma.png",
+  firma: "/images/sara-facturacion.png",
 }
 
 function sanitizeLogoUrl(url: string | undefined | null, fallback: string): string {

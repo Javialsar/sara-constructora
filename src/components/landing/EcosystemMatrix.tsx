@@ -66,7 +66,7 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
       title: 'SARA-FACTURACION',
       tagline: 'Facturación SRI & Firma Digital',
       desc: 'Emisión para profesionales y pymes. Pases diarios ($1.50), bolsas prepago y obtención de firma digital acreditada por ARCOTEL en 15 minutos.',
-      logoUrl: logos.fintech,
+      logoUrl: logos.facturacion || logos.fintech,
       iconFallback: FileText,
       href: '/facturacion-electronica',
       accentColor: 'from-blue-500 to-indigo-700',
@@ -160,17 +160,34 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-amber-500/[0.03] blur-[140px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
-        {/* Header */}
+        {/* Header con Logo Empresarial de GRUPO SARA desde Base de Datos */}
         <div className="text-center max-w-3xl mx-auto mb-16 md:mb-20">
+          <div className="flex justify-center mb-5">
+            <div className="px-5 py-3 rounded-2xl bg-slate-950/90 border border-amber-500/30 shadow-xl inline-flex items-center gap-3">
+              <img
+                src={logos.grupo_sara || DEFAULT_LOGOS_EMPRESA.grupo_sara}
+                alt="GRUPO SARA Matriz"
+                className="h-12 w-auto object-contain drop-shadow-md"
+              />
+              <div className="text-left border-l border-white/10 pl-3">
+                <span className="font-display text-xs font-black uppercase tracking-wider text-white block">
+                  GRUPO SARA HOLDING
+                </span>
+                <span className="font-mono text-[10px] text-amber-400 uppercase tracking-widest block">
+                  Diseñamos ideas. Construimos futuro.
+                </span>
+              </div>
+            </div>
+          </div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Los Servicios Integrados de Grupo SARA</span>
+            <span>Identidad Oficial de Módulos · Base de Datos Sincronizada</span>
           </div>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-4 text-white">
             Ecosistema de Módulos SARA
           </h2>
           <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
-            Plataformas y servicios integrados con sincronización directa en tiempo real y arquitectura de clase mundial.
+            Cada división cuenta con su identidad oficial e infraestructura conectada en tiempo real al motor corporativo de GRUPO SARA.
           </p>
         </div>
 
