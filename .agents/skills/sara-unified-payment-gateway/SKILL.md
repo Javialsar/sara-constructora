@@ -43,8 +43,14 @@ El diseño de referencia observado en la pasarela de SARA-Fletes (**Imagen 1**) 
    - **Transferencia con Copia en 1 Clic y Drag & Drop de Comprobante:**
      - Datos bancarios oficiales desplegados con botón de copiado rápido (RUC, cuenta, tipo, titular).
      - Zona de carga para voucher en JPG, PNG o PDF con previsualización y cálculo de hash SHA-256 para prevenir comprobantes duplicados.
-   - **Desglose Contable Transparente:**
-     - Subtotal, tarifa de IVA aplicable (15% general, 5% materiales de construcción, 8% turismo en feriados o 0% exento), retenciones en la fuente SRI (si aplica B2B) y total neto.
+   - **Desglose Contable Transparente (IVA Incluido — Cálculo Inverso SRI):**
+     - En todos los planes de suscripción SaaS y tarifas cerradas del ecosistema, el **valor publicado ya incluye IVA** ($\text{Precio Final} = \text{Total a Pagar}$).
+     - La pasarela calcula y exhibe automáticamente el desglose inverso antes de pagar:
+       $$\text{Base Imponible (Subtotal)} = \text{round}\left(\frac{\text{Total}}{1 + r_{\text{IVA}}}, 2\right), \quad \text{Monto IVA} = \text{Total} - \text{Base Imponible}$$
+       donde $r_{\text{IVA}} \in \{0.15 \text{ (General/SaaS)}, 0.05 \text{ (Materiales Construcción Res. NAC-DGERCGC24-00000013)}, 0.08 \text{ (Turismo Feriados)}, 0.00 \text{ (Exento/Transporte)}\}$.
+   - **Emisión Automática e Inmediata de Factura Electrónica SRI Post-Pago:**
+     - Al confirmarse el pago (`handleConfirmPayment`), la pasarela invoca automáticamente el motor [`SriEmissionService`](file:///d:/SaS_Proyectos/sara-constructora/src/lib/services/sriEmissionService.ts) vía [`POST /api/facturacion/emitir`](file:///d:/SaS_Proyectos/sara-constructora/src/app/api/facturacion/emitir/route.ts) con el código de forma de pago oficial del SRI (`20` Otros con utilización del sistema financiero para Transferencia/QR, `19` Tarjeta de Crédito, `16` Tarjeta de Débito).
+     - Genera la **Clave de Acceso de 49 dígitos (Módulo 11)**, firma el comprobante con **XAdES-BES Enveloped** y presenta una vista de confirmación ejecutiva dentro del mismo modal con descarga directa de **RIDE PDF** y **XML Autorizado** vía [`GET /api/facturacion/descargar`](file:///d:/SaS_Proyectos/sara-constructora/src/app/api/facturacion/descargar/route.ts).
 
 ---
 
@@ -90,13 +96,37 @@ export type MetodoPagoUniversal =
   | 'billetera_escrow';
 
 export interface DesgloseImpuestosSRI {
-  subtotalUSD: number;
+  ivaIncluido?: boolean; // Por defecto true para planes SaaS y tarifas publicadas
+  subtotalUSD: number; // Base Imponible: round(totalPagarUSD / (1 + tarifaIvaPct/100), 2)
   tarifaIvaPct: 0 | 5 | 8 | 15;
-  montoIvaUSD: number;
+  montoIvaUSD: number; // totalPagarUSD - subtotalUSD (garantiza cuadre exacto al centavo)
   retencionRentaCodigo?: '312' | '344' | '303' | '304' | '309' | '311' | 'RIMPE';
   retencionRentaMontoUSD?: number;
   retencionIvaMontoUSD?: number;
   totalPagarUSD: number;
+}
+
+export interface DatosFacturacionAdquirente {
+  tipoIdentificacion: '04' | '05' | '06' | '07'; // 04: RUC, 05: Cédula, 06: Pasaporte, 07: Consumidor Final
+  identificacion: string;
+  razonSocial: string;
+  email: string;
+  direccion?: string;
+  telefono?: string;
+}
+
+export interface FacturaElectronicaEmitidaSRI {
+  claveAcceso: string; // 49 dígitos Módulo 11
+  numeroComprobante: string; // Ej: 001-001-000000142
+  fechaAutorizacion: string;
+  estadoSri: 'AUTORIZADO' | 'EN_PROCESO_OFFLINE';
+  subtotalSinImpuestos: number;
+  tarifaIvaPct: 0 | 5 | 8 | 15;
+  montoIva: number;
+  totalFacturado: number;
+  formaPagoSriCodigo: '01' | '16' | '19' | '20';
+  ridePdfUrl: string;
+  xmlAutorizadoUrl: string;
 }
 
 export interface BeneficiarioPagoContexto {
@@ -122,6 +152,8 @@ export interface SaraUnifiedPaymentGatewayProps {
   conceptoPrincipal: string; // Ej: "Pago Directo al Transportista"
   beneficiario: BeneficiarioPagoContexto;
   desglose: DesgloseImpuestosSRI;
+  compradorDefault?: Partial<DatosFacturacionAdquirente>;
+  emitirFacturaAutomatica?: boolean; // true por defecto
   metodosHabilitados?: MetodoPagoUniversal[]; // Si se omite, habilita los estándar del módulo
   permitirDiferido?: boolean;
   onPagoCompletado: (resultado: {
@@ -130,6 +162,8 @@ export interface SaraUnifiedPaymentGatewayProps {
     metodoNombre: string;
     referenciaComprobante: string;
     montoTotalUSD: number;
+    desgloseImpuestos: DesgloseImpuestosSRI;
+    facturaElectronica?: FacturaElectronicaEmitidaSRI;
     voucherUrl?: string;
     estado: 'APROBADO' | 'PENDIENTE_CONCILIACION';
   }) => void;
@@ -184,14 +218,21 @@ Toda transacción emitida a través de la pasarela unificada debe persistir de m
 
 ---
 
-## 6. Procedimiento Operativo para Agentes de Negocio
+## 6. Procedimiento Operativo para Agentes de Negocio (Flujo Payment-to-Invoice SRI)
 
-Cuando cualquier agente del holding requiera cobrar o desembolsar fondos:
-1. **Paso 1:** Configurar el objeto `BeneficiarioPagoContexto` extrayendo los datos oficiales del transportista, proveedor o anfitrión.
-2. **Paso 2:** Calcular el `DesgloseImpuestosSRI` aplicando la tarifa de IVA vigente (5% materiales según Res. NAC-DGERCGC24-00000013 / 15% general / 8% turismo) y retenciones (Cód. 312 o 344).
-3. **Paso 3:** Instanciar `<SaraUnifiedPaymentGatewayModal />` suministrando el `modulo` correspondiente.
-4. **Paso 4:** En el callback `onPagoCompletado`, recibir el comprobante o token de aprobación, actualizar el estado de la entidad de negocio (reserva de flete, orden de compra o estancia) y disparar la notificación en tiempo real.
-5. **Paso 5:** Si el pago fue por transferencia bancaria o QR estático, enrutar automáticamente hacia la mesa de validación de `PagosClient.tsx` para aprobación humana o conciliación algorítmica por extracto bancario.
+Cuando cualquier agente del holding requiera cobrar planes de suscripción, reservas o compras:
+1. **Paso 1 (Cálculo Inverso con IVA Incluido):**
+   - Si el plan o servicio tiene un precio comercial final $P_{\text{total}}$ (por ejemplo, $\$79.00\text{ USD}$ en Constructora Pro/PyME) con IVA incluido ($15\%$):
+     $$\text{Base Imponible} = \text{round}\left(\frac{79.00}{1.15}, 2\right) = \$68.70\text{ USD}$$
+     $$\text{IVA (15\%)} = 79.00 - 68.70 = \$10.30\text{ USD}$$
+   - Para materiales de construcción calificados bajo Res. NAC-DGERCGC24-00000013 ($5\%$ IVA incluido):
+     $$\text{Base Imponible} = \text{round}\left(\frac{P_{\text{total}}}{1.05}, 2\right), \quad \text{IVA (5\%)} = P_{\text{total}} - \text{Base Imponible}$$
+2. **Paso 2 (Datos Tributarios del Adquirente):**
+   - Permitir que el usuario confirme o edite en una sección compacta dentro de la pasarela sus datos para la factura electrónica (RUC 13 dígitos con validación Módulo 11, Cédula 10 dígitos, Razón Social y Correo electrónico), precargados desde su sesión activa.
+3. **Paso 3 (Confirmación de Pago + Emisión Automática SRI):**
+   - Al ejecutar `CONFIRMAR Y APLICAR PAGO`, la pasarela procesa el cobro y en el mismo flujo invoca a [`POST /api/facturacion/emitir`](file:///d:/SaS_Proyectos/sara-constructora/src/app/api/facturacion/emitir/route.ts) pasando el desglose exacto (`precioUnitario = Base Imponible`, `ivaTarifa = 15 | 5 | 0`) y el código de Forma de Pago de la Tabla 24 del SRI (`19` Tarjeta de Crédito, `16` Tarjeta de Débito, `20` Otros con utilización del sistema financiero para DeUna QR / Transferencia).
+4. **Paso 4 (Entrega Inmediata de RIDE PDF y XML XAdES-BES):**
+   - El modal transiciona a una vista de **Comprobante Electrónico Autorizado SRI**, mostrando el número de factura (`001-001-XXXXXXXXX`), la Clave de Acceso de 49 dígitos verificada por Módulo 11, el desglose tributario (Subtotal sin impuestos + IVA + Total Pagado) y dos botones de acción directa: **Descargar RIDE (PDF)** y **Descargar XML Firmado**, antes de cerrar o continuar al módulo activado.
 
 ---
 
