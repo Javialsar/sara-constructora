@@ -124,14 +124,6 @@ export default function AdminLayout({
         ]
     },
     {
-      title: "MIS PROYECTOS",
-      items: [
-        { href: "/admin/proyectos", label: "Proyectos (Obras)", icon: HardHat },
-        { href: "/admin/avances", label: "Avances de Obra", icon: ImageIcon },
-        { href: "/admin/documentos", label: "Gestor Documental", icon: FileText },
-      ]
-    },
-    {
       title: "DIRECTORIO Y RECURSOS",
       items: [
         { href: "/admin/clientes", label: "Clientes (CRM)", icon: Users },
