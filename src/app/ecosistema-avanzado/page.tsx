@@ -80,6 +80,7 @@ import {
 } from '@/lib/services/constructoraSubscriptionService';
 import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 import ThemeToggle from '@/components/ThemeToggle';
+import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA } from '@/lib/services/logosService';
 
 export type SuiteTab = 
   | 'dashboard'
@@ -106,9 +107,15 @@ export default function EcosistemaAvanzadoPage() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string>("PANEL PRINCIPAL");
-  const [logo, setLogo] = useState<string>('/logo-grupo-sara.png');
+  const [logo, setLogo] = useState<string>(DEFAULT_LOGOS_EMPRESA.constructora);
   const [authLoading, setAuthLoading] = useState(true);
   const [professionalUser, setProfessionalUser] = useState<any>(null);
+
+  useEffect(() => {
+    getLogosEmpresa().then((logos) => {
+      if (logos?.constructora) setLogo(logos.constructora);
+    });
+  }, []);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -850,20 +857,22 @@ export default function EcosistemaAvanzadoPage() {
         {/* Header del Sidebar */}
         <div className={`p-4 border-b border-slate-800 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm ring-1 ring-amber-500/30">
+            <div className="w-10 h-10 shrink-0 bg-slate-900 rounded-xl flex items-center justify-center p-1 shadow-sm border border-amber-500/30">
               <img 
                 src={logo} 
-                alt="SARA Logo" 
-                onError={() => setLogo("/logo-hero.png")}
-                className="w-full h-full object-contain" 
+                alt="SARA Constructora Logo" 
+                onError={() => setLogo(DEFAULT_LOGOS_EMPRESA.constructora)}
+                className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(245,158,11,0.3)]" 
               />
             </div>
             {!isSidebarCollapsed && (
               <div className="overflow-hidden whitespace-nowrap">
-                <h1 className="font-bold tracking-wider text-sm uppercase text-white truncate max-w-[130px]">
-                  {professionalUser?.tipo || "CONSTRUCTORA"}
+                <h1 className="font-display font-extrabold tracking-tight text-sm uppercase text-white truncate max-w-[140px]">
+                  SARA CONSTRUCTORA
                 </h1>
-                <p className="text-[10px] text-amber-400 uppercase font-bold tracking-wider">SARA CONSTRUCTORA</p>
+                <p className="font-mono text-[9px] text-amber-400 uppercase font-bold tracking-[0.16em] truncate max-w-[140px]">
+                  {professionalUser?.tipo || "Obras & Arquitectura"}
+                </p>
               </div>
             )}
           </div>

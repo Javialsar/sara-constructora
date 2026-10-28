@@ -38,6 +38,7 @@ import {
 } from "lucide-react"
 import ModuloIntroSplash from "@/components/ui/ModuloIntroSplash"
 import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA } from "@/lib/services/logosService"
+import ModuleBrandLogo from "@/components/layout/ModuleBrandLogo"
 
 export default function SaraApuLandingPage() {
   const [logoApu, setLogoApu] = useState(DEFAULT_LOGOS_EMPRESA.apu)
@@ -276,22 +277,14 @@ export default function SaraApuLandingPage() {
       <ModuloIntroSplash modulo="apu" />
 
       {/* Sub-header de navegación rápida APU */}
-      <nav className="w-full bg-slate-950/80 backdrop-blur-md border-b border-white/10 px-4 md:px-8 py-3 sticky top-0 z-30">
+      <nav className="w-full bg-slate-950/85 backdrop-blur-xl border-b border-white/10 px-4 md:px-8 py-3 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="min-h-[44px] inline-flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors font-semibold"
-            >
-              <span>← Grupo SARA</span>
-            </Link>
-            <span className="text-white/20">|</span>
-            <div className="flex items-center gap-2 text-blue-400 font-bold uppercase tracking-wider text-xs">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              SARA APU • Software de Costos & Red Agéntica
-            </div>
-            <span className="hidden sm:inline text-white/20">|</span>
-            <span className="hidden sm:inline text-slate-400 text-xs">Ecuador 2026</span>
+          <div className="flex items-center gap-4">
+            <ModuleBrandLogo modulo="apu" />
+            <span className="hidden md:inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Ecuador 2026 · SERCOP & IPCO
+            </span>
           </div>
 
           <div className="flex items-center gap-3">

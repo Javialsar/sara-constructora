@@ -6,11 +6,13 @@ import ThemeToggle from "@/components/ThemeToggle"
 import { usePathname, useRouter } from "next/navigation"
 import { 
   Calculator,
-  Briefcase, Users,
+  Briefcase,
+  Users,
   Wrench,
   ChevronDown,
   ChevronRight,
-  Settings, ShieldAlert, Palette,
+  Settings,
+  ShieldAlert,
   LogOut,
   Menu,
   Box,
@@ -24,16 +26,15 @@ import {
   FileText,
   Truck,
   Receipt,
-  Cpu,
   Building2,
   ShieldCheck,
   FileCheck,
-  Ruler,
-  Crown
+  Ruler
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { ProjectProvider } from "@/contexts/ProjectContext"
+import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA } from "@/lib/services/logosService"
 import ProjectSwitcher from "@/components/workspace/ProjectSwitcher"
 import CreateProjectModal from "@/components/workspace/CreateProjectModal"
 
@@ -47,6 +48,7 @@ export default function DashboardLayout({
   const [userName, setUserName] = useState("Usuario")
   const [userInitials, setUserInitials] = useState("U")
   const [userPlan, setUserPlan] = useState("Pro Plan")
+  const [logoSidebar, setLogoSidebar] = useState<string>(DEFAULT_LOGOS_EMPRESA.apu)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [openGroup, setOpenGroup] = useState<string>("1. ESTUDIO & PRESUPUESTACIÓN PRIVADA")
@@ -66,7 +68,7 @@ export default function DashboardLayout({
       items: [
         { href: "/dashboard/sercop/radar", label: "Radar de Licitaciones SERCOP", icon: Search },
         { href: "/dashboard/sercop/proyectos", label: "Proyectos de Contratación Pública", icon: Building2 },
-        { href: "/dashboard/sercop/agente", label: "🤖 Agente SARA-SERCOP (Normativa)", icon: ShieldCheck },
+        { href: "/dashboard/sercop/agente", label: "Agente SARA-SERCOP (Normativa)", icon: ShieldCheck },
         { href: "/dashboard/sercop/vae", label: "Matriz VAE & Desagregación", icon: FileCheck },
       ]
     },
@@ -162,11 +164,15 @@ export default function DashboardLayout({
       }
     }
     fetchData()
+    getLogosEmpresa().then((logos) => {
+      if (logos?.apu) setLogoSidebar(logos.apu)
+      else if (logos?.constructora) setLogoSidebar(logos.constructora)
+    })
   }, [])
 
   const renderNavItems = (collapsed = false) => (
     <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-2">
-      {/* ACCESO RÁPIDO Y DESTACADO: MIS PLANES & SUSCRIPCIÓN (FUERA DE CONFIGURACIÓN) */}
+      {/* ACCESO RÁPIDO Y DESTACADO: MIS PLANES & SUSCRIPCIÓN */}
       <div className="mb-3 px-0.5">
         <Link 
           href="/dashboard/planes"
@@ -218,7 +224,7 @@ export default function DashboardLayout({
       {navGroups.map((group, groupIdx) => {
         const isOpen = openGroup === group.title
         const hasActiveItem = group.items.some(i => i.href === pathname) ||
-          (group.title === "4. CATÁLOGOS & BANCO DE APUS" && pathname === "/dashboard/apus/ai-rubros")
+          (group.title === "3. CATÁLOGOS & BANCO DE APUS" && pathname === "/dashboard/apus/ai-rubros")
         return (
           <div 
             key={groupIdx} 
@@ -304,15 +310,25 @@ export default function DashboardLayout({
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}>
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
-                <span className="text-slate-900 font-bold text-xl">S</span>
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 shrink-0 bg-slate-950/90 rounded-xl flex items-center justify-center p-1 border border-white/10 shadow-sm">
+                <img
+                  src={logoSidebar}
+                  alt="SARA APU Logo"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement
+                    if (!target.src.endsWith('/sara-apu.png')) {
+                      target.src = '/images/sara-apu.png'
+                    }
+                  }}
+                  className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(59,130,246,0.3)]"
+                />
               </div>
               <div>
-                <h1 className="font-bold tracking-wider text-sm uppercase text-white">SaaS APU</h1>
-                <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Sara Constructora</p>
+                <h1 className="font-bold tracking-wider text-sm uppercase text-white">SARA APU</h1>
+                <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Ingeniería & Costos</p>
               </div>
-            </div>
+            </Link>
             <button 
               onClick={() => setIsMobileMenuOpen(false)}
               className="p-2 text-gray-400 hover:text-white rounded-lg hover:bg-white/10"
@@ -350,19 +366,33 @@ export default function DashboardLayout({
 
         {/* Desktop Sidebar */}
         <aside className={`hidden md:flex ${isSidebarCollapsed ? "w-20" : "w-72"} shrink-0 bg-slate-900 text-white flex-col transition-all duration-300 z-20 print:hidden shadow-xl`}>
-          {/* Header del sidebar */}
+          {/* Header del sidebar con Logotipo Oficial desde Configuración */}
           <div className={`p-4 border-b border-white/10 flex items-center ${isSidebarCollapsed ? "justify-center" : "justify-between"} gap-2`}>
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 shrink-0 bg-white rounded-lg flex items-center justify-center p-1 shadow-sm">
-                <span className="text-slate-900 font-bold text-xl">S</span>
+            <Link href="/" className="flex items-center gap-3 overflow-hidden group">
+              <div className="w-11 h-11 shrink-0 bg-slate-950/80 rounded-xl flex items-center justify-center p-1 border border-white/10 shadow-sm group-hover:border-blue-400/50 transition-colors">
+                <img
+                  src={logoSidebar}
+                  alt="SARA APU Logo"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement
+                    if (!target.src.endsWith('/sara-apu.png')) {
+                      target.src = '/images/sara-apu.png'
+                    }
+                  }}
+                  className="w-full h-full object-contain filter drop-shadow-[0_2px_8px_rgba(59,130,246,0.35)]"
+                />
               </div>
               {!isSidebarCollapsed && (
                 <div className="overflow-hidden whitespace-nowrap">
-                  <h1 className="font-bold tracking-wider text-sm uppercase text-white">SaaS APU</h1>
-                  <p className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Sara Constructora</p>
+                  <h1 className="font-display font-extrabold tracking-tight text-sm uppercase text-white group-hover:text-blue-400 transition-colors">
+                    SARA APU
+                  </h1>
+                  <p className="font-mono text-[9px] text-blue-400 uppercase font-bold tracking-[0.18em]">
+                    Ingeniería & Costos
+                  </p>
                 </div>
               )}
-            </div>
+            </Link>
           </div>
 
           {renderNavItems(isSidebarCollapsed)}
@@ -416,8 +446,19 @@ export default function DashboardLayout({
               >
                 <Menu size={22} />
               </button>
-              <div className="hidden lg:flex items-center gap-2">
-                <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white">SaaS APU</h2>
+              <div className="hidden lg:flex items-center gap-2.5">
+                <img
+                  src={logoSidebar}
+                  alt="SARA APU"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement
+                    if (!target.src.endsWith('/sara-apu.png')) {
+                      target.src = '/images/sara-apu.png'
+                    }
+                  }}
+                  className="w-8 h-8 object-contain"
+                />
+                <h2 className="text-base md:text-lg font-extrabold text-gray-800 dark:text-white tracking-tight">SARA APU</h2>
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                   Suite 2026
                 </span>

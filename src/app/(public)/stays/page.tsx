@@ -78,6 +78,7 @@ import {
   DEFAULT_STAYS_POLICIES,
 } from "@/lib/services/staysPoliciesService";
 import { getLogosEmpresa } from "@/lib/services/logosService";
+import ModuleBrandLogo from "@/components/layout/ModuleBrandLogo";
 import RegistrarAlojamientoModal from "@/components/airbnb/RegistrarAlojamientoModal";
 import ModalDetalleEstadia from "@/components/stays/ModalDetalleEstadia";
 import HeroSection from "@/components/stays/HeroSection";
@@ -1069,28 +1070,7 @@ export default function AirbnbPage() {
         <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
           {/* Logo y Marca SARA STAYS */}
           <div className="flex items-center gap-6">
-            <Link href="/stays" className="flex items-center gap-3 group">
-              <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
-                <img
-                  src={logoStays}
-                  alt="SARA Stays"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-sm sm:text-base tracking-wider text-white">
-                    SARA
-                  </span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 rounded-md shadow-xs">
-                    STAYS
-                  </span>
-                </div>
-                <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
-                  Hospédate · Suites & Alojamientos
-                </span>
-              </div>
-            </Link>
+            <ModuleBrandLogo modulo="stays" />
 
             {/* Navegación Rápida entre Portales */}
             <nav className="hidden lg:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs font-semibold">

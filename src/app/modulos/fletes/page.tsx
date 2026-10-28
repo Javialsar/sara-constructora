@@ -73,6 +73,7 @@ import {
   SaraFletesRealtimeService, 
   SolicitudFleteRealtime 
 } from '@/lib/services/saraFletesRealtimeService';
+import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
@@ -1399,22 +1400,12 @@ export default function SaraFletesEngine() {
 
       {/* TOPBAR ULTRA-COMPACTA & ERGONÓMICA */}
       <header className="h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 flex justify-between items-center z-30 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-500 p-2 rounded-xl shadow-md shadow-amber-500/20 text-slate-950">
-            <Truck className="w-5 h-5 stroke-[2.5]" />
-          </div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-base font-black tracking-tight text-white flex items-center gap-1.5">
-              SARA <span className="text-amber-500">FLETES</span>
-            </h1>
-            <span className="hidden sm:inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              GPS En Vivo
-            </span>
-            <span className="hidden md:inline-block bg-slate-800 text-slate-300 border border-slate-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
-              Abierto a Todo Público
-            </span>
-          </div>
+        <div className="flex items-center gap-4">
+          <ModuleBrandLogo modulo="fletes" size="sm" showBackToHolding={false} />
+          <span className="hidden sm:inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            GPS MTOP En Vivo
+          </span>
         </div>
 
         {/* Toggle de Roles: Cliente vs Chofer */}

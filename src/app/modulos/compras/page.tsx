@@ -54,6 +54,7 @@ import {
 } from '@/lib/services/comprasService';
 import { OrdenCompraVoucherModal } from '@/components/compras/OrdenCompraVoucherModal';
 import { ApuRequisitionComprasWorkflow } from '@/components/compras/ApuRequisitionComprasWorkflow';
+import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import { 
   SellerMarketplaceService, 
   MarketplaceProduct, 
@@ -553,6 +554,10 @@ export default function ModuloComprasMasterPage() {
         {/* BARRA SUPERIOR ELEGANTE & CONMUTADOR DE MODO (MARKETPLACE VS GESTIÓN INTERNA) */}
         <header className="border-b border-slate-800/80 backdrop-blur-xl sticky top-0 z-30 px-4 sm:px-6 py-3 transition-all" style={{ backgroundColor: `${modTheme.palette.bgSurface}e6` }}>
           <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            {/* Logo y Marca Oficial SARA Marketplace B2B */}
+            <div className="flex items-center gap-3">
+              <ModuleBrandLogo modulo="compras" size="sm" showBackToHolding={false} />
+            </div>
             
             {/* Conmutador de Modo Principal */}
             <div className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-2xl border border-slate-800">

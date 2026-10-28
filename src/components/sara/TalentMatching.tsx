@@ -18,6 +18,7 @@ import { PlanesExitoTalentoModal } from '@/components/talento/PlanesExitoTalento
 // CATÁLOGO COMPLETO DE LAS 24 PROVINCIAS Y TODOS LOS CANTONES DEL ECUADOR
 // ============================================================================
 import { PROVINCIAS_CANTONES_ECUADOR } from '@/lib/constants/ecuadorGeo';
+import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 const PROVINCIAS_ECUADOR = PROVINCIAS_CANTONES_ECUADOR;
 
 export interface TalentUI extends TalentDB {
@@ -257,9 +258,8 @@ export default function TalentMatching() {
         {/* HEADER CORPORATIVO SARA TALENTO */}
         <header className="mb-8 border-b border-slate-800 pb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 border border-purple-500/20 mb-3">
-              <Users className="w-3.5 h-3.5" />
-              <span>SARA Talento Humano • Red Oficial de Construcción Ecuador</span>
+            <div className="mb-4">
+              <ModuleBrandLogo modulo="talento" showBackToHolding={false} />
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
               Radar Geográfico de Mano de Obra & Profesionales

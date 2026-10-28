@@ -1,6 +1,7 @@
 "use client"
 import GlobalNotificationsBell from "@/components/GlobalNotificationsBell"
 import ThemeToggle from "@/components/ThemeToggle"
+import ModuleBrandLogo from "@/components/layout/ModuleBrandLogo"
 import SecurityPanel from '@/components/SecurityPanel';
 import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
@@ -791,22 +792,7 @@ export default function MisReservasPage() {
         <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
           
           {/* Logo y Marca SARA Airbnb */}
-          <Link href="/stays" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
-              <img src={logoStays} alt="SARA Stays" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md shadow-xs">
-                  STAYS
-                </span>
-              </div>
-              <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
-                Hospédate · Portal de Huéspedes & Anfitriones
-              </span>
-            </div>
-          </Link>
+          <ModuleBrandLogo modulo="stays" customSubtitle="Portal de Huéspedes & Anfitriones" />
 
           {/* Segmented Control Central: Pestañas Principales */}
           <div className="hidden md:flex items-center bg-slate-900/90 border border-slate-800 p-1 rounded-2xl shadow-inner">

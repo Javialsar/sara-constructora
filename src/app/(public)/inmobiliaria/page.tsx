@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { getLogosEmpresa } from "@/lib/services/logosService"
 import ModuloIntroSplash from "@/components/ui/ModuloIntroSplash"
+import ModuleBrandLogo from "@/components/layout/ModuleBrandLogo"
 import { 
   Building2, 
   Search, 
@@ -525,22 +526,7 @@ export default function InmobiliariaPage() {
         <div className="w-full max-w-[1760px] mx-auto flex items-center justify-between gap-4">
           {/* Logo y Marca SARA Inmobiliaria */}
           <div className="flex items-center gap-6">
-            <Link href="/inmobiliaria" className="flex items-center gap-3 group">
-              <div className="relative w-10 h-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform overflow-hidden border border-amber-400/40 shrink-0">
-                <img src={logoInmobiliaria} alt="SARA Inmobiliaria" className="w-full h-full object-contain" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-black text-sm sm:text-base tracking-wider text-white">SARA</span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 text-slate-950 rounded-md shadow-xs font-black">
-                    INMOBILIARIA
-                  </span>
-                </div>
-                <span className="text-[11px] text-gray-400 font-medium hidden sm:block">
-                  División Corporativa · Bienes Raíces & Arquitectura
-                </span>
-              </div>
-            </Link>
+            <ModuleBrandLogo modulo="inmobiliaria" />
 
             {/* Navegación Rápida entre Portales */}
             <nav className="hidden lg:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs font-semibold">

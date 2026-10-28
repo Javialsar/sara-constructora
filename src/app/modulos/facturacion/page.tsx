@@ -51,6 +51,7 @@ import {
   CalendarRange
 } from 'lucide-react';
 import StandardCheckoutModal from '@/components/checkout/StandardCheckoutModal';
+import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import { createClient } from '@/lib/supabase/client';
 import { PROVINCIAS_CANTONES_ECUADOR } from '@/lib/constants/ecuadorGeo';
 import {
@@ -1068,6 +1069,9 @@ export default function FacturacionDashboardPage() {
         <aside className="w-full md:w-72 lg:w-80 shrink-0 bg-slate-900 border-r border-white/[0.08] flex flex-col justify-between p-5 space-y-6">
           
           <div className="space-y-6">
+            <div className="pb-3 border-b border-white/[0.08]">
+              <ModuleBrandLogo modulo="facturacion" size="sm" showBackToHolding={false} />
+            </div>
             
             {/* Header Emisor / RUC */}
             <div className="p-4 rounded-2xl bg-slate-950 border border-white/[0.08] shadow-inner space-y-2.5">

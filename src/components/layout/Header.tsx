@@ -17,12 +17,27 @@ const navLinks: { name: string; href: string; isFeatured?: boolean }[] = [
   { name: "Clientes", href: "/clientes" },
 ]
 
-import { getLogosEmpresa } from "@/lib/services/logosService"
+import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA } from "@/lib/services/logosService"
+import { usePathname } from "next/navigation"
 
 export default function Header() {
+  const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [logo, setLogo] = useState("/logo-hero.png")
+  const [corporateLogo, setCorporateLogo] = useState(DEFAULT_LOGOS_EMPRESA.grupo_sara)
+  const [activeBrand, setActiveBrand] = useState<{
+    logo: string
+    title: string
+    subtitle: string
+    href: string
+    accentColor: string
+  }>({
+    logo: DEFAULT_LOGOS_EMPRESA.grupo_sara,
+    title: "GRUPO SARA",
+    subtitle: "Ingeniería & Tecnología",
+    href: "/",
+    accentColor: "text-brand-sage",
+  })
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,44 +48,76 @@ export default function Header() {
   }, [])
 
   useEffect(() => {
-    getLogosEmpresa().then(logos => {
-      if (logos?.grupo_sara) {
-        setLogo(logos.grupo_sara)
-      } else {
-        setLogo("/logo-hero.png")
-      }
+    getLogosEmpresa().then((logos) => {
+      const baseLogo = logos?.grupo_sara || DEFAULT_LOGOS_EMPRESA.grupo_sara
+      setCorporateLogo(baseLogo)
+      setActiveBrand((prev) =>
+        prev.title === "GRUPO SARA" ? { ...prev, logo: baseLogo } : prev
+      )
     })
   }, [])
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      setActiveBrand({
+        logo: corporateLogo,
+        title: "GRUPO SARA",
+        subtitle: "Ingeniería & Tecnología",
+        href: "/",
+        accentColor: "text-brand-sage",
+      })
+      return
+    }
+
+    const handleSlideChange = (e: Event) => {
+      const custom = e as CustomEvent
+      const d = custom.detail
+      if (d && d.title) {
+        setActiveBrand({
+          logo: d.logo || corporateLogo,
+          title: String(d.title).replace("-", " "),
+          subtitle: d.tag || "Ingeniería & Tecnología",
+          href: d.href && !String(d.href).startsWith("#") ? d.href : "/",
+          accentColor: d.accentColor || "text-brand-sage",
+        })
+      }
+    }
+
+    window.addEventListener("sara_hero_slide_change", handleSlideChange)
+    return () => window.removeEventListener("sara_hero_slide_change", handleSlideChange)
+  }, [pathname, corporateLogo])
+
+  const logo = activeBrand.logo
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out bg-slate-950/80 backdrop-blur-xl border-b border-white/[0.08] ring-1 ring-black/[0.05]",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out bg-slate-950/85 backdrop-blur-xl border-b border-white/[0.08] ring-1 ring-black/[0.05]",
         isScrolled ? "py-2.5 shadow-lg shadow-black/30" : "py-3.5 md:py-4"
       )}
     >
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between relative z-10">
-        {/* Logo Corporativo Grupo SARA */}
-        <Link href="/" className="relative flex items-center gap-3 group focus:outline-none">
+        {/* Logo Dinámico por Módulo Activo / Grupo SARA */}
+        <Link href={activeBrand.href} className="relative flex items-center gap-3 group focus:outline-none">
           <img 
             src={logo} 
-            alt="Grupo SARA Logo" 
+            alt={activeBrand.title} 
             onError={(e) => {
               const target = e.currentTarget as HTMLImageElement
               if (!target.src.endsWith('/logo-hero.png')) {
                 target.src = '/logo-hero.png'
               }
             }}
-            className={cn("w-auto object-contain transition-transform duration-300 ease-out group-hover:scale-105 filter drop-shadow-[0_4px_16px_rgba(251,191,36,0.20)]",
+            className={cn("w-auto object-contain transition-all duration-300 ease-out group-hover:scale-105 filter drop-shadow-[0_4px_16px_rgba(251,191,36,0.22)]",
               isScrolled ? "h-10 md:h-12" : "h-11 md:h-13"
             )} 
           />
           <div className="hidden sm:flex flex-col">
             <span className="font-display text-sm font-extrabold tracking-tight text-white group-hover:text-amber-400 transition-colors duration-200 uppercase">
-              GRUPO SARA
+              {activeBrand.title}
             </span>
-            <span className="font-mono text-[9px] font-bold tracking-[0.2em] text-brand-sage uppercase">
-              Ingeniería & Tecnología
+            <span className={cn("font-mono text-[9px] font-bold tracking-[0.2em] uppercase", activeBrand.accentColor)}>
+              {activeBrand.subtitle}
             </span>
           </div>
         </Link>

@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  ArrowLeft,
   Grid,
   ChevronDown,
   Building2,
@@ -16,7 +15,8 @@ import {
   Bed,
   ShieldCheck,
   LayoutDashboard,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
 import { 
   getSavedModuleThemes, 
@@ -25,129 +25,108 @@ import {
   ColorTone,
   DEFAULT_MODULE_THEMES 
 } from '@/lib/theme/moduleThemes';
+import { getLogosEmpresa, DEFAULT_LOGOS_EMPRESA, LogosEmpresa } from '@/lib/services/logosService';
+import ModuleBrandLogo, { ModuloBrandKey } from './ModuleBrandLogo';
 
-const ECOSYSTEM_MODULES = [
+const ECOSYSTEM_MODULES: {
+  key: keyof LogosEmpresa;
+  themeKey: ModuloKey;
+  name: string;
+  subtitle: string;
+  href: string;
+  icon: any;
+}[] = [
   {
+    key: 'constructora',
+    themeKey: 'constructora',
     name: 'SARA Constructora',
     subtitle: 'Obras Civiles, BIM & Fiscalización',
     href: '/constructora',
     icon: Building2,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/20'
   },
   {
+    key: 'apu',
+    themeKey: 'apu',
     name: 'SARA APU & Costos',
     subtitle: 'Presupuestos, IA & Licitación SERCOP',
     href: '/apu',
     icon: Calculator,
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/10 border-cyan-500/20'
   },
   {
+    key: 'compras',
+    themeKey: 'compras',
     name: 'SARA Marketplace',
     subtitle: 'Abastecimiento Mayorista & Kardex',
     href: '/modulos/compras',
     icon: ShoppingCart,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10 border-amber-500/20'
   },
   {
+    key: 'fletes',
+    themeKey: 'fletes',
     name: 'SARA Fletes',
     subtitle: 'Logística Pesada MTOP & Backhaul',
     href: '/modulos/fletes',
     icon: Truck,
-    color: 'text-orange-400',
-    bg: 'bg-orange-500/10 border-orange-500/20'
   },
   {
+    key: 'talento',
+    themeKey: 'talento',
     name: 'SARA Talento Humano',
     subtitle: 'Reclutamiento SECAP & Nómina IESS',
     href: '/modulos/talento',
     icon: Users,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/20'
   },
   {
+    key: 'inmobiliaria',
+    themeKey: 'inmobiliaria',
     name: 'SARA Inmobiliaria',
     subtitle: 'Tasación IVS, Plusvalía & BIESS',
     href: '/inmobiliaria',
     icon: Home,
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10 border-purple-500/20'
   },
   {
+    key: 'stays',
+    themeKey: 'stays',
     name: 'SARA Stays',
     subtitle: 'Corporate Housing & Revenue USALI',
     href: '/stays',
     icon: Bed,
-    color: 'text-rose-400',
-    bg: 'bg-rose-500/10 border-rose-500/20'
   },
   {
+    key: 'fintech',
+    themeKey: 'financiero',
     name: 'SARA Pagos & Escrow',
     subtitle: 'Fideicomiso, SRI & Gobernanza UAFE',
     href: '/modulos/financiero',
     icon: ShieldCheck,
-    color: 'text-teal-400',
-    bg: 'bg-teal-500/10 border-teal-500/20'
   }
 ];
 
-function getModuleBadge(pathname: string, themes: Record<ModuloKey, ColorTone>) {
-  const getTone = (key: ModuloKey, fallback: ColorTone) => {
-    const toneKey = (themes && themes[key]) ? themes[key] : fallback;
-    return COLOR_TONES[toneKey] || COLOR_TONES[fallback];
-  };
-
-  if (pathname.startsWith('/modulos/compras')) {
-    const tone = getTone('compras', 'amber');
-    return { label: 'SARA Marketplace & Compras', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/modulos/fletes')) {
-    const tone = getTone('fletes', 'orange');
-    return { label: 'SARA Fletes & Carga Pesada', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/modulos/talento')) {
-    const tone = getTone('talento', 'emerald');
-    return { label: 'SARA Talento Humano', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/modulos/financiero')) {
-    const tone = getTone('financiero', 'teal');
-    return { label: 'SARA Pagos & Escrow', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/apu')) {
-    const tone = getTone('apu', 'cyan');
-    return { label: 'SARA APU & Costos', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/inmobiliaria')) {
-    const tone = getTone('inmobiliaria', 'purple');
-    return { label: 'SARA Inmobiliaria', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/stays')) {
-    const tone = getTone('stays', 'rose');
-    return { label: 'SARA Stays', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/constructora')) {
-    const tone = getTone('constructora', 'blue');
-    return { label: 'SARA Constructora', dotColor: tone.dotClass, badgeStyle: `${tone.bgLightClass} ${tone.textClass} ${tone.borderClass}` };
-  }
-  if (pathname.startsWith('/modulos/importador')) {
-    return { label: 'SARA Importador Excel/CSV', dotColor: 'bg-cyan-400', badgeStyle: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20' };
-  }
-  if (pathname.startsWith('/modulos/facturacion')) {
-    return { label: 'SARA Facturación & SRI', dotColor: 'bg-amber-400', badgeStyle: 'bg-amber-500/10 text-amber-300 border-amber-500/20' };
-  }
-  return { label: 'Ecosistema SARA', dotColor: 'bg-emerald-400', badgeStyle: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' };
+function resolveBrandModulo(pathname: string): ModuloBrandKey {
+  if (pathname.startsWith('/modulos/compras') || pathname.startsWith('/compras')) return 'compras';
+  if (pathname.startsWith('/modulos/fletes') || pathname.startsWith('/fletes')) return 'fletes';
+  if (pathname.startsWith('/modulos/talento')) return 'talento';
+  if (pathname.startsWith('/modulos/financiero')) return 'fintech';
+  if (pathname.startsWith('/modulos/facturacion') || pathname.startsWith('/facturacion-electronica')) return 'facturacion';
+  if (pathname.startsWith('/apu') || pathname.startsWith('/modulos/importador')) return 'apu';
+  if (pathname.startsWith('/inmobiliaria')) return 'inmobiliaria';
+  if (pathname.startsWith('/stays')) return 'stays';
+  if (pathname.startsWith('/constructora')) return 'constructora';
+  return 'grupo_sara';
 }
 
 export default function ModuleTopBar() {
   const pathname = usePathname() || '';
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [moduleThemes, setModuleThemes] = useState(DEFAULT_MODULE_THEMES);
+  const [logos, setLogos] = useState<LogosEmpresa>(DEFAULT_LOGOS_EMPRESA);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setModuleThemes(getSavedModuleThemes());
+    getLogosEmpresa().then((fetched) => {
+      if (fetched) setLogos(fetched);
+    });
 
     const handleThemeChange = (e: any) => {
       if (e.detail && typeof e.detail === 'object') {
@@ -158,7 +137,7 @@ export default function ModuleTopBar() {
     return () => window.removeEventListener('sara_module_themes_change', handleThemeChange);
   }, []);
 
-  const currentModule = getModuleBadge(pathname, moduleThemes);
+  const currentBrandKey = resolveBrandModulo(pathname);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -176,23 +155,14 @@ export default function ModuleTopBar() {
 
   return (
     <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-white/[0.08] text-white">
-      <div className="max-w-7xl mx-auto min-h-[60px] px-4 sm:px-6 flex items-center justify-between gap-3">
-        {/* Left: Back to Holding + Current Module Badge */}
+      <div className="max-w-7xl mx-auto min-h-[64px] px-4 sm:px-6 flex items-center justify-between gap-3">
+        {/* Left: Official Module Logo from Database Configuration + Brand Identity */}
         <div className="flex items-center gap-3 min-w-0">
-          <Link
-            href="/"
-            className="min-h-[44px] inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-300 hover:text-white transition-colors shrink-0"
-          >
-            <ArrowLeft size={16} className="text-emerald-400" />
-            <span>Grupo SARA</span>
-          </Link>
-
-          <span className="text-white/15 select-none">|</span>
-
-          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold tracking-wide truncate ${currentModule.badgeStyle}`}>
-            <span className={`w-2 h-2 rounded-full ${currentModule.dotColor} animate-pulse shrink-0`} />
-            <span className="truncate">{currentModule.label}</span>
-          </div>
+          <ModuleBrandLogo
+            modulo={currentBrandKey}
+            size="sm"
+            showBackToHolding={true}
+          />
         </div>
 
         {/* Right: App Launcher (8 Modules) + Dashboard CTA */}
@@ -201,7 +171,7 @@ export default function ModuleTopBar() {
             <button
               type="button"
               onClick={() => setLauncherOpen((prev) => !prev)}
-              className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition-all"
+              className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs sm:text-sm font-bold text-slate-200 hover:text-white transition-all cursor-pointer"
               aria-expanded={launcherOpen}
             >
               <Grid size={16} className="text-cyan-400" />
@@ -211,11 +181,11 @@ export default function ModuleTopBar() {
             </button>
 
             {launcherOpen && (
-              <div className="absolute right-0 mt-2 w-[320px] sm:w-[480px] rounded-2xl bg-slate-900/95 backdrop-blur-2xl border border-white/15 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-[320px] sm:w-[500px] rounded-2xl bg-slate-900/95 backdrop-blur-2xl border border-white/15 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
                   <div>
                     <p className="text-xs font-black uppercase tracking-wider text-white">Red Empresarial Grupo SARA</p>
-                    <p className="text-[11px] text-slate-400">Salto directo entre las 8 unidades de negocio</p>
+                    <p className="text-[11px] text-slate-400">Salto directo entre las unidades de negocio</p>
                   </div>
                   <Link
                     href="/modulos/importador"
@@ -228,46 +198,54 @@ export default function ModuleTopBar() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {ECOSYSTEM_MODULES.map((mod) => {
-                    const Icon = mod.icon;
                     const isActive = pathname.startsWith(mod.href);
-                    // Obtener tono configurado dinámicamente para este módulo
-                    const modKey = (mod.href.replace('/modulos/', '').replace('/', '') || 'constructora') as ModuloKey;
-                    const currentTone = COLOR_TONES[moduleThemes[modKey]] || COLOR_TONES.blue;
+                    const currentTone = COLOR_TONES[moduleThemes[mod.themeKey]] || COLOR_TONES.blue;
+                    const fallbackModLogo = DEFAULT_LOGOS_EMPRESA[mod.key] || '/logo-hero.png';
+                    const modLogo = logos[mod.key] || fallbackModLogo;
 
                     return (
                       <Link
                         key={mod.href}
                         href={mod.href}
-                        className={`flex items-start gap-3 p-2.5 rounded-xl border transition-all ${
+                        className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all ${
                           isActive
                             ? 'bg-white/10 border-white/25 text-white'
                             : 'bg-slate-950/60 hover:bg-white/[0.06] border-white/[0.06] text-slate-300 hover:text-white'
                         }`}
                       >
-                        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${currentTone.bgLightClass} ${currentTone.borderClass} ${currentTone.textClass}`}>
-                          <Icon size={18} />
+                        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 p-1 bg-slate-950 ${currentTone.borderClass}`}>
+                          <img
+                            src={modLogo}
+                            alt={mod.name}
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              if (!target.src.endsWith(fallbackModLogo)) {
+                                target.src = fallbackModLogo;
+                              }
+                            }}
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-white truncate">{mod.name}</p>
-                          <p className="text-[11px] text-slate-400 leading-tight line-clamp-1">{mod.subtitle}</p>
+                          <p className="text-[11px] text-slate-400 truncate">{mod.subtitle}</p>
                         </div>
                       </Link>
                     );
                   })}
                 </div>
-
-                <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                  <Link
-                    href="/dashboard"
-                    className="w-full min-h-[42px] inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md"
-                  >
-                    <LayoutDashboard size={15} />
-                    <span>Ir al Panel Central / APU Dashboard</span>
-                  </Link>
-                </div>
               </div>
             )}
           </div>
+
+          <Link
+            href="/dashboard"
+            className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-blue-600/20 transition-all shrink-0"
+          >
+            <LayoutDashboard size={15} />
+            <span className="hidden md:inline">Panel Central</span>
+            <span className="md:hidden">Panel</span>
+          </Link>
         </div>
       </div>
     </header>

@@ -199,6 +199,23 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal }: HeroProps) {
 
   const currentSlide = servicesSlides[currentIndex] || servicesSlides[0]
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && currentSlide) {
+      window.dispatchEvent(
+        new CustomEvent("sara_hero_slide_change", {
+          detail: {
+            id: currentSlide.id,
+            title: currentSlide.title,
+            tag: currentSlide.tag,
+            logo: currentSlide.logo,
+            href: currentSlide.href,
+            accentColor: currentSlide.accentColor,
+          },
+        })
+      )
+    }
+  }, [currentIndex, currentSlide.id, currentSlide.logo, currentSlide.title, currentSlide.tag, currentSlide.href, currentSlide.accentColor])
+
   return (
     <section className="relative min-h-[85vh] lg:min-h-[92vh] flex items-center pt-28 pb-16 overflow-hidden bg-slate-950">
       {/* Luces y texturas ambientales coherentes */}

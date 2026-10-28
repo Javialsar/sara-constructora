@@ -47,6 +47,7 @@ import { exportarAExcel, exportarAPDF } from '@/lib/services/exportReports';
 import FactoringProntoPagoTab from '@/components/financiero/FactoringProntoPagoTab';
 import DossierBancarioUafeTab from '@/components/financiero/DossierBancarioUafeTab';
 import SaaSSuscripcionesTab from '@/components/financiero/SaaSSuscripcionesTab';
+import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import { Zap, Award, Sparkles } from 'lucide-react';
 
 export default function DashboardFinanciero() {
@@ -337,13 +338,8 @@ export default function DashboardFinanciero() {
         {/* ==================================================================== */}
         <header className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-md flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-2xl bg-teal-500/20 text-teal-400 flex items-center justify-center border border-teal-500/30">
-                <ShieldCheck size={24} />
-              </div>
-              <h1 className="text-3xl font-black text-white tracking-tight">
-                SARA <span className="text-teal-400">FINANCIERO</span>
-              </h1>
+            <div className="flex flex-wrap items-center gap-4 mb-2">
+              <ModuleBrandLogo modulo="fintech" showBackToHolding={false} customTitle="SARA FINANCIERO" customSubtitle="Fideicomiso Escrow, SRI & Tesorería" />
               <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-teal-500/10 text-teal-300 border border-teal-500/20">
                 Tesorería & Control Económico
               </span>
