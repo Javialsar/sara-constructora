@@ -201,7 +201,7 @@ export default function PortalLoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-xs font-bold uppercase tracking-widest text-gray-500">
+              <div className="flex items-center justify-between"><label htmlFor="password" className="block text-xs font-bold uppercase tracking-widest text-gray-500">Contraseña</label><button type="button" onClick={async () => { if (!email || !email.includes('@')) { setError('Ingresa primero tu correo electrónico arriba para recuperar tu contraseña.'); return; } const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email); setError(resetErr ? resetErr.message : `Enlace de recuperación enviado a ${email}.`); }} className="text-[11px] font-bold text-brand-sage hover:underline cursor-pointer">¿Olvidaste tu contraseña?</button></div><label className="sr-only">
                 Contraseña
               </label>
               <div className="relative">

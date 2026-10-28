@@ -127,33 +127,19 @@ export default function ModuloIntroSplash({
   onComplete
 }: ModuloIntroSplashProps) {
   const config = MODULOS_CONFIG[modulo] || MODULOS_CONFIG.constructora
-  const [isVisible, setIsVisible] = useState(() => {
-    if (forceShow) return true;
-    if (typeof window !== 'undefined') {
-      try {
-        const seen = sessionStorage.getItem(`sara_splash_seen_${modulo}`);
-        if (seen === 'true') return false;
-      } catch {
-        // En caso de modo privado
-      }
-    }
-    return true;
-  })
-  const [progress, setProgress] = useState(15)
+  const [isVisible, setIsVisible] = useState(false)
+  const [progress, setProgress] = useState(100)
   const [logoUrl, setLogoUrl] = useState<string>(config.fallbackLogo)
 
-  // 0. Comprobar si ya se vio en la sesión actual para no demorar al usuario recurrente
+  // Solo activar splash si se solicita explícitamente mediante forceShow en cliente
   useEffect(() => {
-    if (!forceShow && typeof window !== 'undefined') {
-      try {
-        const seen = sessionStorage.getItem(`sara_splash_seen_${modulo}`);
-        if (seen === 'true') {
-          setIsVisible(false);
-          if (onComplete) onComplete();
-        }
-      } catch {}
+    if (forceShow && typeof window !== 'undefined') {
+      setIsVisible(true)
+      setProgress(15)
+    } else if (onComplete) {
+      onComplete()
     }
-  }, [modulo, forceShow, onComplete]);
+  }, [forceShow, onComplete]);
 
   // 1. Obtener el logotipo oficial de la base de datos (configuración) con timeout
   useEffect(() => {

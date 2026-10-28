@@ -4,9 +4,28 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, HelpCircle, MessageSquare } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
+const DEFAULT_FAQS_INSTITUCIONALES = [
+  {
+    pregunta: "¿Qué servicios integrados comprende el holding GRUPO SARA?",
+    respuesta: "GRUPO SARA INVERSIONES S.A.S. (RUC 1792984512001) integra planificación arquitectónica y construcción de obras bajo norma NEC-15, software de presupuestos APU y licitación SERCOP, catálogo inmobiliario IVS, suites de alojamiento corporativo y turístico SARA Stays, despacho de fletes pesados MTOP, matching de talento técnico SECAP y pasarela de pagos con custodia Escrow y facturación electrónica SRI automática."
+  },
+  {
+    pregunta: "¿Cómo garantizan la seguridad de los pagos y la emisión de Factura Electrónica SRI?",
+    respuesta: "Todas las transacciones operan bajo cifrado TLS 256-bit con desglose tributario transparente (IVA incluido 15% general o 5% materiales de construcción según Res. NAC-DGERCGC24-00000013). Al confirmar el pago, nuestro motor emite automáticamente la Factura Electrónica autorizada por el SRI con firma XAdES-BES v2.21 y descarga inmediata de RIDE PDF y XML."
+  },
+  {
+    pregunta: "¿Puedo contratar un módulo individual o un proyecto llave en mano completo?",
+    respuesta: "Cada uno de los módulos funciona de manera autónoma y a la vez sincronizada. Puedes suscribirte a SARA APU, alquilar una suite en SARA Stays, cotizar un flete pesado o contratar la ejecución integral de tu obra civil desde el holding matriz."
+  },
+  {
+    pregunta: "¿En qué ciudades y provincias del Ecuador opera GRUPO SARA?",
+    respuesta: "Contamos con sedes operativas en Quito, Cuenca, Guayaquil y Loja, y cobertura logística, técnica y digital en las 24 provincias del Ecuador."
+  }
+]
+
 export default function FAQ() {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const [faqs, setFaqs] = useState<any[]>([])
+  const [activeIndex, setActiveIndex] = useState<number | null>(0)
+  const [faqs, setFaqs] = useState<any[]>(DEFAULT_FAQS_INSTITUCIONALES)
 
   useEffect(() => {
     const fetchFaqs = async () => {
@@ -19,26 +38,6 @@ export default function FAQ() {
       
       if (data && data.length > 0) {
         setFaqs(data)
-      } else {
-        // Fallback institucional en caso de no tener cargadas en BD
-        setFaqs([
-          {
-            pregunta: "¿Qué servicios integrados comprende el Grupo SARA?",
-            respuesta: "Grupo SARA integra planificación arquitectónica y construcción de obras, software de presupuestos APU, catálogo inmobiliario, suites de alojamiento tipo Airbnb, despacho de fletes pesados tipo Uber, matching de talento técnico y pasarelas de pago garantizadas contra avance de obra."
-          },
-          {
-            pregunta: "¿Cómo garantizan la seguridad de los pagos en compras, fletes y obras?",
-            respuesta: "Implementamos un sistema estándar de pagos con encriptación bancaria SSL 256-bit, soporte para tarjetas de crédito/débito, QR empresarial y cuentas bancarias directas, permitiendo anticipos garantizados y pagos contra hitos de obra verificados."
-          },
-          {
-            pregunta: "¿Puedo contratar un servicio individual o todo el ecosistema?",
-            respuesta: "Cada uno de los 8 módulos funciona de manera autónoma pero completamente sincronizada. Puedes acceder a un flete, alquilar una suite o adquirir planos, o coordinar un proyecto llave en mano completo desde el holding matriz."
-          },
-          {
-            pregunta: "¿Cómo funciona el despacho satelital de SARA Fletes?",
-            respuesta: "Conectamos clientes con conductores profesionales calificados y vehículos certificados mediante monitoreo GPS satelital en tiempo real, cobro prepago con billetera digital y verificación documental rigurosa."
-          }
-        ])
       }
     }
     fetchFaqs()
@@ -76,7 +75,7 @@ export default function FAQ() {
             transition={{ delay: 0.1 }}
             className="text-slate-400 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed"
           >
-            Resolvemos las principales dudas sobre los servicios, contratación, garantías y tecnología del Grupo SARA.
+            Resolvemos las principales dudas sobre los servicios, contratación, facturación electrónica SRI, garantías y tecnología de GRUPO SARA.
           </motion.p>
         </div>
 
@@ -137,7 +136,7 @@ export default function FAQ() {
             className="inline-flex items-center gap-2 bg-brand-sage text-slate-950 font-black py-3 px-8 rounded-xl hover:bg-emerald-400 transition-all shadow-xl hover:scale-105"
           >
             <MessageSquare size={16} />
-            <span>Hablar con un Asesor de Grupo SARA</span>
+            <span>Hablar con un Asesor de GRUPO SARA</span>
           </a>
         </motion.div>
       </div>

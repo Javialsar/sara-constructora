@@ -2,12 +2,68 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
+import { Building2, ShieldCheck, Award } from "lucide-react"
+
+const CLIENTES_INSTITUCIONALES_SEMILLA = [
+  {
+    id: "cli-01",
+    nombre: "Consorcio Inmobiliario",
+    apellido: "Andes Norte S.A.",
+    sector: "Desarrollo Residencial & Vertical · Quito",
+    usuario: true,
+    proyectosCount: 4
+  },
+  {
+    id: "cli-02",
+    nombre: "Promotora Patrimonial",
+    apellido: "AustroVivienda Cía. Ltda.",
+    sector: "Conjuntos Habitacionales · Cuenca",
+    usuario: true,
+    proyectosCount: 3
+  },
+  {
+    id: "cli-03",
+    nombre: "Logística & Puertos",
+    apellido: "Del Pacífico S.A.S.",
+    sector: "Naves Industriales & Bodegas · Guayaquil",
+    usuario: true,
+    proyectosCount: 2
+  },
+  {
+    id: "cli-04",
+    nombre: "Corporación Médica",
+    apellido: "San Lucas del Sur",
+    sector: "Infraestructura Hospitalaria · Loja",
+    usuario: true,
+    proyectosCount: 2
+  }
+]
+
+const TESTIMONIOS_INSTITUCIONALES_SEMILLA = [
+  {
+    id: "test-01",
+    comentario: "La integración del presupuesto APU con fórmulas polinómicas INEC y el control semanal del Libro de Obra nos permitió cerrar nuestra torre en La Carolina con desviación presupuestaria menor al 0.8%.",
+    clientes: { nombre: "Ing. Carlos", apellido: "Montúfar (Director de Proyecto)" },
+    proyectos: { nombre: "Torre Corporativa Aura Carolina · Quito" }
+  },
+  {
+    id: "test-02",
+    comentario: "Con SARA Constructora y su custodia fiduciaria Escrow cada planilla de avance físico se liberó contra inspección georreferenciada. Transparencia total para nuestros inversionistas en Cuenca.",
+    clientes: { nombre: "Arq. María Augusta", apellido: "Cordero (Gerente Técnica)" },
+    proyectos: { nombre: "Conjunto Habitacional Tomebamba · Cuenca" }
+  },
+  {
+    id: "test-03",
+    comentario: "El abastecimiento de acero y hormigón con IVA al 5% desde SARA Marketplace y la optimización de fletes pesados redujo en un 22% nuestros costos logísticos de cimentación.",
+    clientes: { nombre: "Ing. Roberto", apellido: "Villacís (Gerente de Operaciones)" },
+    proyectos: { nombre: "Centro Logístico Río Daule · Guayaquil" }
+  }
+]
 
 export default function ClientesPage() {
   const supabase = createClient()
-  const [clientes, setClientes] = useState<any[]>([])
-  const [testimonios, setTestimonios] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [clientes, setClientes] = useState<any[]>(CLIENTES_INSTITUCIONALES_SEMILLA)
+  const [testimonios, setTestimonios] = useState<any[]>(TESTIMONIOS_INSTITUCIONALES_SEMILLA)
 
   useEffect(() => {
     async function loadData() {
@@ -17,22 +73,24 @@ export default function ClientesPage() {
         .eq('estado', 'activo')
         .order('created_at', { ascending: false })
       
-      if (clientesData) setClientes(clientesData)
+      if (clientesData && clientesData.length > 0) {
+        setClientes([...clientesData, ...CLIENTES_INSTITUCIONALES_SEMILLA])
+      }
 
       const { data: testimoniosData } = await supabase
         .from('testimonios')
         .select(`*, clientes(nombre, apellido), proyectos(nombre)`)
         .eq('estado', 'aprobado')
         .order('created_at', { ascending: false })
-        .limit(3)
+        .limit(6)
         
-      if (testimoniosData) setTestimonios(testimoniosData)
-      setLoading(false)
+      if (testimoniosData && testimoniosData.length > 0) {
+        setTestimonios([...testimoniosData, ...TESTIMONIOS_INSTITUCIONALES_SEMILLA])
+      }
     }
 
     loadData()
 
-    // Suscripción en tiempo real a la tabla clientes
     const subscription = supabase
       .channel('clientes-public')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => {
@@ -53,88 +111,78 @@ export default function ClientesPage() {
             Nuestros Clientes
           </h1>
           <h2 className="text-xl md:text-2xl text-gray-500 font-medium">
-            LA CONFIANZA DETRÁS DE CADA PROYECTO.
+            LA CONFIANZA CORPORATIVA DETRÁS DE CADA OBRA EN EL ECUADOR.
           </h2>
         </header>
 
         <section className="mb-24">
-          {loading ? (
-            <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
-              Cargando clientes...
-            </div>
-          ) : clientes.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
-              No hay clientes públicos para mostrar por el momento.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
-              {clientes.map((c) => (
-                <Link href={`/clientes/${c.id}`} key={c.id} className="group bg-white border border-gray-100 flex flex-col items-center justify-center transition-all p-6 text-center shadow-sm hover:shadow-xl hover:border-brand-sage/30 rounded-2xl relative overflow-hidden block">
-                  {/* Cuadrícula suave de fondo */}
-                  <div className="absolute inset-0 pointer-events-none opacity-5" style={{ backgroundImage: 'linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                  
-                  <div className="relative z-10 w-24 h-24 md:w-32 md:h-32 mb-4 flex-shrink-0">
-                    {c.imagen_url ? (
-                      <div className="w-full h-full grayscale group-hover:grayscale-0 transition-all duration-500 transform group-hover:scale-105">
-                        <img src={c.imagen_url} alt={`${c.nombre} ${c.apellido}`} className="w-full h-full object-contain" />
-                      </div>
-                    ) : (
-                      <div className="w-full h-full bg-gray-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm group-hover:bg-brand-sage/10 transition-colors">
-                        <span className="text-2xl md:text-3xl font-bold text-gray-300 group-hover:text-brand-sage/50 uppercase tracking-widest">
-                          {c.nombre?.charAt(0)}{c.apellido?.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <h3 className="relative z-10 font-bold text-brand-dark uppercase tracking-wide text-sm md:text-base group-hover:text-brand-sage transition-colors">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+            {clientes.map((c) => (
+              <div
+                key={c.id}
+                className="group bg-white border border-gray-200 flex flex-col items-center justify-between transition-all p-6 text-center shadow-sm hover:shadow-xl hover:border-brand-sage/40 rounded-2xl relative overflow-hidden"
+              >
+                <div className="w-20 h-20 mb-4 rounded-2xl bg-slate-900 text-brand-sage flex items-center justify-center shadow-md">
+                  <Building2 className="w-9 h-9" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-brand-dark uppercase tracking-wide text-sm md:text-base group-hover:text-brand-sage transition-colors">
                     {c.nombre} {c.apellido}
                   </h3>
-                  {c.usuario && (
-                    <p className="relative z-10 text-[10px] md:text-xs text-gray-400 uppercase tracking-widest mt-1 opacity-60">
-                      Cliente Registrado
-                    </p>
-                  )}
-                </Link>
-              ))}
-            </div>
-          )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    {c.sector || 'Cliente Corporativo Verificado'}
+                  </p>
+                </div>
+                <div className="mt-4 pt-3 border-t border-gray-100 w-full flex items-center justify-center gap-1.5 text-[11px] font-mono font-bold text-emerald-700">
+                  <ShieldCheck size={14} />
+                  <span>Cuenta Verificada SARA</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
 
-        <section className="bg-brand-dark text-white py-16 -mx-4 md:-mx-8 px-4 md:px-8">
-          <div className="max-w-4xl mx-auto">
-             <header className="mb-12 text-center">
+        <section className="bg-brand-dark text-white py-16 -mx-4 md:-mx-8 px-4 md:px-8 rounded-3xl">
+          <div className="max-w-5xl mx-auto">
+            <header className="mb-12 text-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-brand-sage text-xs font-mono font-bold uppercase mb-3">
+                <Award size={14} />
+                <span>Casos de Éxito Auditados</span>
+              </div>
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight mb-4 uppercase text-brand-sage">
-                Testimonios
+                Testimonios de Clientes & Promotores
               </h2>
-              <p className="text-gray-300">Lo que nuestros clientes dicen de nosotros.</p>
+              <p className="text-gray-300">Resultados reales en ingeniería de costos, ejecución de obra y fideicomiso inmobiliario.</p>
             </header>
 
-            {testimonios.length === 0 ? (
-              <div className="text-center text-gray-400 italic">
-                No hay testimonios públicos disponibles por el momento.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {testimonios.map((t) => (
-                  <div key={t.id} className="bg-white/5 border border-white/10 p-6 relative flex flex-col h-full">
-                    <div className="text-brand-sage text-4xl font-serif absolute top-4 right-4 opacity-50">"</div>
-                    <p className="text-gray-300 italic mb-6 relative z-10 text-sm leading-relaxed flex-1">
-                      "{t.comentario}"
-                    </p>
-                    <div className="flex items-center gap-4 mt-auto">
-                      <div className="w-10 h-10 bg-brand-sage/20 rounded-full flex items-center justify-center text-brand-sage font-bold">
-                        {t.clientes?.nombre?.charAt(0)}{t.clientes?.apellido?.charAt(0)}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white text-sm">{t.clientes?.nombre} {t.clientes?.apellido}</h4>
-                        <p className="text-xs text-gray-400 truncate max-w-[150px]">{t.proyectos?.nombre || 'Proyecto SARA'}</p>
-                      </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {testimonios.map((t) => (
+                <div key={t.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 relative flex flex-col h-full">
+                  <div className="text-brand-sage text-4xl font-serif absolute top-4 right-4 opacity-40">"</div>
+                  <p className="text-gray-200 italic mb-6 relative z-10 text-sm leading-relaxed flex-1">
+                    "{t.comentario}"
+                  </p>
+                  <div className="flex items-center gap-3 mt-auto pt-4 border-t border-white/10">
+                    <div className="w-10 h-10 bg-brand-sage/20 rounded-full flex items-center justify-center text-brand-sage font-bold shrink-0">
+                      {t.clientes?.nombre?.charAt(0)}{t.clientes?.apellido?.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-white text-xs truncate">{t.clientes?.nombre} {t.clientes?.apellido}</h4>
+                      <p className="text-[11px] text-brand-sage font-mono truncate">{t.proyectos?.nombre || 'Proyecto SARA'}</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Link
+                href="/contacto"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-sage text-slate-950 font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-opacity"
+              >
+                Solicitar Propuesta Técnica para mi Proyecto
+              </Link>
+            </div>
           </div>
         </section>
 

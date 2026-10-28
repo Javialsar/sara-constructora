@@ -94,11 +94,11 @@ export default function AirbnbPage() {
   const [alojamientos, setAlojamientos] =
     useState<AirbnbListing[]>(AIRBNB_DATA);
   const [isLoadingAlojamientos, setIsLoadingAlojamientos] =
-    useState<boolean>(true);
+    useState<boolean>(false);
   const [destinoInput, setDestinoInput] = useState<string>("");
   const [alcanceTab, setAlcanceTab] = useState<
     "todos" | "nacional" | "internacional"
-  >("todos");
+  >("nacional");
   const [sectorFiltro, setSectorFiltro] = useState<string>("todos");
   const [tipoFiltro, setTipoFiltro] = useState<string>("todos");
   const [ordenPrecio, setOrdenPrecio] = useState<"defecto" | "alto" | "bajo">(

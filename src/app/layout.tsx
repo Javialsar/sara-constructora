@@ -31,7 +31,7 @@ export const viewport: Viewport = {
   themeColor: '#1e3a8a',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
 };
 
 export const metadata: Metadata = {
@@ -110,7 +110,7 @@ export default async function RootLayout({
 
   return (
     <html lang="es" className={`${montserrat.variable} ${plusJakartaSans.variable} ${geist.variable} ${activeTheme}`.trim()} suppressHydrationWarning>
-      <head>
+      <body className={`min-h-screen flex flex-col font-sans bg-white text-brand-black ${activeTheme}`.trim()} suppressHydrationWarning>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -129,8 +129,6 @@ export default async function RootLayout({
             `
           }}
         />
-      </head>
-      <body className={`min-h-screen flex flex-col font-sans bg-white text-brand-black ${activeTheme}`.trim()}>
         <Providers>
           <RealtimeProvider>
             <SessionTracker />

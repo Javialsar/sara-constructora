@@ -27,24 +27,24 @@ export default async function NosotrosPage() {
       id: "1",
       nombre: "Javier Sarango Gona",
       cargo: "GERENTE GENERAL",
-      telefono: "0981804023",
-      email: "javialsar@gmail.com",
+      telefono: "+593 98 180 4023",
+      email: "gerencia@gruposara.ec",
       imagen_url: "/images/team/javier.png"
     },
     {
       id: "2",
       nombre: "David Sarango M.",
-      cargo: "ARQUITECTO",
+      cargo: "DIRECTOR DE ARQUITECTURA",
       telefono: "+593 96 290 5439",
-      email: "dasarango2707@gmail.com",
+      email: "arquitectura@gruposara.ec",
       imagen_url: "/images/team/david.png"
     },
     {
       id: "3",
       nombre: "Kevin Sarango M.",
-      cargo: "INGENIERO CIVIL",
+      cargo: "DIRECTOR DE INGENIERÍA CIVIL",
       telefono: "+593 99 186 7021",
-      email: "kjsarango68@gmail.com",
+      email: "ingenieria@gruposara.ec",
       imagen_url: "/images/team/kevin.png"
     }
   ]

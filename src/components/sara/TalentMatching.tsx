@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import TalentoSubNav from '@/components/sara/TalentoSubNav';
-import { getTalentsFromDB, createJobEscrowApplication, TalentDB } from '@/lib/services/talentoService';
+import { getTalentsFromDB, createJobEscrowApplication, TalentDB, TALENTO_SEMILLA } from '@/lib/services/talentoService';
 import { SaraTalentoRequestsService } from '@/lib/services/saraTalentoRequestsService';
 import { PlanesExitoTalentoModal } from '@/components/talento/PlanesExitoTalentoModal';
 
@@ -31,8 +31,8 @@ export default function TalentMatching() {
   // ---------------------------------------------------------------------------
   // ESTADOS PRINCIPALES DE BÚSQUEDA Y RADAR
   // ---------------------------------------------------------------------------
-  const [talents, setTalents] = useState<TalentUI[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [talents, setTalents] = useState<TalentUI[]>(() => TALENTO_SEMILLA.map((t, idx) => ({ ...t, categoria: t.role.toLowerCase().includes('ingenier') || t.role.toLowerCase().includes('arquitect') ? 'Dirección Técnica' : t.role.toLowerCase().includes('maestro') ? 'Supervisión' : 'Oficios Especializados', disponibilidad: (idx % 2 === 0 ? 'Inmediata' : 'Por proyecto') as TalentUI['disponibilidad'], ciudadOrigen: t.locationName || 'Quito, Pichincha' })));
+  const [loading, setLoading] = useState(false);
   const [searchRole, setSearchRole] = useState('');
   
   // Ubicación de la Obra y Parámetros del Radar
