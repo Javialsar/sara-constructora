@@ -114,6 +114,34 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
   const [searchDocTerm, setSearchDocTerm] = useState('');
 
   // Modales
+  const [modalProyectoOpen, setModalProyectoOpen] = useState(false);
+  const [editingProyecto, setEditingProyecto] = useState<any | null>(null);
+  const [clientesList, setClientesList] = useState<any[]>([]);
+  const [savingProyecto, setSavingProyecto] = useState(false);
+  const [proyectoForm, setProyectoForm] = useState<{
+    nombre: string;
+    ubicacion: string;
+    descripcion: string;
+    tipo_obra: string;
+    estado: string;
+    presupuesto_total: number;
+    area_m2: number;
+    ingeniero_residente: string;
+    cliente_id: string;
+    avance: number;
+  }>({
+    nombre: '',
+    ubicacion: 'Loja, Ecuador',
+    descripcion: '',
+    tipo_obra: 'Edificación Sismorresistente Hormigón Armado',
+    estado: 'en_construccion',
+    presupuesto_total: 320000,
+    area_m2: 850,
+    ingeniero_residente: user?.nombre || 'Ing. Residente de Obra',
+    cliente_id: '',
+    avance: 0,
+  });
+
   const [modalAvanceOpen, setModalAvanceOpen] = useState(false);
   const [modalDocOpen, setModalDocOpen] = useState(false);
   const [modalVisualizarAvance, setModalVisualizarAvance] = useState<any | null>(null);
@@ -199,6 +227,8 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
       }
 
       const { data: proys } = await query;
+      const { data: clis } = await supabase.from('clientes').select('id, nombre, apellido').order('nombre', { ascending: true });
+      if (clis) setClientesList(clis);
 
       if (proys && proys.length > 0) {
         const normalized = proys.map((p: any, idx: number) => ({
@@ -551,6 +581,114 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
 
     return matchSearch && matchProyecto && matchFecha;
   });
+
+  // ============================================================================
+  // HANDLERS: MODAL NUEVO / EDITAR PROYECTO (OBRA CIVIL)
+  // ============================================================================
+  const handleAbrirModalNuevoProyecto = () => {
+    setEditingProyecto(null);
+    setProyectoForm({
+      nombre: '',
+      ubicacion: 'Loja, Ecuador',
+      descripcion: '',
+      tipo_obra: 'Edificación Sismorresistente Hormigón Armado',
+      estado: 'en_construccion',
+      presupuesto_total: 320000,
+      area_m2: 850,
+      ingeniero_residente: user?.nombre || 'Ing. Residente de Obra',
+      cliente_id: '',
+      avance: 0,
+    });
+    setModalProyectoOpen(true);
+  };
+
+  const handleEditarProyecto = (proy: any) => {
+    setEditingProyecto(proy);
+    setProyectoForm({
+      nombre: proy.nombre || '',
+      ubicacion: proy.ubicacion || 'Ecuador',
+      descripcion: proy.descripcion || '',
+      tipo_obra: proy.tipo_obra || 'Edificación Sismorresistente Hormigón Armado',
+      estado: proy.estado || 'en_construccion',
+      presupuesto_total: Number(proy.presupuesto_total || 320000),
+      area_m2: Number(proy.area_m2 || 850),
+      ingeniero_residente: proy.ingeniero_residente || user?.nombre || 'Ing. Residente de Obra',
+      cliente_id: proy.cliente_id || '',
+      avance: Number(proy.avance || 0),
+    });
+    setModalProyectoOpen(true);
+  };
+
+  const handleGuardarProyecto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!proyectoForm.nombre.trim()) return;
+    setSavingProyecto(true);
+
+    try {
+      const payloadDb: any = {
+        nombre: proyectoForm.nombre.trim(),
+        ubicacion: proyectoForm.ubicacion.trim() || 'Ecuador',
+        descripcion: proyectoForm.descripcion.trim() || `${proyectoForm.tipo_obra} • ${proyectoForm.area_m2} m²`,
+        estado: proyectoForm.estado,
+        avance: Number(proyectoForm.avance || 0),
+        cliente_id: proyectoForm.cliente_id ? proyectoForm.cliente_id : null,
+      };
+
+      if (editingProyecto) {
+        try {
+          await supabase.from('proyectos').update(payloadDb).eq('id', editingProyecto.id);
+        } catch (err) {
+          console.warn('Actualización local de obra:', err);
+        }
+        setProyectos(prev =>
+          prev.map(p =>
+            p.id === editingProyecto.id
+              ? {
+                  ...p,
+                  ...payloadDb,
+                  tipo_obra: proyectoForm.tipo_obra,
+                  presupuesto_total: Number(proyectoForm.presupuesto_total),
+                  area_m2: Number(proyectoForm.area_m2),
+                  ingeniero_residente: proyectoForm.ingeniero_residente,
+                }
+              : p
+          )
+        );
+      } else {
+        let insertedRow: any = null;
+        try {
+          const { data } = await supabase.from('proyectos').insert([payloadDb]).select().single();
+          if (data) insertedRow = data;
+        } catch (err) {
+          console.warn('Creación local de obra:', err);
+        }
+
+        const nuevaObra = {
+          id: insertedRow?.id || `proy-${Date.now()}`,
+          ...payloadDb,
+          tipo_obra: proyectoForm.tipo_obra,
+          presupuesto_total: Number(proyectoForm.presupuesto_total),
+          area_m2: Number(proyectoForm.area_m2),
+          ingeniero_residente: proyectoForm.ingeniero_residente,
+          created_at: new Date().toISOString(),
+        };
+        setProyectos(prev => [nuevaObra, ...prev]);
+      }
+
+      setModalProyectoOpen(false);
+      setEditingProyecto(null);
+    } finally {
+      setSavingProyecto(false);
+    }
+  };
+
+  const handleEliminarProyecto = async (proy: any) => {
+    if (!confirm(`¿Estás seguro de eliminar el proyecto "${proy.nombre}"?`)) return;
+    try {
+      await supabase.from('proyectos').delete().eq('id', proy.id);
+    } catch {}
+    setProyectos(prev => prev.filter(p => p.id !== proy.id));
+  };
 
   // ============================================================================
   // HANDLERS: MODAL REGISTRAR AVANCE (IMAGEN 1 - EN VIÑETAS)
@@ -1165,8 +1303,18 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
           </button>
         </div>
 
-        {/* Botones Oficiales de Descarga Excel y PDF (Con Membrete y Firmas Oficiales) */}
-        <div className="flex items-center gap-2">
+        {/* Botón + Nuevo Proyecto y Descargas Oficiales */}
+        <div className="flex flex-wrap items-center gap-2">
+          {!isCliente && (
+            <button
+              onClick={handleAbrirModalNuevoProyecto}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
+              title="Crear un nuevo proyecto u obra civil"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ Nuevo Proyecto</span>
+            </button>
+          )}
           <button
             onClick={() => {
               if (subTab === 'obras') handleExportarProyectos('excel');
@@ -1335,7 +1483,29 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
                       <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase font-bold tracking-wider ${badgeColor}`}>
                         {badgeText}
                       </span>
-                      <span className="text-xs font-mono text-slate-400 font-semibold">{proy.area_m2 || 850} m²</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-mono text-slate-400 font-semibold">{proy.area_m2 || 850} m²</span>
+                        {!isCliente && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleEditarProyecto(proy)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                              title="Editar datos de la obra"
+                            >
+                              <Edit size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarProyecto(proy)}
+                              className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                              title="Eliminar obra"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
 
                     <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 leading-snug">
@@ -2842,6 +3012,209 @@ export function MisProyectosSection({ user, initialSubTab = 'obras' }: { user: a
           </div>
         );
       })()}
+
+      {/* ==================================================================== */}
+      {/* MODAL CREAR / EDITAR PROYECTO (OBRA CIVIL)                           */}
+      {/* ==================================================================== */}
+      {modalProyectoOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl p-6 sm:p-8 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-500 font-bold block">
+                  DIRECCIÓN TÉCNICA • SARA CONSTRUCTORA
+                </span>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2 mt-0.5">
+                  <Building2 className="w-5 h-5 text-amber-500" />
+                  <span>{editingProyecto ? `Editar Obra: ${editingProyecto.nombre}` : 'Crear Nuevo Proyecto / Obra Civil'}</span>
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setModalProyectoOpen(false); setEditingProyecto(null); }}
+                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarProyecto} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Nombre del Proyecto / Obra *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={proyectoForm.nombre}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, nombre: e.target.value })}
+                    placeholder="Ej: Edificio Mirador del Valle"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Ubicación (Ciudad / Sector) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={proyectoForm.ubicacion}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, ubicacion: e.target.value })}
+                    placeholder="Ej: Calvas - Loja"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Tipología Estructural (NEC-15)
+                  </label>
+                  <select
+                    value={proyectoForm.tipo_obra}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, tipo_obra: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="Edificación Sismorresistente Hormigón Armado">Edificación Sismorresistente Hormigón Armado</option>
+                    <option value="Estructura Metálica & Cubiertas Industriales">Estructura Metálica & Cubiertas Industriales</option>
+                    <option value="Viviendas Unifamiliares / Urbanización">Viviendas Unifamiliares / Urbanización</option>
+                    <option value="Infraestructura Vial & Movimiento de Tierras">Infraestructura Vial & Movimiento de Tierras</option>
+                    <option value="Obra Hidrosanitaria & Alcantarillado">Obra Hidrosanitaria & Alcantarillado</option>
+                    <option value="Remodelación & Adecuación Corporativa">Remodelación & Adecuación Corporativa</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Estado de la Obra
+                  </label>
+                  <select
+                    value={proyectoForm.estado}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, estado: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="en_diseno">En Diseño / Planificación BIM</option>
+                    <option value="en_construccion">En Construcción (Ejecución Activa)</option>
+                    <option value="paralizado">Paralizado / Suspendido</option>
+                    <option value="finalizado">Culminado / Entregado</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Presupuesto Total ($ USD)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="100"
+                    value={proyectoForm.presupuesto_total}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, presupuesto_total: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Área de Construcción (m²)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={proyectoForm.area_m2}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, area_m2: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Avance Físico Inicial (%)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={proyectoForm.avance}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, avance: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Ingeniero Residente / Responsable Técnico
+                  </label>
+                  <input
+                    type="text"
+                    value={proyectoForm.ingeniero_residente}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, ingeniero_residente: e.target.value })}
+                    placeholder="Nombre del Ingeniero Residente"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Cliente Asignado (Opcional)
+                  </label>
+                  <select
+                    value={proyectoForm.cliente_id}
+                    onChange={(e) => setProyectoForm({ ...proyectoForm, cliente_id: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="">-- Obra Propia / Sin Cliente Vinculado --</option>
+                    {clientesList.map((cli: any) => (
+                      <option key={cli.id} value={cli.id}>
+                        {cli.nombre} {cli.apellido || ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Memoria Descriptiva / Alcance Técnico
+                </label>
+                <textarea
+                  rows={2}
+                  value={proyectoForm.descripcion}
+                  onChange={(e) => setProyectoForm({ ...proyectoForm, descripcion: e.target.value })}
+                  placeholder="Descripción técnica de la obra, número de niveles, zonificación sísmica NEC-15..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setModalProyectoOpen(false); setEditingProyecto(null); }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-200 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProyecto}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  <CheckCircle2 size={15} />
+                  <span>{savingProyecto ? 'Guardando...' : editingProyecto ? 'Guardar Cambios' : 'Crear Proyecto'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
