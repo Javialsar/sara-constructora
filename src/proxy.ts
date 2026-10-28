@@ -203,11 +203,33 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // 9. PROTECCIÓN SARA PAGOS (/modulos/financiero/*)
+  // Al seleccionar SARA-PAGOS desde el landing principal, solicita primero autenticación/registro en /modulos/financiero/auth
+  if (pathname.startsWith('/modulos/financiero') && !pathname.startsWith('/modulos/financiero/auth')) {
+    const pagosCookie = request.cookies.get('sara_pagos_session')?.value
+    const hasAuth = Boolean(user || pagosCookie)
+
+    if (!hasAuth) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/modulos/financiero/auth'
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+
+    if (user && !canAccessModule(metadata, 'sara_pagos')) {
+      const redirectUrl = getUserPortalUrl(metadata)
+      const url = request.nextUrl.clone()
+      url.pathname = redirectUrl
+      url.searchParams.set('warning', 'modulo_no_autorizado_pagos')
+      return NextResponse.redirect(url)
+    }
+  }
+
   // Redirección inteligente si una pestaña quedó con /login?redirectTo=/modulos/financiero
   const redirectToParam = request.nextUrl.searchParams.get('redirectTo') || ''
   if (pathname === '/login' && redirectToParam.startsWith('/modulos/financiero')) {
     const url = request.nextUrl.clone()
-    url.pathname = '/modulos/financiero'
+    url.pathname = '/modulos/financiero/auth'
     url.searchParams.delete('redirectTo')
     return NextResponse.redirect(url)
   }
@@ -219,10 +241,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  if (pathname === '/modulos/financiero/auth' && user && canAccessModule(metadata, 'sara_pagos')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/modulos/financiero'
-    return NextResponse.redirect(url)
+  if (pathname === '/modulos/financiero/auth') {
+    const pagosCookie = request.cookies.get('sara_pagos_session')?.value
+    if ((user && canAccessModule(metadata, 'sara_pagos')) || pagosCookie) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/modulos/financiero'
+      return NextResponse.redirect(url)
+    }
   }
 
   if (pathname === '/modulos/facturacion/auth') {
@@ -249,7 +274,8 @@ export const config = {
     '/modulos/talento/mi-perfil/:path*',
     '/modulos/facturacion/:path*',
     '/modulos/facturacion',
-    '/modulos/financiero/auth',
+    '/modulos/financiero/:path*',
+    '/modulos/financiero',
     '/modulos/importador/:path*',
     '/login',
   ],

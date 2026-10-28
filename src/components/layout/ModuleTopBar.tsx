@@ -153,6 +153,10 @@ export default function ModuleTopBar() {
     setLauncherOpen(false);
   }, [pathname]);
 
+  if (pathname.startsWith('/modulos/financiero') || pathname.endsWith('/auth')) {
+    return null;
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-slate-950/90 backdrop-blur-xl border-b border-white/[0.08] text-white">
       <div className="max-w-7xl mx-auto min-h-[64px] px-4 sm:px-6 flex items-center justify-between gap-3">

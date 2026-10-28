@@ -49,13 +49,77 @@ import DossierBancarioUafeTab from '@/components/financiero/DossierBancarioUafeT
 import SaaSSuscripcionesTab from '@/components/financiero/SaaSSuscripcionesTab';
 import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import Link from 'next/link';
-import { Zap, Award, Sparkles } from 'lucide-react';
+import { Zap, Award, Sparkles, LogOut, UserCheck } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function DashboardFinanciero() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tesoreria' | 'cxc' | 'cxp' | 'flujo' | 'proyectos' | 'conciliacion' | 'factoring' | 'dossier' | 'suscripciones'>('dashboard');
   const [loading, setLoading] = useState<boolean>(true);
   const [filtroProyecto, setFiltroProyecto] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [pagosUser, setPagosUser] = useState<{
+    nombre: string;
+    empresa: string;
+    ruc: string;
+    email: string;
+    rolLabel: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const syncPagosUser = async () => {
+      try {
+        const saved = localStorage.getItem('sara_pagos_user_session');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && (parsed.nombre || parsed.empresa)) {
+            setPagosUser({
+              nombre: parsed.nombre || 'Profesional Verificado',
+              empresa: parsed.empresa || parsed.nombre || 'Empresa Verificada',
+              ruc: parsed.ruc || '1792984512001',
+              email: parsed.email || '',
+              rolLabel: parsed.rolLabel || 'Entorno Fiduciario Escrow',
+            });
+            return;
+          }
+        }
+      } catch {}
+
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const meta = { ...(user.user_metadata || {}), ...(user.app_metadata || {}) };
+          const nombre = meta.full_name || meta.nombre || user.email?.split('@')[0] || 'Profesional';
+          const empresa = meta.razon_social || meta.empresa || nombre;
+          const sessionObj = {
+            id: user.id,
+            nombre,
+            empresa,
+            ruc: meta.ruc || meta.identificacion || '1792984512001',
+            email: user.email || '',
+            rolLabel: meta.role === 'admin' ? 'Administrador Corporativo' : 'Cuenta Corporativa Escrow',
+          };
+          setPagosUser(sessionObj);
+          localStorage.setItem('sara_pagos_user_session', JSON.stringify(sessionObj));
+          document.cookie = `sara_pagos_session=1; path=/; max-age=2592000; SameSite=Lax`;
+          return;
+        }
+      } catch {}
+
+      window.location.href = '/modulos/financiero/auth';
+    };
+    syncPagosUser();
+  }, []);
+
+  const handleLogoutPagos = async () => {
+    try {
+      localStorage.removeItem('sara_pagos_user_session');
+      document.cookie = 'sara_pagos_session=; path=/; max-age=0';
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {}
+    window.location.href = '/modulos/financiero/auth';
+  };
 
   // Estados de Datos
   const [resumen, setResumen] = useState<ResumenEjecutivoFinanciero | null>(null);
@@ -341,10 +405,6 @@ export default function DashboardFinanciero() {
           <div>
             <div className="flex flex-wrap items-center gap-4 mb-2">
               <ModuleBrandLogo modulo="fintech" showBackToHolding={true} customTitle="SARA PAGOS" customSubtitle="Fideicomiso Escrow, SRI & Tesorería" />
-              <Link href="/modulos/financiero/auth" className="text-xs px-3 py-1.5 rounded-xl font-bold bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 transition-all inline-flex items-center gap-1.5">
-                <Lock size={12} />
-                Acceso Bóveda Escrow
-              </Link>
               <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-teal-500/10 text-teal-300 border border-teal-500/20">
                 Tesorería & Control Económico
               </span>
@@ -355,6 +415,36 @@ export default function DashboardFinanciero() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {pagosUser && (
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-slate-950/90 border border-teal-500/30 shadow-inner">
+                <div className="w-8 h-8 rounded-xl bg-teal-500 text-slate-950 font-black text-xs flex items-center justify-center shadow-sm shrink-0">
+                  {(pagosUser.empresa || pagosUser.nombre)
+                    .split(' ')
+                    .map((w) => w[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase()}
+                </div>
+                <div className="text-left">
+                  <div className="text-xs font-extrabold text-white leading-tight flex items-center gap-1.5">
+                    <span className="truncate max-w-[190px]">{pagosUser.empresa || pagosUser.nombre}</span>
+                    <UserCheck size={12} className="text-teal-400 shrink-0" />
+                  </div>
+                  <div className="text-[10px] font-mono text-teal-400 truncate max-w-[190px]">
+                    {pagosUser.nombre !== pagosUser.empresa ? `${pagosUser.nombre} • ` : ''}RUC: {pagosUser.ruc}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogoutPagos}
+                  className="ml-1.5 p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 transition-all cursor-pointer"
+                  title="Cerrar Sesión de SARA-PAGOS"
+                >
+                  <LogOut size={13} />
+                </button>
+              </div>
+            )}
+
             {/* Filtro por Proyecto */}
             <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs">
               <Building2 size={16} className="text-teal-400 shrink-0" />
