@@ -48,6 +48,7 @@ import FactoringProntoPagoTab from '@/components/financiero/FactoringProntoPagoT
 import DossierBancarioUafeTab from '@/components/financiero/DossierBancarioUafeTab';
 import SaaSSuscripcionesTab from '@/components/financiero/SaaSSuscripcionesTab';
 import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
+import Link from 'next/link';
 import { Zap, Award, Sparkles } from 'lucide-react';
 
 export default function DashboardFinanciero() {
@@ -339,7 +340,11 @@ export default function DashboardFinanciero() {
         <header className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl backdrop-blur-md flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-4 mb-2">
-              <ModuleBrandLogo modulo="fintech" showBackToHolding={false} customTitle="SARA FINANCIERO" customSubtitle="Fideicomiso Escrow, SRI & Tesorería" />
+              <ModuleBrandLogo modulo="fintech" showBackToHolding={true} customTitle="SARA PAGOS" customSubtitle="Fideicomiso Escrow, SRI & Tesorería" />
+              <Link href="/modulos/financiero/auth" className="text-xs px-3 py-1.5 rounded-xl font-bold bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 transition-all inline-flex items-center gap-1.5">
+                <Lock size={12} />
+                Acceso Bóveda Escrow
+              </Link>
               <span className="text-xs px-2.5 py-1 rounded-full font-bold bg-teal-500/10 text-teal-300 border border-teal-500/20">
                 Tesorería & Control Económico
               </span>

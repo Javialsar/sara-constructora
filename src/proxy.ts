@@ -39,10 +39,9 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // 1. PROTECCIÓN DE SARA APU (/dashboard/*, /modulos/financiero/*, /modulos/importador/*)
+  // 1. PROTECCIÓN DE SARA APU (/dashboard/*, /modulos/importador/*)
   if (
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/modulos/financiero') ||
     pathname.startsWith('/modulos/importador')
   ) {
     if (!user) {
@@ -204,10 +203,25 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Redirección inteligente si una pestaña quedó con /login?redirectTo=/modulos/financiero
+  const redirectToParam = request.nextUrl.searchParams.get('redirectTo') || ''
+  if (pathname === '/login' && redirectToParam.startsWith('/modulos/financiero')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/modulos/financiero'
+    url.searchParams.delete('redirectTo')
+    return NextResponse.redirect(url)
+  }
+
   // Si usuario autenticado visita la página de login de un módulo específico y ya pertenece a él
   if (pathname === '/login' && user && canAccessModule(metadata, 'sara_apu')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  if (pathname === '/modulos/financiero/auth' && user && canAccessModule(metadata, 'sara_pagos')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/modulos/financiero'
     return NextResponse.redirect(url)
   }
 
@@ -235,7 +249,7 @@ export const config = {
     '/modulos/talento/mi-perfil/:path*',
     '/modulos/facturacion/:path*',
     '/modulos/facturacion',
-    '/modulos/financiero/:path*',
+    '/modulos/financiero/auth',
     '/modulos/importador/:path*',
     '/login',
   ],

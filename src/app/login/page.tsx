@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { canAccessModule, getUserModule, SARA_MODULES, getUserPortalUrl } from "@/lib/auth/moduleGuards"
+import ModuleBrandLogo from "@/components/layout/ModuleBrandLogo"
 import { Calculator, ArrowRight, Loader2, ArrowLeft, HardHat, Mail, Lock, User as UserIcon, Phone, Eye, EyeOff, AlertTriangle, ExternalLink } from "lucide-react"
 
 export default function SaaSLogin() {
@@ -26,6 +27,16 @@ export default function SaaSLogin() {
   // UI States
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const redirectTo = params.get("redirectTo") || ""
+      if (redirectTo.startsWith("/modulos/financiero")) {
+        router.replace("/modulos/financiero")
+      }
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -97,39 +108,33 @@ export default function SaaSLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
-      <div className="w-full max-w-[1000px] bg-white rounded-3xl shadow-2xl flex overflow-hidden min-h-[600px] relative">
+    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 font-sans">
+      <div className="w-full max-w-[1000px] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex overflow-hidden min-h-[600px] relative">
         {/* Boton Volver */}
-        <Link href="/" className="absolute top-6 left-6 flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors z-20">
-          <ArrowLeft size={16} />
-          Volver al Inicio
+        <Link href="/apu" className="absolute top-6 left-6 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-blue-400 transition-colors z-20">
+          <ArrowLeft size={15} />
+          Volver a SARA APU
         </Link>
         
         {/* Lado del Formulario */}
-        <div className="w-full lg:w-1/2 p-8 sm:p-12 flex flex-col justify-center relative">
-          <div className="mb-10 flex items-center gap-2">
-             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Calculator className="text-white" size={24} />
-             </div>
-             <div>
-               <h1 className="text-xl font-bold text-slate-900 leading-tight">SaaS APU</h1>
-               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Profesionales</p>
-             </div>
+        <div className="w-full lg:w-1/2 p-8 sm:p-12 flex flex-col justify-center relative pt-16">
+          <div className="mb-8">
+            <ModuleBrandLogo modulo="apu" size="md" showBackToHolding={false} />
           </div>
 
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+          <h2 className="text-3xl font-bold text-white mb-2">
             {isLogin ? "Bienvenido de vuelta" : "Crea tu cuenta"}
           </h2>
-          <p className="text-slate-500 mb-8 text-sm">
+          <p className="text-slate-400 mb-8 text-sm">
             {isLogin 
-              ? "Ingresa tus credenciales para acceder a tus presupuestos." 
-              : "Únete y revoluciona la forma en que haces presupuestos."}
+              ? "Ingresa tus credenciales para acceder a tus presupuestos APU y SERCOP." 
+              : "Únete y revoluciona la ingeniería de costos y presupuestos."}
           </p>
 
           {error && (
-            <div className="bg-amber-50 text-amber-900 p-4 rounded-xl text-sm font-medium mb-6 border border-amber-200 space-y-2">
+            <div className="bg-amber-950/70 text-amber-200 p-4 rounded-xl text-sm font-medium mb-6 border border-amber-500/40 space-y-2">
               <div className="flex items-start gap-2">
-                <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
                 <p className="leading-snug">{error}</p>
               </div>
               {redirectPortal && (
@@ -149,17 +154,17 @@ export default function SaaSLogin() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Nombre Completo</label>
+                <label className="text-sm font-bold text-slate-300">Nombre Completo</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <UserIcon size={18} className="text-slate-400" />
+                    <UserIcon size={18} className="text-slate-500" />
                   </div>
                   <input 
                     type="text" 
                     required 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-white" 
                     placeholder="Juan Pérez"
                   />
                 </div>
@@ -168,17 +173,17 @@ export default function SaaSLogin() {
 
             {!isLogin && (
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Número de Contacto</label>
+                <label className="text-sm font-bold text-slate-300">Número de Contacto</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone size={18} className="text-slate-400" />
+                    <Phone size={18} className="text-slate-500" />
                   </div>
                   <input 
                     type="tel" 
                     required 
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                    className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-white" 
                     placeholder="+593 99 999 9999"
                   />
                 </div>
@@ -186,17 +191,17 @@ export default function SaaSLogin() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-bold text-slate-700">Correo Electrónico</label>
+              <label className="text-sm font-bold text-slate-300">Correo Electrónico</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail size={18} className="text-slate-400" />
+                  <Mail size={18} className="text-slate-500" />
                 </div>
                 <input 
                   type="email" 
                   required 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                  className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-white" 
                   placeholder="tu@correo.com"
                 />
               </div>
@@ -204,25 +209,24 @@ export default function SaaSLogin() {
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-sm font-bold text-slate-700">Contraseña</label>
-                {isLogin && <a href="#" className="text-xs text-blue-600 hover:underline font-medium">¿Olvidaste tu contraseña?</a>}
+                <label className="text-sm font-bold text-slate-300">Contraseña</label>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock size={18} className="text-slate-400" />
+                  <Lock size={18} className="text-slate-500" />
                 </div>
                 <input 
                   type={showPassword ? "text" : "password"}
                   required 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                  className="w-full pl-10 pr-12 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-white" 
                   placeholder="••••••••"
                 />
                 <button 
                   type="button" 
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -231,23 +235,23 @@ export default function SaaSLogin() {
 
             {!isLogin && (
               <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700">Confirmar Contraseña</label>
+                <label className="text-sm font-bold text-slate-300">Confirmar Contraseña</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock size={18} className="text-slate-400" />
+                    <Lock size={18} className="text-slate-500" />
                   </div>
                   <input 
                     type={showConfirmPassword ? "text" : "password"}
                     required 
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-slate-700" 
+                    className="w-full pl-10 pr-12 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-white" 
                     placeholder="••••••••"
                   />
                   <button 
                     type="button" 
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200"
                   >
                     {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -258,7 +262,7 @@ export default function SaaSLogin() {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 mt-4 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? <Loader2 className="animate-spin" size={20} /> : (
                 <>
@@ -269,17 +273,16 @@ export default function SaaSLogin() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6 font-medium">
+          <p className="text-center text-sm text-slate-400 mt-6 font-medium">
             {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}{" "}
-            <button onClick={() => { setIsLogin(!isLogin); setError(""); }} className="text-blue-600 font-bold hover:underline">
+            <button onClick={() => { setIsLogin(!isLogin); setError(""); }} className="text-blue-400 font-bold hover:underline">
               {isLogin ? "Regístrate gratis" : "Inicia Sesión"}
             </button>
           </p>
         </div>
 
         {/* Lado Informativo / Visual */}
-        <div className="hidden lg:flex w-1/2 bg-slate-900 p-12 flex-col justify-between relative overflow-hidden">
-          {/* Fondo decorativo */}
+        <div className="hidden lg:flex w-1/2 bg-slate-950 border-l border-slate-800 p-12 flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3"></div>
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"></div>
           
@@ -309,7 +312,7 @@ export default function SaaSLogin() {
             </ul>
           </div>
           
-          <div className="relative z-10 bg-white/10 p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+          <div className="relative z-10 bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-md">
             <div className="flex gap-1 mb-2">
               {[1, 2, 3, 4, 5].map((s) => <span key={s} className="text-yellow-400 text-lg">★</span>)}
             </div>

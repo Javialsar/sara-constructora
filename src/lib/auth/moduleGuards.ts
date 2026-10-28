@@ -11,6 +11,7 @@ export type SaraModule =
   | 'sara_fletes'
   | 'sara_talento'
   | 'sara_facturacion'
+  | 'sara_pagos'
   | 'sara_master'
 
 export interface ModuleDefinition {
@@ -136,6 +137,28 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
     ],
     color: 'amber'
   },
+  sara_pagos: {
+    id: 'sara_pagos',
+    name: 'SARA Pagos - Fideicomiso Escrow, SRI & Tesorería',
+    shortName: 'SARA Pagos',
+    description: 'Bóveda de custodia fiduciaria Escrow, liquidación de hitos, Factoring y control tributario SRI/UAFE.',
+    loginUrl: '/modulos/financiero/auth',
+    portalUrl: '/modulos/financiero',
+    allowedRoles: [
+      'financiero',
+      'tesorero',
+      'contador',
+      'contador_constructora',
+      'inversionista',
+      'empresa',
+      'cliente_constructora',
+      'profesional',
+      'admin',
+      'superadmin',
+      'tecnico'
+    ],
+    color: 'teal'
+  },
   sara_master: {
     id: 'sara_master',
     name: 'GRUPO SARA - Acceso Corporativo Maestro',
@@ -206,6 +229,7 @@ export function getUserModule(rawMetadata: any): SaraModule {
   ) return 'sara_fletes'
   if (role === 'cuadrilla' || role === 'trabajador' || role === 'obrero') return 'sara_talento'
   if (role === 'emisor_facturacion') return 'sara_facturacion'
+  if (role === 'financiero' || role === 'tesorero' || role === 'inversionista') return 'sara_pagos'
 
   return 'sara_apu'
 }
@@ -236,9 +260,8 @@ export function canAccessModule(rawMetadata: any, targetModule: SaraModule): boo
     return true
   }
 
-  // 4. SARA FACTURACIÓN SRI: SERVICIO TRANSVERSAL DE EMISIÓN ELECTRÓNICA & FIRMA
-  // Cualquier usuario autenticado del ecosistema tiene autorización para acceder al portal emisor
-  if (targetModule === 'sara_facturacion') {
+  // 4. SARA FACTURACIÓN SRI & SARA PAGOS: SERVICIOS FINANCIEROS Y TRIBUTARIOS TRANSVERSALES
+  if (targetModule === 'sara_facturacion' || targetModule === 'sara_pagos') {
     return true
   }
 
