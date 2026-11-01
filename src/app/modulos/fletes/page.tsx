@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import { 
   Truck, 
   MapPin, 
-  Navigation, 
   DollarSign, 
   Loader2, 
   CheckCircle, 
@@ -140,7 +139,7 @@ export interface DriverOffer {
 }
 
 export default function SaraFletesEngine() {
-  const [viewMode, setViewMode] = useState<'constructor' | 'driver'>('constructor');
+  
   const [serviceType, setServiceType] = useState<'flete' | 'renta'>('flete');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   
@@ -404,7 +403,6 @@ export default function SaraFletesEngine() {
   // 5. Estados de negociación y despacho
   const [clienteNombre, setClienteNombre] = useState('Ing. Marco Vivanco (Constructora SARA)');
   const [activeFreight, setActiveFreight] = useState<FreightRequest | null>(null);
-  const [counterOffer, setCounterOffer] = useState<string>('');
   const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
   const [assignedDriver, setAssignedDriver] = useState<DriverOffer | null>(null);
 
@@ -1371,29 +1369,6 @@ export default function SaraFletesEngine() {
     setIsProcessingRenta(false);
   };
 
-  // Acciones Modo Transportista
-  const handleDriverAccept = async () => {
-    if (activeFreight) {
-      setActiveFreight(prev => prev ? { ...prev, status: 'accepted' } : null);
-      if (activeFreight.id) {
-        await updateFletesSolicitudStatus(activeFreight.id, 'asignado', activeFreight.accessCode);
-      }
-    }
-  };
-
-  const handleDriverNegotiate = () => {
-    if (activeFreight && counterOffer) {
-      setActiveFreight(prev => prev ? { ...prev, status: 'negotiating' } : null);
-      setTimeout(async () => {
-        const finalP = parseFloat(counterOffer);
-        setActiveFreight(prev => prev ? { ...prev, referencePrice: finalP, status: 'accepted' } : null);
-        if (activeFreight?.id) {
-          await updateFletesSolicitudStatus(activeFreight.id, 'asignado', activeFreight.accessCode);
-        }
-      }, 2500);
-    }
-  };
-
   return (
     <div className="h-screen w-screen bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden select-none">
       <ModuloIntroSplash modulo="fletes" />
@@ -1408,39 +1383,13 @@ export default function SaraFletesEngine() {
           </span>
         </div>
 
-        {/* Toggle de Roles: Cliente vs Chofer */}
+        {/* App exclusiva del CLIENTE: el conductor opera en /modulos/fletes/mi-perfil (acceso desde /fletes) */}
         <div className="flex items-center gap-2">
-          <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex text-xs font-bold">
-            <button
-              onClick={() => setViewMode('constructor')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                viewMode === 'constructor'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Package className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Solicitar</span>
-            </button>
-            <button
-              onClick={() => setViewMode('driver')}
-              className={`px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-                viewMode === 'driver'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline">Conductor</span>
-            </button>
-          </div>
-
           <Link
-            href="/modulos/fletes/mi-perfil"
-            className="bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-slate-950 border border-amber-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+            href="/fletes?elegir=1"
+            className="text-slate-400 hover:text-white border border-slate-800 hover:border-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
           >
-            <Truck className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mi Billetera</span>
+            Cambiar perfil
           </Link>
           <Link
             href="/"
@@ -1509,9 +1458,7 @@ export default function SaraFletesEngine() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
               <h2 className="text-xs font-black text-white uppercase tracking-wider">
-                {viewMode === 'constructor' 
-                  ? (serviceType === 'flete' ? 'Cotizador de Flete On-Demand' : 'Renta Temporal de Vehículos')
-                  : 'Radar de Conductor SARA'}
+                {serviceType === 'flete' ? 'Cotizador de Flete On-Demand' : 'Renta Temporal de Vehículos'}
               </h2>
             </div>
 
@@ -1532,7 +1479,7 @@ export default function SaraFletesEngine() {
             <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-56px)] lg:max-h-[calc(100vh-160px)]">
               
               {/* MODO CLIENTE / PÚBLICO GENERAL */}
-              {viewMode === 'constructor' && (
+              {(
                 <>
                   {/* SWITCH DUAL: FLETE VS RENTA TEMPORAL */}
                   <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold">
@@ -2474,146 +2421,7 @@ export default function SaraFletesEngine() {
                 </>
               )}
 
-              {/* MODO CONDUCTOR / TRANSPORTISTA */}
-              {viewMode === 'driver' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-black text-white">Panel de Conductor</h3>
-                      <p className="text-xs text-slate-400">Recibe pedidos y contraoferta en tiempo real</p>
-                    </div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                  </div>
-
-                  {!activeFreight ? (
-                    <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 text-center space-y-2.5">
-                      <Navigation className="w-9 h-9 text-amber-500 mx-auto animate-bounce" />
-                      <h4 className="font-bold text-white text-sm">Radar SARA Conectado</h4>
-                      <p className="text-xs text-slate-400">
-                        Tu vehículo está visible en el mapa para fletes directos y alquileres temporales.
-                      </p>
-                      <span className="inline-block text-[10px] font-mono bg-slate-900 border border-slate-700 text-emerald-400 px-2.5 py-1 rounded-full">
-                        Coordenadas GPS transmitiendo
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="bg-slate-950 border border-amber-500/50 p-4 rounded-2xl space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-[10px] font-black bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">
-                            ¡Nueva Solicitud en Radar!
-                          </span>
-                          <h4 className="font-black text-white text-sm mt-1">
-                            {activeFreight.material} ({activeFreight.weight} Ton)
-                          </h4>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[9px] text-slate-400">Oferta Cliente</span>
-                          <p className="text-xl font-black text-amber-500 font-mono">
-                            ${activeFreight.referencePrice.toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1 text-xs text-slate-300 bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-                        <p className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                          <span className="truncate"><strong>Carga:</strong> {activeFreight.origin}</span>
-                        </p>
-                        <p className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-                          <span className="truncate"><strong>Entrega:</strong> {activeFreight.destination}</span>
-                        </p>
-                      </div>
-
-                      {activeFreight.status === 'searching' && (
-                        <div className="space-y-2">
-                          <div className="flex items-center bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5">
-                            <DollarSign className="w-4 h-4 text-slate-400" />
-                            <input
-                              type="number"
-                              step="0.50"
-                              placeholder="Tu contraoferta (ej. 3.00)"
-                              value={counterOffer}
-                              onChange={(e) => setCounterOffer(e.target.value)}
-                              className="w-full bg-transparent font-mono font-bold text-white focus:outline-none ml-1 text-xs"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={handleDriverAccept}
-                              className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 rounded-xl text-xs transition-all shadow-md"
-                            >
-                              Aceptar Oferta
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleDriverNegotiate}
-                              disabled={!counterOffer}
-                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2 rounded-xl text-xs transition-all disabled:opacity-40 shadow-md"
-                            >
-                              Contraofertar
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {activeFreight.status === 'accepted' && (
-                        <div className="bg-emerald-950/40 border border-emerald-500/50 p-4 rounded-xl text-center space-y-2.5">
-                          <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto" />
-                          <div>
-                            <p className="text-xs font-black text-emerald-400 uppercase tracking-wider">
-                              ¡Viaje Asignado y Confirmado!
-                            </p>
-                            <p className="text-[11px] text-slate-300 mt-0.5">
-                              El cliente ha aceptado la propuesta en tiempo real.
-                            </p>
-                          </div>
-
-                          <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 text-left text-xs space-y-1.5">
-                            {assignedDriver && (
-                              <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                                <span className="text-slate-400 text-[11px]">Conductor:</span>
-                                <span className="font-bold text-white">
-                                  {assignedDriver.driverName} <span className="font-mono text-amber-400">({assignedDriver.plate})</span>
-                                </span>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-                              <span className="text-slate-400 text-[11px]">Tarifa Acordada:</span>
-                              <span className="font-black text-emerald-400 font-mono text-sm">
-                                ${activeFreight.referencePrice.toFixed(2)} USD
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 text-[11px]">Distancia Ruta:</span>
-                              <span className="font-bold text-slate-200 font-mono">
-                                {activeFreight.distanciaKm ? `${activeFreight.distanciaKm.toFixed(1)} km` : '~2 km'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="bg-slate-900 border border-emerald-500/30 p-2.5 rounded-xl">
-                            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">
-                              Código PIN requerido en destino
-                            </p>
-                            <p className="text-2xl font-black text-white font-mono tracking-widest mt-0.5">
-                              {activeFreight.accessCode}
-                            </p>
-                            <p className="text-[9px] text-slate-500 mt-0.5">
-                              Solicita este código al cliente al descargar el material
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
+              </div>
           )}
         </aside>
 

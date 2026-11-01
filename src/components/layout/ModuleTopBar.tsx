@@ -153,7 +153,13 @@ export default function ModuleTopBar() {
     setLauncherOpen(false);
   }, [pathname]);
 
-  if (pathname.startsWith('/modulos/financiero') || pathname.endsWith('/auth')) {
+  // SARA-FLETES opera como apps independientes (estilo Uber / DiDi / inDrive):
+  // ni el cliente ni el conductor ven la barra del ecosistema corporativo.
+  if (
+    pathname.startsWith('/modulos/financiero') ||
+    pathname.startsWith('/modulos/fletes') ||
+    pathname.endsWith('/auth')
+  ) {
     return null;
   }
 

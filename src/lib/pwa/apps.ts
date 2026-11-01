@@ -4,6 +4,7 @@ export type PwaAppId =
   | "marketplace" 
   | "compras" 
   | "fletes" 
+  | "fletes-conductor" 
   | "talento" 
   | "inmobiliaria" 
   | "stays" 
@@ -61,14 +62,34 @@ export const PWA_APPS: Record<PwaAppId, PwaApp> = {
     themeColor: "#f59e0b",
     backgroundColor: "#020617",
   },
+  /**
+   * NOTA SOBRE SEPARACIÓN DE PWAs EN SARA-FLETES (Cliente vs Conductor):
+   * Debido a que el panel del conductor (/modulos/fletes/mi-perfil) reside bajo el prefijo
+   * de ruta de cliente (/modulos/fletes), existe anidamiento de rutas URL. Para garantizar
+   * que ambas aplicaciones se instalen y operen de forma independiente (estilo Uber / Uber Driver):
+   *   1. Cada PWA declara un `id` de manifiesto único (`/pwa/fletes` vs `/pwa/fletes-conductor`).
+   *   2. "SARA Conductor" define el scope más específico `/modulos/fletes/mi-perfil`, el cual
+   *      tiene precedencia por coincidencia de prefijo más largo sobre `/modulos/fletes`.
+   *   3. Cada ruta enlaza su propio manifiesto mediante su respectivo `layout.tsx`.
+   */
   fletes: {
     id: "fletes",
-    name: "SARA Fletes Pesados",
+    name: "SARA Fletes",
     shortName: "SARA Fletes",
-    description: "Logística pesada MTOP, cubicación de carga y optimización Backhaul.",
-    startUrl: "/modulos/fletes",
-    scope: "/modulos/fletes/",
+    description: "Solicita fletes de carga pesada MTOP, mudanzas y renta de vehículos con rastreo GPS en tiempo real.",
+    startUrl: "/modulos/fletes?source=pwa",
+    scope: "/modulos/fletes",
     themeColor: "#f97316",
+    backgroundColor: "#020617",
+  },
+  "fletes-conductor": {
+    id: "fletes-conductor",
+    name: "SARA Conductor",
+    shortName: "Conductor",
+    description: "App para socios conductores SARA-FLETES: radar de viajes, contraofertas, navegación GPS y billetera.",
+    startUrl: "/modulos/fletes/mi-perfil?source=pwa",
+    scope: "/modulos/fletes/mi-perfil",
+    themeColor: "#10b981",
     backgroundColor: "#020617",
   },
   talento: {

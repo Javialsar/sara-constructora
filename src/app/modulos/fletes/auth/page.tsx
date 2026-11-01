@@ -1,25 +1,38 @@
 'use client';
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { 
-  Truck, 
-  Mail, 
-  Lock, 
-  User, 
-  ChevronRight, 
-  AlertCircle, 
-  ShieldCheck, 
-  Package, 
-  Building2,
-  CheckCircle2
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { canAccessModule, getUserModule, getUserPortalUrl, SARA_MODULES } from '@/lib/auth/moduleGuards';
 
-export default function FletesAuth() {
+import React, { Suspense, useState } from 'react';
+import Link from 'next/link';
+import {
+  Truck,
+  Mail,
+  Lock,
+  User,
+  ChevronRight,
+  AlertCircle,
+  Package,
+  Building2,
+  CheckCircle2,
+} from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import {
+  type FletesAuthRole,
+  isTransportistaFromMetadata,
+  resolveInitialAuthRole,
+  resolvePostAuthRedirect,
+} from '@/lib/fletes/profilePreference';
+
+function FletesAuthForm() {
+  const searchParams = useSearchParams();
+  const rolQuery = searchParams.get('rol');
+  const redirectToQuery = searchParams.get('redirectTo');
+
+  const initialRole = resolveInitialAuthRole(rolQuery);
+
   const [isLogin, setIsLogin] = useState(true);
-  const [userRole, setUserRole] = useState<'transportista' | 'cliente_fletes'>('transportista');
+  const [userRoleOverride, setUserRoleOverride] = useState<FletesAuthRole | null>(null);
+  const userRole: FletesAuthRole = userRoleOverride ?? initialRole;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nombre, setNombre] = useState('');
@@ -43,19 +56,19 @@ export default function FletesAuth() {
         // 1. Autenticar credenciales
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
-          password
+          password,
         });
         if (signInError) throw signInError;
 
-        // 2. Acceso abierto y universal para todo el público y usuarios del ecosistema
-        const userMeta = { ...(data.user.user_metadata || {}), ...(data.user.app_metadata || {}) };
-        
-        // Si el usuario es transportista va al panel de chofer, sino al despachador de fletes
-        if (userMeta.role === 'transportista' || userMeta.placa) {
-          router.push('/modulos/fletes/mi-perfil');
-        } else {
-          router.push('/modulos/fletes');
-        }
+        // 2. Determinar rol priorizando app_metadata (controlado por servidor) sobre user_metadata.
+        // Un cliente nunca debe ser redirigido a /modulos/fletes/mi-perfil salvo que su metadata acredite rol transportista.
+        const isTransportista = isTransportistaFromMetadata(
+          data.user?.app_metadata as Record<string, unknown> | undefined,
+          data.user?.user_metadata as Record<string, unknown> | undefined
+        );
+
+        const destination = resolvePostAuthRedirect(redirectToQuery, isTransportista);
+        router.push(destination);
       } else {
         // REGISTRO EXCLUSIVO PARA SARA_FLETES
         if (userRole === 'transportista' && (!nombre || !placa)) {
@@ -65,7 +78,7 @@ export default function FletesAuth() {
           throw new Error('Por favor ingresa tu nombre o razón social.');
         }
 
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -75,23 +88,22 @@ export default function FletesAuth() {
               placa: userRole === 'transportista' ? placa.toUpperCase() : undefined,
               role: userRole,
               modulo_origen: 'sara_fletes',
-              modulos_autorizados: ['sara_fletes']
-            }
-          }
+              modulos_autorizados: ['sara_fletes'],
+            },
+          },
         });
         if (signUpError) throw signUpError;
 
         // Iniciar sesión inmediatamente
         await supabase.auth.signInWithPassword({ email, password });
-        
-        if (userRole === 'cliente_fletes') {
-          router.push('/modulos/fletes');
-        } else {
-          router.push('/modulos/fletes/mi-perfil');
-        }
+
+        const isTransportista = userRole === 'transportista';
+        const destination = resolvePostAuthRedirect(redirectToQuery, isTransportista);
+        router.push(destination);
       }
-    } catch (err: any) {
-      setError(err.message || 'Error de autenticación');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error de autenticación';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -100,21 +112,22 @@ export default function FletesAuth() {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-slate-100">
       <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
-        
         {/* LADO IZQUIERDO: BRANDING Y POLÍTICA DE SEGREGACIÓN */}
         <div className="w-full md:w-5/12 bg-gradient-to-br from-amber-500 to-amber-600 p-8 md:p-10 text-slate-950 flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4 pointer-events-none">
             <Truck className="w-96 h-96" />
           </div>
-          
+
           <div className="relative z-10">
-            <Link href="/" className="inline-flex items-center gap-2 font-black text-2xl mb-8">
+            <Link href="/fletes?elegir=1" className="inline-flex items-center gap-2 font-black text-2xl mb-8">
               <div className="bg-slate-950 p-2 rounded-xl text-amber-500 shadow-lg">
                 <Truck className="w-6 h-6" />
               </div>
-              <span>SARA <span className="text-slate-950">Fletes</span></span>
+              <span>
+                SARA <span className="text-slate-950">Fletes</span>
+              </span>
             </Link>
-            
+
             <h2 className="text-3xl font-black mb-3 leading-tight text-slate-950">
               Red Logística & Renta Multimodal.
             </h2>
@@ -157,10 +170,12 @@ export default function FletesAuth() {
                 {isLogin ? 'Acceso a SARA Fletes' : 'Crear Cuenta en Fletes'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                {isLogin ? 'Ingresa con tus credenciales autorizadas' : 'Registra tu perfil de cliente o transportista'}
+                {isLogin
+                  ? `Ingresa como ${userRole === 'cliente_fletes' ? 'cliente' : 'conductor'} con tus credenciales`
+                  : 'Registra tu perfil de cliente o transportista'}
               </p>
             </div>
-            <button 
+            <button
               type="button"
               onClick={() => {
                 setIsLogin(!isLogin);
@@ -194,7 +209,6 @@ export default function FletesAuth() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
             {/* SELECTOR DE TIPO DE CUENTA EN REGISTRO */}
             {!isLogin && (
               <div className="space-y-2">
@@ -204,7 +218,7 @@ export default function FletesAuth() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setUserRole('transportista')}
+                    onClick={() => setUserRoleOverride('transportista')}
                     className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 ${
                       userRole === 'transportista'
                         ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
@@ -220,7 +234,7 @@ export default function FletesAuth() {
 
                   <button
                     type="button"
-                    onClick={() => setUserRole('cliente_fletes')}
+                    onClick={() => setUserRoleOverride('cliente_fletes')}
                     className={`p-3 rounded-xl border text-left transition-all flex items-center gap-2.5 ${
                       userRole === 'cliente_fletes'
                         ? 'bg-amber-500/15 border-amber-500 text-white shadow-md'
@@ -240,46 +254,52 @@ export default function FletesAuth() {
             {!isLogin && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre Completo</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nombre Completo
+                  </label>
                   <div className="relative">
                     <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                    <input 
-                      required 
-                      type="text" 
+                    <input
+                      required
+                      type="text"
                       value={nombre}
                       onChange={(e) => setNombre(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                      placeholder="Juan Pérez o Empresa S.A." 
+                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                      placeholder="Juan Pérez o Empresa S.A."
                     />
                   </div>
                 </div>
 
                 {userRole === 'transportista' ? (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Placa del Vehículo</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Placa del Vehículo
+                    </label>
                     <div className="relative">
                       <Truck className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                      <input 
-                        required 
-                        type="text" 
+                      <input
+                        required
+                        type="text"
                         value={placa}
                         onChange={(e) => setPlaca(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none uppercase font-mono" 
-                        placeholder="LBA-1234" 
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none uppercase font-mono"
+                        placeholder="LBA-1234"
                       />
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Empresa / Proyecto (Opcional)</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Empresa / Proyecto (Opcional)
+                    </label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={empresa}
                         onChange={(e) => setEmpresa(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                        placeholder="Constructora o Particular" 
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                        placeholder="Constructora o Particular"
                       />
                     </div>
                   </div>
@@ -288,16 +308,18 @@ export default function FletesAuth() {
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Correo Electrónico
+              </label>
               <div className="relative">
                 <Mail className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                <input 
-                  required 
-                  type="email" 
+                <input
+                  required
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                  placeholder="correo@ejemplo.com" 
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                  placeholder="correo@ejemplo.com"
                 />
               </div>
             </div>
@@ -306,19 +328,19 @@ export default function FletesAuth() {
               <label className="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
               <div className="relative">
                 <Lock className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                <input 
-                  required 
-                  type="password" 
+                <input
+                  required
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none" 
-                  placeholder="••••••••" 
+                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                  placeholder="••••••••"
                 />
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-black py-3 rounded-xl flex items-center justify-center transition-all shadow-lg shadow-amber-500/20 text-xs mt-2"
             >
@@ -337,14 +359,29 @@ export default function FletesAuth() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-            <span>¿Perteneces a otro módulo SARA?</span>
+            <Link href="/fletes?elegir=1" className="text-slate-400 hover:text-white font-semibold">
+              ← Cambiar perfil Fletes
+            </Link>
             <Link href="/login" className="text-amber-400 hover:underline font-bold">
               Portal Maestro SARA →
             </Link>
           </div>
-
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FletesAuth() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-xs text-slate-400">
+          Cargando acceso a SARA Fletes...
+        </div>
+      }
+    >
+      <FletesAuthForm />
+    </Suspense>
   );
 }

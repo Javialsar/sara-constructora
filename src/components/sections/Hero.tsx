@@ -146,7 +146,7 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal, initialLogos }:
       glowColor: "from-cyan-500/30 via-cyan-500/10 to-transparent",
       badgeColor: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30",
       label: "SARA FLETES · LOGÍSTICA",
-      href: "/modulos/fletes"
+      href: "/fletes"
     },
     {
       id: "talento",

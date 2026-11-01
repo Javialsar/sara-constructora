@@ -119,14 +119,14 @@ export default function MiPerfilFletes() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error || !user) {
-          router.replace('/modulos/fletes/auth');
+          router.replace('/modulos/fletes/auth?rol=conductor&redirectTo=/modulos/fletes/mi-perfil');
           return;
         }
 
         setCurrentUser(user);
         setAuthLoading(false);
       } catch (e) {
-        router.replace('/modulos/fletes/auth');
+        router.replace('/modulos/fletes/auth?rol=conductor&redirectTo=/modulos/fletes/mi-perfil');
       }
     }
     verifyFletesAccess();
@@ -868,15 +868,15 @@ export default function MiPerfilFletes() {
           </div>
 
           <Link
-            href="/modulos/fletes"
+            href="/fletes?elegir=1"
             className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors"
           >
-            ← Despachador de Fletes
+            Cambiar perfil
           </Link>
           <button
             onClick={async () => {
               await supabase.auth.signOut();
-              router.push('/modulos/fletes/auth');
+              router.push('/modulos/fletes/auth?rol=conductor');
             }}
             className="text-xs text-rose-400 hover:text-rose-300 font-bold"
           >

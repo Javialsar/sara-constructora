@@ -120,7 +120,7 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
       desc: 'Plataforma para todo público: fletes locales, mudanzas, transporte pesado y alquiler de camionetas/camiones por horas o días (tipo Uber, inDrive y DiDi).',
       logoUrl: logos.fletes,
       iconFallback: Truck,
-      href: '/modulos/fletes',
+      href: '/fletes',
       accentColor: 'from-amber-500 to-amber-700',
       badge: 'Abierto a Todo Público',
       stats: 'Carga & Renta 24/7',

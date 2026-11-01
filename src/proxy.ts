@@ -150,6 +150,7 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/modulos/fletes/auth'
       url.searchParams.set('redirectTo', pathname)
+      url.searchParams.set('rol', 'conductor')
       return NextResponse.redirect(url)
     }
 

@@ -8,6 +8,8 @@ const APPS = {
   apu: { src: "public/logo-hero.png", bg: "#059669" },
   inmobiliaria: { src: "public/sara-inmobiliaria.png", bg: "#020617" },
   stays: { src: "public/sara-stays.png", bg: "#0f172a" },
+  fletes: { src: "public/sara-fletes.png", bg: "#020617" },
+  "fletes-conductor": { src: "public/sara-fletes.png", bg: "#064e3b" },
 }
 
 mkdirSync("public/icons", { recursive: true })

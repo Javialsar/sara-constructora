@@ -35,10 +35,23 @@ self.addEventListener("activate", (event) => {
   )
 })
 
-const STRICT_PRIVATE_PREFIXES = ["/admin", "/dashboard", "/portal", "/auth"]
+const STRICT_PRIVATE_PREFIXES = [
+  "/admin",
+  "/dashboard",
+  "/portal",
+  "/auth",
+  "/modulos/fletes/mi-perfil",
+  "/modulos/fletes/auth",
+  "/modulos/talento/mi-perfil",
+]
 
 function isStrictPrivate(url) {
-  return STRICT_PRIVATE_PREFIXES.some((p) => url.pathname.startsWith(p))
+  const p = url.pathname
+  return (
+    STRICT_PRIVATE_PREFIXES.some((prefix) => p.startsWith(prefix)) ||
+    p.includes("/mi-perfil") ||
+    p.includes("/auth")
+  )
 }
 
 self.addEventListener("fetch", (event) => {

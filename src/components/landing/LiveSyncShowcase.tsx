@@ -208,7 +208,7 @@ export default function LiveSyncShowcase({ realProjects, realStays, onOpenChecko
 
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href="/modulos/fletes"
+                  href="/fletes"
                   className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
                 >
                   <span>Abrir Consola de Fletes</span>

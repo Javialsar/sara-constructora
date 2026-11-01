@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/stays`, lastModified: currentDate, changeFrequency: 'daily' as const, priority: 0.9 },
     { url: `${baseUrl}/apu`, lastModified: currentDate, changeFrequency: 'weekly' as const, priority: 0.9 },
     { url: `${baseUrl}/compras`, lastModified: currentDate, changeFrequency: 'daily' as const, priority: 0.9 },
+    { url: `${baseUrl}/fletes`, lastModified: currentDate, changeFrequency: 'daily' as const, priority: 0.95 },
     { url: `${baseUrl}/modulos/fletes`, lastModified: currentDate, changeFrequency: 'daily' as const, priority: 0.9 },
     { url: `${baseUrl}/modulos/compras`, lastModified: currentDate, changeFrequency: 'daily' as const, priority: 0.9 },
     { url: `${baseUrl}/modulos/talento`, lastModified: currentDate, changeFrequency: 'daily' as const, priority: 0.9 },

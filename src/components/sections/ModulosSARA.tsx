@@ -45,7 +45,7 @@ export default async function ModulosSARA() {
       title: 'Red de Fletes',
       description: 'Gestión logística y asignación de transporte pesado tipo Uber.',
       iconUrl: logos.fletes,
-      href: '/modulos/fletes',
+      href: '/fletes',
       color: 'bg-blue-50 border-blue-100 hover:border-blue-300'
     },
     {

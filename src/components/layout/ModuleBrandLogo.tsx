@@ -97,7 +97,7 @@ export const MODULE_BRAND_CATALOG: Record<ModuloBrandKey, ModuleBrandMetadata> =
     logoKey: "fletes",
     title: "SARA FLETES",
     subtitle: "Logística Pesada & Renta",
-    href: "/modulos/fletes",
+    href: "/fletes",
     fallbackLogo: DEFAULT_LOGOS_EMPRESA.fletes,
     accentText: "text-orange-400",
     hoverText: "group-hover:text-orange-400",

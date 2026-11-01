@@ -6,7 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ app: string }> }
 ) {
   const { app: appId } = await params
-  const app = PWA_APPS[appId as PwaAppId]
+  const hasApp = Object.prototype.hasOwnProperty.call(PWA_APPS, appId)
+  const app = hasApp ? PWA_APPS[appId as PwaAppId] : undefined
 
   if (!app) {
     return NextResponse.json({ error: "PWA no encontrada" }, { status: 404 })
@@ -35,6 +36,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/manifest+json",
       "Cache-Control": "public, max-age=3600",
+      "X-Content-Type-Options": "nosniff",
     },
   })
 }
