@@ -86,15 +86,27 @@ export const metadata: Metadata = {
 
 async function getActiveTheme(): Promise<string> {
   try {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
     if (!url || !key) return "";
-    const supabase = createClient(url, key, { auth: { persistSession: false } });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+    const supabase = createClient(url, key, {
+      auth: { persistSession: false },
+      global: {
+        fetch: (fetchUrl, init) => fetch(fetchUrl, { ...init, signal: controller.signal })
+      }
+    });
+
     const { data } = await supabase
       .from("parametros_globales")
       .select("indirectos_default->tema_activo")
       .eq("id", 1)
-      .single();
+      .maybeSingle();
+
+    clearTimeout(timeoutId);
     return (data as any)?.tema_activo || "";
   } catch {
     return "";

@@ -67,14 +67,14 @@ export async function getLogosEmpresa(): Promise<LogosEmpresa> {
       .from("parametros_globales")
       .select("indirectos_default")
       .eq("id", 1)
-      .single()
+      .maybeSingle()
 
     const dbLogos = data?.indirectos_default?.logos_servicios
     const { data: configData } = await supabase
       .from("configuracion_empresa")
       .select("logo_url")
       .limit(1)
-      .single()
+      .maybeSingle()
 
     const corporateLogo = configData?.logo_url || DEFAULT_LOGOS_EMPRESA.grupo_sara
 

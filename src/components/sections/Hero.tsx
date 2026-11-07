@@ -27,8 +27,8 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal, initialLogos }:
       try {
         const supabase = createClient()
         const [{ data: configData }, { data: paramData }] = await Promise.all([
-          supabase.from("configuracion_empresa").select("logo_url, nombre_empresa").limit(1).single(),
-          supabase.from("parametros_globales").select("indirectos_default").eq("id", 1).single()
+          supabase.from("configuracion_empresa").select("logo_url, nombre_empresa").limit(1).maybeSingle(),
+          supabase.from("parametros_globales").select("indirectos_default").eq("id", 1).maybeSingle()
         ])
 
         const dbLogos = paramData?.indirectos_default?.logos_servicios || {}

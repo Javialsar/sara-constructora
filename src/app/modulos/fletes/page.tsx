@@ -74,6 +74,9 @@ import {
 } from '@/lib/services/saraFletesRealtimeService';
 import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
+import SaraMultimodalTabBar from '@/components/fletes/SaraMultimodalTabBar';
+import SaraViajesMandaditosQuickOrder from '@/components/fletes/SaraViajesMandaditosQuickOrder';
+import type { MultimodalVerticalKey } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -140,7 +143,7 @@ export interface DriverOffer {
 
 export default function SaraFletesEngine() {
   
-  const [serviceType, setServiceType] = useState<'flete' | 'renta'>('flete');
+  const [serviceType, setServiceType] = useState<MultimodalVerticalKey>('fletes');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   
   // 1. Geolocalización en tiempo real
@@ -1458,7 +1461,7 @@ export default function SaraFletesEngine() {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
               <h2 className="text-xs font-black text-white uppercase tracking-wider">
-                {serviceType === 'flete' ? 'Cotizador de Flete On-Demand' : 'Renta Temporal de Vehículos'}
+                {serviceType === 'viajes' ? '🚕 Viajes Rápidos' : serviceType === 'mandaditos' ? '📦 Mandaditos Express' : serviceType === 'fletes' ? '🚛 Flete On-Demand' : '🔑 Renta de Vehículos'}
               </h2>
             </div>
 

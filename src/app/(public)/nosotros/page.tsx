@@ -1,9 +1,8 @@
 import { Phone, Mail, ShieldCheck, Target, Award, CheckCircle2, Lightbulb, Users, Cpu, Layers } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 
-// Asegurar datos frescos de Supabase en cada carga
-export const dynamic = "force-dynamic"
-export const revalidate = 0
+// Revalidación periódica en background (ISR)
+export const revalidate = 300;
 
 export const metadata = {
   title: "Nosotros | Grupo SARA - Holding de Ingeniería & Tecnología",
@@ -11,14 +10,25 @@ export const metadata = {
 }
 
 export default async function NosotrosPage() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
+  const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)?.trim() || "";
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+    global: {
+      fetch: (url, init) => fetch(url, { ...init, signal: controller.signal })
+    }
+  });
+
   const [{ data: config }, { data: paramData }] = await Promise.all([
-    supabase.from('configuracion_empresa').select('equipo_directivo, logo_url').limit(1).single(),
-    supabase.from('parametros_globales').select('indirectos_default').eq('id', 1).single()
-  ])
+    supabase.from('configuracion_empresa').select('equipo_directivo, logo_url').limit(1).maybeSingle(),
+    supabase.from('parametros_globales').select('indirectos_default').eq('id', 1).maybeSingle()
+  ]).catch(() => [{ data: null }, { data: null }]);
+
+  clearTimeout(timeoutId);
   
   const dbLogos = paramData?.indirectos_default?.logos_servicios || {}
   const logoUrl = dbLogos.grupo_sara || config?.logo_url || '/logo-hero.png'

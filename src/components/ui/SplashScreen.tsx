@@ -54,7 +54,7 @@ export default function SplashScreen() {
             style={{ transformStyle: "preserve-3d" }}
           >
             <Image 
-              src="/images/logo-3d-blanco.png"
+              src="/logo-3d-white.png"
               alt="SARA Constructora Logo 3D"
               fill
               className="object-contain drop-shadow-2xl"

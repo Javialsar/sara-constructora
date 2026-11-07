@@ -197,8 +197,8 @@ export default function ModuleBrandLogo({
       try {
         const supabase = createClient()
         const [{ data: paramData }, { data: configData }] = await Promise.all([
-          supabase.from("parametros_globales").select("indirectos_default").eq("id", 1).single(),
-          supabase.from("configuracion_empresa").select("logo_url").limit(1).single(),
+          supabase.from("parametros_globales").select("indirectos_default").eq("id", 1).maybeSingle(),
+          supabase.from("configuracion_empresa").select("logo_url").limit(1).maybeSingle(),
         ])
 
         if (!active) return

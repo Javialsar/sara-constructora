@@ -3,22 +3,32 @@ import LandingMaster from '@/components/landing/LandingMaster';
 import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_LOGOS_EMPRESA, LogosEmpresa } from '@/lib/services/logosService';
 
-export const dynamic = 'force-dynamic';
+// Revalidar en segundo plano cada 60s (ISR) para entrega instantánea desde Edge CDN sin retraso de streaming
+export const revalidate = 60;
 
 async function getSsrLogosEmpresa(): Promise<LogosEmpresa> {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)?.trim();
     if (!supabaseUrl || !supabaseKey) return DEFAULT_LOGOS_EMPRESA;
 
+    // Timeout de seguridad estricto de 2.5s para no bloquear nunca el SSR
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
     const supabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { persistSession: false }
+      auth: { persistSession: false },
+      global: {
+        fetch: (url, init) => fetch(url, { ...init, signal: controller.signal })
+      }
     });
 
     const [{ data: paramData }, { data: configData }] = await Promise.all([
-      supabase.from('parametros_globales').select('indirectos_default').eq('id', 1).single(),
-      supabase.from('configuracion_empresa').select('logo_url').limit(1).single()
+      supabase.from('parametros_globales').select('indirectos_default').eq('id', 1).maybeSingle(),
+      supabase.from('configuracion_empresa').select('logo_url').limit(1).maybeSingle()
     ]);
+
+    clearTimeout(timeoutId);
 
     const dbLogos = paramData?.indirectos_default?.logos_servicios || {};
     const sanitize = (url: string | undefined | null, fallback: string) => {
