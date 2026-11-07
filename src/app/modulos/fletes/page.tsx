@@ -979,12 +979,12 @@ export default function SaraFletesEngine() {
   }, [userLocation]);
 
   useEffect(() => {
-    if (originText && destinationText && serviceType === 'flete') {
+    if (originText && destinationText && serviceType === 'fletes') {
       const timer = setTimeout(() => {
         resolverRutaYTarifa(originText, destinationText, vehicleType, weight, material);
       }, 400);
       return () => clearTimeout(timer);
-    } else if (serviceType === 'flete' && !destinationText) {
+    } else if (serviceType === 'fletes' && !destinationText) {
       const distAprox = 1.8;
       const tarifa = SaraFreightPricingService.calcularTarifa(distAprox, weight, vehicleType, material);
       setTarifaEstimada(tarifa);
@@ -1414,7 +1414,7 @@ export default function SaraFletesEngine() {
             destinoCoords={destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null}
             origenNombre={originText}
             destinoNombre={destinationText}
-            rutaCoordenadas={serviceType === 'flete' ? rutaCalculada?.coordenadasRuta : undefined}
+            rutaCoordenadas={serviceType === 'fletes' ? rutaCalculada?.coordenadasRuta : undefined}
             vehiculosCercanos={vehiculosZonificados}
             vehiculoSeleccionado={vehicleType}
             onOriginDragEnd={handleOriginDragEnd}
@@ -1488,9 +1488,9 @@ export default function SaraFletesEngine() {
                   <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold">
                     <button
                       type="button"
-                      onClick={() => setServiceType('flete')}
+                      onClick={() => setServiceType('fletes')}
                       className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                        serviceType === 'flete'
+                        serviceType === 'fletes'
                           ? 'bg-amber-500 text-slate-950 font-black shadow-md'
                           : 'text-slate-400 hover:text-white'
                       }`}
@@ -1515,7 +1515,7 @@ export default function SaraFletesEngine() {
                   {/* -------------------------------------------------------- */}
                   {/* SECCIÓN A: FLETE DE CARGA ON-DEMAND */}
                   {/* -------------------------------------------------------- */}
-                  {serviceType === 'flete' && (
+                  {serviceType === 'fletes' && (
                     <>
                       {/* TIMELINE DE RUTA (CONEXIÓN ELEGANTE CON BOTÓN SWAP) */}
                       <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 relative">
