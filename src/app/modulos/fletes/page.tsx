@@ -46,6 +46,12 @@ import {
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
 import { SaraDriverRatingModal } from '@/components/fletes/SaraDriverRatingModal';
 import SaraFreightPaymentGatewayModal from '@/components/fletes/SaraFreightPaymentGatewayModal';
+import { SaraFletesExitConfirmModal } from '@/components/fletes/SaraFletesExitConfirmModal';
+import { SaraDriverSecurityModal, DriverSecurityProfile } from '@/components/fletes/SaraDriverSecurityModal';
+import { SaraActiveTripCard } from '@/components/fletes/SaraActiveTripCard';
+import { SaraFletesWizard, DESTINOS_FRECUENTES } from '@/components/fletes/SaraFletesWizard';
+import { assignVehicleCategory } from '@/lib/fletes/assignVehicleCategory';
+import { useFletesFormPersistence } from '@/lib/fletes/useFletesFormPersistence';
 import { SaraGuiaRemisionService } from '@/lib/services/saraGuiaRemisionService';
 import { SaraMtopBalanzasService } from '@/lib/services/saraMtopBalanzasService';
 import Link from 'next/link';
@@ -384,6 +390,17 @@ export default function SaraFletesEngine() {
     }
   };
 
+  // Hook de persistencia de formulario en localStorage
+  const { draft, isLoaded: draftLoaded, updateDraft } = useFletesFormPersistence();
+  const [activeStep, setActiveStep] = useState<number>(1);
+  const [unitType, setUnitType] = useState<'TON' | 'M3'>('TON');
+  const [helpersCount, setHelpersCount] = useState<number>(0);
+  const [tasaBotaderoEnabled, setTasaBotaderoEnabled] = useState<boolean>(false);
+
+  // Modales de Seguridad y Salida
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [selectedDriverForSecurity, setSelectedDriverForSecurity] = useState<DriverSecurityProfile | null>(null);
+
   // 3. Parámetros de la Carga (Flete) y Subasta inDrive
   const [vehicleType, setVehicleType] = useState<CategoriaVehiculo>('PICKUP_1T');
   const [material, setMaterial] = useState('Arena / Ripio');
@@ -393,6 +410,36 @@ export default function SaraFletesEngine() {
   const [proposedPrice, setProposedPrice] = useState<number | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [bottomSheetLevel, setBottomSheetLevel] = useState<'peek' | 'half' | 'full'>('half');
+
+  // Sincronizar datos restaurados desde draft al iniciar
+  useEffect(() => {
+    if (draftLoaded) {
+      if (draft.originText) setOriginText(draft.originText);
+      if (draft.destinationText) setDestinationText(draft.destinationText);
+      if (draft.originPoint) setOriginPoint(draft.originPoint);
+      if (draft.destinationPoint) setDestinationPoint(draft.destinationPoint);
+      if (draft.material) setMaterial(draft.material);
+      if (draft.weight) setWeight(draft.weight);
+      if (draft.unitType) setUnitType(draft.unitType);
+      if (draft.helpersCount !== undefined) setHelpersCount(draft.helpersCount);
+      if (draft.tasaBotaderoEnabled !== undefined) setTasaBotaderoEnabled(draft.tasaBotaderoEnabled);
+      if (draft.proposedPrice !== null) setProposedPrice(draft.proposedPrice);
+      if (draft.sacosCementoCount) setSacosCementoCount(draft.sacosCementoCount);
+      if (draft.activeStep) setActiveStep(draft.activeStep);
+    }
+  }, [draftLoaded]);
+
+  // Motor puro y reactivo de asignación de vehículo (Carga vs Tipo de Vehículo)
+  const assignedVehicleInfo = useMemo(() => {
+    return assignVehicleCategory(material, weight);
+  }, [material, weight]);
+
+  // Sincronizar vehicleType automáticamente con la regla recomendada
+  useEffect(() => {
+    if (assignedVehicleInfo.category && assignedVehicleInfo.category !== vehicleType) {
+      setVehicleType(assignedVehicleInfo.category);
+    }
+  }, [assignedVehicleInfo.category]);
 
   // 4. Parámetros de Renta Temporal (Uber Rent / Por Horas o Días)
   const [rentaDuracionTipo, setRentaDuracionTipo] = useState<'HORAS' | 'DIAS'>('HORAS');
@@ -1440,12 +1487,13 @@ export default function SaraFletesEngine() {
           >
             Cambiar perfil
           </Link>
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={() => setIsExitModalOpen(true)}
             className="text-slate-400 hover:text-white text-xs px-2 py-1.5 transition-colors"
           >
             Salir
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -1596,596 +1644,114 @@ export default function SaraFletesEngine() {
                   {/* -------------------------------------------------------- */}
                   {serviceType === 'fletes' && (
                     <>
-                      {/* TIMELINE DE RUTA (CONEXIÓN ELEGANTE CON BOTÓN SWAP) */}
-                      <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 relative">
-                        <div className="flex items-stretch gap-3">
-                          {/* Columna visual con línea continua */}
-                          <div className="flex flex-col items-center py-2 shrink-0">
-                            <span className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20"></span>
-                            <div className="w-0.5 flex-1 bg-gradient-to-b from-emerald-500 via-slate-600 to-amber-500 my-1"></div>
-                            <span className="w-3 h-3 rounded-full bg-amber-500 ring-4 ring-amber-500/20"></span>
-                          </div>
-
-                          {/* Campos de texto con botones contextuales y Autocomplete Nacional */}
-                          <div className="flex-1 space-y-2">
-                            {/* Input Origen */}
-                            <div className="relative" ref={originInputWrapperRef}>
-                              <div className="flex items-center justify-between mb-1">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                                  Punto de Carga (Origen)
-                                </label>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
-                                    className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-all ${
-                                      mapClickMode === 'origen'
-                                        ? 'bg-emerald-500 text-slate-950 font-black'
-                                        : 'text-emerald-400 bg-emerald-950/40 border border-emerald-500/30'
-                                    }`}
-                                  >
-                                    📍 Marcar
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleUsarMiUbicacionComoOrigen}
-                                    className="text-[9px] text-blue-400 bg-blue-950/40 border border-blue-500/30 px-1.5 py-0.5 rounded font-bold"
-                                  >
-                                    GPS
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={originText}
-                                  onChange={(e) => handleOriginInputChange(e.target.value)}
-                                  onFocus={() => {
-                                    if (originSuggestions.length > 0) setShowOriginSuggestions(true);
-                                  }}
-                                  placeholder="Escribe dirección, hito o cantón nacional 🟢"
-                                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 pr-7"
-                                />
-                                {isSearchingOrigin && (
-                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-emerald-400">
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Dropdown Predictivo de Sugerencias en Tiempo Real (Origen) */}
-                              {showOriginSuggestions && originSuggestions.length > 0 && (
-                                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900/98 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto divide-y divide-slate-800">
-                                  {originSuggestions.map((sug) => (
-                                    <button
-                                      key={sug.id}
-                                      type="button"
-                                      onClick={() => handleSelectOriginSuggestion(sug)}
-                                      className="w-full text-left p-2.5 hover:bg-slate-800/90 transition-colors flex items-center gap-2.5 group"
-                                    >
-                                      <span className="shrink-0">
-                                        {sug.tipo === 'puerto' && '🚢'}
-                                        {sug.tipo === 'terminal' && '🚌'}
-                                        {sug.tipo === 'canton' && '🏙️'}
-                                        {sug.tipo === 'via' && '🛣️'}
-                                        {sug.tipo === 'hito' && '🏢'}
-                                        {sug.tipo === 'geo' && '📍'}
-                                      </span>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors truncate">
-                                          {sug.titulo}
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 truncate">
-                                          {sug.subtitulo}
-                                        </p>
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Input Destino */}
-                            <div className="relative" ref={destInputWrapperRef}>
-                              <div className="flex items-center justify-between mb-1">
-                                <label className="text-[10px] font-black uppercase tracking-wider text-amber-400">
-                                  Punto de Descarga (Destino)
-                                </label>
-                                <button
-                                  type="button"
-                                  onClick={() => setMapClickMode(mapClickMode === 'destino' ? null : 'destino')}
-                                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-all ${
-                                    mapClickMode === 'destino'
-                                      ? 'bg-amber-500 text-slate-950 font-black'
-                                      : 'text-amber-400 bg-amber-950/40 border border-amber-500/30'
-                                  }`}
-                                >
-                                  📍 Marcar
-                                </button>
-                              </div>
-                              <div className="relative">
-                                <input
-                                  type="text"
-                                  value={destinationText}
-                                  onChange={(e) => handleDestinationInputChange(e.target.value)}
-                                  onFocus={() => {
-                                    if (destinationSuggestions.length > 0) setShowDestSuggestions(true);
-                                  }}
-                                  placeholder="Escribe dirección, hito o cantón nacional 🚩"
-                                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 pr-7"
-                                />
-                                {isSearchingDest && (
-                                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-400">
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Dropdown Predictivo de Sugerencias en Tiempo Real (Destino) */}
-                              {showDestSuggestions && destinationSuggestions.length > 0 && (
-                                <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900/98 backdrop-blur-xl border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-56 overflow-y-auto divide-y divide-slate-800">
-                                  {destinationSuggestions.map((sug) => (
-                                    <button
-                                      key={sug.id}
-                                      type="button"
-                                      onClick={() => handleSelectDestinationSuggestion(sug)}
-                                      className="w-full text-left p-2.5 hover:bg-slate-800/90 transition-colors flex items-center gap-2.5 group"
-                                    >
-                                      <span className="shrink-0">
-                                        {sug.tipo === 'puerto' && '🚢'}
-                                        {sug.tipo === 'terminal' && '🚌'}
-                                        {sug.tipo === 'canton' && '🏙️'}
-                                        {sug.tipo === 'via' && '🛣️'}
-                                        {sug.tipo === 'hito' && '🏢'}
-                                        {sug.tipo === 'geo' && '📍'}
-                                      </span>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors truncate">
-                                          {sug.titulo}
-                                        </p>
-                                        <p className="text-[10px] text-slate-400 truncate">
-                                          {sug.subtitulo}
-                                        </p>
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Botón Swap vertical en el centro */}
-                          <div className="flex items-center justify-center shrink-0">
-                            <button
-                              type="button"
-                              onClick={handleSwapRoute}
-                              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 border border-slate-700 flex items-center justify-center transition-all shadow-md active:scale-95"
-                              title="Invertir origen y destino (Swap)"
-                            >
-                              <ArrowUpDown className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Chips rápidos de rutas estratégicas a nivel nacional */}
-                        <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] scrollbar-thin">
-                          <span className="text-amber-400 font-bold shrink-0 flex items-center gap-1"><span>⭐</span> Destinos frecuentes:</span>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'MAtecons Chile, Cariamanga', [-4.3292, -79.5548], 'Cariamanga', 'Loja',
-                              'El Dorado, Cariamanga', [-4.3210, -79.5620], 'Cariamanga', 'Loja'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Cariamanga Centro
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Terminal Terrestre Reina del Cisne (Loja)', [-3.9785, -79.2045], 'Loja', 'Loja',
-                              'Cantera de Áridos Bella María (Loja)', [-3.9650, -79.2150], 'Loja', 'Loja'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Loja · Bella María
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Terminal Quitumbe, Quito', [-0.2917, -78.5522], 'Quito', 'Pichincha',
-                              'Parque La Carolina (Torre Qorner), Quito', [-0.1807, -78.4820], 'Quito', 'Pichincha'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Quito · Quitumbe a Carolina
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Terminal Portuario Contecon (Puerto Marítimo)', [-2.2844, -79.9011], 'Guayaquil', 'Guayas',
-                              'Vía a Daule Km 12 (Zona Industrial), Guayaquil', [-2.1200, -79.9400], 'Guayaquil', 'Guayas'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Guayaquil · Puerto a Vía Daule
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Parque Industrial de Cuenca', [-2.8750, -78.9750], 'Cuenca', 'Azuay',
-                              'Challuabamba (Zona Residencial), Cuenca', [-2.8620, -78.9320], 'Cuenca', 'Azuay'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Cuenca · Parque Industrial
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Mercado Mayorista de Ambato', [-1.2689, -78.6389], 'Ambato', 'Tungurahua',
-                              'Parque Industrial de Ambato', [-1.2189, -78.5989], 'Ambato', 'Tungurahua'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Ambato · Mayorista
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Terminal Portuario Yilport Puerto Bolívar', [-3.2644, -79.9989], 'Machala', 'El Oro',
-                              'Av. 25 de Junio (Centro Comercial), Machala', [-3.2600, -79.9550], 'Machala', 'El Oro'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Machala · Puerto Bolívar
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectRutaRapida(
-                              'Terminal Portuario de Manta (TPM)', [-0.9450, -80.7228], 'Manta', 'Manabí',
-                              'Playa El Murciélago (Zona Hotelera), Manta', [-0.9440, -80.7300], 'Manta', 'Manabí'
-                            )}
-                            className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-amber-400 px-2 py-0.5 rounded-lg whitespace-nowrap transition-colors"
-                          >
-                            Manta · Puerto a Murciélago
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* PASO 1 (UX): PARÁMETROS DE CARGA Y MATERIAL ANTES DE LA FLOTA */}
-                      <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-3 shadow-xl">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                            <span>📦</span> Paso 1: Material y Peso de Carga
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400">
-                            {weight} Tonelada(s)
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">
-                              Material a Transportar
-                            </label>
-                            <select
-                              value={material}
-                              onChange={(e) => {
-                                const newMat = e.target.value;
-                                setMaterial(newMat);
-                                if (rutaCalculada) {
-                                  const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, weight, vehicleType, newMat);
-                                  setTarifaEstimada(tarifa);
-                                  setProposedPrice(tarifa.tarifaSugeridaUSD);
-                                }
-                              }}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                            >
-                              <option>Arena / Ripio</option>
-                              <option>Varillas de Acero</option>
-                              <option>Cemento (Sacos)</option>
-                              <option>Desalojo de Escombros</option>
-                              <option>Bloques / Ladrillos</option>
-                              <option>Acabados / Cerámica</option>
-                              <option>Otros Materiales</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">
-                              Peso Estimado (Ton)
-                            </label>
-                            <input
-                              type="number"
-                              step="0.5"
-                              min="0.1"
-                              value={weight}
-                              onChange={(e) => {
-                                const newWeight = Math.max(0.1, Number(e.target.value));
-                                setWeight(newWeight);
-                                if (material === 'Cemento (Sacos)') {
-                                  setSacosCementoCount(Math.round(newWeight / 0.05));
-                                }
-                                if (rutaCalculada) {
-                                  const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, newWeight, vehicleType, material);
-                                  setTarifaEstimada(tarifa);
-                                  setProposedPrice(tarifa.tarifaSugeridaUSD);
-                                }
-                              }}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* CÁLCULO INTELIGENTE AUTOMÁTICO DE SACOS DE CEMENTO (50KG) */}
-                        {material === 'Cemento (Sacos)' && (
-                          <div className="bg-slate-900/80 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                              <span className="text-base">🏗️</span>
-                              <div>
-                                <span className="font-bold text-slate-200 block text-[11px]">Calculadora de Sacos (50kg c/u)</span>
-                                <span className="text-[9px] text-slate-400">20 sacos = 1.0 Ton</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="1"
-                                value={sacosCementoCount}
-                                onChange={(e) => {
-                                  const sacos = Math.max(1, Number(e.target.value));
-                                  setSacosCementoCount(sacos);
-                                  const autoWeight = Number((sacos * 0.05).toFixed(2));
-                                  setWeight(autoWeight);
-                                  if (rutaCalculada) {
-                                    const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, autoWeight, vehicleType, material);
-                                    setTarifaEstimada(tarifa);
-                                    setProposedPrice(tarifa.tarifaSugeridaUSD);
-                                  }
-                                }}
-                                className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-xs font-mono text-center text-amber-400 font-bold"
-                              />
-                              <span className="text-[10px] text-slate-400">sacos</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* ALERTA DE VALIDACIÓN INTELIGENTE DE CARGA */}
-                        {materialValidation.alertMessage && (
-                          <div className={`p-2.5 rounded-xl text-xs font-semibold flex items-start gap-2 border ${
-                            materialValidation.isBlocked 
-                              ? 'bg-red-500/15 border-red-500/50 text-red-300' 
-                              : 'bg-amber-500/15 border-amber-500/50 text-amber-300'
-                          }`}>
-                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                            <span>{materialValidation.alertMessage}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* PASO 2: SELECTOR HORIZONTAL DE FLOTA COMPATIBLE CON CARRUSEL DESLIZABLE */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                            Vehículos Disponibles ({Object.keys(CATALOGO_VEHICULOS_SARA).length} Opciones)
-                          </label>
-                          {rutaCalculada && (
-                            <span className="text-[10px] font-mono text-slate-400">
-                              {rutaCalculada.distanciaKm} km · ~{rutaCalculada.duracionMinutos} min
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-                          {(Object.keys(CATALOGO_VEHICULOS_SARA) as CategoriaVehiculo[]).map((catKey) => {
-                            const v = CATALOGO_VEHICULOS_SARA[catKey];
-                            const isSelected = vehicleType === catKey;
-                            const distKm = rutaCalculada?.distanciaKm || 2;
-                            const estPrice = SaraFreightPricingService.calcularTarifa(distKm, weight, catKey, material).tarifaSugeridaUSD;
-                            const isCompatible = catKey === 'VOLQUETA_V3A' ? true : catKey === 'PICKUP_1T' && material === 'Varillas de Acero' ? false : v.capacidadTon >= weight;
-
-                            return (
-                              <button
-                                key={catKey}
-                                type="button"
-                                onClick={() => {
-                                  setVehicleType(catKey);
-                                  const distKm = rutaCalculada?.distanciaKm || 1.8;
-                                  const tarifa = SaraFreightPricingService.calcularTarifa(distKm, weight, catKey, material);
-                                  setTarifaEstimada(tarifa);
-                                  setProposedPrice(tarifa.tarifaSugeridaUSD);
-                                }}
-                                className={`shrink-0 w-32 p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between relative ${
-                                  isSelected
-                                    ? 'bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
-                                    : isCompatible 
-                                    ? 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700' 
-                                    : 'bg-slate-950/60 border-slate-850 text-slate-600 opacity-60'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between w-full">
-                                  <span className="text-2xl">{v.icono}</span>
-                                  {isCompatible ? (
-                                    <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                                      <Zap className="w-2.5 h-2.5" />
-                                      3 min
-                                    </span>
-                                  ) : (
-                                    <span className="text-[8px] font-bold bg-red-500/20 text-red-400 px-1 py-0.5 rounded">
-                                      Capacidad
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="mt-2">
-                                  <p className="font-black text-xs text-white leading-tight truncate">{v.nombre}</p>
-                                  <p className="text-[10px] text-slate-400 mt-0.5">Capacidad: {v.capacidadTon}T</p>
-                                </div>
-                                <div className="mt-2 pt-1 border-t border-slate-800 flex items-baseline justify-between">
-                                  <span className="text-sm font-black font-mono text-amber-400">
-                                    ${estPrice.toFixed(2)}
-                                  </span>
-                                  <span className="text-[9px] text-slate-500 font-semibold">USD</span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* RADAR AUTOMÁTICO DE UNIDADES CERCANAS */}
-                      {!activeFreight && (
-                        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-xl">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="relative flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                              </span>
-                              <span className="text-[11px] font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                                Radar Activo: {CATALOGO_VEHICULOS_SARA[vehicleType]?.nombre}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                              {vehiculosDisponiblesTipo.length} unidades en la zona
-                            </span>
-                          </div>
-
-                          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                            {vehiculosDisponiblesTipo.map((veh) => {
-                              const latDiff = Math.abs(veh.lat - (originPoint?.lat || userLocation?.[0] || -4.3285));
-                              const lngDiff = Math.abs(veh.lng - (originPoint?.lng || userLocation?.[1] || -79.5560));
-                              const distMeters = Math.max(180, Math.round((latDiff + lngDiff) * 111000));
-                              const etaMin = Math.max(2, Math.round(distMeters / 150));
-                              const estPrice = proposedPrice || (tarifaEstimada?.tarifaSugeridaUSD || 3.50);
-
-                              return (
-                                <div
-                                  key={veh.id}
-                                  className="bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/60 p-2.5 rounded-xl transition-all flex items-center justify-between gap-3 text-xs group shadow-sm"
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-black text-xs shrink-0 shadow-inner">
-                                      {veh.nombreChofer.charAt(0)}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="font-bold text-white text-xs truncate">{veh.nombreChofer}</span>
-                                        <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20 shrink-0">
-                                          {veh.placa}
-                                        </span>
-                                      </div>
-                                      <p className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                                        <span className="text-amber-400 font-bold">★ {veh.rating}</span>
-                                        <span className="text-slate-600">•</span>
-                                        <span className="text-emerald-400 font-semibold">⚡ ~{etaMin} min ({distMeters}m)</span>
-                                        <span className="text-slate-600">•</span>
-                                        <span className="text-slate-400 truncate">Saldo OK</span>
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <div className="text-right hidden sm:block">
-                                      <p className="font-mono font-bold text-xs text-white">${estPrice.toFixed(2)}</p>
-                                      <p className="text-[8px] text-slate-500 font-semibold">USD</p>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      disabled={materialValidation.isBlocked}
-                                      onClick={() => handleDirectDriverRequest(veh)}
-                                      className={`font-bold text-[11px] px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1 shadow-sm active:scale-95 ${
-                                        materialValidation.isBlocked
-                                          ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-50'
-                                          : 'bg-slate-800 group-hover:bg-amber-500 text-slate-300 group-hover:text-slate-950 border-slate-700 group-hover:border-amber-500'
-                                      }`}
-                                    >
-                                      <span>Pedir</span>
-                                      <ChevronRight className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          <button
-                            type="button"
-                            disabled={materialValidation.isBlocked}
-                            onClick={handlePedirFlete}
-                            className={`w-full border rounded-xl py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm mt-1 ${
-                              materialValidation.isBlocked
-                                ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
-                                : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border-amber-500/40'
-                            }`}
-                          >
-                            <Radio className="w-3.5 h-3.5 animate-pulse text-amber-400" />
-                            <span>Transmitir Oferta (${(proposedPrice || 2.80).toFixed(2)} USD) a unidades en radar</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* BARRA DE OFERTA / SUBASTA ESTILO INDRIVE */}
-                      {tarifaEstimada && proposedPrice !== null && !activeFreight && (
-                        <div className="bg-gradient-to-br from-slate-950 to-slate-900 border-2 border-amber-500/50 p-3.5 rounded-2xl shadow-xl space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
-                              <Sparkles className="w-3.5 h-3.5" />
-                              Oferta Negociable (Modo inDrive)
-                            </span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${acceptanceProbability.color}`}>
-                              Probabilidad: {acceptanceProbability.label}
-                            </span>
-                          </div>
-
-                          {/* Selector de precio con botones rápidos +/- 0.50 */}
-                          <div className="flex items-center justify-between bg-slate-900 border border-slate-800 p-2 rounded-xl">
-                            <button
-                              type="button"
-                              onClick={() => handleAdjustPrice(-0.50)}
-                              className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center transition-all active:scale-95"
-                              title="Reducir $0.50 USD"
-                            >
-                              -$0.50
-                            </button>
-
-                            <div className="text-center">
-                              <p className="text-2xl font-black font-mono text-amber-500">
-                                ${proposedPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans">USD</span>
-                              </p>
-                              <p className="text-[9px] text-slate-400">
-                                Tarifa sugerida: ${tarifaEstimada.tarifaSugeridaUSD.toFixed(2)} (Rango: ${tarifaEstimada.rangoNegociacionInDrive.minimoUSD.toFixed(2)} - ${tarifaEstimada.rangoNegociacionInDrive.maximoUSD.toFixed(2)})
-                              </p>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleAdjustPrice(0.50)}
-                              className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center transition-all active:scale-95"
-                              title="Aumentar $0.50 USD"
-                            >
-                              +$0.50
-                            </button>
-                          </div>
-
-                          {/* Botón Principal de Envío */}
-                          <button
-                            type="button"
-                            disabled={isCalculatingRoute || materialValidation.isBlocked}
-                            onClick={handlePedirFlete}
-                            className={`w-full font-black py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm ${
-                              materialValidation.isBlocked
-                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25'
-                            }`}
-                          >
-                            <Truck className="w-4 h-4 stroke-[2.5]" />
-                            Solicitar Flete por ${proposedPrice.toFixed(2)} USD
-                          </button>
-                        </div>
-                      )}
-
-                      {/* ESTADO DE FLETE ACTIVO Y SEGUIMIENTO CON OFERTAS DE CONDUCTORES */}
+                      {/* WIZARD VISUAL COMPLETO: RUTA, MATERIAL, EXTRAS Y TARIFA */}
+                      <SaraFletesWizard
+                        activeStep={activeStep}
+                        setActiveStep={(step) => {
+                          setActiveStep(step);
+                          updateDraft({ activeStep: step });
+                        }}
+                        originText={originText}
+                        destinationText={destinationText}
+                        onOriginChange={(val) => {
+                          handleOriginInputChange(val);
+                          updateDraft({ originText: val });
+                        }}
+                        onDestinationChange={(val) => {
+                          handleDestinationInputChange(val);
+                          updateDraft({ destinationText: val });
+                        }}
+                        onSelectDestinoFrecuente={(dest) => {
+                          handleSelectRutaRapida(
+                            originText || 'Punto de Carga',
+                            originPoint ? [originPoint.lat, originPoint.lng] : [-4.3285, -79.5560],
+                            originPoint?.ciudad || 'Loja',
+                            originPoint?.provincia || 'Loja',
+                            dest.nombre,
+                            dest.coords,
+                            dest.canton,
+                            dest.provincia
+                          );
+                          updateDraft({
+                            destinationText: dest.nombre,
+                            destinationPoint: { 
+                              nombre: dest.nombre, 
+                              lat: dest.coords[0], 
+                              lng: dest.coords[1], 
+                              ciudad: dest.canton, 
+                              provincia: dest.provincia 
+                            }
+                          });
+                        }}
+                        onSwapRoute={handleSwapRoute}
+                        onUseGpsOrigin={handleUsarMiUbicacionComoOrigen}
+                        onMarkOriginOnMap={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
+                        onMarkDestOnMap={() => setMapClickMode(mapClickMode === 'destino' ? null : 'destino')}
+                        mapClickMode={mapClickMode}
+                        selectedMaterial={material}
+                        onSelectMaterial={(matName) => {
+                          setMaterial(matName);
+                          updateDraft({ material: matName });
+                          if (rutaCalculada) {
+                            const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, weight, vehicleType, matName);
+                            setTarifaEstimada(tarifa);
+                            setProposedPrice(tarifa.tarifaSugeridaUSD);
+                            updateDraft({ proposedPrice: tarifa.tarifaSugeridaUSD });
+                          }
+                        }}
+                        weight={weight}
+                        onWeightChange={(val) => {
+                          setWeight(val);
+                          updateDraft({ weight: val });
+                          if (rutaCalculada) {
+                            const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, val, vehicleType, material);
+                            setTarifaEstimada(tarifa);
+                            setProposedPrice(tarifa.tarifaSugeridaUSD);
+                            updateDraft({ proposedPrice: tarifa.tarifaSugeridaUSD });
+                          }
+                        }}
+                        unitType={unitType}
+                        onUnitTypeChange={(u) => {
+                          setUnitType(u);
+                          updateDraft({ unitType: u });
+                        }}
+                        sacosCementoCount={sacosCementoCount}
+                        onSacosCementoChange={(count) => {
+                          setSacosCementoCount(count);
+                          updateDraft({ sacosCementoCount: count });
+                        }}
+                        helpersCount={helpersCount}
+                        onHelpersChange={(cnt) => {
+                          setHelpersCount(cnt);
+                          setPeonesEstibaCount(cnt);
+                          updateDraft({ helpersCount: cnt });
+                        }}
+                        tasaBotaderoEnabled={tasaBotaderoEnabled}
+                        onTasaBotaderoToggle={(en) => {
+                          setTasaBotaderoEnabled(en);
+                          updateDraft({ tasaBotaderoEnabled: en });
+                        }}
+                        suggestedPrice={tarifaEstimada?.tarifaSugeridaUSD || 2.80}
+                        proposedPrice={proposedPrice || (tarifaEstimada?.tarifaSugeridaUSD || 2.80)}
+                        onAdjustPrice={handleAdjustPrice}
+                        acceptanceProbability={acceptanceProbability}
+                        isCalculatingRoute={isCalculatingRoute}
+                        onTransmitOffer={handlePedirFlete}
+                        assignedVehicleInfo={assignedVehicleInfo}
+                        selectedVehicleType={vehicleType}
+                        onSelectVehicleType={(cat) => {
+                          setVehicleType(cat);
+                          if (rutaCalculada) {
+                            const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, weight, cat, material);
+                            setTarifaEstimada(tarifa);
+                            setProposedPrice(tarifa.tarifaSugeridaUSD);
+                          }
+                        }}
+                        distanciaKm={rutaCalculada?.distanciaKm || 2.4}
+                        duracionMinutos={rutaCalculada?.duracionMinutos || 8}
+                      />
+                      
+{/* ESTADO DE FLETE ACTIVO Y SEGUIMIENTO CON OFERTAS DE CONDUCTORES */}
                       {activeFreight && (
                         <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl space-y-3">
                           {activeFreight.status === 'searching' && (
@@ -2300,135 +1866,57 @@ export default function SaraFletesEngine() {
                           )}
 
                           {(activeFreight.status === 'accepted' || activeFreight.status === 'in_transit') && (
-                            <div className="space-y-3.5">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
-                                  activeFreight.status === 'in_transit'
-                                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                }`}>
-                                  {activeFreight.status === 'in_transit' ? (
-                                    <Truck className="w-7 h-7 animate-bounce" />
-                                  ) : (
-                                    <CheckCircle className="w-7 h-7" />
-                                  )}
-                                </div>
-                                <div className="text-left">
-                                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border flex items-center gap-1 w-fit ${
-                                    activeFreight.status === 'in_transit'
-                                      ? 'text-amber-400 bg-amber-950/80 border-amber-500/40'
-                                      : 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30'
-                                  }`}>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
-                                    {activeFreight.status === 'in_transit' ? '¡Flete en Recorrido Activo!' : '¡Conductor en Camino al Punto de Carga!'}
-                                  </span>
-                                  <h3 className="font-black text-white text-base mt-1">
-                                    {assignedDriver?.driverName || 'Conductor SARA'}
-                                  </h3>
-                                  <p className="text-xs text-slate-400">
-                                    {assignedDriver?.vehicleName} · Placa: <strong className="text-white font-mono">{assignedDriver?.plate}</strong>
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                                <div className="text-left">
-                                  <span className="text-slate-400 text-[10px] block">Tarifa acordada:</span>
-                                  <p className="text-xl font-black font-mono text-emerald-400">
-                                    ${activeFreight.referencePrice.toFixed(2)} USD
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-slate-400 text-[10px] block">
-                                    {activeFreight.status === 'in_transit' ? 'Estado del Recorrido:' : 'Llegada estimada:'}
-                                  </span>
-                                  <p className="text-sm font-bold text-white flex items-center justify-end gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                                    {activeFreight.status === 'in_transit' ? 'Carga a bordo (~38 km/h)' : `~${assignedDriver?.etaMinutes || 3} min`}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* PIN de seguridad de entrega / embarque */}
-                              <div className={`border p-3.5 rounded-xl text-center ${
-                                activeFreight.status === 'in_transit'
-                                  ? 'bg-amber-950/30 border-amber-500/40'
-                                  : 'bg-emerald-950/40 border-emerald-500/40'
-                              }`}>
-                                <p className="text-[10px] font-black uppercase tracking-wider text-amber-400 mb-0.5">
-                                  {activeFreight.status === 'in_transit' ? 'Código Validado de Entrega' : 'Código PIN de Embarque'}
-                                </p>
-                                <p className="text-3xl font-black text-white font-mono tracking-widest">
-                                  {activeFreight.accessCode}
-                                </p>
-                                <p className="text-[10px] text-slate-400 mt-1">
-                                  {activeFreight.status === 'in_transit'
-                                    ? 'El conductor validó el código e inició el recorrido de entrega'
-                                    : 'Indica este código al conductor para validar la carga e iniciar el viaje'}
-                                </p>
-                              </div>
-
-                              {/* Botón de Compartir Seguimiento Satelital en Vivo por WhatsApp (Zero-Login) */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const trackingToken = activeFreight.id || `TRK-${Date.now().toString().slice(-6)}`;
-                                  SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {
-                                    driverName: assignedDriver?.driverName || "David Sarango",
-                                    plate: assignedDriver?.plate || "PCX-4590",
-                                    origin: activeFreight.origin,
-                                    destination: activeFreight.destination,
-                                    originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
-                                    destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-3.9931, -79.2042],
-                                    material: activeFreight.material,
-                                    distanceKm: rutaCalculada?.distanciaKm || 4.2
+                            <SaraActiveTripCard
+                              activeFreight={activeFreight}
+                              assignedDriver={assignedDriver}
+                              onOpenDriverProfile={() => {
+                                if (assignedDriver) {
+                                  setSelectedDriverForSecurity({
+                                    id: assignedDriver.id,
+                                    driverName: assignedDriver.driverName,
+                                    plate: assignedDriver.plate,
+                                    vehicleName: assignedDriver.vehicleName,
+                                    rating: assignedDriver.rating,
+                                    phone: assignedDriver.phone,
+                                    licenseType: 'Tipo E',
+                                    yearsExperience: 8,
+                                    tripsCount: assignedDriver.tripsCount || 142,
+                                    antCertified: true,
+                                    mtopRegistry: 'MTOP-REG-2026-LOJA-89',
+                                    matriculaYear: 2026,
+                                    insuranceActive: true,
+                                    photoInitial: assignedDriver.driverName.charAt(0)
                                   });
-                                  const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}`;
-                                  const text = encodeURIComponent(
-                                    `🚚 *SARA-FLETES: Rastreo de Viaje en Vivo*\n\n` +
-                                    `• Chofer: ${assignedDriver?.driverName || "Conductor SARA"} (${assignedDriver?.plate || "PBA-1234"})\n` +
-                                    `• Carga: ${activeFreight.material}\n` +
-                                    `• PIN de Recepción: ${activeFreight.accessCode}\n\n` +
-                                    `📍 Sigue el camión en tiempo real aquí (sin necesidad de iniciar sesión):\n${shareUrl}`
-                                  );
-                                  window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
-                                }}
-                                className="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold py-2.5 px-3 rounded-xl border border-emerald-500/40 text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
-                              >
-                                <Share2 className="w-4 h-4 text-emerald-400" />
-                                <span>Compartir Rastreo por WhatsApp con Residente de Obra</span>
-                              </button>
-
-                              {/* Botones de contacto directo */}
-                              <div className="grid grid-cols-2 gap-2">
-                                <a
-                                  href={`tel:${assignedDriver?.phone || '0993849182'}`}
-                                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
-                                >
-                                  📞 Llamar
-                                </a>
-                                <a
-                                  href={`https://wa.me/593${(assignedDriver?.phone || '0993849182').replace(/^0/, '')}?text=Hola%20${encodeURIComponent(assignedDriver?.driverName || 'amigo')},%20solicité%20un%20flete%20en%20SARA%20Fletes.`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
-                                >
-                                  💬 WhatsApp
-                                </a>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveFreight(null);
-                                  setDriverOffers([]);
-                                  setAssignedDriver(null);
-                                }}
-                                className="w-full text-xs text-amber-400 hover:text-amber-300 font-bold underline text-center pt-1"
-                              >
-                                Finalizar viaje o solicitar otro flete
-                              </button>
-                            </div>
+                                }
+                              }}
+                              onShareWhatsApp={() => {
+                                const trackingToken = activeFreight.id || `TRK-${Date.now().toString().slice(-6)}`;
+                                SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {
+                                  driverName: assignedDriver?.driverName || "David Sarango",
+                                  plate: assignedDriver?.plate || "PCX-4590",
+                                  origin: activeFreight.origin,
+                                  destination: activeFreight.destination,
+                                  originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
+                                  destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-3.9931, -79.2042],
+                                  material: activeFreight.material,
+                                  distanceKm: rutaCalculada?.distanciaKm || 4.2
+                                });
+                                const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}`;
+                                const text = encodeURIComponent(
+                                  `🚚 *SARA-FLETES: Rastreo de Viaje en Vivo*\n\n` +
+                                  `• Chofer: ${assignedDriver?.driverName || "Conductor SARA"} (${assignedDriver?.plate || "PBA-1234"})\n` +
+                                  `• Carga: ${activeFreight.material}\n` +
+                                  `• PIN de Recepción: ${activeFreight.accessCode}\n\n` +
+                                  `📍 Sigue el camión en tiempo real aquí:\n${shareUrl}`
+                                );
+                                window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+                              }}
+                              onFinishOrCancel={() => {
+                                setActiveFreight(null);
+                                setDriverOffers([]);
+                                setAssignedDriver(null);
+                              }}
+                            />
                           )}
                         </div>
                       )}
@@ -2668,6 +2156,32 @@ export default function SaraFletesEngine() {
           driverBankInfo={SaraFletesRealtimeService.getDriverBankConfig(driverToRate.plate)}
         />
       )}
+
+      {/* MODAL DE CONFIRMACIÓN DE SALIDA */}
+      <SaraFletesExitConfirmModal
+        isOpen={isExitModalOpen}
+        hasActiveTrip={!!activeFreight}
+        onCancel={() => setIsExitModalOpen(false)}
+        onConfirmExit={() => {
+          setIsExitModalOpen(false);
+          window.location.href = '/';
+        }}
+      />
+
+      {/* MODAL DE FICHA DE SEGURIDAD DEL CONDUCTOR ANT / MTOP */}
+      <SaraDriverSecurityModal
+        driver={selectedDriverForSecurity}
+        isOpen={!!selectedDriverForSecurity}
+        onClose={() => setSelectedDriverForSecurity(null)}
+        onRequestDriver={(drv) => {
+          const vehMatch = vehiculosZonificados.find(v => v.id === drv.id);
+          if (vehMatch) {
+            handleDirectDriverRequest(vehMatch);
+          } else {
+            handlePedirFlete();
+          }
+        }}
+      />
 
       {/* Botón de Pánico SOS 24/7 Flotante (Ergonómico, Top-Right) */}
       <SaraFloatingSosButton
