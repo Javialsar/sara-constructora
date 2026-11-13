@@ -1,206 +1,178 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
-import {
-  MapPin,
-  Loader2,
-  Zap,
-  Clock,
-  Star,
+import React, { useState } from 'react';
+import { 
+  Zap, 
+  Users, 
+  Package, 
+  Clock, 
+  ShieldCheck, 
+  Sparkles, 
+  CheckCircle2, 
   ArrowRight,
-  CheckCircle2,
-  Shield
+  Phone,
+  User,
+  AlertCircle
 } from 'lucide-react';
-import {
-  MODALIDADES_SARA_FLETES,
+import { 
+  MODALIDADES_SARA_FLETES, 
   PRESETS_MANDADITOS,
-  type MultimodalVerticalKey,
-  type VehicleOptionUI
+  VehicleOptionUI,
+  MultimodalVerticalKey
 } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
 interface SaraViajesMandaditosQuickOrderProps {
   modalidad: 'viajes' | 'mandaditos';
-  originText: string;
-  destinationText: string;
-  userLocation: [number, number] | null;
-  onRequestService: (params: {
-    modalidad: MultimodalVerticalKey;
+  distanciaKm: number;
+  duracionEstimadaMin: number;
+  origenNombre: string;
+  destinoNombre: string;
+  memoriaInsights?: string[];
+  isRequesting: boolean;
+  onRequestConfirm: (params: {
     vehiculoId: string;
     vehiculoNombre: string;
-    tarifaEstimadaUSD: number;
-    tiempoLlegadaMin: number;
-    presetPaquete?: string;
+    tarifaUSD: number;
+    pasajerosCount?: number;
+    paqueteTipo?: string;
+    destinatarioNombre?: string;
+    destinatarioTelefono?: string;
     esUrgente?: boolean;
   }) => void;
 }
 
-export default function SaraViajesMandaditosQuickOrder({
+export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickOrderProps> = ({
   modalidad,
-  originText,
-  destinationText,
-  userLocation,
-  onRequestService
-}: SaraViajesMandaditosQuickOrderProps) {
+  distanciaKm,
+  duracionEstimadaMin,
+  origenNombre,
+  destinoNombre,
+  memoriaInsights = [],
+  isRequesting,
+  onRequestConfirm
+}) => {
   const config = MODALIDADES_SARA_FLETES[modalidad];
-  const [selectedVehicle, setSelectedVehicle] = useState<string>(config.vehiculos[0]?.id || '');
-  const [selectedPreset, setSelectedPreset] = useState<string>('');
-  const [esUrgente, setEsUrgente] = useState(false);
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
-
-  const vehiculoActivo = useMemo(
-    () => config.vehiculos.find(v => v.id === selectedVehicle) || config.vehiculos[0],
-    [config.vehiculos, selectedVehicle]
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
+    config.vehiculos[0]?.id || ''
   );
+  
+  // Parámetros específicos de Viajes
+  const [pasajerosCount, setPasajerosCount] = useState<number>(1);
 
-  const puedeConfirmar = originText.trim().length > 0 && destinationText.trim().length > 0 && selectedVehicle;
+  // Parámetros específicos de Mandaditos
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('doc');
+  const [destinatarioNombre, setDestinatarioNombre] = useState<string>('Receptor en Obra / Oficina');
+  const [destinatarioTelefono, setDestinatarioTelefono] = useState<string>('0991234567');
+  const [esUrgente, setEsUrgente] = useState<boolean>(false);
 
-  const handleConfirm = useCallback(async () => {
-    if (!puedeConfirmar || !vehiculoActivo) return;
-    setIsRequesting(true);
-    // Simular búsqueda de conductor más cercano (~1.5s)
-    await new Promise(r => setTimeout(r, 1500));
-    onRequestService({
-      modalidad,
-      vehiculoId: vehiculoActivo.id,
-      vehiculoNombre: vehiculoActivo.nombre,
-      tarifaEstimadaUSD: vehiculoActivo.tarifaBaseMinUSD,
-      tiempoLlegadaMin: vehiculoActivo.tiempoLlegadaMinutos,
-      presetPaquete: selectedPreset || undefined,
+  // Vehículo seleccionado actualmente
+  const selectedVehicle = config.vehiculos.find(v => v.id === selectedVehicleId) || config.vehiculos[0];
+
+  // Cálculo de tarifa dinámica para la tarjeta seleccionada
+  const calcularTarifaVehiculo = (v: VehicleOptionUI): number => {
+    const d = Math.max(0.5, distanciaKm);
+    let tarifa = v.tarifaBaseMinUSD;
+
+    if (modalidad === 'viajes') {
+      const costoKm = v.id === 'MOTO_PASS' ? 0.35 : v.id === 'AUTO_PREMIUM' ? 0.65 : v.id === 'MINIVAN_PASS' ? 0.85 : 0.50;
+      const costoMin = v.id === 'MOTO_PASS' ? 0.05 : 0.10;
+      const subtotal = v.tarifaBaseMinUSD + (d * costoKm) + (duracionEstimadaMin * costoMin);
+      tarifa = Math.max(v.tarifaBaseMinUSD, subtotal);
+    } else {
+      // Mandaditos
+      const costoKm = v.id === 'DELIVERY_MOTO' ? 0.40 : v.id === 'DELIVERY_CARGO_VAN' ? 0.75 : 0.55;
+      const subtotal = v.tarifaBaseMinUSD + (d * costoKm) + (esUrgente ? 0.50 : 0);
+      tarifa = Math.max(v.tarifaBaseMinUSD, subtotal);
+    }
+
+    return +tarifa.toFixed(2);
+  };
+
+  const tarifaCalculada = selectedVehicle ? calcularTarifaVehiculo(selectedVehicle) : 2.50;
+
+  const handleConfirmar = () => {
+    if (!selectedVehicle) return;
+
+    onRequestConfirm({
+      vehiculoId: selectedVehicle.id,
+      vehiculoNombre: selectedVehicle.nombre,
+      tarifaUSD: tarifaCalculada,
+      pasajerosCount: modalidad === 'viajes' ? pasajerosCount : undefined,
+      paqueteTipo: modalidad === 'mandaditos' ? selectedPresetId : undefined,
+      destinatarioNombre: modalidad === 'mandaditos' ? destinatarioNombre : undefined,
+      destinatarioTelefono: modalidad === 'mandaditos' ? destinatarioTelefono : undefined,
       esUrgente: modalidad === 'mandaditos' ? esUrgente : undefined
     });
-    setOrderConfirmed(true);
-    setIsRequesting(false);
-  }, [puedeConfirmar, vehiculoActivo, modalidad, selectedPreset, esUrgente, onRequestService]);
-
-  if (orderConfirmed) {
-    return (
-      <div className="bg-slate-950 border border-emerald-500/30 rounded-2xl p-5 text-center space-y-3 animate-in fade-in-0">
-        <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
-        <h3 className="text-sm font-black text-white">
-          {modalidad === 'viajes' ? '¡Conductor en camino!' : '¡Repartidor asignado!'}
-        </h3>
-        <p className="text-xs text-slate-400">
-          {vehiculoActivo.nombre} llegará en ~{vehiculoActivo.tiempoLlegadaMinutos} min.
-          Tarifa estimada: <span className="text-amber-400 font-bold">${vehiculoActivo.tarifaBaseMinUSD.toFixed(2)} USD</span>
-        </p>
-        <div className="flex items-center justify-center gap-2 pt-1">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-            Rastreando en tiempo real...
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setOrderConfirmed(false)}
-          className="mt-2 text-[10px] text-slate-500 hover:text-white transition-colors"
-        >
-          Solicitar otro servicio
-        </button>
-      </div>
-    );
-  }
+  };
 
   return (
-    <div className="space-y-3">
-      {/* Descripción contextual de la modalidad */}
-      <div className={`flex items-center gap-2 p-2.5 rounded-xl border bg-slate-950 ${
-        modalidad === 'viajes' ? 'border-amber-500/20' : 'border-emerald-500/20'
-      }`}>
-        <span className="text-xl">{config.emoji}</span>
-        <p className="text-[10px] text-slate-400 leading-tight">{config.descripcionCorta}</p>
-      </div>
-
-      {/* PRESETS DE PAQUETE (Solo para Mandaditos) */}
-      {modalidad === 'mandaditos' && (
-        <div>
-          <label className="text-[10px] font-black uppercase tracking-wider text-emerald-400 mb-1.5 block">
-            ¿Qué envías?
-          </label>
-          <div className="grid grid-cols-2 gap-1.5">
-            {PRESETS_MANDADITOS.map(preset => (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => setSelectedPreset(preset.id === selectedPreset ? '' : preset.id)}
-                className={`p-2 rounded-xl text-left text-[10px] font-bold transition-all border ${
-                  selectedPreset === preset.id
-                    ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                }`}
-              >
-                {preset.label}
-                <span className="block text-[9px] text-slate-500 font-normal mt-0.5">~{preset.pesoKg} kg</span>
-              </button>
-            ))}
+    <div className="space-y-3.5">
+      {/* INSIGHTS DE MEMORIA REFLECTIVA EN TIEMPO REAL */}
+      {memoriaInsights.length > 0 && (
+        <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 flex items-start gap-2 shadow-sm">
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="text-[11px] text-emerald-300 leading-snug">
+            <span className="font-black text-emerald-200 uppercase tracking-wider block text-[9px]">
+              Inteligencia Reflectiva SARA
+            </span>
+            {memoriaInsights[0]}
           </div>
-          {/* Toggle urgente */}
-          <button
-            type="button"
-            onClick={() => setEsUrgente(!esUrgente)}
-            className={`mt-2 w-full p-2 rounded-xl text-[10px] font-bold border transition-all flex items-center justify-center gap-1.5 ${
-              esUrgente
-                ? 'bg-red-500/15 border-red-500/50 text-red-300'
-                : 'bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <Zap className="w-3 h-3" />
-            {esUrgente ? 'Urgente activado (+$0.50)' : 'Marcar como urgente (< 30 min)'}
-          </button>
         </div>
       )}
 
-      {/* SELECTOR DE VEHÍCULOS */}
+      {/* SELECTOR DE VEHÍCULOS ULTRA-TÁCTIL (ESTILO UBER / RAPPI) */}
       <div>
-        <label className={`text-[10px] font-black uppercase tracking-wider mb-1.5 block ${
-          modalidad === 'viajes' ? 'text-amber-400' : 'text-emerald-400'
-        }`}>
-          {modalidad === 'viajes' ? 'Tu vehículo ideal' : 'Tipo de entrega'}
-        </label>
-        <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
-          {config.vehiculos.map((veh: VehicleOptionUI) => {
-            const isSelected = selectedVehicle === veh.id;
-            const accentColor = modalidad === 'viajes'
-              ? (isSelected ? 'bg-amber-500/15 border-amber-500 ring-1 ring-amber-500/30' : '')
-              : (isSelected ? 'bg-emerald-500/15 border-emerald-500 ring-1 ring-emerald-500/30' : '');
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <span>Vehículos para {config.label}</span>
+            <span className="text-[9px] font-semibold text-slate-500">
+              ({distanciaKm > 0 ? `${distanciaKm} km · ~${duracionEstimadaMin} min` : 'Selecciona destino'})
+            </span>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {config.vehiculos.map((v) => {
+            const isSelected = selectedVehicleId === v.id;
+            const precio = calcularTarifaVehiculo(v);
 
             return (
               <button
-                key={veh.id}
+                key={v.id}
                 type="button"
-                onClick={() => setSelectedVehicle(veh.id)}
-                className={`shrink-0 w-32 p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                onClick={() => setSelectedVehicleId(v.id)}
+                className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between active:scale-95 ${
                   isSelected
-                    ? `${accentColor} text-white shadow-lg`
+                    ? modalidad === 'viajes'
+                      ? 'bg-amber-500/15 border-amber-500 text-white shadow-md shadow-amber-500/10 ring-1 ring-amber-500/40'
+                      : 'bg-emerald-500/15 border-emerald-500 text-white shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/40'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
+                {v.popular && (
+                  <span className="absolute -top-2 right-2 text-[8px] font-black uppercase bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-sm">
+                    Popular
+                  </span>
+                )}
+
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-2xl">{veh.icono}</span>
-                  <div className="flex items-center gap-1">
-                    {veh.popular && (
-                      <span className="text-[8px] font-black bg-amber-500/20 text-amber-400 px-1 py-0.5 rounded">
-                        TOP
-                      </span>
-                    )}
-                    <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                      <Zap className="w-2.5 h-2.5" />
-                      {veh.tiempoLlegadaMinutos}m
-                    </span>
-                  </div>
+                  <span className="text-2xl">{v.icono}</span>
+                  <span className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5">
+                    <Zap className="w-2.5 h-2.5 text-amber-400" />
+                    {v.tiempoLlegadaMinutos} min
+                  </span>
                 </div>
+
                 <div className="mt-2">
-                  <p className="font-black text-xs text-white leading-tight truncate">{veh.nombre}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">{veh.capacidadTexto}</p>
+                  <p className="font-bold text-xs text-white leading-tight truncate">{v.nombre}</p>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">{v.capacidadTexto}</p>
                 </div>
-                <div className="mt-2 pt-1 border-t border-slate-800 flex items-baseline justify-between">
+
+                <div className="mt-2 pt-1 border-t border-slate-800/80 flex items-baseline justify-between">
                   <span className={`text-sm font-black font-mono ${
                     modalidad === 'viajes' ? 'text-amber-400' : 'text-emerald-400'
                   }`}>
-                    ${veh.tarifaBaseMinUSD.toFixed(2)}
+                    ${precio.toFixed(2)}
                   </span>
                   <span className="text-[9px] text-slate-500 font-semibold">USD</span>
                 </div>
@@ -210,74 +182,150 @@ export default function SaraViajesMandaditosQuickOrder({
         </div>
       </div>
 
-      {/* RESUMEN RÁPIDO Y BOTÓN DE CONFIRMACIÓN */}
-      {vehiculoActivo && (
-        <div className={`rounded-2xl border p-3.5 space-y-2.5 ${
-          modalidad === 'viajes'
-            ? 'bg-amber-500/5 border-amber-500/20'
-            : 'bg-emerald-500/5 border-emerald-500/20'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{vehiculoActivo.icono}</span>
-              <div>
-                <p className="text-xs font-black text-white">{vehiculoActivo.nombre}</p>
-                <p className="text-[10px] text-slate-400">{vehiculoActivo.subtitulo}</p>
+      {/* CONTROLES ESPECÍFICOS SEGÚN VERTICAL */}
+      {modalidad === 'viajes' ? (
+        <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-amber-400" />
+            <div>
+              <p className="text-xs font-bold text-white leading-none">Número de Pasajeros</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Máximo según categoría de auto</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4].map(num => (
+              <button
+                key={num}
+                type="button"
+                onClick={() => setPasajerosCount(num)}
+                className={`w-7 h-7 rounded-lg text-xs font-black transition-all ${
+                  pasajerosCount === num
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* MANDADITOS / DELIVERY EXPRESS */
+        <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-3">
+          {/* Presets de Paquete */}
+          <div>
+            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5 block">
+              ¿Qué deseas enviar? (Presiona 1 toque)
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {PRESETS_MANDADITOS.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPresetId(p.id)}
+                  className={`px-2 py-1.5 rounded-lg text-left text-xs font-bold transition-all truncate border ${
+                    selectedPresetId === p.id
+                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Datos del Receptor */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                Destinatario (Nombre)
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={destinatarioNombre}
+                  onChange={(e) => setDestinatarioNombre(e.target.value)}
+                  placeholder="Ej: Ing. Juan Pérez"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
               </div>
             </div>
-            <div className="text-right">
-              <p className={`text-lg font-black font-mono ${
-                modalidad === 'viajes' ? 'text-amber-400' : 'text-emerald-400'
-              }`}>
-                ${vehiculoActivo.tarifaBaseMinUSD.toFixed(2)}
-              </p>
-              <p className="text-[9px] text-slate-500">precio base</p>
+            <div>
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                Teléfono de Contacto
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={destinatarioTelefono}
+                  onChange={(e) => setDestinatarioTelefono(e.target.value)}
+                  placeholder="099..."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
             </div>
           </div>
 
-          {/* Indicador de ETA y seguridad */}
-          <div className="flex items-center gap-3 text-[10px]">
-            <span className="flex items-center gap-1 text-emerald-400 font-bold">
-              <Clock className="w-3 h-3" /> ~{vehiculoActivo.tiempoLlegadaMinutos} min
-            </span>
-            <span className="flex items-center gap-1 text-slate-400">
-              <Shield className="w-3 h-3" /> GPS en vivo
-            </span>
-            <span className="flex items-center gap-1 text-amber-400">
-              <Star className="w-3 h-3" /> 4.9
-            </span>
+          {/* Toggle de Urgencia Express */}
+          <div className="pt-1 flex items-center justify-between border-t border-slate-800/80">
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs font-bold text-slate-300">Entrega Inmediata Directa (&lt; 30 min)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEsUrgente(!esUrgente)}
+              className={`text-[10px] font-black px-2 py-0.5 rounded-full border transition-all ${
+                esUrgente
+                  ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                  : 'bg-slate-900 text-slate-400 border-slate-800'
+              }`}
+            >
+              {esUrgente ? '⚡ Prioridad Activa (+ $0.50)' : 'Estándar'}
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!puedeConfirmar || isRequesting}
-            className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed ${
-              modalidad === 'viajes'
-                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-            }`}
-          >
-            {isRequesting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Buscando {modalidad === 'viajes' ? 'conductor' : 'repartidor'}...
-              </>
-            ) : (
-              <>
-                {modalidad === 'viajes' ? 'Solicitar Viaje' : 'Enviar Mandadito'}
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-
-          {!puedeConfirmar && (
-            <p className="text-[10px] text-amber-400/70 text-center">
-              ⚠️ Ingresa origen y destino para continuar
-            </p>
-          )}
         </div>
       )}
+
+      {/* BOTÓN DE ACCIÓN PRINCIPAL EN 1 TOQUE (< 2.5 SEGUNDOS) */}
+      <button
+        type="button"
+        disabled={isRequesting || !selectedVehicle}
+        onClick={handleConfirmar}
+        className={`w-full py-3.5 px-4 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg active:scale-98 ${
+          modalidad === 'viajes'
+            ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        {isRequesting ? (
+          <>
+            <span className="animate-spin text-base">⏳</span>
+            <span>Buscando conductor más cercano...</span>
+          </>
+        ) : (
+          <>
+            <span>{modalidad === 'viajes' ? 'Solicitar Viaje' : 'Pedir Mandadito Express'}</span>
+            <span className="text-xs opacity-75 font-mono">({selectedVehicle?.nombre})</span>
+            <span className="bg-slate-950/20 px-2 py-0.5 rounded-lg font-mono">
+              ${tarifaCalculada.toFixed(2)} USD
+            </span>
+            <ArrowRight className="w-4 h-4 ml-1" />
+          </>
+        )}
+      </button>
+
+      {/* FOOTER TRANSPARENCIA WIN-WIN */}
+      <div className="flex items-center justify-between text-[10px] text-slate-500 px-1 font-semibold">
+        <span className="flex items-center gap-1">
+          <ShieldCheck className="w-3 h-3 text-emerald-400" />
+          Tarifa protegida sin tarifas ocultas
+        </span>
+        <span>Conductor/Repartidor recibe el 88-90%</span>
+      </div>
     </div>
   );
-}
+};
+
+export default SaraViajesMandaditosQuickOrder;

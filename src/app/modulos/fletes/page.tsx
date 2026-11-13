@@ -386,11 +386,13 @@ export default function SaraFletesEngine() {
 
   // 3. Parámetros de la Carga (Flete) y Subasta inDrive
   const [vehicleType, setVehicleType] = useState<CategoriaVehiculo>('PICKUP_1T');
-  const [material, setMaterial] = useState('Otros Materiales');
+  const [material, setMaterial] = useState('Arena / Ripio');
   const [weight, setWeight] = useState<number>(1);
+  const [sacosCementoCount, setSacosCementoCount] = useState<number>(20);
   const [tarifaEstimada, setTarifaEstimada] = useState<ResultadoTarifaFlete | null>(null);
   const [proposedPrice, setProposedPrice] = useState<number | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
+  const [bottomSheetLevel, setBottomSheetLevel] = useState<'peek' | 'half' | 'full'>('half');
 
   // 4. Parámetros de Renta Temporal (Uber Rent / Por Horas o Días)
   const [rentaDuracionTipo, setRentaDuracionTipo] = useState<'HORAS' | 'DIAS'>('HORAS');
@@ -419,6 +421,50 @@ export default function SaraFletesEngine() {
   const mtopCheck = useMemo(() => {
     return SaraMtopBalanzasService.evaluarPesaje(vehicleType, weight);
   }, [vehicleType, weight]);
+
+  // Validación Inteligente de Compatibilidad de Carga & Material
+  const materialValidation = useMemo(() => {
+    const isAridos = material === 'Arena / Ripio' || material === 'Desalojo de Escombros';
+    const isVarillas = material === 'Varillas de Acero';
+    const isSacos = material === 'Cemento (Sacos)' || material === 'Acabados / Cerámica';
+
+    // Regla 1: Áridos / Escombros
+    const aridosBloqueado = isAridos && (vehicleType === 'FURGON_3T');
+    const aridosAdvertencia = isAridos && (vehicleType === 'PICKUP_1T' && weight > 1.2);
+
+    // Regla 2: Varillas de Acero (6m - 12m)
+    const varillasBloqueado = isVarillas && vehicleType === 'PICKUP_1T';
+    const varillasRecomendado = isVarillas && (vehicleType === 'CAMION_10T' || vehicleType === 'TRACTO_3S3');
+
+    // Regla 3: Capacidad física estricta
+    const vInfo = CATALOGO_VEHICULOS_SARA[vehicleType];
+    const sobrecapacidad = weight > (vInfo?.capacidadTon || 1);
+
+    let alertMessage: string | null = null;
+    let isBlocked = false;
+
+    if (aridosBloqueado) {
+      alertMessage = '⚠️ No se puede cargar áridos o escombros a granel en Furgón Cerrado (dificulta descarga sin volquete).';
+      isBlocked = true;
+    } else if (aridosAdvertencia) {
+      alertMessage = '⚠️ Para más de 1.2T de áridos se recomienda Volqueta de Obra (14 m³).';
+    } else if (varillasBloqueado) {
+      alertMessage = '⛔ Varillas de Acero (6m a 12m) prohibidas en Camioneta Pickup por normativa MTOP (riesgo de voladizo).';
+      isBlocked = true;
+    } else if (sobrecapacidad) {
+      alertMessage = '⛔ Peso de carga (' + weight + 'T) supera la capacidad del vehículo (' + (vInfo?.capacidadTon || 1) + 'T).';
+      isBlocked = true;
+    }
+
+    return {
+      isBlocked,
+      alertMessage,
+      isAridos,
+      isVarillas,
+      isSacos,
+      varillasRecomendado
+    };
+  }, [material, vehicleType, weight]);
 
   const balanzasEnCorredor = useMemo(() => {
     if (!originPoint || !destinationPoint) return [];
@@ -1446,17 +1492,26 @@ export default function SaraFletesEngine() {
         {/* ------------------------------------------------------------- */}
         <aside
           className={`z-20 transition-all duration-300 ease-out flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl
-            /* Móvil: Bottom Sheet */
-            absolute bottom-0 left-0 right-0 max-h-[85vh] rounded-t-3xl
+            /* Móvil: Bottom Sheet en 3 niveles */
+            absolute bottom-0 left-0 right-0 rounded-t-3xl
+            ${bottomSheetLevel === 'peek' ? 'h-[72px] overflow-hidden' : ''}
+            ${bottomSheetLevel === 'half' ? 'max-h-[55vh] h-[55vh]' : ''}
+            ${bottomSheetLevel === 'full' ? 'max-h-[88vh] h-[88vh]' : ''}
             /* Desktop: Tarjeta Flotante Lateral */
-            lg:bottom-auto lg:top-4 lg:left-4 lg:right-auto lg:w-[470px] lg:max-h-[calc(100vh-88px)] lg:rounded-2xl
+            lg:bottom-auto lg:top-4 lg:left-4 lg:right-auto lg:w-[470px] lg:max-h-[calc(100vh-88px)] lg:h-auto lg:rounded-2xl
             ${isPanelCollapsed ? 'translate-y-[calc(100%-48px)] lg:translate-y-0 lg:w-[320px] lg:max-h-[64px]' : ''}
           `}
         >
-          {/* Header del Panel con Botón de Minimizar / Maximizar */}
+          {/* Header del Panel con Botón de Minimizar / Maximizar y controles de Bottom Sheet */}
           <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between shrink-0">
-            {/* Tirador para móviles */}
-            <div className="lg:hidden absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-slate-700 rounded-full" />
+            {/* Tirador táctil para móviles con cambio de nivel */}
+            <div 
+              onClick={() => {
+                setBottomSheetLevel(prev => prev === 'peek' ? 'half' : prev === 'half' ? 'full' : 'peek');
+              }}
+              className="lg:hidden absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-600 active:bg-amber-500 rounded-full cursor-pointer transition-colors" 
+              title="Deslizar Bottom Sheet"
+            />
 
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
@@ -1466,6 +1521,30 @@ export default function SaraFletesEngine() {
             </div>
 
             <div className="flex items-center gap-1.5">
+              {/* Controles de Nivel Móvil */}
+              <div className="lg:hidden flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setBottomSheetLevel('peek')}
+                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${bottomSheetLevel === 'peek' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
+                >
+                  Ruta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBottomSheetLevel('half')}
+                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${bottomSheetLevel === 'half' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
+                >
+                  Carga
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBottomSheetLevel('full')}
+                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${bottomSheetLevel === 'full' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
+                >
+                  Ofertas
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
@@ -1690,7 +1769,7 @@ export default function SaraFletesEngine() {
 
                         {/* Chips rápidos de rutas estratégicas a nivel nacional */}
                         <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto text-[10px] scrollbar-thin">
-                          <span className="text-slate-500 font-semibold shrink-0">Rutas Nacionales:</span>
+                          <span className="text-amber-400 font-bold shrink-0 flex items-center gap-1"><span>⭐</span> Destinos frecuentes:</span>
                           <button
                             type="button"
                             onClick={() => handleSelectRutaRapida(
@@ -1774,7 +1853,118 @@ export default function SaraFletesEngine() {
                         </div>
                       </div>
 
-                      {/* SELECTOR HORIZONTAL DE FLOTA ESTILO UBER CON ETA Y PRECIOS */}
+                      {/* PASO 1 (UX): PARÁMETROS DE CARGA Y MATERIAL ANTES DE LA FLOTA */}
+                      <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 space-y-3 shadow-xl">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                            <span>📦</span> Paso 1: Material y Peso de Carga
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {weight} Tonelada(s)
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">
+                              Material a Transportar
+                            </label>
+                            <select
+                              value={material}
+                              onChange={(e) => {
+                                const newMat = e.target.value;
+                                setMaterial(newMat);
+                                if (rutaCalculada) {
+                                  const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, weight, vehicleType, newMat);
+                                  setTarifaEstimada(tarifa);
+                                  setProposedPrice(tarifa.tarifaSugeridaUSD);
+                                }
+                              }}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                            >
+                              <option>Arena / Ripio</option>
+                              <option>Varillas de Acero</option>
+                              <option>Cemento (Sacos)</option>
+                              <option>Desalojo de Escombros</option>
+                              <option>Bloques / Ladrillos</option>
+                              <option>Acabados / Cerámica</option>
+                              <option>Otros Materiales</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">
+                              Peso Estimado (Ton)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0.1"
+                              value={weight}
+                              onChange={(e) => {
+                                const newWeight = Math.max(0.1, Number(e.target.value));
+                                setWeight(newWeight);
+                                if (material === 'Cemento (Sacos)') {
+                                  setSacosCementoCount(Math.round(newWeight / 0.05));
+                                }
+                                if (rutaCalculada) {
+                                  const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, newWeight, vehicleType, material);
+                                  setTarifaEstimada(tarifa);
+                                  setProposedPrice(tarifa.tarifaSugeridaUSD);
+                                }
+                              }}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-amber-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* CÁLCULO INTELIGENTE AUTOMÁTICO DE SACOS DE CEMENTO (50KG) */}
+                        {material === 'Cemento (Sacos)' && (
+                          <div className="bg-slate-900/80 border border-amber-500/30 p-2.5 rounded-xl flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">🏗️</span>
+                              <div>
+                                <span className="font-bold text-slate-200 block text-[11px]">Calculadora de Sacos (50kg c/u)</span>
+                                <span className="text-[9px] text-slate-400">20 sacos = 1.0 Ton</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="number"
+                                min="1"
+                                value={sacosCementoCount}
+                                onChange={(e) => {
+                                  const sacos = Math.max(1, Number(e.target.value));
+                                  setSacosCementoCount(sacos);
+                                  const autoWeight = Number((sacos * 0.05).toFixed(2));
+                                  setWeight(autoWeight);
+                                  if (rutaCalculada) {
+                                    const tarifa = SaraFreightPricingService.calcularTarifa(rutaCalculada.distanciaKm, autoWeight, vehicleType, material);
+                                    setTarifaEstimada(tarifa);
+                                    setProposedPrice(tarifa.tarifaSugeridaUSD);
+                                  }
+                                }}
+                                className="w-16 bg-slate-950 border border-slate-700 rounded px-1.5 py-1 text-xs font-mono text-center text-amber-400 font-bold"
+                              />
+                              <span className="text-[10px] text-slate-400">sacos</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ALERTA DE VALIDACIÓN INTELIGENTE DE CARGA */}
+                        {materialValidation.alertMessage && (
+                          <div className={`p-2.5 rounded-xl text-xs font-semibold flex items-start gap-2 border ${
+                            materialValidation.isBlocked 
+                              ? 'bg-red-500/15 border-red-500/50 text-red-300' 
+                              : 'bg-amber-500/15 border-amber-500/50 text-amber-300'
+                          }`}>
+                            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>{materialValidation.alertMessage}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* PASO 2: SELECTOR HORIZONTAL DE FLOTA COMPATIBLE CON CARRUSEL DESLIZABLE */}
                       <div>
                         <div className="flex items-center justify-between mb-1.5">
                           <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
@@ -1793,6 +1983,7 @@ export default function SaraFletesEngine() {
                             const isSelected = vehicleType === catKey;
                             const distKm = rutaCalculada?.distanciaKm || 2;
                             const estPrice = SaraFreightPricingService.calcularTarifa(distKm, weight, catKey, material).tarifaSugeridaUSD;
+                            const isCompatible = catKey === 'VOLQUETA_V3A' ? true : catKey === 'PICKUP_1T' && material === 'Varillas de Acero' ? false : v.capacidadTon >= weight;
 
                             return (
                               <button
@@ -1805,18 +1996,26 @@ export default function SaraFletesEngine() {
                                   setTarifaEstimada(tarifa);
                                   setProposedPrice(tarifa.tarifaSugeridaUSD);
                                 }}
-                                className={`shrink-0 w-32 p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                                className={`shrink-0 w-32 p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between relative ${
                                   isSelected
                                     ? 'bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
-                                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                                    : isCompatible 
+                                    ? 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700' 
+                                    : 'bg-slate-950/60 border-slate-850 text-slate-600 opacity-60'
                                 }`}
                               >
                                 <div className="flex items-center justify-between w-full">
                                   <span className="text-2xl">{v.icono}</span>
-                                  <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                                    <Zap className="w-2.5 h-2.5" />
-                                    3 min
-                                  </span>
+                                  {isCompatible ? (
+                                    <span className="text-[9px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
+                                      <Zap className="w-2.5 h-2.5" />
+                                      3 min
+                                    </span>
+                                  ) : (
+                                    <span className="text-[8px] font-bold bg-red-500/20 text-red-400 px-1 py-0.5 rounded">
+                                      Capacidad
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="mt-2">
                                   <p className="font-black text-xs text-white leading-tight truncate">{v.nombre}</p>
@@ -1834,7 +2033,7 @@ export default function SaraFletesEngine() {
                         </div>
                       </div>
 
-                      {/* RADAR AUTOMÁTICO DE UNIDADES CERCANAS (AL SELECCIONAR VEHÍCULO SIN ESPERAR A SOLICITAR FLETE) */}
+                      {/* RADAR AUTOMÁTICO DE UNIDADES CERCANAS */}
                       {!activeFreight && (
                         <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-3 shadow-xl">
                           <div className="flex items-center justify-between">
@@ -1893,8 +2092,13 @@ export default function SaraFletesEngine() {
                                     </div>
                                     <button
                                       type="button"
+                                      disabled={materialValidation.isBlocked}
                                       onClick={() => handleDirectDriverRequest(veh)}
-                                      className="bg-slate-800 group-hover:bg-amber-500 text-slate-300 group-hover:text-slate-950 font-bold text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 group-hover:border-amber-500 transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                                      className={`font-bold text-[11px] px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-1 shadow-sm active:scale-95 ${
+                                        materialValidation.isBlocked
+                                          ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-50'
+                                          : 'bg-slate-800 group-hover:bg-amber-500 text-slate-300 group-hover:text-slate-950 border-slate-700 group-hover:border-amber-500'
+                                      }`}
                                     >
                                       <span>Pedir</span>
                                       <ChevronRight className="w-3 h-3" />
@@ -1907,8 +2111,13 @@ export default function SaraFletesEngine() {
 
                           <button
                             type="button"
+                            disabled={materialValidation.isBlocked}
                             onClick={handlePedirFlete}
-                            className="w-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/40 rounded-xl py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm mt-1"
+                            className={`w-full border rounded-xl py-2 px-3 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm mt-1 ${
+                              materialValidation.isBlocked
+                                ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'
+                                : 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border-amber-500/40'
+                            }`}
                           >
                             <Radio className="w-3.5 h-3.5 animate-pulse text-amber-400" />
                             <span>Transmitir Oferta (${(proposedPrice || 2.80).toFixed(2)} USD) a unidades en radar</span>
@@ -1916,40 +2125,6 @@ export default function SaraFletesEngine() {
                         </div>
                       )}
 
-                      {/* AJUSTES DE MATERIAL Y PESO */}
-                      <div className="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">
-                            Material a Transportar
-                          </label>
-                          <select
-                            value={material}
-                            onChange={(e) => setMaterial(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-amber-500"
-                          >
-                            <option>Otros Materiales</option>
-                            <option>Cemento (Sacos)</option>
-                            <option>Arena / Ripio</option>
-                            <option>Varillas de Acero</option>
-                            <option>Bloques / Ladrillos</option>
-                            <option>Acabados / Cerámica</option>
-                            <option>Desalojo de Escombros</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">
-                            Peso de la Carga (Ton)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.5"
-                            min="0.1"
-                            value={weight}
-                            onChange={(e) => setWeight(Math.max(0.1, Number(e.target.value)))}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-white focus:outline-none"
-                          />
-                        </div>
-                      </div>
                       {/* BARRA DE OFERTA / SUBASTA ESTILO INDRIVE */}
                       {tarifaEstimada && proposedPrice !== null && !activeFreight && (
                         <div className="bg-gradient-to-br from-slate-950 to-slate-900 border-2 border-amber-500/50 p-3.5 rounded-2xl shadow-xl space-y-3">
@@ -1979,7 +2154,7 @@ export default function SaraFletesEngine() {
                                 ${proposedPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans">USD</span>
                               </p>
                               <p className="text-[9px] text-slate-400">
-                                Sugerido IA: ${tarifaEstimada.tarifaSugeridaUSD.toFixed(2)} (Rango: ${tarifaEstimada.rangoNegociacionInDrive.minimoUSD.toFixed(2)} - ${tarifaEstimada.rangoNegociacionInDrive.maximoUSD.toFixed(2)})
+                                Tarifa sugerida: ${tarifaEstimada.tarifaSugeridaUSD.toFixed(2)} (Rango: ${tarifaEstimada.rangoNegociacionInDrive.minimoUSD.toFixed(2)} - ${tarifaEstimada.rangoNegociacionInDrive.maximoUSD.toFixed(2)})
                               </p>
                             </div>
 
@@ -1996,9 +2171,13 @@ export default function SaraFletesEngine() {
                           {/* Botón Principal de Envío */}
                           <button
                             type="button"
+                            disabled={isCalculatingRoute || materialValidation.isBlocked}
                             onClick={handlePedirFlete}
-                            disabled={isCalculatingRoute}
-                            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2 text-sm"
+                            className={`w-full font-black py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm ${
+                              materialValidation.isBlocked
+                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25'
+                            }`}
                           >
                             <Truck className="w-4 h-4 stroke-[2.5]" />
                             Solicitar Flete por ${proposedPrice.toFixed(2)} USD
@@ -2040,7 +2219,7 @@ export default function SaraFletesEngine() {
                               ) : (
                                 <div className="space-y-2.5">
                                   <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 px-1">
-                                    <span>Conductores que respondieron ({driverOffers.length})</span>
+                                    <span>Contraofertas recibidas ({driverOffers.length})</span>
                                     <span className="text-emerald-400 font-mono">En vivo</span>
                                   </div>
 
@@ -2086,7 +2265,7 @@ export default function SaraFletesEngine() {
                                           className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
                                         >
                                           <CheckCircle className="w-3.5 h-3.5" />
-                                          Aceptar este Conductor
+                                          Aceptar Contraoferta
                                         </button>
                                         <button
                                           type="button"
@@ -2490,13 +2669,14 @@ export default function SaraFletesEngine() {
         />
       )}
 
-      {/* Botón de Pánico SOS 24/7 Flotante */}
+      {/* Botón de Pánico SOS 24/7 Flotante (Ergonómico, Top-Right) */}
       <SaraFloatingSosButton
         userType="cliente"
         fleteId={activeFreight?.id}
         driverName={assignedDriver?.driverName || "David Sarango"}
         plate={assignedDriver?.plate || "PCX-4590"}
         currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562]}
+        className="top-3 right-4 bottom-auto lg:top-4 lg:right-6"
       />
     </div>
   );

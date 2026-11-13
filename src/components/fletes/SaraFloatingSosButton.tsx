@@ -18,8 +18,9 @@ export function SaraFloatingSosButton({
   driverName = 'David Sarango',
   currentCoords = [-4.3248, -79.5562],
   fleteId,
-  userType = 'conductor'
-}: SaraFloatingSosButtonProps) {
+  userType = 'conductor',
+  className
+}: SaraFloatingSosButtonProps & { className?: string }) {
   const [isPressing, setIsPressing] = useState(false);
   const [pressProgress, setPressProgress] = useState(0); // 0 to 100
   const [sosActive, setSosActive] = useState(false);
@@ -165,7 +166,7 @@ export function SaraFloatingSosButton({
   return (
     <>
       {/* Botón Flotante con Progress Ring SVG */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center select-none pointer-events-none">
+      <div className={`fixed z-40 flex flex-col items-center select-none pointer-events-none ${className || 'bottom-6 right-6'}`}>
         <div className="relative group pointer-events-auto">
           {/* Anillo de progreso SVG */}
           {isPressing && (
