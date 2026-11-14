@@ -1036,6 +1036,29 @@ export default function SaraFletesEngine() {
       }
 
       if (puntoOrig && puntoDest) {
+        // Detección de coherencia urbana:
+        // Si el usuario escribe una dirección en una ciudad específica (ej. Cariamanga)
+        // pero el origen proviene de un GPS default lejano (> 40 km, ej. Puyo o Guayaquil),
+        // ajustar el punto de partida al centro urbano de la misma ciudad del destino para calcular una ruta local real.
+        const dLatDirecta = Math.abs(puntoOrig.lat - puntoDest.lat);
+        const dLngDirecta = Math.abs(puntoOrig.lng - puntoDest.lng);
+        const distDirectaKm = Math.sqrt(dLatDirecta * dLatDirecta + dLngDirecta * dLngDirecta) * 111;
+
+        if (distDirectaKm > 40 && puntoDest.ciudad && (origenTxt.toLowerCase().includes('mi ubicación') || origenTxt.toLowerCase().includes('gps'))) {
+          // Si el destino es en Cariamanga u otra ciudad y el origen es solo GPS genérico
+          const puntoOrigAjustado: GeocodedPoint = {
+            nombre: `Parque Central de ${puntoDest.ciudad}`,
+            lat: +(puntoDest.lat + 0.0055).toFixed(5),
+            lng: +(puntoDest.lng + 0.0040).toFixed(5),
+            ciudad: puntoDest.ciudad,
+            provincia: puntoDest.provincia
+          };
+          puntoOrig = puntoOrigAjustado;
+          originPointRef.current = puntoOrigAjustado;
+          setOriginPoint(puntoOrigAjustado);
+          setOriginText(`Punto de partida (${puntoDest.ciudad})`);
+        }
+
         // Si ambos puntos tienen coordenadas idénticas o solapadas, desfasamos ligeramente el destino 350m para diferenciarlos
         if (Math.abs(puntoOrig.lat - puntoDest.lat) < 0.0002 && Math.abs(puntoOrig.lng - puntoDest.lng) < 0.0002) {
           puntoDest = {
@@ -1072,12 +1095,12 @@ export default function SaraFletesEngine() {
   }, [userLocation]);
 
   useEffect(() => {
-    if (originText && destinationText && serviceType === 'fletes') {
+    if (originText && destinationText) {
       const timer = setTimeout(() => {
         resolverRutaYTarifa(originText, destinationText, vehicleType, weight, material);
       }, 400);
       return () => clearTimeout(timer);
-    } else if (serviceType === 'fletes' && !destinationText) {
+    } else if (!destinationText) {
       const distAprox = 1.8;
       const tarifa = SaraFreightPricingService.calcularTarifa(distAprox, weight, vehicleType, material);
       setTarifaEstimada(tarifa);
@@ -1482,7 +1505,7 @@ export default function SaraFletesEngine() {
         {/* App exclusiva del CLIENTE: el conductor opera en /modulos/fletes/mi-perfil (acceso desde /fletes) */}
         <div className="flex items-center gap-2">
           <Link
-            href="/fletes?elegir=1"
+            href="/modulos/fletes?elegir=1"
             className="text-slate-400 hover:text-white border border-slate-800 hover:border-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
           >
             Cambiar perfil
@@ -1646,26 +1669,69 @@ export default function SaraFletesEngine() {
                           </span>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
-                            <input
-                              type="text"
-                              value={originText}
-                              onChange={(e) => handleOriginInputChange(e.target.value)}
-                              placeholder="Punto de partida (GPS)"
-                              className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
-                            />
+                        <div className="space-y-1.5 relative">
+                          <div ref={originInputWrapperRef} className="relative">
+                            <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 focus-within:border-emerald-500">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                              <input
+                                type="text"
+                                value={originText}
+                                onChange={(e) => handleOriginInputChange(e.target.value)}
+                                placeholder="Punto de partida (GPS)"
+                                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+                              />
+                            </div>
+                            {/* Menú de sugerencias predictivas de Origen */}
+                            {showOriginSuggestions && originSuggestions.length > 0 && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
+                                {originSuggestions.map((sug) => (
+                                  <button
+                                    key={sug.id}
+                                    type="button"
+                                    onClick={() => handleSelectOriginSuggestion(sug)}
+                                    className="w-full p-2 rounded-lg text-left hover:bg-slate-900 flex items-start gap-2 text-xs transition-colors"
+                                  >
+                                    <span className="text-emerald-400 mt-0.5 text-xs">📍</span>
+                                    <div className="truncate">
+                                      <p className="font-bold text-white truncate">{sug.titulo}</p>
+                                      <p className="text-[10px] text-slate-400 truncate">{sug.subtitulo}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-                            <input
-                              type="text"
-                              value={destinationText}
-                              onChange={(e) => handleDestinationInputChange(e.target.value)}
-                              placeholder="¿A dónde vas?"
-                              className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
-                            />
+
+                          <div ref={destInputWrapperRef} className="relative">
+                            <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 focus-within:border-amber-500">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                              <input
+                                type="text"
+                                value={destinationText}
+                                onChange={(e) => handleDestinationInputChange(e.target.value)}
+                                placeholder="¿A dónde vas?"
+                                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+                              />
+                            </div>
+                            {/* Menú de sugerencias predictivas de Destino */}
+                            {showDestSuggestions && destinationSuggestions.length > 0 && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
+                                {destinationSuggestions.map((sug) => (
+                                  <button
+                                    key={sug.id}
+                                    type="button"
+                                    onClick={() => handleSelectDestinationSuggestion(sug)}
+                                    className="w-full p-2 rounded-lg text-left hover:bg-slate-900 flex items-start gap-2 text-xs transition-colors"
+                                  >
+                                    <span className="text-amber-400 mt-0.5 text-xs">🚩</span>
+                                    <div className="truncate">
+                                      <p className="font-bold text-white truncate">{sug.titulo}</p>
+                                      <p className="text-[10px] text-slate-400 truncate">{sug.subtitulo}</p>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

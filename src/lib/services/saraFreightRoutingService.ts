@@ -1273,6 +1273,19 @@ export class SaraFreightRoutingService {
   }
 
   /**
+   * Normalización fonética para resolver variaciones ortográficas comunes en Ecuador:
+   * (ej. "valdivieso" vs "valdiviezo", "bolivar" vs "bolyvar", "z" <-> "s", "v" <-> "b", "y" <-> "i")
+   */
+  private static normalizarFonetico(txt: string): string {
+    return this.normalizar(txt)
+      .replace(/z/g, 's')
+      .replace(/v/g, 'b')
+      .replace(/y/g, 'i')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
    * Limpia prefijos comunes de vías en el habla ecuatoriana
    */
   private static limpiarPrefijosViales(txt: string): string {
@@ -1398,14 +1411,20 @@ export class SaraFreightRoutingService {
 
     // Detectar cantón activo de contexto
     const cantonDetectado = this.detectarCanton(norm, ubicacionReferencia) || (ubicacionReferencia ? null : CANTONES_ECUADOR.cariamanga);
+    const cleanFon = this.normalizarFonetico(clean);
 
     // 1. PRIORIDAD 1: Intersecciones exactas verificadas del cantón activo
     if (cantonDetectado && cantonDetectado.interseccionesExactas) {
       for (const [key, coords] of Object.entries(cantonDetectado.interseccionesExactas)) {
         const [k1, k2] = key.split('_');
+        const k1Fon = this.normalizarFonetico(k1);
+        const k2Fon = this.normalizarFonetico(k2);
+        const keyFon = this.normalizarFonetico(key.replace('_', ' '));
         if (
           clean.includes(k1) || clean.includes(k2) ||
-          key.replace('_', ' ').includes(clean)
+          key.replace('_', ' ').includes(clean) ||
+          cleanFon.includes(k1Fon) || cleanFon.includes(k2Fon) ||
+          keyFon.includes(cleanFon) || cleanFon.includes(keyFon)
         ) {
           const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
           const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
@@ -1427,7 +1446,11 @@ export class SaraFreightRoutingService {
     if (cantonDetectado) {
       // Vías principales cantonales
       for (const [viaNom, coords] of Object.entries(cantonDetectado.viasPrincipales)) {
-        if (viaNom.includes(clean) || clean.includes(viaNom)) {
+        const viaNomFon = this.normalizarFonetico(viaNom);
+        if (
+          viaNom.includes(clean) || clean.includes(viaNom) ||
+          viaNomFon.includes(cleanFon) || cleanFon.includes(viaNomFon)
+        ) {
           const titVia = viaNom.charAt(0).toUpperCase() + viaNom.slice(1);
           agregarSugerencia({
             id: `via_local_${cantonDetectado.nombre}_${viaNom}`,
@@ -1637,14 +1660,20 @@ export class SaraFreightRoutingService {
       if (partesInterseccion.length >= 2) {
         const via1 = partesInterseccion[0].trim();
         const via2 = partesInterseccion[1].trim();
+        const via1Fon = this.normalizarFonetico(via1);
+        const via2Fon = this.normalizarFonetico(via2);
 
-        // 1. Verificar primero en interseccionesExactas del cantón
+        // 1. Verificar primero en interseccionesExactas del cantón (con coincidencia fonética)
         if (cantonActual.interseccionesExactas) {
           for (const [key, coords] of Object.entries(cantonActual.interseccionesExactas)) {
             const [k1, k2] = key.split('_');
+            const k1Fon = this.normalizarFonetico(k1);
+            const k2Fon = this.normalizarFonetico(k2);
             if (
               ((via1.includes(k1) || k1.includes(via1)) && (via2.includes(k2) || k2.includes(via2))) ||
-              ((via1.includes(k2) || k2.includes(via1)) && (via2.includes(k1) || k1.includes(via2)))
+              ((via1.includes(k2) || k2.includes(via1)) && (via2.includes(k1) || k1.includes(via2))) ||
+              ((via1Fon.includes(k1Fon) || k1Fon.includes(via1Fon)) && (via2Fon.includes(k2Fon) || k2Fon.includes(via2Fon))) ||
+              ((via1Fon.includes(k2Fon) || k2Fon.includes(via1Fon)) && (via2Fon.includes(k1Fon) || k1Fon.includes(via2Fon)))
             ) {
               return {
                 nombre: `${partesInterseccion[0]} y ${partesInterseccion[1]}, ${cantonActual.nombre}`,
@@ -1662,8 +1691,9 @@ export class SaraFreightRoutingService {
         let p2: [number, number] | null = null;
 
         for (const [k, coords] of Object.entries(cantonActual.viasPrincipales)) {
-          if (via1.includes(k) || k.includes(via1)) p1 = coords;
-          if (via2.includes(k) || k.includes(via2)) p2 = coords;
+          const kFon = this.normalizarFonetico(k);
+          if (via1.includes(k) || k.includes(via1) || via1Fon.includes(kFon) || kFon.includes(via1Fon)) p1 = coords;
+          if (via2.includes(k) || k.includes(via2) || via2Fon.includes(kFon) || kFon.includes(via2Fon)) p2 = coords;
         }
 
         if (p1 && p2) {
@@ -1688,7 +1718,12 @@ export class SaraFreightRoutingService {
 
       // 4b. Hitos y Puntos de Interés del Cantón
       for (const [hito, coords] of Object.entries(cantonActual.hitos)) {
-        if (cleanWithoutPrefixes.includes(hito) || normalized.includes(hito)) {
+        const hitoFon = this.normalizarFonetico(hito);
+        const cleanFon = this.normalizarFonetico(cleanWithoutPrefixes);
+        if (
+          cleanWithoutPrefixes.includes(hito) || normalized.includes(hito) ||
+          cleanFon.includes(hitoFon) || hitoFon.includes(cleanFon)
+        ) {
           return {
             nombre: query,
             lat: coords[0],
@@ -1701,7 +1736,12 @@ export class SaraFreightRoutingService {
 
       // 4c. Vías Principales del Cantón
       for (const [via, coords] of Object.entries(cantonActual.viasPrincipales)) {
-        if (cleanWithoutPrefixes.includes(via) || normalized.includes(via)) {
+        const viaFon = this.normalizarFonetico(via);
+        const cleanFon = this.normalizarFonetico(cleanWithoutPrefixes);
+        if (
+          cleanWithoutPrefixes.includes(via) || normalized.includes(via) ||
+          cleanFon.includes(viaFon) || viaFon.includes(cleanFon)
+        ) {
           return {
             nombre: query,
             lat: coords[0],
