@@ -134,6 +134,7 @@ interface SaraFletesWizardProps {
   suggestedPrice: number;
   proposedPrice: number;
   onAdjustPrice: (delta: number) => void;
+  onSetPrice?: (price: number) => void;
   acceptanceProbability: { label: string; color: string };
   isCalculatingRoute: boolean;
   onTransmitOffer: () => void;
@@ -174,6 +175,7 @@ export function SaraFletesWizard({
   suggestedPrice,
   proposedPrice,
   onAdjustPrice,
+  onSetPrice,
   acceptanceProbability,
   isCalculatingRoute,
   onTransmitOffer,
@@ -377,71 +379,39 @@ export function SaraFletesWizard({
               <span className="text-[10px] font-mono text-slate-400">Paso 2 de 4</span>
             </div>
 
-            {/* TABS DE CATEGORÍAS DE MATERIALES (ÁRIDOS, CONSTRUCCIÓN, VARIOS) */}
-            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+            {/* TABS DE LAS 3 CATEGORÍAS PRINCIPALES DE CARGA (DIRECTAS E INTUITIVAS) */}
+            <div className="grid grid-cols-3 gap-2">
               {CATEGORIAS_MATERIALES.map((cat) => {
                 const isCatActive = activeMaterialCategory === cat.id;
                 return (
                   <button
                     key={cat.id}
                     type="button"
-                    onClick={() => setActiveMaterialCategory(cat.id as any)}
-                    className={`py-2 px-1.5 rounded-lg text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
-                      isCatActive
-                        ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <span className="text-sm">{cat.icon}</span>
-                    <span className="text-[10px] leading-tight font-black">{cat.label}</span>
-                    <span className={`text-[8px] leading-none ${isCatActive ? 'text-slate-900 font-semibold' : 'text-slate-500'}`}>
-                      {cat.badge}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* TARJETAS VISUALES DE MATERIALES FILTRADOS POR CATEGORÍA */}
-            <div className="grid grid-cols-2 gap-2">
-              {MATERIALES_OBRA.filter((m) => m.categoria === activeMaterialCategory).map((m) => {
-                const isSelected = selectedMaterial === m.name;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
                     onClick={() => {
-                      onSelectMaterial(m.name);
-                      if (m.name === 'Cemento (Sacos)') {
-                        onWeightChange(1.0);
-                        onSacosCementoChange(20);
+                      setActiveMaterialCategory(cat.id as any);
+                      // Asignar directamente el material y unidad representativa de la categoría
+                      if (cat.id === 'aridos') {
+                        onSelectMaterial('Arena / Ripio');
+                        onUnitTypeChange('M3');
+                      } else if (cat.id === 'construccion') {
+                        onSelectMaterial('Cemento (Sacos)');
                         onUnitTypeChange('TON');
-                      } else if (m.defaultUnit) {
-                        onUnitTypeChange(m.defaultUnit);
+                      } else {
+                        onSelectMaterial('Desalojo de Escombros');
+                        onUnitTypeChange('M3');
                       }
                     }}
-                    className={`p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
-                      isSelected
-                        ? 'bg-amber-500/15 border-amber-500 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 ${
+                      isCatActive
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 border-amber-400 ring-2 ring-amber-400/50'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-2xl">{m.icon}</span>
-                      {isSelected ? (
-                        <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-black">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                        </span>
-                      ) : (
-                        <span className="text-[9px] font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                          {m.defaultUnit === 'M3' ? 'm³' : 'Ton'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-2">
-                      <p className="font-black text-xs text-white leading-tight">{m.name}</p>
-                      <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">{m.description}</p>
-                    </div>
+                    <span className="text-2xl">{cat.icon}</span>
+                    <span className="text-xs leading-tight font-black">{cat.label}</span>
+                    <span className={`text-[9px] leading-none px-1.5 py-0.5 rounded ${isCatActive ? 'bg-slate-950/20 text-slate-950 font-bold' : 'text-slate-500'}`}>
+                      {cat.badge}
+                    </span>
                   </button>
                 );
               })}
@@ -705,11 +675,26 @@ export function SaraFletesWizard({
                 -$0.50
               </button>
 
-              <div className="text-center">
-                <p className="text-3xl font-black font-mono text-amber-400">
-                  ${proposedPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans">USD</span>
-                </p>
-                <p className="text-[10px] text-slate-400 mt-0.5">
+              <div className="text-center flex-1 px-2">
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-2xl font-black text-amber-400 font-mono">$</span>
+                  <input
+                    type="number"
+                    step="0.50"
+                    min="1.00"
+                    value={proposedPrice}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val) && onSetPrice) {
+                        onSetPrice(val);
+                      }
+                    }}
+                    className="w-28 text-3xl font-black font-mono text-amber-400 bg-slate-950/80 border border-slate-700 focus:border-amber-400 rounded-xl px-1.5 py-0.5 text-center focus:outline-none focus:ring-1 focus:ring-amber-400 shadow-inner"
+                    title="Escribe directamente el valor que deseas ofertar"
+                  />
+                  <span className="text-xs text-slate-400 font-sans font-bold">USD</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
                   Tarifa base sugerida: ${suggestedPrice.toFixed(2)} USD
                 </p>
               </div>

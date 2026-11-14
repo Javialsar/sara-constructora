@@ -311,7 +311,32 @@ export default function SaraFletesEngine() {
     destinationPointRef.current = newPoint;
     setDestinationPoint(newPoint);
 
-    const pOrig = originPointRef.current;
+    let pOrig = originPointRef.current;
+
+    // Coherencia de servicio urbano:
+    // Si estamos en Viajes Rápidos o Fletes y el origen actual está en otra provincia o a > 35 km (ej. Puyo a 600 km de Cariamanga),
+    // y el usuario seleccionó una dirección dentro de una ciudad específica,
+    // re-sincronizamos el punto de partida automáticamente dentro del mismo cantón / zona de origen local.
+    if (newPoint.ciudad && pOrig) {
+      const dLat = Math.abs(pOrig.lat - newPoint.lat);
+      const dLng = Math.abs(pOrig.lng - newPoint.lng);
+      const distDirectaKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+
+      if (distDirectaKm > 35 && (originText.toLowerCase().includes('ubicación') || originText.toLowerCase().includes('gps') || originText.toLowerCase().includes('puyo'))) {
+        const puntoOrigLocal: GeocodedPoint = {
+          nombre: `Parque Central de ${newPoint.ciudad}`,
+          lat: +(newPoint.lat + 0.0045).toFixed(5),
+          lng: +(newPoint.lng + 0.0035).toFixed(5),
+          ciudad: newPoint.ciudad,
+          provincia: newPoint.provincia
+        };
+        pOrig = puntoOrigLocal;
+        originPointRef.current = puntoOrigLocal;
+        setOriginPoint(puntoOrigLocal);
+        setOriginText(`Punto de partida (${newPoint.ciudad})`);
+      }
+    }
+
     if (pOrig) {
       setIsCalculatingRoute(true);
       try {
@@ -1893,6 +1918,11 @@ export default function SaraFletesEngine() {
                         suggestedPrice={tarifaEstimada?.tarifaSugeridaUSD || 2.80}
                         proposedPrice={proposedPrice || (tarifaEstimada?.tarifaSugeridaUSD || 2.80)}
                         onAdjustPrice={handleAdjustPrice}
+                        onSetPrice={(price) => {
+                          const validPrice = Math.max(1.0, +price.toFixed(2));
+                          setProposedPrice(validPrice);
+                          updateDraft({ proposedPrice: validPrice });
+                        }}
                         acceptanceProbability={acceptanceProbability}
                         isCalculatingRoute={isCalculatingRoute}
                         onTransmitOffer={handlePedirFlete}

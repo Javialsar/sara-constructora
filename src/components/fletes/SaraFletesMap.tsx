@@ -106,26 +106,25 @@ const crearIconoVehiculo = (vehiculo: VehiculoMapa, isSelected: boolean) => {
   const cat = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
   const bgColor = isSelected ? '#f59e0b' : '#0f172a';
   const borderColor = isSelected ? '#ffffff' : '#10b981';
-  const scale = isSelected ? '1.15' : '1.0';
   const firstName = vehiculo.nombreChofer.split(' ')[0];
 
+  // Diseño compacto de alta visibilidad estilo Uber / inDrive
   return L.divIcon({
     className: `sara-vehicle-marker-${vehiculo.id}`,
     html: `
-      <div style="transform: scale(${scale}); transition: all 0.2s ease-in-out; display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55));">
-        <div style="position: relative; background: ${bgColor}; width: 40px; height: 40px; border-radius: 12px; border: 2.5px solid ${borderColor}; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+      <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); transform: translateZ(0); transition: transform 0.4s ease-out;">
+        <div style="position: relative; background: ${bgColor}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid ${borderColor}; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">
           ${cat.icono}
-          <span style="position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #10b981; border: 2px solid #ffffff; box-shadow: 0 0 6px rgba(16,185,129,0.8);"></span>
+          <span style="position: absolute; top: -1px; right: -1px; width: 7px; height: 7px; border-radius: 50%; background: #10b981; border: 1.5px solid #ffffff; box-shadow: 0 0 4px rgba(16,185,129,0.9);"></span>
         </div>
-        <div style="margin-top: -3px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid ${bgColor};"></div>
-        <div style="margin-top: 2px; background: rgba(15, 23, 42, 0.92); color: #ffffff; font-size: 8px; font-weight: 800; padding: 2px 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.25); white-space: nowrap; backdrop-filter: blur(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.4);">
-          ${firstName} · ${cat.capacidadTon}T
+        <div style="margin-top: 1px; background: rgba(15, 23, 42, 0.88); color: #f8fafc; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 3px; border: 0.5px solid rgba(255,255,255,0.2); white-space: nowrap; pointer-events: none; line-height: 1;">
+          ${firstName}
         </div>
       </div>
     `,
-    iconSize: [52, 60],
-    iconAnchor: [26, 46],
-    popupAnchor: [0, -46]
+    iconSize: [32, 42],
+    iconAnchor: [16, 21],
+    popupAnchor: [0, -21]
   });
 };
 
@@ -325,6 +324,37 @@ export default function SaraFletesMap({
 }: SaraFletesMapProps) {
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('google_streets');
 
+  // Simulación de circulación fluida en tiempo real sincronizada (estilo Uber / inDrive)
+  const [vehiculosAnimados, setVehiculosAnimados] = useState<VehiculoMapa[]>(vehiculosCercanos);
+
+  useEffect(() => {
+    setVehiculosAnimados(vehiculosCercanos);
+  }, [vehiculosCercanos]);
+
+  useEffect(() => {
+    if (!vehiculosAnimados || vehiculosAnimados.length === 0) return;
+
+    // Intervalo de desplazamiento suave continuo sobre el mapa
+    const interval = setInterval(() => {
+      setVehiculosAnimados((prev) =>
+        prev.map((v, idx) => {
+          // Pequeño desplazamiento browniano simulando movimiento vial constante
+          const angle = (Date.now() / 4000 + idx * 1.5);
+          const stepLat = Math.sin(angle) * 0.00015;
+          const stepLng = Math.cos(angle) * 0.00018;
+
+          return {
+            ...v,
+            lat: +(v.lat + stepLat).toFixed(5),
+            lng: +(v.lng + stepLng).toFixed(5)
+          };
+        })
+      );
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [vehiculosAnimados.length]);
+
   // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Loja/Cariamanga (-4.3285, -79.5560) o Cuenca (-2.8974, -79.0044)
   const defaultCenter: [number, number] = userLocation || origenCoords || [-4.3285, -79.5560];
 
@@ -451,8 +481,8 @@ export default function SaraFletesMap({
           </>
         )}
 
-        {/* 5. Vehículos Cercanos Zonificados con Tooltip al Pasar el Mouse (Hover) */}
-        {vehiculosCercanos.map((vehiculo) => {
+        {/* 5. Vehículos Cercanos Zonificados Circulando en Tiempo Real */}
+        {vehiculosAnimados.map((vehiculo) => {
           const isSelected = !vehiculoSeleccionado || vehiculoSeleccionado === vehiculo.tipoVehiculo;
           const infoVehiculo = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
           return (

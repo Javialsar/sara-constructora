@@ -1410,7 +1410,27 @@ export class SaraFreightRoutingService {
     };
 
     // Detectar cantón activo de contexto
-    const cantonDetectado = this.detectarCanton(norm, ubicacionReferencia) || (ubicacionReferencia ? null : CANTONES_ECUADOR.cariamanga);
+    let cantonDetectado = this.detectarCanton(norm, ubicacionReferencia);
+    
+    // Si no se detectó cantón por texto, pero la query contiene vías o intersecciones de algún cantón, chequear
+    if (!cantonDetectado) {
+      for (const cant of Object.values(CANTONES_ECUADOR)) {
+        if (cant.interseccionesExactas) {
+          for (const key of Object.keys(cant.interseccionesExactas)) {
+            const [k1, k2] = key.split('_');
+            if (clean.includes(k1) && clean.includes(k2)) {
+              cantonDetectado = cant;
+              break;
+            }
+          }
+        }
+        if (cantonDetectado) break;
+      }
+    }
+
+    if (!cantonDetectado) {
+      cantonDetectado = ubicacionReferencia ? null : CANTONES_ECUADOR.cariamanga;
+    }
     const cleanFon = this.normalizarFonetico(clean);
 
     // 1. PRIORIDAD 1: Intersecciones exactas verificadas del cantón activo
@@ -1625,7 +1645,48 @@ export class SaraFreightRoutingService {
     }
 
     // 3. Detección Inteligente del Cantón o Ciudad
-    const cantonActual = this.detectarCanton(normalized, ubicacionReferencia);
+    let cantonActual = this.detectarCanton(normalized, ubicacionReferencia);
+
+    // 3b. Si no se detectó cantón explícito pero la consulta parece una intersección ("X y Y"),
+    // chequear si alguna de las interseccionesExactas de todos los cantones coincide exactamente con las vías
+    if (!cantonActual) {
+      let partesInt: string[] = [];
+      const mEntre = cleanWithoutPrefixes.match(/^entre\s+(.+?)\s+y\s+(.+)$/i);
+      if (mEntre) partesInt = [mEntre[1].trim(), mEntre[2].trim()];
+      else partesInt = cleanWithoutPrefixes.split(/\s+(?:y|e|esquina|con|\/|&)\s+/);
+
+      if (partesInt.length >= 2) {
+        const v1 = partesInt[0].trim();
+        const v2 = partesInt[1].trim();
+        const v1Fon = this.normalizarFonetico(v1);
+        const v2Fon = this.normalizarFonetico(v2);
+
+        for (const [cKey, cant] of Object.entries(CANTONES_ECUADOR)) {
+          if (cant.interseccionesExactas) {
+            for (const [key, coords] of Object.entries(cant.interseccionesExactas)) {
+              const [k1, k2] = key.split('_');
+              const k1Fon = this.normalizarFonetico(k1);
+              const k2Fon = this.normalizarFonetico(k2);
+              if (
+                ((v1.includes(k1) || k1.includes(v1)) && (v2.includes(k2) || k2.includes(v2))) ||
+                ((v1.includes(k2) || k2.includes(v1)) && (v2.includes(k1) || k1.includes(v2))) ||
+                ((v1Fon.includes(k1Fon) || k1Fon.includes(v1Fon)) && (v2Fon.includes(k2Fon) || k2Fon.includes(v2Fon))) ||
+                ((v1Fon.includes(k2Fon) || k2Fon.includes(v1Fon)) && (v2Fon.includes(k1Fon) || k1Fon.includes(v2Fon)))
+              ) {
+                cantonActual = cant;
+                return {
+                  nombre: `${partesInt[0]} y ${partesInt[1]}, ${cant.nombre}`,
+                  lat: coords[0],
+                  lng: coords[1],
+                  ciudad: cant.nombre,
+                  provincia: cant.provincia
+                };
+              }
+            }
+          }
+        }
+      }
+    }
 
     // 4. Si identificamos un cantón específico, resolver intersecciones o vías locales en 0 ms
     if (cantonActual) {
