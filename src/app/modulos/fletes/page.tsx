@@ -1606,18 +1606,24 @@ export default function SaraFletesEngine() {
 
           {/* CONTENIDO DEL PANEL CON SCROLL SUAVE */}
           {!isPanelCollapsed && (
-            <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-56px)] lg:max-h-[calc(100vh-160px)]">
+            <div className="p-4 space-y-4 overflow-y-auto max-h-[82vh] lg:max-h-[calc(100vh-160px)]">
               
               {/* MODO CLIENTE / PÚBLICO GENERAL */}
               {(
                 <>
                   {/* SELECTOR MULTIMODAL UNIFICADO: VIAJES (UBER/DIDI), MANDADITOS, FLETES (CARGA) Y RENTA */}
-                  <SaraMultimodalTabBar
-                    activeTab={serviceType}
-                    onChangeTab={(tab) => {
-                      setServiceType(tab);
-                    }}
-                  />
+                  <div className="sticky top-0 z-20 pb-1 bg-slate-900/90 backdrop-blur-md">
+                    <SaraMultimodalTabBar
+                      activeTab={serviceType}
+                      onChangeTab={(tab) => {
+                        setServiceType(tab);
+                        // Asegurar que en móvil el bottom sheet se expanda al cambiar de pestaña
+                        if (bottomSheetLevel === 'peek') {
+                          setBottomSheetLevel('half');
+                        }
+                      }}
+                    />
+                  </div>
 
                   {/* -------------------------------------------------------- */}
                   {/* SECCIÓN VIAJES / MANDADITOS (PASAJEROS UBER/DIDI Y EXPRESS) */}
