@@ -1543,8 +1543,8 @@ export default function SaraFletesEngine() {
             /* Móvil: Bottom Sheet en 3 niveles */
             absolute bottom-0 left-0 right-0 rounded-t-3xl
             ${bottomSheetLevel === 'peek' ? 'h-[72px] overflow-hidden' : ''}
-            ${bottomSheetLevel === 'half' ? 'max-h-[55vh] h-[55vh]' : ''}
-            ${bottomSheetLevel === 'full' ? 'max-h-[88vh] h-[88vh]' : ''}
+            ${bottomSheetLevel === 'half' ? 'max-h-[75vh] h-[75vh]' : ''}
+            ${bottomSheetLevel === 'full' ? 'max-h-[92vh] h-[92vh]' : ''}
             /* Desktop: Tarjeta Flotante Lateral */
             lg:bottom-auto lg:top-4 lg:left-4 lg:right-auto lg:w-[470px] lg:max-h-[calc(100vh-88px)] lg:h-auto lg:rounded-2xl
             ${isPanelCollapsed ? 'translate-y-[calc(100%-48px)] lg:translate-y-0 lg:w-[320px] lg:max-h-[64px]' : ''}
@@ -1617,6 +1617,11 @@ export default function SaraFletesEngine() {
                       activeTab={serviceType}
                       onChangeTab={(tab) => {
                         setServiceType(tab);
+                        // Si el flete estaba activo o buscando, resetearlo para permitir interactuar con la nueva modalidad
+                        if (activeFreight) {
+                          setActiveFreight(null);
+                          setDriverOffers([]);
+                        }
                         // Asegurar que en móvil el bottom sheet se expanda al cambiar de pestaña
                         if (bottomSheetLevel === 'peek') {
                           setBottomSheetLevel('half');
