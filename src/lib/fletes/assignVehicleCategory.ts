@@ -15,8 +15,14 @@ export interface AssignVehicleResult {
  * - Regla 4 (> 3.5 Ton o Material === "Desalojo de Escombros" > 1.5 Ton): Asigna Volqueta (VOLQUETA_V3A) o Camión Pesado (TRACTO_3S3 si > 14T).
  */
 export function assignVehicleCategory(material: string, weightTons: number): AssignVehicleResult {
-  const isVarillas = material.toLowerCase().includes('varilla');
-  const isEscombros = material.toLowerCase().includes('escombro') || material.toLowerCase().includes('arena') || material.toLowerCase().includes('ripio');
+  const matLower = material.toLowerCase();
+  const isVarillas = matLower.includes('varilla');
+  const isAridoOPetreo = 
+    matLower.includes('escombro') || 
+    matLower.includes('arena') || 
+    matLower.includes('ripio') || 
+    matLower.includes('piedra') || 
+    matLower.includes('lastre');
 
   // Regla 2 prioritaria: Varillas de Acero
   if (isVarillas) {
@@ -36,18 +42,18 @@ export function assignVehicleCategory(material: string, weightTons: number): Ass
     };
   }
 
-  // Regla 4: Volqueta para escombros pesados o áridos > 1.5T o carga pesada > 3.5T
-  if ((isEscombros && weightTons > 1.5) || (material === 'Desalojo de Escombros')) {
+  // Regla 4: Volqueta para escombros pesados, áridos o pétreos > 1.5T o carga pesada > 3.5T
+  if ((isAridoOPetreo && weightTons > 1.5) || (matLower.includes('escombro'))) {
     if (weightTons > 14.0) {
       return {
         category: 'TRACTO_3S3',
-        reason: 'Desalojo masivo de obra civil en unidad pesada MTOP.',
-        badge: 'Unidad pesada para desalojo masivo (>14T)'
+        reason: 'Transporte masivo de áridos / pétreos en unidad pesada MTOP.',
+        badge: 'Unidad pesada para transporte masivo (>14T)'
       };
     }
     return {
       category: 'VOLQUETA_V3A',
-      reason: 'Material a granel o escombros requieren tolva basculante para descarga automática en botadero.',
+      reason: 'Material a granel o escombros requieren tolva basculante para descarga automática en obra / botadero.',
       badge: 'Volqueta de Obra con tolva basculante (14m³)'
     };
   }

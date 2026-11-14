@@ -1611,33 +1611,115 @@ export default function SaraFletesEngine() {
               {/* MODO CLIENTE / PÚBLICO GENERAL */}
               {(
                 <>
-                  {/* SWITCH DUAL: FLETE VS RENTA TEMPORAL */}
-                  <div className="grid grid-cols-2 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-bold">
-                    <button
-                      type="button"
-                      onClick={() => setServiceType('fletes')}
-                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                        serviceType === 'fletes'
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Route className="w-3.5 h-3.5" />
-                      Flete por Viaje
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setServiceType('renta')}
-                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                        serviceType === 'renta'
-                          ? 'bg-amber-500 text-slate-950 font-black shadow-md'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      <Clock className="w-3.5 h-3.5" />
-                      Renta Horas / Días
-                    </button>
-                  </div>
+                  {/* SELECTOR MULTIMODAL UNIFICADO: VIAJES (UBER/DIDI), MANDADITOS, FLETES (CARGA) Y RENTA */}
+                  <SaraMultimodalTabBar
+                    activeTab={serviceType}
+                    onChangeTab={(tab) => {
+                      setServiceType(tab);
+                    }}
+                  />
+
+                  {/* -------------------------------------------------------- */}
+                  {/* SECCIÓN VIAJES / MANDADITOS (PASAJEROS UBER/DIDI Y EXPRESS) */}
+                  {/* -------------------------------------------------------- */}
+                  {(serviceType === 'viajes' || serviceType === 'mandaditos') && !activeFreight && (
+                    <div className="space-y-3">
+                      {/* Selectores de Ruta Rápidos para Viajes */}
+                      <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                            {serviceType === 'viajes' ? '🚖 Punto de Partida y Destino' : '📦 Retiro y Entrega de Paquete'}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {rutaCalculada ? `${rutaCalculada.distanciaKm.toFixed(1)} km · ${rutaCalculada.duracionMinutos} min` : 'GPS Directo'}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <input
+                              type="text"
+                              value={originText}
+                              onChange={(e) => handleOriginInputChange(e.target.value)}
+                              placeholder="Punto de partida (GPS)"
+                              className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                            <input
+                              type="text"
+                              value={destinationText}
+                              onChange={(e) => handleDestinationInputChange(e.target.value)}
+                              placeholder="¿A dónde vas?"
+                              className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <SaraViajesMandaditosQuickOrder
+                        modalidad={serviceType}
+                        distanciaKm={rutaCalculada?.distanciaKm || 3.2}
+                        duracionEstimadaMin={rutaCalculada?.duracionMinutos || 9}
+                        origenNombre={originText || 'Mi Ubicación Actual'}
+                        destinoNombre={destinationText || 'Destino en Cariamanga'}
+                        isRequesting={false}
+                        onRequestConfirm={(params) => {
+                          // Iniciar solicitud inmediata para viajes o mandaditos
+                          const simulatedReq: FreightRequest = {
+                            id: `SARA-${serviceType.toUpperCase()}-${Date.now().toString().slice(-5)}`,
+                            origin: originText || 'Mi Ubicación GPS',
+                            destination: destinationText || 'Destino Seleccionado',
+                            material: serviceType === 'viajes' ? `Viaje de ${params.pasajerosCount || 1} pasajero(s)` : `Mandadito: ${params.paqueteTipo || 'Paquete Express'}`,
+                            weight: 0.1,
+                            vehicleType: 'PICKUP_1T',
+                            referencePrice: params.tarifaUSD,
+                            status: 'searching',
+                            accessCode: Math.floor(1000 + Math.random() * 9000).toString(),
+                            distanciaKm: rutaCalculada?.distanciaKm || 3.2,
+                            duracionMinutos: rutaCalculada?.duracionMinutos || 9,
+                            clienteNombre: 'Usuario SARA'
+                          };
+                          setActiveFreight(simulatedReq);
+                          setProposedPrice(params.tarifaUSD);
+
+                          // Emitir ofertas dinámicas simuladas en tiempo real
+                          setTimeout(() => {
+                            setDriverOffers([
+                              {
+                                id: 'OFFER-VIAJE-1',
+                                driverName: 'Manuel Cárdenas',
+                                vehicleName: params.vehiculoNombre,
+                                plate: 'LBA-2341',
+                                phone: '0987654321',
+                                offeredPrice: params.tarifaUSD,
+                                etaMinutes: 3,
+                                distanceMeters: 450,
+                                rating: 4.9,
+                                tripsCount: 312,
+                                isCounterOffer: false
+                              },
+                              {
+                                id: 'OFFER-VIAJE-2',
+                                driverName: 'David Sarango',
+                                vehicleName: params.vehiculoNombre,
+                                plate: 'PCX-4590',
+                                phone: '0991234567',
+                                offeredPrice: +(params.tarifaUSD + 0.50).toFixed(2),
+                                etaMinutes: 5,
+                                distanceMeters: 750,
+                                rating: 4.8,
+                                tripsCount: 184,
+                                isCounterOffer: true
+                              }
+                            ]);
+                          }, 1200);
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* -------------------------------------------------------- */}
                   {/* SECCIÓN A: FLETE DE CARGA ON-DEMAND */}

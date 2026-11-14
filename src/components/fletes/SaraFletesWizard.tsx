@@ -24,17 +24,32 @@ export interface MaterialOption {
   icon: string;
   defaultUnit: 'TON' | 'M3';
   description: string;
+  categoria: 'aridos' | 'construccion' | 'varios';
   isBulk?: boolean;
   isLong?: boolean;
 }
 
+export const CATEGORIAS_MATERIALES = [
+  { id: 'aridos', label: 'Áridos y Pétreos', icon: '🪨', badge: 'Cantera / Granel' },
+  { id: 'construccion', label: 'Mat. Construcción', icon: '🏗️', badge: 'Obra y Acabados' },
+  { id: 'varios', label: 'Varios / Desalojo', icon: '🚜', badge: 'Escombros / Carga' }
+] as const;
+
 export const MATERIALES_OBRA: MaterialOption[] = [
-  { id: 'arena_ripio', name: 'Arena / Ripio', icon: '🪨', defaultUnit: 'M3', description: 'Áridos a granel o sacos', isBulk: true },
-  { id: 'varillas_acero', name: 'Varillas de Acero', icon: '🏗️', defaultUnit: 'TON', description: 'Barras corrugadas 6m - 12m', isLong: true },
-  { id: 'cemento_sacos', name: 'Cemento (Sacos)', icon: '🧱', defaultUnit: 'TON', description: 'Sacos de 50kg normalizados' },
-  { id: 'escombros', name: 'Desalojo de Escombros', icon: '🚜', defaultUnit: 'M3', description: 'Residuos de excavación y derroche', isBulk: true },
-  { id: 'bloques_ladrillos', name: 'Bloques / Ladrillos', icon: '🧱', defaultUnit: 'TON', description: 'Paletas o millares apilados' },
-  { id: 'ceramica_acabados', name: 'Acabados / Cerámica', icon: '📦', defaultUnit: 'TON', description: 'Cajas delicadas sobre palet' }
+  // 1. Áridos y Pétreos
+  { id: 'arena_ripio', name: 'Arena / Ripio', icon: '🪨', defaultUnit: 'M3', description: 'Áridos lavados a granel o sacos', categoria: 'aridos', isBulk: true },
+  { id: 'piedra_base', name: 'Piedra Base / Bola', icon: '⛰️', defaultUnit: 'M3', description: 'Muros, cimentación y gaviones', categoria: 'aridos', isBulk: true },
+  { id: 'lastre_cantera', name: 'Lastre de Cantera', icon: '🚜', defaultUnit: 'M3', description: 'Mejoramiento de subrasante y vías', categoria: 'aridos', isBulk: true },
+
+  // 2. Materiales de Construcción
+  { id: 'cemento_sacos', name: 'Cemento (Sacos)', icon: '🧱', defaultUnit: 'TON', description: 'Sacos de 50kg normalizados', categoria: 'construccion' },
+  { id: 'bloques_ladrillos', name: 'Bloques / Ladrillos', icon: '🧱', defaultUnit: 'TON', description: 'Paletas o millares apilados', categoria: 'construccion' },
+  { id: 'varillas_acero', name: 'Varillas de Acero', icon: '🏗️', defaultUnit: 'TON', description: 'Barras corrugadas 6m - 12m', categoria: 'construccion', isLong: true },
+  { id: 'ceramica_acabados', name: 'Acabados / Cerámica', icon: '📦', defaultUnit: 'TON', description: 'Cajas delicadas sobre palet', categoria: 'construccion' },
+
+  // 3. Varios / Desalojo
+  { id: 'escombros', name: 'Desalojo de Escombros', icon: '🚜', defaultUnit: 'M3', description: 'Residuos de excavación y derroche', categoria: 'varios', isBulk: true },
+  { id: 'varios_materiales', name: 'Varios Materiales', icon: '📦', defaultUnit: 'TON', description: 'Carga miscelánea o mudanza liviana', categoria: 'varios' }
 ];
 
 export const DESTINOS_FRECUENTES = [
@@ -171,6 +186,20 @@ export function SaraFletesWizard({
   const isEscombros = selectedMaterial === 'Desalojo de Escombros';
   const isVarillas = selectedMaterial === 'Varillas de Acero';
   const isCemento = selectedMaterial === 'Cemento (Sacos)';
+
+  // Determinar la categoría inicial activa basada en el material seleccionado
+  const [activeMaterialCategory, setActiveMaterialCategory] = React.useState<'aridos' | 'construccion' | 'varios'>(() => {
+    const found = MATERIALES_OBRA.find((m) => m.name === selectedMaterial);
+    return found ? found.categoria : 'aridos';
+  });
+
+  // Mantener la categoría sincronizada si el material externo cambia
+  React.useEffect(() => {
+    const found = MATERIALES_OBRA.find((m) => m.name === selectedMaterial);
+    if (found && found.categoria !== activeMaterialCategory) {
+      setActiveMaterialCategory(found.categoria);
+    }
+  }, [selectedMaterial]);
 
   return (
     <div className="space-y-4">
@@ -348,9 +377,34 @@ export function SaraFletesWizard({
               <span className="text-[10px] font-mono text-slate-400">Paso 2 de 4</span>
             </div>
 
-            {/* TARJETAS VISUALES DE MATERIALES */}
+            {/* TABS DE CATEGORÍAS DE MATERIALES (ÁRIDOS, CONSTRUCCIÓN, VARIOS) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
+              {CATEGORIAS_MATERIALES.map((cat) => {
+                const isCatActive = activeMaterialCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setActiveMaterialCategory(cat.id as any)}
+                    className={`py-2 px-1.5 rounded-lg text-center transition-all flex flex-col items-center justify-center gap-0.5 ${
+                      isCatActive
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/20'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <span className="text-sm">{cat.icon}</span>
+                    <span className="text-[10px] leading-tight font-black">{cat.label}</span>
+                    <span className={`text-[8px] leading-none ${isCatActive ? 'text-slate-900 font-semibold' : 'text-slate-500'}`}>
+                      {cat.badge}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* TARJETAS VISUALES DE MATERIALES FILTRADOS POR CATEGORÍA */}
             <div className="grid grid-cols-2 gap-2">
-              {MATERIALES_OBRA.map((m) => {
+              {MATERIALES_OBRA.filter((m) => m.categoria === activeMaterialCategory).map((m) => {
                 const isSelected = selectedMaterial === m.name;
                 return (
                   <button
@@ -362,6 +416,8 @@ export function SaraFletesWizard({
                         onWeightChange(1.0);
                         onSacosCementoChange(20);
                         onUnitTypeChange('TON');
+                      } else if (m.defaultUnit) {
+                        onUnitTypeChange(m.defaultUnit);
                       }
                     }}
                     className={`p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
@@ -372,15 +428,19 @@ export function SaraFletesWizard({
                   >
                     <div className="flex items-center justify-between w-full">
                       <span className="text-2xl">{m.icon}</span>
-                      {isSelected && (
+                      {isSelected ? (
                         <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-black">
                           <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                          {m.defaultUnit === 'M3' ? 'm³' : 'Ton'}
                         </span>
                       )}
                     </div>
                     <div className="mt-2">
                       <p className="font-black text-xs text-white leading-tight">{m.name}</p>
-                      <p className="text-[9px] text-slate-400 mt-0.5">{m.description}</p>
+                      <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">{m.description}</p>
                     </div>
                   </button>
                 );
