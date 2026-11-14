@@ -863,32 +863,78 @@ export default function SaraFletesEngine() {
     return () => unsub();
   }, []);
 
-  // Detección inicial de GPS del navegador
+  // Detección inicial de GPS del navegador en tiempo real con Reverse Geocoding automático
   useEffect(() => {
     if (typeof window !== 'undefined' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        async (pos) => {
           const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
           setUserLocation(coords);
           setGpsLoading(false);
-          const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: coords[0], lng: coords[1], ciudad: 'Ecuador' };
-          setOriginPoint(pOrig);
-          originPointRef.current = pOrig;
+
+          // Obtener nombre real de la calle o cantón actual
+          try {
+            const dirActual = await SaraFreightRoutingService.reverseGeocodificar(coords[0], coords[1]);
+            const pOrig: GeocodedPoint = {
+              nombre: dirActual || 'Mi Ubicación Actual (GPS)',
+              lat: coords[0],
+              lng: coords[1],
+              ciudad: dirActual?.split(',')[1]?.trim() || 'Ecuador'
+            };
+            setOriginPoint(pOrig);
+            originPointRef.current = pOrig;
+            if (dirActual) {
+              setOriginText(dirActual);
+            }
+          } catch {
+            const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: coords[0], lng: coords[1], ciudad: 'Ecuador' };
+            setOriginPoint(pOrig);
+            originPointRef.current = pOrig;
+          }
         },
-        (err) => {
+        async (err) => {
           console.warn('Geolocalización en modo referencial:', err.message);
-          const defaultCoords: [number, number] = [-4.3285, -79.5560];
-          setUserLocation(defaultCoords);
+          // Si el GPS del navegador está bloqueado o da timeout, intentar geolocalización por IP
+          let fallbackCoords: [number, number] = [-4.3285, -79.5560]; // Cariamanga por defecto
+          let ciudadFallback = 'Cariamanga';
+          let nombreFallback = 'Parque Central de Cariamanga';
+
+          try {
+            const ipRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
+            if (ipRes.ok) {
+              const ipData = await ipRes.json();
+              if (ipData.latitude && ipData.longitude) {
+                fallbackCoords = [parseFloat(ipData.latitude), parseFloat(ipData.longitude)];
+                ciudadFallback = ipData.city || 'Cariamanga';
+                nombreFallback = `Mi Ubicación (${ciudadFallback})`;
+              }
+            }
+          } catch {
+            // Failsafe a Cariamanga
+          }
+
+          setUserLocation(fallbackCoords);
           setGpsLoading(false);
-          const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: defaultCoords[0], lng: defaultCoords[1], ciudad: 'Cariamanga' };
+          const pOrig: GeocodedPoint = {
+            nombre: nombreFallback,
+            lat: fallbackCoords[0],
+            lng: fallbackCoords[1],
+            ciudad: ciudadFallback
+          };
           setOriginPoint(pOrig);
           originPointRef.current = pOrig;
+          setOriginText(nombreFallback);
         },
-        { enableHighAccuracy: true, timeout: 8000 }
+        { enableHighAccuracy: true, timeout: 6000 }
       );
     } else {
-      setUserLocation([-4.3285, -79.5560]);
+      const defaultCoords: [number, number] = [-4.3285, -79.5560];
+      setUserLocation(defaultCoords);
       setGpsLoading(false);
+      const pOrig = { nombre: 'Parque Central de Cariamanga', lat: defaultCoords[0], lng: defaultCoords[1], ciudad: 'Cariamanga' };
+      setOriginPoint(pOrig);
+      originPointRef.current = pOrig;
+      setOriginText('Parque Central de Cariamanga');
     }
   }, []);
 
@@ -1069,7 +1115,7 @@ export default function SaraFletesEngine() {
         const dLngDirecta = Math.abs(puntoOrig.lng - puntoDest.lng);
         const distDirectaKm = Math.sqrt(dLatDirecta * dLatDirecta + dLngDirecta * dLngDirecta) * 111;
 
-        if (distDirectaKm > 40 && puntoDest.ciudad && (origenTxt.toLowerCase().includes('mi ubicación') || origenTxt.toLowerCase().includes('gps'))) {
+        if (distDirectaKm > 40 && puntoDest.ciudad && (origenTxt.toLowerCase().includes('mi ubicación') || origenTxt.toLowerCase().includes('gps') || origenTxt.toLowerCase().includes('punto de partida'))) {
           // Si el destino es en Cariamanga u otra ciudad y el origen es solo GPS genérico
           const puntoOrigAjustado: GeocodedPoint = {
             nombre: `Parque Central de ${puntoDest.ciudad}`,

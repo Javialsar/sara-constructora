@@ -436,6 +436,8 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'eloy alfaro': [-4.3255, -79.5575],
       'daniel ojeda': [-4.3260, -79.5525],
       'mariano samaniego': [-4.3280, -79.5530],
+      'jose angel palacios': [-4.3280, -79.5545],
+      'palacios': [-4.3280, -79.5545],
       'via a gonzanama': [-4.3200, -79.5520],
       'via a sozoranga': [-4.3380, -79.5620],
       'via a amaluza': [-4.3400, -79.5500]
@@ -478,7 +480,11 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'bolivar_gran colombia': [-4.3280, -79.5582],
       'gran colombia_bolivar': [-4.3280, -79.5582],
       'sucre_gran colombia': [-4.3278, -79.5584],
-      'gran colombia_sucre': [-4.3278, -79.5584]
+      'gran colombia_sucre': [-4.3278, -79.5584],
+      '18 de noviembre_jose angel palacios': [-4.3280, -79.5545],
+      'jose angel palacios_18 de noviembre': [-4.3280, -79.5545],
+      '18 de noviembre_palacios': [-4.3280, -79.5545],
+      'palacios_18 de noviembre': [-4.3280, -79.5545]
     },
     hitos: {
       'gimaga': [-4.3258, -79.5542],
