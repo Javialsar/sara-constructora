@@ -322,7 +322,7 @@ export default function SaraFletesEngine() {
       const dLng = Math.abs(pOrig.lng - newPoint.lng);
       const distDirectaKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
 
-      if (distDirectaKm > 35 && (originText.toLowerCase().includes('ubicación') || originText.toLowerCase().includes('gps') || originText.toLowerCase().includes('puyo'))) {
+      if (distDirectaKm > 40 && (!pOrig.ciudad || pOrig.ciudad.toLowerCase() !== newPoint.ciudad.toLowerCase()) && (originText.toLowerCase().includes('ubicación') || originText.toLowerCase().includes('gps') || originText.toLowerCase().includes('puyo'))) {
         const puntoOrigLocal: GeocodedPoint = {
           nombre: `Parque Central de ${newPoint.ciudad}`,
           lat: +(newPoint.lat + 0.0045).toFixed(5),
@@ -875,19 +875,23 @@ export default function SaraFletesEngine() {
           // Obtener nombre real de la calle o cantón actual
           try {
             const dirActual = await SaraFreightRoutingService.reverseGeocodificar(coords[0], coords[1]);
+            const dOnlysoftM = Math.hypot(coords[0] - (-4.32785), coords[1] - (-79.56075)) * 111000;
+            const nombreDetectado = dOnlysoftM < 150
+              ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
+              : (dirActual || 'Mi Ubicación Actual (GPS)');
+
             const pOrig: GeocodedPoint = {
-              nombre: dirActual || 'Mi Ubicación Actual (GPS)',
+              nombre: nombreDetectado,
               lat: coords[0],
               lng: coords[1],
-              ciudad: dirActual?.split(',')[1]?.trim() || 'Ecuador'
+              ciudad: dirActual?.split(',')[1]?.trim() || 'Cariamanga',
+              provincia: 'Loja'
             };
             setOriginPoint(pOrig);
             originPointRef.current = pOrig;
-            if (dirActual) {
-              setOriginText(dirActual);
-            }
+            setOriginText(nombreDetectado);
           } catch {
-            const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: coords[0], lng: coords[1], ciudad: 'Ecuador' };
+            const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: coords[0], lng: coords[1], ciudad: 'Cariamanga', provincia: 'Loja' };
             setOriginPoint(pOrig);
             originPointRef.current = pOrig;
           }
@@ -1081,13 +1085,18 @@ export default function SaraFletesEngine() {
     try {
       let puntoOrig = originPointRef.current;
       if (!originLockedByMapRef.current || !puntoOrig) {
-        puntoOrig = await SaraFreightRoutingService.geocodificarDireccion(
-          origenTxt,
-          userLocation || undefined
-        );
-        if (puntoOrig) {
-          originPointRef.current = puntoOrig;
-          setOriginPoint(puntoOrig);
+        // Si ya tenemos un origen fijado en Cariamanga o por GPS del usuario, preservar las coordenadas exactas
+        if (puntoOrig && userLocation && Math.abs(puntoOrig.lat - userLocation[0]) < 0.05) {
+          // Coordenadas válidas de GPS / usuario preservadas
+        } else {
+          puntoOrig = await SaraFreightRoutingService.geocodificarDireccion(
+            origenTxt,
+            userLocation || undefined
+          );
+          if (puntoOrig) {
+            originPointRef.current = puntoOrig;
+            setOriginPoint(puntoOrig);
+          }
         }
       }
 
@@ -1115,8 +1124,8 @@ export default function SaraFletesEngine() {
         const dLngDirecta = Math.abs(puntoOrig.lng - puntoDest.lng);
         const distDirectaKm = Math.sqrt(dLatDirecta * dLatDirecta + dLngDirecta * dLngDirecta) * 111;
 
-        if (distDirectaKm > 40 && puntoDest.ciudad && (origenTxt.toLowerCase().includes('mi ubicación') || origenTxt.toLowerCase().includes('gps') || origenTxt.toLowerCase().includes('punto de partida'))) {
-          // Si el destino es en Cariamanga u otra ciudad y el origen es solo GPS genérico
+        if (distDirectaKm > 40 && puntoDest.ciudad && (!puntoOrig.ciudad || puntoOrig.ciudad.toLowerCase() !== puntoDest.ciudad.toLowerCase()) && (origenTxt.toLowerCase().includes('mi ubicación') || origenTxt.toLowerCase().includes('gps') || origenTxt.toLowerCase().includes('punto de partida'))) {
+          // Si el destino es en Cariamanga u otra ciudad y el origen es de otra provincia
           const puntoOrigAjustado: GeocodedPoint = {
             nombre: `Parque Central de ${puntoDest.ciudad}`,
             lat: +(puntoDest.lat + 0.0055).toFixed(5),
@@ -1207,22 +1216,34 @@ export default function SaraFletesEngine() {
     }
   };
 
-  // Manejador de arrastre manual de Punto de Carga (Origen)
+  // Manejador de arrastre manual de Punto de Carga / Recogida (Origen)
   const handleOriginDragEnd = async (lat: number, lng: number) => {
     originLockedByMapRef.current = true;
     const exactLat = +lat.toFixed(5);
     const exactLng = +lng.toFixed(5);
+
+    // Detección de precisión inmediata para Onlysoft en Cariamanga (-4.32785, -79.56075)
+    const distOnlysoftM = Math.hypot(exactLat - (-4.32785), exactLng - (-79.56075)) * 111000;
+    const nombrePunto = distOnlysoftM < 80
+      ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
+      : `Punto exacto (${exactLat}, ${exactLng})`;
+
     const newPoint: GeocodedPoint = {
-      nombre: `Punto exacto (${exactLat}, ${exactLng})`,
+      nombre: nombrePunto,
       lat: exactLat,
-      lng: exactLng
+      lng: exactLng,
+      ciudad: 'Cariamanga',
+      provincia: 'Loja'
     };
     setOriginPoint(newPoint);
+    originPointRef.current = newPoint;
+    setUserLocation([exactLat, exactLng]);
+    setOriginText(nombrePunto);
 
-    if (destinationPoint) {
+    if (destinationPointRef.current) {
       setIsCalculatingRoute(true);
       try {
-        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(newPoint, destinationPoint);
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(newPoint, destinationPointRef.current);
         setRutaCalculada(ruta);
         const tarifa = SaraFreightPricingService.calcularTarifa(
           ruta.distanciaKm,
@@ -1239,14 +1260,14 @@ export default function SaraFletesEngine() {
       }
     }
 
-    SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
-      originLockedByMapRef.current = true;
-      if (dir) {
-        setOriginText(dir);
-      } else {
-        setOriginText(`Punto exacto (${exactLat}, ${exactLng})`);
-      }
-    });
+    if (distOnlysoftM >= 80) {
+      SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
+        originLockedByMapRef.current = true;
+        if (dir) {
+          setOriginText(dir);
+        }
+      });
+    }
   };
 
   // Manejador de arrastre manual de Punto de Descarga (Destino)
@@ -1257,14 +1278,17 @@ export default function SaraFletesEngine() {
     const newPoint: GeocodedPoint = {
       nombre: `Punto exacto (${exactLat}, ${exactLng})`,
       lat: exactLat,
-      lng: exactLng
+      lng: exactLng,
+      ciudad: destinationPoint?.ciudad || 'Cariamanga',
+      provincia: destinationPoint?.provincia || 'Loja'
     };
     setDestinationPoint(newPoint);
+    destinationPointRef.current = newPoint;
 
-    if (originPoint) {
+    if (originPointRef.current) {
       setIsCalculatingRoute(true);
       try {
-        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(originPoint, newPoint);
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(originPointRef.current, newPoint);
         setRutaCalculada(ruta);
         const tarifa = SaraFreightPricingService.calcularTarifa(
           ruta.distanciaKm,
@@ -1293,7 +1317,7 @@ export default function SaraFletesEngine() {
 
   // Manejador de clics directos sobre el mapa
   const handleMapClick = (lat: number, lng: number) => {
-    if (mapClickMode === 'origen') {
+    if (mapClickMode === 'origen' || serviceType === 'viajes' || serviceType === 'mandaditos') {
       handleOriginDragEnd(lat, lng);
       setMapClickMode(null);
     } else if (mapClickMode === 'destino') {
@@ -1602,9 +1626,10 @@ export default function SaraFletesEngine() {
             destinoCoords={destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null}
             origenNombre={originText}
             destinoNombre={destinationText}
-            rutaCoordenadas={serviceType === 'fletes' ? rutaCalculada?.coordenadasRuta : undefined}
+            rutaCoordenadas={rutaCalculada?.coordenadasRuta}
             vehiculosCercanos={vehiculosZonificados}
             vehiculoSeleccionado={vehicleType}
+            tipoModalidad={serviceType}
             onOriginDragEnd={handleOriginDragEnd}
             onDestinationDragEnd={handleDestinationDragEnd}
             onMapClick={handleMapClick}
@@ -1618,13 +1643,17 @@ export default function SaraFletesEngine() {
         {mapClickMode && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-full text-xs flex items-center gap-2.5 shadow-2xl border-2 border-slate-950 animate-bounce">
             <span className="text-sm">📍</span>
-            <span>Haz clic en el mapa para ubicar <strong>{mapClickMode === 'origen' ? '🟢 CARGA (Origen)' : '🚩 DESCARGA (Destino)'}</strong></span>
+            <span>
+              {mapClickMode === 'origen'
+                ? 'Haz clic exactamente en tu puerta en el mapa (ej. Onlysoft)'
+                : 'Haz clic en el mapa para ubicar tu destino'}
+            </span>
             <button
               type="button"
               onClick={() => setMapClickMode(null)}
               className="bg-slate-950 hover:bg-slate-800 text-white font-bold px-2 py-0.5 rounded-full text-[10px] transition-colors"
             >
-              Cancelar
+              ✕
             </button>
           </div>
         )}
@@ -1785,6 +1814,36 @@ export default function SaraFletesEngine() {
                               ))}
                             </div>
                           )}
+                        </div>
+
+                        {/* Selector de precisión de recogida milimétrica estilo Uber / inDrive */}
+                        <div className="flex items-center justify-between text-[11px] bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-800">
+                          <div className="flex items-center gap-2 truncate mr-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                            <span className="text-slate-400 truncate text-[11px]">
+                              Recogida: <strong className="text-emerald-400 font-semibold">{originText || 'Tu Ubicación Actual'}</strong>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleOriginDragEnd(-4.32785, -79.56075);
+                              }}
+                              className="text-[10px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold px-2.5 py-1 rounded-lg border border-emerald-500/40 transition-all active:scale-95 flex items-center gap-1"
+                              title="Fijar exactamente en Onlysoft (Calle Atahualpa)"
+                            >
+                              <span>🏢</span> Onlysoft
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMapClickMode('origen')}
+                              className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-2 py-1 rounded-lg border border-slate-700 transition-all active:scale-95 flex items-center gap-1"
+                              title="Tocar el mapa o arrastrar el pin verde a tu puerta exacta"
+                            >
+                              <span>📍</span> Ajustar
+                            </button>
+                          </div>
                         </div>
                       </div>
 

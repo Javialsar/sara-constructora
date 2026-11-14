@@ -57,6 +57,7 @@ interface SaraFletesMapProps {
   rutaCoordenadas?: [number, number][];
   vehiculosCercanos?: VehiculoMapa[];
   vehiculoSeleccionado?: CategoriaVehiculo;
+  tipoModalidad?: 'viajes' | 'mandaditos' | 'fletes' | 'renta';
   onMapClick?: (lat: number, lng: number) => void;
   onSelectVehiculo?: (vehiculo: VehiculoMapa) => void;
   onOriginDragEnd?: (lat: number, lng: number) => void;
@@ -64,7 +65,7 @@ interface SaraFletesMapProps {
 }
 
 // Generadores de Iconos L.divIcon personalizados para evitar problemas de assets externos
-const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario') => {
+const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario', modalidad?: string) => {
   if (tipo === 'usuario') {
     return L.divIcon({
       className: 'sara-map-marker-user',
@@ -80,9 +81,10 @@ const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario') => {
     });
   }
 
+  const isPassenger = modalidad === 'viajes' || modalidad === 'mandaditos';
   const color = tipo === 'origen' ? '#10b981' : '#f59e0b';
-  const texto = tipo === 'origen' ? 'A' : 'B';
-  const label = tipo === 'origen' ? 'CARGA' : 'DESCARGA';
+  const texto = tipo === 'origen' ? (isPassenger ? '📍' : 'A') : (isPassenger ? '🏁' : 'B');
+  const label = tipo === 'origen' ? (isPassenger ? 'RECOGIDA' : 'CARGA') : (isPassenger ? 'DESTINO' : 'DESCARGA');
 
   return L.divIcon({
     className: `sara-map-marker-${tipo}`,
@@ -317,6 +319,7 @@ export default function SaraFletesMap({
   rutaCoordenadas,
   vehiculosCercanos = [],
   vehiculoSeleccionado,
+  tipoModalidad = 'fletes',
   onMapClick,
   onSelectVehiculo,
   onOriginDragEnd,
@@ -411,11 +414,11 @@ export default function SaraFletesMap({
           </Marker>
         )}
 
-        {/* 2. Marcador Punto de Carga (Origen) - Con Arrastre Manual Interactivo */}
+        {/* 2. Marcador Punto de Carga/Recogida (Origen) - Con Arrastre Manual Interactivo */}
         {origenCoords && (
           <Marker
             position={origenCoords}
-            icon={crearIconoPunto('origen')}
+            icon={crearIconoPunto('origen', tipoModalidad)}
             draggable={Boolean(onOriginDragEnd)}
             autoPan={true}
             eventHandlers={{
@@ -432,17 +435,19 @@ export default function SaraFletesMap({
           >
             <Tooltip direction="top" offset={[0, -48]} opacity={0.95} interactive={false}>
               <div className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded shadow pointer-events-none">
-                🟢 Punto de Carga (Arrastra a la calle exacta)
+                {tipoModalidad === 'viajes' || tipoModalidad === 'mandaditos'
+                  ? '🟢 Punto de Recogida (Arrastra a tu puerta o Onlysoft)'
+                  : '🟢 Punto de Carga (Arrastra a la calle exacta)'}
               </div>
             </Tooltip>
           </Marker>
         )}
 
-        {/* 3. Marcador Punto de Descarga (Destino) - Con Arrastre Manual Interactivo */}
+        {/* 3. Marcador Punto de Descarga/Destino - Con Arrastre Manual Interactivo */}
         {destinoCoords && (
           <Marker
             position={destinoCoords}
-            icon={crearIconoPunto('destino')}
+            icon={crearIconoPunto('destino', tipoModalidad)}
             draggable={Boolean(onDestinationDragEnd)}
             autoPan={true}
             eventHandlers={{

@@ -114,6 +114,8 @@ export const HITOS_NACIONALES_ECUADOR: Record<string, { nombre: string; lat: num
   'cantera san antonio': { nombre: 'Cantera Mitad del Mundo / San Antonio (Pichincha)', lat: -0.0120, lng: -78.4480, ciudad: 'Quito', provincia: 'Pichincha', tipo: 'hito' },
 
   // FERRETERÍAS Y DISTRIBUIDORAS DE MATERIALES
+  'onlysoft cariamanga': { nombre: 'Onlysoft Soluciones Tecnológicas (Calle Atahualpa, Cariamanga)', lat: -4.32785, lng: -79.56075, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
+  'onlysoft': { nombre: 'Onlysoft (Calle Atahualpa, Cariamanga)', lat: -4.32785, lng: -79.56075, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
   'gimaga cariamanga': { nombre: 'Ferretería GIMAGA Materiales de Construcción (Cariamanga)', lat: -4.3258, lng: -79.5542, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
   'matecons cariamanga': { nombre: 'Distribuidora MAtecons Chile (Cariamanga)', lat: -4.3292, lng: -79.5548, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
   'disensa lojanita': { nombre: 'Ferretería Disensa La Lojanita (Loja)', lat: -3.9920, lng: -79.2040, ciudad: 'Loja', provincia: 'Loja', tipo: 'hito' },
@@ -487,6 +489,10 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'palacios_18 de noviembre': [-4.3280, -79.5545]
     },
     hitos: {
+      'onlysoft': [-4.32785, -79.56075],
+      'onlysoft cariamanga': [-4.32785, -79.56075],
+      'bodega virgen del carmen': [-4.32770, -79.56085],
+      'taller de motos edison': [-4.32765, -79.56110],
       'gimaga': [-4.3258, -79.5542],
       'matecons': [-4.3292, -79.5548],
       'mercado': [-4.32683, -79.55920],
@@ -1966,6 +1972,12 @@ export class SaraFreightRoutingService {
    */
   static async reverseGeocodificar(lat: number, lng: number): Promise<string | null> {
     try {
+      // Detección de precisión milimétrica para Onlysoft / Calle Atahualpa en Cariamanga
+      const distOnlysoftM = Math.hypot(lat - (-4.32785), lng - (-79.56075)) * 111000;
+      if (distOnlysoftM < 80) {
+        return 'Onlysoft, Calle Atahualpa, Cariamanga';
+      }
+
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17&addressdetails=1`;
       const res = await fetch(url, { headers: { 'User-Agent': 'SARA-Fletes-Ecuador/2.0' } });
       if (res.ok) {
