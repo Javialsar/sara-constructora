@@ -1729,81 +1729,62 @@ export default function SaraFletesEngine() {
                   {/* -------------------------------------------------------- */}
                   {(serviceType === 'viajes' || serviceType === 'mandaditos') && !activeFreight && (
                     <div className="space-y-3">
-                      {/* Selectores de Ruta Rápidos para Viajes */}
-                      <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+                      {/* Campo único ultra-rápido: ¿A dónde te llevo? (Punto de partida es automáticamente el GPS del cliente) */}
+                      <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
-                            {serviceType === 'viajes' ? '🚖 Punto de Partida y Destino' : '📦 Retiro y Entrega de Paquete'}
+                          <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
+                            <span>{serviceType === 'viajes' ? '🚖' : '📦'}</span>
+                            {serviceType === 'viajes' ? '¿A dónde te llevo?' : '¿A dónde enviamos tu paquete?'}
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            {rutaCalculada ? `${rutaCalculada.distanciaKm.toFixed(1)} km · ${rutaCalculada.duracionMinutos} min` : 'GPS Directo'}
+                            {rutaCalculada && destinationText ? `${rutaCalculada.distanciaKm.toFixed(1)} km · ${rutaCalculada.duracionMinutos} min` : 'GPS Directo'}
                           </span>
                         </div>
 
-                        <div className="space-y-1.5 relative">
-                          <div ref={originInputWrapperRef} className="relative">
-                            <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 focus-within:border-emerald-500">
-                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
-                              <input
-                                type="text"
-                                value={originText}
-                                onChange={(e) => handleOriginInputChange(e.target.value)}
-                                placeholder="Punto de partida (GPS)"
-                                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
-                              />
-                            </div>
-                            {/* Menú de sugerencias predictivas de Origen */}
-                            {showOriginSuggestions && originSuggestions.length > 0 && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
-                                {originSuggestions.map((sug) => (
-                                  <button
-                                    key={sug.id}
-                                    type="button"
-                                    onClick={() => handleSelectOriginSuggestion(sug)}
-                                    className="w-full p-2 rounded-lg text-left hover:bg-slate-900 flex items-start gap-2 text-xs transition-colors"
-                                  >
-                                    <span className="text-emerald-400 mt-0.5 text-xs">📍</span>
-                                    <div className="truncate">
-                                      <p className="font-bold text-white truncate">{sug.titulo}</p>
-                                      <p className="text-[10px] text-slate-400 truncate">{sug.subtitulo}</p>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
+                        <div ref={destInputWrapperRef} className="relative">
+                          <div className="flex items-center gap-2.5 bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800 focus-within:border-amber-500 shadow-inner">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+                            <input
+                              type="text"
+                              value={destinationText}
+                              onChange={(e) => handleDestinationInputChange(e.target.value)}
+                              placeholder={serviceType === 'viajes' ? '¿A dónde te llevo?' : '¿A dónde enviamos tu paquete?'}
+                              className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none font-semibold"
+                            />
+                            {destinationText && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDestinationText('');
+                                  setDestinationPoint(null);
+                                  setRutaCalculada(null);
+                                }}
+                                className="text-slate-500 hover:text-white text-xs px-1.5 py-0.5 rounded transition-colors"
+                                title="Borrar destino"
+                              >
+                                ✕
+                              </button>
                             )}
                           </div>
-
-                          <div ref={destInputWrapperRef} className="relative">
-                            <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 focus-within:border-amber-500">
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-                              <input
-                                type="text"
-                                value={destinationText}
-                                onChange={(e) => handleDestinationInputChange(e.target.value)}
-                                placeholder="¿A dónde vas?"
-                                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none font-medium"
-                              />
+                          {/* Menú de sugerencias predictivas de Destino */}
+                          {showDestSuggestions && destinationSuggestions.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
+                              {destinationSuggestions.map((sug) => (
+                                <button
+                                  key={sug.id}
+                                  type="button"
+                                  onClick={() => handleSelectDestinationSuggestion(sug)}
+                                  className="w-full p-2 rounded-lg text-left hover:bg-slate-900 flex items-start gap-2 text-xs transition-colors"
+                                >
+                                  <span className="text-amber-400 mt-0.5 text-xs">🚩</span>
+                                  <div className="truncate">
+                                    <p className="font-bold text-white truncate">{sug.titulo}</p>
+                                    <p className="text-[10px] text-slate-400 truncate">{sug.subtitulo}</p>
+                                  </div>
+                                </button>
+                              ))}
                             </div>
-                            {/* Menú de sugerencias predictivas de Destino */}
-                            {showDestSuggestions && destinationSuggestions.length > 0 && (
-                              <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
-                                {destinationSuggestions.map((sug) => (
-                                  <button
-                                    key={sug.id}
-                                    type="button"
-                                    onClick={() => handleSelectDestinationSuggestion(sug)}
-                                    className="w-full p-2 rounded-lg text-left hover:bg-slate-900 flex items-start gap-2 text-xs transition-colors"
-                                  >
-                                    <span className="text-amber-400 mt-0.5 text-xs">🚩</span>
-                                    <div className="truncate">
-                                      <p className="font-bold text-white truncate">{sug.titulo}</p>
-                                      <p className="text-[10px] text-slate-400 truncate">{sug.subtitulo}</p>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
 
