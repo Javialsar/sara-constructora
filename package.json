@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node scripts/run-all-tests.js",
+    "test:all": "node scripts/run-all-tests.js",
+    "test:hardening": "node -e \"require('jiti')(process.cwd(), { alias: { '@': require('path').resolve(process.cwd(), 'src') } })('./tests/run-enterprise-hardening-and-negative-auth-tests.ts')\"",
     "test:zero-trust": "node -e \"require('jiti')(process.cwd(), { alias: { '@': require('path').resolve(process.cwd(), 'src') } })('./tests/run-zero-trust-api-guard-tests.ts')\""
   },
   "dependencies": {

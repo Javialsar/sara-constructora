@@ -51,9 +51,9 @@ async function runMarketplaceSellerSuite() {
   // --------------------------------------------------------------------------
   console.log('\n[GRUPO 2] Verificación de Planes y Comisiones Grupo SARA');
   // --------------------------------------------------------------------------
-  assert(SELLER_PLANS.VIP_FABRICA.comisionSaraPct === 15.0, 'Plan VIP Fábrica aplica 15.0% de comisión SARA');
-  assert(SELLER_PLANS.ESTANDAR_PRO.comisionSaraPct === 10.0, 'Plan Empresarial aplica 10.0% de comisión SARA');
-  assert(SELLER_PLANS.BASICO_FERRETERIA.comisionSaraPct === 8.0, 'Plan Básico Ferretería aplica 8.0% de comisión SARA');
+  assert(SELLER_PLANS.VIP_FABRICA.comisionSaraPct === 1.8, 'Plan VIP Fábrica aplica 1.8% de comisión SARA');
+  assert(SELLER_PLANS.ESTANDAR_PRO.comisionSaraPct === 3.5, 'Plan Empresarial aplica 3.5% de comisión SARA');
+  assert(SELLER_PLANS.BASICO_FERRETERIA.comisionSaraPct === 6.0, 'Plan Básico Ferretería aplica 6.0% de comisión SARA');
   assert(SELLER_PLANS.VIP_FABRICA.soportaApiSync === true, 'Plan VIP cuenta con soporte de API REST habilitado');
   assert(SELLER_PLANS.BASICO_FERRETERIA.soportaApiSync === false, 'Plan Básico no incluye API REST (requiere upgrade)');
 
@@ -89,7 +89,7 @@ async function runMarketplaceSellerSuite() {
     plan: 'ESTANDAR_PRO'
   });
   assert(nuevaEmpresa.id.startsWith('seller-17900169'), 'Empresa registrada con ID persistente');
-  assert(nuevaEmpresa.comisionSaraPct === 10.0, 'Comisión asignada automáticamente al 10.0% según Plan Empresarial');
+  assert(nuevaEmpresa.comisionSaraPct === 3.5, 'Comisión asignada automáticamente al 3.5% según Plan Empresarial');
   assert(nuevaEmpresa.apiKey.startsWith('sk_live_'), 'Generación automática de API Key segura');
 
   // --------------------------------------------------------------------------

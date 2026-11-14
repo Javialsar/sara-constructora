@@ -28,12 +28,12 @@ export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
   VIP: {
     id: 'VIP',
     nombre: 'Plan VIP Fábrica',
-    badge: 'Proveedor VIP (15%)',
+    badge: 'Proveedor VIP (1.8%)',
     costoMensualUSD: 199,
-    comisionSaraPct: 15.0,
+    comisionSaraPct: 1.8,
     prioridadExhibicion: 1,
     beneficios: [
-      'Comisión del 15.0% sobre ventas netas',
+      'Comisión preferencial del 1.8% sobre ventas netas',
       'Máxima prioridad en cuadrícula y vitrina del Marketplace B2B',
       'API REST dedicada y Webhooks para sincronización con SAP/Odoo/Contifico',
       'Importación masiva ilimitada por archivos Excel (.xlsx)',
@@ -49,12 +49,12 @@ export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
   VIP_FABRICA: {
     id: 'VIP_FABRICA',
     nombre: 'Plan VIP Fábrica',
-    badge: 'Proveedor VIP (15%)',
+    badge: 'Proveedor VIP (1.8%)',
     costoMensualUSD: 199,
-    comisionSaraPct: 15.0,
+    comisionSaraPct: 1.8,
     prioridadExhibicion: 1,
     beneficios: [
-      'Comisión del 15.0% sobre ventas netas',
+      'Comisión preferencial del 1.8% sobre ventas netas',
       'Máxima prioridad en cuadrícula y vitrina del Marketplace B2B',
       'API REST dedicada y Webhooks para sincronización con SAP/Odoo/Contifico',
       'Importación masiva ilimitada por archivos Excel (.xlsx)',
@@ -70,12 +70,12 @@ export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
   EMPRESARIAL: {
     id: 'EMPRESARIAL',
     nombre: 'Plan Empresarial / Distribuidor Pro',
-    badge: 'Empresarial Pro (10%)',
+    badge: 'Distribuidor Pro (3.5%)',
     costoMensualUSD: 79,
-    comisionSaraPct: 10.0,
+    comisionSaraPct: 3.5,
     prioridadExhibicion: 2,
     beneficios: [
-      'Comisión competitiva del 10.0% sobre ventas netas',
+      'Comisión competitiva del 3.5% sobre ventas netas',
       'Posicionamiento secundario preferencial en la vitrina de compras',
       'Carga masiva periódica mediante plantillas Excel (.xlsx)',
       'Insignia azul de Distribuidor Certificado SRI',
@@ -90,12 +90,12 @@ export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
   ESTANDAR_PRO: {
     id: 'ESTANDAR_PRO',
     nombre: 'Plan Empresarial / Distribuidor Pro',
-    badge: 'Empresarial Pro (10%)',
+    badge: 'Distribuidor Pro (3.5%)',
     costoMensualUSD: 79,
-    comisionSaraPct: 10.0,
+    comisionSaraPct: 3.5,
     prioridadExhibicion: 2,
     beneficios: [
-      'Comisión competitiva del 10.0% sobre ventas netas',
+      'Comisión competitiva del 3.5% sobre ventas netas',
       'Posicionamiento secundario preferencial en la vitrina de compras',
       'Carga masiva periódica mediante plantillas Excel (.xlsx)',
       'Insignia azul de Distribuidor Certificado SRI',
@@ -110,13 +110,13 @@ export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
   BASICO: {
     id: 'BASICO',
     nombre: 'Plan Básico Ferretería',
-    badge: 'Básico Ferretería (8%)',
+    badge: 'Básico Ferretería (6.0%)',
     costoMensualUSD: 0,
-    comisionSaraPct: 8.0,
+    comisionSaraPct: 6.0,
     prioridadExhibicion: 3,
     beneficios: [
       'Sin costo mensual ($0 de suscripción fija)',
-      'Comisión del 8.0% aplicable únicamente sobre ventas concretadas',
+      'Comisión del 6.0% aplicable únicamente sobre ventas concretadas',
       'Carga manual e importación básica de catálogo hasta 250 insumos',
       'Acceso a solicitudes de cotización de constructoras locales',
       'Liquidación a 15 días tras confirmación de recepción'
@@ -129,13 +129,13 @@ export const SELLER_PLANS: Record<string, SellerPlanConfig> = {
   BASICO_FERRETERIA: {
     id: 'BASICO_FERRETERIA',
     nombre: 'Plan Básico Ferretería',
-    badge: 'Básico Ferretería (8%)',
+    badge: 'Básico Ferretería (6.0%)',
     costoMensualUSD: 0,
-    comisionSaraPct: 8.0,
+    comisionSaraPct: 6.0,
     prioridadExhibicion: 3,
     beneficios: [
       'Sin costo mensual ($0 de suscripción fija)',
-      'Comisión del 8.0% aplicable únicamente sobre ventas concretadas',
+      'Comisión del 6.0% aplicable únicamente sobre ventas concretadas',
       'Carga manual e importación básica de catálogo hasta 250 insumos',
       'Acceso a solicitudes de cotización de constructoras locales',
       'Liquidación a 15 días tras confirmación de recepción'

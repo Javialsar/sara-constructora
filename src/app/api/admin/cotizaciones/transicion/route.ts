@@ -43,28 +43,23 @@ const transitionSchema = z.object({
   path: ['motivo_perdida']
 })
 
+import { requireServerAuth } from '@/lib/auth/serverAuthGuard'
+
 /**
- * Autenticación estricta Zero-Trust: verifica sesión o token JWT antes de permitir mutaciones.
+ * Autenticación estricta Zero-Trust: verifica sesión o token JWT y roles administrativos.
  */
 async function authenticateUser(request: Request) {
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-  if (user && !authError) {
-    return { authenticated: true, user }
-  }
-
-  // Comprobar Bearer token si no hay cookies
-  const authHeader = request.headers.get('authorization')
-  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
-    const token = authHeader.substring(7).trim()
-    const { data: tokenUser, error: tokenError } = await supabase.auth.getUser(token)
-    if (tokenUser?.user && !tokenError) {
-      return { authenticated: true, user: tokenUser.user }
+  try {
+    const auth = await requireServerAuth(request)
+    return { 
+      authenticated: true, 
+      user: auth.user, 
+      isAdmin: auth.isAdmin, 
+      role: auth.role 
     }
+  } catch {
+    return { authenticated: false, user: null, isAdmin: false, role: '' }
   }
-
-  return { authenticated: false, user: null }
 }
 
 /**

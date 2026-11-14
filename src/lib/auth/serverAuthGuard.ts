@@ -9,30 +9,46 @@ export interface VerifiedServerAuth {
 
 /**
  * Obtiene el usuario autenticado de la sesión activa en el servidor verificando el JWT contra Supabase Auth.
+ * Admite tanto sesión por cookies como Bearer token vía header de autorización.
  */
-export async function getVerifiedServerUser(): Promise<User | null> {
+export async function getVerifiedServerUser(request?: Request): Promise<User | null> {
   const supabase = await createSupabaseServerClient()
   const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) {
-    return null
+  if (user && !error) {
+    return user
   }
-  return user
+
+  // Fallback para API Routes con header Authorization: Bearer <token>
+  if (request) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+      const token = authHeader.substring(7).trim()
+      const { data: tokenUser, error: tokenError } = await supabase.auth.getUser(token)
+      if (tokenUser?.user && !tokenError) {
+        return tokenUser.user
+      }
+    }
+  }
+
+  return null
 }
 
 /**
  * Exige una sesión activa en el servidor. Lanza error si no está autenticado.
- * Prioriza `app_metadata` sobre `user_metadata` para prevenir escalamiento de privilegios.
+ * SEGURIDAD ZERO-TRUST: Los roles y privilegios provienen EXCLUSIVAMENTE de `app_metadata`.
+ * `user_metadata` es editable por el cliente y NUNCA se utiliza para evaluar privilegios administrativos.
  */
-export async function requireServerAuth(): Promise<VerifiedServerAuth> {
-  const user = await getVerifiedServerUser()
+export async function requireServerAuth(request?: Request): Promise<VerifiedServerAuth> {
+  const user = await getVerifiedServerUser(request)
   if (!user) {
     throw new Error('No autenticado: Se requiere una sesión activa válida')
   }
 
-  const role = String(user.app_metadata?.role || user.user_metadata?.role || 'cliente')
+  // Estricto Zero-Trust: Solo app_metadata (establecido por el servidor) otorga roles y permisos
+  const role = String(user.app_metadata?.role || 'cliente')
   const isAdmin = Boolean(
-    user.app_metadata?.es_admin ||
-    user.user_metadata?.es_admin ||
+    user.app_metadata?.es_admin === true ||
+    user.app_metadata?.sara_master === true ||
     role === 'admin' ||
     role === 'superadmin'
   )
@@ -43,8 +59,8 @@ export async function requireServerAuth(): Promise<VerifiedServerAuth> {
 /**
  * Exige privilegios de Master Admin en el servidor.
  */
-export async function requireMasterAdmin(): Promise<VerifiedServerAuth> {
-  const auth = await requireServerAuth()
+export async function requireMasterAdmin(request?: Request): Promise<VerifiedServerAuth> {
+  const auth = await requireServerAuth(request)
   if (!auth.isAdmin) {
     throw new Error('Acceso denegado: Se requieren privilegios de Master Admin')
   }

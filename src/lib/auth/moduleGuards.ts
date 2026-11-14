@@ -177,14 +177,41 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
 export const UNIVERSAL_ACCESS_ROLES = ['admin', 'superadmin', 'tecnico']
 
 /**
- * Extrae y normaliza los metadatos del usuario priorizando `app_metadata` sobre `user_metadata`
+ * Extrae y normaliza los metadatos del usuario priorizando de forma estricta `app_metadata` sobre `user_metadata`.
+ * SEGURIDAD ZERO-TRUST: Cualquier rol administrativo ('admin', 'superadmin', 'tecnico') o flag 'es_admin'
+ * presente en `user_metadata` es descartado de inmediato para prevenir escalamiento de privilegios.
  */
 function resolveMetadata(input: any): any {
   if (!input) return {}
   if (input.app_metadata || input.user_metadata) {
     const appMeta = input.app_metadata || {}
     const userMeta = input.user_metadata || {}
-    return { ...userMeta, ...appMeta }
+
+    const verifiedAppRole = (appMeta.role && typeof appMeta.role === 'string') ? appMeta.role : ''
+    const requestedUserRole = String(userMeta.role || '')
+    const isUntrustedPrivilegedRole = 
+      UNIVERSAL_ACCESS_ROLES.includes(requestedUserRole) || 
+      requestedUserRole === 'admin' || 
+      requestedUserRole === 'superadmin' || 
+      requestedUserRole === 'tecnico'
+
+    // Si el rol es administrativo pero solo viene de user_metadata, se degrada a 'cliente'
+    const finalRole = verifiedAppRole || (isUntrustedPrivilegedRole ? 'cliente' : (requestedUserRole || 'cliente'))
+    const safeIsAdmin = Boolean(
+      appMeta.es_admin === true || 
+      appMeta.sara_master === true || 
+      finalRole === 'admin' || 
+      finalRole === 'superadmin'
+    )
+
+    return {
+      ...userMeta,
+      ...appMeta,
+      role: finalRole,
+      es_admin: safeIsAdmin,
+      modulos_autorizados: Array.isArray(appMeta.modulos_autorizados) ? appMeta.modulos_autorizados : undefined,
+      modulo_origen: appMeta.modulo_origen || userMeta.modulo_origen
+    }
   }
   return input
 }

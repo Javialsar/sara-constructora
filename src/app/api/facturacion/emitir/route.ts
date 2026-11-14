@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SriEmissionService, FacturaEmisionInput } from '@/lib/services/sriEmissionService';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // 1. Verificación obligatoria Zero-Trust de sesión autenticada
+    const { user, isAdmin, role } = await requireServerAuth(req);
+
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ success: false, error: 'Cuerpo de petición inválido' }, { status: 400 });
+    }
 
     const emisor = body.emisor;
     const comprador = body.comprador;
@@ -31,6 +41,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const establecimiento = emisor.establecimiento || '001';
+    const puntoEmision = emisor.puntoEmision || '001';
+
+    // 2. Determinación Correlativa y Estricta del Secuencial SRI (9 dígitos)
+    let secuencial = body.secuencial;
+    if (secuencial && /^\d{9}$/.test(String(secuencial).trim())) {
+      secuencial = String(secuencial).trim();
+    } else {
+      // Consultar último secuencial emitido para este emisor
+      try {
+        const adminDb = createAdminClient();
+        const { data: ultimos } = await adminDb
+          .from('comprobantes_electronicos_sri')
+          .select('numero_comprobante')
+          .eq('ruc_emisor', emisor.ruc.trim())
+          .order('fecha_emision', { ascending: false })
+          .limit(1);
+
+        if (ultimos && ultimos.length > 0 && ultimos[0].numero_comprobante) {
+          const partes = ultimos[0].numero_comprobante.split('-');
+          const ultimoSec = parseInt(partes[2] || '0', 10);
+          secuencial = String(ultimoSec + 1).padStart(9, '0');
+        } else {
+          secuencial = '000000001';
+        }
+      } catch {
+        secuencial = '000000001';
+      }
+    }
+
     const payload: FacturaEmisionInput = {
       emisor: {
         ruc: emisor.ruc.trim(),
@@ -38,8 +78,8 @@ export async function POST(req: NextRequest) {
         nombreComercial: emisor.nombreComercial?.trim() || emisor.razonSocial.trim(),
         dirMatriz: emisor.dirMatriz || emisor.direccion || 'Ecuador',
         dirEstablecimiento: emisor.dirEstablecimiento || emisor.dirMatriz || 'Ecuador',
-        establecimiento: emisor.establecimiento || '001',
-        puntoEmision: emisor.puntoEmision || '001',
+        establecimiento,
+        puntoEmision,
         obligadoContabilidad: emisor.obligadoContabilidad || 'NO',
         regimen: emisor.regimen || 'Régimen RIMPE - Negocio Emprendedor',
         ambiente: emisor.ambiente === '1' ? '1' : '2' // 2: Producción por defecto
@@ -52,7 +92,7 @@ export async function POST(req: NextRequest) {
         email: comprador.email?.trim() || 'facturacion@gruposara.com',
         telefono: comprador.telefono?.trim() || '0999999999'
       },
-      secuencial: body.secuencial || String(Math.floor(100000000 + Math.random() * 900000000)).substring(0, 9),
+      secuencial,
       fechaEmision: body.fechaEmision ? new Date(body.fechaEmision) : new Date(),
       items: items.map(item => ({
         codigo: item.codigo || 'ITM-01',
@@ -68,7 +108,7 @@ export async function POST(req: NextRequest) {
     // Procesamiento inmediato en línea (Cumplimiento Art. 314 Código Tributario)
     const emisionResult = await SriEmissionService.procesarEmisionInmediata(payload);
 
-    // Intentar persistir en Supabase si la tabla existe
+    // Intentar persistir en Supabase
     try {
       const supabase = await createSupabaseServerClient();
       await supabase.from('comprobantes_electronicos_sri').insert({
@@ -82,10 +122,10 @@ export async function POST(req: NextRequest) {
         total: emisionResult.totalFactura,
         estado: emisionResult.estado,
         ambiente: emisionResult.ambiente,
-        xml_autorizado: emisionResult.xmlAutorizado
+        xml_autorizado: emisionResult.xmlAutorizado,
+        emitido_por_user_id: user.id
       });
     } catch (dbErr) {
-      // Si la tabla no está creada aún, no detiene la respuesta
       console.warn('Aviso persistencia Supabase comprobante:', dbErr);
     }
 
@@ -96,9 +136,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error al emitir factura SRI:', error);
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
     return NextResponse.json(
       { success: false, error: error.message || 'Error en la transmisión inmediata al SRI.' },
-      { status: 500 }
+      { status }
     );
   }
 }

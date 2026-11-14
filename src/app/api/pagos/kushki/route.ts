@@ -1,35 +1,37 @@
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
+import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function POST(req: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
   try {
     // 1. Verificación obligatoria de autenticación Zero-Trust
-    const serverClient = await createSupabaseServerClient();
-    const { data: { user } } = await serverClient.auth.getUser();
+    const { user } = await requireServerAuth(req);
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'No autorizado: Se requiere sesión activa para procesar transacciones de pago.' },
-        { status: 401 }
-      );
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ success: false, error: 'Cuerpo de petición inválido' }, { status: 400 });
     }
 
-    // 2. En producción, los cobros simulados directos están estrictamente denegados
-    if (process.env.NODE_ENV === 'production' && !process.env.KUSHKI_PRIVATE_MERCHANT_ID) {
+    const { token, cardNumber, plan, amount } = body;
+
+    // 2. PCI DSS Compliance: Rechazo estricto de números de tarjeta en texto claro
+    if (cardNumber) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Operación denegada en producción: Pasarela de pagos Kushki no configurada formalmente con merchant ID.'
+          error: 'Violación PCI DSS: Por seguridad financiera, nunca transmita números de tarjeta en texto claro al servidor. Utilice el SDK de Kushki para obtener un token seguro en el cliente (token).'
         },
-        { status: 503 }
+        { status: 400 }
       );
     }
 
-    const body = await req.json();
-    const { cardNumber, plan, amount } = body;
-
-    if (!cardNumber || String(cardNumber).replace(/\s/g, '').length < 14) {
-      return NextResponse.json({ success: false, error: 'Número de tarjeta inválido' }, { status: 400 });
+    if (!token || typeof token !== 'string' || token.trim().length < 8) {
+      return NextResponse.json(
+        { success: false, error: 'Token de pago Kushki inválido o ausente. Se requiere tokenización previa en cliente.' },
+        { status: 400 }
+      );
     }
 
     const numAmount = Number(amount);
@@ -37,21 +39,85 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Monto de pago inválido' }, { status: 400 });
     }
 
-    const crypto = await import('crypto');
-    const transactionId = 'KSH-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+    const merchantId = process.env.KUSHKI_PRIVATE_MERCHANT_ID;
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // 3. Verificación de configuración formal de pasarela
+    if (isProduction && !merchantId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Pasarela Kushki no configurada en producción (falta KUSHKI_PRIVATE_MERCHANT_ID).'
+        },
+        { status: 503 }
+      );
+    }
 
-    if (supabaseUrl && serviceRoleKey) {
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    let transactionId = '';
+    let statusApproval: 'aprobada' | 'rechazada' = 'aprobada';
+    let rawGatewayResponse: any = null;
 
-      const { data: orden } = await supabaseAdmin.from('ordenes_pago').insert({
+    if (merchantId) {
+      // 4. Invocación oficial a la API de Kushki
+      const kushkiEndpoint = isProduction
+        ? 'https://api.kushkipagos.com/card/v1/charges'
+        : 'https://api-uat.kushkipagos.com/card/v1/charges';
+
+      const chargePayload = {
+        token: token.trim(),
+        amount: {
+          subtotalIva: 0,
+          subtotalIva0: parseFloat(numAmount.toFixed(2)),
+          ice: 0,
+          iva: 0,
+          currency: 'USD'
+        },
+        metadata: {
+          userId: user.id,
+          userEmail: user.email,
+          plan: plan || 'Suscripcion SaaS'
+        }
+      };
+
+      const gatewayRes = await fetch(kushkiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Private-Merchant-Id': merchantId
+        },
+        body: JSON.stringify(chargePayload)
+      });
+
+      rawGatewayResponse = await gatewayRes.json().catch(() => null);
+
+      if (!gatewayRes.ok || rawGatewayResponse?.responseCode !== '000') {
+        const errorMsg = rawGatewayResponse?.message || rawGatewayResponse?.responseText || 'Transacción rechazada por la entidad bancaria';
+        return NextResponse.json(
+          {
+            success: false,
+            error: errorMsg,
+            code: rawGatewayResponse?.responseCode || 'GATEWAY_DECLINED'
+          },
+          { status: 402 }
+        );
+      }
+
+      transactionId = rawGatewayResponse.ticketNumber || rawGatewayResponse.transactionId || `KSH-${Date.now()}`;
+    } else {
+      // Entorno de pruebas / desarrollo sin credenciales reales
+      const crypto = await import('crypto');
+      transactionId = 'KSH-TEST-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+    }
+
+    // 5. Persistencia Transaccional Idempotente en Supabase
+    try {
+      const supabaseAdmin = createAdminClient();
+
+      const { data: orden, error: ordenErr } = await supabaseAdmin.from('ordenes_pago').insert({
         user_id: user.id,
         modulo: 'saas',
         referencia_id: transactionId,
-        concepto: `Pago Kushki / Tarjeta: ${plan || 'Suscripción'}`,
+        concepto: `Pago Kushki Tokenizado: ${plan || 'Suscripción'}`,
         monto: numAmount,
         moneda: 'USD',
         estado: 'completada'
@@ -63,18 +129,22 @@ export async function POST(req: Request) {
           metodo_pago: 'kushki',
           monto_pagado: numAmount,
           stripe_session_id: transactionId,
-          estado_aprobacion: 'aprobada'
+          estado_aprobacion: statusApproval,
+          observaciones_admin: merchantId ? 'Validado contra API Kushki en vivo' : 'Transacción simulada en entorno de desarrollo/pruebas'
         });
       }
+    } catch (dbErr) {
+      console.warn('[Kushki Route DB Notice]:', dbErr);
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      transactionId, 
+    return NextResponse.json({
+      success: true,
+      transactionId,
       message: `Transacción procesada exitosamente para el plan ${plan}.`,
       status: 'APPROVED'
     });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Error procesando el pago' }, { status: 500 });
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
+    return NextResponse.json({ success: false, error: error.message || 'Error procesando el pago' }, { status });
   }
 }

@@ -5,7 +5,35 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const rawBody = await req.json();
+    // 1. Verificación de Seguridad y Firma de Webhook Bancario
+    const webhookSecret = process.env.BANK_WEBHOOK_SECRET || process.env.DEUNA_WEBHOOK_SECRET;
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    const authHeader = req.headers.get('authorization') || '';
+    const signatureHeader = req.headers.get('x-bank-signature') || req.headers.get('x-webhook-token') || req.headers.get('x-signature') || '';
+    const urlToken = req.nextUrl.searchParams.get('token') || '';
+
+    if (webhookSecret) {
+      const providedSecret = signatureHeader || urlToken || (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
+      if (providedSecret !== webhookSecret) {
+        return NextResponse.json(
+          { error: 'Firma o secreto de webhook bancario inválido' },
+          { status: 401 }
+        );
+      }
+    } else if (isProduction) {
+      // En producción es obligatorio tener configurado el secreto del webhook
+      console.error('[BANK WEBHOOK CRITICAL]: BANK_WEBHOOK_SECRET no está configurado en producción');
+      return NextResponse.json(
+        { error: 'Configuración de seguridad del webhook bancario incompleta' },
+        { status: 503 }
+      );
+    }
+
+    const rawBody = await req.json().catch(() => null);
+    if (!rawBody) {
+      return NextResponse.json({ error: 'Payload de webhook inválido' }, { status: 400 });
+    }
 
     // Detección automática del origen del Webhook bancario
     // Formato 1: DeUna / Banco Pichincha QR
@@ -35,7 +63,6 @@ export async function POST(req: NextRequest) {
         const refMatch = emailText.match(/(?:documento|comprobante|referencia)\s*(?:no\.?|nro\.?|#)?\s*([0-9A-Za-z-]+)/i);
         if (refMatch) referencia = refMatch[1];
       }
-      
       // Banco Guayaquil matcher
       else if (emailText.includes('Guayaquil') || rawBody.from.includes('bancoguayaquil.com')) {
         banco = 'BANCO_GUAYAQUIL';

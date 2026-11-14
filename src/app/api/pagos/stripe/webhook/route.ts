@@ -31,20 +31,32 @@ export async function POST(req: Request) {
     const ordenId = session.client_reference_id
 
     if (ordenId) {
-      // Usamos SERVICE_ROLE para saltar RLS en background
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
 
+      // CONTROL DE IDEMPOTENCIA ZERO-TRUST:
+      // Verificar si la sesión de Stripe ya fue procesada para evitar transacciones duplicadas
+      const { data: existingTx } = await supabaseAdmin
+        .from('transacciones')
+        .select('id')
+        .eq('stripe_session_id', session.id)
+        .maybeSingle()
+
+      if (existingTx) {
+        console.log(`[Stripe Webhook] Idempotencia activada: Sesión ${session.id} ya fue registrada y procesada previamente.`)
+        return NextResponse.json({ received: true, deduplicated: true })
+      }
+
       // 1. Obtener la orden de pago, ahora necesitamos referencia_id que es el planId
-      const { data: orden } = await supabaseAdmin.from('ordenes_pago').select('user_id, monto, referencia_id').eq('id', ordenId).single()
+      const { data: orden } = await supabaseAdmin.from('ordenes_pago').select('user_id, monto, referencia_id, estado').eq('id', ordenId).single()
       
       if (orden) {
         // 2. Marcar la orden como completada
         await supabaseAdmin.from('ordenes_pago').update({ estado: 'completada' }).eq('id', ordenId)
 
-        // 3. Registrar la Transacción
+        // 3. Registrar la Transacción con deduplicación garantizada
         await supabaseAdmin.from('transacciones').insert({
           orden_id: ordenId,
           metodo_pago: 'stripe',

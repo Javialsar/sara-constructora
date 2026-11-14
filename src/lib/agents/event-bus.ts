@@ -79,16 +79,26 @@ export class SaraEventBus {
       this.suppressReactiveHandlers ||
       this.imperativeCorrelations.has(correlationId);
 
-    // Despacho no bloqueante a los agentes suscriptores (solo si no está suprimido por flujo imperativo)
+    // Despacho no bloqueante a los agentes suscriptores con reintentos y backoff exponencial
     const handlers = this.subscribers.get(eventType);
     if (!shouldSuppress && handlers && handlers.size > 0) {
-      // Disparar en micro-tarea para no retener la respuesta HTTP
       queueMicrotask(async () => {
         for (const handler of Array.from(handlers)) {
-          try {
-            await handler(event);
-          } catch (err) {
-            console.error(`[SARA EventBus Error] Fallo al procesar evento ${eventType}:`, err);
+          let attempt = 0;
+          const maxRetries = 3;
+          while (attempt < maxRetries) {
+            try {
+              await handler(event);
+              break;
+            } catch (err) {
+              attempt++;
+              if (attempt >= maxRetries) {
+                console.error(`[SARA EventBus Error] Fallo definitivo al procesar evento ${eventType} tras ${maxRetries} reintentos:`, err);
+              } else {
+                const backoffMs = Math.pow(2, attempt) * 100;
+                await new Promise(resolve => setTimeout(resolve, backoffMs));
+              }
+            }
           }
         }
       });

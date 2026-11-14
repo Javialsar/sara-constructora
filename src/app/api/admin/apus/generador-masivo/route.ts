@@ -347,10 +347,10 @@ export async function POST(request: Request) {
     }
 
     const { categoria, subcategoria, cantidad, provincia_referencia, normativa_base, es_privado: requestedPrivado, proyecto_id } = validation.data
+    // SEGURIDAD ZERO-TRUST: Privilegios administrativos evaluados EXCLUSIVAMENTE en app_metadata
     const appMeta = user.app_metadata || {}
-    const userMeta = user.user_metadata || {}
-    const role = appMeta.role || userMeta.role || ""
-    const es_admin = Boolean(appMeta.es_admin || userMeta.es_admin)
+    const role = String(appMeta.role || '')
+    const es_admin = Boolean(appMeta.es_admin === true || appMeta.sara_master === true)
     const isAdminUser = role === "admin" || role === "superadmin" || es_admin
     const es_privado = !isAdminUser ? true : requestedPrivado
 

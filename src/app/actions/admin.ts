@@ -1,9 +1,15 @@
 "use server"
 
 import { createSupabaseAdminClient } from '@/lib/supabase-server'
-import { refresh } from 'next/cache'
+import { requireMasterAdmin } from '@/lib/auth/serverAuthGuard'
 
 export async function toggleClienteEstado(id: string, estadoActual: string) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
   const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo'
 
@@ -20,6 +26,12 @@ export async function toggleClienteEstado(id: string, estadoActual: string) {
 }
 
 export async function updateCotizacionEstado(id: string, nuevoEstado: string) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
 
   const { error } = await supabase
@@ -35,6 +47,12 @@ export async function updateCotizacionEstado(id: string, nuevoEstado: string) {
 }
 
 export async function updateTestimonioEstado(id: string, nuevoEstado: string) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
 
   const { error } = await supabase
@@ -50,6 +68,12 @@ export async function updateTestimonioEstado(id: string, nuevoEstado: string) {
 }
 
 export async function deleteProyecto(id: string) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
 
   const { error } = await supabase
@@ -77,6 +101,12 @@ export async function upsertProyecto(data: {
   latitud?: number
   longitud?: number
 }) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
 
   if (data.id) {
@@ -100,6 +130,12 @@ export async function upsertProyecto(data: {
 }
 
 export async function deleteAvance(id: string) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
 
   const { error } = await supabase
@@ -119,6 +155,12 @@ export async function upsertAvance(data: {
   descripcion?: string
   url?: string
 }) {
+  try {
+    await requireMasterAdmin()
+  } catch (authErr: any) {
+    return { error: authErr.message || 'Acceso denegado: Se requieren privilegios de Master Admin' }
+  }
+
   const supabase = await createSupabaseAdminClient()
 
   if (data.id) {
