@@ -1815,36 +1815,6 @@ export default function SaraFletesEngine() {
                             </div>
                           )}
                         </div>
-
-                        {/* Selector de precisión de recogida milimétrica estilo Uber / inDrive */}
-                        <div className="flex items-center justify-between text-[11px] bg-slate-900/90 px-3 py-2 rounded-xl border border-slate-800">
-                          <div className="flex items-center gap-2 truncate mr-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
-                            <span className="text-slate-400 truncate text-[11px]">
-                              Recogida: <strong className="text-emerald-400 font-semibold">{originText || 'Tu Ubicación Actual'}</strong>
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                handleOriginDragEnd(-4.32785, -79.56075);
-                              }}
-                              className="text-[10px] bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold px-2.5 py-1 rounded-lg border border-emerald-500/40 transition-all active:scale-95 flex items-center gap-1"
-                              title="Fijar exactamente en Onlysoft (Calle Atahualpa)"
-                            >
-                              <span>🏢</span> Onlysoft
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setMapClickMode('origen')}
-                              className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-2 py-1 rounded-lg border border-slate-700 transition-all active:scale-95 flex items-center gap-1"
-                              title="Tocar el mapa o arrastrar el pin verde a tu puerta exacta"
-                            >
-                              <span>📍</span> Ajustar
-                            </button>
-                          </div>
-                        </div>
                       </div>
 
                       <SaraViajesMandaditosQuickOrder
