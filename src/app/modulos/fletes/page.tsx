@@ -848,15 +848,26 @@ export default function SaraFletesEngine() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    if (!('geolocation' in navigator)) {
-      setGpsLoading(false);
-      const defaultCoords: [number, number] = [-4.3285, -79.5560];
+    const defaultCoords: [number, number] = [-4.3285, -79.5560];
+
+    // Inicializar de inmediato con la sede central de Cariamanga como base segura antes de GPS
+    if (!userLocationRef.current) {
       setUserLocation(defaultCoords);
       userLocationRef.current = defaultCoords;
-      const pOrig = { nombre: 'Parque Central de Cariamanga', lat: defaultCoords[0], lng: defaultCoords[1], ciudad: 'Cariamanga' };
+      const pOrig: GeocodedPoint = {
+        nombre: 'Onlysoft, Calle Atahualpa (Cariamanga)',
+        lat: defaultCoords[0],
+        lng: defaultCoords[1],
+        ciudad: 'Cariamanga',
+        provincia: 'Loja'
+      };
       setOriginPoint(pOrig);
       originPointRef.current = pOrig;
-      setOriginText('Parque Central de Cariamanga');
+      setOriginText('Onlysoft, Calle Atahualpa (Cariamanga)');
+    }
+
+    if (!('geolocation' in navigator)) {
+      setGpsLoading(false);
       return;
     }
 
@@ -871,74 +882,61 @@ export default function SaraFletesEngine() {
       userLocationRef.current = coords;
       setGpsLoading(false);
 
-      // Si el origen no ha sido bloqueado manualmente por el usuario
+      // Si el origen no ha sido bloqueado manualmente por el usuario en el mapa
       if (!originLockedByMapRef.current) {
+        let nombreDetectado = 'Mi Ubicación Actual (GPS)';
+        let ciudadDetectada = 'Cariamanga';
         try {
           const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
           const dOnlysoftM = Math.hypot(lat - (-4.32785), lng - (-79.56075)) * 111000;
-          const nombreDetectado = dOnlysoftM < 120
+          nombreDetectado = dOnlysoftM < 120
             ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
             : (dirActual || 'Mi Ubicación Actual (GPS)');
 
-          const ciudadDetectada = dirActual?.split(',')[1]?.trim() || dirActual?.split(',')[0]?.trim() || 'Ecuador';
-
-          const pOrig: GeocodedPoint = {
-            nombre: nombreDetectado,
-            lat,
-            lng,
-            ciudad: ciudadDetectada
-          };
-          setOriginPoint(pOrig);
-          originPointRef.current = pOrig;
-          setOriginText(nombreDetectado);
+          ciudadDetectada = dirActual?.split(',')[1]?.trim() || dirActual?.split(',')[0]?.trim() || 'Ecuador';
         } catch {
-          const pOrig: GeocodedPoint = {
-            nombre: 'Mi Ubicación Actual (GPS)',
-            lat,
-            lng,
-            ciudad: 'Ecuador'
-          };
-          setOriginPoint(pOrig);
-          originPointRef.current = pOrig;
-          setOriginText('Mi Ubicación Actual (GPS)');
+          // Fallback silencioso
+        }
+
+        const pOrig: GeocodedPoint = {
+          nombre: nombreDetectado,
+          lat,
+          lng,
+          ciudad: ciudadDetectada
+        };
+        setOriginPoint(pOrig);
+        originPointRef.current = pOrig;
+        setOriginText(nombreDetectado);
+
+        // Si ya hay un destino seleccionado, recalcular la ruta automáticamente con el nuevo origen GPS
+        const pDest = destinationPointRef.current;
+        if (pDest) {
+          try {
+            const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest);
+            setRutaCalculada(ruta);
+            const tarifa = SaraFreightPricingService.calcularTarifa(
+              ruta.distanciaKm,
+              weight,
+              vehicleType,
+              material
+            );
+            setTarifaEstimada(tarifa);
+            setProposedPrice(tarifa.tarifaSugeridaUSD);
+          } catch (err) {
+            console.error('Error recalculando ruta con nueva posición GPS:', err);
+          }
         }
       }
     };
 
-    // 1. Obtener primera lectura rápida
+    // 1. Obtener primera lectura rápida de satélite
     navigator.geolocation.getCurrentPosition(
       aplicarPosicionGPS,
-      async (err) => {
-        console.warn('GPS inicial en espera:', err.message);
-        if (!userLocationRef.current) {
-          try {
-            const ipRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
-            if (ipRes.ok) {
-              const ipData = await ipRes.json();
-              if (ipData.latitude && ipData.longitude) {
-                const fallbackCoords: [number, number] = [parseFloat(ipData.latitude), parseFloat(ipData.longitude)];
-                const ciudadFallback = ipData.city || 'Ecuador';
-                const nombreFallback = `Mi Ubicación (${ciudadFallback})`;
-                setUserLocation(fallbackCoords);
-                userLocationRef.current = fallbackCoords;
-                if (!originLockedByMapRef.current) {
-                  const pOrig: GeocodedPoint = {
-                    nombre: nombreFallback,
-                    lat: fallbackCoords[0],
-                    lng: fallbackCoords[1],
-                    ciudad: ciudadFallback
-                  };
-                  setOriginPoint(pOrig);
-                  originPointRef.current = pOrig;
-                  setOriginText(nombreFallback);
-                }
-              }
-            }
-          } catch {}
-        }
+      (err) => {
+        console.warn('GPS inicial en espera o sin permiso:', err.message);
         setGpsLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 
     // 2. Escuchar cambios de posición satelital en tiempo real continuo (watchPosition)

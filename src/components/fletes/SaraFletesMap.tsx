@@ -145,6 +145,14 @@ function MapCameraController({
   const map = useMap();
   const lastKeyRef = useRef<string>('');
 
+  // Asegurar dimensiones reales de Leaflet ante redimensionamientos o carga inicial
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [map]);
+
   useEffect(() => {
     // 1. Caso ruta trazada con origen y destino
     if (origenCoords && destinoCoords) {
@@ -159,9 +167,10 @@ function MapCameraController({
         }
 
         // Ajuste perfecto con el fitBounds nativo de Leaflet
+        map.invalidateSize();
         map.fitBounds(bounds, {
           padding: [70, 70],
-          maxZoom: 17,
+          maxZoom: 16,
           animate: true
         });
       }
@@ -178,7 +187,7 @@ function MapCameraController({
       return;
     }
 
-    // 3. Caso origen o GPS en tiempo real
+    // 3. Caso origen o GPS en tiempo real (seguimiento activo)
     const targetPoint = origenCoords || userLocation;
     if (targetPoint && !destinoCoords) {
       const key = `point_${targetPoint[0].toFixed(5)},${targetPoint[1].toFixed(5)}`;
@@ -258,9 +267,25 @@ function MapFloatingControls({
       <button
         type="button"
         onClick={() => {
-          const target = userLocation || origenCoords;
-          if (target) {
-            map.flyTo(target, 17, { animate: true, duration: 1 });
+          if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                const target: [number, number] = [+pos.coords.latitude.toFixed(5), +pos.coords.longitude.toFixed(5)];
+                map.flyTo(target, 17, { animate: true, duration: 1.2 });
+              },
+              () => {
+                const target = userLocation || origenCoords;
+                if (target) {
+                  map.flyTo(target, 17, { animate: true, duration: 1 });
+                }
+              },
+              { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            );
+          } else {
+            const target = userLocation || origenCoords;
+            if (target) {
+              map.flyTo(target, 17, { animate: true, duration: 1 });
+            }
           }
         }}
         title="Centrar en mi ubicación GPS en tiempo real"
