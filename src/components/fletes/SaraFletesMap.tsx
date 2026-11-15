@@ -130,7 +130,7 @@ const crearIconoVehiculo = (vehiculo: VehiculoMapa, isSelected: boolean) => {
   });
 };
 
-// Controlador de cámara automática que ajusta zoom y vista sin movimientos bruscos al arrastrar
+// Controlador de cámara automática que ajusta zoom y vista en tiempo real (100% reactivo)
 function MapCameraController({
   userLocation,
   origenCoords,
@@ -143,52 +143,49 @@ function MapCameraController({
   rutaCoordenadas?: [number, number][];
 }) {
   const map = useMap();
-  const lastFittedCoordsRef = useRef<string>('');
+  const lastKeyRef = useRef<string>('');
 
   useEffect(() => {
-    // Si no tenemos ambos puntos, centrar en usuario
-    if (!origenCoords && !destinoCoords) {
-      if (userLocation && !lastFittedCoordsRef.current) {
-        map.flyTo(userLocation, 16, { animate: true, duration: 1.2 });
-        lastFittedCoordsRef.current = 'user_init';
+    // 1. Caso ruta trazada con origen y destino
+    if (origenCoords && destinoCoords) {
+      const routeLen = rutaCoordenadas?.length || 0;
+      const key = `route_${origenCoords[0].toFixed(5)},${origenCoords[1].toFixed(5)}_${destinoCoords[0].toFixed(5)},${destinoCoords[1].toFixed(5)}_${routeLen}`;
+      if (lastKeyRef.current !== key) {
+        lastKeyRef.current = key;
+
+        const bounds = L.latLngBounds([origenCoords, destinoCoords]);
+        if (rutaCoordenadas && rutaCoordenadas.length > 0) {
+          rutaCoordenadas.forEach(coord => bounds.extend(coord));
+        }
+
+        // Ajuste perfecto con el fitBounds nativo de Leaflet
+        map.fitBounds(bounds, {
+          padding: [70, 70],
+          maxZoom: 17,
+          animate: true
+        });
       }
       return;
     }
 
-    if (origenCoords && destinoCoords) {
-      const coordKey = `${origenCoords[0].toFixed(4)},${origenCoords[1].toFixed(4)}-${destinoCoords[0].toFixed(4)},${destinoCoords[1].toFixed(4)}`;
-      if (lastFittedCoordsRef.current !== coordKey) {
-        lastFittedCoordsRef.current = coordKey;
-
-        const dLat = Math.abs(origenCoords[0] - destinoCoords[0]);
-        const dLng = Math.abs(origenCoords[1] - destinoCoords[1]);
-        const approxKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
-
-        if (approxKm < 0.05) {
-          // Si son prácticamente el mismo punto o < 50m, centrar directo a nivel de calle
-          map.flyTo(origenCoords, 16, { animate: true, duration: 1 });
-        } else {
-          const bounds = L.latLngBounds([origenCoords, destinoCoords]);
-          if (rutaCoordenadas && rutaCoordenadas.length > 0) {
-            rutaCoordenadas.forEach(coord => bounds.extend(coord));
-          }
-
-          // Zoom dinámico de alta fidelidad:
-          // Si es urbano / cantonal (< 4 km como Cariamanga), zoom 15 a 17 para ver perfectamente calles y esquinas
-          const maxZ = approxKm < 4 ? 17 : approxKm < 25 ? 15 : 13;
-          const minZ = approxKm < 4 ? 15 : approxKm < 25 ? 12 : 7;
-          const calculatedZoom = map.getBoundsZoom(bounds, false, L.point(60, 60));
-          const targetZoom = Math.max(minZ, Math.min(maxZ, calculatedZoom));
-
-          map.setView(bounds.getCenter(), targetZoom, {
-            animate: true
-          });
-        }
+    // 2. Caso solo destino seleccionado
+    if (!origenCoords && destinoCoords) {
+      const key = `dest_${destinoCoords[0].toFixed(5)},${destinoCoords[1].toFixed(5)}`;
+      if (lastKeyRef.current !== key) {
+        lastKeyRef.current = key;
+        map.flyTo(destinoCoords, 16, { animate: true, duration: 1 });
       }
-    } else if (origenCoords && !destinoCoords) {
-      map.flyTo(origenCoords, 16, { animate: true, duration: 1 });
-    } else if (!origenCoords && destinoCoords) {
-      map.flyTo(destinoCoords, 16, { animate: true, duration: 1 });
+      return;
+    }
+
+    // 3. Caso origen o GPS en tiempo real
+    const targetPoint = origenCoords || userLocation;
+    if (targetPoint && !destinoCoords) {
+      const key = `point_${targetPoint[0].toFixed(5)},${targetPoint[1].toFixed(5)}`;
+      if (lastKeyRef.current !== key) {
+        lastKeyRef.current = key;
+        map.flyTo(targetPoint, 16, { animate: true, duration: 1.2 });
+      }
     }
   }, [map, userLocation, origenCoords, destinoCoords, rutaCoordenadas]);
 
@@ -257,17 +254,23 @@ function MapFloatingControls({
         )}
       </div>
 
-      {/* Botón Mi Ubicación GPS */}
-      {userLocation && (
-        <button
-          type="button"
-          onClick={() => map.flyTo(userLocation, 16, { animate: true, duration: 1.2 })}
-          title="Centrar en mi ubicación GPS"
-          className="bg-slate-900/90 hover:bg-slate-800 text-blue-400 hover:text-blue-300 p-2.5 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10"
-        >
-          <span className="text-base">📍</span>
-        </button>
-      )}
+      {/* Botón Mi Ubicación GPS en tiempo real */}
+      <button
+        type="button"
+        onClick={() => {
+          const target = userLocation || origenCoords;
+          if (target) {
+            map.flyTo(target, 17, { animate: true, duration: 1 });
+          }
+        }}
+        title="Centrar en mi ubicación GPS en tiempo real"
+        className="relative bg-slate-900/95 hover:bg-slate-800 text-blue-400 hover:text-blue-300 p-2.5 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-xl transition-all cursor-pointer flex items-center justify-center w-10 h-10 active:scale-95"
+      >
+        <span className="text-base">🎯</span>
+        {userLocation && (
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-slate-900 animate-ping"></span>
+        )}
+      </button>
 
       {/* Botón Centrar y Zoom a la Ruta */}
       {origenCoords && destinoCoords && (
@@ -278,14 +281,7 @@ function MapFloatingControls({
             if (rutaCoordenadas && rutaCoordenadas.length > 0) {
               rutaCoordenadas.forEach(coord => bounds.extend(coord));
             }
-            const dLat = Math.abs(origenCoords[0] - destinoCoords[0]);
-            const dLng = Math.abs(origenCoords[1] - destinoCoords[1]);
-            const approxKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
-            const maxZ = approxKm < 4 ? 17 : approxKm < 25 ? 15 : 13;
-            const minZ = approxKm < 4 ? 15 : approxKm < 25 ? 12 : 7;
-            const calculatedZoom = map.getBoundsZoom(bounds, false, L.point(75, 75));
-            const targetZoom = Math.max(minZ, Math.min(maxZ, calculatedZoom));
-            map.setView(bounds.getCenter(), targetZoom, { animate: true });
+            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17, animate: true });
           }}
           title="Zoom a la ruta detallada"
           className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-2 rounded-xl shadow-2xl transition-all cursor-pointer flex items-center gap-1.5 text-xs active:scale-95 border border-amber-400"

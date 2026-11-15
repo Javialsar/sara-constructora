@@ -166,11 +166,16 @@ export default function SaraFletesEngine() {
   // Candados y estado interactivo de mapa para evitar desfasaje y saltos
   const originLockedByMapRef = useRef<boolean>(false);
   const destLockedByMapRef = useRef<boolean>(false);
+  const userLocationRef = useRef<[number, number] | null>(null);
   const originPointRef = useRef<GeocodedPoint | null>(null);
   const destinationPointRef = useRef<GeocodedPoint | null>(null);
   const [mapClickMode, setMapClickMode] = useState<'origen' | 'destino' | null>(null);
 
   // Sincronizar referencias para evitar recreación de callbacks
+  useEffect(() => {
+    userLocationRef.current = userLocation;
+  }, [userLocation]);
+
   useEffect(() => {
     originPointRef.current = originPoint;
   }, [originPoint]);
@@ -311,31 +316,7 @@ export default function SaraFletesEngine() {
     destinationPointRef.current = newPoint;
     setDestinationPoint(newPoint);
 
-    let pOrig = originPointRef.current;
-
-    // Coherencia de servicio urbano:
-    // Si estamos en Viajes Rápidos o Fletes y el origen actual está en otra provincia o a > 35 km (ej. Puyo a 600 km de Cariamanga),
-    // y el usuario seleccionó una dirección dentro de una ciudad específica,
-    // re-sincronizamos el punto de partida automáticamente dentro del mismo cantón / zona de origen local.
-    if (newPoint.ciudad && pOrig) {
-      const dLat = Math.abs(pOrig.lat - newPoint.lat);
-      const dLng = Math.abs(pOrig.lng - newPoint.lng);
-      const distDirectaKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
-
-      if (distDirectaKm > 40 && (!pOrig.ciudad || pOrig.ciudad.toLowerCase() !== newPoint.ciudad.toLowerCase()) && (originText.toLowerCase().includes('ubicación') || originText.toLowerCase().includes('gps') || originText.toLowerCase().includes('puyo'))) {
-        const puntoOrigLocal: GeocodedPoint = {
-          nombre: `Parque Central de ${newPoint.ciudad}`,
-          lat: +(newPoint.lat + 0.0045).toFixed(5),
-          lng: +(newPoint.lng + 0.0035).toFixed(5),
-          ciudad: newPoint.ciudad,
-          provincia: newPoint.provincia
-        };
-        pOrig = puntoOrigLocal;
-        originPointRef.current = puntoOrigLocal;
-        setOriginPoint(puntoOrigLocal);
-        setOriginText(`Punto de partida (${newPoint.ciudad})`);
-      }
-    }
+    const pOrig = originPointRef.current;
 
     if (pOrig) {
       setIsCalculatingRoute(true);
@@ -863,83 +844,115 @@ export default function SaraFletesEngine() {
     return () => unsub();
   }, []);
 
-  // Detección inicial de GPS del navegador en tiempo real con Reverse Geocoding automático
+  // Detección y sincronización continua de GPS en tiempo real (100% reactivo)
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-          setUserLocation(coords);
-          setGpsLoading(false);
+    if (typeof window === 'undefined') return;
 
-          // Obtener nombre real de la calle o cantón actual
-          try {
-            const dirActual = await SaraFreightRoutingService.reverseGeocodificar(coords[0], coords[1]);
-            const dOnlysoftM = Math.hypot(coords[0] - (-4.32785), coords[1] - (-79.56075)) * 111000;
-            const nombreDetectado = dOnlysoftM < 150
-              ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
-              : (dirActual || 'Mi Ubicación Actual (GPS)');
+    if (!('geolocation' in navigator)) {
+      setGpsLoading(false);
+      const defaultCoords: [number, number] = [-4.3285, -79.5560];
+      setUserLocation(defaultCoords);
+      userLocationRef.current = defaultCoords;
+      const pOrig = { nombre: 'Parque Central de Cariamanga', lat: defaultCoords[0], lng: defaultCoords[1], ciudad: 'Cariamanga' };
+      setOriginPoint(pOrig);
+      originPointRef.current = pOrig;
+      setOriginText('Parque Central de Cariamanga');
+      return;
+    }
 
-            const pOrig: GeocodedPoint = {
-              nombre: nombreDetectado,
-              lat: coords[0],
-              lng: coords[1],
-              ciudad: dirActual?.split(',')[1]?.trim() || 'Cariamanga',
-              provincia: 'Loja'
-            };
-            setOriginPoint(pOrig);
-            originPointRef.current = pOrig;
-            setOriginText(nombreDetectado);
-          } catch {
-            const pOrig = { nombre: 'Mi Ubicación Actual (GPS)', lat: coords[0], lng: coords[1], ciudad: 'Cariamanga', provincia: 'Loja' };
-            setOriginPoint(pOrig);
-            originPointRef.current = pOrig;
-          }
-        },
-        async (err) => {
-          console.warn('Geolocalización en modo referencial:', err.message);
-          // Si el GPS del navegador está bloqueado o da timeout, intentar geolocalización por IP
-          let fallbackCoords: [number, number] = [-4.3285, -79.5560]; // Cariamanga por defecto
-          let ciudadFallback = 'Cariamanga';
-          let nombreFallback = 'Parque Central de Cariamanga';
+    setGpsLoading(true);
 
+    const aplicarPosicionGPS = async (pos: GeolocationPosition) => {
+      const lat = +pos.coords.latitude.toFixed(5);
+      const lng = +pos.coords.longitude.toFixed(5);
+      const coords: [number, number] = [lat, lng];
+
+      setUserLocation(coords);
+      userLocationRef.current = coords;
+      setGpsLoading(false);
+
+      // Si el origen no ha sido bloqueado manualmente por el usuario
+      if (!originLockedByMapRef.current) {
+        try {
+          const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
+          const dOnlysoftM = Math.hypot(lat - (-4.32785), lng - (-79.56075)) * 111000;
+          const nombreDetectado = dOnlysoftM < 120
+            ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
+            : (dirActual || 'Mi Ubicación Actual (GPS)');
+
+          const ciudadDetectada = dirActual?.split(',')[1]?.trim() || dirActual?.split(',')[0]?.trim() || 'Ecuador';
+
+          const pOrig: GeocodedPoint = {
+            nombre: nombreDetectado,
+            lat,
+            lng,
+            ciudad: ciudadDetectada
+          };
+          setOriginPoint(pOrig);
+          originPointRef.current = pOrig;
+          setOriginText(nombreDetectado);
+        } catch {
+          const pOrig: GeocodedPoint = {
+            nombre: 'Mi Ubicación Actual (GPS)',
+            lat,
+            lng,
+            ciudad: 'Ecuador'
+          };
+          setOriginPoint(pOrig);
+          originPointRef.current = pOrig;
+          setOriginText('Mi Ubicación Actual (GPS)');
+        }
+      }
+    };
+
+    // 1. Obtener primera lectura rápida
+    navigator.geolocation.getCurrentPosition(
+      aplicarPosicionGPS,
+      async (err) => {
+        console.warn('GPS inicial en espera:', err.message);
+        if (!userLocationRef.current) {
           try {
             const ipRes = await fetch('https://get.geojs.io/v1/ip/geo.json');
             if (ipRes.ok) {
               const ipData = await ipRes.json();
               if (ipData.latitude && ipData.longitude) {
-                fallbackCoords = [parseFloat(ipData.latitude), parseFloat(ipData.longitude)];
-                ciudadFallback = ipData.city || 'Cariamanga';
-                nombreFallback = `Mi Ubicación (${ciudadFallback})`;
+                const fallbackCoords: [number, number] = [parseFloat(ipData.latitude), parseFloat(ipData.longitude)];
+                const ciudadFallback = ipData.city || 'Ecuador';
+                const nombreFallback = `Mi Ubicación (${ciudadFallback})`;
+                setUserLocation(fallbackCoords);
+                userLocationRef.current = fallbackCoords;
+                if (!originLockedByMapRef.current) {
+                  const pOrig: GeocodedPoint = {
+                    nombre: nombreFallback,
+                    lat: fallbackCoords[0],
+                    lng: fallbackCoords[1],
+                    ciudad: ciudadFallback
+                  };
+                  setOriginPoint(pOrig);
+                  originPointRef.current = pOrig;
+                  setOriginText(nombreFallback);
+                }
               }
             }
-          } catch {
-            // Failsafe a Cariamanga
-          }
+          } catch {}
+        }
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
 
-          setUserLocation(fallbackCoords);
-          setGpsLoading(false);
-          const pOrig: GeocodedPoint = {
-            nombre: nombreFallback,
-            lat: fallbackCoords[0],
-            lng: fallbackCoords[1],
-            ciudad: ciudadFallback
-          };
-          setOriginPoint(pOrig);
-          originPointRef.current = pOrig;
-          setOriginText(nombreFallback);
-        },
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    } else {
-      const defaultCoords: [number, number] = [-4.3285, -79.5560];
-      setUserLocation(defaultCoords);
-      setGpsLoading(false);
-      const pOrig = { nombre: 'Parque Central de Cariamanga', lat: defaultCoords[0], lng: defaultCoords[1], ciudad: 'Cariamanga' };
-      setOriginPoint(pOrig);
-      originPointRef.current = pOrig;
-      setOriginText('Parque Central de Cariamanga');
-    }
+    // 2. Escuchar cambios de posición satelital en tiempo real continuo (watchPosition)
+    const watchId = navigator.geolocation.watchPosition(
+      aplicarPosicionGPS,
+      (err) => {
+        console.warn('Aviso watchPosition GPS:', err.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   // Flota de vehículos zonificados alrededor de la zona de operación con placas provinciales de Ecuador (ANT)
@@ -1116,29 +1129,6 @@ export default function SaraFletesEngine() {
       }
 
       if (puntoOrig && puntoDest) {
-        // Detección de coherencia urbana:
-        // Si el usuario escribe una dirección en una ciudad específica (ej. Cariamanga)
-        // pero el origen proviene de un GPS default lejano (> 40 km, ej. Puyo o Guayaquil),
-        // ajustar el punto de partida al centro urbano de la misma ciudad del destino para calcular una ruta local real.
-        const dLatDirecta = Math.abs(puntoOrig.lat - puntoDest.lat);
-        const dLngDirecta = Math.abs(puntoOrig.lng - puntoDest.lng);
-        const distDirectaKm = Math.sqrt(dLatDirecta * dLatDirecta + dLngDirecta * dLngDirecta) * 111;
-
-        if (distDirectaKm > 40 && puntoDest.ciudad && (!puntoOrig.ciudad || puntoOrig.ciudad.toLowerCase() !== puntoDest.ciudad.toLowerCase()) && (origenTxt.toLowerCase().includes('mi ubicación') || origenTxt.toLowerCase().includes('gps') || origenTxt.toLowerCase().includes('punto de partida'))) {
-          // Si el destino es en Cariamanga u otra ciudad y el origen es de otra provincia
-          const puntoOrigAjustado: GeocodedPoint = {
-            nombre: `Parque Central de ${puntoDest.ciudad}`,
-            lat: +(puntoDest.lat + 0.0055).toFixed(5),
-            lng: +(puntoDest.lng + 0.0040).toFixed(5),
-            ciudad: puntoDest.ciudad,
-            provincia: puntoDest.provincia
-          };
-          puntoOrig = puntoOrigAjustado;
-          originPointRef.current = puntoOrigAjustado;
-          setOriginPoint(puntoOrigAjustado);
-          setOriginText(`Punto de partida (${puntoDest.ciudad})`);
-        }
-
         // Si ambos puntos tienen coordenadas idénticas o solapadas, desfasamos ligeramente el destino 350m para diferenciarlos
         if (Math.abs(puntoOrig.lat - puntoDest.lat) < 0.0002 && Math.abs(puntoOrig.lng - puntoDest.lng) < 0.0002) {
           puntoDest = {
