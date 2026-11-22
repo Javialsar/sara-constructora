@@ -58,6 +58,8 @@ import {
 } from '@/lib/services/saraFletesRealtimeService';
 import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton';
 import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
+import { SaraDriverBiometricCheckModal } from '@/components/fletes/SaraDriverBiometricCheckModal';
+import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
 import { 
@@ -87,6 +89,8 @@ export default function MiPerfilFletes() {
 
   const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'cuentas_bancarias' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
   const [planesList, setPlanesList] = useState<any[]>([]);
+  const [biometricVerified, setBiometricVerified] = useState<boolean>(false);
+  const [isBiometricModalOpen, setIsBiometricModalOpen] = useState<boolean>(false);
 
   // Configuración de cuentas bancarias y códigos QR de cobro
   const [bankConfig, setBankConfig] = useState<DriverBankConfig>(() => {
@@ -823,13 +827,27 @@ export default function MiPerfilFletes() {
             <Truck className="w-6 h-6 stroke-[2.5]" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-xl font-black text-white">
                 SARA <span className="text-amber-500">Cabina de Transportista</span>
               </h1>
               <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                 Activo
               </span>
+              <SaraNetworkStatusPill />
+              <button
+                type="button"
+                onClick={() => setIsBiometricModalOpen(true)}
+                className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border transition-all ${
+                  biometricVerified
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                    : 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
+                }`}
+                title="Verificación biométrica facial en vivo (Selfie Liveness Check)"
+              >
+                <ShieldCheck className="w-3 h-3" />
+                {biometricVerified ? 'Biometría Turno OK' : 'Verificar Identidad'}
+              </button>
             </div>
             <p className="text-xs text-slate-400">
               Panel de control de unidad, radar de pedidos, billetera y documentación oficial
@@ -2754,6 +2772,17 @@ export default function MiPerfilFletes() {
         onSuccess={(epod) => {
           setSavedEpod(epod);
           handleCompleteTrip();
+        }}
+      />
+
+      {/* Modal de Verificación Biométrica Facial en Vivo (Selfie Liveness Check) */}
+      <SaraDriverBiometricCheckModal
+        isOpen={isBiometricModalOpen}
+        onClose={() => setIsBiometricModalOpen(false)}
+        driverName={currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
+        onVerified={() => {
+          setBiometricVerified(true);
+          setIsBiometricModalOpen(false);
         }}
       />
 

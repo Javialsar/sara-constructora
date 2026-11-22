@@ -12,7 +12,10 @@ import {
   ArrowRight,
   Phone,
   User,
-  AlertCircle
+  AlertCircle,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { 
   MODALIDADES_SARA_FLETES, 
@@ -20,6 +23,7 @@ import {
   VehicleOptionUI,
   MultimodalVerticalKey
 } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
+import { SaraSmartBiddingSlider } from './SaraSmartBiddingSlider';
 
 interface SaraViajesMandaditosQuickOrderProps {
   modalidad: 'viajes' | 'mandaditos';
@@ -65,8 +69,16 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
   const [destinatarioTelefono, setDestinatarioTelefono] = useState<string>('0991234567');
   const [esUrgente, setEsUrgente] = useState<boolean>(false);
 
+  // Smart Bidding 2.0 (Modo inDrive opcional)
+  const [showSmartBidding, setShowSmartBidding] = useState<boolean>(false);
+  const [customOffer, setCustomOffer] = useState<{
+    contextKey: string;
+    price: number;
+  } | null>(null);
+
   // Vehículo seleccionado actualmente
   const selectedVehicle = config.vehiculos.find(v => v.id === selectedVehicleId) || config.vehiculos[0];
+  const offerContextKey = `${modalidad}:${selectedVehicle?.id ?? ''}`;
 
   // Cálculo de tarifa dinámica para la tarjeta seleccionada
   const calcularTarifaVehiculo = (v: VehicleOptionUI): number => {
@@ -89,6 +101,14 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
   };
 
   const tarifaCalculada = selectedVehicle ? calcularTarifaVehiculo(selectedVehicle) : 2.50;
+  const customOfferPrice =
+    customOffer && customOffer.contextKey === offerContextKey ? customOffer.price : null;
+  const tarifaFinal = customOfferPrice ?? tarifaCalculada;
+
+  const handleSelectVehicle = (vehicleId: string) => {
+    setSelectedVehicleId(vehicleId);
+    setCustomOffer(null);
+  };
 
   const handleConfirmar = () => {
     if (!selectedVehicle) return;
@@ -96,7 +116,7 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
     onRequestConfirm({
       vehiculoId: selectedVehicle.id,
       vehiculoNombre: selectedVehicle.nombre,
-      tarifaUSD: tarifaCalculada,
+      tarifaUSD: tarifaFinal,
       pasajerosCount: modalidad === 'viajes' ? pasajerosCount : undefined,
       paqueteTipo: modalidad === 'mandaditos' ? selectedPresetId : undefined,
       destinatarioNombre: modalidad === 'mandaditos' ? destinatarioNombre : undefined,
@@ -140,7 +160,7 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
               <button
                 key={v.id}
                 type="button"
-                onClick={() => setSelectedVehicleId(v.id)}
+                onClick={() => handleSelectVehicle(v.id)}
                 className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between active:scale-95 ${
                   isSelected
                     ? modalidad === 'viajes'
@@ -180,6 +200,42 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
             );
           })}
         </div>
+      </div>
+
+      {/* TOGGLE SMART BIDDING 2.0 (MODO INDRIVE) */}
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setShowSmartBidding((prev) => !prev)}
+          aria-expanded={showSmartBidding}
+          className="w-full min-h-[40px] px-3 py-2 rounded-xl bg-slate-950/70 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-xs font-bold text-slate-300 transition-colors flex items-center justify-between gap-2"
+        >
+          <span className="flex items-center gap-2 min-w-0">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="truncate">Ajustar mi oferta (Modo inDrive)</span>
+            {customOfferPrice !== null && Math.abs(customOfferPrice - tarifaCalculada) >= 0.01 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono tabular-nums font-bold shrink-0">
+                ${tarifaFinal.toFixed(2)}
+              </span>
+            )}
+          </span>
+          {showSmartBidding ? (
+            <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+          )}
+        </button>
+
+        {showSmartBidding && (
+          <SaraSmartBiddingSlider
+            suggestedPrice={tarifaCalculada}
+            currentPrice={tarifaFinal}
+            onChangePrice={(newPrice) =>
+              setCustomOffer({ contextKey: offerContextKey, price: newPrice })
+            }
+            compact
+          />
+        )}
       </div>
 
       {/* CONTROLES ESPECÍFICOS SEGÚN VERTICAL */}
@@ -308,8 +364,8 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
           <>
             <span>{modalidad === 'viajes' ? 'Solicitar Viaje' : 'Pedir Mandadito Express'}</span>
             <span className="text-xs opacity-75 font-mono">({selectedVehicle?.nombre})</span>
-            <span className="bg-slate-950/20 px-2 py-0.5 rounded-lg font-mono">
-              ${tarifaCalculada.toFixed(2)} USD
+            <span className="bg-slate-950/20 px-2 py-0.5 rounded-lg font-mono tabular-nums">
+              ${tarifaFinal.toFixed(2)} USD
             </span>
             <ArrowRight className="w-4 h-4 ml-1" />
           </>

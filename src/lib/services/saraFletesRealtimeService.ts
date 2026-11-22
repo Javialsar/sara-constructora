@@ -316,8 +316,9 @@ export class SaraFletesRealtimeService {
             });
 
             ch.on('broadcast', { event: 'fletes_event' }, (payload: any) => {
-              if (payload?.payload && payload.payload.type) {
-                this.notifyListeners(payload.payload as FletesRealtimeEvent);
+              const evt = payload?.payload || payload;
+              if (evt && evt.type) {
+                this.notifyListeners(evt as FletesRealtimeEvent);
               }
             });
 
@@ -404,7 +405,10 @@ export class SaraFletesRealtimeService {
     if (typeof window === 'undefined') return;
     this.initStorageListener();
 
-    // 1. Enviar a través de BroadcastChannel nativo
+    // 0. Notificar inmediatamente a los listeners locales de la ventana actual
+    this.notifyListeners(event);
+
+    // 1. Enviar a través de BroadcastChannel nativo a otras pestañas
     const chan = this.getChannel();
     if (chan) {
       try {
@@ -414,10 +418,14 @@ export class SaraFletesRealtimeService {
       }
     }
 
-    // 2. Persistir y disparar storage event como fallback garantizado
+    // 2. Persistir y disparar storage event como fallback garantizado con nonce único
     try {
       const storageKey = `${STORAGE_PREFIX}last_event`;
-      localStorage.setItem(storageKey, JSON.stringify(event));
+      const eventWithNonce = {
+        ...event,
+        _realtimeNonce: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+      };
+      localStorage.setItem(storageKey, JSON.stringify(eventWithNonce));
 
       // Guardar estados persistentes según el tipo
       if (event.type === 'NUEVA_SOLICITUD_FLETE') {

@@ -1,9 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { AlertOctagon, PhoneCall, ShieldAlert, X, Volume2, VolumeX, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  AlertOctagon,
+  PhoneCall,
+  ShieldAlert,
+  X,
+  Volume2,
+  VolumeX,
+  CheckCircle2,
+  Mic,
+  ShieldCheck,
+  Users,
+  BellOff,
+} from 'lucide-react';
 import { SaraFletesRealtimeService, SOSAlertData } from '@/lib/services/saraFletesRealtimeService';
 import { dispatchSosAlertAction } from '@/app/actions/saraFletesWalletActions';
+import { getStoredTrustedContacts, TrustedContact } from './SaraSafetyCenterModal';
 
 interface SaraFloatingSosButtonProps {
   plate?: string;
@@ -26,9 +39,86 @@ export function SaraFloatingSosButton({
   const [sosActive, setSosActive] = useState(false);
   const [activeAlertData, setActiveAlertData] = useState<SOSAlertData | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [silentMode, setSilentMode] = useState(false);
+  const [trustedContacts, setTrustedContacts] = useState<TrustedContact[]>([]);
+  const [emergencyAudioState, setEmergencyAudioState] = useState<'idle' | 'recording' | 'fallback'>('idle');
+  const [emergencyAudioSeconds, setEmergencyAudioSeconds] = useState(0);
+
   const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sirenOscillatorRef = useRef<OscillatorNode | null>(null);
+  const sosStreamRef = useRef<MediaStream | null>(null);
+  const sosRecorderRef = useRef<MediaRecorder | null>(null);
+  const sosRecTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopEmergencyAudio = useCallback(() => {
+    if (sosRecTimerRef.current) {
+      clearInterval(sosRecTimerRef.current);
+      sosRecTimerRef.current = null;
+    }
+    if (sosRecorderRef.current && sosRecorderRef.current.state !== 'inactive') {
+      try {
+        sosRecorderRef.current.stop();
+      } catch {
+        // Ignorar si ya fue detenido
+      }
+    }
+    sosRecorderRef.current = null;
+    if (sosStreamRef.current) {
+      sosStreamRef.current.getTracks().forEach((track) => track.stop());
+      sosStreamRef.current = null;
+    }
+    setEmergencyAudioState('idle');
+    setEmergencyAudioSeconds(0);
+  }, []);
+
+  // Activar grabación de audio de emergencia y cargar contactos de confianza cuando SOS está activo
+  useEffect(() => {
+    if (!sosActive) {
+      stopEmergencyAudio();
+      return;
+    }
+
+    setTrustedContacts(getStoredTrustedContacts());
+    let cancelled = false;
+
+    const startEmergencyAudio = async () => {
+      try {
+        if (
+          typeof navigator === 'undefined' ||
+          !navigator.mediaDevices?.getUserMedia ||
+          typeof MediaRecorder === 'undefined'
+        ) {
+          throw new Error('MediaRecorder no disponible');
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        sosStreamRef.current = stream;
+        const recorder = new MediaRecorder(stream);
+        sosRecorderRef.current = recorder;
+        recorder.start(1000);
+        setEmergencyAudioState('recording');
+        setEmergencyAudioSeconds(0);
+        sosRecTimerRef.current = setInterval(() => {
+          setEmergencyAudioSeconds((prev) => prev + 1);
+        }, 1000);
+      } catch {
+        if (!cancelled) {
+          setEmergencyAudioState('fallback');
+        }
+      }
+    };
+
+    startEmergencyAudio();
+
+    return () => {
+      cancelled = true;
+      stopEmergencyAudio();
+    };
+  }, [sosActive, stopEmergencyAudio]);
 
   // Escuchar eventos en tiempo real para sincronizar SOS
   useEffect(() => {
@@ -58,7 +148,7 @@ export function SaraFloatingSosButton({
 
   // Manejo de sonido de sirena con Web Audio API
   const playSiren = () => {
-    if (!audioEnabled || typeof window === 'undefined') return;
+    if (!audioEnabled || silentMode || typeof window === 'undefined') return;
     try {
       if (!audioContextRef.current) {
         const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -160,7 +250,50 @@ export function SaraFloatingSosButton({
     SaraFletesRealtimeService.cancelSos(plate, fleteId);
     setSosActive(false);
     setActiveAlertData(null);
+    setSilentMode(false);
     stopSiren();
+    stopEmergencyAudio();
+  };
+
+  const toggleSilentMode = () => {
+    setSilentMode((prev) => {
+      const next = !prev;
+      if (next) {
+        setAudioEnabled(false);
+        stopSiren();
+      } else {
+        setAudioEnabled(true);
+      }
+      return next;
+    });
+  };
+
+  const formatAudioTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const handleAlertTrustedContacts = () => {
+    if (!activeAlertData) return;
+    const mapsUrl = `https://maps.google.com/?q=${activeAlertData.lat.toFixed(6)},${activeAlertData.lng.toFixed(6)}`;
+    const text = [
+      '🚨 ALERTA SOS SARA-FLETES — NECESITO AYUDA',
+      `Incidente: ${activeAlertData.id}`,
+      `Unidad / Placa: ${activeAlertData.plate}`,
+      `Responsable: ${activeAlertData.driverName}`,
+      `Ubicación GPS en vivo: ${mapsUrl}`,
+    ].join('\n');
+    const encoded = encodeURIComponent(text);
+
+    const primaryContact = trustedContacts[0];
+    if (primaryContact) {
+      const digits = primaryContact.phone.replace(/\D/g, '');
+      const normalized = digits.startsWith('0') ? `593${digits.slice(1)}` : digits;
+      window.open(`https://wa.me/${normalized}?text=${encoded}`, '_blank', 'noopener,noreferrer');
+    } else {
+      window.open(`https://wa.me/?text=${encoded}`, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
@@ -253,12 +386,55 @@ export function SaraFloatingSosButton({
                 </div>
               </div>
               <button
-                onClick={() => setAudioEnabled(!audioEnabled)}
-                className="text-neutral-400 hover:text-white p-2"
-                title={audioEnabled ? 'Silenciar sirena' : 'Activar sonido'}
+                type="button"
+                onClick={toggleSilentMode}
+                className="min-w-[44px] min-h-[44px] text-neutral-400 hover:text-white p-2 flex items-center justify-center rounded-xl hover:bg-neutral-800 transition-colors"
+                title={silentMode ? 'Desactivar alerta silenciosa' : 'Activar alerta silenciosa'}
               >
-                {audioEnabled ? <Volume2 className="w-5 h-5 text-red-400" /> : <VolumeX className="w-5 h-5 text-neutral-500" />}
+                {!silentMode && audioEnabled ? (
+                  <Volume2 className="w-5 h-5 text-red-400" />
+                ) : (
+                  <VolumeX className="w-5 h-5 text-amber-400" />
+                )}
               </button>
+            </div>
+
+            {/* Controles Rápidos: Alerta Silenciosa + Grabación de Audio en Cabina */}
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                type="button"
+                onClick={toggleSilentMode}
+                className={`min-h-[44px] px-3 py-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors ${
+                  silentMode
+                    ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                    : 'bg-neutral-800/80 hover:bg-neutral-800 border-neutral-700 text-neutral-200'
+                }`}
+              >
+                <BellOff className="w-3.5 h-3.5 shrink-0" />
+                <span>{silentMode ? 'Alerta Silenciosa ON' : 'Modo Silencioso'}</span>
+              </button>
+
+              <div
+                className={`min-h-[44px] px-3 py-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 ${
+                  emergencyAudioState === 'recording'
+                    ? 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                    : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                }`}
+              >
+                {emergencyAudioState === 'recording' ? (
+                  <>
+                    <Mic className="w-3.5 h-3.5 text-rose-400 animate-pulse shrink-0" />
+                    <span className="font-mono tabular-nums">
+                      REC {formatAudioTimer(emergencyAudioSeconds)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Protección Activa</span>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Datos de Telemetría Transmitidos */}
@@ -297,15 +473,28 @@ export function SaraFloatingSosButton({
 
               <a
                 href="tel:911"
-                className="w-full bg-red-600 hover:bg-red-700 active:scale-98 text-white font-black py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-red-600/40 transition-all text-sm tracking-wide"
+                className="w-full min-h-[46px] bg-red-600 hover:bg-red-700 active:scale-98 text-white font-black py-3.5 px-4 rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-red-600/40 transition-all text-sm tracking-wide"
               >
                 <PhoneCall className="w-5 h-5" />
                 <span>LLAMAR DIRECTO AL ECU-911</span>
               </a>
 
+              <button
+                type="button"
+                onClick={handleAlertTrustedContacts}
+                className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-all text-xs"
+              >
+                <Users className="w-4 h-4 shrink-0" />
+                <span>
+                  {trustedContacts.length > 0
+                    ? `ALERTAR CONTACTOS DE CONFIANZA (${trustedContacts.length}) POR WHATSAPP`
+                    : 'COMPARTIR GPS DE EMERGENCIA POR WHATSAPP'}
+                </span>
+              </button>
+
               <a
                 href="tel:+593999999999"
-                className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 border border-neutral-700 text-xs transition-colors"
+                className="w-full min-h-[44px] bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-bold py-3 px-4 rounded-xl flex items-center justify-center space-x-2 border border-neutral-700 text-xs transition-colors"
               >
                 <PhoneCall className="w-4 h-4 text-amber-400" />
                 <span>CENTRAL DE MONITOREO SARA (24/7)</span>

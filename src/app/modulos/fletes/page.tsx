@@ -82,6 +82,11 @@ import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 import SaraMultimodalTabBar from '@/components/fletes/SaraMultimodalTabBar';
 import SaraViajesMandaditosQuickOrder from '@/components/fletes/SaraViajesMandaditosQuickOrder';
+import SaraMobileBottomSheet, { BottomSheetSnapPoint } from '@/components/fletes/SaraMobileBottomSheet';
+import SaraSavedPlacesBar, { SavedPlaceItem } from '@/components/fletes/SaraSavedPlacesBar';
+import SaraDriverNegotiationDrawer from '@/components/fletes/SaraDriverNegotiationDrawer';
+import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
+import { saveLastKnownPosition, enqueueOfflineEvent } from '@/lib/fletes/saraFletesOfflineBuffer';
 import type { MultimodalVerticalKey } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
@@ -170,10 +175,14 @@ export default function SaraFletesEngine() {
   const originPointRef = useRef<GeocodedPoint | null>(null);
   const destinationPointRef = useRef<GeocodedPoint | null>(null);
   const [mapClickMode, setMapClickMode] = useState<'origen' | 'destino' | null>(null);
+  const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(1500);
 
-  // Sincronizar referencias para evitar recreación de callbacks
+  // Sincronizar referencias y persistir última posición GPS (Dead Reckoning Offline-First)
   useEffect(() => {
     userLocationRef.current = userLocation;
+    if (userLocation) {
+      saveLastKnownPosition(userLocation[0], userLocation[1]);
+    }
   }, [userLocation]);
 
   useEffect(() => {
@@ -1577,12 +1586,9 @@ export default function SaraFletesEngine() {
 
       {/* TOPBAR ULTRA-COMPACTA & ERGONÓMICA */}
       <header className="h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 flex justify-between items-center z-30 shrink-0">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <ModuleBrandLogo modulo="fletes" size="sm" showBackToHolding={false} />
-          <span className="hidden sm:inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-            GPS MTOP En Vivo
-          </span>
+          <SaraNetworkStatusPill className="hidden sm:inline-flex" />
         </div>
 
         {/* Acceso para conductores y selector de perfil */}
@@ -1628,6 +1634,8 @@ export default function SaraFletesEngine() {
             vehiculosCercanos={vehiculosZonificados}
             vehiculoSeleccionado={vehicleType}
             tipoModalidad={serviceType}
+            searchRadiusMeters={activeFreight?.status === 'searching' ? searchRadiusMeters : null}
+            isSearchingDriver={activeFreight?.status === 'searching'}
             onOriginDragEnd={handleOriginDragEnd}
             onDestinationDragEnd={handleDestinationDragEnd}
             onMapClick={handleMapClick}
@@ -1657,73 +1665,38 @@ export default function SaraFletesEngine() {
         )}
 
         {/* ------------------------------------------------------------- */}
-        {/* PANEL FLOTANTE DE GESTIÓN (DESKTOP: ISLA FLOTANTE / MÓVIL: BOTTOM SHEET) */}
+        {/* PANEL FLOTANTE DE GESTIÓN (DESKTOP: ISLA FLOTANTE / MÓVIL: BOTTOM SHEET TÁCTIL) */}
         {/* ------------------------------------------------------------- */}
-        <aside
-          className={`z-20 transition-all duration-300 ease-out flex flex-col bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 shadow-2xl
-            /* Móvil: Bottom Sheet en 3 niveles */
-            absolute bottom-0 left-0 right-0 rounded-t-3xl
-            ${bottomSheetLevel === 'peek' ? 'h-[72px] overflow-hidden' : ''}
-            ${bottomSheetLevel === 'half' ? 'max-h-[75vh] h-[75vh]' : ''}
-            ${bottomSheetLevel === 'full' ? 'max-h-[92vh] h-[92vh]' : ''}
-            /* Desktop: Tarjeta Flotante Lateral */
-            lg:bottom-auto lg:top-4 lg:left-4 lg:right-auto lg:w-[470px] lg:max-h-[calc(100vh-88px)] lg:h-auto lg:rounded-2xl
-            ${isPanelCollapsed ? 'translate-y-[calc(100%-48px)] lg:translate-y-0 lg:w-[320px] lg:max-h-[64px]' : ''}
-          `}
-        >
-          {/* Header del Panel con Botón de Minimizar / Maximizar y controles de Bottom Sheet */}
-          <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between shrink-0">
-            {/* Tirador táctil para móviles con cambio de nivel */}
-            <div 
-              onClick={() => {
-                setBottomSheetLevel(prev => prev === 'peek' ? 'half' : prev === 'half' ? 'full' : 'peek');
-              }}
-              className="lg:hidden absolute top-1.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-600 active:bg-amber-500 rounded-full cursor-pointer transition-colors" 
-              title="Deslizar Bottom Sheet"
-            />
+        <SaraMobileBottomSheet
+          snapPoint={(bottomSheetLevel === 'peek' ? 'collapsed' : bottomSheetLevel === 'full' ? 'expanded' : 'half') as BottomSheetSnapPoint}
+          onSnapChange={(snap) => {
+            setBottomSheetLevel(snap === 'collapsed' ? 'peek' : snap === 'expanded' ? 'full' : 'half');
+          }}
+          className={`lg:top-4 lg:left-4 lg:w-[470px] lg:max-h-[calc(100vh-88px)] lg:rounded-2xl ${
+            isPanelCollapsed ? 'lg:w-[320px] lg:max-h-[64px]' : ''
+          }`}
+          headerContent={
+            <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <h2 className="text-xs font-black text-white uppercase tracking-wider">
+                  {serviceType === 'viajes' ? '🚕 Viajes Rápidos' : serviceType === 'mandaditos' ? '📦 Mandaditos Express' : serviceType === 'fletes' ? '🚛 Flete On-Demand' : '🔑 Renta de Vehículos'}
+                </h2>
+              </div>
 
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <h2 className="text-xs font-black text-white uppercase tracking-wider">
-                {serviceType === 'viajes' ? '🚕 Viajes Rápidos' : serviceType === 'mandaditos' ? '📦 Mandaditos Express' : serviceType === 'fletes' ? '🚛 Flete On-Demand' : '🔑 Renta de Vehículos'}
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {/* Controles de Nivel Móvil */}
-              <div className="lg:hidden flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => setBottomSheetLevel('peek')}
-                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${bottomSheetLevel === 'peek' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
+                  onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                  className="hidden lg:inline-flex p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  title={isPanelCollapsed ? 'Expandir panel' : 'Minimizar panel'}
                 >
-                  Ruta
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBottomSheetLevel('half')}
-                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${bottomSheetLevel === 'half' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
-                >
-                  Carga
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBottomSheetLevel('full')}
-                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded ${bottomSheetLevel === 'full' ? 'bg-amber-500 text-slate-950' : 'text-slate-400'}`}
-                >
-                  Ofertas
+                  {isPanelCollapsed ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                title={isPanelCollapsed ? 'Expandir panel' : 'Minimizar panel'}
-              >
-                {isPanelCollapsed ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-              </button>
             </div>
-          </div>
+          }
+        >
 
           {/* CONTENIDO DEL PANEL CON SCROLL SUAVE */}
           {!isPanelCollapsed && (
@@ -1813,6 +1786,42 @@ export default function SaraFletesEngine() {
                             </div>
                           )}
                         </div>
+
+                        {/* Barra de Destinos Favoritos 1-Toque (Casa, Trabajo, Obra) */}
+                        <SaraSavedPlacesBar
+                          compact
+                          currentDestination={
+                            destinationPoint && destinationText
+                              ? { nombre: destinationText, lat: destinationPoint.lat, lng: destinationPoint.lng }
+                              : null
+                          }
+                          onSelectPlace={async (place: SavedPlaceItem) => {
+                            destLockedByMapRef.current = true;
+                            setDestinationText(place.address || place.label);
+                            setShowDestSuggestions(false);
+                            const newDest: GeocodedPoint = {
+                              nombre: place.address || place.label,
+                              lat: place.lat,
+                              lng: place.lng,
+                              ciudad: 'Ecuador',
+                              provincia: 'Ecuador'
+                            };
+                            destinationPointRef.current = newDest;
+                            setDestinationPoint(newDest);
+                            const pOrig = originPointRef.current;
+                            if (pOrig) {
+                              setIsCalculatingRoute(true);
+                              try {
+                                const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, newDest);
+                                setRutaCalculada(ruta);
+                              } catch (err) {
+                                console.warn('Error calculando ruta a favorito:', err);
+                              } finally {
+                                setIsCalculatingRoute(false);
+                              }
+                            }
+                          }}
+                        />
                       </div>
 
                       <SaraViajesMandaditosQuickOrder
@@ -1836,42 +1845,85 @@ export default function SaraFletesEngine() {
                             accessCode: Math.floor(1000 + Math.random() * 9000).toString(),
                             distanciaKm: rutaCalculada?.distanciaKm || 3.2,
                             duracionMinutos: rutaCalculada?.duracionMinutos || 9,
-                            clienteNombre: 'Usuario SARA'
+                            clienteNombre: 'Usuario SARA (Cariamanga)'
                           };
                           setActiveFreight(simulatedReq);
                           setProposedPrice(params.tarifaUSD);
 
-                          // Emitir ofertas dinámicas simuladas en tiempo real
+                          // 1. Guardar en BD / Server Action
+                          createFletesSolicitud({
+                            origen: simulatedReq.origin,
+                            destino: simulatedReq.destination,
+                            tarifa: params.tarifaUSD,
+                            distanciaKm: simulatedReq.distanciaKm || 3.2,
+                            vehiculoKey: 'PICKUP_1T',
+                            material: simulatedReq.material,
+                            peso: 0.1,
+                            codigoAcceso: simulatedReq.accessCode
+                          }).catch((err) => console.warn('Error guardando flete:', err));
+
+                          // 2. Publicar solicitud en el bus en tiempo real para todos los conductores y pestañas
+                          const reqPayload = {
+                            id: simulatedReq.id,
+                            origen: simulatedReq.origin,
+                            destino: simulatedReq.destination,
+                            material: simulatedReq.material,
+                            pesoTon: 0.1,
+                            tipoVehiculo: 'PICKUP_1T',
+                            vehiculoRequerido: params.vehiculoNombre || (serviceType === 'viajes' ? 'Moto Pasajero' : 'Repartidor Express'),
+                            tarifaOfertadaUSD: params.tarifaUSD,
+                            distanciaKm: simulatedReq.distanciaKm || 3.2,
+                            duracionMinutos: simulatedReq.duracionMinutos || 9,
+                            coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] as [number, number] : [-4.3248, -79.5562] as [number, number],
+                            coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] as [number, number] : [-4.3312, -79.5580] as [number, number],
+                            coordenadasRuta: rutaCalculada?.coordenadasRuta,
+                            codigoAcceso: simulatedReq.accessCode,
+                            clienteNombre: 'Usuario SARA (Cariamanga)',
+                            status: 'searching',
+                            timestamp: Date.now(),
+                            servicioTipo: serviceType
+                          };
+
+                          SaraFletesRealtimeService.createFletesSolicitud(reqPayload as any);
+                          SaraFletesRealtimeService.emit({
+                            type: 'NUEVA_SOLICITUD_FLETE',
+                            payload: reqPayload
+                          });
+
+                          // 3. Emitir ofertas dinámicas simuladas de respaldo en caso de demora
                           setTimeout(() => {
-                            setDriverOffers([
-                              {
-                                id: 'OFFER-VIAJE-1',
-                                driverName: 'Manuel Cárdenas',
-                                vehicleName: params.vehiculoNombre,
-                                plate: 'LBA-2341',
-                                phone: '0987654321',
-                                offeredPrice: params.tarifaUSD,
-                                etaMinutes: 3,
-                                distanceMeters: 450,
-                                rating: 4.9,
-                                tripsCount: 312,
-                                isCounterOffer: false
-                              },
-                              {
-                                id: 'OFFER-VIAJE-2',
-                                driverName: 'David Sarango',
-                                vehicleName: params.vehiculoNombre,
-                                plate: 'PCX-4590',
-                                phone: '0991234567',
-                                offeredPrice: +(params.tarifaUSD + 0.50).toFixed(2),
-                                etaMinutes: 5,
-                                distanceMeters: 750,
-                                rating: 4.8,
-                                tripsCount: 184,
-                                isCounterOffer: true
-                              }
-                            ]);
-                          }, 1200);
+                            setDriverOffers((prev) => {
+                              if (prev.length > 0) return prev;
+                              return [
+                                {
+                                  id: 'OFFER-VIAJE-1',
+                                  driverName: 'David Sarango Malacatus',
+                                  vehicleName: params.vehiculoNombre,
+                                  plate: 'PCX-4590',
+                                  phone: '0993849182',
+                                  offeredPrice: params.tarifaUSD,
+                                  etaMinutes: 3,
+                                  distanceMeters: 450,
+                                  rating: 4.9,
+                                  tripsCount: 312,
+                                  isCounterOffer: false
+                                },
+                                {
+                                  id: 'OFFER-VIAJE-2',
+                                  driverName: 'Manuel Cárdenas',
+                                  vehicleName: params.vehiculoNombre,
+                                  plate: 'LBA-2341',
+                                  phone: '0987654321',
+                                  offeredPrice: +(params.tarifaUSD + 0.50).toFixed(2),
+                                  etaMinutes: 5,
+                                  distanceMeters: 750,
+                                  rating: 4.8,
+                                  tripsCount: 184,
+                                  isCounterOffer: true
+                                }
+                              ];
+                            });
+                          }, 2500);
                         }}
                       />
                     </div>
@@ -1998,120 +2050,41 @@ export default function SaraFletesEngine() {
                       {activeFreight && (
                         <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl space-y-3">
                           {activeFreight.status === 'searching' && (
-                            <div className="space-y-3">
-                              {/* SECCIÓN NOTIFICANDO A CONDUCTORES (IDÉNTICO A IMAGEN 1) */}
-                              <div className="text-center space-y-2 py-1">
-                                <div className="w-9 h-9 border-[3px] border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                                <div>
-                                  <h3 className="font-black text-white text-base">Notificando a Conductores...</h3>
-                                  <p className="text-xs text-slate-400 mt-0.5">
-                                    Transmitiendo oferta a {getVehiclePlural(activeFreight.vehicleType)} en radar
-                                  </p>
-                                </div>
-                                <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 max-w-[260px] mx-auto">
-                                  <span className="text-[10px] text-slate-400 block font-medium">Tu oferta actual:</span>
-                                  <p className="text-xl font-black text-amber-500 font-mono">
-                                    ${activeFreight.referencePrice.toFixed(2)} USD
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* LISTA DE OFERTAS EN TIEMPO REAL */}
-                              {driverOffers.length === 0 ? (
-                                <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl text-center space-y-2">
-                                  <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400 animate-pulse">
-                                    <Truck className="w-4 h-4" />
-                                  </div>
-                                  <p className="text-xs font-bold text-slate-300">Esperando respuesta de conductores...</p>
-                                  <p className="text-[10px] text-slate-500">Transmitiendo solicitud a los vehículos visibles en el mapa</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-2.5">
-                                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 px-1">
-                                    <span>Contraofertas recibidas ({driverOffers.length})</span>
-                                    <span className="text-emerald-400 font-mono">En vivo</span>
-                                  </div>
-
-                                  {driverOffers.map((offer) => (
-                                    <div
-                                      key={offer.id}
-                                      className="bg-slate-900 border border-slate-700/80 hover:border-amber-500/70 p-3 rounded-2xl transition-all shadow-xl space-y-2.5 animate-in fade-in zoom-in-95 duration-200"
-                                    >
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-2.5">
-                                          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-base shadow-inner">
-                                            {offer.driverName.charAt(0)}
-                                          </div>
-                                          <div>
-                                            <h4 className="font-black text-white text-xs">{offer.driverName}</h4>
-                                            <p className="text-[10px] text-slate-400">{offer.vehicleName} · <span className="font-mono text-slate-300 font-bold">{offer.plate}</span></p>
-                                            <p className="text-[10px] text-amber-400 font-bold flex items-center gap-1 mt-0.5">
-                                              <span>★ {offer.rating}</span>
-                                              <span className="text-slate-500 font-normal">({offer.tripsCount} viajes)</span>
-                                            </p>
-                                          </div>
-                                        </div>
-
-                                        <div className="text-right">
-                                          <p className="text-base font-black font-mono text-emerald-400">
-                                            ${offer.offeredPrice.toFixed(2)} <span className="text-[10px] font-sans font-semibold text-slate-400">USD</span>
-                                          </p>
-                                          <span className="text-[9px] font-bold text-slate-300 flex items-center justify-end gap-1 mt-0.5">
-                                            ⚡ {offer.etaMinutes} min ({offer.distanceMeters}m)
-                                          </span>
-                                          {offer.isCounterOffer && (
-                                            <span className="inline-block text-[8px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-black border border-amber-500/40 mt-1">
-                                              Contraoferta
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      <div className="flex gap-2 pt-1 border-t border-slate-800">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAcceptDriverOffer(offer)}
-                                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-2 rounded-xl text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
-                                        >
-                                          <CheckCircle className="w-3.5 h-3.5" />
-                                          Aceptar Contraoferta
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleRejectDriverOffer(offer.id)}
-                                          className="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-3 py-2 rounded-xl text-xs font-bold transition-all"
-                                        >
-                                          Rechazar
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (activeFreight) {
-                                    SaraFletesRealtimeService.emit({
-                                      type: 'CANCELAR_SOLICITUD_FLETE',
-                                      payload: { fleteId: activeFreight.id }
-                                    });
-                                  }
-                                  setActiveFreight(null);
-                                  setDriverOffers([]);
-                                }}
-                                className="w-full text-xs text-rose-400 hover:text-rose-300 font-bold transition-colors pt-1"
-                              >
-                                Cancelar Búsqueda
-                              </button>
-                            </div>
+                            <SaraDriverNegotiationDrawer
+                              offers={driverOffers}
+                              referencePrice={activeFreight.referencePrice}
+                              vehicleLabel={getVehiclePlural(activeFreight.vehicleType)}
+                              onAcceptOffer={(offer) => handleAcceptDriverOffer(offer)}
+                              onRejectOffer={(offerId) => handleRejectDriverOffer(offerId)}
+                              onRadiusChange={(radiusMeters) => setSearchRadiusMeters(radiusMeters)}
+                              onBoostPrice={(deltaUSD) => {
+                                const boosted = +(activeFreight.referencePrice + deltaUSD).toFixed(2);
+                                setActiveFreight(prev => prev ? { ...prev, referencePrice: boosted } : null);
+                                setProposedPrice(boosted);
+                                enqueueOfflineEvent('BOOST_OFFER', {
+                                  fleteId: activeFreight.id,
+                                  newPrice: boosted
+                                });
+                              }}
+                              onCancelSearch={() => {
+                                if (activeFreight) {
+                                  SaraFletesRealtimeService.emit({
+                                    type: 'CANCELAR_SOLICITUD_FLETE',
+                                    payload: { fleteId: activeFreight.id }
+                                  });
+                                }
+                                setActiveFreight(null);
+                                setDriverOffers([]);
+                                setSearchRadiusMeters(1500);
+                              }}
+                            />
                           )}
 
                           {(activeFreight.status === 'accepted' || activeFreight.status === 'in_transit') && (
                             <SaraActiveTripCard
                               activeFreight={activeFreight}
                               assignedDriver={assignedDriver}
+                              currentCoords={userLocation || (originPoint ? [originPoint.lat, originPoint.lng] : null)}
                               onOpenDriverProfile={() => {
                                 if (assignedDriver) {
                                   setSelectedDriverForSecurity({
@@ -2359,7 +2332,7 @@ export default function SaraFletesEngine() {
 
               </div>
           )}
-        </aside>
+        </SaraMobileBottomSheet>
 
       </div>
 

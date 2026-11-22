@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, Circle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { CategoriaVehiculo, CATALOGO_VEHICULOS_SARA } from '@/lib/services/saraFreightPricingService';
 
@@ -48,7 +48,7 @@ export interface VehiculoMapa {
   disponible: boolean;
 }
 
-interface SaraFletesMapProps {
+export interface SaraFletesMapProps {
   userLocation: [number, number] | null;
   origenCoords: [number, number] | null;
   destinoCoords: [number, number] | null;
@@ -62,6 +62,8 @@ interface SaraFletesMapProps {
   onSelectVehiculo?: (vehiculo: VehiculoMapa) => void;
   onOriginDragEnd?: (lat: number, lng: number) => void;
   onDestinationDragEnd?: (lat: number, lng: number) => void;
+  searchRadiusMeters?: number | null;
+  isSearchingDriver?: boolean;
 }
 
 // Generadores de Iconos L.divIcon personalizados para evitar problemas de assets externos
@@ -104,31 +106,273 @@ const crearIconoPunto = (tipo: 'origen' | 'destino' | 'usuario', modalidad?: str
   });
 };
 
-const crearIconoVehiculo = (vehiculo: VehiculoMapa, isSelected: boolean) => {
+// Calcula rumbo geográfico (bearing en grados, 0° = Norte, sentido horario)
+const calcularBearing = (from: [number, number], to: [number, number]): number => {
+  const [lat1, lng1] = from;
+  const [lat2, lng2] = to;
+  const dLat = lat2 - lat1;
+  const dLng = lng2 - lng1;
+  if (Math.abs(dLat) < 1e-7 && Math.abs(dLng) < 1e-7) return 0;
+
+  const latRad = ((lat1 + lat2) / 2) * (Math.PI / 180);
+  const x = dLng * Math.cos(latRad);
+  const y = dLat;
+  const angle = (Math.atan2(x, y) * 180) / Math.PI;
+  return (angle + 360) % 360;
+};
+
+const crearIconoVehiculo = (vehiculo: VehiculoMapa, isSelected: boolean, bearing = 0) => {
   const cat = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
   const bgColor = isSelected ? '#f59e0b' : '#0f172a';
   const borderColor = isSelected ? '#ffffff' : '#10b981';
+  const arrowColor = isSelected ? '#fbbf24' : '#34d399';
   const firstName = vehiculo.nombreChofer.split(' ')[0];
 
-  // Diseño compacto de alta visibilidad estilo Uber / inDrive
+  // Diseño compacto de alta visibilidad estilo Uber / inDrive con flecha direccional rotatoria
   return L.divIcon({
     className: `sara-vehicle-marker-${vehiculo.id}`,
     html: `
-      <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); transform: translateZ(0); transition: transform 0.4s ease-out;">
-        <div style="position: relative; background: ${bgColor}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid ${borderColor}; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">
-          ${cat.icono}
-          <span style="position: absolute; top: -1px; right: -1px; width: 7px; height: 7px; border-radius: 50%; background: #10b981; border: 1.5px solid #ffffff; box-shadow: 0 0 4px rgba(16,185,129,0.9);"></span>
+      <div style="display: flex; flex-direction: column; align-items: center; cursor: pointer; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); transform: translateZ(0);">
+        <div style="position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; inset: 0; transform: rotate(${bearing}deg); transition: transform 0.35s ease-out; pointer-events: none;">
+            <div style="position: absolute; top: -4px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 7px solid ${arrowColor}; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));"></div>
+          </div>
+          <div style="position: relative; background: ${bgColor}; width: 28px; height: 28px; border-radius: 50%; border: 2px solid ${borderColor}; display: flex; align-items: center; justify-content: center; font-size: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.35);">
+            ${cat.icono}
+            <span style="position: absolute; top: -1px; right: -1px; width: 7px; height: 7px; border-radius: 50%; background: #10b981; border: 1.5px solid #ffffff; box-shadow: 0 0 4px rgba(16,185,129,0.9);"></span>
+          </div>
         </div>
-        <div style="margin-top: 1px; background: rgba(15, 23, 42, 0.88); color: #f8fafc; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 3px; border: 0.5px solid rgba(255,255,255,0.2); white-space: nowrap; pointer-events: none; line-height: 1;">
+        <div style="margin-top: -1px; background: rgba(15, 23, 42, 0.88); color: #f8fafc; font-size: 8px; font-weight: 800; padding: 1px 4px; border-radius: 3px; border: 0.5px solid rgba(255,255,255,0.2); white-space: nowrap; pointer-events: none; line-height: 1;">
           ${firstName}
         </div>
       </div>
     `,
-    iconSize: [32, 42],
-    iconAnchor: [16, 21],
-    popupAnchor: [0, -21]
+    iconSize: [36, 48],
+    iconAnchor: [18, 24],
+    popupAnchor: [0, -24]
   });
 };
+
+// Marcador vehicular con interpolación fluida 60FPS (requestAnimationFrame Lerp ~650ms) y rotación de rumbo
+function SmoothVehicleMarker({
+  vehiculo,
+  isSelected,
+  onSelectVehiculo,
+}: {
+  vehiculo: VehiculoMapa;
+  isSelected: boolean;
+  onSelectVehiculo?: (vehiculo: VehiculoMapa) => void;
+}) {
+  const markerRef = useRef<L.Marker | null>(null);
+  const initialPosRef = useRef<[number, number]>([vehiculo.lat, vehiculo.lng]);
+  const currentPosRef = useRef<[number, number]>([vehiculo.lat, vehiculo.lng]);
+  const rafIdRef = useRef<number | null>(null);
+  const [bearing, setBearing] = useState<number>(0);
+
+  useEffect(() => {
+    const startPos = currentPosRef.current;
+    const targetPos: [number, number] = [vehiculo.lat, vehiculo.lng];
+    const dLat = targetPos[0] - startPos[0];
+    const dLng = targetPos[1] - startPos[1];
+
+    if (Math.abs(dLat) < 1e-7 && Math.abs(dLng) < 1e-7) {
+      return;
+    }
+
+    const nextBearing = calcularBearing(startPos, targetPos);
+    setBearing(nextBearing);
+
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current);
+    }
+
+    const durationMs = 650;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / durationMs);
+      // Ease-out cuadrático para transición suave a 60FPS
+      const eased = 1 - (1 - t) * (1 - t);
+
+      const nextLat = startPos[0] + dLat * eased;
+      const nextLng = startPos[1] + dLng * eased;
+      currentPosRef.current = [nextLat, nextLng];
+
+      if (markerRef.current) {
+        markerRef.current.setLatLng([nextLat, nextLng]);
+      }
+
+      if (t < 1) {
+        rafIdRef.current = requestAnimationFrame(animate);
+      } else {
+        rafIdRef.current = null;
+      }
+    };
+
+    rafIdRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
+  }, [vehiculo.lat, vehiculo.lng]);
+
+  const roundedBearing = Math.round(bearing);
+  const icon = useMemo(
+    () => crearIconoVehiculo(vehiculo, isSelected, roundedBearing),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [vehiculo.id, vehiculo.nombreChofer, vehiculo.tipoVehiculo, isSelected, roundedBearing]
+  );
+
+  const infoVehiculo = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={initialPosRef.current}
+      icon={icon}
+      eventHandlers={{
+        click: () => onSelectVehiculo && onSelectVehiculo(vehiculo),
+      }}
+    >
+      {/* Tooltip visible al pasar el mouse por encima (Hover) */}
+      <Tooltip direction="top" offset={[0, -36]} opacity={1} sticky={true}>
+        <div className="p-2 text-slate-900 font-sans min-w-[170px] bg-white rounded-xl shadow-2xl border border-slate-200">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
+            <span className="font-mono font-black text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              Placa: {vehiculo.placa}
+            </span>
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 px-1.5 py-0.5 rounded">
+              ★ {vehiculo.rating}
+            </span>
+          </div>
+          <p className="text-xs font-black text-slate-900 leading-tight">
+            Conductor: {vehiculo.nombreChofer}
+          </p>
+          <p className="text-[11px] text-slate-600 font-medium mt-0.5 flex items-center gap-1.5">
+            <span>{infoVehiculo.icono}</span>
+            <span>{infoVehiculo.nombre}</span>
+          </p>
+          <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+            <span className="text-emerald-600 font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+              En Radar (Zonificado)
+            </span>
+            <span className="text-slate-500 font-mono font-semibold">
+              Cap: {infoVehiculo.capacidadTon}T
+            </span>
+          </div>
+        </div>
+      </Tooltip>
+
+      <Popup>
+        <div className="p-2 text-slate-800 max-w-xs">
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1.5">
+            <span className="font-bold text-xs text-slate-900">{vehiculo.nombreChofer}</span>
+            <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
+              ★ {vehiculo.rating}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-600 font-medium">
+            {infoVehiculo.nombre || vehiculo.tipoVehiculo}
+          </p>
+          <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+            Placa: <strong>{vehiculo.placa}</strong>
+          </p>
+          <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
+            <span className="text-emerald-600 font-bold">● Disponible en zona</span>
+            <button
+              onClick={() => onSelectVehiculo && onSelectVehiculo(vehiculo)}
+              className="bg-slate-900 text-white font-bold px-2 py-0.5 rounded hover:bg-amber-500 hover:text-slate-900 transition-colors"
+            >
+              Seleccionar
+            </button>
+          </div>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+// Radar de búsqueda incremental de conductores con pulso visual ámbar/esmeralda a 60FPS
+function SearchRadarOverlay({
+  center,
+  radiusMeters,
+  isSearchingDriver,
+}: {
+  center: [number, number];
+  radiusMeters: number;
+  isSearchingDriver: boolean;
+}) {
+  const pulseCircleRef = useRef<L.Circle | null>(null);
+
+  useEffect(() => {
+    if (!isSearchingDriver) return;
+
+    let rafId: number | null = null;
+    const cycleMs = 1800;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const progress = ((now - startTime) % cycleMs) / cycleMs;
+      const eased = 1 - Math.pow(1 - progress, 2);
+
+      if (pulseCircleRef.current) {
+        pulseCircleRef.current.setRadius(Math.max(20, radiusMeters * (0.15 + 0.85 * eased)));
+        pulseCircleRef.current.setStyle({
+          opacity: (1 - progress) * 0.85,
+          fillOpacity: (1 - progress) * 0.24,
+        });
+      }
+
+      rafId = requestAnimationFrame(step);
+    };
+
+    rafId = requestAnimationFrame(step);
+
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [isSearchingDriver, radiusMeters]);
+
+  const primaryColor = isSearchingDriver ? '#f59e0b' : '#10b981';
+
+  return (
+    <>
+      <Circle
+        center={center}
+        radius={radiusMeters}
+        pathOptions={{
+          color: primaryColor,
+          fillColor: primaryColor,
+          fillOpacity: isSearchingDriver ? 0.1 : 0.06,
+          weight: 2,
+          opacity: 0.75,
+          dashArray: isSearchingDriver ? '8 6' : undefined,
+        }}
+      />
+      {isSearchingDriver && (
+        <Circle
+          ref={pulseCircleRef}
+          center={center}
+          radius={radiusMeters * 0.2}
+          pathOptions={{
+            color: '#10b981',
+            fillColor: '#f59e0b',
+            fillOpacity: 0.2,
+            weight: 2,
+            opacity: 0.8,
+          }}
+        />
+      )}
+    </>
+  );
+}
 
 // Controlador de cámara automática que ajusta zoom y vista en tiempo real (100% reactivo)
 function MapCameraController({
@@ -344,7 +588,9 @@ export default function SaraFletesMap({
   onMapClick,
   onSelectVehiculo,
   onOriginDragEnd,
-  onDestinationDragEnd
+  onDestinationDragEnd,
+  searchRadiusMeters = null,
+  isSearchingDriver = false
 }: SaraFletesMapProps) {
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('google_streets');
 
@@ -507,75 +753,25 @@ export default function SaraFletesMap({
           </>
         )}
 
-        {/* 5. Vehículos Cercanos Zonificados Circulando en Tiempo Real */}
+        {/* 4.5. Radar de Búsqueda Incremental de Conductores */}
+        {origenCoords && typeof searchRadiusMeters === 'number' && searchRadiusMeters > 0 && (
+          <SearchRadarOverlay
+            center={origenCoords}
+            radiusMeters={searchRadiusMeters}
+            isSearchingDriver={Boolean(isSearchingDriver)}
+          />
+        )}
+
+        {/* 5. Vehículos Cercanos Zonificados Circulando en Tiempo Real (60FPS Lerp + Bearing) */}
         {vehiculosAnimados.map((vehiculo) => {
           const isSelected = !vehiculoSeleccionado || vehiculoSeleccionado === vehiculo.tipoVehiculo;
-          const infoVehiculo = CATALOGO_VEHICULOS_SARA[vehiculo.tipoVehiculo] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
           return (
-            <Marker
+            <SmoothVehicleMarker
               key={vehiculo.id}
-              position={[vehiculo.lat, vehiculo.lng]}
-              icon={crearIconoVehiculo(vehiculo, isSelected)}
-              eventHandlers={{
-                click: () => onSelectVehiculo && onSelectVehiculo(vehiculo)
-              }}
-            >
-              {/* Tooltip visible al pasar el mouse por encima (Hover) */}
-              <Tooltip direction="top" offset={[0, -36]} opacity={1} sticky={true}>
-                <div className="p-2 text-slate-900 font-sans min-w-[170px] bg-white rounded-xl shadow-2xl border border-slate-200">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
-                    <span className="font-mono font-black text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                      Placa: {vehiculo.placa}
-                    </span>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-100/60 px-1.5 py-0.5 rounded">
-                      ★ {vehiculo.rating}
-                    </span>
-                  </div>
-                  <p className="text-xs font-black text-slate-900 leading-tight">
-                    Conductor: {vehiculo.nombreChofer}
-                  </p>
-                  <p className="text-[11px] text-slate-600 font-medium mt-0.5 flex items-center gap-1.5">
-                    <span>{infoVehiculo.icono}</span>
-                    <span>{infoVehiculo.nombre}</span>
-                  </p>
-                  <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                    <span className="text-emerald-600 font-bold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-                      En Radar (Zonificado)
-                    </span>
-                    <span className="text-slate-500 font-mono font-semibold">
-                      Cap: {infoVehiculo.capacidadTon}T
-                    </span>
-                  </div>
-                </div>
-              </Tooltip>
-
-              <Popup>
-                <div className="p-2 text-slate-800 max-w-xs">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1.5">
-                    <span className="font-bold text-xs text-slate-900">{vehiculo.nombreChofer}</span>
-                    <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                      ★ {vehiculo.rating}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-600 font-medium">
-                    {infoVehiculo.nombre || vehiculo.tipoVehiculo}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                    Placa: <strong>{vehiculo.placa}</strong>
-                  </p>
-                  <div className="mt-2 pt-1 border-t border-slate-100 flex items-center justify-between text-[10px]">
-                    <span className="text-emerald-600 font-bold">● Disponible en zona</span>
-                    <button
-                      onClick={() => onSelectVehiculo && onSelectVehiculo(vehiculo)}
-                      className="bg-slate-900 text-white font-bold px-2 py-0.5 rounded hover:bg-amber-500 hover:text-slate-900 transition-colors"
-                    >
-                      Seleccionar
-                    </button>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
+              vehiculo={vehiculo}
+              isSelected={isSelected}
+              onSelectVehiculo={onSelectVehiculo}
+            />
           );
         })}
       </MapContainer>
