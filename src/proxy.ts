@@ -147,8 +147,8 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 6. PROTECCIÓN SARA FLETES (/modulos/fletes/mi-perfil/*)
-  if (pathname.startsWith('/modulos/fletes/mi-perfil')) {
+  // 6. PROTECCIÓN SARA FLETES (/modulos/fletes/conductores/* y /modulos/fletes/mi-perfil/*)
+  if (pathname.startsWith('/modulos/fletes/conductores') || pathname.startsWith('/modulos/fletes/mi-perfil')) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/modulos/fletes/auth'
@@ -274,6 +274,7 @@ export const config = {
     '/constructora/suite/:path*',
     '/inmobiliaria/mi-portal/:path*',
     '/stays/mis-reservas/:path*',
+    '/modulos/fletes/conductores/:path*',
     '/modulos/fletes/mi-perfil/:path*',
     '/modulos/talento/mi-perfil/:path*',
     '/modulos/facturacion/:path*',

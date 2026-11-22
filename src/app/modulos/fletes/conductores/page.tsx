@@ -119,14 +119,14 @@ export default function MiPerfilFletes() {
       try {
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error || !user) {
-          router.replace('/modulos/fletes/auth?rol=conductor&redirectTo=/modulos/fletes/mi-perfil');
+          router.replace('/modulos/fletes/auth?rol=conductor&redirectTo=/modulos/fletes/conductores');
           return;
         }
 
         setCurrentUser(user);
         setAuthLoading(false);
       } catch (e) {
-        router.replace('/modulos/fletes/auth?rol=conductor&redirectTo=/modulos/fletes/mi-perfil');
+        router.replace('/modulos/fletes/auth?rol=conductor&redirectTo=/modulos/fletes/conductores');
       }
     }
     verifyFletesAccess();

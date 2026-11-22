@@ -15,7 +15,7 @@ export const metadata: Metadata = {
  * Separa de forma explícita las dos apps para que el cliente nunca
  * termine en el panel del conductor y viceversa:
  *   - Cliente   → /modulos/fletes            (cotizador y solicitud de viajes)
- *   - Conductor → /modulos/fletes/mi-perfil  (radar, viajes y billetera; protegido por sesión)
+ *   - Conductor → /modulos/fletes/conductores  (radar, viajes y billetera; protegido por sesión)
  */
 export default function FletesSelectorPerfil() {
   return (

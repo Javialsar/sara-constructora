@@ -35,6 +35,8 @@ export default function robots(): MetadataRoute.Robots {
           '/dashboard/*',
           '/api/*',
           '/manifests/*',
+          '/modulos/fletes/conductores',
+          '/modulos/fletes/conductores/*',
           '/modulos/fletes/mi-perfil',
           '/modulos/fletes/mi-perfil/*',
           '/modulos/fletes/auth',

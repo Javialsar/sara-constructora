@@ -84,7 +84,7 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
     shortName: 'SARA Fletes',
     description: 'Bolsa de carga, viajes pesados, backhaul y renta temporal de vehículos para todo el público.',
     loginUrl: '/modulos/fletes/auth',
-    portalUrl: '/modulos/fletes/mi-perfil',
+    portalUrl: '/modulos/fletes/conductores',
     allowedRoles: [
       'transportista', 
       'cliente_fletes', 

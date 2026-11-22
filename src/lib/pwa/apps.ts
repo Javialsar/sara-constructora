@@ -64,11 +64,11 @@ export const PWA_APPS: Record<PwaAppId, PwaApp> = {
   },
   /**
    * NOTA SOBRE SEPARACIÓN DE PWAs EN SARA-FLETES (Cliente vs Conductor):
-   * Debido a que el panel del conductor (/modulos/fletes/mi-perfil) reside bajo el prefijo
+   * Debido a que el panel del conductor (/modulos/fletes/conductores) reside bajo el prefijo
    * de ruta de cliente (/modulos/fletes), existe anidamiento de rutas URL. Para garantizar
    * que ambas aplicaciones se instalen y operen de forma independiente (estilo Uber / Uber Driver):
    *   1. Cada PWA declara un `id` de manifiesto único (`/pwa/fletes` vs `/pwa/fletes-conductor`).
-   *   2. "SARA Conductor" define el scope más específico `/modulos/fletes/mi-perfil`, el cual
+   *   2. "SARA Conductor" define el scope más específico `/modulos/fletes/conductores`, el cual
    *      tiene precedencia por coincidencia de prefijo más largo sobre `/modulos/fletes`.
    *   3. Cada ruta enlaza su propio manifiesto mediante su respectivo `layout.tsx`.
    */
@@ -87,8 +87,8 @@ export const PWA_APPS: Record<PwaAppId, PwaApp> = {
     name: "SARA Conductor",
     shortName: "Conductor",
     description: "App para socios conductores SARA-FLETES: radar de viajes, contraofertas, navegación GPS y billetera.",
-    startUrl: "/modulos/fletes/mi-perfil?source=pwa",
-    scope: "/modulos/fletes/mi-perfil",
+    startUrl: "/modulos/fletes/conductores?source=pwa",
+    scope: "/modulos/fletes/conductores",
     themeColor: "#10b981",
     backgroundColor: "#020617",
   },

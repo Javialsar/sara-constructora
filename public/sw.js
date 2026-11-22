@@ -40,6 +40,7 @@ const STRICT_PRIVATE_PREFIXES = [
   "/dashboard",
   "/portal",
   "/auth",
+  "/modulos/fletes/conductores",
   "/modulos/fletes/mi-perfil",
   "/modulos/fletes/auth",
   "/modulos/talento/mi-perfil",

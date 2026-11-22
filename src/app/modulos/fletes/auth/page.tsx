@@ -61,7 +61,7 @@ function FletesAuthForm() {
         if (signInError) throw signInError;
 
         // 2. Determinar rol priorizando app_metadata (controlado por servidor) sobre user_metadata.
-        // Un cliente nunca debe ser redirigido a /modulos/fletes/mi-perfil salvo que su metadata acredite rol transportista.
+        // Un cliente nunca debe ser redirigido a /modulos/fletes/conductores salvo que su metadata acredite rol transportista.
         const isTransportista = isTransportistaFromMetadata(
           data.user?.app_metadata as Record<string, unknown> | undefined,
           data.user?.user_metadata as Record<string, unknown> | undefined

@@ -62,7 +62,7 @@ const PERFILES: ReadonlyArray<{
   },
   {
     key: 'conductor',
-    href: '/modulos/fletes/mi-perfil',
+    href: '/modulos/fletes/conductores',
     icon: Truck,
     eyebrow: 'Soy conductor',
     title: 'Quiero manejar y ganar',

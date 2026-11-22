@@ -5,7 +5,7 @@
  * - La preferencia almacenada en localStorage es EXCLUSIVAMENTE de experiencia de usuario (UX)
  *   para recordar qué tarjeta eligió el usuario en `/fletes`.
  * - NUNCA se utiliza para decisiones de autorización ni control de acceso.
- * - El panel de conductor (`/modulos/fletes/mi-perfil`) permanece protegido del lado del servidor
+ * - El panel de conductor (`/modulos/fletes/conductores`) permanece protegido del lado del servidor
  *   por `src/proxy.ts` y validación de sesión JWT en Supabase.
  * - Nunca se almacenan tokens, credenciales ni datos personales (PII) en esta clave.
  */
@@ -23,7 +23,7 @@ const ALLOWED_PERFILES: ReadonlySet<FletesPerfil> = new Set<FletesPerfil>([
 
 export const FLETES_PERFIL_DESTINO: Record<FletesPerfil, string> = {
   cliente: '/modulos/fletes',
-  conductor: '/modulos/fletes/mi-perfil',
+  conductor: '/modulos/fletes/conductores',
 };
 
 const PERFIL_CHANGE_EVENT = 'sara-fletes-perfil-change';
@@ -211,7 +211,7 @@ export function isTransportistaFromMetadata(
 
 /**
  * Calcula el destino final post-autenticación respetando `redirectTo` seguro y
- * garantizando que un cliente nunca sea redirigido a `/modulos/fletes/mi-perfil`.
+ * garantizando que un cliente nunca sea redirigido a `/modulos/fletes/conductores`.
  */
 export function resolvePostAuthRedirect(
   rawRedirectTo: string | null | undefined,
@@ -221,6 +221,10 @@ export function resolvePostAuthRedirect(
 
   if (safeRedirect) {
     const isDriverArea =
+      safeRedirect === '/modulos/fletes/conductores' ||
+      safeRedirect.startsWith('/modulos/fletes/conductores/') ||
+      safeRedirect.startsWith('/modulos/fletes/conductores?') ||
+      safeRedirect.startsWith('/modulos/fletes/conductores#') ||
       safeRedirect === '/modulos/fletes/mi-perfil' ||
       safeRedirect.startsWith('/modulos/fletes/mi-perfil/') ||
       safeRedirect.startsWith('/modulos/fletes/mi-perfil?') ||
@@ -233,5 +237,5 @@ export function resolvePostAuthRedirect(
     return safeRedirect;
   }
 
-  return isTransportista ? '/modulos/fletes/mi-perfil' : '/modulos/fletes';
+  return isTransportista ? '/modulos/fletes/conductores' : '/modulos/fletes';
 }

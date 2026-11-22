@@ -51,6 +51,16 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        source: '/modulos/fletes/mi-perfil',
+        destination: '/modulos/fletes/conductores',
+        permanent: true,
+      },
+      {
+        source: '/modulos/fletes/mi-perfil/:path*',
+        destination: '/modulos/fletes/conductores/:path*',
+        permanent: true,
+      },
+      {
         source: '/talento',
         destination: '/modulos/talento',
         permanent: true,

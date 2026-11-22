@@ -1588,7 +1588,7 @@ export default function SaraFletesEngine() {
         {/* Acceso para conductores y selector de perfil */}
         <div className="flex items-center gap-2">
           <Link
-            href="/modulos/fletes/mi-perfil"
+            href="/modulos/fletes/conductores"
             className="inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-400/50 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
             title="Portal de Conductores y Transportistas (Radar de Viajes, Billetera y Ofertas)"
           >
@@ -2345,7 +2345,7 @@ export default function SaraFletesEngine() {
                           </div>
                         </div>
                         <Link
-                          href="/modulos/fletes/mi-perfil"
+                          href="/modulos/fletes/conductores"
                           className="shrink-0 inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
                         >
                           <span>Radar</span>
