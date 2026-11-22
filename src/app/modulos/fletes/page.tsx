@@ -1725,9 +1725,102 @@ export default function SaraFletesEngine() {
                   </div>
 
                   {/* -------------------------------------------------------- */}
-                  {/* SECCIÓN VIAJES / MANDADITOS (PASAJEROS UBER/DIDI Y EXPRESS) */}
+                  {/* ESTADO GLOBAL: FLETE O VIAJE ACTIVO Y SEGUIMIENTO EN VIVO */}
                   {/* -------------------------------------------------------- */}
-                  {(serviceType === 'viajes' || serviceType === 'mandaditos') && !activeFreight && (
+                  {activeFreight ? (
+                    <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl space-y-3 shadow-2xl animate-in fade-in duration-300">
+                      {activeFreight.status === 'searching' && (
+                        <SaraDriverNegotiationDrawer
+                          offers={driverOffers}
+                          referencePrice={activeFreight.referencePrice}
+                          vehicleLabel={serviceType === 'viajes' ? 'Vehículos de Pasajeros' : serviceType === 'mandaditos' ? 'Repartidores Express' : getVehiclePlural(activeFreight.vehicleType)}
+                          onAcceptOffer={(offer) => handleAcceptDriverOffer(offer)}
+                          onRejectOffer={(offerId) => handleRejectDriverOffer(offerId)}
+                          onRadiusChange={(radiusMeters) => setSearchRadiusMeters(radiusMeters)}
+                          onBoostPrice={(deltaUSD) => {
+                            const boosted = +(activeFreight.referencePrice + deltaUSD).toFixed(2);
+                            setActiveFreight(prev => prev ? { ...prev, referencePrice: boosted } : null);
+                            setProposedPrice(boosted);
+                            enqueueOfflineEvent('BOOST_OFFER', {
+                              fleteId: activeFreight.id,
+                              newPrice: boosted
+                            });
+                          }}
+                          onCancelSearch={() => {
+                            if (activeFreight) {
+                              SaraFletesRealtimeService.emit({
+                                type: 'CANCELAR_SOLICITUD_FLETE',
+                                payload: { fleteId: activeFreight.id }
+                              });
+                            }
+                            setActiveFreight(null);
+                            setDriverOffers([]);
+                            setSearchRadiusMeters(1500);
+                          }}
+                        />
+                      )}
+
+                      {(activeFreight.status === 'accepted' || activeFreight.status === 'in_transit') && (
+                        <SaraActiveTripCard
+                          activeFreight={activeFreight}
+                          assignedDriver={assignedDriver}
+                          currentCoords={userLocation || (originPoint ? [originPoint.lat, originPoint.lng] : null)}
+                          onOpenDriverProfile={() => {
+                            if (assignedDriver) {
+                              setSelectedDriverForSecurity({
+                                id: assignedDriver.id,
+                                driverName: assignedDriver.driverName,
+                                plate: assignedDriver.plate,
+                                vehicleName: assignedDriver.vehicleName,
+                                rating: assignedDriver.rating,
+                                phone: assignedDriver.phone,
+                                licenseType: 'Tipo E',
+                                yearsExperience: 8,
+                                tripsCount: assignedDriver.tripsCount || 142,
+                                antCertified: true,
+                                mtopRegistry: 'MTOP-REG-2026-LOJA-89',
+                                matriculaYear: 2026,
+                                insuranceActive: true,
+                                photoInitial: assignedDriver.driverName.charAt(0)
+                              });
+                            }
+                          }}
+                          onShareWhatsApp={() => {
+                            const trackingToken = activeFreight.id || `TRK-${Date.now().toString().slice(-6)}`;
+                            SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {
+                              driverName: assignedDriver?.driverName || "David Sarango",
+                              plate: assignedDriver?.plate || "PCX-4590",
+                              origin: activeFreight.origin,
+                              destination: activeFreight.destination,
+                              originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
+                              destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-3.9931, -79.2042],
+                              material: activeFreight.material,
+                              distanceKm: rutaCalculada?.distanciaKm || 4.2
+                            });
+                            const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}`;
+                            const text = encodeURIComponent(
+                              `🚚 *SARA-FLETES: Rastreo de Viaje en Vivo*\n\n` +
+                              `• Chofer: ${assignedDriver?.driverName || "Conductor SARA"} (${assignedDriver?.plate || "PBA-1234"})\n` +
+                              `• Carga: ${activeFreight.material}\n` +
+                              `• PIN de Recepción: ${activeFreight.accessCode}\n\n` +
+                              `📍 Sigue el vehículo en tiempo real aquí:\n${shareUrl}`
+                            );
+                            window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+                          }}
+                          onFinishOrCancel={() => {
+                            setActiveFreight(null);
+                            setDriverOffers([]);
+                            setAssignedDriver(null);
+                          }}
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {/* -------------------------------------------------------- */}
+                      {/* SECCIÓN VIAJES / MANDADITOS (PASAJEROS UBER/DIDI Y EXPRESS) */}
+                      {/* -------------------------------------------------------- */}
+                      {(serviceType === 'viajes' || serviceType === 'mandaditos') && (
                     <div className="space-y-3">
                       {/* Campo único ultra-rápido: ¿A dónde te llevo? (Punto de partida es automáticamente el GPS del cliente) */}
                       <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
@@ -1863,28 +1956,25 @@ export default function SaraFletesEngine() {
                           }).catch((err) => console.warn('Error guardando flete:', err));
 
                           // 2. Publicar solicitud en el bus en tiempo real para todos los conductores y pestañas
-                          const reqPayload = {
+                          const reqPayload: SolicitudFleteRealtime = {
                             id: simulatedReq.id,
                             origen: simulatedReq.origin,
                             destino: simulatedReq.destination,
                             material: simulatedReq.material,
                             pesoTon: 0.1,
                             tipoVehiculo: 'PICKUP_1T',
-                            vehiculoRequerido: params.vehiculoNombre || (serviceType === 'viajes' ? 'Moto Pasajero' : 'Repartidor Express'),
                             tarifaOfertadaUSD: params.tarifaUSD,
                             distanciaKm: simulatedReq.distanciaKm || 3.2,
                             duracionMinutos: simulatedReq.duracionMinutos || 9,
-                            coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] as [number, number] : [-4.3248, -79.5562] as [number, number],
-                            coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] as [number, number] : [-4.3312, -79.5580] as [number, number],
+                            coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
+                            coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3312, -79.5580],
                             coordenadasRuta: rutaCalculada?.coordenadasRuta,
-                            codigoAcceso: simulatedReq.accessCode,
+                            codigoAcceso: simulatedReq.accessCode || '0000',
                             clienteNombre: 'Usuario SARA (Cariamanga)',
                             status: 'searching',
-                            timestamp: Date.now(),
-                            servicioTipo: serviceType
+                            timestamp: Date.now()
                           };
 
-                          SaraFletesRealtimeService.createFletesSolicitud(reqPayload as any);
                           SaraFletesRealtimeService.emit({
                             type: 'NUEVA_SOLICITUD_FLETE',
                             payload: reqPayload
@@ -1933,9 +2023,7 @@ export default function SaraFletesEngine() {
                   {/* SECCIÓN A: FLETE DE CARGA ON-DEMAND */}
                   {/* -------------------------------------------------------- */}
                   {serviceType === 'fletes' && (
-                    <>
-                      {/* WIZARD VISUAL COMPLETO: RUTA, MATERIAL, EXTRAS Y TARIFA */}
-                      <SaraFletesWizard
+                    <SaraFletesWizard
                         activeStep={activeStep}
                         setActiveStep={(step) => {
                           setActiveStep(step);
@@ -2045,98 +2133,6 @@ export default function SaraFletesEngine() {
                         distanciaKm={rutaCalculada?.distanciaKm || 2.4}
                         duracionMinutos={rutaCalculada?.duracionMinutos || 8}
                       />
-                      
-{/* ESTADO DE FLETE ACTIVO Y SEGUIMIENTO CON OFERTAS DE CONDUCTORES */}
-                      {activeFreight && (
-                        <div className="bg-slate-950 border border-amber-500/60 p-4 rounded-2xl space-y-3">
-                          {activeFreight.status === 'searching' && (
-                            <SaraDriverNegotiationDrawer
-                              offers={driverOffers}
-                              referencePrice={activeFreight.referencePrice}
-                              vehicleLabel={getVehiclePlural(activeFreight.vehicleType)}
-                              onAcceptOffer={(offer) => handleAcceptDriverOffer(offer)}
-                              onRejectOffer={(offerId) => handleRejectDriverOffer(offerId)}
-                              onRadiusChange={(radiusMeters) => setSearchRadiusMeters(radiusMeters)}
-                              onBoostPrice={(deltaUSD) => {
-                                const boosted = +(activeFreight.referencePrice + deltaUSD).toFixed(2);
-                                setActiveFreight(prev => prev ? { ...prev, referencePrice: boosted } : null);
-                                setProposedPrice(boosted);
-                                enqueueOfflineEvent('BOOST_OFFER', {
-                                  fleteId: activeFreight.id,
-                                  newPrice: boosted
-                                });
-                              }}
-                              onCancelSearch={() => {
-                                if (activeFreight) {
-                                  SaraFletesRealtimeService.emit({
-                                    type: 'CANCELAR_SOLICITUD_FLETE',
-                                    payload: { fleteId: activeFreight.id }
-                                  });
-                                }
-                                setActiveFreight(null);
-                                setDriverOffers([]);
-                                setSearchRadiusMeters(1500);
-                              }}
-                            />
-                          )}
-
-                          {(activeFreight.status === 'accepted' || activeFreight.status === 'in_transit') && (
-                            <SaraActiveTripCard
-                              activeFreight={activeFreight}
-                              assignedDriver={assignedDriver}
-                              currentCoords={userLocation || (originPoint ? [originPoint.lat, originPoint.lng] : null)}
-                              onOpenDriverProfile={() => {
-                                if (assignedDriver) {
-                                  setSelectedDriverForSecurity({
-                                    id: assignedDriver.id,
-                                    driverName: assignedDriver.driverName,
-                                    plate: assignedDriver.plate,
-                                    vehicleName: assignedDriver.vehicleName,
-                                    rating: assignedDriver.rating,
-                                    phone: assignedDriver.phone,
-                                    licenseType: 'Tipo E',
-                                    yearsExperience: 8,
-                                    tripsCount: assignedDriver.tripsCount || 142,
-                                    antCertified: true,
-                                    mtopRegistry: 'MTOP-REG-2026-LOJA-89',
-                                    matriculaYear: 2026,
-                                    insuranceActive: true,
-                                    photoInitial: assignedDriver.driverName.charAt(0)
-                                  });
-                                }
-                              }}
-                              onShareWhatsApp={() => {
-                                const trackingToken = activeFreight.id || `TRK-${Date.now().toString().slice(-6)}`;
-                                SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {
-                                  driverName: assignedDriver?.driverName || "David Sarango",
-                                  plate: assignedDriver?.plate || "PCX-4590",
-                                  origin: activeFreight.origin,
-                                  destination: activeFreight.destination,
-                                  originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
-                                  destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-3.9931, -79.2042],
-                                  material: activeFreight.material,
-                                  distanceKm: rutaCalculada?.distanciaKm || 4.2
-                                });
-                                const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}`;
-                                const text = encodeURIComponent(
-                                  `🚚 *SARA-FLETES: Rastreo de Viaje en Vivo*\n\n` +
-                                  `• Chofer: ${assignedDriver?.driverName || "Conductor SARA"} (${assignedDriver?.plate || "PBA-1234"})\n` +
-                                  `• Carga: ${activeFreight.material}\n` +
-                                  `• PIN de Recepción: ${activeFreight.accessCode}\n\n` +
-                                  `📍 Sigue el camión en tiempo real aquí:\n${shareUrl}`
-                                );
-                                window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
-                              }}
-                              onFinishOrCancel={() => {
-                                setActiveFreight(null);
-                                setDriverOffers([]);
-                                setAssignedDriver(null);
-                              }}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </>
                   )}
 
                   {/* -------------------------------------------------------- */}
@@ -2304,28 +2300,28 @@ export default function SaraFletesEngine() {
                       </button>
                     </div>
                   )}
-                  {/* ACCESO RÁPIDO PARA CONDUCTORES Y TRANSPORTISTAS */}
-                  {!activeFreight && (
-                    <div className="mt-3 pt-3 border-t border-slate-800/80">
-                      <div className="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                            <Truck className="w-4 h-4" />
+                      {/* ACCESO RÁPIDO PARA CONDUCTORES Y TRANSPORTISTAS */}
+                      <div className="mt-3 pt-3 border-t border-slate-800/80">
+                        <div className="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                              <Truck className="w-4 h-4" />
+                            </div>
+                            <div className="truncate">
+                              <p className="text-xs font-bold text-white">¿Eres transportista o conductor?</p>
+                              <p className="text-[10px] text-slate-400 truncate">Recibe solicitudes en tiempo real y gestiona tus pagos</p>
+                            </div>
                           </div>
-                          <div className="truncate">
-                            <p className="text-xs font-bold text-white">¿Eres transportista o conductor?</p>
-                            <p className="text-[10px] text-slate-400 truncate">Recibe solicitudes en tiempo real y gestiona tus pagos</p>
-                          </div>
+                          <Link
+                            href="/modulos/fletes/conductores"
+                            className="shrink-0 inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
+                          >
+                            <span>Radar</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
                         </div>
-                        <Link
-                          href="/modulos/fletes/conductores"
-                          className="shrink-0 inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
-                        >
-                          <span>Radar</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </Link>
                       </div>
-                    </div>
+                    </>
                   )}
                 </>
               )}

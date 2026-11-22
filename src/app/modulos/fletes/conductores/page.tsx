@@ -304,6 +304,87 @@ export default function MiPerfilFletes() {
     planRef.current = plan;
   }, [plan]);
 
+  // Reproducción de alerta sonora estilo radar de taxi (Web Audio API nativo sin assets externos)
+  const playRadarAlertSound = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.35);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch {
+      // Autoplay restringido hasta interacción de usuario
+    }
+  };
+
+  // Simulación de pedido demo para probar radar y sincronización 100% en vivo
+  const handleSimularCarreraDemo = () => {
+    const demoId = `SARA-VIAJES-${Date.now().toString().slice(-5)}`;
+    const demoPayload = {
+      id: demoId,
+      origen: 'Parque Central Cariamanga',
+      destino: 'Mirador El Calvario',
+      material: 'Viaje de 1 pasajero(s)',
+      pesoTon: 0.1,
+      tipoVehiculo: 'PICKUP_1T',
+      tarifaOfertadaUSD: 28.72,
+      distanciaKm: 4.8,
+      duracionMinutos: 12,
+      coordsOrigen: [-4.3298, -79.5611] as [number, number],
+      coordsDestino: [-4.3250, -79.5520] as [number, number],
+      codigoAcceso: '4821',
+      clienteNombre: 'Viajero Cariamanga (Prueba)',
+      status: 'searching' as const,
+      timestamp: Date.now()
+    };
+    SaraFletesRealtimeService.emit({
+      type: 'NUEVA_SOLICITUD_FLETE',
+      payload: demoPayload
+    });
+    playRadarAlertSound();
+    showToast('🚀 Carrera de demostración emitida en el radar.');
+  };
+
+  // Contraoferta directa del conductor al cliente (Modo inDrive)
+  const handleDriverCounterOffer = (deltaUSD: number) => {
+    if (!incomingRequest) return;
+    const newPrice = +(incomingRequest.valorRef + deltaUSD).toFixed(2);
+    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
+
+    SaraFletesRealtimeService.emit({
+      type: 'NUEVA_OFERTA_CONDUCTOR',
+      payload: {
+        id: `OFFER-${myPlate}-${Date.now().toString().slice(-4)}`,
+        fleteId: incomingRequest.fleteId,
+        driverName,
+        vehicleName: 'Camioneta Pickup 1.2T · SARA',
+        plate: myPlate,
+        rating: 4.9,
+        tripsCount: 154,
+        etaMinutes: 3,
+        distanceMeters: 450,
+        offeredPrice: newPrice,
+        isCounterOffer: true,
+        phone: '0993849182',
+        coords: driverLocation,
+        timestamp: Date.now()
+      }
+    });
+    showToast(`Contraoferta de $${newPrice.toFixed(2)} USD transmitida al cliente.`);
+  };
+
   // Cargar solicitud activa existente y suscribirse a eventos de clientes en vivo
   useEffect(() => {
     // 1. Revisar si hay un flete activo reciente o ya aceptado en el bus
@@ -311,14 +392,16 @@ export default function MiPerfilFletes() {
     const activeReq = SaraFletesRealtimeService.getActiveRequest();
     const tripInProgress = SaraFletesRealtimeService.getTripInProgress();
 
+    const isAcceptedOrInProgress = Boolean(acceptedDispatch || tripInProgress || (activeReq && activeReq.status === 'accepted'));
+
     if (acceptedDispatch || activeReq || tripInProgress) {
       const fleteInfo = activeReq || acceptedDispatch || ({} as any);
       setIncomingRequest({
         fleteId: tripInProgress?.fleteId || acceptedDispatch?.fleteId || fleteInfo.id || 'FLT-ACTIVO',
         origen: fleteInfo.origen || acceptedDispatch?.origen || 'Punto de Carga',
         destino: fleteInfo.destino || acceptedDispatch?.destino || 'Punto de Entrega',
-        cliente: fleteInfo.clienteNombre || 'Cliente SARA Constructora',
-        material: fleteInfo.material ? `${fleteInfo.material} (${fleteInfo.pesoTon || 1} Ton)` : 'Material de Construcción',
+        cliente: fleteInfo.clienteNombre || 'Cliente SARA',
+        material: fleteInfo.material || (fleteInfo.pesoTon ? `Carga (${fleteInfo.pesoTon} Ton)` : 'Viaje de Pasajeros'),
         valorRef: acceptedDispatch?.precioAcordado || fleteInfo.tarifaOfertadaUSD || 2.50,
         distanciaKm: fleteInfo.distanciaKm || acceptedDispatch?.distanciaKm || 1.8,
         duracionMinutos: fleteInfo.duracionMinutos || acceptedDispatch?.duracionMinutos || 5,
@@ -333,12 +416,17 @@ export default function MiPerfilFletes() {
       const currentCode = tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso || '2889';
       setAccessCode(currentCode);
       setInputPin(currentCode);
-      setTripAccepted(true);
 
-      if (tripInProgress || fleteInfo.status === 'in_transit') {
-        setTripState('in_transit');
+      if (isAcceptedOrInProgress) {
+        setTripAccepted(true);
+        if (tripInProgress || fleteInfo.status === 'in_transit') {
+          setTripState('in_transit');
+        } else {
+          setTripState('heading_to_pickup');
+        }
       } else {
-        setTripState('heading_to_pickup');
+        setTripAccepted(false);
+        setTripState('idle');
       }
     }
 
@@ -363,12 +451,14 @@ export default function MiPerfilFletes() {
             return;
           }
 
+          setTripAccepted(false);
+          setTripState('idle');
           setIncomingRequest({
             fleteId: evt.payload.id,
             origen: evt.payload.origen,
             destino: evt.payload.destino,
-            cliente: evt.payload.clienteNombre || 'Cliente SARA Constructora',
-            material: `${evt.payload.material} (${evt.payload.pesoTon} Ton)`,
+            cliente: evt.payload.clienteNombre || 'Cliente SARA',
+            material: evt.payload.material ? `${evt.payload.material}` : 'Servicio de Transporte',
             valorRef: evt.payload.tarifaOfertadaUSD,
             distanciaKm: evt.payload.distanciaKm,
             duracionMinutos: evt.payload.duracionMinutos,
@@ -377,7 +467,8 @@ export default function MiPerfilFletes() {
             coordenadasRuta: evt.payload.coordenadasRuta,
             codigoAcceso: evt.payload.codigoAcceso
           });
-          showToast(`¡Nuevo flete en radar [Jerarquía ${targetConfig?.priority || 'ALTA'}]: ${evt.payload.origen} → ${evt.payload.destino}!`);
+          playRadarAlertSound();
+          showToast(`¡Nuevo pedido en radar [${targetConfig?.priority || 'ALTA'}]: ${evt.payload.origen} → ${evt.payload.destino}!`);
         };
 
         if (delaySeconds > 0) {
@@ -1128,6 +1219,17 @@ export default function MiPerfilFletes() {
                     )}
                   </div>
 
+                  {/* Botón Simular Carrera Demo en Radar */}
+                  <button
+                    type="button"
+                    onClick={handleSimularCarreraDemo}
+                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-sm"
+                    title="Probar recepción de pedido o carrera en el radar"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Simular Pedido de Prueba</span>
+                  </button>
+
                   {/* Estado de Transmisión */}
                   <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
                     <span className={`w-2.5 h-2.5 rounded-full ${balance < 1.00 ? 'bg-rose-500' : 'bg-emerald-500 animate-ping'}`}></span>
@@ -1164,10 +1266,10 @@ export default function MiPerfilFletes() {
                   origenNombre={incomingRequest?.origen}
                   destinoNombre={incomingRequest?.destino}
                   vehiculosCercanos={choferVehiculoMapa}
-                  rutaCoordenadas={tripAccepted && incomingRequest ? (
+                  rutaCoordenadas={incomingRequest ? (
                     incomingRequest.coordenadasRuta && incomingRequest.coordenadasRuta.length > 0
                       ? incomingRequest.coordenadasRuta
-                      : [incomingRequest.coordsOrigen, incomingRequest.coordsDestino]
+                      : (incomingRequest.coordsOrigen && incomingRequest.coordsDestino ? [incomingRequest.coordsOrigen, incomingRequest.coordsDestino] : undefined)
                   ) : undefined}
                 />
 
@@ -1184,8 +1286,8 @@ export default function MiPerfilFletes() {
                     <div className="absolute top-6 right-6 z-20 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
                       <div className="flex items-center justify-between mb-3">
                         <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          ¡Nuevo Flete en Radar!
+                          <Sparkles className="w-3.5 h-3.5" />
+                          {incomingRequest.material?.toLowerCase().includes('viaje') ? '¡Nuevo Viaje en Radar!' : '¡Nuevo Flete en Radar!'}
                         </span>
                         <div className="text-right">
                           <span className="text-base font-mono text-emerald-400 font-black">
@@ -1244,18 +1346,27 @@ export default function MiPerfilFletes() {
                           </button>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setIncomingRequest(null)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors"
+                            >
+                              Rechazar
+                            </button>
+                            <button
+                              onClick={handleAcceptTrip}
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25"
+                            >
+                              Aceptar (-${comisionUSD.toFixed(2)})
+                            </button>
+                          </div>
                           <button
-                            onClick={() => setIncomingRequest(null)}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors"
+                            type="button"
+                            onClick={() => handleDriverCounterOffer(1.00)}
+                            className="w-full bg-slate-950 hover:bg-slate-800 text-amber-300 border border-amber-500/40 font-bold py-2 rounded-xl text-[11px] transition-colors flex items-center justify-center gap-1.5"
                           >
-                            Rechazar
-                          </button>
-                          <button
-                            onClick={handleAcceptTrip}
-                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25"
-                          >
-                            Aceptar (-${comisionUSD.toFixed(2)})
+                            <span>Contraofertar +$1.00 USD (${(valorRef + 1.00).toFixed(2)})</span>
                           </button>
                         </div>
                       )}
