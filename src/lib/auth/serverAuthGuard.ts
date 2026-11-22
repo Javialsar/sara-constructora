@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { User } from '@supabase/supabase-js'
 
 export interface VerifiedServerAuth {
@@ -12,22 +13,36 @@ export interface VerifiedServerAuth {
  * Admite tanto sesión por cookies como Bearer token vía header de autorización.
  */
 export async function getVerifiedServerUser(request?: Request): Promise<User | null> {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (user && !error) {
-    return user
-  }
-
-  // Fallback para API Routes con header Authorization: Bearer <token>
+  // 1. Prioridad API Routes con header Authorization: Bearer <token>
   if (request) {
     const authHeader = request.headers.get('authorization')
     if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
       const token = authHeader.substring(7).trim()
-      const { data: tokenUser, error: tokenError } = await supabase.auth.getUser(token)
-      if (tokenUser?.user && !tokenError) {
-        return tokenUser.user
+      if (!token || token === 'null' || token === 'undefined') {
+        return null
       }
+      try {
+        const adminClient = createAdminClient()
+        const { data: tokenUser, error: tokenError } = await adminClient.auth.getUser(token)
+        if (tokenUser?.user && !tokenError) {
+          return tokenUser.user
+        }
+      } catch {
+        return null
+      }
+      return null
     }
+  }
+
+  // 2. Sesión por cookies en Server Components / Server Actions
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (user && !error) {
+      return user
+    }
+  } catch {
+    // Si se ejecuta fuera del request scope (ej: test runners o scripts aislados) o no hay cookies
   }
 
   return null

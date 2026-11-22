@@ -33,9 +33,12 @@ export async function proxy(request: NextRequest) {
 
   // Use supabase.auth.getUser() to safely validate JWT session
   const { data: { user } } = await supabase.auth.getUser()
-  const appMeta = user?.app_metadata || {}
-  const userMeta = user?.user_metadata || {}
-  const metadata = { ...userMeta, ...appMeta }
+  // SEGURIDAD ZERO-TRUST: Preservar app_metadata y user_metadata segregados sin aplanar
+  // para que resolveMetadata() descarte estrictamente roles administrativos inyectados en user_metadata.
+  const authContext = {
+    app_metadata: user?.app_metadata || {},
+    user_metadata: user?.user_metadata || {},
+  }
 
   const pathname = request.nextUrl.pathname
 
@@ -51,8 +54,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!canAccessModule(metadata, 'sara_apu')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (!canAccessModule(authContext, 'sara_apu')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_apu')
@@ -72,7 +75,7 @@ export async function proxy(request: NextRequest) {
     }
 
     if (user) {
-      const hasAdminAccess = canAccessModule(metadata, 'sara_master')
+      const hasAdminAccess = canAccessModule(authContext, 'sara_master')
 
       if (isLoginPage && hasAdminAccess) {
         const url = request.nextUrl.clone()
@@ -81,7 +84,7 @@ export async function proxy(request: NextRequest) {
       }
 
       if (!isLoginPage && !hasAdminAccess) {
-        const redirectUrl = getUserPortalUrl(metadata)
+        const redirectUrl = getUserPortalUrl(authContext)
         const url = request.nextUrl.clone()
         url.pathname = redirectUrl
         url.searchParams.set('warning', 'sin_privilegios_admin')
@@ -99,8 +102,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!canAccessModule(metadata, 'sara_constructora')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (!canAccessModule(authContext, 'sara_constructora')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_constructora')
@@ -117,8 +120,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!canAccessModule(metadata, 'sara_inmobiliaria')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (!canAccessModule(authContext, 'sara_inmobiliaria')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_inmobiliaria')
@@ -135,8 +138,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!canAccessModule(metadata, 'sara_stays')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (!canAccessModule(authContext, 'sara_stays')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_stays')
@@ -154,8 +157,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!canAccessModule(metadata, 'sara_fletes')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (!canAccessModule(authContext, 'sara_fletes')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_fletes')
@@ -172,8 +175,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (!canAccessModule(metadata, 'sara_talento')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (!canAccessModule(authContext, 'sara_talento')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_talento')
@@ -195,8 +198,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (user && !canAccessModule(metadata, 'sara_facturacion')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (user && !canAccessModule(authContext, 'sara_facturacion')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_facturacion')
@@ -217,8 +220,8 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (user && !canAccessModule(metadata, 'sara_pagos')) {
-      const redirectUrl = getUserPortalUrl(metadata)
+    if (user && !canAccessModule(authContext, 'sara_pagos')) {
+      const redirectUrl = getUserPortalUrl(authContext)
       const url = request.nextUrl.clone()
       url.pathname = redirectUrl
       url.searchParams.set('warning', 'modulo_no_autorizado_pagos')
@@ -236,7 +239,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Si usuario autenticado visita la página de login de un módulo específico y ya pertenece a él
-  if (pathname === '/login' && user && canAccessModule(metadata, 'sara_apu')) {
+  if (pathname === '/login' && user && canAccessModule(authContext, 'sara_apu')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
@@ -244,7 +247,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === '/modulos/financiero/auth') {
     const pagosCookie = request.cookies.get('sara_pagos_session')?.value
-    if ((user && canAccessModule(metadata, 'sara_pagos')) || pagosCookie) {
+    if ((user && canAccessModule(authContext, 'sara_pagos')) || pagosCookie) {
       const url = request.nextUrl.clone()
       url.pathname = '/modulos/financiero'
       return NextResponse.redirect(url)
@@ -253,7 +256,7 @@ export async function proxy(request: NextRequest) {
 
   if (pathname === '/modulos/facturacion/auth') {
     const facturacionCookie = request.cookies.get('sara_facturacion_session')?.value
-    if ((user && canAccessModule(metadata, 'sara_facturacion')) || facturacionCookie) {
+    if ((user && canAccessModule(authContext, 'sara_facturacion')) || facturacionCookie) {
       const url = request.nextUrl.clone()
       url.pathname = '/modulos/facturacion'
       return NextResponse.redirect(url)

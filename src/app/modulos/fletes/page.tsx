@@ -1585,11 +1585,21 @@ export default function SaraFletesEngine() {
           </span>
         </div>
 
-        {/* App exclusiva del CLIENTE: el conductor opera en /modulos/fletes/mi-perfil (acceso desde /fletes) */}
+        {/* Acceso para conductores y selector de perfil */}
         <div className="flex items-center gap-2">
           <Link
-            href="/modulos/fletes?elegir=1"
-            className="text-slate-400 hover:text-white border border-slate-800 hover:border-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            href="/modulos/fletes/mi-perfil"
+            className="inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-400/50 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+            title="Portal de Conductores y Transportistas (Radar de Viajes, Billetera y Ofertas)"
+          >
+            <Truck className="w-3.5 h-3.5 shrink-0" />
+            <span className="hidden sm:inline">Soy Conductor</span>
+            <span className="sm:hidden">Conductor</span>
+          </Link>
+          <Link
+            href="/fletes?elegir=1"
+            className="text-slate-400 hover:text-white border border-slate-800 hover:border-slate-600 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            title="Elegir entre perfil de Cliente o Conductor"
           >
             Cambiar perfil
           </Link>
@@ -2319,6 +2329,29 @@ export default function SaraFletesEngine() {
                       >
                         Hacer otra reserva
                       </button>
+                    </div>
+                  )}
+                  {/* ACCESO RÁPIDO PARA CONDUCTORES Y TRANSPORTISTAS */}
+                  {!activeFreight && (
+                    <div className="mt-3 pt-3 border-t border-slate-800/80">
+                      <div className="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                            <Truck className="w-4 h-4" />
+                          </div>
+                          <div className="truncate">
+                            <p className="text-xs font-bold text-white">¿Eres transportista o conductor?</p>
+                            <p className="text-[10px] text-slate-400 truncate">Recibe solicitudes en tiempo real y gestiona tus pagos</p>
+                          </div>
+                        </div>
+                        <Link
+                          href="/modulos/fletes/mi-perfil"
+                          className="shrink-0 inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
+                        >
+                          <span>Radar</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </>

@@ -180,9 +180,12 @@ export const UNIVERSAL_ACCESS_ROLES = ['admin', 'superadmin', 'tecnico']
  * Extrae y normaliza los metadatos del usuario priorizando de forma estricta `app_metadata` sobre `user_metadata`.
  * SEGURIDAD ZERO-TRUST: Cualquier rol administrativo ('admin', 'superadmin', 'tecnico') o flag 'es_admin'
  * presente en `user_metadata` es descartado de inmediato para prevenir escalamiento de privilegios.
+ * Si el objeto de entrada no cuenta con `app_metadata` verificado, cualquier rol privilegiado se degrada a 'cliente'.
  */
 function resolveMetadata(input: any): any {
   if (!input) return {}
+  
+  // Caso 1: Objeto con separación formal de app_metadata y user_metadata (o usuario Supabase User)
   if (input.app_metadata || input.user_metadata) {
     const appMeta = input.app_metadata || {}
     const userMeta = input.user_metadata || {}
@@ -200,8 +203,8 @@ function resolveMetadata(input: any): any {
     const safeIsAdmin = Boolean(
       appMeta.es_admin === true || 
       appMeta.sara_master === true || 
-      finalRole === 'admin' || 
-      finalRole === 'superadmin'
+      verifiedAppRole === 'admin' || 
+      verifiedAppRole === 'superadmin'
     )
 
     return {
@@ -213,6 +216,20 @@ function resolveMetadata(input: any): any {
       modulo_origen: appMeta.modulo_origen || userMeta.modulo_origen
     }
   }
+
+  // Caso 2: Objeto aplanado sin app_metadata verificado explícito (Defensa en Profundidad Zero-Trust)
+  // Ningún objeto aplanado no confiable puede atribuirse roles administrativos ni flags de admin.
+  const flatRole = String(input.role || '')
+  const isPrivileged = UNIVERSAL_ACCESS_ROLES.includes(flatRole) || flatRole === 'admin' || flatRole === 'superadmin' || flatRole === 'tecnico'
+  if (isPrivileged || input.es_admin || input.sara_master) {
+    return {
+      ...input,
+      role: 'cliente',
+      es_admin: false,
+      sara_master: false
+    }
+  }
+
   return input
 }
 

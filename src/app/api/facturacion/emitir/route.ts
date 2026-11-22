@@ -27,6 +27,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 1.1 Validación Estricta de Propiedad de Tenant / RUC Emisor (Anti-Impersonation):
+    // A menos que sea Master Admin, el usuario autenticado debe ser el propietario del RUC emisor registrado
+    if (!isAdmin) {
+      const adminDb = createAdminClient();
+      const { data: tenantCheck } = await adminDb
+        .from('sri_tenants')
+        .select('id, user_id, ruc, activo')
+        .eq('ruc', emisor.ruc.trim())
+        .maybeSingle();
+
+      if (tenantCheck && tenantCheck.user_id && tenantCheck.user_id !== user.id) {
+        console.warn(`[AUDIT SECURITY ALERT] Intento de emisión con RUC ajeno: Usuario ${user.id} intentó emitir con RUC ${emisor.ruc} perteneciente a ${tenantCheck.user_id}`);
+        return NextResponse.json(
+          { success: false, error: 'Acceso denegado: No está autorizado para emitir comprobantes a nombre de este RUC emisor.' },
+          { status: 403 }
+        );
+      }
+    }
+
     if (!comprador || !comprador.identificacion || !comprador.razonSocial) {
       return NextResponse.json(
         { success: false, error: 'Los datos del comprador (identificación y razón social) son requeridos.' },

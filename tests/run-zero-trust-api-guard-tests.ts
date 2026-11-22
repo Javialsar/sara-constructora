@@ -27,6 +27,12 @@ import { POST as postRequisiciones, PATCH as patchRequisiciones, PUT as putRequi
 import { POST as postComparativo, PUT as putComparativo, DELETE as deleteComparativo } from '../src/app/api/v1/compras/comparativo/route';
 import { POST as postRecepciones, PUT as putRecepciones, DELETE as deleteRecepciones } from '../src/app/api/v1/compras/recepciones/route';
 import { POST as postParseXml } from '../src/app/api/v1/compras/parse-xml/route';
+import { GET as getFirmasDescargar } from '../src/app/api/facturacion/firmas/descargar/route';
+import { POST as postFirmasEntregar } from '../src/app/api/facturacion/firmas/entregar/route';
+import { GET as getFirmas, PATCH as patchFirmas } from '../src/app/api/facturacion/firmas/route';
+import { GET as getFacturacionClientes } from '../src/app/api/facturacion/clientes/route';
+import { POST as postFacturacionEmitir } from '../src/app/api/facturacion/emitir/route';
+import { GET as getFacturacionDescargar } from '../src/app/api/facturacion/descargar/route';
 
 interface TestCaseResult {
   name: string;
@@ -58,12 +64,14 @@ async function testEndpointGuard(
   bodyData: any,
   endpointName: string
 ) {
+  const isGetOrHead = method === 'GET' || method === 'HEAD';
+
   // 1. Escenario SIN TOKEN
   try {
     const reqSinToken = new NextRequest(url, {
       method,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(bodyData)
+      headers: isGetOrHead ? {} : { 'content-type': 'application/json' },
+      body: isGetOrHead ? undefined : JSON.stringify(bodyData)
     });
 
     const resSinToken = await handler(reqSinToken);
@@ -97,11 +105,13 @@ async function testEndpointGuard(
   try {
     const reqTokenInvalido = new NextRequest(url, {
       method,
-      headers: {
+      headers: isGetOrHead ? {
+        'authorization': 'Bearer token-falso-invalido-xyz-12345'
+      } : {
         'content-type': 'application/json',
         'authorization': 'Bearer token-falso-invalido-xyz-12345'
       },
-      body: JSON.stringify(bodyData)
+      body: isGetOrHead ? undefined : JSON.stringify(bodyData)
     });
 
     const resTokenInvalido = await handler(reqTokenInvalido);
@@ -135,11 +145,13 @@ async function testEndpointGuard(
   try {
     const reqTokenMalformado = new NextRequest(url, {
       method,
-      headers: {
+      headers: isGetOrHead ? {
+        'authorization': 'Bearer null'
+      } : {
         'content-type': 'application/json',
         'authorization': 'Bearer null'
       },
-      body: JSON.stringify(bodyData)
+      body: isGetOrHead ? undefined : JSON.stringify(bodyData)
     });
 
     const resTokenMalformado = await handler(reqTokenMalformado);
@@ -430,6 +442,83 @@ export async function runZeroTrustApiGuardTests() {
       xmlContent: '<factura></factura>'
     },
     'POST /api/v1/compras/parse-xml'
+  );
+
+  // --------------------------------------------------------------------------
+  // GRUPO 8: AUDITORÍA ZERO-TRUST EN FACTURACIÓN ELECTRÓNICA Y BÓVEDA DE FIRMAS
+  // --------------------------------------------------------------------------
+  console.log('\n[GRUPO 8] Auditoría Zero-Trust en Facturación Electrónica y Bóveda de Firmas');
+
+  // 1. Descarga de firma .p12 (GET - Anti-BOLA/IDOR)
+  await testEndpointGuard(
+    getFirmasDescargar,
+    'http://localhost:3000/api/facturacion/firmas/descargar?id=sol-test',
+    'GET',
+    null,
+    'GET /api/facturacion/firmas/descargar'
+  );
+
+  // 2. Entrega de firma digital .p12 (POST - Requiere Master Admin)
+  await testEndpointGuard(
+    postFirmasEntregar,
+    'http://localhost:3000/api/facturacion/firmas/entregar',
+    'POST',
+    {
+      solicitudId: 'sol-001',
+      claveP12: 'Test1234'
+    },
+    'POST /api/facturacion/firmas/entregar'
+  );
+
+  // 3. Listado de solicitudes de firma (GET)
+  await testEndpointGuard(
+    getFirmas,
+    'http://localhost:3000/api/facturacion/firmas',
+    'GET',
+    null,
+    'GET /api/facturacion/firmas'
+  );
+
+  // 4. Gestión / Aprobación de trámites de firmas (PATCH - Requiere Admin)
+  await testEndpointGuard(
+    patchFirmas,
+    'http://localhost:3000/api/facturacion/firmas',
+    'PATCH',
+    {
+      id: 'sol-001',
+      accion: 'VALIDAR_PAGO'
+    },
+    'PATCH /api/facturacion/firmas'
+  );
+
+  // 5. Clientes / Emisores SRI (GET)
+  await testEndpointGuard(
+    getFacturacionClientes,
+    'http://localhost:3000/api/facturacion/clientes',
+    'GET',
+    null,
+    'GET /api/facturacion/clientes'
+  );
+
+  // 6. Emisión de comprobantes SRI (POST - Anti-Impersonation)
+  await testEndpointGuard(
+    postFacturacionEmitir,
+    'http://localhost:3000/api/facturacion/emitir',
+    'POST',
+    {
+      emisor: { ruc: '1792984512001' },
+      comprador: { identificacion: '1710000000', razonSocial: 'CLIENTE PRUEBA' }
+    },
+    'POST /api/facturacion/emitir'
+  );
+
+  // 7. Descarga de comprobantes SRI XML/PDF (GET)
+  await testEndpointGuard(
+    getFacturacionDescargar,
+    'http://localhost:3000/api/facturacion/descargar?claveAcceso=2610202601179298451200120010010000001421234567812',
+    'GET',
+    null,
+    'GET /api/facturacion/descargar'
   );
 
   // --------------------------------------------------------------------------

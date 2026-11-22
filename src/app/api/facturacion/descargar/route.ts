@@ -1,10 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SriEmissionService } from '@/lib/services/sriEmissionService';
+import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
   try {
+    // 0. Autenticación obligatoria Zero-Trust
+    const { user, isAdmin } = await requireServerAuth(req);
+
     const { searchParams } = new URL(req.url);
     const claveAcceso = searchParams.get('claveAcceso') || '';
+
+    // Si se consulta un comprobante específico por clave de acceso, verificar autorización
+    if (claveAcceso && !isAdmin) {
+      try {
+        const adminDb = createAdminClient();
+        const { data: comp } = await adminDb
+          .from('comprobantes_electronicos_sri')
+          .select('emitido_por_user_id, ruc_emisor, identificacion_comprador')
+          .eq('clave_acceso', claveAcceso)
+          .maybeSingle();
+
+        if (comp && comp.emitido_por_user_id && comp.emitido_por_user_id !== user.id) {
+          // Verificar si al menos el comprador es el usuario
+          // Si no es el emisor ni el comprador ni admin, denegar
+          return NextResponse.json(
+            { error: 'Acceso denegado: No posee autorización para descargar este comprobante electrónico.' },
+            { status: 403 }
+          );
+        }
+      } catch (errDb) {
+        console.warn('Aviso verificación comprobante en descarga:', errDb);
+      }
+    }
     const tipo = searchParams.get('tipo') || 'xml'; // 'xml' | 'pdf'
     const numero = searchParams.get('numero') || '001-001-000000142';
     const cliente = searchParams.get('cliente') || 'Consumidor Final';
@@ -142,9 +170,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error al descargar comprobante SRI:', error);
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
     return NextResponse.json(
       { success: false, error: error.message || 'Error al generar descarga.' },
-      { status: 500 }
+      { status }
     );
   }
 }

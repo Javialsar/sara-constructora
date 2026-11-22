@@ -30,6 +30,13 @@ export async function POST(req: Request) {
     const session = event.data.object as Stripe.Checkout.Session
     const ordenId = session.client_reference_id
 
+    // CONTROL ZERO-TRUST DE INTEGRIDAD FINANCIERA:
+    // Exigir explícitamente payment_status === 'paid' para prevenir activaciones con pagos pendientes o diferidos
+    if (session.payment_status !== 'paid') {
+      console.warn(`[Stripe Webhook Alert]: checkout.session.completed recibido pero payment_status es '${session.payment_status}' (no 'paid'). Se suspende activación.`);
+      return NextResponse.json({ received: true, payment_status: session.payment_status, warning: 'Pago no confirmado' })
+    }
+
     if (ordenId) {
       const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +60,11 @@ export async function POST(req: Request) {
       const { data: orden } = await supabaseAdmin.from('ordenes_pago').select('user_id, monto, referencia_id, estado').eq('id', ordenId).single()
       
       if (orden) {
+        if (orden.estado === 'completada') {
+          console.log(`[Stripe Webhook]: Orden ${ordenId} ya se encuentra completada en base de datos.`)
+          return NextResponse.json({ received: true, already_completed: true })
+        }
+
         // 2. Marcar la orden como completada
         await supabaseAdmin.from('ordenes_pago').update({ estado: 'completada' }).eq('id', ordenId)
 

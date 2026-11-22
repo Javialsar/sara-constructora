@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { SaraBankReconciliationService } from '@/lib/services/bankReconciliationService';
+import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // 0. Autenticación obligatoria Zero-Trust
+    const { user, isAdmin } = await requireServerAuth(req);
     const supabaseAdmin = createAdminClient();
 
-    const { data: dbSolicitudes, error } = await supabaseAdmin
-      .from('sri_solicitudes_firmas')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Si es administrador puede ver el universo completo; si es usuario regular, estrictamente sus propias solicitudes
+    let query = supabaseAdmin.from('sri_solicitudes_firmas').select('*');
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data: dbSolicitudes, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.warn('Error al consultar sri_solicitudes_firmas:', error.message);
@@ -69,8 +75,8 @@ export async function GET() {
       };
     });
 
-    // Registros base históricos para auditoría del ecosistema
-    const demoBase = [
+    // Registros base históricos para auditoría del ecosistema (SOLO visibles para administradores)
+    const demoBase = isAdmin ? [
       {
         id: 'sol-base-001',
         cedula_ruc: '1792984512001',
@@ -126,7 +132,7 @@ export async function GET() {
         fecha_solicitud: '2026-10-25',
         archivo_p12_disponible: false
       }
-    ];
+    ] : [];
 
     // Evitar duplicar si la cédula ya está en las solicitudes reales
     const idsReales = new Set(realList.map(r => r.cedula_ruc));
@@ -140,15 +146,25 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Error al obtener solicitudes de firma:', error);
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
     return NextResponse.json(
       { error: error.message || 'Error al obtener solicitudes' },
-      { status: 500 }
+      { status }
     );
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
+    // 0. Autenticación y Autorización Zero-Trust: Solo administradores pueden mutar estados de firmas
+    const { user, isAdmin } = await requireServerAuth(req);
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'Acceso denegado: Se requieren privilegios de Administrador para gestionar trámites de firma.' },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { id, accion } = body;
 
@@ -208,9 +224,10 @@ export async function PATCH(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error en PATCH de firmas:', error);
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
     return NextResponse.json(
       { error: error.message || 'Error al actualizar firma' },
-      { status: 500 }
+      { status }
     );
   }
 }

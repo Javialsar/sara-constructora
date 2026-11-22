@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireMasterAdmin } from '@/lib/auth/serverAuthGuard';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    // 0. Control de Acceso Estricto Zero-Trust: Solo Master Admin puede cargar/entregar certificados .p12
+    const { user } = await requireMasterAdmin(req);
+
     const body = await req.json();
     const {
       solicitudId,
@@ -184,9 +188,10 @@ ${downloadPageUrl}
 
   } catch (error: any) {
     console.error('Error en entrega de firma:', error);
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
     return NextResponse.json(
       { error: error.message || 'Error interno al procesar la entrega de la firma' },
-      { status: 500 }
+      { status }
     );
   }
 }

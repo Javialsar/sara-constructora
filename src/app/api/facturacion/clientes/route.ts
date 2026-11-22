@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // 0. Autenticación y Autorización Zero-Trust: Solo emisor autorizado o admin
+    const { user, isAdmin } = await requireServerAuth(req);
     const supabaseAdmin = createAdminClient();
 
-    const { data: tenants, error } = await supabaseAdmin
-      .from('sri_tenants')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Si es administrador puede auditar todos los emisores; si no, estrictamente sus propios tenants
+    let query = supabaseAdmin.from('sri_tenants').select('*');
+    if (!isAdmin) {
+      query = query.eq('user_id', user.id);
+    }
+
+    const { data: tenants, error } = await query.order('created_at', { ascending: false });
 
     if (error) {
       console.warn('Error al consultar sri_tenants:', error.message);
@@ -42,7 +48,7 @@ export async function GET() {
       };
     });
 
-    const demoBase = [
+    const demoBase = isAdmin ? [
       {
         id: 'cli-base-1',
         ruc: '1792345678001',
@@ -94,7 +100,7 @@ export async function GET() {
         pago_validado: true,
         monto_pagado: 59.99
       }
-    ];
+    ] : [];
 
     const rucsReales = new Set(realClientes.map(c => c.ruc));
     const demoFiltrados = demoBase.filter(d => !rucsReales.has(d.ruc));
@@ -105,6 +111,7 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Error al obtener clientes facturación:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
+    return NextResponse.json({ error: error.message }, { status });
   }
 }

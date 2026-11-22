@@ -1,21 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { SaraBankReconciliationService } from '@/lib/services/bankReconciliationService';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Comparación de cadenas en tiempo constante (Anti-Timing Attacks)
+ */
+function secureCompareSecrets(provided: string, expected: string): boolean {
+  if (!provided || !expected) return false;
+  const bufProvided = Buffer.from(provided, 'utf-8');
+  const bufExpected = Buffer.from(expected, 'utf-8');
+  if (bufProvided.length !== bufExpected.length) {
+    // Operación en tiempo constante simulada para evitar fugas de longitud
+    crypto.timingSafeEqual(bufProvided, bufProvided);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufProvided, bufExpected);
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verificación de Seguridad y Firma de Webhook Bancario
+    // 1. Verificación de Seguridad Zero-Trust: Cabeceras estrictas y comparación en tiempo constante
     const webhookSecret = process.env.BANK_WEBHOOK_SECRET || process.env.DEUNA_WEBHOOK_SECRET;
     const isProduction = process.env.NODE_ENV === 'production';
 
+    // Secreto admitido EXCLUSIVAMENTE a través de cabeceras HTTP (Anti-Log Leaks)
     const authHeader = req.headers.get('authorization') || '';
     const signatureHeader = req.headers.get('x-bank-signature') || req.headers.get('x-webhook-token') || req.headers.get('x-signature') || '';
-    const urlToken = req.nextUrl.searchParams.get('token') || '';
+    const bearerSecret = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.substring(7).trim() : '';
+    const providedSecret = signatureHeader || bearerSecret;
+
+    // Rechazo explícito de tokens expuestos en parámetros de consulta URL
+    if (req.nextUrl.searchParams.has('token')) {
+      console.warn('[SECURITY ALERT]: Intento de autenticación de webhook bancario mediante parámetro URL ?token=. Rechazado por política Zero-Trust.');
+      return NextResponse.json(
+        { error: 'Parámetro URL ?token= no admitido. Utilice cabeceras HTTP Authorization o X-Bank-Signature.' },
+        { status: 400 }
+      );
+    }
 
     if (webhookSecret) {
-      const providedSecret = signatureHeader || urlToken || (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
-      if (providedSecret !== webhookSecret) {
+      if (!providedSecret || !secureCompareSecrets(providedSecret, webhookSecret)) {
         return NextResponse.json(
           { error: 'Firma o secreto de webhook bancario inválido' },
           { status: 401 }
