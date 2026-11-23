@@ -430,6 +430,46 @@ export class SaraFletesRealtimeService {
       // Guardar estados persistentes según el tipo
       if (event.type === 'NUEVA_SOLICITUD_FLETE') {
         localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify(event.payload));
+      } else if (event.type === 'CHOFER_ACEPTO_FLETE') {
+        const existing = localStorage.getItem(`${STORAGE_PREFIX}active_request`);
+        let mergedReq: any = {
+          id: event.payload.fleteId,
+          status: 'accepted',
+          assignedDriverName: event.payload.driverName,
+          assignedPlate: event.payload.plate,
+          codigoAcceso: event.payload.codigoAcceso,
+          tarifaOfertadaUSD: event.payload.precio
+        };
+        if (existing) {
+          try {
+            const parsed = JSON.parse(existing);
+            mergedReq = {
+              ...parsed,
+              status: 'accepted',
+              assignedDriverName: event.payload.driverName,
+              assignedPlate: event.payload.plate,
+              codigoAcceso: event.payload.codigoAcceso || parsed.codigoAcceso,
+              precioAcordado: event.payload.precio || parsed.tarifaOfertadaUSD
+            };
+          } catch {}
+        }
+        localStorage.setItem(`${STORAGE_PREFIX}active_request`, JSON.stringify(mergedReq));
+        localStorage.setItem(`${STORAGE_PREFIX}accepted_dispatch`, JSON.stringify({
+          fleteId: event.payload.fleteId,
+          driverName: event.payload.driverName,
+          plate: event.payload.plate,
+          codigoAcceso: event.payload.codigoAcceso,
+          precioAcordado: event.payload.precio,
+          origen: mergedReq.origen,
+          destino: mergedReq.destino,
+          coordsOrigen: mergedReq.coordsOrigen,
+          coordsDestino: mergedReq.coordsDestino,
+          coordenadasRuta: mergedReq.coordenadasRuta,
+          distanciaKm: mergedReq.distanciaKm,
+          duracionMinutos: mergedReq.duracionMinutos,
+          material: mergedReq.material,
+          pesoTon: mergedReq.pesoTon
+        }));
       } else if (event.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
         const existing = localStorage.getItem(`${STORAGE_PREFIX}active_request`);
         if (existing) {

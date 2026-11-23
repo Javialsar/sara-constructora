@@ -533,7 +533,7 @@ export default function MiPerfilFletes() {
     });
 
     return () => unsub();
-  }, [tripAccepted, currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
+  }, [currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
 
   // Sincronizar ruta vial precisa entre origen y destino si no viene calculada
   useEffect(() => {
@@ -1283,7 +1283,7 @@ export default function MiPerfilFletes() {
                   const saldoSuficiente = balance >= 1.00 && balance >= comisionUSD;
 
                   return (
-                    <div className="absolute top-6 right-6 z-20 max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
+                    <div className="absolute top-6 right-6 z-[500] max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
                       <div className="flex items-center justify-between mb-3">
                         <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
                           <Sparkles className="w-3.5 h-3.5" />
@@ -1349,14 +1349,16 @@ export default function MiPerfilFletes() {
                         <div className="space-y-2">
                           <div className="grid grid-cols-2 gap-2">
                             <button
+                              type="button"
                               onClick={() => setIncomingRequest(null)}
-                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors"
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
                             >
                               Rechazar
                             </button>
                             <button
+                              type="button"
                               onClick={handleAcceptTrip}
-                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25"
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25 cursor-pointer"
                             >
                               Aceptar (-${comisionUSD.toFixed(2)})
                             </button>
@@ -1376,7 +1378,7 @@ export default function MiPerfilFletes() {
 
                 {/* OVERLAY: BANNER INTERACTIVO DE FLETE EN CURSO (ESTILO UBER / DIDI / INDRIVE) */}
                 {tripAccepted && (
-                  <div className="absolute bottom-6 left-4 sm:left-6 right-20 sm:right-24 z-30 bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 sm:p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 sm:gap-4 animate-in slide-in-from-bottom duration-300">
+                  <div className="absolute bottom-6 left-4 sm:left-6 right-20 sm:right-24 z-[500] bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 sm:p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 sm:gap-4 animate-in slide-in-from-bottom duration-300">
                     
                     {/* ESTADO 1: EN CAMINO AL PUNTO DE CARGA (ESPERANDO VALIDACIÓN DE PIN PARA INICIAR FLETE) */}
                     {tripState === 'heading_to_pickup' && (

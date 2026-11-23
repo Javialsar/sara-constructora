@@ -853,7 +853,7 @@ export default function SaraFletesEngine() {
           });
         }
       } else if (evt.type === 'CHOFER_ACEPTO_FLETE') {
-        if (activeFreightRef.current && activeFreightRef.current.id === evt.payload.fleteId) {
+        if (!activeFreightRef.current || activeFreightRef.current.id === evt.payload.fleteId || activeFreightRef.current.status === 'searching') {
           setAssignedDriver({
             id: 'CHOFER_DIRECTO_' + evt.payload.plate,
             driverName: evt.payload.driverName,
@@ -867,7 +867,12 @@ export default function SaraFletesEngine() {
             isCounterOffer: false,
             phone: '0993849182'
           });
-          setActiveFreight((prev) => prev ? { ...prev, status: 'accepted' } : null);
+          setActiveFreight((prev) => prev ? {
+            ...prev,
+            status: 'accepted',
+            referencePrice: evt.payload.precio || prev.referencePrice,
+            accessCode: evt.payload.codigoAcceso || prev.accessCode
+          } : null);
         }
       } else if (evt.type === 'CLIENTE_ACEPTO_CONDUCTOR') {
         // Reflejar la orden de inmediato en el entorno del conductor
