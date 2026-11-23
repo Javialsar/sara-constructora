@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, Circle, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, Circle, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { CategoriaVehiculo, CATALOGO_VEHICULOS_SARA } from '@/lib/services/saraFreightPricingService';
 
@@ -634,9 +634,11 @@ export default function SaraFletesMap({
         center={defaultCenter}
         zoom={14}
         scrollWheelZoom={true}
+        zoomControl={false}
         style={{ width: '100%', height: '100%', zIndex: 1 }}
         attributionControl={false}
       >
+        <ZoomControl position="bottomright" />
         {/* Capa de Cartografía Dinámica Seleccionada (Google Maps / Google Satélite / Esri / OSM) */}
         <TileLayer
           key={activeLayer}

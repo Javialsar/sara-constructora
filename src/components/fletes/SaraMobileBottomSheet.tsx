@@ -35,7 +35,12 @@ export default function SaraMobileBottomSheet({
   className = '',
 }: SaraMobileBottomSheetProps) {
   const [internalSnap, setInternalSnap] = useState<BottomSheetSnapPoint>(snapPoint ?? 'half');
-  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return false;
+  });
 
   const activeSnap: BottomSheetSnapPoint = snapPoint ?? internalSnap;
 
@@ -94,12 +99,20 @@ export default function SaraMobileBottomSheet({
     [activeSnap, updateSnap]
   );
 
-  // En escritorio (lg:), renderiza como contenedor lateral limpio sin interferir con el layout
+  // En escritorio (lg:), renderiza como isla flotante sólida de alto contraste
   if (isDesktop) {
     return (
-      <aside className={`flex flex-col h-full w-full ${className}`}>
-        {headerContent && <div className="shrink-0">{headerContent}</div>}
-        <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
+      <aside
+        className={`absolute top-4 left-4 z-20 flex flex-col w-[470px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-88px)] bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl overflow-hidden pointer-events-auto transition-all duration-300 ease-out ${className}`}
+      >
+        {headerContent && (
+          <div className="shrink-0 bg-slate-900/90 border-b border-slate-800">
+            {headerContent}
+          </div>
+        )}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4 custom-scrollbar">
+          {children}
+        </div>
       </aside>
     );
   }
@@ -115,7 +128,7 @@ export default function SaraMobileBottomSheet({
         damping: 36,
         mass: 0.85,
       }}
-      className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 rounded-t-3xl shadow-2xl lg:static lg:inset-auto lg:z-auto lg:h-full lg:rounded-none lg:border-t-0 lg:shadow-none ${className}`}
+      className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 rounded-t-3xl shadow-2xl ${className}`}
       style={{ willChange: 'height' }}
     >
       {/* Zona táctil superior de arrastre (≥44px de altura) */}

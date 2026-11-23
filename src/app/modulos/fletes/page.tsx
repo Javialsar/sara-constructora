@@ -1672,13 +1672,11 @@ export default function SaraFletesEngine() {
           onSnapChange={(snap) => {
             setBottomSheetLevel(snap === 'collapsed' ? 'peek' : snap === 'expanded' ? 'full' : 'half');
           }}
-          className={`lg:top-4 lg:left-4 lg:w-[470px] lg:max-h-[calc(100vh-88px)] lg:rounded-2xl ${
-            isPanelCollapsed ? 'lg:w-[320px] lg:max-h-[64px]' : ''
-          }`}
+          className={isPanelCollapsed ? '!w-[320px] !max-h-[56px]' : ''}
           headerContent={
-            <div className="px-4 py-2.5 border-b border-slate-800 flex items-center justify-between shrink-0">
+            <div className="px-4 py-2.5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
                 <h2 className="text-xs font-black text-white uppercase tracking-wider">
                   {serviceType === 'viajes' ? '🚕 Viajes Rápidos' : serviceType === 'mandaditos' ? '📦 Mandaditos Express' : serviceType === 'fletes' ? '🚛 Flete On-Demand' : '🔑 Renta de Vehículos'}
                 </h2>
@@ -1688,7 +1686,7 @@ export default function SaraFletesEngine() {
                 <button
                   type="button"
                   onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
-                  className="hidden lg:inline-flex p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="hidden lg:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
                   title={isPanelCollapsed ? 'Expandir panel' : 'Minimizar panel'}
                 >
                   {isPanelCollapsed ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
@@ -1700,7 +1698,7 @@ export default function SaraFletesEngine() {
 
           {/* CONTENIDO DEL PANEL CON SCROLL SUAVE */}
           {!isPanelCollapsed && (
-            <div className="p-4 space-y-4 overflow-y-auto max-h-[82vh] lg:max-h-[calc(100vh-160px)]">
+            <div className="space-y-4">
               
               {/* MODO CLIENTE / PÚBLICO GENERAL */}
               {(
