@@ -5,6 +5,7 @@
 // mercados mayoristas, canteras, parques industriales e intersecciones viales.
 // Sincronización en tiempo real y sugerencias predictivas (Autocomplete).
 // ============================================================================
+import { CARIAMANGA_OSM_VIAS, CARIAMANGA_OSM_INTERSECCIONES } from '@/lib/fletes/cariamangaOsmData';
 
 export interface GeocodedPoint {
   nombre: string;
@@ -420,76 +421,16 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
     centroide: [-4.328103, -79.561129],
     viewbox: [-79.5750, -4.3450, -79.5350, -4.3100],
     viasPrincipales: {
-      '18 de noviembre': [-4.3265, -79.5560],
-      'sucre': [-4.3278, -79.5568],
-      'bolivar': [-4.3272, -79.5562],
-      'atahualpa': [-4.3295, -79.5613],
-      'cristobal colon': [-4.3295, -79.5606],
-      'colon': [-4.3295, -79.5606],
-      'bernardo valdivieso': [-4.3268, -79.5552],
-      'valdivieso': [-4.3268, -79.5552],
-      'av del ejercito': [-4.3330, -79.5540],
-      'ejercito': [-4.3330, -79.5540],
-      'chile': [-4.3298, -79.5611],
-      'carrera chile': [-4.3298, -79.5611],
-      'quito': [-4.3210, -79.5620],
-      'centenario': [-4.3287, -79.5606],
-      'gran colombia': [-4.3295, -79.5585],
-      'ambato': [-4.3318, -79.5595],
-      'loja': [-4.3250, -79.5530],
-      'gonzalez suarez': [-4.3285, -79.5580],
-      'eloy alfaro': [-4.3255, -79.5575],
-      'daniel ojeda': [-4.3260, -79.5525],
-      'mariano samaniego': [-4.3280, -79.5530],
-      'jose angel palacios': [-4.3280, -79.5545],
-      'palacios': [-4.3280, -79.5545],
-      'via a gonzanama': [-4.3200, -79.5520],
-      'via a sozoranga': [-4.3380, -79.5620],
-      'via a amaluza': [-4.3400, -79.5500]
+      ...CARIAMANGA_OSM_VIAS,
+      'av del ejercito': [-4.330703, -79.556861],
+      'ejercito': [-4.330703, -79.556861],
+      'chile': [-4.327657, -79.558218],
+      'colon': [-4.330988, -79.560895],
+      'valdivieso': [-4.323781, -79.553979],
+      'palacios': [-4.329362, -79.555223]
     },
     interseccionesExactas: {
-      'atahualpa_centenario': [-4.3291, -79.5609],
-      'centenario_atahualpa': [-4.3291, -79.5609],
-      '18 de noviembre_centenario': [-4.3265, -79.5606],
-      'centenario_18 de noviembre': [-4.3265, -79.5606],
-      'sucre_centenario': [-4.3278, -79.5606],
-      'centenario_sucre': [-4.3278, -79.5606],
-      'bolivar_centenario': [-4.3272, -79.5606],
-      'centenario_bolivar': [-4.3272, -79.5606],
-      'chile_atahualpa': [-4.3298, -79.5611],
-      'carrera chile_atahualpa': [-4.3298, -79.5611],
-      'atahualpa_chile': [-4.3298, -79.5611],
-      'atahualpa_carrera chile': [-4.3298, -79.5611],
-      'centenario_cristobal colon': [-4.3287, -79.5606],
-      'cristobal colon_centenario': [-4.3287, -79.5606],
-      'centenario_colon': [-4.3287, -79.5606],
-      'colon_centenario': [-4.3287, -79.5606],
-      '18 de noviembre_sucre': [-4.3275, -79.5565],
-      'sucre_18 de noviembre': [-4.3275, -79.5565],
-      '18 de noviembre_bolivar': [-4.3270, -79.5562],
-      'bolivar_18 de noviembre': [-4.3270, -79.5562],
-      'atahualpa_cristobal colon': [-4.3312, -79.5605],
-      'cristobal colon_atahualpa': [-4.3312, -79.5605],
-      'atahualpa_colon': [-4.3312, -79.5605],
-      'colon_atahualpa': [-4.3312, -79.5605],
-      'bernardo valdivieso_sucre': [-4.3272, -79.5558],
-      'sucre_bernardo valdivieso': [-4.3272, -79.5558],
-      'av del ejercito_18 de noviembre': [-4.3315, -79.5545],
-      '18 de noviembre_av del ejercito': [-4.3315, -79.5545],
-      'centenario_gran colombia': [-4.3291, -79.5585],
-      'gran colombia_centenario': [-4.3291, -79.5585],
-      'atahualpa_gran colombia': [-4.3295, -79.5585],
-      'gran colombia_atahualpa': [-4.3295, -79.5585],
-      '18 de noviembre_gran colombia': [-4.3285, -79.5580],
-      'gran colombia_18 de noviembre': [-4.3285, -79.5580],
-      'bolivar_gran colombia': [-4.3280, -79.5582],
-      'gran colombia_bolivar': [-4.3280, -79.5582],
-      'sucre_gran colombia': [-4.3278, -79.5584],
-      'gran colombia_sucre': [-4.3278, -79.5584],
-      '18 de noviembre_jose angel palacios': [-4.3280, -79.5545],
-      'jose angel palacios_18 de noviembre': [-4.3280, -79.5545],
-      '18 de noviembre_palacios': [-4.3280, -79.5545],
-      'palacios_18 de noviembre': [-4.3280, -79.5545]
+      ...CARIAMANGA_OSM_INTERSECCIONES
     },
     hitos: {
       'onlysoft': [-4.328103, -79.561129],
@@ -1455,31 +1396,49 @@ export class SaraFreightRoutingService {
     const cleanFon = this.normalizarFonetico(clean);
 
     // 1. PRIORIDAD 1: Intersecciones exactas verificadas del cantón activo
+    // Primero coincidencias exactas de AMBAS calles (ej. "18 de noviembre y centenario"), luego coincidencias parciales
     if (cantonDetectado && cantonDetectado.interseccionesExactas) {
+      const exactMatches: Array<{ key: string; k1: string; k2: string; coords: [number, number] }> = [];
+      const partialMatches: Array<{ key: string; k1: string; k2: string; coords: [number, number] }> = [];
+      const seenPairs = new Set<string>();
+
       for (const [key, coords] of Object.entries(cantonDetectado.interseccionesExactas)) {
         const [k1, k2] = key.split('_');
+        if (!k1 || !k2) continue;
+        const pairId = [k1, k2].sort().join('|');
+        if (seenPairs.has(pairId)) continue;
+
         const k1Fon = this.normalizarFonetico(k1);
         const k2Fon = this.normalizarFonetico(k2);
-        const keyFon = this.normalizarFonetico(key.replace('_', ' '));
-        if (
-          clean.includes(k1) || clean.includes(k2) ||
-          key.replace('_', ' ').includes(clean) ||
-          cleanFon.includes(k1Fon) || cleanFon.includes(k2Fon) ||
-          keyFon.includes(cleanFon) || cleanFon.includes(keyFon)
-        ) {
-          const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
-          const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
-          agregarSugerencia({
-            id: `interseccion_${cantonDetectado.nombre}_${key}`,
-            titulo: `${tit1} y ${tit2}`,
-            subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · Intersección vial`,
-            lat: coords[0],
-            lng: coords[1],
-            ciudad: cantonDetectado.nombre,
-            provincia: cantonDetectado.provincia,
-            tipo: 'interseccion'
-          });
+        const hasK1 = clean.includes(k1) || cleanFon.includes(k1Fon);
+        const hasK2 = clean.includes(k2) || cleanFon.includes(k2Fon);
+
+        if (hasK1 && hasK2) {
+          seenPairs.add(pairId);
+          exactMatches.push({ key, k1, k2, coords });
+        } else if (hasK1 || hasK2 || key.replace('_', ' ').includes(clean)) {
+          seenPairs.add(pairId);
+          partialMatches.push({ key, k1, k2, coords });
         }
+      }
+
+      const ordered = exactMatches.length > 0
+        ? [...exactMatches, ...partialMatches.slice(0, 4)]
+        : partialMatches.slice(0, 6);
+
+      for (const { key, k1, k2, coords } of ordered) {
+        const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
+        const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
+        agregarSugerencia({
+          id: `interseccion_${cantonDetectado.nombre}_${key}`,
+          titulo: `${tit1} y ${tit2}`,
+          subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · Intersección vial verificada`,
+          lat: coords[0],
+          lng: coords[1],
+          ciudad: cantonDetectado.nombre,
+          provincia: cantonDetectado.provincia,
+          tipo: 'interseccion'
+        });
       }
     }
 

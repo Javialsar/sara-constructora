@@ -314,34 +314,34 @@ export default function SaraFletesEngine() {
           setDestinationSuggestions(sugs);
           setShowDestSuggestions(sugs.length > 0);
 
-          // Si el texto ingresado coincide fuertemente con un hito clave (ej. "terminal terrestre", "onlysoft", "plaza"),
+          // Si el texto ingresado coincide fuertemente con un hito clave o una intersección verificada (ej. "18 de noviembre y centenario"),
           // auto-vincular de inmediato al mapa para que el usuario no tenga que hacer clic obligado en el menú
           const normVal = val.toLowerCase().trim();
-          if (normVal.includes('terminal') || normVal.includes('onlysoft') || normVal.includes('parque') || normVal.includes('mercado') || normVal.includes('hospital')) {
-            if (sugs.length > 0) {
-              const top = sugs[0];
-              const pDest: GeocodedPoint = {
-                nombre: top.titulo,
-                lat: top.lat,
-                lng: top.lng,
-                ciudad: top.ciudad,
-                provincia: top.provincia
-              };
-              destinationPointRef.current = pDest;
-              setDestinationPoint(pDest);
-              if (pOrig) {
-                SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest).then((ruta) => {
-                  setRutaCalculada(ruta);
-                  const tarifa = SaraFreightPricingService.calcularTarifa(
-                    ruta.distanciaKm,
-                    weight,
-                    vehicleType,
-                    material
-                  );
-                  setTarifaEstimada(tarifa);
-                  setProposedPrice(tarifa.tarifaSugeridaUSD);
-                }).catch(() => {});
-              }
+          const isIntersectionQuery = /\s+(?:y|e|con|esquina|\/)\s+/.test(normVal);
+          const isKeyHito = normVal.includes('terminal') || normVal.includes('onlysoft') || normVal.includes('parque') || normVal.includes('mercado') || normVal.includes('hospital');
+          if ((isKeyHito || (isIntersectionQuery && sugs[0]?.tipo === 'interseccion')) && sugs.length > 0) {
+            const top = sugs[0];
+            const pDest: GeocodedPoint = {
+              nombre: top.titulo,
+              lat: top.lat,
+              lng: top.lng,
+              ciudad: top.ciudad,
+              provincia: top.provincia
+            };
+            destinationPointRef.current = pDest;
+            setDestinationPoint(pDest);
+            if (pOrig) {
+              SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest).then((ruta) => {
+                setRutaCalculada(ruta);
+                const tarifa = SaraFreightPricingService.calcularTarifa(
+                  ruta.distanciaKm,
+                  weight,
+                  vehicleType,
+                  material
+                );
+                setTarifaEstimada(tarifa);
+                setProposedPrice(tarifa.tarifaSugeridaUSD);
+              }).catch(() => {});
             }
           }
         } catch (e) {
@@ -512,12 +512,17 @@ export default function SaraFletesEngine() {
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [bottomSheetLevel, setBottomSheetLevel] = useState<'peek' | 'half' | 'full'>('half');
 
-  // Sincronizar datos restaurados desde draft al iniciar
+  // Sincronizar datos restaurados desde draft al iniciar (ignorando coordenadas obsoletas de versiones previas)
   useEffect(() => {
     if (draftLoaded) {
-      if (draft.originText) setOriginText(draft.originText);
+      const isStaleOrigin =
+        draft.originPoint &&
+        (Math.abs(draft.originPoint.lat - (-4.3248)) < 0.0005 ||
+          Math.abs(draft.originPoint.lat - (-4.3285)) < 0.0002 ||
+          Math.abs(draft.originPoint.lat - (-4.32785)) < 0.0002);
+      if (draft.originText && !isStaleOrigin) setOriginText(draft.originText);
+      if (draft.originPoint && !isStaleOrigin) setOriginPoint(draft.originPoint);
       if (draft.destinationText) setDestinationText(draft.destinationText);
-      if (draft.originPoint) setOriginPoint(draft.originPoint);
       if (draft.destinationPoint) setDestinationPoint(draft.destinationPoint);
       if (draft.material) setMaterial(draft.material);
       if (draft.weight) setWeight(draft.weight);
@@ -969,13 +974,22 @@ export default function SaraFletesEngine() {
     setGpsLoading(true);
 
     const aplicarPosicionGPS = async (pos: GeolocationPosition) => {
-      const lat = +pos.coords.latitude.toFixed(5);
-      const lng = +pos.coords.longitude.toFixed(5);
-      const coords: [number, number] = [lat, lng];
+      const lat = +pos.coords.latitude.toFixed(6);
+      const lng = +pos.coords.longitude.toFixed(6);
+      const accuracy = typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : 999;
+      const dOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
 
+      setGpsLoading(false);
+
+      // Protección contra geolocalización imprecisa de escritorio (WiFi/IP con error > 80m):
+      // Si el navegador reporta baja precisión dentro de Cariamanga, NO sobreescribir la coordenada exacta calibrada
+      if (accuracy > 80 && dOnlysoftM < 2000) {
+        return;
+      }
+
+      const coords: [number, number] = [lat, lng];
       setUserLocation(coords);
       userLocationRef.current = coords;
-      setGpsLoading(false);
 
       // Si el origen no ha sido bloqueado manualmente por el usuario en el mapa
       if (!originLockedByMapRef.current) {
@@ -983,8 +997,7 @@ export default function SaraFletesEngine() {
         let ciudadDetectada = 'Cariamanga';
         try {
           const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
-          const dOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
-          nombreDetectado = dOnlysoftM < 150
+          nombreDetectado = dOnlysoftM < 120
             ? 'Casa (Onlysoft), Gran Colombia y Atahualpa (Cariamanga)'
             : (dirActual || 'Mi Ubicación Actual (GPS)');
 
@@ -1906,8 +1919,30 @@ export default function SaraFletesEngine() {
                       {/* -------------------------------------------------------- */}
                       {(serviceType === 'viajes' || serviceType === 'mandaditos') && (
                     <div className="space-y-3">
-                      {/* Campo único ultra-rápido: ¿A dónde te llevo? (Punto de partida es automáticamente el GPS del cliente) */}
+                      {/* Campo rápido de Recogida + Destino */}
                       <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
+                        {/* Punto de Recogida (Editable + Fijar en mapa) */}
+                        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-800/80">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.7)]"></span>
+                            <span className="text-[11px] font-semibold text-emerald-300 truncate" title={originText}>
+                              {originText || 'Casa (Onlysoft), Cariamanga'}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
+                            className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border ${
+                              mapClickMode === 'origen'
+                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
+                                : 'bg-slate-900 text-slate-300 hover:text-white border-slate-700'
+                            }`}
+                            title="Haz clic aquí y luego toca en el mapa tu ubicación exacta de recogida"
+                          >
+                            {mapClickMode === 'origen' ? 'Toca el mapa...' : '📍 Fijar recogida'}
+                          </button>
+                        </div>
+
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
                             <span>{serviceType === 'viajes' ? '🚖' : '📦'}</span>
