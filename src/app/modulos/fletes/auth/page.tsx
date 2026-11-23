@@ -37,9 +37,9 @@ function FletesAuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nombre, setNombre] = useState('');
+  const [telefono, setTelefono] = useState('');
   const [placa, setPlaca] = useState('');
   const [empresa, setEmpresa] = useState('');
-  const [telefono, setTelefono] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [redirectPortal, setRedirectPortal] = useState<{ url: string; name: string } | null>(null);
@@ -57,12 +57,13 @@ function FletesAuthForm() {
       if (isLogin) {
         // 1. Autenticar credenciales
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email,
           password,
         });
         if (signInError) throw signInError;
 
         // 2. Determinar rol priorizando app_metadata (controlado por servidor) sobre user_metadata.
+        // Un cliente nunca debe ser redirigido a /modulos/fletes/conductores salvo que su metadata acredite rol transportista.
         const isTransportista = isTransportistaFromMetadata(
           data.user?.app_metadata as Record<string, unknown> | undefined,
           data.user?.user_metadata as Record<string, unknown> | undefined
@@ -72,42 +73,45 @@ function FletesAuthForm() {
         router.push(destination);
       } else {
         // REGISTRO EXCLUSIVO PARA SARA_FLETES
-        if (userRole === 'transportista' && (!nombre.trim() || !placa.trim())) {
+        if (userRole === 'transportista' && (!nombre || !placa)) {
           throw new Error('Por favor ingresa tu nombre completo y la placa del vehículo.');
         }
-        if (userRole === 'cliente_fletes' && !nombre.trim()) {
+        if (userRole === 'cliente_fletes' && !nombre) {
           throw new Error('Por favor ingresa tu nombre o razón social.');
         }
 
-        // 1. Registro seguro vía Server API con Service Role y confirmación inmediata
+        // 1. Registrar usuario vía API de servidor segura con confirmación automática
         const response = await fetch('/api/auth/register-fletes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: email.trim(),
-            password: password.trim(),
-            nombre: nombre.trim(),
-            placa: userRole === 'transportista' ? placa.trim().toUpperCase() : undefined,
-            empresa: empresa.trim() || undefined,
-            telefono: telefono.trim() || undefined,
+            email,
+            password,
+            nombre,
+            telefono: telefono || '0990000000',
             userRole,
+            placa,
+            empresa,
           }),
         });
 
         const resData = await response.json();
-
         if (!response.ok || !resData.success) {
-          throw new Error(resData.error || 'Error al procesar el registro en SARA Fletes.');
+          throw new Error(resData.error || 'Error al crear la cuenta en SARA Fletes.');
         }
 
-        // 2. Iniciar sesión inmediatamente con las credenciales registradas
-        const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password.trim(),
+        // 2. Iniciar sesión inmediatamente
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
-        if (signInErr) throw signInErr;
+        if (signInError) throw signInError;
 
-        const isTransportista = userRole === 'transportista';
+        const isTransportista = isTransportistaFromMetadata(
+          signInData.user?.app_metadata as Record<string, unknown> | undefined,
+          signInData.user?.user_metadata as Record<string, unknown> | undefined
+        ) || userRole === 'transportista';
+
         const destination = resolvePostAuthRedirect(redirectToQuery, isTransportista);
         router.push(destination);
       }
@@ -262,21 +266,39 @@ function FletesAuthForm() {
             )}
 
             {!isLogin && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Nombre Completo
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                    <input
-                      required
-                      type="text"
-                      value={nombre}
-                      onChange={(e) => setNombre(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
-                      placeholder="Juan Pérez o Empresa S.A."
-                    />
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Nombre Completo
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <input
+                        required
+                        type="text"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
+                        placeholder="Juan Pérez o Empresa S.A."
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Teléfono Móvil (WhatsApp)
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
+                      <input
+                        type="tel"
+                        value={telefono}
+                        onChange={(e) => setTelefono(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none font-mono"
+                        placeholder="0991234567"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -293,7 +315,7 @@ function FletesAuthForm() {
                         value={placa}
                         onChange={(e) => setPlaca(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none uppercase font-mono"
-                        placeholder="LBA-1234"
+                        placeholder="ABJ-4091"
                       />
                     </div>
                   </div>
@@ -314,24 +336,6 @@ function FletesAuthForm() {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {!isLogin && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Teléfono Celular / WhatsApp <span className="text-slate-500 font-normal">(Opcional)</span>
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 absolute left-3 top-2.5 text-slate-500" />
-                  <input
-                    type="tel"
-                    value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:border-amber-500 focus:outline-none"
-                    placeholder="0991234567 (para coordinar carreras)"
-                  />
-                </div>
               </div>
             )}
 
