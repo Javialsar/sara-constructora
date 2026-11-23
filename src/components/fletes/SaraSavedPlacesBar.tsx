@@ -18,26 +18,26 @@ export interface SaraSavedPlacesBarProps {
   compact?: boolean;
 }
 
-const STORAGE_KEY = 'sara_fletes_saved_places_v1';
+const STORAGE_KEY = 'sara_fletes_saved_places_v2';
 
-const PRESET_IDS = new Set(['preset-casa', 'preset-trabajo', 'preset-obra']);
+const PRESET_IDS = new Set(['preset-casa', 'preset-terminal', 'preset-obra', 'preset-trabajo']);
 
 const DEFAULT_SAVED_PLACES: SavedPlaceItem[] = [
   {
     id: 'preset-casa',
-    label: 'Casa',
+    label: 'Casa (Onlysoft)',
     icon: '🏠',
-    address: 'Av. Universitaria y 18 de Noviembre, Loja',
-    lat: -3.99313,
-    lng: -79.20422,
+    address: 'Casa (Onlysoft), Gran Colombia y Atahualpa, Cariamanga',
+    lat: -4.328103,
+    lng: -79.561129,
   },
   {
-    id: 'preset-trabajo',
-    label: 'Trabajo',
-    icon: '💼',
-    address: 'Av. Emiliano Ortega y Rocafuerte, Loja',
-    lat: -4.00185,
-    lng: -79.20145,
+    id: 'preset-terminal',
+    label: 'Terminal Terrestre',
+    icon: '🚌',
+    address: 'Terminal Terrestre de Cariamanga, Av. del Ejército',
+    lat: -4.331405,
+    lng: -79.553528,
   },
   {
     id: 'preset-obra',

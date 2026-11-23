@@ -518,7 +518,7 @@ function MapFloatingControls({
                 map.flyTo(target, 17, { animate: true, duration: 1.2 });
               },
               () => {
-                const target = userLocation || origenCoords;
+                const target = userLocation || origenCoords || [-4.328103, -79.561129];
                 if (target) {
                   map.flyTo(target, 17, { animate: true, duration: 1 });
                 }
@@ -526,7 +526,7 @@ function MapFloatingControls({
               { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
             );
           } else {
-            const target = userLocation || origenCoords;
+            const target = userLocation || origenCoords || [-4.328103, -79.561129];
             if (target) {
               map.flyTo(target, 17, { animate: true, duration: 1 });
             }
@@ -625,8 +625,8 @@ export default function SaraFletesMap({
     return () => clearInterval(interval);
   }, [vehiculosAnimados.length]);
 
-  // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Loja/Cariamanga (-4.3285, -79.5560) o Cuenca (-2.8974, -79.0044)
-  const defaultCenter: [number, number] = userLocation || origenCoords || [-4.3285, -79.5560];
+  // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Casa Onlysoft en Cariamanga (-4.328103, -79.561129)
+  const defaultCenter: [number, number] = userLocation || origenCoords || [-4.328103, -79.561129];
 
   return (
     <div className="relative w-full h-full min-h-[350px] bg-slate-950 overflow-hidden">

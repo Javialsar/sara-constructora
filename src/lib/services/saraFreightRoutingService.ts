@@ -70,7 +70,8 @@ export const HITOS_NACIONALES_ECUADOR: Record<string, { nombre: string; lat: num
   'terminal terrestre manta': { nombre: 'Terminal Terrestre Luis Valdivieso Morán (Manta)', lat: -0.9639, lng: -80.6850, ciudad: 'Manta', provincia: 'Manabí', tipo: 'terminal' },
   'terminal terrestre portoviejo': { nombre: 'Terminal Terrestre de Portoviejo', lat: -1.0439, lng: -80.4489, ciudad: 'Portoviejo', provincia: 'Manabí', tipo: 'terminal' },
   'terminal terrestre loja': { nombre: 'Terminal Terrestre Reina del Cisne (Loja)', lat: -3.9785, lng: -79.2045, ciudad: 'Loja', provincia: 'Loja', tipo: 'terminal' },
-  'terminal terrestre cariamanga': { nombre: 'Terminal Terrestre de Cariamanga', lat: -4.3315, lng: -79.5510, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'terminal' },
+  'terminal terrestre cariamanga': { nombre: 'Terminal Terrestre de Cariamanga', lat: -4.331405, lng: -79.553528, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'terminal' },
+  'terminal cariamanga': { nombre: 'Terminal Terrestre de Cariamanga', lat: -4.331405, lng: -79.553528, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'terminal' },
   'terminal terrestre riobamba': { nombre: 'Terminal Terrestre de Riobamba', lat: -1.6589, lng: -78.6550, ciudad: 'Riobamba', provincia: 'Chimborazo', tipo: 'terminal' },
   'terminal terrestre ibarra': { nombre: 'Terminal Terrestre de Ibarra', lat: 0.3589, lng: -78.1189, ciudad: 'Ibarra', provincia: 'Imbabura', tipo: 'terminal' },
   'terminal terrestre quevedo': { nombre: 'Terminal Terrestre de Quevedo', lat: -1.0389, lng: -79.4600, ciudad: 'Quevedo', provincia: 'Los Ríos', tipo: 'terminal' },
@@ -114,8 +115,10 @@ export const HITOS_NACIONALES_ECUADOR: Record<string, { nombre: string; lat: num
   'cantera san antonio': { nombre: 'Cantera Mitad del Mundo / San Antonio (Pichincha)', lat: -0.0120, lng: -78.4480, ciudad: 'Quito', provincia: 'Pichincha', tipo: 'hito' },
 
   // FERRETERÍAS Y DISTRIBUIDORAS DE MATERIALES
-  'onlysoft cariamanga': { nombre: 'Onlysoft Soluciones Tecnológicas (Calle Atahualpa, Cariamanga)', lat: -4.32785, lng: -79.56075, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
-  'onlysoft': { nombre: 'Onlysoft (Calle Atahualpa, Cariamanga)', lat: -4.32785, lng: -79.56075, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
+  'onlysoft cariamanga': { nombre: 'Casa (Onlysoft), Calle Gran Colombia y Atahualpa', lat: -4.328103, lng: -79.561129, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
+  'onlysoft': { nombre: 'Casa (Onlysoft), Calle Gran Colombia y Atahualpa', lat: -4.328103, lng: -79.561129, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
+  'casa onlysoft': { nombre: 'Casa (Onlysoft), Calle Gran Colombia y Atahualpa', lat: -4.328103, lng: -79.561129, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
+  'casa (onlysoft)': { nombre: 'Casa (Onlysoft), Calle Gran Colombia y Atahualpa', lat: -4.328103, lng: -79.561129, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
   'gimaga cariamanga': { nombre: 'Ferretería GIMAGA Materiales de Construcción (Cariamanga)', lat: -4.3258, lng: -79.5542, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
   'matecons cariamanga': { nombre: 'Distribuidora MAtecons Chile (Cariamanga)', lat: -4.3292, lng: -79.5548, ciudad: 'Cariamanga', provincia: 'Loja', tipo: 'hito' },
   'disensa lojanita': { nombre: 'Ferretería Disensa La Lojanita (Loja)', lat: -3.9920, lng: -79.2040, ciudad: 'Loja', provincia: 'Loja', tipo: 'hito' },
@@ -414,7 +417,7 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
   cariamanga: {
     nombre: 'Cariamanga (Calvas)',
     provincia: 'Loja',
-    centroide: [-4.3285, -79.5560],
+    centroide: [-4.328103, -79.561129],
     viewbox: [-79.5750, -4.3450, -79.5350, -4.3100],
     viasPrincipales: {
       '18 de noviembre': [-4.3265, -79.5560],
@@ -489,8 +492,14 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'palacios_18 de noviembre': [-4.3280, -79.5545]
     },
     hitos: {
-      'onlysoft': [-4.32785, -79.56075],
-      'onlysoft cariamanga': [-4.32785, -79.56075],
+      'onlysoft': [-4.328103, -79.561129],
+      'casa onlysoft': [-4.328103, -79.561129],
+      'casa (onlysoft)': [-4.328103, -79.561129],
+      'onlysoft cariamanga': [-4.328103, -79.561129],
+      'terminal terrestre': [-4.331405, -79.553528],
+      'terminal terrestre cariamanga': [-4.331405, -79.553528],
+      'terminal cariamanga': [-4.331405, -79.553528],
+      'terminal': [-4.331405, -79.553528],
       'bodega virgen del carmen': [-4.32770, -79.56085],
       'taller de motos edison': [-4.32765, -79.56110],
       'gimaga': [-4.3258, -79.5542],
@@ -519,7 +528,7 @@ export const CANTONES_ECUADOR: Record<string, CantonInfo> = {
       'barrio la merced': [-4.3265, -79.5515],
       'bano del inca': [-4.3220, -79.5490]
     },
-    alias: ['cariamanga', 'calvas', 'san vicente cariamanga', 'ahuaca', 'chile cariamanga', 'la merced cariamanga', 'la nube cariamanga']
+    alias: ['cariamanga', 'calvas', 'san vicente cariamanga', 'ahuaca', 'chile cariamanga', 'la merced cariamanga', 'la nube cariamanga', 'terminal cariamanga']
   },
   loja: {
     nombre: 'Loja',
@@ -1643,7 +1652,54 @@ export class SaraFreightRoutingService {
     const normalized = this.normalizar(query);
     const cleanWithoutPrefixes = this.limpiarPrefijosViales(query);
 
-    // 2. Consulta en Hitos Estratégicos Nacionales (Puertos, Terminales, Mercados, Canteras)
+    // 2. Detección Inteligente del Cantón o Ciudad activo
+    let cantonActual = this.detectarCanton(normalized, ubicacionReferencia);
+    if (!cantonActual && ubicacionReferencia) {
+      // Si estamos en el radio de Cariamanga (-4.328, -79.56)
+      const dCari = Math.hypot(ubicacionReferencia[0] - (-4.3281), ubicacionReferencia[1] - (-79.5611)) * 111;
+      if (dCari <= 35) {
+        cantonActual = CANTONES_ECUADOR.cariamanga;
+      }
+    }
+
+    // 2b. Si tenemos cantón activo (ej: Cariamanga), priorizar hitos locales exactos
+    if (cantonActual && cantonActual.hitos) {
+      for (const [hito, coords] of Object.entries(cantonActual.hitos)) {
+        const hitoFon = this.normalizarFonetico(hito);
+        const cleanFon = this.normalizarFonetico(cleanWithoutPrefixes);
+        if (
+          cleanWithoutPrefixes === hito ||
+          cleanWithoutPrefixes.includes(hito) ||
+          normalized.includes(hito) ||
+          cleanFon.includes(hitoFon) ||
+          hitoFon.includes(cleanFon)
+        ) {
+          const titCapitalizado = hito.charAt(0).toUpperCase() + hito.slice(1);
+          return {
+            nombre: `${titCapitalizado}, ${cantonActual.nombre}`,
+            lat: coords[0],
+            lng: coords[1],
+            ciudad: cantonActual.nombre,
+            provincia: cantonActual.provincia
+          };
+        }
+      }
+    }
+
+    // 3. Consulta en Hitos Estratégicos Nacionales (Puertos, Terminales, Mercados, Canteras)
+    // Priorizar los hitos del cantón activo si existe
+    for (const [clave, hito] of Object.entries(HITOS_NACIONALES_ECUADOR)) {
+      const matchCanton = !cantonActual || this.normalizar(hito.ciudad) === this.normalizar(cantonActual.nombre).replace(/\(.*?\)/g, '').trim();
+      if (matchCanton && (normalized.includes(clave) || clave.includes(cleanWithoutPrefixes))) {
+        return {
+          nombre: hito.nombre,
+          lat: hito.lat,
+          lng: hito.lng,
+          ciudad: hito.ciudad,
+          provincia: hito.provincia
+        };
+      }
+    }
     for (const [clave, hito] of Object.entries(HITOS_NACIONALES_ECUADOR)) {
       if (normalized.includes(clave) || clave.includes(cleanWithoutPrefixes)) {
         return {
@@ -1655,9 +1711,6 @@ export class SaraFreightRoutingService {
         };
       }
     }
-
-    // 3. Detección Inteligente del Cantón o Ciudad
-    let cantonActual = this.detectarCanton(normalized, ubicacionReferencia);
 
     // 3b. Si no se detectó cantón explícito pero la consulta parece una intersección ("X y Y"),
     // chequear si alguna de las interseccionesExactas de todos los cantones coincide exactamente con las vías
@@ -1972,10 +2025,16 @@ export class SaraFreightRoutingService {
    */
   static async reverseGeocodificar(lat: number, lng: number): Promise<string | null> {
     try {
-      // Detección de precisión milimétrica para Onlysoft / Calle Atahualpa en Cariamanga
-      const distOnlysoftM = Math.hypot(lat - (-4.32785), lng - (-79.56075)) * 111000;
-      if (distOnlysoftM < 80) {
-        return 'Onlysoft, Calle Atahualpa, Cariamanga';
+      // Detección de precisión milimétrica para Casa Onlysoft en Cariamanga
+      const distOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
+      if (distOnlysoftM < 140) {
+        return 'Casa (Onlysoft), Gran Colombia y Atahualpa, Cariamanga';
+      }
+
+      // Detección de precisión milimétrica para Terminal Terrestre de Cariamanga
+      const distTerminalM = Math.hypot(lat - (-4.331405), lng - (-79.553528)) * 111000;
+      if (distTerminalM < 140) {
+        return 'Terminal Terrestre de Cariamanga, Av. del Ejército';
       }
 
       const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=17&addressdetails=1`;
@@ -2017,10 +2076,78 @@ export class SaraFreightRoutingService {
       };
     }
 
-    // 1. Intentar obtener ruta real con OSRM (Open Source Routing Machine)
+    // 1. Detección especial de alta precisión para el corredor urbano Casa Onlysoft <-> Terminal Terrestre Cariamanga
+    const isOrigOnlysoft = Math.hypot(origen.lat - (-4.328103), origen.lng - (-79.561129)) * 111000 < 350;
+    const isDestTerminal = Math.hypot(pDest.lat - (-4.331405), pDest.lng - (-79.553528)) * 111000 < 400;
+    const isDestOnlysoft = Math.hypot(pDest.lat - (-4.328103), pDest.lng - (-79.561129)) * 111000 < 350;
+    const isOrigTerminal = Math.hypot(origen.lat - (-4.331405), origen.lng - (-79.553528)) * 111000 < 400;
+
+    const RUTA_CARIAMANGA_ONLYSOFT_TERMINAL: [number, number][] = [
+      [-4.328163,-79.56112],
+      [-4.328094,-79.560662],
+      [-4.327152,-79.560663],
+      [-4.326888,-79.560671],
+      [-4.326892,-79.560571],
+      [-4.326901,-79.5603],
+      [-4.326914,-79.56015],
+      [-4.326925,-79.559998],
+      [-4.326911,-79.559909],
+      [-4.326909,-79.559785],
+      [-4.326924,-79.559546],
+      [-4.326938,-79.559319],
+      [-4.326947,-79.5592],
+      [-4.327011,-79.558257],
+      [-4.327009,-79.558117],
+      [-4.32699,-79.55728],
+      [-4.327166,-79.556437],
+      [-4.327173,-79.556384],
+      [-4.327219,-79.556342],
+      [-4.327228,-79.556325],
+      [-4.327245,-79.556301],
+      [-4.327274,-79.556273],
+      [-4.327489,-79.556062],
+      [-4.327549,-79.556004],
+      [-4.328001,-79.555735],
+      [-4.328081,-79.555677],
+      [-4.328163,-79.555529],
+      [-4.328302,-79.555298],
+      [-4.328499,-79.554952],
+      [-4.32852,-79.554914],
+      [-4.328559,-79.554864],
+      [-4.328601,-79.554816],
+      [-4.328718,-79.554704],
+      [-4.329294,-79.554076],
+      [-4.329533,-79.553804],
+      [-4.329794,-79.553551],
+      [-4.329838,-79.55351],
+      [-4.329975,-79.553613],
+      [-4.330119,-79.553676],
+      [-4.330334,-79.553722],
+      [-4.330637,-79.553766],
+      [-4.332141,-79.553932],
+      [-4.332162,-79.553312],
+      [-4.331426,-79.553255]
+    ];
+
+    if ((isOrigOnlysoft && isDestTerminal) || (isOrigTerminal && isDestOnlysoft)) {
+      const coords = isOrigOnlysoft ? RUTA_CARIAMANGA_ONLYSOFT_TERMINAL : [...RUTA_CARIAMANGA_ONLYSOFT_TERMINAL].reverse();
+      return {
+        origen,
+        destino: pDest,
+        distanciaKm: 0.85,
+        duracionMinutos: 3,
+        coordenadasRuta: coords
+      };
+    }
+
+    // 2. Intentar obtener ruta real con OSRM (Open Source Routing Machine) vía cliente directo con timeout
     try {
       const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson`;
-      const res = await fetch(osrmUrl);
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 3500);
+      const res = await fetch(osrmUrl, { signal: ctrl.signal });
+      clearTimeout(tid);
+
       if (res.ok) {
         const json = await res.json();
         if (json.code === 'Ok' && json.routes && json.routes.length > 0) {
@@ -2042,8 +2169,34 @@ export class SaraFreightRoutingService {
           };
         }
       }
+    } catch {
+      // Intentar a través del proxy server-side de Next.js
+    }
+
+    // 3. Fallback server-side a través de nuestra API route /api/fletes/route
+    try {
+      if (typeof window !== 'undefined') {
+        const proxyUrl = `/api/fletes/route?originLat=${origen.lat}&originLng=${origen.lng}&destLat=${pDest.lat}&destLng=${pDest.lng}`;
+        const ctrlProxy = new AbortController();
+        const tidProxy = setTimeout(() => ctrlProxy.abort(), 3500);
+        const resProxy = await fetch(proxyUrl, { signal: ctrlProxy.signal });
+        clearTimeout(tidProxy);
+
+        if (resProxy.ok) {
+          const jsonProxy = await resProxy.json();
+          if (jsonProxy.code === 'Ok' && jsonProxy.coordenadasRuta && jsonProxy.coordenadasRuta.length > 0) {
+            return {
+              origen,
+              destino: pDest,
+              distanciaKm: jsonProxy.distanciaKm,
+              duracionMinutos: jsonProxy.duracionMinutos,
+              coordenadasRuta: jsonProxy.coordenadasRuta
+            };
+          }
+        }
+      }
     } catch (e) {
-      console.warn('OSRM no disponible, calculando interpolación vial de alta fidelidad:', e);
+      console.warn('API route de ruteo no disponible:', e);
     }
 
     // 2. Fallback: Interpolación geodésica con corrección por sinuosidad vial de Ecuador

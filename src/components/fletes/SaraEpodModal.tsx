@@ -35,7 +35,7 @@ export function SaraEpodModal({
   codigoAcceso,
   driverName,
   plate,
-  currentCoords = [-4.3248, -79.5562],
+  currentCoords = [-4.328103, -79.561129],
   onSuccess
 }: SaraEpodModalProps) {
   const [receptorNombre, setReceptorNombre] = useState('Ing. Manuel Carrión');

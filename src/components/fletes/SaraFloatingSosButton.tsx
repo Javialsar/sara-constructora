@@ -29,7 +29,7 @@ interface SaraFloatingSosButtonProps {
 export function SaraFloatingSosButton({
   plate = 'PCX-4590',
   driverName = 'David Sarango',
-  currentCoords = [-4.3248, -79.5562],
+  currentCoords = [-4.328103, -79.561129],
   fleteId,
   userType = 'conductor',
   className

@@ -157,22 +157,34 @@ export default function SaraFletesEngine() {
   const [serviceType, setServiceType] = useState<MultimodalVerticalKey>('fletes');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   
-  // 1. Geolocalización en tiempo real
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [gpsLoading, setGpsLoading] = useState<boolean>(true);
+  // 1. Geolocalización en tiempo real (Base de inicio calibrada en Casa Onlysoft, Cariamanga)
+  const [userLocation, setUserLocation] = useState<[number, number] | null>([-4.328103, -79.561129]);
+  const [gpsLoading, setGpsLoading] = useState<boolean>(false);
 
   // 2. Coordenadas y Puntos de Carga / Descarga para Flete
-  const [originText, setOriginText] = useState('Mi Ubicación Actual (GPS)');
+  const [originText, setOriginText] = useState('Casa (Onlysoft), Cariamanga');
   const [destinationText, setDestinationText] = useState('');
-  const [originPoint, setOriginPoint] = useState<GeocodedPoint | null>(null);
+  const [originPoint, setOriginPoint] = useState<GeocodedPoint | null>({
+    nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
+    lat: -4.328103,
+    lng: -79.561129,
+    ciudad: 'Cariamanga',
+    provincia: 'Loja'
+  });
   const [destinationPoint, setDestinationPoint] = useState<GeocodedPoint | null>(null);
   const [rutaCalculada, setRutaCalculada] = useState<RutaVialCalculada | null>(null);
 
   // Candados y estado interactivo de mapa para evitar desfasaje y saltos
   const originLockedByMapRef = useRef<boolean>(false);
   const destLockedByMapRef = useRef<boolean>(false);
-  const userLocationRef = useRef<[number, number] | null>(null);
-  const originPointRef = useRef<GeocodedPoint | null>(null);
+  const userLocationRef = useRef<[number, number] | null>([-4.328103, -79.561129]);
+  const originPointRef = useRef<GeocodedPoint | null>({
+    nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
+    lat: -4.328103,
+    lng: -79.561129,
+    ciudad: 'Cariamanga',
+    provincia: 'Loja'
+  });
   const destinationPointRef = useRef<GeocodedPoint | null>(null);
   const [mapClickMode, setMapClickMode] = useState<'origen' | 'destino' | null>(null);
   const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(1500);
@@ -245,6 +257,45 @@ export default function SaraFletesEngine() {
     }
   };
 
+  // Geocodificación directa de Destino (Enter, OnBlur o Auto-Sync de Hito)
+  const handleDirectDestinationGeocode = async (text: string) => {
+    if (!text || text.trim().length < 2) return;
+    setIsCalculatingRoute(true);
+    try {
+      const pOrig = originPointRef.current || {
+        nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
+        lat: -4.328103,
+        lng: -79.561129,
+        ciudad: 'Cariamanga',
+        provincia: 'Loja'
+      };
+      const geo = await SaraFreightRoutingService.geocodificarDireccion(
+        text,
+        [pOrig.lat, pOrig.lng]
+      );
+      if (geo) {
+        destinationPointRef.current = geo;
+        setDestinationPoint(geo);
+        destLockedByMapRef.current = true;
+        setShowDestSuggestions(false);
+        const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, geo);
+        setRutaCalculada(ruta);
+        const tarifa = SaraFreightPricingService.calcularTarifa(
+          ruta.distanciaKm,
+          weight,
+          vehicleType,
+          material
+        );
+        setTarifaEstimada(tarifa);
+        setProposedPrice(tarifa.tarifaSugeridaUSD);
+      }
+    } catch (err) {
+      console.warn('Error geocodificando destino directo:', err);
+    } finally {
+      setIsCalculatingRoute(false);
+    }
+  };
+
   // Manejo de escritura con búsqueda predictiva en Destino
   const handleDestinationInputChange = (val: string) => {
     destLockedByMapRef.current = false;
@@ -255,9 +306,44 @@ export default function SaraFletesEngine() {
       setIsSearchingDest(true);
       destDebounceRef.current = setTimeout(async () => {
         try {
-          const sugs = await SaraFreightRoutingService.buscarSugerenciasDireccion(val, originPoint ? [originPoint.lat, originPoint.lng] : userLocation || undefined);
+          const pOrig = originPointRef.current;
+          const sugs = await SaraFreightRoutingService.buscarSugerenciasDireccion(
+            val, 
+            pOrig ? [pOrig.lat, pOrig.lng] : userLocation || [-4.328103, -79.561129]
+          );
           setDestinationSuggestions(sugs);
           setShowDestSuggestions(sugs.length > 0);
+
+          // Si el texto ingresado coincide fuertemente con un hito clave (ej. "terminal terrestre", "onlysoft", "plaza"),
+          // auto-vincular de inmediato al mapa para que el usuario no tenga que hacer clic obligado en el menú
+          const normVal = val.toLowerCase().trim();
+          if (normVal.includes('terminal') || normVal.includes('onlysoft') || normVal.includes('parque') || normVal.includes('mercado') || normVal.includes('hospital')) {
+            if (sugs.length > 0) {
+              const top = sugs[0];
+              const pDest: GeocodedPoint = {
+                nombre: top.titulo,
+                lat: top.lat,
+                lng: top.lng,
+                ciudad: top.ciudad,
+                provincia: top.provincia
+              };
+              destinationPointRef.current = pDest;
+              setDestinationPoint(pDest);
+              if (pOrig) {
+                SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest).then((ruta) => {
+                  setRutaCalculada(ruta);
+                  const tarifa = SaraFreightPricingService.calcularTarifa(
+                    ruta.distanciaKm,
+                    weight,
+                    vehicleType,
+                    material
+                  );
+                  setTarifaEstimada(tarifa);
+                  setProposedPrice(tarifa.tarifaSugeridaUSD);
+                }).catch(() => {});
+              }
+            }
+          }
         } catch (e) {
           console.warn('Error buscando sugerencias destino:', e);
         } finally {
@@ -857,14 +943,14 @@ export default function SaraFletesEngine() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const defaultCoords: [number, number] = [-4.3285, -79.5560];
+    const defaultCoords: [number, number] = [-4.328103, -79.561129];
 
-    // Inicializar de inmediato con la sede central de Cariamanga como base segura antes de GPS
+    // Inicializar de inmediato con Casa Onlysoft (Cariamanga) como base segura antes de GPS
     if (!userLocationRef.current) {
       setUserLocation(defaultCoords);
       userLocationRef.current = defaultCoords;
       const pOrig: GeocodedPoint = {
-        nombre: 'Onlysoft, Calle Atahualpa (Cariamanga)',
+        nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
         lat: defaultCoords[0],
         lng: defaultCoords[1],
         ciudad: 'Cariamanga',
@@ -872,7 +958,7 @@ export default function SaraFletesEngine() {
       };
       setOriginPoint(pOrig);
       originPointRef.current = pOrig;
-      setOriginText('Onlysoft, Calle Atahualpa (Cariamanga)');
+      setOriginText('Casa (Onlysoft), Gran Colombia y Atahualpa, Cariamanga');
     }
 
     if (!('geolocation' in navigator)) {
@@ -897,9 +983,9 @@ export default function SaraFletesEngine() {
         let ciudadDetectada = 'Cariamanga';
         try {
           const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
-          const dOnlysoftM = Math.hypot(lat - (-4.32785), lng - (-79.56075)) * 111000;
-          nombreDetectado = dOnlysoftM < 120
-            ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
+          const dOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
+          nombreDetectado = dOnlysoftM < 150
+            ? 'Casa (Onlysoft), Gran Colombia y Atahualpa (Cariamanga)'
             : (dirActual || 'Mi Ubicación Actual (GPS)');
 
           ciudadDetectada = dirActual?.split(',')[1]?.trim() || dirActual?.split(',')[0]?.trim() || 'Ecuador';
@@ -1790,8 +1876,8 @@ export default function SaraFletesEngine() {
                               plate: assignedDriver?.plate || "PCX-4590",
                               origin: activeFreight.origin,
                               destination: activeFreight.destination,
-                              originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
-                              destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-3.9931, -79.2042],
+                              originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.328103, -79.561129],
+                              destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.331405, -79.553528],
                               material: activeFreight.material,
                               distanceKm: rutaCalculada?.distanciaKm || 4.2
                             });
@@ -1839,6 +1925,25 @@ export default function SaraFletesEngine() {
                               type="text"
                               value={destinationText}
                               onChange={(e) => handleDestinationInputChange(e.target.value)}
+                              onKeyDown={async (e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (destinationSuggestions.length > 0) {
+                                    handleSelectDestinationSuggestion(destinationSuggestions[0]);
+                                  } else if (destinationText.trim().length >= 2) {
+                                    await handleDirectDestinationGeocode(destinationText);
+                                  }
+                                }
+                              }}
+                              onBlur={async () => {
+                                if (destinationText.trim().length >= 2 && (!destinationPoint || destinationPoint.nombre !== destinationText)) {
+                                  if (destinationSuggestions.length > 0) {
+                                    handleSelectDestinationSuggestion(destinationSuggestions[0]);
+                                  } else {
+                                    await handleDirectDestinationGeocode(destinationText);
+                                  }
+                                }
+                              }}
                               placeholder={serviceType === 'viajes' ? '¿A dónde te llevo?' : '¿A dónde enviamos tu paquete?'}
                               className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none font-semibold"
                             />
@@ -1953,6 +2058,9 @@ export default function SaraFletesEngine() {
                             codigoAcceso: simulatedReq.accessCode
                           }).catch((err) => console.warn('Error guardando flete:', err));
 
+                          const pOrigCoords: [number, number] = originPoint ? [originPoint.lat, originPoint.lng] : (userLocation || [-4.328103, -79.561129]);
+                          const pDestCoords: [number, number] = destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.331405, -79.553528];
+
                           // 2. Publicar solicitud en el bus en tiempo real para todos los conductores y pestañas
                           const reqPayload: SolicitudFleteRealtime = {
                             id: simulatedReq.id,
@@ -1964,8 +2072,8 @@ export default function SaraFletesEngine() {
                             tarifaOfertadaUSD: params.tarifaUSD,
                             distanciaKm: simulatedReq.distanciaKm || 3.2,
                             duracionMinutos: simulatedReq.duracionMinutos || 9,
-                            coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562],
-                            coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.3312, -79.5580],
+                            coordsOrigen: pOrigCoords,
+                            coordsDestino: pDestCoords,
                             coordenadasRuta: rutaCalculada?.coordenadasRuta,
                             codigoAcceso: simulatedReq.accessCode || '0000',
                             clienteNombre: 'Usuario SARA (Cariamanga)',
@@ -2422,7 +2530,7 @@ export default function SaraFletesEngine() {
         fleteId={activeFreight?.id}
         driverName={assignedDriver?.driverName || "David Sarango"}
         plate={assignedDriver?.plate || "PCX-4590"}
-        currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : [-4.3248, -79.5562]}
+        currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : [-4.328103, -79.561129]}
         className="top-3 right-4 bottom-auto lg:top-4 lg:right-6"
       />
     </div>

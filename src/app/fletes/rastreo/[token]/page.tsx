@@ -45,7 +45,7 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
   const [tripStatus, setTripStatus] = useState<'heading_to_pickup' | 'in_transit' | 'completed'>('in_transit');
   const [origin, setOrigin] = useState('Cariamanga (Centro de Acopio)');
   const [destination, setDestination] = useState('Loja (Proyecto San Cayetano)');
-  const [originCoords, setOriginCoords] = useState<[number, number]>([-4.3248, -79.5562]);
+  const [originCoords, setOriginCoords] = useState<[number, number]>([-4.328103, -79.561129]);
   const [destinationCoords, setDestinationCoords] = useState<[number, number]>([-3.9931, -79.2042]);
   const [vehicleCoords, setVehicleCoords] = useState<[number, number]>([-4.215, -79.432]);
   const [etaMinutes, setEtaMinutes] = useState(24);

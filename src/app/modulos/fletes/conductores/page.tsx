@@ -207,7 +207,7 @@ export default function MiPerfilFletes() {
   };
 
   // Ubicación del conductor (GPS)
-  const [driverLocation, setDriverLocation] = useState<[number, number]>([-4.3285, -79.5560]); // Cariamanga / Loja por defecto
+  const [driverLocation, setDriverLocation] = useState<[number, number]>([-4.328103, -79.561129]); // Casa Onlysoft, Cariamanga por defecto
   const [driverCountry, setDriverCountry] = useState('Ecuador');
   const [driverProvince, setDriverProvince] = useState('Loja');
   const [driverCity, setDriverCity] = useState('Cariamanga');
@@ -220,7 +220,7 @@ export default function MiPerfilFletes() {
           setDriverLocation([pos.coords.latitude, pos.coords.longitude]);
         },
         () => {
-          setDriverLocation([-4.3285, -79.5560]); // Cariamanga
+          setDriverLocation([-4.328103, -79.561129]); // Casa Onlysoft, Cariamanga
         },
         { enableHighAccuracy: true, timeout: 6000 }
       );
@@ -503,8 +503,8 @@ export default function MiPerfilFletes() {
           codigoAcceso: evt.payload.codigoAcceso,
           origen: evt.payload.origen || prev?.origen || 'Punto de Carga',
           destino: evt.payload.destino || prev?.destino || 'Punto de Entrega',
-          coordsOrigen: evt.payload.coordsOrigen || prev?.coordsOrigen || [-4.3298, -79.5611],
-          coordsDestino: evt.payload.coordsDestino || prev?.coordsDestino || [-4.3287, -79.5606],
+          coordsOrigen: evt.payload.coordsOrigen || prev?.coordsOrigen || [-4.328103, -79.561129],
+          coordsDestino: evt.payload.coordsDestino || prev?.coordsDestino || [-4.331405, -79.553528],
           coordenadasRuta: evt.payload.coordenadasRuta || prev?.coordenadasRuta,
           distanciaKm: evt.payload.distanciaKm || prev?.distanciaKm || 1.8,
           duracionMinutos: evt.payload.duracionMinutos || prev?.duracionMinutos || 5,
@@ -558,8 +558,8 @@ export default function MiPerfilFletes() {
   useEffect(() => {
     if (tripState !== 'in_transit' || !incomingRequest) return;
 
-    const coordsOrig: [number, number] = incomingRequest.coordsOrigen || [-4.3298, -79.5611];
-    const coordsDest: [number, number] = incomingRequest.coordsDestino || [-4.3287, -79.5606];
+    const coordsOrig: [number, number] = incomingRequest.coordsOrigen || [-4.328103, -79.561129];
+    const coordsDest: [number, number] = incomingRequest.coordsDestino || [-4.331405, -79.553528];
     const midPoint: [number, number] = [-4.3250, -79.5580];
 
     let currentStep = 0;
