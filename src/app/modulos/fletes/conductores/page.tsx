@@ -484,7 +484,14 @@ export default function MiPerfilFletes() {
             showToast('El cliente ha cancelado la solicitud de flete.');
             setTripAccepted(false);
             setTripState('idle');
+            setTripProgressPercent(0);
             setAccessCode(null);
+            setInputPin('');
+            setNavSteps([]);
+            setActiveNavStepIndex(0);
+            setRemainingMetersToTurn(0);
+            navRouteKeyRef.current = '';
+            saraVoiceNavigation.stop();
             return null;
           }
           return prev;
@@ -543,6 +550,25 @@ export default function MiPerfilFletes() {
   const [remainingMetersToTurn, setRemainingMetersToTurn] = useState<number>(0);
   const [voiceMuted, setVoiceMuted] = useState<boolean>(false);
   const navRouteKeyRef = useRef<string>('');
+
+  // Enserar completamente el estado del viaje, mapa, ruta y navegación en cabina
+  const resetCabinaConductor = (keepSummary = false) => {
+    setTripAccepted(false);
+    setTripState(keepSummary ? 'completed' : 'idle');
+    setTripProgressPercent(0);
+    setAccessCode(null);
+    setInputPin('');
+    setIncomingRequest(null);
+    setNavSteps([]);
+    setActiveNavStepIndex(0);
+    setRemainingMetersToTurn(0);
+    navRouteKeyRef.current = '';
+    if (!keepSummary) {
+      setCompletedTripSummary(null);
+      setSavedEpod(null);
+      saraVoiceNavigation.stop();
+    }
+  };
 
   // Sincronizar ruta vial precisa + pasos de navegación giro a giro SIEMPRE que cambie origen o destino (cero calles obsoletas)
   useEffect(() => {
@@ -897,6 +923,9 @@ export default function MiPerfilFletes() {
         tarifaFinal: valorFlete
       }
     });
+
+    // Enserar de inmediato la ruta, pines y pasos de navegación del mapa mientras se muestra el resumen financiero
+    resetCabinaConductor(true);
 
     showToast('🏁 ¡Flete entregado con éxito! Se ha notificado al cliente para que califique tu servicio.');
   };
@@ -1696,12 +1725,8 @@ export default function MiPerfilFletes() {
                       <button
                         type="button"
                         onClick={() => {
-                          setTripAccepted(false);
-                          setTripState('idle');
-                          setAccessCode(null);
-                          setIncomingRequest(null);
-                          setCompletedTripSummary(null);
-                          showToast('Cabina lista para recibir nuevas carreras en el radar.');
+                          resetCabinaConductor(false);
+                          showToast('Cabina enserada y lista para recibir nuevas carreras en el radar.');
                         }}
                         className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 rounded-xl text-xs transition-all shadow-lg active:scale-95"
                       >

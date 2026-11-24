@@ -460,7 +460,7 @@ export default function SaraFletesEngine() {
   };
 
   // Hook de persistencia de formulario en localStorage
-  const { draft, isLoaded: draftLoaded, updateDraft } = useFletesFormPersistence();
+  const { draft, isLoaded: draftLoaded, updateDraft, resetDraft } = useFletesFormPersistence();
   const [activeStep, setActiveStep] = useState<number>(1);
   const [unitType, setUnitType] = useState<'TON' | 'M3'>('TON');
   const [helpersCount, setHelpersCount] = useState<number>(0);
@@ -543,6 +543,27 @@ export default function SaraFletesEngine() {
   }, [destinationPoint, activeFreight, serviceType]);
   const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
   const [assignedDriver, setAssignedDriver] = useState<DriverOffer | null>(null);
+
+  // Enserar completamente el estado del viaje, mapa y formulario al finalizar o cancelar
+  const resetViajeCliente = useCallback(() => {
+    setActiveFreight(null);
+    setDriverOffers([]);
+    setAssignedDriver(null);
+    setDestinationText('');
+    setDestinationPoint(null);
+    destinationPointRef.current = null;
+    destLockedByMapRef.current = false;
+    setRutaCalculada(null);
+    setTarifaEstimada(null);
+    setProposedPrice(null);
+    setDestinationSuggestions([]);
+    setShowDestSuggestions(false);
+    setMapClickMode(null);
+    setSearchRadiusMeters(1500);
+    setActiveStep(1);
+    setBottomSheetLevel('peek');
+    resetDraft();
+  }, [resetDraft]);
 
   // Estados Avanzados 2026: Guía de Remisión SRI, Calculadora de Estiba y Control MTOP
   const [guiaRemisionClave, setGuiaRemisionClave] = useState<string>('');
@@ -916,13 +937,9 @@ export default function SaraFletesEngine() {
         setPaymentDetails(null);
         setIsPaymentGatewayOpen(false);
         setIsRatingModalOpen(true);
-        setActiveFreight(null);
-        setDriverOffers([]);
-        setAssignedDriver(null);
+        resetViajeCliente();
       } else if (evt.type === 'CANCELAR_SOLICITUD_FLETE') {
-        setActiveFreight(null);
-        setDriverOffers([]);
-        setAssignedDriver(null);
+        resetViajeCliente();
       }
     });
 
@@ -1933,9 +1950,7 @@ export default function SaraFletesEngine() {
                             window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
                           }}
                           onFinishOrCancel={() => {
-                            setActiveFreight(null);
-                            setDriverOffers([]);
-                            setAssignedDriver(null);
+                            resetViajeCliente();
                           }}
                         />
                       )}
@@ -2556,12 +2571,14 @@ export default function SaraFletesEngine() {
         onClose={() => {
           setIsRatingModalOpen(false);
           setDriverToRate(null);
+          resetViajeCliente();
         }}
         onOpenPaymentGateway={() => setIsPaymentGatewayOpen(true)}
         onRatingSubmitted={(msg) => {
           setIsRatingModalOpen(false);
           setPaymentSuccessToast(msg);
           setDriverToRate(null);
+          resetViajeCliente();
           setTimeout(() => setPaymentSuccessToast(null), 6000);
         }}
       />      {/* MODAL PASARELA DE PAGO DIGITAL: DATOS BANCARIOS DEL CONDUCTOR, QRS Y TARJETA */}
