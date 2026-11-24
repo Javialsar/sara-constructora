@@ -1275,9 +1275,27 @@ export class SaraFreightRoutingService {
       (a, b) => b.nombre.length - a.nombre.length
     );
 
-    // Función auxiliar para determinar si una palabra está precedida por un prefijo de calle/avenida (ej. "calle loja", "calle quito")
+    // Determinar primero el cantón local de referencia (radio 50 km) para desambiguar calles con nombres de ciudades
+    // (ej: en Cariamanga existen las calles Latacunga, Quito, Ambato, Ibarra, Riobamba, Tulcán, Loja)
+    let cantonLocal: CantonInfo | null = null;
+    if (ubicacionReferencia && !isNaN(ubicacionReferencia[0]) && !isNaN(ubicacionReferencia[1])) {
+      let distMinima = Infinity;
+      for (const canton of Object.values(CANTONES_ECUADOR)) {
+        const dLat = canton.centroide[0] - ubicacionReferencia[0];
+        const dLng = canton.centroide[1] - ubicacionReferencia[1];
+        const distKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
+        if (distKm < distMinima) {
+          distMinima = distKm;
+          if (distKm <= 50) cantonLocal = canton;
+        }
+      }
+    }
+
+    const pareceInterseccion = /\s+(?:y|e|con|esquina|\/|&)\s+/i.test(norm);
+
+    // Función auxiliar para determinar si una palabra está precedida por un prefijo de calle/avenida o conector de intersección
     const esPrefijoVial = (nombre: string): boolean => {
-      const rx = new RegExp(`\\b(?:calle|carrera|cra|crra|avenida|av|avda|clle|pasaje|diagonal|sector|barrio)\\s+(?:de\\s+)?${nombre}\\b`, 'i');
+      const rx = new RegExp(`\\b(?:calle|carrera|cra|crra|avenida|av|avda|clle|pasaje|diagonal|sector|barrio|y|e|con|esquina)\\s+(?:de\\s+)?${nombre}\\b`, 'i');
       return rx.test(queryNormalizada);
     };
 
@@ -1306,14 +1324,28 @@ export class SaraFreightRoutingService {
       for (const nom of nombresAChequear) {
         const rxWord = new RegExp(`\\b${nom}\\b`, 'i');
         if (rxWord.test(norm)) {
-          // Desambiguación: si coincide con un nombre pero está precedido de "calle/av" (ej. "calle loja", "calle quito"),
-          // verificar si aparece en otra parte sin prefijo vial
+          // Desambiguación 1: si existe un cantón local y el nombre coincide con una CALLE real de ese cantón local
+          // dentro de una intersección (ej. "Luis Clemente Soto y Latacunga", "Atahualpa y Ibarra", "Calle A y Quito"),
+          // NO saltar a otra provincia: pertenece al cantón local
+          if (cantonLocal && canton !== cantonLocal) {
+            const esCalleLocal = Object.keys(cantonLocal.viasPrincipales).some(
+              (v) => v === nom || v.includes(nom)
+            );
+            const mencionaOtraCalleLocal = Object.keys(cantonLocal.viasPrincipales).some(
+              (v) => v !== nom && v.length >= 4 && norm.includes(v)
+            );
+            if (esCalleLocal && (pareceInterseccion || mencionaOtraCalleLocal || esPrefijoVial(nom))) {
+              continue;
+            }
+          }
+
+          // Desambiguación 2: si coincide con un nombre pero está precedido de "calle/av/y" sin aparecer suelto como ciudad
           if (esPrefijoVial(nom)) {
             const matches = [...norm.matchAll(new RegExp(`\\b${nom}\\b`, 'gi'))];
             const hasStandalone = matches.some(m => {
               const idx = m.index ?? 0;
               const subBefore = queryNormalizada.slice(Math.max(0, idx - 15), idx).toLowerCase();
-              return !/\b(?:calle|carrera|cra|crra|avenida|av|avda|clle|pasaje)\s+(?:de\s+)?$/i.test(subBefore);
+              return !/\b(?:calle|carrera|cra|crra|avenida|av|avda|clle|pasaje|y|e|con|esquina)\s+(?:de\s+)?$/i.test(subBefore);
             });
             if (!hasStandalone) {
               continue; // Es una calle, no el cantón
@@ -1324,26 +1356,9 @@ export class SaraFreightRoutingService {
       }
     }
 
-    // 2. Si el texto no menciona explícitamente un cantón pero se tiene una ubicación de referencia (origen o GPS),
-    // asociar prioritariamente al cantón más cercano dentro de un radio de 50 km
-    if (ubicacionReferencia && !isNaN(ubicacionReferencia[0]) && !isNaN(ubicacionReferencia[1])) {
-      let cantonMasCercano: CantonInfo | null = null;
-      let distMinima = Infinity;
-
-      for (const canton of Object.values(CANTONES_ECUADOR)) {
-        const dLat = canton.centroide[0] - ubicacionReferencia[0];
-        const dLng = canton.centroide[1] - ubicacionReferencia[1];
-        const distKm = Math.sqrt(dLat * dLat + dLng * dLng) * 111;
-
-        if (distKm < distMinima) {
-          distMinima = distKm;
-          cantonMasCercano = canton;
-        }
-      }
-
-      if (distMinima <= 50 && cantonMasCercano) {
-        return cantonMasCercano;
-      }
+    // 2. Si el texto no menciona explícitamente otro cantón, asociar al cantón local detectado dentro de 50 km
+    if (cantonLocal) {
+      return cantonLocal;
     }
 
     return null;
