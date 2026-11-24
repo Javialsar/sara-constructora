@@ -63,6 +63,7 @@ import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
 import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
+import { SaraGoogleMapsNavPanel } from '@/components/fletes/SaraGoogleMapsNavPanel';
 import { 
   debitDriverCommissionAction, 
   rechargeDriverWalletAction, 
@@ -536,40 +537,60 @@ export default function MiPerfilFletes() {
     return () => unsub();
   }, [currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
 
-  // Estado de navegación guiada por voz (Turn-by-Turn estilo Waze / Google Maps)
+  // Estado de navegación guiada por voz (Turn-by-Turn estilo Google Maps)
   const [navSteps, setNavSteps] = useState<PasoNavegacionVial[]>([]);
   const [activeNavStepIndex, setActiveNavStepIndex] = useState<number>(0);
+  const [remainingMetersToTurn, setRemainingMetersToTurn] = useState<number>(0);
   const [voiceMuted, setVoiceMuted] = useState<boolean>(false);
+  const navRouteKeyRef = useRef<string>('');
 
-  // Sincronizar ruta vial precisa + pasos de navegación giro a giro con nombres de calles reales
+  // Sincronizar ruta vial precisa + pasos de navegación giro a giro SIEMPRE que cambie origen o destino (cero calles obsoletas)
   useEffect(() => {
     if (!incomingRequest?.coordsOrigen || !incomingRequest?.coordsDestino) return;
-    const needsRoute = !incomingRequest.coordenadasRuta || incomingRequest.coordenadasRuta.length <= 2;
-    const needsSteps = navSteps.length === 0;
-    if (!needsRoute && !needsSteps) return;
+    const orig = incomingRequest.coordsOrigen;
+    const dest = incomingRequest.coordsDestino;
+    const routeKey = `${Number(orig[0]).toFixed(5)},${Number(orig[1]).toFixed(5)}->${Number(dest[0]).toFixed(5)},${Number(dest[1]).toFixed(5)}`;
 
+    if (navRouteKeyRef.current === routeKey && navSteps.length > 0) return;
+    navRouteKeyRef.current = routeKey;
+
+    // Limpiar pasos anteriores inmediatamente para no narrar jamás calles de un viaje previo
+    setNavSteps([]);
+    setActiveNavStepIndex(0);
+    setRemainingMetersToTurn(0);
+
+    let cancelled = false;
     SaraFreightRoutingService.calcularRutaMasCorta(
-      { nombre: incomingRequest.origen || 'Punto de Carga', lat: incomingRequest.coordsOrigen[0], lng: incomingRequest.coordsOrigen[1] },
-      { nombre: incomingRequest.destino || 'Punto de Descarga', lat: incomingRequest.coordsDestino[0], lng: incomingRequest.coordsDestino[1] }
+      { nombre: incomingRequest.origen || 'Punto de Carga', lat: orig[0], lng: orig[1] },
+      { nombre: incomingRequest.destino || 'Punto de Descarga', lat: dest[0], lng: dest[1] }
     ).then((ruta) => {
-      if (ruta) {
-        if (ruta.pasosNavegacion && ruta.pasosNavegacion.length > 0) {
-          setNavSteps(ruta.pasosNavegacion);
-          setActiveNavStepIndex(0);
-        }
-        if (needsRoute && ruta.coordenadasRuta && ruta.coordenadasRuta.length > 0) {
-          setIncomingRequest((prev: any) => prev ? {
-            ...prev,
-            coordenadasRuta: ruta.coordenadasRuta,
-            distanciaKm: ruta.distanciaKm,
-            duracionMinutos: ruta.duracionMinutos
-          } : prev);
-        }
+      if (cancelled || !ruta) return;
+      if (ruta.pasosNavegacion && ruta.pasosNavegacion.length > 0) {
+        setNavSteps(ruta.pasosNavegacion);
+        setActiveNavStepIndex(0);
+        setRemainingMetersToTurn(ruta.pasosNavegacion[0].distanciaMetros || 0);
+      }
+      if (ruta.coordenadasRuta && ruta.coordenadasRuta.length > 0) {
+        setIncomingRequest((prev: any) => prev ? {
+          ...prev,
+          coordenadasRuta: ruta.coordenadasRuta,
+          distanciaKm: ruta.distanciaKm,
+          duracionMinutos: ruta.duracionMinutos
+        } : prev);
       }
     }).catch((e) => console.warn('Error calculando ruta para conductor:', e));
-  }, [incomingRequest?.coordsOrigen, incomingRequest?.coordsDestino]);
 
-  // Recorrido GPS continuo sobre la polilínea vial real + narración por voz calle por calle
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    incomingRequest?.coordsOrigen?.[0],
+    incomingRequest?.coordsOrigen?.[1],
+    incomingRequest?.coordsDestino?.[0],
+    incomingRequest?.coordsDestino?.[1]
+  ]);
+
+  // Recorrido GPS continuo sobre la polilínea vial real + sincronización geoespacial exacta de calle y voz
   useEffect(() => {
     if (tripState !== 'in_transit' || !incomingRequest) return;
 
@@ -580,33 +601,69 @@ export default function MiPerfilFletes() {
         ? incomingRequest.coordenadasRuta
         : [coordsOrig, coordsDest];
 
-    let currentStep = 0;
+    // Precalcular distancia acumulada (en metros) de cada vértice de la polilínea
+    const segCumDistM: number[] = [0];
+    for (let i = 1; i < routePoints.length; i++) {
+      const dLatM = (routePoints[i][0] - routePoints[i - 1][0]) * 111320;
+      const dLngM = (routePoints[i][1] - routePoints[i - 1][1]) * 111320 * Math.cos((routePoints[i][0] * Math.PI) / 180);
+      segCumDistM.push(segCumDistM[i - 1] + Math.hypot(dLatM, dLngM));
+    }
+    const totalRouteDistM = Math.max(1, segCumDistM[segCumDistM.length - 1]);
+
+    // Precalcular umbrales acumulados de cada paso OSRM para sincronizar cada giro en el metro exacto
+    const stepEndDistM: number[] = [];
+    let accStepM = 0;
+    const rawStepsTotalM = navSteps.reduce((sum, s) => sum + (s.distanciaMetros || 0), 0) || totalRouteDistM;
+    const scaleFactor = totalRouteDistM / Math.max(1, rawStepsTotalM);
+    for (const st of navSteps) {
+      accStepM += (st.distanciaMetros || 0) * scaleFactor;
+      stepEndDistM.push(accStepM);
+    }
+
+    let currentTick = 0;
     let lastAnnouncedIdx = 0;
-    const totalSteps = Math.max(18, Math.min(36, routePoints.length));
+    const totalTicks = Math.max(20, Math.min(40, Math.round(totalRouteDistM / 30)));
 
     const timer = setInterval(() => {
-      currentStep++;
-      const progress = Math.min(1, currentStep / totalSteps);
+      currentTick++;
+      const progress = Math.min(1, currentTick / totalTicks);
+      const traveledM = progress * totalRouteDistM;
       setTripProgressPercent(Math.round(progress * 100));
 
-      // Interpolar exactamente sobre los vértices reales de la calle (coordenadasRuta)
-      const exactPos = progress * (routePoints.length - 1);
-      const idxA = Math.floor(exactPos);
-      const idxB = Math.min(routePoints.length - 1, idxA + 1);
-      const segT = exactPos - idxA;
-      const lat = routePoints[idxA][0] + (routePoints[idxB][0] - routePoints[idxA][0]) * segT;
-      const lng = routePoints[idxA][1] + (routePoints[idxB][1] - routePoints[idxA][1]) * segT;
+      // Ubicar posición exacta sobre la polilínea correspondiente a traveledM
+      let segIdx = 0;
+      while (segIdx < segCumDistM.length - 2 && segCumDistM[segIdx + 1] < traveledM) {
+        segIdx++;
+      }
+      const segStartM = segCumDistM[segIdx];
+      const segLenM = Math.max(0.01, segCumDistM[segIdx + 1] - segStartM);
+      const segT = Math.min(1, Math.max(0, (traveledM - segStartM) / segLenM));
+
+      const pA = routePoints[segIdx];
+      const pB = routePoints[segIdx + 1] || pA;
+      const lat = pA[0] + (pB[0] - pA[0]) * segT;
+      const lng = pA[1] + (pB[1] - pA[1]) * segT;
+      const heading = Math.round(((Math.atan2(pB[1] - pA[1], pB[0] - pA[0]) * 180) / Math.PI + 360) % 360);
 
       const newCoords: [number, number] = [+lat.toFixed(6), +lng.toFixed(6)];
       setDriverLocation(newCoords);
 
-      // Avanzar instrucción de navegación y narrar por voz al cambiar de calle / giro
+      // Sincronizar paso activo y metros restantes exactamente por distancia recorrida en metros
       if (navSteps.length > 0) {
-        const nextNavIdx = Math.min(navSteps.length - 1, Math.floor(progress * navSteps.length));
-        if (nextNavIdx > lastAnnouncedIdx) {
-          lastAnnouncedIdx = nextNavIdx;
-          setActiveNavStepIndex(nextNavIdx);
-          const pasoActual = navSteps[nextNavIdx];
+        let matchedIdx = navSteps.length - 1;
+        for (let k = 0; k < stepEndDistM.length; k++) {
+          if (traveledM < stepEndDistM[k] || k === stepEndDistM.length - 1) {
+            matchedIdx = k;
+            break;
+          }
+        }
+        const remM = Math.max(0, Math.round(stepEndDistM[matchedIdx] - traveledM));
+        setRemainingMetersToTurn(remM);
+
+        if (matchedIdx > lastAnnouncedIdx) {
+          lastAnnouncedIdx = matchedIdx;
+          setActiveNavStepIndex(matchedIdx);
+          const pasoActual = navSteps[matchedIdx];
           if (pasoActual && pasoActual.maniobra !== 'arrive') {
             saraVoiceNavigation.anunciarPaso(pasoActual);
           }
@@ -626,16 +683,17 @@ export default function MiPerfilFletes() {
           disponible: false,
           billetera: balance,
           rating: 4.95,
-          heading: 45,
+          heading,
           speed: progress >= 1 ? 0 : 32,
           timestamp: Date.now()
         }
       });
 
-      if (currentStep >= totalSteps) {
+      if (currentTick >= totalTicks) {
         clearInterval(timer);
         if (navSteps.length > 0) {
           setActiveNavStepIndex(navSteps.length - 1);
+          setRemainingMetersToTurn(0);
         }
         saraVoiceNavigation.anunciarLlegadaFeliz();
         showToast('🎉 Hemos llegado con felicidad, que tenga un excelente día.');
@@ -1314,74 +1372,33 @@ export default function MiPerfilFletes() {
                   ) : undefined}
                 />
 
-                {/* OVERLAY SUPERIOR: NAVEGADOR GPS GIRO A GIRO CON GUÍA POR VOZ EN ESPAÑOL */}
-                {tripAccepted && tripState === 'in_transit' && (() => {
-                  const pasoActual = navSteps[activeNavStepIndex] || {
-                    indice: 0,
-                    instruccion: `Dirígete hacia ${incomingRequest?.destino || 'el destino'}`,
-                    calle: incomingRequest?.destino || 'Ruta principal',
-                    distanciaMetros: Math.round((incomingRequest?.distanciaKm || 0.8) * 1000 * (1 - tripProgressPercent / 100)),
-                    duracionSegundos: 60,
-                    maniobra: tripProgressPercent >= 98 ? 'arrive' : 'straight',
-                    coords: driverLocation
-                  };
-                  const iconoManiobra =
-                    pasoActual.maniobra === 'turn-left' || pasoActual.maniobra === 'slight-left'
-                      ? '↰'
-                      : pasoActual.maniobra === 'turn-right' || pasoActual.maniobra === 'slight-right'
-                      ? '↱'
-                      : pasoActual.maniobra === 'roundabout'
-                      ? '↻'
-                      : pasoActual.maniobra === 'uturn'
-                      ? '↶'
-                      : pasoActual.maniobra === 'arrive'
-                      ? '🏁'
-                      : '↑';
-
-                  return (
-                    <div className="absolute top-4 left-4 right-4 sm:right-auto sm:max-w-md z-[500] bg-emerald-950/95 backdrop-blur-xl border-2 border-emerald-400/70 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500 text-slate-950 font-black text-2xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
-                          {iconoManiobra}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
-                              {tripProgressPercent >= 100 ? 'Destino alcanzado' : `Navegación GPS · ${pasoActual.distanciaMetros > 0 ? `${pasoActual.distanciaMetros} m` : 'Ahora'}`}
-                            </span>
-                          </div>
-                          <p className="text-sm font-black text-white leading-tight truncate">
-                            {tripProgressPercent >= 100
-                              ? 'Hemos llegado con felicidad'
-                              : pasoActual.instruccion}
-                          </p>
-                          <p className="text-[11px] text-emerald-200/90 truncate mt-0.5">
-                            Circulando por: <strong className="text-white">{pasoActual.calle}</strong>
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextMuted = !voiceMuted;
-                          setVoiceMuted(nextMuted);
-                          saraVoiceNavigation.setMuted(nextMuted);
-                          if (!nextMuted) {
-                            saraVoiceNavigation.anunciarPaso(pasoActual);
-                          }
-                        }}
-                        className={`shrink-0 px-2.5 py-2 rounded-xl text-xs font-black border transition-colors cursor-pointer ${
-                          voiceMuted
-                            ? 'bg-slate-900 text-slate-400 border-slate-700'
-                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50 hover:bg-emerald-500/30'
-                        }`}
-                        title={voiceMuted ? 'Activar guía por voz' : 'Silenciar guía por voz'}
-                      >
-                        {voiceMuted ? '🔇' : '🔊'}
-                      </button>
-                    </div>
-                  );
-                })()}
+                {/* OVERLAY SUPERIOR: NAVEGADOR GPS GIRO A GIRO + PANEL DE RECORRIDO ESTILO GOOGLE MAPS */}
+                {tripAccepted && tripState === 'in_transit' && (
+                  <SaraGoogleMapsNavPanel
+                    originName={incomingRequest?.origen || 'Punto de Carga'}
+                    destinationName={incomingRequest?.destino || 'Punto de Entrega'}
+                    steps={navSteps}
+                    activeStepIndex={activeNavStepIndex}
+                    remainingMetersToNextTurn={remainingMetersToTurn}
+                    tripProgressPercent={tripProgressPercent}
+                    voiceMuted={voiceMuted}
+                    onToggleVoice={() => {
+                      const nextMuted = !voiceMuted;
+                      setVoiceMuted(nextMuted);
+                      saraVoiceNavigation.setMuted(nextMuted);
+                      if (!nextMuted && navSteps[activeNavStepIndex]) {
+                        saraVoiceNavigation.anunciarPaso(navSteps[activeNavStepIndex]);
+                      }
+                    }}
+                    onRepeatCurrentStep={() => {
+                      if (tripProgressPercent >= 100) {
+                        saraVoiceNavigation.anunciarLlegadaFeliz();
+                      } else if (navSteps[activeNavStepIndex]) {
+                        saraVoiceNavigation.anunciarPaso(navSteps[activeNavStepIndex]);
+                      }
+                    }}
+                  />
+                )}
 
                 {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE CON CÁLCULO DE COMISIÓN Y DESCUENTO DE SALDO */}
                 {incomingRequest && !tripAccepted && (() => {
