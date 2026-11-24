@@ -62,6 +62,7 @@ import { SaraDriverBiometricCheckModal } from '@/components/fletes/SaraDriverBio
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
+import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
 import { 
   debitDriverCommissionAction, 
   rechargeDriverWalletAction, 
@@ -535,14 +536,28 @@ export default function MiPerfilFletes() {
     return () => unsub();
   }, [currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
 
-  // Sincronizar ruta vial precisa entre origen y destino si no viene calculada
+  // Estado de navegación guiada por voz (Turn-by-Turn estilo Waze / Google Maps)
+  const [navSteps, setNavSteps] = useState<PasoNavegacionVial[]>([]);
+  const [activeNavStepIndex, setActiveNavStepIndex] = useState<number>(0);
+  const [voiceMuted, setVoiceMuted] = useState<boolean>(false);
+
+  // Sincronizar ruta vial precisa + pasos de navegación giro a giro con nombres de calles reales
   useEffect(() => {
-    if (incomingRequest?.coordsOrigen && incomingRequest?.coordsDestino && (!incomingRequest.coordenadasRuta || incomingRequest.coordenadasRuta.length <= 2)) {
-      SaraFreightRoutingService.calcularRutaMasCorta(
-        { nombre: incomingRequest.origen || 'Punto de Carga', lat: incomingRequest.coordsOrigen[0], lng: incomingRequest.coordsOrigen[1] },
-        { nombre: incomingRequest.destino || 'Punto de Descarga', lat: incomingRequest.coordsDestino[0], lng: incomingRequest.coordsDestino[1] }
-      ).then((ruta) => {
-        if (ruta && ruta.coordenadasRuta && ruta.coordenadasRuta.length > 0) {
+    if (!incomingRequest?.coordsOrigen || !incomingRequest?.coordsDestino) return;
+    const needsRoute = !incomingRequest.coordenadasRuta || incomingRequest.coordenadasRuta.length <= 2;
+    const needsSteps = navSteps.length === 0;
+    if (!needsRoute && !needsSteps) return;
+
+    SaraFreightRoutingService.calcularRutaMasCorta(
+      { nombre: incomingRequest.origen || 'Punto de Carga', lat: incomingRequest.coordsOrigen[0], lng: incomingRequest.coordsOrigen[1] },
+      { nombre: incomingRequest.destino || 'Punto de Descarga', lat: incomingRequest.coordsDestino[0], lng: incomingRequest.coordsDestino[1] }
+    ).then((ruta) => {
+      if (ruta) {
+        if (ruta.pasosNavegacion && ruta.pasosNavegacion.length > 0) {
+          setNavSteps(ruta.pasosNavegacion);
+          setActiveNavStepIndex(0);
+        }
+        if (needsRoute && ruta.coordenadasRuta && ruta.coordenadasRuta.length > 0) {
           setIncomingRequest((prev: any) => prev ? {
             ...prev,
             coordenadasRuta: ruta.coordenadasRuta,
@@ -550,41 +565,55 @@ export default function MiPerfilFletes() {
             duracionMinutos: ruta.duracionMinutos
           } : prev);
         }
-      }).catch((e) => console.warn('Error calculando ruta para conductor:', e));
-    }
+      }
+    }).catch((e) => console.warn('Error calculando ruta para conductor:', e));
   }, [incomingRequest?.coordsOrigen, incomingRequest?.coordsDestino]);
 
-  // Simulación de recorrido GPS continuo en tiempo real estilo Uber / Google Maps
+  // Recorrido GPS continuo sobre la polilínea vial real + narración por voz calle por calle
   useEffect(() => {
     if (tripState !== 'in_transit' || !incomingRequest) return;
 
     const coordsOrig: [number, number] = incomingRequest.coordsOrigen || [-4.328103, -79.561129];
     const coordsDest: [number, number] = incomingRequest.coordsDestino || [-4.331405, -79.553528];
-    const midPoint: [number, number] = [-4.3250, -79.5580];
+    const routePoints: [number, number][] =
+      Array.isArray(incomingRequest.coordenadasRuta) && incomingRequest.coordenadasRuta.length >= 2
+        ? incomingRequest.coordenadasRuta
+        : [coordsOrig, coordsDest];
 
     let currentStep = 0;
-    const totalSteps = 24; // 24 segundos de animación continua de la ruta
+    let lastAnnouncedIdx = 0;
+    const totalSteps = Math.max(18, Math.min(36, routePoints.length));
+
     const timer = setInterval(() => {
       currentStep++;
       const progress = Math.min(1, currentStep / totalSteps);
       setTripProgressPercent(Math.round(progress * 100));
 
-      let lat: number;
-      let lng: number;
-      if (progress < 0.5) {
-        const t = progress * 2;
-        lat = coordsOrig[0] + (midPoint[0] - coordsOrig[0]) * t;
-        lng = coordsOrig[1] + (midPoint[1] - coordsOrig[1]) * t;
-      } else {
-        const t = (progress - 0.5) * 2;
-        lat = midPoint[0] + (coordsDest[0] - midPoint[0]) * t;
-        lng = midPoint[1] + (coordsDest[1] - midPoint[1]) * t;
-      }
+      // Interpolar exactamente sobre los vértices reales de la calle (coordenadasRuta)
+      const exactPos = progress * (routePoints.length - 1);
+      const idxA = Math.floor(exactPos);
+      const idxB = Math.min(routePoints.length - 1, idxA + 1);
+      const segT = exactPos - idxA;
+      const lat = routePoints[idxA][0] + (routePoints[idxB][0] - routePoints[idxA][0]) * segT;
+      const lng = routePoints[idxA][1] + (routePoints[idxB][1] - routePoints[idxA][1]) * segT;
 
-      const newCoords: [number, number] = [+lat.toFixed(5), +lng.toFixed(5)];
+      const newCoords: [number, number] = [+lat.toFixed(6), +lng.toFixed(6)];
       setDriverLocation(newCoords);
 
-      // Transmisión de telemetría GPS continua
+      // Avanzar instrucción de navegación y narrar por voz al cambiar de calle / giro
+      if (navSteps.length > 0) {
+        const nextNavIdx = Math.min(navSteps.length - 1, Math.floor(progress * navSteps.length));
+        if (nextNavIdx > lastAnnouncedIdx) {
+          lastAnnouncedIdx = nextNavIdx;
+          setActiveNavStepIndex(nextNavIdx);
+          const pasoActual = navSteps[nextNavIdx];
+          if (pasoActual && pasoActual.maniobra !== 'arrive') {
+            saraVoiceNavigation.anunciarPaso(pasoActual);
+          }
+        }
+      }
+
+      // Transmisión de telemetría GPS continua en tiempo real (cliente + enlace de rastreo)
       SaraFletesRealtimeService.emit({
         type: 'ACTUALIZAR_GPS_CONDUCTOR',
         payload: {
@@ -598,18 +627,23 @@ export default function MiPerfilFletes() {
           billetera: balance,
           rating: 4.95,
           heading: 45,
-          speed: 38,
+          speed: progress >= 1 ? 0 : 32,
           timestamp: Date.now()
         }
       });
 
       if (currentStep >= totalSteps) {
         clearInterval(timer);
+        if (navSteps.length > 0) {
+          setActiveNavStepIndex(navSteps.length - 1);
+        }
+        saraVoiceNavigation.anunciarLlegadaFeliz();
+        showToast('🎉 Hemos llegado con felicidad, que tenga un excelente día.');
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [tripState, incomingRequest, currentUser]);
+  }, [tripState, incomingRequest, currentUser, navSteps]);
 
   // Aceptar viaje y ponerse en camino al punto de carga
   const handleAcceptTrip = () => {
@@ -726,7 +760,13 @@ export default function MiPerfilFletes() {
         }
       });
 
-      showToast(`🚀 ¡Viaje iniciado con éxito! Dirígete hacia el punto de entrega.`);
+      // Guía de voz inmediata al iniciar el viaje
+      saraVoiceNavigation.anunciarInicioViaje(
+        activeReq.destino || 'tu destino',
+        navSteps[0]?.instruccion
+      );
+
+      showToast(`🚀 ¡Viaje iniciado con éxito! Guía por voz activa hacia el destino.`);
     } catch (err: any) {
       console.error('[HANDLE_START_TRIP_ERROR]', err);
       // Fail-open garantizado: la cabina del chofer nunca se bloquea
@@ -761,6 +801,7 @@ export default function MiPerfilFletes() {
 
     setCompletedTripSummary(summary);
     setTripState('completed');
+    saraVoiceNavigation.anunciarLlegadaFeliz();
 
     const ahora = new Date();
     const formatoFecha = ahora.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -1272,6 +1313,75 @@ export default function MiPerfilFletes() {
                       : (incomingRequest.coordsOrigen && incomingRequest.coordsDestino ? [incomingRequest.coordsOrigen, incomingRequest.coordsDestino] : undefined)
                   ) : undefined}
                 />
+
+                {/* OVERLAY SUPERIOR: NAVEGADOR GPS GIRO A GIRO CON GUÍA POR VOZ EN ESPAÑOL */}
+                {tripAccepted && tripState === 'in_transit' && (() => {
+                  const pasoActual = navSteps[activeNavStepIndex] || {
+                    indice: 0,
+                    instruccion: `Dirígete hacia ${incomingRequest?.destino || 'el destino'}`,
+                    calle: incomingRequest?.destino || 'Ruta principal',
+                    distanciaMetros: Math.round((incomingRequest?.distanciaKm || 0.8) * 1000 * (1 - tripProgressPercent / 100)),
+                    duracionSegundos: 60,
+                    maniobra: tripProgressPercent >= 98 ? 'arrive' : 'straight',
+                    coords: driverLocation
+                  };
+                  const iconoManiobra =
+                    pasoActual.maniobra === 'turn-left' || pasoActual.maniobra === 'slight-left'
+                      ? '↰'
+                      : pasoActual.maniobra === 'turn-right' || pasoActual.maniobra === 'slight-right'
+                      ? '↱'
+                      : pasoActual.maniobra === 'roundabout'
+                      ? '↻'
+                      : pasoActual.maniobra === 'uturn'
+                      ? '↶'
+                      : pasoActual.maniobra === 'arrive'
+                      ? '🏁'
+                      : '↑';
+
+                  return (
+                    <div className="absolute top-4 left-4 right-4 sm:right-auto sm:max-w-md z-[500] bg-emerald-950/95 backdrop-blur-xl border-2 border-emerald-400/70 rounded-2xl p-3.5 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500 text-slate-950 font-black text-2xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+                          {iconoManiobra}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                              {tripProgressPercent >= 100 ? 'Destino alcanzado' : `Navegación GPS · ${pasoActual.distanciaMetros > 0 ? `${pasoActual.distanciaMetros} m` : 'Ahora'}`}
+                            </span>
+                          </div>
+                          <p className="text-sm font-black text-white leading-tight truncate">
+                            {tripProgressPercent >= 100
+                              ? 'Hemos llegado con felicidad'
+                              : pasoActual.instruccion}
+                          </p>
+                          <p className="text-[11px] text-emerald-200/90 truncate mt-0.5">
+                            Circulando por: <strong className="text-white">{pasoActual.calle}</strong>
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextMuted = !voiceMuted;
+                          setVoiceMuted(nextMuted);
+                          saraVoiceNavigation.setMuted(nextMuted);
+                          if (!nextMuted) {
+                            saraVoiceNavigation.anunciarPaso(pasoActual);
+                          }
+                        }}
+                        className={`shrink-0 px-2.5 py-2 rounded-xl text-xs font-black border transition-colors cursor-pointer ${
+                          voiceMuted
+                            ? 'bg-slate-900 text-slate-400 border-slate-700'
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/50 hover:bg-emerald-500/30'
+                        }`}
+                        title={voiceMuted ? 'Activar guía por voz' : 'Silenciar guía por voz'}
+                      >
+                        {voiceMuted ? '🔇' : '🔊'}
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE CON CÁLCULO DE COMISIÓN Y DESCUENTO DE SALDO */}
                 {incomingRequest && !tripAccepted && (() => {

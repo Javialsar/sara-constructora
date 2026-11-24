@@ -6,6 +6,9 @@
 // Sincronización en tiempo real y sugerencias predictivas (Autocomplete).
 // ============================================================================
 import { CARIAMANGA_OSM_VIAS, CARIAMANGA_OSM_INTERSECCIONES } from '@/lib/fletes/cariamangaOsmData';
+import { traducirPasoOsrm, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
+
+export type { PasoNavegacionVial };
 
 export interface GeocodedPoint {
   nombre: string;
@@ -21,6 +24,7 @@ export interface RutaVialCalculada {
   distanciaKm: number;
   duracionMinutos: number;
   coordenadasRuta: [number, number][]; // Array de [lat, lng] para pintar en Leaflet
+  pasosNavegacion?: PasoNavegacionVial[]; // Indicaciones giro a giro para audio y banner GPS
 }
 
 export interface SugerenciaDireccion {
@@ -2105,18 +2109,33 @@ export class SaraFreightRoutingService {
 
     if ((isOrigOnlysoft && isDestTerminal) || (isOrigTerminal && isDestOnlysoft)) {
       const coords = isOrigOnlysoft ? RUTA_CARIAMANGA_ONLYSOFT_TERMINAL : [...RUTA_CARIAMANGA_ONLYSOFT_TERMINAL].reverse();
+      const pasosCalibrados: PasoNavegacionVial[] = isOrigOnlysoft
+        ? [
+            { indice: 0, instruccion: 'Sal por Calle Atahualpa hacia el este', calle: 'Calle Atahualpa', distanciaMetros: 220, duracionSegundos: 35, maniobra: 'depart', coords: coords[0] },
+            { indice: 1, instruccion: 'Continúa por Calle Eloy Alfaro', calle: 'Calle Eloy Alfaro', distanciaMetros: 310, duracionSegundos: 50, maniobra: 'straight', coords: coords[12] },
+            { indice: 2, instruccion: 'Gira a la derecha hacia Calle 18 de Noviembre', calle: 'Calle 18 de Noviembre', distanciaMetros: 240, duracionSegundos: 45, maniobra: 'turn-right', coords: coords[24] },
+            { indice: 3, instruccion: 'Gira hacia Avenida del Ejército rumbo a la Terminal Terrestre', calle: 'Avenida del Ejército', distanciaMetros: 180, duracionSegundos: 35, maniobra: 'turn-right', coords: coords[36] },
+            { indice: 4, instruccion: 'Has llegado a la Terminal Terrestre de Cariamanga', calle: 'Terminal Terrestre', distanciaMetros: 0, duracionSegundos: 0, maniobra: 'arrive', coords: coords[coords.length - 1] }
+          ]
+        : [
+            { indice: 0, instruccion: 'Sal desde la Terminal Terrestre por Avenida del Ejército', calle: 'Avenida del Ejército', distanciaMetros: 200, duracionSegundos: 35, maniobra: 'depart', coords: coords[0] },
+            { indice: 1, instruccion: 'Continúa por Calle 18 de Noviembre hacia el norte', calle: 'Calle 18 de Noviembre', distanciaMetros: 280, duracionSegundos: 50, maniobra: 'turn-left', coords: coords[10] },
+            { indice: 2, instruccion: 'Gira a la izquierda hacia Calle Eloy Alfaro y Atahualpa', calle: 'Calle Atahualpa', distanciaMetros: 340, duracionSegundos: 55, maniobra: 'turn-left', coords: coords[26] },
+            { indice: 3, instruccion: 'Has llegado a Casa Onlysoft', calle: 'Calle Atahualpa', distanciaMetros: 0, duracionSegundos: 0, maniobra: 'arrive', coords: coords[coords.length - 1] }
+          ];
       return {
         origen,
         destino: pDest,
         distanciaKm: 0.85,
         duracionMinutos: 3,
-        coordenadasRuta: coords
+        coordenadasRuta: coords,
+        pasosNavegacion: pasosCalibrados
       };
     }
 
-    // 2. Intentar obtener ruta real con OSRM (Open Source Routing Machine) vía cliente directo con timeout
+    // 2. Intentar obtener ruta real con OSRM (Open Source Routing Machine) vía cliente directo con steps=true
     try {
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson`;
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson&steps=true`;
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 3500);
       const res = await fetch(osrmUrl, { signal: ctrl.signal });
@@ -2133,13 +2152,16 @@ export class SaraFreightRoutingService {
           const coords: [number, number][] = route.geometry.coordinates.map(
             (c: [number, number]) => [c[1], c[0]]
           );
+          const rawSteps = route.legs?.[0]?.steps || [];
+          const pasosNavegacion: PasoNavegacionVial[] = rawSteps.map((s: any, idx: number) => traducirPasoOsrm(s, idx));
 
           return {
             origen,
             destino: pDest,
             distanciaKm: Math.max(0.8, distKm),
             duracionMinutos: Math.max(2, durMin),
-            coordenadasRuta: coords
+            coordenadasRuta: coords,
+            pasosNavegacion
           };
         }
       }
@@ -2164,7 +2186,8 @@ export class SaraFreightRoutingService {
               destino: pDest,
               distanciaKm: jsonProxy.distanciaKm,
               duracionMinutos: jsonProxy.duracionMinutos,
-              coordenadasRuta: jsonProxy.coordenadasRuta
+              coordenadasRuta: jsonProxy.coordenadasRuta,
+              pasosNavegacion: jsonProxy.pasosNavegacion
             };
           }
         }

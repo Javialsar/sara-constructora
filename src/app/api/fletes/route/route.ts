@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { traducirPasoOsrm, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Parámetros inválidos' }, { status: 400 });
     }
 
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`;
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson&steps=true`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
@@ -35,12 +36,15 @@ export async function GET(request: NextRequest) {
         const coords: [number, number][] = route.geometry.coordinates.map(
           (c: [number, number]) => [c[1], c[0]]
         );
+        const rawSteps = route.legs?.[0]?.steps || [];
+        const pasosNavegacion: PasoNavegacionVial[] = rawSteps.map((s: any, idx: number) => traducirPasoOsrm(s, idx));
 
         return NextResponse.json({
           code: 'Ok',
           distanciaKm: Math.max(0.8, distKm),
           duracionMinutos: Math.max(2, durMin),
-          coordenadasRuta: coords
+          coordenadasRuta: coords,
+          pasosNavegacion
         });
       }
     }
