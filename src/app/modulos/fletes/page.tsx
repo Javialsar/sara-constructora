@@ -1262,6 +1262,11 @@ export default function SaraFletesEngine() {
   }, [userLocation]);
 
   useEffect(() => {
+    // En Viajes y Mandaditos NO auto-geocodificar mientras el usuario escribe:
+    // solo se fija destino al seleccionar una sugerencia o presionar Enter / botón Ir
+    if (serviceType === 'viajes' || serviceType === 'mandaditos') {
+      return;
+    }
     if (originText && destinationText) {
       const timer = setTimeout(() => {
         resolverRutaYTarifa(originText, destinationText, vehicleType, weight, material);
