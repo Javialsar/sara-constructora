@@ -981,9 +981,15 @@ export default function SaraFletesEngine() {
       const lat = +pos.coords.latitude.toFixed(6);
       const lng = +pos.coords.longitude.toFixed(6);
       const accuracy = typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : 999;
-      const dOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
 
       setGpsLoading(false);
+
+      // Validar que la coordenada esté dentro del territorio ecuatoriano
+      if (lat < -5.5 || lat > 2.0 || lng < -92.0 || lng > -75.0) {
+        return;
+      }
+
+      const dOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
 
       // Protección contra geolocalización imprecisa de escritorio (WiFi/IP con error > 80m):
       // Si el navegador reporta baja precisión dentro de Cariamanga, NO sobreescribir la coordenada exacta calibrada
@@ -1318,14 +1324,20 @@ export default function SaraFletesEngine() {
 
   // Manejador de arrastre manual de Punto de Carga / Recogida (Origen)
   const handleOriginDragEnd = async (lat: number, lng: number) => {
-    originLockedByMapRef.current = true;
-    const exactLat = +lat.toFixed(5);
-    const exactLng = +lng.toFixed(5);
+    const exactLat = +lat.toFixed(6);
+    const exactLng = +lng.toFixed(6);
 
-    // Detección de precisión inmediata para Onlysoft en Cariamanga (-4.32785, -79.56075)
-    const distOnlysoftM = Math.hypot(exactLat - (-4.32785), exactLng - (-79.56075)) * 111000;
-    const nombrePunto = distOnlysoftM < 80
-      ? 'Onlysoft, Calle Atahualpa (Cariamanga)'
+    // Evitar fijar puntos accidentales fuera del Ecuador
+    if (exactLat < -5.5 || exactLat > 2.0 || exactLng < -92.0 || exactLng > -75.0) {
+      return;
+    }
+
+    originLockedByMapRef.current = true;
+
+    // Detección de precisión inmediata para Casa (Onlysoft) en Cariamanga (-4.328103, -79.561129)
+    const distOnlysoftM = Math.hypot(exactLat - (-4.328103), exactLng - (-79.561129)) * 111000;
+    const nombrePunto = distOnlysoftM < 120
+      ? 'Casa (Onlysoft), Gran Colombia y Atahualpa (Cariamanga)'
       : `Punto exacto (${exactLat}, ${exactLng})`;
 
     const newPoint: GeocodedPoint = {
@@ -1337,7 +1349,6 @@ export default function SaraFletesEngine() {
     };
     setOriginPoint(newPoint);
     originPointRef.current = newPoint;
-    setUserLocation([exactLat, exactLng]);
     setOriginText(nombrePunto);
 
     if (destinationPointRef.current) {
@@ -1415,9 +1426,9 @@ export default function SaraFletesEngine() {
     });
   };
 
-  // Manejador de clics directos sobre el mapa
+  // Manejador de clics directos sobre el mapa (solo cuando el usuario activa explícitamente el modo de selección)
   const handleMapClick = (lat: number, lng: number) => {
-    if (mapClickMode === 'origen' || serviceType === 'viajes' || serviceType === 'mandaditos') {
+    if (mapClickMode === 'origen') {
       handleOriginDragEnd(lat, lng);
       setMapClickMode(null);
     } else if (mapClickMode === 'destino') {
@@ -1925,26 +1936,62 @@ export default function SaraFletesEngine() {
                     <div className="space-y-3">
                       {/* Campo rápido de Recogida + Destino */}
                       <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-                        {/* Punto de Recogida (Editable + Fijar en mapa) */}
-                        <div className="flex items-center justify-between gap-2 pb-1.5 border-b border-slate-800/80">
+                        {/* Punto de Recogida (Editable + Re-sincronizar GPS + Fijar en mapa) */}
+                        <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-slate-800/80">
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.7)]"></span>
                             <span className="text-[11px] font-semibold text-emerald-300 truncate" title={originText}>
                               {originText || 'Casa (Onlysoft), Cariamanga'}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
-                            className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border ${
-                              mapClickMode === 'origen'
-                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
-                                : 'bg-slate-900 text-slate-300 hover:text-white border-slate-700'
-                            }`}
-                            title="Haz clic aquí y luego toca en el mapa tu ubicación exacta de recogida"
-                          >
-                            {mapClickMode === 'origen' ? 'Toca el mapa...' : '📍 Fijar recogida'}
-                          </button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                originLockedByMapRef.current = false;
+                                const baseCoords: [number, number] = userLocationRef.current && userLocationRef.current[0] >= -5.5 && userLocationRef.current[0] <= 2.0 && userLocationRef.current[1] >= -92.0 && userLocationRef.current[1] <= -75.0
+                                  ? userLocationRef.current
+                                  : [-4.328103, -79.561129];
+                                const dOnly = Math.hypot(baseCoords[0] - (-4.328103), baseCoords[1] - (-79.561129)) * 111000;
+                                const nom = dOnly < 150 ? 'Casa (Onlysoft), Gran Colombia y Atahualpa' : 'Mi Ubicación Actual (GPS)';
+                                const pOrig: GeocodedPoint = {
+                                  nombre: nom,
+                                  lat: baseCoords[0],
+                                  lng: baseCoords[1],
+                                  ciudad: 'Cariamanga',
+                                  provincia: 'Loja'
+                                };
+                                setOriginPoint(pOrig);
+                                originPointRef.current = pOrig;
+                                setOriginText(nom);
+                                if (destinationPointRef.current) {
+                                  setIsCalculatingRoute(true);
+                                  try {
+                                    const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, destinationPointRef.current);
+                                    setRutaCalculada(ruta);
+                                  } finally {
+                                    setIsCalculatingRoute(false);
+                                  }
+                                }
+                              }}
+                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-blue-400 hover:text-blue-300 border border-slate-700 transition-colors cursor-pointer"
+                              title="Volver a mi ubicación GPS actual"
+                            >
+                              🎯 GPS
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border cursor-pointer ${
+                                mapClickMode === 'origen'
+                                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
+                                  : 'bg-slate-900 text-slate-300 hover:text-white border-slate-700'
+                              }`}
+                              title="Haz clic aquí y luego toca en el mapa tu ubicación exacta de recogida"
+                            >
+                              {mapClickMode === 'origen' ? 'Toca el mapa...' : '📍 Fijar'}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-between">
@@ -1953,33 +2000,39 @@ export default function SaraFletesEngine() {
                             {serviceType === 'viajes' ? '¿A dónde te llevo?' : '¿A dónde enviamos tu paquete?'}
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            {rutaCalculada && destinationText ? `${rutaCalculada.distanciaKm.toFixed(1)} km · ${rutaCalculada.duracionMinutos} min` : 'GPS Directo'}
+                            {isCalculatingRoute
+                              ? 'Calculando ruta...'
+                              : (rutaCalculada && destinationText ? `${rutaCalculada.distanciaKm.toFixed(1)} km · ${rutaCalculada.duracionMinutos} min` : 'GPS Directo')}
                           </span>
                         </div>
 
                         <div ref={destInputWrapperRef} className="relative">
-                          <div className="flex items-center gap-2.5 bg-slate-900 px-3.5 py-2.5 rounded-xl border border-slate-800 focus-within:border-amber-500 shadow-inner">
+                          <form
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              if (destDebounceRef.current) clearTimeout(destDebounceRef.current);
+                              const queryVal = destinationText.trim();
+                              if (queryVal.length >= 2) {
+                                setShowDestSuggestions(false);
+                                await handleDirectDestinationGeocode(queryVal);
+                              }
+                            }}
+                            className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 focus-within:border-amber-500 shadow-inner"
+                          >
                             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
                             <input
                               type="text"
+                              enterKeyHint="search"
                               value={destinationText}
                               onChange={(e) => handleDestinationInputChange(e.target.value)}
                               onKeyDown={async (e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
-                                  if (destinationSuggestions.length > 0) {
-                                    handleSelectDestinationSuggestion(destinationSuggestions[0]);
-                                  } else if (destinationText.trim().length >= 2) {
-                                    await handleDirectDestinationGeocode(destinationText);
-                                  }
-                                }
-                              }}
-                              onBlur={async () => {
-                                if (destinationText.trim().length >= 2 && (!destinationPoint || destinationPoint.nombre !== destinationText)) {
-                                  if (destinationSuggestions.length > 0) {
-                                    handleSelectDestinationSuggestion(destinationSuggestions[0]);
-                                  } else {
-                                    await handleDirectDestinationGeocode(destinationText);
+                                  if (destDebounceRef.current) clearTimeout(destDebounceRef.current);
+                                  const queryVal = e.currentTarget.value.trim();
+                                  if (queryVal.length >= 2) {
+                                    setShowDestSuggestions(false);
+                                    await handleDirectDestinationGeocode(queryVal);
                                   }
                                 }
                               }}
@@ -1994,13 +2047,21 @@ export default function SaraFletesEngine() {
                                   setDestinationPoint(null);
                                   setRutaCalculada(null);
                                 }}
-                                className="text-slate-500 hover:text-white text-xs px-1.5 py-0.5 rounded transition-colors"
+                                className="text-slate-500 hover:text-white text-xs px-1 py-0.5 rounded transition-colors cursor-pointer"
                                 title="Borrar destino"
                               >
                                 ✕
                               </button>
                             )}
-                          </div>
+                            <button
+                              type="submit"
+                              disabled={isCalculatingRoute || destinationText.trim().length < 2}
+                              className="shrink-0 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                              title="Buscar dirección y trazar ruta"
+                            >
+                              {isCalculatingRoute ? '...' : 'Ir'}
+                            </button>
+                          </form>
                           {/* Menú de sugerencias predictivas de Destino */}
                           {showDestSuggestions && destinationSuggestions.length > 0 && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
