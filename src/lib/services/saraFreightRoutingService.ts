@@ -18,6 +18,16 @@ export interface GeocodedPoint {
   provincia?: string;
 }
 
+export interface RutaAlternativaVial {
+  index: number;
+  resumen: string;
+  distanciaKm: number;
+  duracionMinutos: number;
+  coordenadasRuta: [number, number][];
+  pasosNavegacion?: PasoNavegacionVial[];
+  ladoLlegada?: 'izquierda' | 'derecha' | 'frente';
+}
+
 export interface RutaVialCalculada {
   origen: GeocodedPoint;
   destino: GeocodedPoint;
@@ -25,6 +35,8 @@ export interface RutaVialCalculada {
   duracionMinutos: number;
   coordenadasRuta: [number, number][]; // Array de [lat, lng] para pintar en Leaflet
   pasosNavegacion?: PasoNavegacionVial[]; // Indicaciones giro a giro para audio y banner GPS
+  ladoLlegada?: 'izquierda' | 'derecha' | 'frente';
+  rutasAlternativas?: RutaAlternativaVial[];
 }
 
 export interface SugerenciaDireccion {
@@ -1630,6 +1642,35 @@ export class SaraFreightRoutingService {
     const normalized = this.normalizar(query);
     const cleanWithoutPrefixes = this.limpiarPrefijosViales(query);
 
+    // 1b. Si la dirección contiene numeración predial ecuatoriana (ej. "Paucarbamba 6-179", "Av. 24 de Mayo 7-77")
+    // o menciona una universidad/POI específico con ciudad, consultar primero /api/fletes/geocode (Google / Photon + Nominatim estructurado)
+    const hasHouseNumber = /\b([A-Za-z]{0,2}\d{1,4}-\d{1,4})\b/.test(query);
+    if (typeof window !== 'undefined' && hasHouseNumber) {
+      try {
+        const gp = new URLSearchParams({ q: query, limit: '3' });
+        if (ubicacionReferencia) {
+          gp.set('lat', String(ubicacionReferencia[0]));
+          gp.set('lng', String(ubicacionReferencia[1]));
+        }
+        const gRes = await fetch(`/api/fletes/geocode?${gp.toString()}`, { signal: AbortSignal.timeout(4500) });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          const best = Array.isArray(gData?.results) ? gData.results.find((r: any) => r.precision !== 'city') : null;
+          if (best) {
+            return {
+              nombre: best.titulo || query,
+              lat: Number(best.lat),
+              lng: Number(best.lng),
+              ciudad: best.ciudad,
+              provincia: best.provincia
+            };
+          }
+        }
+      } catch {
+        // Continuar con resolución local / Nominatim
+      }
+    }
+
     // 2. Detección Inteligente del Cantón o Ciudad activo
     let cantonActual = this.detectarCanton(normalized, ubicacionReferencia);
     if (!cantonActual && ubicacionReferencia) {
@@ -2133,9 +2174,38 @@ export class SaraFreightRoutingService {
       };
     }
 
-    // 2. Intentar obtener ruta real con OSRM (Open Source Routing Machine) vía cliente directo con steps=true
+    // 2. Priorizar nuestro proxy server-side /api/fletes/route (soporta alternatives=3, ladoLlegada y bearings)
     try {
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson&steps=true`;
+      if (typeof window !== 'undefined') {
+        const proxyUrl = `/api/fletes/route?originLat=${origen.lat}&originLng=${origen.lng}&destLat=${pDest.lat}&destLng=${pDest.lng}&alternatives=true`;
+        const ctrlProxy = new AbortController();
+        const tidProxy = setTimeout(() => ctrlProxy.abort(), 5000);
+        const resProxy = await fetch(proxyUrl, { signal: ctrlProxy.signal });
+        clearTimeout(tidProxy);
+
+        if (resProxy.ok) {
+          const jsonProxy = await resProxy.json();
+          if (jsonProxy.code === 'Ok' && jsonProxy.coordenadasRuta && jsonProxy.coordenadasRuta.length > 0) {
+            return {
+              origen,
+              destino: pDest,
+              distanciaKm: jsonProxy.distanciaKm,
+              duracionMinutos: jsonProxy.duracionMinutos,
+              coordenadasRuta: jsonProxy.coordenadasRuta,
+              pasosNavegacion: jsonProxy.pasosNavegacion,
+              ladoLlegada: jsonProxy.ladoLlegada,
+              rutasAlternativas: jsonProxy.rutasAlternativas
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('API route de ruteo no disponible, intentando OSRM directo:', e);
+    }
+
+    // 3. Fallback directo a OSRM (Open Source Routing Machine) con steps=true y alternatives=3
+    try {
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origen.lng},${origen.lat};${pDest.lng},${pDest.lat}?overview=full&geometries=geojson&steps=true&alternatives=3`;
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 3500);
       const res = await fetch(osrmUrl, { signal: ctrl.signal });
@@ -2158,42 +2228,15 @@ export class SaraFreightRoutingService {
           return {
             origen,
             destino: pDest,
-            distanciaKm: Math.max(0.8, distKm),
-            duracionMinutos: Math.max(2, durMin),
+            distanciaKm: Math.max(0.1, distKm),
+            duracionMinutos: Math.max(1, durMin),
             coordenadasRuta: coords,
             pasosNavegacion
           };
         }
       }
     } catch {
-      // Intentar a través del proxy server-side de Next.js
-    }
-
-    // 3. Fallback server-side a través de nuestra API route /api/fletes/route
-    try {
-      if (typeof window !== 'undefined') {
-        const proxyUrl = `/api/fletes/route?originLat=${origen.lat}&originLng=${origen.lng}&destLat=${pDest.lat}&destLng=${pDest.lng}`;
-        const ctrlProxy = new AbortController();
-        const tidProxy = setTimeout(() => ctrlProxy.abort(), 3500);
-        const resProxy = await fetch(proxyUrl, { signal: ctrlProxy.signal });
-        clearTimeout(tidProxy);
-
-        if (resProxy.ok) {
-          const jsonProxy = await resProxy.json();
-          if (jsonProxy.code === 'Ok' && jsonProxy.coordenadasRuta && jsonProxy.coordenadasRuta.length > 0) {
-            return {
-              origen,
-              destino: pDest,
-              distanciaKm: jsonProxy.distanciaKm,
-              duracionMinutos: jsonProxy.duracionMinutos,
-              coordenadasRuta: jsonProxy.coordenadasRuta,
-              pasosNavegacion: jsonProxy.pasosNavegacion
-            };
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('API route de ruteo no disponible:', e);
+      // Continuar a fallback geodésico
     }
 
     // 2. Fallback: Interpolación geodésica con corrección por sinuosidad vial de Ecuador

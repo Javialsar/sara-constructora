@@ -3,20 +3,11 @@ import { PlanConfigItem, SaraFletesRealtimeService, DEFAULT_FLETES_PLANES } from
 
 const supabase = createSupabaseBrowserClient();
 
-// Datos Semilla para inicializar la base de datos si está vacía
-export const mockConductoresSeed = [
-  { id: '11111111-1111-1111-1111-111111111111', plan_id: 1, saldo_billetera: 145.50, latitud: -0.1807, longitud: -78.4678, estado_activo: true },
-  { id: '22222222-2222-2222-2222-222222222222', plan_id: 2, saldo_billetera: 42.00, latitud: -0.2107, longitud: -78.4878, estado_activo: true },
-  { id: '33333333-3333-3333-3333-333333333333', plan_id: 3, saldo_billetera: 25.00, latitud: -0.1507, longitud: -78.4578, estado_activo: true }
-];
-
 export async function getFletesPlanes(): Promise<PlanConfigItem[]> {
   try {
-    // 1. Priorizar configuración sincronizada en tiempo real
     const synced = SaraFletesRealtimeService.getPlanesConfig();
     if (synced && synced.length > 0) return synced;
 
-    // 2. Consulta de respaldo a Supabase
     const { data, error } = await supabase.from('fletes_planes').select('*').order('comision', { ascending: true });
     if (!error && data && data.length > 0) {
       return DEFAULT_FLETES_PLANES.map(dp => {
@@ -28,17 +19,14 @@ export async function getFletesPlanes(): Promise<PlanConfigItem[]> {
       });
     }
     return DEFAULT_FLETES_PLANES;
-  } catch (e) {
+  } catch {
     return SaraFletesRealtimeService.getPlanesConfig() || DEFAULT_FLETES_PLANES;
   }
 }
 
 export async function saveFletesPlanes(plans: PlanConfigItem[]): Promise<boolean> {
   try {
-    // 1. Guardar y emitir en el bus en tiempo real
     SaraFletesRealtimeService.savePlanesConfig(plans);
-
-    // 2. Persistir comisiones en fletes_planes en Supabase si está disponible
     for (const p of plans) {
       const nombrePlan = p.name.replace('Plan ', '').trim();
       await supabase
@@ -55,65 +43,36 @@ export async function saveFletesPlanes(plans: PlanConfigItem[]): Promise<boolean
 
 export async function getFletesConductores() {
   try {
-    let { data, error } = await supabase.from('fletes_conductores').select('*, fletes_planes(nombre)');
-    
-    // Si la tabla en Supabase está vacía, sembrar los registros iniciales
-    if (!error && (!data || data.length === 0)) {
-      try {
-        await supabase.from('fletes_conductores').insert(mockConductoresSeed);
-        const { data: seeded } = await supabase.from('fletes_conductores').select('*, fletes_planes(nombre)');
-        if (seeded && seeded.length > 0) {
-          data = seeded;
-        }
-      } catch (seedErr) {
-        console.warn('Seed conductores omitido:', seedErr);
-      }
-    }
+    const { data, error } = await supabase.from('fletes_conductores').select('*, fletes_planes(nombre)');
 
     if (error || !data || data.length === 0) {
-      return [
-        { id: 'FLT-06', name: 'David Sarango', phone: '0995544332', vehicle: 'Camioneta Pickup 1.2T · SARA', plate: 'LFA-9012', plan: 'VIP', status: 'approved', walletBalance: 119.00, province: 'Loja', city: 'Cariamanga', address: 'Calvas / Cariamanga Centro', latitud: -4.3297, longitud: -79.5586, estado_activo: true },
-        { id: 'FLT-01', name: 'Manuel Cárdenas', phone: '0993849182', vehicle: 'Camioneta 1T', plate: 'LBA-3421', plan: 'VIP', status: 'approved', walletBalance: 85.00, province: 'Loja', city: 'Cariamanga', address: 'Av. Bernardo Valdivieso', latitud: -4.3267, longitud: -79.5576, estado_activo: true },
-        { id: '1', name: 'Carlos Mendoza', phone: '0991234567', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', plan: 'Estandar', status: 'approved', walletBalance: 45.50, province: 'Pichincha', city: 'Quito', address: 'Av. Simón Bolívar', latitud: -0.1807, longitud: -78.4678, estado_activo: true },
-        { id: '2', name: 'Luis Toapanta', phone: '0987654321', vehicle: 'Camión Chevrolet 5 Ton', plate: 'GCA-9876', plan: 'Basico', status: 'approved', walletBalance: 45.50, province: 'Guayas', city: 'Guayaquil', address: 'Vía a la Costa', latitud: -0.2107, longitud: -78.4878, estado_activo: true },
-        { id: '3', name: 'Marco Vinicio', phone: '0971122334', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', plan: 'VIP', status: 'approved', walletBalance: 20.00, province: 'Azuay', city: 'Cuenca', address: 'Av. Las Américas', latitud: -0.1507, longitud: -78.4578, estado_activo: true }
-      ];
+      return [];
     }
 
-    const nombresMapeo: Record<string, any> = {
-      '1': { name: 'Carlos Mendoza', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', province: 'Pichincha', city: 'Quito' },
-      '2': { name: 'Luis Toapanta', vehicle: 'Camión Chevrolet 5 Ton', plate: 'GCA-9876', province: 'Guayas', city: 'Guayaquil' },
-      '3': { name: 'Marco Vinicio', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', province: 'Azuay', city: 'Cuenca' }
-    };
-
-    return data.map((d, index) => {
-      const idxKey = String((index % 3) + 1);
-      const meta = nombresMapeo[idxKey] || { name: 'Conductor SARA ' + (index + 1), vehicle: 'Camión Logístico', plate: 'PCX-' + (1000 + index), province: 'Pichincha', city: 'Quito' };
-      return {
-        id: d.id,
-        name: d.nombre || d.name || meta.name,
-        vehicle: d.vehiculo || d.tipo_vehiculo || d.vehicle || meta.vehicle,
-        plate: d.placa || d.plate || meta.plate,
-        plan: d.fletes_planes?.nombre || (d.plan_id === 1 ? 'VIP' : d.plan_id === 2 ? 'Estandar' : 'Basico'),
-        status: d.estado_activo ? 'approved' : 'blocked',
-        walletBalance: Number(d.saldo_billetera) || 0,
-        province: d.provincia || meta.province,
-        city: d.ciudad || meta.city,
-        address: d.direccion || 'Terminal de Carga SARA',
-        latitud: Number(d.latitud) || -0.1807,
-        longitud: Number(d.longitud) || -78.4678,
-        estado_activo: Boolean(d.estado_activo),
-        documents: [
-          { type: 'Cédula de Identidad', status: 'Verificado' },
-          { type: 'Licencia de Conducir (Tipo C/E)', status: 'Verificado' },
-          { type: 'Matrícula del Vehículo', status: 'Verificado' }
-        ]
-      };
-    });
+    return data.map((d: any) => ({
+      id: d.id,
+      name: d.nombre || d.name || 'Conductor SARA',
+      phone: d.telefono || d.phone || '',
+      vehicle: d.vehiculo || d.tipo_vehiculo || d.vehicle || 'Unidad SARA',
+      plate: d.placa || d.plate || '',
+      plan: d.fletes_planes?.nombre || (d.plan_id === 1 ? 'VIP' : d.plan_id === 2 ? 'Estandar' : 'Basico'),
+      status: d.estado_activo ? 'approved' : 'blocked',
+      walletBalance: Number(d.saldo_billetera) || 0,
+      province: d.provincia || '',
+      city: d.ciudad || '',
+      address: d.direccion || '',
+      latitud: typeof d.latitud === 'number' ? Number(d.latitud) : null,
+      longitud: typeof d.longitud === 'number' ? Number(d.longitud) : null,
+      estado_activo: Boolean(d.estado_activo),
+      documents: [
+        { type: 'Cédula de Identidad', status: 'Verificado' },
+        { type: 'Licencia de Conducir (Tipo C/E)', status: 'Verificado' },
+        { type: 'Matrícula del Vehículo', status: 'Verificado' }
+      ]
+    }));
   } catch (e) {
-    return [
-      { id: '1', name: 'Carlos Mendoza', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', plan: 'Estandar', status: 'approved', walletBalance: 45.50, province: 'Pichincha', city: 'Quito', address: 'Av. Simón Bolívar', latitud: -0.1807, longitud: -78.4678, estado_activo: true }
-    ];
+    console.warn('Error consultando conductores reales:', e);
+    return [];
   }
 }
 
@@ -125,7 +84,12 @@ export async function createFletesSolicitud(data: {
   peso?: number;
   codigoAcceso?: string;
   distanciaKm?: number;
+  duracionMinutos?: number;
   vehiculoKey?: any;
+  tokenRastreo?: string;
+  origenCoords?: [number, number];
+  destinoCoords?: [number, number];
+  coordenadasRuta?: [number, number][];
 }) {
   try {
     // 1. Si se cuenta con parámetros de viaje, validar propuesta en servidor seguro
@@ -155,18 +119,43 @@ export async function createFletesSolicitud(data: {
       }
     }
 
-    // 2. Persistencia en Supabase
-    const { data: sol, error } = await supabase
+    const basePayload = {
+      origen: data.origen,
+      destino: data.destino,
+      tarifa: data.tarifa,
+      status: 'pendiente',
+      codigo_acceso: data.codigoAcceso || Math.floor(1000 + Math.random() * 9000).toString()
+    };
+
+    const extendedPayload: Record<string, any> = {
+      ...basePayload,
+      ...(data.tokenRastreo ? { token_rastreo: data.tokenRastreo } : {}),
+      ...(data.origenCoords ? { origen_lat: data.origenCoords[0], origen_lng: data.origenCoords[1] } : {}),
+      ...(data.destinoCoords ? { destino_lat: data.destinoCoords[0], destino_lng: data.destinoCoords[1] } : {}),
+      ...(data.coordenadasRuta ? { coordenadas_ruta: data.coordenadasRuta } : {}),
+      ...(data.distanciaKm ? { distancia_km: data.distanciaKm } : {}),
+      ...(data.duracionMinutos ? { duracion_minutos: data.duracionMinutos } : {}),
+      ...(data.material ? { material: data.material } : {}),
+      ...(data.peso ? { peso_ton: +(data.peso / 1000).toFixed(2) } : {}),
+      ...(data.vehiculoKey ? { tipo_vehiculo: String(data.vehiculoKey) } : {})
+    };
+
+    // 2. Persistencia en Supabase (con fallback automático si las columnas v2 aún no se migraron)
+    let { data: sol, error } = await supabase
       .from('fletes_solicitudes')
-      .insert({
-        origen: data.origen,
-        destino: data.destino,
-        tarifa: data.tarifa,
-        status: 'pendiente',
-        codigo_acceso: data.codigoAcceso || Math.floor(1000 + Math.random() * 9000).toString()
-      })
+      .insert(extendedPayload)
       .select()
       .single();
+
+    if (error && error.message?.includes('column')) {
+      const retry = await supabase
+        .from('fletes_solicitudes')
+        .insert(basePayload)
+        .select()
+        .single();
+      sol = retry.data;
+      error = retry.error;
+    }
 
     if (error) throw error;
     return sol;

@@ -58,23 +58,70 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
   const [copiedLink, setCopiedLink] = useState(false);
   const [phoneUnlocked, setPhoneUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState<string | null>(null);
   const [showPinDialog, setShowPinDialog] = useState(false);
 
   useEffect(() => {
-    let resolvedOrig: [number, number] = [-4.328103, -79.561129];
-    let resolvedDest: [number, number] = [-4.331405, -79.553528];
+    let resolvedOrig: [number, number] | null = null;
+    let resolvedDest: [number, number] | null = null;
     let resolvedPlate = '';
     let hasRouteFromSnapshot = false;
+    let activeToken = '';
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     params.then(async (p) => {
+      activeToken = p.token;
       setToken(p.token);
+
+      // 0. Consultar fuente autoritativa en PostgreSQL (/api/fletes/tracking/[token])
+      try {
+        const apiRes = await fetch(`/api/fletes/tracking/${encodeURIComponent(p.token)}`, { cache: 'no-store' });
+        if (apiRes.ok) {
+          const data = await apiRes.json();
+          if (data?.found && data.tracking) {
+            const tr = data.tracking;
+            if (tr.driverName) setDriverName(tr.driverName);
+            if (tr.plate) {
+              resolvedPlate = tr.plate;
+              setPlate(tr.plate);
+            }
+            if (tr.vehicleName) setVehicleType(tr.vehicleName);
+            if (tr.maskedPhone) setDriverPhone(tr.maskedPhone);
+            if (tr.status) setTripStatus(tr.status);
+            if (tr.origin) setOrigin(tr.origin);
+            if (tr.destination) setDestination(tr.destination);
+            if (tr.originCoords) {
+              resolvedOrig = tr.originCoords;
+              setOriginCoords(tr.originCoords);
+              setVehicleCoords(tr.originCoords);
+            }
+            if (tr.destinationCoords) {
+              resolvedDest = tr.destinationCoords;
+              setDestinationCoords(tr.destinationCoords);
+            }
+            if (tr.liveLocation && typeof tr.liveLocation.lat === 'number' && typeof tr.liveLocation.lng === 'number') {
+              setVehicleCoords([tr.liveLocation.lat, tr.liveLocation.lng]);
+              setLastGpsUpdate(new Date(tr.liveLocation.updated_at).getTime() || Date.now());
+            }
+            if (tr.material) setMaterial(tr.material);
+            if (tr.distanceKm) setDistanceKm(tr.distanceKm);
+            if (tr.duracionMinutos) setEtaMinutes(Math.max(1, tr.duracionMinutos));
+            if (Array.isArray(tr.coordenadasRuta) && tr.coordenadasRuta.length > 2) {
+              setRouteCoords(tr.coordenadasRuta);
+              hasRouteFromSnapshot = true;
+            }
+          }
+        }
+      } catch {
+        // Fallback a URL params / bus local si no existe registro en BD aún
+      }
 
       // 1. Leer parámetros de URL si se abrió en otro dispositivo (WhatsApp cross-device)
       if (typeof window !== 'undefined') {
         const sp = new URLSearchParams(window.location.search);
         const oParam = sp.get('o');
         const dParam = sp.get('d');
-        if (oParam) {
+        if (oParam && !resolvedOrig) {
           const [lat, lng] = oParam.split(',').map(Number);
           if (!isNaN(lat) && !isNaN(lng)) {
             resolvedOrig = [lat, lng];
@@ -82,17 +129,17 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
             setVehicleCoords(resolvedOrig);
           }
         }
-        if (dParam) {
+        if (dParam && !resolvedDest) {
           const [lat, lng] = dParam.split(',').map(Number);
           if (!isNaN(lat) && !isNaN(lng)) {
             resolvedDest = [lat, lng];
             setDestinationCoords(resolvedDest);
           }
         }
-        if (sp.get('on')) setOrigin(sp.get('on')!);
-        if (sp.get('dn')) setDestination(sp.get('dn')!);
-        if (sp.get('dr')) setDriverName(sp.get('dr')!);
-        if (sp.get('pl')) {
+        if (sp.get('on') && origin === 'Casa (Onlysoft), Cariamanga') setOrigin(sp.get('on')!);
+        if (sp.get('dn') && destination === 'Destino en Cariamanga') setDestination(sp.get('dn')!);
+        if (sp.get('dr') && !resolvedPlate) setDriverName(sp.get('dr')!);
+        if (sp.get('pl') && !resolvedPlate) {
           resolvedPlate = sp.get('pl')!;
           setPlate(resolvedPlate);
         }
@@ -110,51 +157,55 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
 
       if (snapshot) {
         if (snapshot.driverName) setDriverName(snapshot.driverName);
-        if (snapshot.plate) {
+        if (snapshot.plate && !resolvedPlate) {
           resolvedPlate = snapshot.plate;
           setPlate(snapshot.plate);
         }
         if (snapshot.vehicleName) setVehicleType(snapshot.vehicleName);
         if (snapshot.origin) setOrigin(snapshot.origin);
         if (snapshot.destination) setDestination(snapshot.destination);
-        if (snapshot.originCoords) {
-          resolvedOrig = snapshot.originCoords;
-          setOriginCoords(resolvedOrig);
-          setVehicleCoords(resolvedOrig);
+        if (snapshot.originCoords && !resolvedOrig) {
+          const orig: [number, number] = snapshot.originCoords;
+          resolvedOrig = orig;
+          setOriginCoords(orig);
+          setVehicleCoords(orig);
         }
-        if (snapshot.destinationCoords) {
-          resolvedDest = snapshot.destinationCoords;
-          setDestinationCoords(resolvedDest);
+        if (snapshot.destinationCoords && !resolvedDest) {
+          const dest: [number, number] = snapshot.destinationCoords;
+          resolvedDest = dest;
+          setDestinationCoords(dest);
         }
         if (snapshot.material) setMaterial(snapshot.material);
         if (snapshot.distanceKm) setDistanceKm(snapshot.distanceKm);
         if (snapshot.duracionMinutos) setEtaMinutes(Math.max(1, snapshot.duracionMinutos));
-        if (Array.isArray(snapshot.coordenadasRuta) && snapshot.coordenadasRuta.length > 2) {
+        if (!hasRouteFromSnapshot && Array.isArray(snapshot.coordenadasRuta) && snapshot.coordenadasRuta.length > 2) {
           setRouteCoords(snapshot.coordenadasRuta);
           hasRouteFromSnapshot = true;
         }
       } else if (activeReq || acceptedDispatch) {
         const src: any = activeReq || acceptedDispatch;
         if (src.assignedDriverName || acceptedDispatch?.driverName) setDriverName(src.assignedDriverName || acceptedDispatch?.driverName);
-        if (src.assignedPlate || acceptedDispatch?.plate) {
+        if ((src.assignedPlate || acceptedDispatch?.plate) && !resolvedPlate) {
           resolvedPlate = src.assignedPlate || acceptedDispatch?.plate;
           setPlate(resolvedPlate);
         }
         if (src.origen) setOrigin(src.origen);
         if (src.destino) setDestination(src.destino);
-        if (src.coordsOrigen) {
-          resolvedOrig = src.coordsOrigen;
-          setOriginCoords(resolvedOrig);
-          setVehicleCoords(resolvedOrig);
+        if (src.coordsOrigen && !resolvedOrig) {
+          const orig: [number, number] = src.coordsOrigen;
+          resolvedOrig = orig;
+          setOriginCoords(orig);
+          setVehicleCoords(orig);
         }
-        if (src.coordsDestino) {
-          resolvedDest = src.coordsDestino;
-          setDestinationCoords(resolvedDest);
+        if (src.coordsDestino && !resolvedDest) {
+          const dest: [number, number] = src.coordsDestino;
+          resolvedDest = dest;
+          setDestinationCoords(dest);
         }
         if (src.material) setMaterial(src.material);
         if (src.distanciaKm) setDistanceKm(src.distanciaKm);
         if (src.duracionMinutos) setEtaMinutes(Math.max(1, src.duracionMinutos));
-        if (Array.isArray(src.coordenadasRuta) && src.coordenadasRuta.length > 2) {
+        if (!hasRouteFromSnapshot && Array.isArray(src.coordenadasRuta) && src.coordenadasRuta.length > 2) {
           setRouteCoords(src.coordenadasRuta);
           hasRouteFromSnapshot = true;
         }
@@ -165,14 +216,14 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
       }
 
       // 3. Sincronizar posición GPS real del conductor activo si existe en el radar local
-      if (typeof window !== 'undefined' && resolvedPlate) {
+      if (typeof window !== 'undefined' && resolvedPlate && resolvedOrig) {
         try {
           const rawDriver = localStorage.getItem(`sara_fletes_rt_driver_${resolvedPlate}`);
           if (rawDriver) {
             const matchedDriver = JSON.parse(rawDriver) as ConductorEstadoRealtime;
             if (typeof matchedDriver.lat === 'number' && typeof matchedDriver.lng === 'number') {
               const distFromOrigKm = Math.hypot(matchedDriver.lat - resolvedOrig[0], matchedDriver.lng - resolvedOrig[1]) * 111;
-              if (distFromOrigKm < 25) {
+              if (distFromOrigKm < 50) {
                 setVehicleCoords([matchedDriver.lat, matchedDriver.lng]);
                 setLastGpsUpdate(Date.now());
               }
@@ -182,7 +233,7 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
       }
 
       // 4. Calcular ruta vial real calle por calle si no venía en el snapshot
-      if (!hasRouteFromSnapshot) {
+      if (!hasRouteFromSnapshot && resolvedOrig && resolvedDest) {
         try {
           const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(
             { nombre: origin, lat: resolvedOrig[0], lng: resolvedOrig[1] },
@@ -197,6 +248,26 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
           setRouteCoords([resolvedOrig, resolvedDest]);
         }
       }
+
+      // 4b. Polling de respaldo cada 6s contra PostgreSQL para sincronización multi-dispositivo garantizada
+      pollInterval = setInterval(async () => {
+        if (!activeToken) return;
+        try {
+          const r = await fetch(`/api/fletes/tracking/${encodeURIComponent(activeToken)}`, { cache: 'no-store' });
+          if (!r.ok) return;
+          const j = await r.json();
+          if (j?.found && j.tracking) {
+            if (j.tracking.status) setTripStatus(j.tracking.status);
+            if (j.tracking.liveLocation && typeof j.tracking.liveLocation.lat === 'number') {
+              setVehicleCoords([j.tracking.liveLocation.lat, j.tracking.liveLocation.lng]);
+              setLastGpsUpdate(new Date(j.tracking.liveLocation.updated_at).getTime() || Date.now());
+            }
+            if (Array.isArray(j.tracking.coordenadasRuta) && j.tracking.coordenadasRuta.length > 2) {
+              setRouteCoords(j.tracking.coordenadasRuta);
+            }
+          }
+        } catch {}
+      }, 6000);
     });
 
     // 5. Escuchar telemetría en vivo (BroadcastChannel + localStorage + Supabase Realtime)
@@ -222,13 +293,14 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
         setLastGpsUpdate(Date.now());
       } else if (event.type === 'FLETE_COMPLETADO') {
         setTripStatus('completed');
-        setVehicleCoords(resolvedDest);
+        if (resolvedDest) setVehicleCoords(resolvedDest);
         setLastGpsUpdate(Date.now());
       }
     });
 
     return () => {
       unsubscribe();
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, [params]);
 
@@ -391,25 +463,50 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
                   </div>
 
                   {showPinDialog ? (
-                    <div className="flex items-center gap-1.5 pt-1">
-                      <input
-                        type="text"
-                        maxLength={6}
-                        placeholder="PIN de Flete"
-                        value={pinInput}
-                        onChange={(e) => setPinInput(e.target.value)}
-                        className="bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono w-full focus:outline-none focus:border-emerald-500"
-                      />
-                      <button
-                        onClick={() => {
-                          if (pinInput.trim().length >= 4) {
-                            setPhoneUnlocked(true);
-                          }
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shrink-0"
-                      >
-                        Ver
-                      </button>
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="PIN de 4 dígitos"
+                          value={pinInput}
+                          onChange={(e) => {
+                            setPinInput(e.target.value);
+                            setPinError(null);
+                          }}
+                          className="bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono w-full focus:outline-none focus:border-emerald-500"
+                        />
+                        <button
+                          onClick={async () => {
+                            const pin = pinInput.trim();
+                            if (!/^\d{4,6}$/.test(pin)) {
+                              setPinError('Ingresa un PIN numérico de 4 dígitos');
+                              return;
+                            }
+                            try {
+                              const res = await fetch(`/api/fletes/tracking/${encodeURIComponent(token)}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ pin })
+                              });
+                              const data = await res.json();
+                              if (res.ok && data?.valid) {
+                                if (data.phone) setDriverPhone(data.phone);
+                                setPhoneUnlocked(true);
+                                setPinError(null);
+                              } else {
+                                setPinError(data?.error || 'Código PIN incorrecto');
+                              }
+                            } catch {
+                              setPinError('No se pudo validar el PIN con el servidor');
+                            }
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shrink-0"
+                        >
+                          Ver
+                        </button>
+                      </div>
+                      {pinError && <p className="text-[10px] text-rose-400 font-semibold">{pinError}</p>}
                     </div>
                   ) : (
                     <button

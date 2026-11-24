@@ -55,6 +55,16 @@ export interface SaraFletesMapProps {
   origenNombre?: string;
   destinoNombre?: string;
   rutaCoordenadas?: [number, number][];
+  rutasAlternativas?: Array<{
+    index: number;
+    resumen: string;
+    distanciaKm: number;
+    duracionMinutos: number;
+    coordenadasRuta: [number, number][];
+  }>;
+  rutaActivaIndex?: number;
+  onSelectRutaAlternativa?: (index: number) => void;
+  userLocationAccuracy?: number | null;
   vehiculosCercanos?: VehiculoMapa[];
   vehiculoSeleccionado?: CategoriaVehiculo;
   tipoModalidad?: 'viajes' | 'mandaditos' | 'fletes' | 'renta';
@@ -590,6 +600,10 @@ export default function SaraFletesMap({
   origenNombre,
   destinoNombre,
   rutaCoordenadas,
+  rutasAlternativas,
+  rutaActivaIndex = 0,
+  onSelectRutaAlternativa,
+  userLocationAccuracy = null,
   vehiculosCercanos = [],
   vehiculoSeleccionado,
   tipoModalidad = 'fletes',
@@ -602,39 +616,11 @@ export default function SaraFletesMap({
 }: SaraFletesMapProps) {
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('google_streets');
 
-  // Simulación de circulación fluida en tiempo real sincronizada (estilo Uber / inDrive)
-  const [vehiculosAnimados, setVehiculosAnimados] = useState<VehiculoMapa[]>(vehiculosCercanos);
+  // Vehículos 100% reales sincronizados desde telemetría GPS (cero desplazamiento browniano ficticio)
+  const vehiculosAnimados = vehiculosCercanos;
 
-  useEffect(() => {
-    setVehiculosAnimados(vehiculosCercanos);
-  }, [vehiculosCercanos]);
-
-  useEffect(() => {
-    if (!vehiculosAnimados || vehiculosAnimados.length === 0) return;
-
-    // Intervalo de desplazamiento suave continuo sobre el mapa
-    const interval = setInterval(() => {
-      setVehiculosAnimados((prev) =>
-        prev.map((v, idx) => {
-          // Pequeño desplazamiento browniano simulando movimiento vial constante
-          const angle = (Date.now() / 4000 + idx * 1.5);
-          const stepLat = Math.sin(angle) * 0.00015;
-          const stepLng = Math.cos(angle) * 0.00018;
-
-          return {
-            ...v,
-            lat: +(v.lat + stepLat).toFixed(5),
-            lng: +(v.lng + stepLng).toFixed(5)
-          };
-        })
-      );
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [vehiculosAnimados.length]);
-
-  // Centro por defecto: Si el usuario tiene GPS activo se usa su coordenada, sino Casa Onlysoft en Cariamanga (-4.328103, -79.561129)
-  const defaultCenter: [number, number] = userLocation || origenCoords || [-4.328103, -79.561129];
+  // Centro por defecto: GPS real del usuario, punto de origen, o centro geográfico de Ecuador (-1.8312, -78.1834)
+  const defaultCenter: [number, number] = userLocation || origenCoords || [-1.8312, -78.1834];
 
   return (
     <div className="relative w-full h-full min-h-[350px] bg-slate-950 overflow-hidden">
@@ -747,6 +733,27 @@ export default function SaraFletesMap({
           </Marker>
         )}
 
+        {/* 3.9. Rutas Alternativas Seleccionables (estilo Google Maps) */}
+        {rutasAlternativas && rutasAlternativas.length > 1 && rutasAlternativas.map((alt) => {
+          if (alt.index === (rutaActivaIndex ?? 0) || !alt.coordenadasRuta?.length) return null;
+          return (
+            <Polyline
+              key={`alt-route-${alt.index}`}
+              positions={alt.coordenadasRuta}
+              pathOptions={{ color: '#64748b', weight: 5, opacity: 0.6, dashArray: '6, 8', lineJoin: 'round' }}
+              eventHandlers={{
+                click: () => onSelectRutaAlternativa && onSelectRutaAlternativa(alt.index)
+              }}
+            >
+              <Tooltip sticky direction="top" opacity={0.95}>
+                <div className="text-[11px] font-bold text-slate-900 bg-white px-2 py-0.5 rounded shadow">
+                  {alt.duracionMinutos} min · {alt.distanciaKm} km ({alt.resumen})
+                </div>
+              </Tooltip>
+            </Polyline>
+          );
+        })}
+
         {/* 4. Polilínea de Ruta Vial Trazada */}
         {rutaCoordenadas && rutaCoordenadas.length > 0 && (
           <>
@@ -761,6 +768,15 @@ export default function SaraFletesMap({
               pathOptions={{ color: '#f59e0b', weight: 5, opacity: 0.95, lineJoin: 'round' }}
             />
           </>
+        )}
+
+        {/* 4.1. Círculo de incertidumbre GPS real (estilo punto azul Google Maps) */}
+        {userLocation && typeof userLocationAccuracy === 'number' && userLocationAccuracy > 5 && userLocationAccuracy <= 250 && (
+          <Circle
+            center={userLocation}
+            radius={userLocationAccuracy}
+            pathOptions={{ color: '#3b82f6', weight: 1, fillColor: '#3b82f6', fillOpacity: 0.12 }}
+          />
         )}
 
         {/* 4.5. Radar de Búsqueda Incremental de Conductores */}

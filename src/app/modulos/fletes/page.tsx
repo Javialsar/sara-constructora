@@ -86,6 +86,7 @@ import SaraMobileBottomSheet, { BottomSheetSnapPoint } from '@/components/fletes
 import SaraDriverNegotiationDrawer from '@/components/fletes/SaraDriverNegotiationDrawer';
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { saveLastKnownPosition, enqueueOfflineEvent } from '@/lib/fletes/saraFletesOfflineBuffer';
+import { startRealGpsWatcher } from '@/lib/fletes/saraGpsTelemetryEngine';
 import type { MultimodalVerticalKey } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
@@ -156,34 +157,24 @@ export default function SaraFletesEngine() {
   const [serviceType, setServiceType] = useState<MultimodalVerticalKey>('fletes');
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   
-  // 1. Geolocalización en tiempo real (Base de inicio calibrada en Casa Onlysoft, Cariamanga)
-  const [userLocation, setUserLocation] = useState<[number, number] | null>([-4.328103, -79.561129]);
+  // 1. Geolocalización 100% real en tiempo real (sin anclar a ninguna ciudad fija)
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [userLocationAccuracy, setUserLocationAccuracy] = useState<number | null>(null);
   const [gpsLoading, setGpsLoading] = useState<boolean>(false);
 
   // 2. Coordenadas y Puntos de Carga / Descarga para Flete
-  const [originText, setOriginText] = useState('Casa (Onlysoft), Cariamanga');
+  const [originText, setOriginText] = useState('Detectando tu ubicación GPS...');
   const [destinationText, setDestinationText] = useState('');
-  const [originPoint, setOriginPoint] = useState<GeocodedPoint | null>({
-    nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
-    lat: -4.328103,
-    lng: -79.561129,
-    ciudad: 'Cariamanga',
-    provincia: 'Loja'
-  });
+  const [originPoint, setOriginPoint] = useState<GeocodedPoint | null>(null);
   const [destinationPoint, setDestinationPoint] = useState<GeocodedPoint | null>(null);
   const [rutaCalculada, setRutaCalculada] = useState<RutaVialCalculada | null>(null);
+  const [rutaActivaIndex, setRutaActivaIndex] = useState<number>(0);
 
   // Candados y estado interactivo de mapa para evitar desfasaje y saltos
   const originLockedByMapRef = useRef<boolean>(false);
   const destLockedByMapRef = useRef<boolean>(false);
-  const userLocationRef = useRef<[number, number] | null>([-4.328103, -79.561129]);
-  const originPointRef = useRef<GeocodedPoint | null>({
-    nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
-    lat: -4.328103,
-    lng: -79.561129,
-    ciudad: 'Cariamanga',
-    provincia: 'Loja'
-  });
+  const userLocationRef = useRef<[number, number] | null>(null);
+  const originPointRef = useRef<GeocodedPoint | null>(null);
   const destinationPointRef = useRef<GeocodedPoint | null>(null);
   const [mapClickMode, setMapClickMode] = useState<'origen' | 'destino' | null>(null);
   const [searchRadiusMeters, setSearchRadiusMeters] = useState<number>(1500);
@@ -655,133 +646,12 @@ export default function SaraFletesEngine() {
   // Generador de código PIN de entrega segura
   const generateAccessCode = () => Math.floor(1000 + Math.random() * 9000).toString();
 
-  // Simulación dinámica de ofertas de conductores cercanos al solicitar flete
+  // Ofertas 100% reales: únicamente llegan por evento NUEVA_OFERTA_CONDUCTOR / CHOFER_ACEPTO_FLETE (cero ofertas simuladas)
   useEffect(() => {
     if (activeFreight && activeFreight.status === 'searching') {
       setDriverOffers([]);
-      const timers: NodeJS.Timeout[] = [];
-      const basePrice = activeFreight.referencePrice;
-      const vehName = CATALOGO_VEHICULOS_SARA[activeFreight.vehicleType]?.nombre || 'Vehículo de Carga';
-
-      // Prefijo de placa según provincia de origen
-      const centerLat = originPoint?.lat || userLocation?.[0] || -4.3285;
-      const centerLng = originPoint?.lng || userLocation?.[1] || -79.5560;
-      let pCode = 'L'; // Loja por defecto
-      const prov = (originPoint?.provincia || '').toLowerCase();
-      if (prov.includes('pichincha') || (centerLat > -0.5 && centerLat < 0.2)) pCode = 'P';
-      else if (prov.includes('guayas') || (centerLat > -2.5 && centerLat < -1.8 && centerLng < -79.7)) pCode = 'G';
-      else if (prov.includes('azuay') || (centerLat > -3.1 && centerLat < -2.7)) pCode = 'A';
-      else if (prov.includes('el oro') || (centerLat > -3.6 && centerLat < -3.1)) pCode = 'O';
-      else if (prov.includes('tungurahua') || (centerLat > -1.4 && centerLat < -1.1)) pCode = 'T';
-      else if (prov.includes('manabi') || (centerLat > -1.2 && centerLat < -0.8 && centerLng < -80.3)) pCode = 'M';
-      else if (prov.includes('santo domingo') || (centerLat > -0.4 && centerLat < -0.1 && centerLng < -79.1)) pCode = 'J';
-
-      // Oferta 1: DAVID SARANGO (Camioneta Pickup 1.2T · FLT-VEH-06 a 210m, respuesta rápida)
-      timers.push(setTimeout(() => {
-        setDriverOffers(prev => [
-          ...prev,
-          {
-            id: 'OFFER-SARANGO',
-            driverName: 'David Sarango',
-            vehicleName: `Camioneta Pickup 1.2T · SARA`,
-            plate: `${pCode}FA-9012`,
-            rating: 4.9,
-            tripsCount: 142,
-            etaMinutes: 2,
-            distanceMeters: 210,
-            offeredPrice: basePrice,
-            isCounterOffer: false,
-            phone: '0995544332'
-          }
-        ]);
-      }, 200));
-
-      // Oferta 2: MANUEL CÁRDENAS (Camioneta 1T · FLT-VEH-01 a 380m)
-      timers.push(setTimeout(() => {
-        setDriverOffers(prev => [
-          ...prev,
-          {
-            id: 'OFFER-01',
-            driverName: 'Manuel Cárdenas',
-            vehicleName: `Camioneta 1T · ${vehName}`,
-            plate: `${pCode}BA-3421`,
-            rating: 4.9,
-            tripsCount: 184,
-            etaMinutes: 3,
-            distanceMeters: 380,
-            offeredPrice: basePrice,
-            isCounterOffer: false,
-            phone: '0993849182'
-          }
-        ]);
-      }, 500));
-
-      // Oferta 3: PEDRO JIMBO (Furgón 3T Urbano · FLT-VEH-07 a 420m)
-      timers.push(setTimeout(() => {
-        setDriverOffers(prev => [
-          ...prev,
-          {
-            id: 'OFFER-JIMBO',
-            driverName: 'Pedro Jimbo',
-            vehicleName: `Furgón 3T Urbano`,
-            plate: `${pCode}GA-6543`,
-            rating: 4.8,
-            tripsCount: 118,
-            etaMinutes: 3,
-            distanceMeters: 420,
-            offeredPrice: basePrice,
-            isCounterOffer: false,
-            phone: '0981122334'
-          }
-        ]);
-      }, 900));
-
-      // Oferta 4: LUIS TOAPANTA (Furgón 3.5T Urbano · FLT-VEH-03 a 510m)
-      timers.push(setTimeout(() => {
-        setDriverOffers(prev => [
-          ...prev,
-          {
-            id: 'OFFER-02',
-            driverName: 'Luis Toapanta',
-            vehicleName: `Furgón 3.5T Urbano`,
-            plate: `${pCode}CA-9876`,
-            rating: 4.7,
-            tripsCount: 96,
-            etaMinutes: 4,
-            distanceMeters: 510,
-            offeredPrice: basePrice,
-            isCounterOffer: false,
-            phone: '0961128472'
-          }
-        ]);
-      }, 4700));
-
-      // Oferta 5: CARLOS MENDOZA (Camión Hino 5T · FLT-VEH-02 a 680m, con contraoferta inDrive)
-      timers.push(setTimeout(() => {
-        const contraTarifa = +(basePrice + 0.50).toFixed(2);
-        setDriverOffers(prev => [
-          ...prev,
-          {
-            id: 'OFFER-03',
-            driverName: 'Carlos Mendoza',
-            vehicleName: `Camión Hino 5T`,
-            plate: `${pCode}BK-1234`,
-            rating: 4.8,
-            tripsCount: 312,
-            etaMinutes: 5,
-            distanceMeters: 680,
-            offeredPrice: contraTarifa,
-            isCounterOffer: true,
-            phone: '0984710293'
-          }
-        ]);
-      }, 5900));
-
-      return () => {
-        timers.forEach(t => clearTimeout(t));
-      };
     }
-  }, [activeFreight, originPoint, userLocation]);
+  }, [activeFreight?.id, activeFreight?.status]);
 
   // Referencia mutable a activeFreight para el bus en tiempo real
   const activeFreightRef = useRef<FreightRequest | null>(null);
@@ -940,246 +810,163 @@ export default function SaraFletesEngine() {
         resetViajeCliente();
       } else if (evt.type === 'CANCELAR_SOLICITUD_FLETE') {
         resetViajeCliente();
+      } else if (evt.type === 'ACTUALIZAR_GPS_CONDUCTOR') {
+        // Actualizar posición GPS real del conductor conectado en el mapa del cliente en vivo
+        const p = evt.payload;
+        if (p && p.plate && typeof p.lat === 'number' && typeof p.lng === 'number') {
+          setLiveDriversMap((prev) => ({
+            ...prev,
+            [p.plate]: {
+              id: p.driverId || p.plate,
+              nombreChofer: p.driverName || 'Conductor SARA',
+              placa: p.plate,
+              tipoVehiculo: (p.tipoVehiculo as CategoriaVehiculo) || 'PICKUP_1T',
+              lat: p.lat,
+              lng: p.lng,
+              rating: p.rating || 4.9,
+              disponible: p.disponible !== false
+            }
+          }));
+        }
       }
     });
 
     return () => unsub();
   }, []);
 
-  // Detección y sincronización continua de GPS en tiempo real (100% reactivo)
+  // Detección y sincronización continua de GPS 100% REAL (watchPosition + Filtro Kalman 2D, sin ciudad hardcodeada)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const defaultCoords: [number, number] = [-4.328103, -79.561129];
-
-    // Inicializar de inmediato con Casa Onlysoft (Cariamanga) como base segura antes de GPS
-    if (!userLocationRef.current) {
-      setUserLocation(defaultCoords);
-      userLocationRef.current = defaultCoords;
-      const pOrig: GeocodedPoint = {
-        nombre: 'Casa (Onlysoft), Gran Colombia y Atahualpa',
-        lat: defaultCoords[0],
-        lng: defaultCoords[1],
-        ciudad: 'Cariamanga',
-        provincia: 'Loja'
-      };
-      setOriginPoint(pOrig);
-      originPointRef.current = pOrig;
-      setOriginText('Casa (Onlysoft), Gran Colombia y Atahualpa, Cariamanga');
-    }
-
     if (!('geolocation' in navigator)) {
       setGpsLoading(false);
+      setOriginText('Selecciona tu punto de recogida en el mapa');
       return;
     }
 
     setGpsLoading(true);
+    let lastReverseGeocodeAt = 0;
 
-    const aplicarPosicionGPS = async (pos: GeolocationPosition) => {
-      const lat = +pos.coords.latitude.toFixed(6);
-      const lng = +pos.coords.longitude.toFixed(6);
-      const accuracy = typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : 999;
+    const stopWatcher = startRealGpsWatcher({
+      onFix: async (fix) => {
+        const lat = +fix.lat.toFixed(6);
+        const lng = +fix.lng.toFixed(6);
+        setGpsLoading(false);
 
-      setGpsLoading(false);
-
-      // Validar que la coordenada esté dentro del territorio ecuatoriano
-      if (lat < -5.5 || lat > 2.0 || lng < -92.0 || lng > -75.0) {
-        return;
-      }
-
-      const dOnlysoftM = Math.hypot(lat - (-4.328103), lng - (-79.561129)) * 111000;
-
-      // Protección contra geolocalización imprecisa de escritorio (WiFi/IP con error > 80m):
-      // Si el navegador reporta baja precisión dentro de Cariamanga, NO sobreescribir la coordenada exacta calibrada
-      if (accuracy > 80 && dOnlysoftM < 2000) {
-        return;
-      }
-
-      const coords: [number, number] = [lat, lng];
-      setUserLocation(coords);
-      userLocationRef.current = coords;
-
-      // Si el origen no ha sido bloqueado manualmente por el usuario en el mapa
-      if (!originLockedByMapRef.current) {
-        let nombreDetectado = 'Mi Ubicación Actual (GPS)';
-        let ciudadDetectada = 'Cariamanga';
-        try {
-          const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
-          nombreDetectado = dOnlysoftM < 120
-            ? 'Casa (Onlysoft), Gran Colombia y Atahualpa (Cariamanga)'
-            : (dirActual || 'Mi Ubicación Actual (GPS)');
-
-          ciudadDetectada = dirActual?.split(',')[1]?.trim() || dirActual?.split(',')[0]?.trim() || 'Ecuador';
-        } catch {
-          // Fallback silencioso
+        if (lat < -5.5 || lat > 2.0 || lng < -92.0 || lng > -74.5) {
+          return;
         }
 
-        const pOrig: GeocodedPoint = {
-          nombre: nombreDetectado,
-          lat,
-          lng,
-          ciudad: ciudadDetectada
-        };
-        setOriginPoint(pOrig);
-        originPointRef.current = pOrig;
-        setOriginText(nombreDetectado);
+        const coords: [number, number] = [lat, lng];
+        setUserLocation(coords);
+        setUserLocationAccuracy(fix.accuracyM);
+        userLocationRef.current = coords;
 
-        // Si ya hay un destino seleccionado, recalcular la ruta automáticamente con el nuevo origen GPS
-        const pDest = destinationPointRef.current;
-        if (pDest) {
+        // Actualizar punto de recogida si el usuario no lo fijó manualmente en el mapa
+        const now = Date.now();
+        if (!originLockedByMapRef.current && now - lastReverseGeocodeAt > 8000) {
+          lastReverseGeocodeAt = now;
+          let nombreDetectado = 'Mi Ubicación Actual (GPS)';
+          let ciudadDetectada = 'Ecuador';
           try {
-            const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest);
-            setRutaCalculada(ruta);
-            const tarifa = SaraFreightPricingService.calcularTarifa(
-              ruta.distanciaKm,
-              weight,
-              vehicleType,
-              material
-            );
-            setTarifaEstimada(tarifa);
-            setProposedPrice(tarifa.tarifaSugeridaUSD);
-          } catch (err) {
-            console.error('Error recalculando ruta con nueva posición GPS:', err);
+            const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
+            if (dirActual) {
+              nombreDetectado = dirActual;
+              ciudadDetectada = dirActual.split(',')[1]?.trim() || dirActual.split(',')[0]?.trim() || 'Ecuador';
+            }
+          } catch {}
+
+          const pOrig: GeocodedPoint = {
+            nombre: nombreDetectado,
+            lat,
+            lng,
+            ciudad: ciudadDetectada
+          };
+          setOriginPoint(pOrig);
+          originPointRef.current = pOrig;
+          setOriginText(nombreDetectado);
+
+          const pDest = destinationPointRef.current;
+          if (pDest) {
+            try {
+              const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest);
+              setRutaCalculada(ruta);
+              setRutaActivaIndex(0);
+              const tarifa = SaraFreightPricingService.calcularTarifa(
+                ruta.distanciaKm,
+                weight,
+                vehicleType,
+                material
+              );
+              setTarifaEstimada(tarifa);
+              setProposedPrice(tarifa.tarifaSugeridaUSD);
+            } catch (err) {
+              console.error('Error recalculando ruta con nueva posición GPS:', err);
+            }
           }
         }
-      }
-    };
-
-    // 1. Obtener primera lectura rápida de satélite
-    navigator.geolocation.getCurrentPosition(
-      aplicarPosicionGPS,
-      (err) => {
-        console.warn('GPS inicial en espera o sin permiso:', err.message);
+      },
+      onError: (err) => {
+        console.warn('GPS en espera o sin permiso:', err.message);
         setGpsLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+        if (!originPointRef.current) {
+          setOriginText('Activa tu GPS o fija el punto de recogida');
+        }
+      }
+    });
 
-    // 2. Escuchar cambios de posición satelital en tiempo real continuo (watchPosition)
-    const watchId = navigator.geolocation.watchPosition(
-      aplicarPosicionGPS,
-      (err) => {
-        console.warn('Aviso watchPosition GPS:', err.message);
-      },
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 }
-    );
-
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
+    return () => stopWatcher();
   }, []);
 
-  // Flota de vehículos zonificados alrededor de la zona de operación con placas provinciales de Ecuador (ANT)
+  // Flota 100% REAL de conductores conectados en vivo (PostgreSQL /api/fletes/ubicaciones + Realtime Bus)
+  const [liveDriversMap, setLiveDriversMap] = useState<Record<string, VehiculoMapa>>({});
+
+  useEffect(() => {
+    const centerLat = originPoint?.lat || userLocation?.[0];
+    const centerLng = originPoint?.lng || userLocation?.[1];
+    let cancelled = false;
+
+    const fetchRealDrivers = async () => {
+      try {
+        const qs = new URLSearchParams({ radiusKm: '45' });
+        if (typeof centerLat === 'number' && typeof centerLng === 'number') {
+          qs.set('lat', String(centerLat));
+          qs.set('lng', String(centerLng));
+        }
+        const res = await fetch(`/api/fletes/ubicaciones?${qs.toString()}`, { cache: 'no-store' });
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        if (Array.isArray(json?.drivers)) {
+          const nextMap: Record<string, VehiculoMapa> = {};
+          for (const d of json.drivers) {
+            if (!d.placa || typeof d.lat !== 'number' || typeof d.lng !== 'number') continue;
+            nextMap[d.placa] = {
+              id: d.conductor_id || d.placa,
+              nombreChofer: d.driver_name || 'Conductor SARA',
+              placa: d.placa,
+              tipoVehiculo: (d.tipo_vehiculo as CategoriaVehiculo) || 'PICKUP_1T',
+              lat: d.lat,
+              lng: d.lng,
+              rating: Number(d.rating) || 4.9,
+              disponible: d.disponible !== false
+            };
+          }
+          setLiveDriversMap((prev) => ({ ...prev, ...nextMap }));
+        }
+      } catch {}
+    };
+
+    fetchRealDrivers();
+    const interval = setInterval(fetchRealDrivers, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [originPoint?.lat, originPoint?.lng, userLocation?.[0], userLocation?.[1]]);
+
   const vehiculosZonificados = useMemo<VehiculoMapa[]>(() => {
-    const centerLat = originPoint?.lat || userLocation?.[0] || -4.3285;
-    const centerLng = originPoint?.lng || userLocation?.[1] || -79.5560;
-
-    // Prefijo de placa según provincia o latitud/longitud
-    let pCode = 'L'; // Loja por defecto
-    const prov = (originPoint?.provincia || '').toLowerCase();
-    if (prov.includes('pichincha') || (centerLat > -0.5 && centerLat < 0.2)) pCode = 'P';
-    else if (prov.includes('guayas') || (centerLat > -2.5 && centerLat < -1.8 && centerLng < -79.7)) pCode = 'G';
-    else if (prov.includes('azuay') || (centerLat > -3.1 && centerLat < -2.7)) pCode = 'A';
-    else if (prov.includes('el oro') || (centerLat > -3.6 && centerLat < -3.1)) pCode = 'O';
-    else if (prov.includes('tungurahua') || (centerLat > -1.4 && centerLat < -1.1)) pCode = 'T';
-    else if (prov.includes('manabi') || (centerLat > -1.2 && centerLat < -0.8 && centerLng < -80.3)) pCode = 'M';
-    else if (prov.includes('santo domingo') || (centerLat > -0.4 && centerLat < -0.1 && centerLng < -79.1)) pCode = 'J';
-    else if (prov.includes('chimborazo')) pCode = 'H';
-    else if (prov.includes('imbabura')) pCode = 'I';
-    else if (prov.includes('cotopaxi')) pCode = 'X';
-    else if (prov.includes('los rios')) pCode = 'R';
-    else if (prov.includes('esmeraldas')) pCode = 'E';
-    else if (prov.includes('carchi')) pCode = 'C';
-    else if (prov.includes('canar')) pCode = 'U';
-    else if (prov.includes('santa elena')) pCode = 'Y';
-    else if (prov.includes('sucumbios')) pCode = 'K';
-    else if (prov.includes('pastaza')) pCode = 'S';
-    else if (prov.includes('napo')) pCode = 'N';
-    else if (prov.includes('morona')) pCode = 'V';
-    else if (prov.includes('zamora')) pCode = 'Z';
-    else if (prov.includes('bolivar')) pCode = 'B';
-    else if (prov.includes('galapagos')) pCode = 'W';
-
-    return [
-      {
-        id: 'FLT-VEH-01',
-        nombreChofer: 'Manuel Cárdenas',
-        placa: `${pCode}BA-3421`,
-        tipoVehiculo: 'PICKUP_1T',
-        lat: +(centerLat + 0.0018).toFixed(5),
-        lng: +(centerLng - 0.0016).toFixed(5),
-        rating: 4.9,
-        telefono: '0993849182',
-        disponible: true
-      },
-      {
-        id: 'FLT-VEH-02',
-        nombreChofer: 'Carlos Mendoza',
-        placa: `${pCode}BK-1234`,
-        tipoVehiculo: 'CAMION_5T',
-        lat: +(centerLat - 0.0022).toFixed(5),
-        lng: +(centerLng + 0.0021).toFixed(5),
-        rating: 4.8,
-        telefono: '0984710293',
-        disponible: true
-      },
-      {
-        id: 'FLT-VEH-03',
-        nombreChofer: 'Luis Toapanta',
-        placa: `${pCode}CA-9876`,
-        tipoVehiculo: 'FURGON_3T',
-        lat: +(centerLat + 0.0026).toFixed(5),
-        lng: +(centerLng + 0.0015).toFixed(5),
-        rating: 4.7,
-        telefono: '0961128472',
-        disponible: true
-      },
-      {
-        id: 'FLT-VEH-04',
-        nombreChofer: 'Jorge Encalada',
-        placa: `${pCode}DA-5512`,
-        tipoVehiculo: 'VOLQUETA_V3A',
-        lat: +(centerLat - 0.0032).toFixed(5),
-        lng: +(centerLng - 0.0024).toFixed(5),
-        rating: 4.9,
-        telefono: '0991204857',
-        disponible: true
-      },
-      {
-        id: 'FLT-VEH-05',
-        nombreChofer: 'Marco Vinicio Guamán',
-        placa: `${pCode}EA-4321`,
-        tipoVehiculo: 'TRACTO_3S3',
-        lat: +(centerLat + 0.0038).toFixed(5),
-        lng: +(centerLng - 0.0032).toFixed(5),
-        rating: 5.0,
-        telefono: '0998273641',
-        disponible: true
-      },
-      {
-        id: 'FLT-VEH-06',
-        nombreChofer: 'David Sarango',
-        placa: `${pCode}FA-9012`,
-        tipoVehiculo: 'PICKUP_1T',
-        lat: +(centerLat - 0.0012).toFixed(5),
-        lng: +(centerLng - 0.0026).toFixed(5),
-        rating: 4.9,
-        telefono: '0995544332',
-        disponible: true
-      },
-      {
-        id: 'FLT-VEH-07',
-        nombreChofer: 'Pedro Jimbo',
-        placa: `${pCode}GA-6543`,
-        tipoVehiculo: 'FURGON_3T',
-        lat: +(centerLat + 0.0020).toFixed(5),
-        lng: +(centerLng - 0.0028).toFixed(5),
-        rating: 4.8,
-        telefono: '0981122334',
-        disponible: true
-      }
-    ];
-  }, [originPoint, userLocation]);
+    return Object.values(liveDriversMap);
+  }, [liveDriversMap]);
 
   // Unidades cercanas filtradas automáticamente por categoría de vehículo seleccionada (Radar Inmediato)
   const vehiculosDisponiblesTipo = useMemo(() => {
@@ -1743,11 +1530,36 @@ export default function SaraFletesEngine() {
         <div className="absolute inset-0 z-0">
           <SaraFletesMap
             userLocation={userLocation}
+            userLocationAccuracy={userLocationAccuracy}
             origenCoords={originPoint ? [originPoint.lat, originPoint.lng] : null}
             destinoCoords={destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null}
             origenNombre={originText}
             destinoNombre={destinationText}
             rutaCoordenadas={rutaCalculada?.coordenadasRuta}
+            rutasAlternativas={rutaCalculada?.rutasAlternativas}
+            rutaActivaIndex={rutaActivaIndex}
+            onSelectRutaAlternativa={(idx) => {
+              const alt = rutaCalculada?.rutasAlternativas?.find((r) => r.index === idx);
+              if (alt && rutaCalculada) {
+                setRutaActivaIndex(idx);
+                setRutaCalculada({
+                  ...rutaCalculada,
+                  distanciaKm: alt.distanciaKm,
+                  duracionMinutos: alt.duracionMinutos,
+                  coordenadasRuta: alt.coordenadasRuta,
+                  pasosNavegacion: alt.pasosNavegacion,
+                  ladoLlegada: alt.ladoLlegada
+                });
+                const tarifa = SaraFreightPricingService.calcularTarifa(
+                  alt.distanciaKm,
+                  weight,
+                  vehicleType,
+                  material
+                );
+                setTarifaEstimada(tarifa);
+                setProposedPrice(tarifa.tarifaSugeridaUSD);
+              }
+            }}
             vehiculosCercanos={vehiculosZonificados}
             vehiculoSeleccionado={vehicleType}
             tipoModalidad={serviceType}

@@ -63,6 +63,7 @@ import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
 import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
+import { startRealGpsWatcher, snapToRoutePolyline, haversineMeters } from '@/lib/fletes/saraGpsTelemetryEngine';
 import { SaraGoogleMapsNavPanel } from '@/components/fletes/SaraGoogleMapsNavPanel';
 import { 
   debitDriverCommissionAction, 
@@ -208,25 +209,34 @@ export default function MiPerfilFletes() {
     }
   };
 
-  // Ubicación del conductor (GPS)
-  const [driverLocation, setDriverLocation] = useState<[number, number]>([-4.328103, -79.561129]); // Casa Onlysoft, Cariamanga por defecto
+  // Ubicación GPS 100% real del conductor (Kalman 2D + watchPosition continuo)
+  const [driverLocation, setDriverLocation] = useState<[number, number]>([-1.8312, -78.1834]);
+  const [driverSpeedKmh, setDriverSpeedKmh] = useState<number>(0);
+  const [driverHeading, setDriverHeading] = useState<number>(0);
+  const [driverAccuracyM, setDriverAccuracyM] = useState<number>(15);
+  const [gpsActiveReal, setGpsActiveReal] = useState<boolean>(false);
   const [driverCountry, setDriverCountry] = useState('Ecuador');
-  const [driverProvince, setDriverProvince] = useState('Loja');
-  const [driverCity, setDriverCity] = useState('Cariamanga');
+  const [driverProvince, setDriverProvince] = useState('Ecuador');
+  const [driverCity, setDriverCity] = useState('Ubicación GPS');
+  const lastLocationPushRef = useRef<number>(0);
+  const offRouteCountRef = useRef<number>(0);
+  const lastRerouteAtRef = useRef<number>(0);
+  const arrivalAnnouncedRef = useRef<boolean>(false);
+  const lastAnnouncedStepIdxRef = useRef<number>(0);
 
-  // Detección real de GPS
+  // Adquisición GPS continua en tiempo real (watchPosition + Filtro Kalman 2D)
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setDriverLocation([pos.coords.latitude, pos.coords.longitude]);
-        },
-        () => {
-          setDriverLocation([-4.328103, -79.561129]); // Casa Onlysoft, Cariamanga
-        },
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    }
+    const stopWatcher = startRealGpsWatcher({
+      onFix: (fix) => {
+        const coords: [number, number] = [+fix.lat.toFixed(6), +fix.lng.toFixed(6)];
+        setDriverLocation(coords);
+        setDriverSpeedKmh(fix.speedKmh);
+        setDriverHeading(fix.heading);
+        setDriverAccuracyM(fix.accuracyM);
+        setGpsActiveReal(true);
+      }
+    });
+    return () => stopWatcher();
   }, []);
 
   // Estados Billetera y Planes Sincronizados
@@ -563,6 +573,9 @@ export default function MiPerfilFletes() {
     setActiveNavStepIndex(0);
     setRemainingMetersToTurn(0);
     navRouteKeyRef.current = '';
+    offRouteCountRef.current = 0;
+    arrivalAnnouncedRef.current = false;
+    lastAnnouncedStepIdxRef.current = 0;
     if (!keepSummary) {
       setCompletedTripSummary(null);
       setSavedEpod(null);
@@ -616,118 +629,152 @@ export default function MiPerfilFletes() {
     incomingRequest?.coordsDestino?.[1]
   ]);
 
-  // Recorrido GPS continuo sobre la polilínea vial real + sincronización geoespacial exacta de calle y voz
+  // Transmisión continua de telemetría GPS real del conductor (Radar + Cliente + PostgreSQL)
   useEffect(() => {
-    if (tripState !== 'in_transit' || !incomingRequest) return;
+    if (!gpsActiveReal) return;
+    const now = Date.now();
+    if (now - lastLocationPushRef.current < 2500) return;
+    lastLocationPushRef.current = now;
 
-    const coordsOrig: [number, number] = incomingRequest.coordsOrigen || [-4.328103, -79.561129];
-    const coordsDest: [number, number] = incomingRequest.coordsDestino || [-4.331405, -79.553528];
+    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const myName = currentUser?.user_metadata?.full_name || 'Conductor SARA';
+
+    // 1. Emitir por Bus Realtime (Broadcast + Supabase Realtime)
+    SaraFletesRealtimeService.emit({
+      type: 'ACTUALIZAR_GPS_CONDUCTOR',
+      payload: {
+        driverId: currentUser?.id || myPlate,
+        plate: myPlate,
+        driverName: myName,
+        tipoVehiculo: 'PICKUP_1T',
+        lat: driverLocation[0],
+        lng: driverLocation[1],
+        disponible: tripState === 'idle',
+        billetera: balanceRef.current,
+        rating: 4.95,
+        heading: driverHeading,
+        speed: driverSpeedKmh,
+        timestamp: now
+      }
+    });
+
+    // 2. Persistir telemetría en PostgreSQL (/api/fletes/ubicaciones) para visibilidad multi-dispositivo
+    fetch('/api/fletes/ubicaciones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plate: myPlate,
+        driverName: myName,
+        tipoVehiculo: 'PICKUP_1T',
+        tokenRastreo: incomingRequest?.fleteId || null,
+        disponible: tripState === 'idle',
+        lat: driverLocation[0],
+        lng: driverLocation[1],
+        accuracy: driverAccuracyM,
+        speed: driverSpeedKmh,
+        heading: driverHeading,
+        rating: 4.95,
+        billetera: balanceRef.current
+      })
+    }).catch(() => {});
+  }, [gpsActiveReal, driverLocation, driverSpeedKmh, driverHeading, driverAccuracyM, tripState, currentUser, incomingRequest?.fleteId]);
+
+  // Navegación Turn-by-Turn 100% REAL impulsada por GPS físico (Snap-to-Road + Off-Route > 40m + Geofence < 25m)
+  useEffect(() => {
+    if (tripState !== 'in_transit' || !incomingRequest || !gpsActiveReal) return;
+
+    const coordsOrig: [number, number] = incomingRequest.coordsOrigen || driverLocation;
+    const coordsDest: [number, number] = incomingRequest.coordsDestino || driverLocation;
     const routePoints: [number, number][] =
       Array.isArray(incomingRequest.coordenadasRuta) && incomingRequest.coordenadasRuta.length >= 2
         ? incomingRequest.coordenadasRuta
         : [coordsOrig, coordsDest];
 
-    // Precalcular distancia acumulada (en metros) de cada vértice de la polilínea
-    const segCumDistM: number[] = [0];
-    for (let i = 1; i < routePoints.length; i++) {
-      const dLatM = (routePoints[i][0] - routePoints[i - 1][0]) * 111320;
-      const dLngM = (routePoints[i][1] - routePoints[i - 1][1]) * 111320 * Math.cos((routePoints[i][0] * Math.PI) / 180);
-      segCumDistM.push(segCumDistM[i - 1] + Math.hypot(dLatM, dLngM));
-    }
-    const totalRouteDistM = Math.max(1, segCumDistM[segCumDistM.length - 1]);
+    // 1. Proyectar GPS real sobre la polilínea vial activa (Snap-to-Road)
+    const snap = snapToRoutePolyline(driverLocation, routePoints);
+    setTripProgressPercent(snap.progressPercent);
 
-    // Precalcular umbrales acumulados de cada paso OSRM para sincronizar cada giro en el metro exacto
-    const stepEndDistM: number[] = [];
-    let accStepM = 0;
-    const rawStepsTotalM = navSteps.reduce((sum, s) => sum + (s.distanciaMetros || 0), 0) || totalRouteDistM;
-    const scaleFactor = totalRouteDistM / Math.max(1, rawStepsTotalM);
-    for (const st of navSteps) {
-      accStepM += (st.distanciaMetros || 0) * scaleFactor;
-      stepEndDistM.push(accStepM);
-    }
+    // 2. Sincronizar paso activo y metros exactos al próximo giro
+    if (navSteps.length > 0) {
+      const rawStepsTotalM = navSteps.reduce((sum, s) => sum + (s.distanciaMetros || 0), 0) || snap.totalRouteMeters;
+      const scaleFactor = snap.totalRouteMeters / Math.max(1, rawStepsTotalM);
+      let accStepM = 0;
+      let matchedIdx = navSteps.length - 1;
+      let remM = 0;
 
-    let currentTick = 0;
-    let lastAnnouncedIdx = 0;
-    const totalTicks = Math.max(20, Math.min(40, Math.round(totalRouteDistM / 30)));
-
-    const timer = setInterval(() => {
-      currentTick++;
-      const progress = Math.min(1, currentTick / totalTicks);
-      const traveledM = progress * totalRouteDistM;
-      setTripProgressPercent(Math.round(progress * 100));
-
-      // Ubicar posición exacta sobre la polilínea correspondiente a traveledM
-      let segIdx = 0;
-      while (segIdx < segCumDistM.length - 2 && segCumDistM[segIdx + 1] < traveledM) {
-        segIdx++;
+      for (let k = 0; k < navSteps.length; k++) {
+        accStepM += (navSteps[k].distanciaMetros || 0) * scaleFactor;
+        if (snap.traveledMeters < accStepM || k === navSteps.length - 1) {
+          matchedIdx = k;
+          remM = Math.max(0, Math.round(accStepM - snap.traveledMeters));
+          break;
+        }
       }
-      const segStartM = segCumDistM[segIdx];
-      const segLenM = Math.max(0.01, segCumDistM[segIdx + 1] - segStartM);
-      const segT = Math.min(1, Math.max(0, (traveledM - segStartM) / segLenM));
 
-      const pA = routePoints[segIdx];
-      const pB = routePoints[segIdx + 1] || pA;
-      const lat = pA[0] + (pB[0] - pA[0]) * segT;
-      const lng = pA[1] + (pB[1] - pA[1]) * segT;
-      const heading = Math.round(((Math.atan2(pB[1] - pA[1], pB[0] - pA[0]) * 180) / Math.PI + 360) % 360);
+      setRemainingMetersToTurn(remM);
+      if (matchedIdx > lastAnnouncedStepIdxRef.current) {
+        lastAnnouncedStepIdxRef.current = matchedIdx;
+        setActiveNavStepIndex(matchedIdx);
+        const pasoActual = navSteps[matchedIdx];
+        if (pasoActual && pasoActual.maniobra !== 'arrive') {
+          saraVoiceNavigation.anunciarPaso(pasoActual);
+        }
+      }
+    }
 
-      const newCoords: [number, number] = [+lat.toFixed(6), +lng.toFixed(6)];
-      setDriverLocation(newCoords);
+    // 3. Detección real de desvío Off-Route (> 40m en 2 lecturas consecutivas, cooldown 10s)
+    const now = Date.now();
+    if (snap.perpendicularDistanceM > 40 && routePoints.length >= 2) {
+      offRouteCountRef.current += 1;
+      if (offRouteCountRef.current >= 2 && now - lastRerouteAtRef.current > 10000) {
+        offRouteCountRef.current = 0;
+        lastRerouteAtRef.current = now;
+        lastAnnouncedStepIdxRef.current = 0;
+        saraVoiceNavigation.speak('Recalculando ruta', { force: true });
+        showToast('🔄 Desvío detectado (>40m). Recalculando ruta vial en tiempo real...');
 
-      // Sincronizar paso activo y metros restantes exactamente por distancia recorrida en metros
+        fetch(
+          `/api/fletes/route?originLat=${driverLocation[0]}&originLng=${driverLocation[1]}&destLat=${coordsDest[0]}&destLng=${coordsDest[1]}&bearing=${Math.round(driverHeading)}&alternatives=false`
+        )
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => {
+            if (j?.code === 'Ok' && Array.isArray(j.coordenadasRuta) && j.coordenadasRuta.length > 1) {
+              setIncomingRequest((prev: any) =>
+                prev
+                  ? {
+                      ...prev,
+                      coordenadasRuta: j.coordenadasRuta,
+                      distanciaKm: j.distanciaKm,
+                      duracionMinutos: j.duracionMinutos
+                    }
+                  : prev
+              );
+              if (Array.isArray(j.pasosNavegacion) && j.pasosNavegacion.length > 0) {
+                setNavSteps(j.pasosNavegacion);
+                setActiveNavStepIndex(0);
+                setRemainingMetersToTurn(j.pasosNavegacion[0].distanciaMetros || 0);
+              }
+            }
+          })
+          .catch(() => {});
+      }
+    } else {
+      offRouteCountRef.current = 0;
+    }
+
+    // 4. Geofence real de llegada (< 25m del destino físico)
+    const distToDestM = haversineMeters(driverLocation, coordsDest);
+    if (distToDestM <= 25 && !arrivalAnnouncedRef.current) {
+      arrivalAnnouncedRef.current = true;
+      setTripProgressPercent(100);
       if (navSteps.length > 0) {
-        let matchedIdx = navSteps.length - 1;
-        for (let k = 0; k < stepEndDistM.length; k++) {
-          if (traveledM < stepEndDistM[k] || k === stepEndDistM.length - 1) {
-            matchedIdx = k;
-            break;
-          }
-        }
-        const remM = Math.max(0, Math.round(stepEndDistM[matchedIdx] - traveledM));
-        setRemainingMetersToTurn(remM);
-
-        if (matchedIdx > lastAnnouncedIdx) {
-          lastAnnouncedIdx = matchedIdx;
-          setActiveNavStepIndex(matchedIdx);
-          const pasoActual = navSteps[matchedIdx];
-          if (pasoActual && pasoActual.maniobra !== 'arrive') {
-            saraVoiceNavigation.anunciarPaso(pasoActual);
-          }
-        }
+        setActiveNavStepIndex(navSteps.length - 1);
+        setRemainingMetersToTurn(0);
       }
-
-      // Transmisión de telemetría GPS continua en tiempo real (cliente + enlace de rastreo)
-      SaraFletesRealtimeService.emit({
-        type: 'ACTUALIZAR_GPS_CONDUCTOR',
-        payload: {
-          driverId: currentUser?.id || 'MI-VEHICULO',
-          plate: currentUser?.user_metadata?.placa || 'PBA-1234',
-          driverName: currentUser?.user_metadata?.full_name || 'David Sarango Malacatus',
-          tipoVehiculo: 'PICKUP_1T',
-          lat: newCoords[0],
-          lng: newCoords[1],
-          disponible: false,
-          billetera: balance,
-          rating: 4.95,
-          heading,
-          speed: progress >= 1 ? 0 : 32,
-          timestamp: Date.now()
-        }
-      });
-
-      if (currentTick >= totalTicks) {
-        clearInterval(timer);
-        if (navSteps.length > 0) {
-          setActiveNavStepIndex(navSteps.length - 1);
-          setRemainingMetersToTurn(0);
-        }
-        saraVoiceNavigation.anunciarLlegadaFeliz();
-        showToast('🎉 Hemos llegado con felicidad, que tenga un excelente día.');
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [tripState, incomingRequest, currentUser, navSteps]);
+      saraVoiceNavigation.anunciarLlegadaFeliz();
+      showToast('🎉 Hemos llegado con felicidad, que tenga un excelente día.');
+    }
+  }, [tripState, driverLocation, driverHeading, gpsActiveReal, incomingRequest, navSteps]);
 
   // Aceptar viaje y ponerse en camino al punto de carga
   const handleAcceptTrip = () => {
