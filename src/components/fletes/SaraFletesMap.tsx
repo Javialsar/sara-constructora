@@ -410,10 +410,12 @@ function MapCameraController({
           rutaCoordenadas.forEach(coord => bounds.extend(coord));
         }
 
-        // Ajuste perfecto con el fitBounds nativo de Leaflet
+        // Ajuste perfecto con padding adaptativo (en móvil deja libre la mitad inferior para la hoja estilo DiDi/Uber; en desktop deja libre el panel izquierdo)
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
         map.invalidateSize();
         map.fitBounds(bounds, {
-          padding: [70, 70],
+          paddingTopLeft: isMobile ? [36, 76] : [500, 70],
+          paddingBottomRight: isMobile ? [36, Math.round((window.innerHeight || 700) * 0.48)] : [60, 60],
           maxZoom: 16,
           animate: true
         });
@@ -550,7 +552,13 @@ function MapFloatingControls({
             if (rutaCoordenadas && rutaCoordenadas.length > 0) {
               rutaCoordenadas.forEach(coord => bounds.extend(coord));
             }
-            map.fitBounds(bounds, { padding: [60, 60], maxZoom: 17, animate: true });
+            const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+            map.fitBounds(bounds, {
+              paddingTopLeft: isMobile ? [36, 76] : [500, 70],
+              paddingBottomRight: isMobile ? [36, Math.round((window.innerHeight || 700) * 0.48)] : [60, 60],
+              maxZoom: 17,
+              animate: true
+            });
           }}
           title="Zoom a la ruta detallada"
           className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-3 py-2 rounded-xl shadow-2xl transition-all cursor-pointer flex items-center gap-1.5 text-xs active:scale-95 border border-amber-400"

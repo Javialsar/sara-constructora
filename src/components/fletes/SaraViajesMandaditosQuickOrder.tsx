@@ -151,7 +151,7 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
           </label>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="flex overflow-x-auto snap-x gap-2 pb-1 -mx-1 px-1 sm:grid sm:grid-cols-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0">
           {config.vehiculos.map((v) => {
             const isSelected = selectedVehicleId === v.id;
             const precio = calcularTarifaVehiculo(v);
@@ -161,7 +161,7 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
                 key={v.id}
                 type="button"
                 onClick={() => handleSelectVehicle(v.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between active:scale-95 ${
+                className={`min-w-[116px] sm:min-w-0 shrink-0 snap-start p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between active:scale-95 ${
                   isSelected
                     ? modalidad === 'viajes'
                       ? 'bg-amber-500/20 border-2 border-amber-400 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/50'

@@ -14,9 +14,9 @@ export interface SaraMobileBottomSheetProps {
 }
 
 const SNAP_HEIGHTS: Record<BottomSheetSnapPoint, string> = {
-  collapsed: '20vh',
-  half: '52vh',
-  expanded: '86vh',
+  collapsed: '31dvh',
+  half: '47dvh',
+  expanded: '78dvh',
 };
 
 const SNAP_ORDER: BottomSheetSnapPoint[] = ['collapsed', 'half', 'expanded'];
@@ -131,7 +131,7 @@ export default function SaraMobileBottomSheet({
       className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 rounded-t-3xl shadow-2xl ${className}`}
       style={{ willChange: 'height' }}
     >
-      {/* Zona táctil superior de arrastre (≥44px de altura) */}
+      {/* Zona táctil superior de arrastre estilo DiDi / Uber */}
       <motion.div
         drag="y"
         dragConstraints={{ top: 0, bottom: 0 }}
@@ -140,59 +140,27 @@ export default function SaraMobileBottomSheet({
         onDragEnd={handleDragEnd}
         className="shrink-0 touch-none select-none cursor-grab active:cursor-grabbing lg:hidden"
       >
-        <div className="flex items-center justify-between px-4 min-h-[44px]">
-          {/* Espaciador izquierdo para centrar el pill */}
-          <div className="w-16 flex items-center">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
-              {SNAP_LABELS[activeSnap]}
-            </span>
-          </div>
-
-          {/* Botón táctil central con pill handle (área táctil >= 44px) */}
+        <div className="flex items-center justify-center px-4 h-7">
           <button
             type="button"
             onClick={handleCycleSnap}
             aria-label={`Cambiar altura del panel (actual: ${SNAP_LABELS[activeSnap]})`}
-            className="flex items-center justify-center min-h-[44px] min-w-[72px] -my-1 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80"
+            className="flex items-center justify-center min-h-[44px] min-w-[96px] -my-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80"
           >
-            <span className="w-12 h-1.5 rounded-full bg-slate-600/90 hover:bg-amber-400 transition-colors" />
+            <span className="w-11 h-1.5 rounded-full bg-slate-600/90 hover:bg-amber-400 transition-colors" />
           </button>
-
-          {/* Indicadores rápidos de snap */}
-          <div className="w-16 flex items-center justify-end gap-1.5">
-            {SNAP_ORDER.map((point) => {
-              const isActive = activeSnap === point;
-              return (
-                <button
-                  key={point}
-                  type="button"
-                  onClick={() => updateSnap(point)}
-                  aria-label={`Ajustar panel a ${SNAP_LABELS[point]}`}
-                  className="flex items-center justify-center w-6 h-6 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/80"
-                >
-                  <span
-                    className={`block rounded-full transition-all ${
-                      isActive
-                        ? 'w-2.5 h-2.5 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]'
-                        : 'w-1.5 h-1.5 bg-slate-700 hover:bg-slate-500'
-                    }`}
-                  />
-                </button>
-              );
-            })}
-          </div>
         </div>
       </motion.div>
 
-      {/* Cabecera fija opcional (siempre visible incluso en modo colapsado) */}
+      {/* Cabecera fija solo en desktop (en móvil el contenido arranca limpio estilo DiDi/inDrive) */}
       {headerContent && (
-        <div className="shrink-0 px-4 pb-2 border-b border-slate-800/80">
+        <div className="hidden lg:block shrink-0 px-4 pb-2 border-b border-slate-800/80">
           {headerContent}
         </div>
       )}
 
       {/* Contenido scrollable interno */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-6 pt-2">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 pb-4 pt-1">
         {children}
       </div>
     </motion.section>

@@ -509,7 +509,8 @@ export default function SaraFletesEngine() {
   const [tarifaEstimada, setTarifaEstimada] = useState<ResultadoTarifaFlete | null>(null);
   const [proposedPrice, setProposedPrice] = useState<number | null>(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
-  const [bottomSheetLevel, setBottomSheetLevel] = useState<'peek' | 'half' | 'full'>('half');
+  // En móvil arranca compacto (estilo DiDi / Uber: 69% mapa libre + hoja inferior limpia)
+  const [bottomSheetLevel, setBottomSheetLevel] = useState<'peek' | 'half' | 'full'>('peek');
 
   // Sincronizar datos restaurados desde draft al iniciar (ignorando coordenadas obsoletas de versiones previas)
   useEffect(() => {
@@ -560,6 +561,17 @@ export default function SaraFletesEngine() {
   // 5. Estados de negociación y despacho
   const [clienteNombre, setClienteNombre] = useState('Ing. Marco Vivanco (Constructora SARA)');
   const [activeFreight, setActiveFreight] = useState<FreightRequest | null>(null);
+
+  // Transición automática de la hoja inferior según el paso del viaje (Paso 1 -> Paso 2 -> Paso 3)
+  useEffect(() => {
+    if (serviceType === 'viajes' || serviceType === 'mandaditos') {
+      if (activeFreight || destinationPoint) {
+        setBottomSheetLevel('half');
+      } else {
+        setBottomSheetLevel('peek');
+      }
+    }
+  }, [destinationPoint, activeFreight, serviceType]);
   const [driverOffers, setDriverOffers] = useState<DriverOffer[]>([]);
   const [assignedDriver, setAssignedDriver] = useState<DriverOffer | null>(null);
 
@@ -1828,8 +1840,10 @@ export default function SaraFletesEngine() {
                           setActiveFreight(null);
                           setDriverOffers([]);
                         }
-                        // Asegurar que en móvil el bottom sheet se expanda al cambiar de pestaña
-                        if (bottomSheetLevel === 'peek') {
+                        // En móvil: Viajes/Mandaditos sin destino permanecen compactos (estilo DiDi/Uber); Fletes/Renta usan vista media
+                        if (tab === 'viajes' || tab === 'mandaditos') {
+                          setBottomSheetLevel(destinationPoint ? 'half' : 'peek');
+                        } else if (bottomSheetLevel === 'peek') {
                           setBottomSheetLevel('half');
                         }
                       }}
@@ -1933,8 +1947,9 @@ export default function SaraFletesEngine() {
                       {/* SECCIÓN VIAJES / MANDADITOS (PASAJEROS UBER/DIDI Y EXPRESS) */}
                       {/* -------------------------------------------------------- */}
                       {(serviceType === 'viajes' || serviceType === 'mandaditos') && (
-                    <div className="space-y-3">
-                      {/* Campo rápido de Recogida + Destino */}
+                    <div className="space-y-2.5">
+                      {/* PASO 1 (Estilo DiDi / inDrive / Uber): Solo Recogida + "¿A dónde vas?" cuando aún no se eligió destino */}
+                      {!destinationPoint ? (
                       <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
                         {/* Punto de Recogida (Editable + Re-sincronizar GPS + Fijar en mapa) */}
                         <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-slate-800/80">
@@ -1964,15 +1979,6 @@ export default function SaraFletesEngine() {
                                 setOriginPoint(pOrig);
                                 originPointRef.current = pOrig;
                                 setOriginText(nom);
-                                if (destinationPointRef.current) {
-                                  setIsCalculatingRoute(true);
-                                  try {
-                                    const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, destinationPointRef.current);
-                                    setRutaCalculada(ruta);
-                                  } finally {
-                                    setIsCalculatingRoute(false);
-                                  }
-                                }
                               }}
                               className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-blue-400 hover:text-blue-300 border border-slate-700 transition-colors cursor-pointer"
                               title="Volver a mi ubicación GPS actual"
@@ -1994,18 +2000,6 @@ export default function SaraFletesEngine() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                            <span>{serviceType === 'viajes' ? '🚖' : '📦'}</span>
-                            {serviceType === 'viajes' ? '¿A dónde te llevo?' : '¿A dónde enviamos tu paquete?'}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {isCalculatingRoute
-                              ? 'Calculando ruta...'
-                              : (rutaCalculada && destinationText ? `${rutaCalculada.distanciaKm.toFixed(1)} km · ${rutaCalculada.duracionMinutos} min` : 'GPS Directo')}
-                          </span>
-                        </div>
-
                         <div ref={destInputWrapperRef} className="relative">
                           <form
                             onSubmit={async (e) => {
@@ -2017,13 +2011,16 @@ export default function SaraFletesEngine() {
                                 await handleDirectDestinationGeocode(queryVal);
                               }
                             }}
-                            className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800 focus-within:border-amber-500 shadow-inner"
+                            className="flex items-center gap-2 bg-slate-900 px-3 py-2.5 rounded-xl border border-slate-700 focus-within:border-amber-500 shadow-inner"
                           >
                             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
                             <input
                               type="text"
                               enterKeyHint="search"
                               value={destinationText}
+                              onFocus={() => {
+                                if (bottomSheetLevel === 'peek') setBottomSheetLevel('half');
+                              }}
                               onChange={(e) => handleDestinationInputChange(e.target.value)}
                               onKeyDown={async (e) => {
                                 if (e.key === 'Enter') {
@@ -2036,8 +2033,8 @@ export default function SaraFletesEngine() {
                                   }
                                 }
                               }}
-                              placeholder={serviceType === 'viajes' ? '¿A dónde te llevo?' : '¿A dónde enviamos tu paquete?'}
-                              className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none font-semibold"
+                              placeholder={serviceType === 'viajes' ? '¿A dónde vas?' : '¿A dónde enviamos tu paquete?'}
+                              className="w-full bg-transparent text-sm text-white placeholder-slate-400 focus:outline-none font-bold"
                             />
                             {destinationText && (
                               <button
@@ -2056,7 +2053,7 @@ export default function SaraFletesEngine() {
                             <button
                               type="submit"
                               disabled={isCalculatingRoute || destinationText.trim().length < 2}
-                              className="shrink-0 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                              className="shrink-0 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                               title="Buscar dirección y trazar ruta"
                             >
                               {isCalculatingRoute ? '...' : 'Ir'}
@@ -2083,8 +2080,39 @@ export default function SaraFletesEngine() {
                           )}
                         </div>
                       </div>
+                      ) : (
+                      <>
+                        {/* PASO 2 (Estilo DiDi / inDrive / Uber): Resumen compacto de ruta + botón volver + Vehículos + CTA */}
+                        <div className="bg-slate-950/90 px-3 py-2 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDestinationPoint(null);
+                              destinationPointRef.current = null;
+                              setRutaCalculada(null);
+                              setBottomSheetLevel('peek');
+                            }}
+                            className="shrink-0 px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-colors cursor-pointer"
+                            title="Cambiar dirección de destino"
+                          >
+                            ← Cambiar
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-bold text-white truncate">
+                              🚩 {destinationText || destinationPoint.nombre}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              Desde: {originText || 'Casa (Onlysoft)'}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-lg">
+                            {isCalculatingRoute
+                              ? '...'
+                              : `${(rutaCalculada?.distanciaKm || 1.2).toFixed(1)} km · ${rutaCalculada?.duracionMinutos || 3}m`}
+                          </span>
+                        </div>
 
-                      <SaraViajesMandaditosQuickOrder
+                        <SaraViajesMandaditosQuickOrder
                         modalidad={serviceType}
                         distanciaKm={rutaCalculada?.distanciaKm || 3.2}
                         duracionEstimadaMin={rutaCalculada?.duracionMinutos || 9}
@@ -2186,6 +2214,8 @@ export default function SaraFletesEngine() {
                           }, 2500);
                         }}
                       />
+                      </>
+                      )}
                     </div>
                   )}
 
@@ -2472,7 +2502,7 @@ export default function SaraFletesEngine() {
                   )}
                       {/* ACCESO RÁPIDO PARA CONDUCTORES Y TRANSPORTISTAS */}
                       <div className="mt-3 pt-3 border-t border-slate-800/80">
-                        <div className="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-2 transition-colors">
+                        <div className="hidden lg:flex bg-slate-950/70 border border-slate-800 hover:border-emerald-500/40 rounded-xl p-3 items-center justify-between gap-2 transition-colors">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0">
                               <Truck className="w-4 h-4" />
@@ -2595,7 +2625,7 @@ export default function SaraFletesEngine() {
         driverName={assignedDriver?.driverName || "David Sarango"}
         plate={assignedDriver?.plate || "PCX-4590"}
         currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : [-4.328103, -79.561129]}
-        className="top-3 right-4 bottom-auto lg:top-4 lg:right-6"
+        className="top-[72px] left-3 bottom-auto lg:top-20 lg:right-6 lg:left-auto"
       />
     </div>
   );
