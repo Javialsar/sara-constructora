@@ -17,6 +17,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { SaraFletesRealtimeService, ConductorEstadoRealtime, SolicitudFleteRealtime } from '@/lib/services/saraFletesRealtimeService';
+import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
+import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 
 // Importar mapa Leaflet dinámicamente sin SSR
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -37,52 +39,191 @@ interface PublicTrackingPageProps {
 
 export default function PublicTrackingPage({ params }: PublicTrackingPageProps) {
   const [token, setToken] = useState<string>('');
-  const [driverName, setDriverName] = useState('David Sarango');
-  const [plate, setPlate] = useState('PCX-4590');
-  const [vehicleType, setVehicleType] = useState('Camión 5 Toneladas (Hino Dutro)');
+  const [driverName, setDriverName] = useState('Conductor SARA');
+  const [plate, setPlate] = useState('PBA-1234');
+  const [vehicleType, setVehicleType] = useState('Vehículo Asignado SARA');
   const [driverPhone, setDriverPhone] = useState('+593987654321');
   const [rating, setRating] = useState(4.9);
-  const [tripStatus, setTripStatus] = useState<'heading_to_pickup' | 'in_transit' | 'completed'>('in_transit');
-  const [origin, setOrigin] = useState('Cariamanga (Centro de Acopio)');
-  const [destination, setDestination] = useState('Loja (Proyecto San Cayetano)');
+  const [tripStatus, setTripStatus] = useState<'heading_to_pickup' | 'in_transit' | 'completed'>('heading_to_pickup');
+  const [origin, setOrigin] = useState('Casa (Onlysoft), Cariamanga');
+  const [destination, setDestination] = useState('Destino en Cariamanga');
   const [originCoords, setOriginCoords] = useState<[number, number]>([-4.328103, -79.561129]);
-  const [destinationCoords, setDestinationCoords] = useState<[number, number]>([-3.9931, -79.2042]);
-  const [vehicleCoords, setVehicleCoords] = useState<[number, number]>([-4.215, -79.432]);
-  const [etaMinutes, setEtaMinutes] = useState(24);
-  const [distanceKm, setDistanceKm] = useState(48.5);
-  const [material, setMaterial] = useState('450 Sacos Cemento Holcim');
+  const [destinationCoords, setDestinationCoords] = useState<[number, number]>([-4.331405, -79.553528]);
+  const [vehicleCoords, setVehicleCoords] = useState<[number, number]>([-4.328103, -79.561129]);
+  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
+  const [etaMinutes, setEtaMinutes] = useState(3);
+  const [distanceKm, setDistanceKm] = useState(0.9);
+  const [material, setMaterial] = useState('Viaje SARA');
+  const [lastGpsUpdate, setLastGpsUpdate] = useState<number | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [phoneUnlocked, setPhoneUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [showPinDialog, setShowPinDialog] = useState(false);
 
   useEffect(() => {
-    params.then((p) => {
+    let resolvedOrig: [number, number] = [-4.328103, -79.561129];
+    let resolvedDest: [number, number] = [-4.331405, -79.553528];
+    let resolvedPlate = '';
+    let hasRouteFromSnapshot = false;
+
+    params.then(async (p) => {
       setToken(p.token);
-      // Intentar cargar snapshot guardado para este token
+
+      // 1. Leer parámetros de URL si se abrió en otro dispositivo (WhatsApp cross-device)
+      if (typeof window !== 'undefined') {
+        const sp = new URLSearchParams(window.location.search);
+        const oParam = sp.get('o');
+        const dParam = sp.get('d');
+        if (oParam) {
+          const [lat, lng] = oParam.split(',').map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            resolvedOrig = [lat, lng];
+            setOriginCoords(resolvedOrig);
+            setVehicleCoords(resolvedOrig);
+          }
+        }
+        if (dParam) {
+          const [lat, lng] = dParam.split(',').map(Number);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            resolvedDest = [lat, lng];
+            setDestinationCoords(resolvedDest);
+          }
+        }
+        if (sp.get('on')) setOrigin(sp.get('on')!);
+        if (sp.get('dn')) setDestination(sp.get('dn')!);
+        if (sp.get('dr')) setDriverName(sp.get('dr')!);
+        if (sp.get('pl')) {
+          resolvedPlate = sp.get('pl')!;
+          setPlate(resolvedPlate);
+        }
+        if (sp.get('v')) setVehicleType(sp.get('v')!);
+        if (sp.get('m')) setMaterial(sp.get('m')!);
+        if (sp.get('km') && !isNaN(Number(sp.get('km')))) setDistanceKm(Number(sp.get('km')));
+        if (sp.get('min') && !isNaN(Number(sp.get('min')))) setEtaMinutes(Math.max(1, Number(sp.get('min'))));
+      }
+
+      // 2. Cargar snapshot local guardado o estado activo del bus en tiempo real
       const snapshot = SaraFletesRealtimeService.getPublicTrackingSnapshot(p.token);
+      const activeReq = SaraFletesRealtimeService.getActiveRequest();
+      const acceptedDispatch = SaraFletesRealtimeService.getAcceptedDispatch();
+      const tripInProgress = SaraFletesRealtimeService.getTripInProgress();
+
       if (snapshot) {
         if (snapshot.driverName) setDriverName(snapshot.driverName);
-        if (snapshot.plate) setPlate(snapshot.plate);
+        if (snapshot.plate) {
+          resolvedPlate = snapshot.plate;
+          setPlate(snapshot.plate);
+        }
+        if (snapshot.vehicleName) setVehicleType(snapshot.vehicleName);
         if (snapshot.origin) setOrigin(snapshot.origin);
         if (snapshot.destination) setDestination(snapshot.destination);
-        if (snapshot.originCoords) setOriginCoords(snapshot.originCoords);
-        if (snapshot.destinationCoords) setDestinationCoords(snapshot.destinationCoords);
+        if (snapshot.originCoords) {
+          resolvedOrig = snapshot.originCoords;
+          setOriginCoords(resolvedOrig);
+          setVehicleCoords(resolvedOrig);
+        }
+        if (snapshot.destinationCoords) {
+          resolvedDest = snapshot.destinationCoords;
+          setDestinationCoords(resolvedDest);
+        }
         if (snapshot.material) setMaterial(snapshot.material);
         if (snapshot.distanceKm) setDistanceKm(snapshot.distanceKm);
+        if (snapshot.duracionMinutos) setEtaMinutes(Math.max(1, snapshot.duracionMinutos));
+        if (Array.isArray(snapshot.coordenadasRuta) && snapshot.coordenadasRuta.length > 2) {
+          setRouteCoords(snapshot.coordenadasRuta);
+          hasRouteFromSnapshot = true;
+        }
+      } else if (activeReq || acceptedDispatch) {
+        const src: any = activeReq || acceptedDispatch;
+        if (src.assignedDriverName || acceptedDispatch?.driverName) setDriverName(src.assignedDriverName || acceptedDispatch?.driverName);
+        if (src.assignedPlate || acceptedDispatch?.plate) {
+          resolvedPlate = src.assignedPlate || acceptedDispatch?.plate;
+          setPlate(resolvedPlate);
+        }
+        if (src.origen) setOrigin(src.origen);
+        if (src.destino) setDestination(src.destino);
+        if (src.coordsOrigen) {
+          resolvedOrig = src.coordsOrigen;
+          setOriginCoords(resolvedOrig);
+          setVehicleCoords(resolvedOrig);
+        }
+        if (src.coordsDestino) {
+          resolvedDest = src.coordsDestino;
+          setDestinationCoords(resolvedDest);
+        }
+        if (src.material) setMaterial(src.material);
+        if (src.distanciaKm) setDistanceKm(src.distanciaKm);
+        if (src.duracionMinutos) setEtaMinutes(Math.max(1, src.duracionMinutos));
+        if (Array.isArray(src.coordenadasRuta) && src.coordenadasRuta.length > 2) {
+          setRouteCoords(src.coordenadasRuta);
+          hasRouteFromSnapshot = true;
+        }
+      }
+
+      if (tripInProgress) {
+        setTripStatus('in_transit');
+      }
+
+      // 3. Sincronizar posición GPS real del conductor activo si existe en el radar local
+      if (typeof window !== 'undefined' && resolvedPlate) {
+        try {
+          const rawDriver = localStorage.getItem(`sara_fletes_rt_driver_${resolvedPlate}`);
+          if (rawDriver) {
+            const matchedDriver = JSON.parse(rawDriver) as ConductorEstadoRealtime;
+            if (typeof matchedDriver.lat === 'number' && typeof matchedDriver.lng === 'number') {
+              const distFromOrigKm = Math.hypot(matchedDriver.lat - resolvedOrig[0], matchedDriver.lng - resolvedOrig[1]) * 111;
+              if (distFromOrigKm < 25) {
+                setVehicleCoords([matchedDriver.lat, matchedDriver.lng]);
+                setLastGpsUpdate(Date.now());
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // 4. Calcular ruta vial real calle por calle si no venía en el snapshot
+      if (!hasRouteFromSnapshot) {
+        try {
+          const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(
+            { nombre: origin, lat: resolvedOrig[0], lng: resolvedOrig[1] },
+            { nombre: destination, lat: resolvedDest[0], lng: resolvedDest[1] }
+          );
+          if (ruta && ruta.coordenadasRuta.length > 0) {
+            setRouteCoords(ruta.coordenadasRuta);
+            setDistanceKm(ruta.distanciaKm);
+            setEtaMinutes(Math.max(1, ruta.duracionMinutos));
+          }
+        } catch {
+          setRouteCoords([resolvedOrig, resolvedDest]);
+        }
       }
     });
 
-    // Escuchar telemetría en vivo
+    // 5. Escuchar telemetría en vivo (BroadcastChannel + localStorage + Supabase Realtime)
     const unsubscribe = SaraFletesRealtimeService.subscribe((event) => {
       if (event.type === 'ACTUALIZAR_GPS_CONDUCTOR') {
-        setVehicleCoords([event.payload.lat, event.payload.lng]);
+        if (!resolvedPlate || event.payload.plate === resolvedPlate) {
+          setVehicleCoords([event.payload.lat, event.payload.lng]);
+          setLastGpsUpdate(Date.now());
+        }
+      } else if (event.type === 'CHOFER_ACEPTO_FLETE') {
+        setTripStatus('heading_to_pickup');
+        setDriverName(event.payload.driverName);
+        setPlate(event.payload.plate);
+        if (event.payload.vehicleName) setVehicleType(event.payload.vehicleName);
+        if (event.payload.coords) {
+          setVehicleCoords(event.payload.coords);
+          setLastGpsUpdate(Date.now());
+        }
       } else if (event.type === 'FLETE_INICIADO') {
         setTripStatus('in_transit');
         setDriverName(event.payload.driverName);
         setPlate(event.payload.plate);
+        setLastGpsUpdate(Date.now());
       } else if (event.type === 'FLETE_COMPLETADO') {
         setTripStatus('completed');
+        setVehicleCoords(resolvedDest);
+        setLastGpsUpdate(Date.now());
       }
     });
 
@@ -171,8 +312,19 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
               destinoCoords={destinationCoords}
               origenNombre={origin}
               destinoNombre={destination}
-              rutaCoordenadas={[originCoords, vehicleCoords, destinationCoords]}
-              vehiculosCercanos={[]}
+              rutaCoordenadas={routeCoords.length > 0 ? routeCoords : [originCoords, destinationCoords]}
+              vehiculosCercanos={[
+                {
+                  id: `live_${plate}`,
+                  nombreChofer: driverName,
+                  placa: plate,
+                  tipoVehiculo: 'PICKUP_1T',
+                  lat: vehicleCoords[0],
+                  lng: vehicleCoords[1],
+                  rating: rating,
+                  disponible: false
+                } as VehiculoMapa
+              ]}
             />
           </div>
         </div>

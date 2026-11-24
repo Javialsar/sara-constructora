@@ -1887,21 +1887,46 @@ export default function SaraFletesEngine() {
                           }}
                           onShareWhatsApp={() => {
                             const trackingToken = activeFreight.id || `TRK-${Date.now().toString().slice(-6)}`;
+                            const origC: [number, number] = originPoint ? [originPoint.lat, originPoint.lng] : [-4.328103, -79.561129];
+                            const destC: [number, number] = destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.331405, -79.553528];
+                            const distKm = rutaCalculada?.distanciaKm || activeFreight.distanciaKm || 1.2;
+                            const durMin = rutaCalculada?.duracionMinutos || activeFreight.duracionMinutos || Math.max(2, Math.round(distKm * 2.5));
+                            const drvName = assignedDriver?.driverName || 'Conductor SARA';
+                            const drvPlate = assignedDriver?.plate || 'PBA-1234';
+                            const drvVeh = assignedDriver?.vehicleName || 'Vehículo Asignado SARA';
+
                             SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {
-                              driverName: assignedDriver?.driverName || "David Sarango",
-                              plate: assignedDriver?.plate || "PCX-4590",
+                              driverName: drvName,
+                              plate: drvPlate,
+                              vehicleName: drvVeh,
                               origin: activeFreight.origin,
                               destination: activeFreight.destination,
-                              originCoords: originPoint ? [originPoint.lat, originPoint.lng] : [-4.328103, -79.561129],
-                              destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.331405, -79.553528],
+                              originCoords: origC,
+                              destinationCoords: destC,
+                              coordenadasRuta: rutaCalculada?.coordenadasRuta,
                               material: activeFreight.material,
-                              distanceKm: rutaCalculada?.distanciaKm || 4.2
+                              distanceKm: distKm,
+                              duracionMinutos: durMin
+                            } as any);
+
+                            const qs = new URLSearchParams({
+                              o: `${origC[0].toFixed(6)},${origC[1].toFixed(6)}`,
+                              d: `${destC[0].toFixed(6)},${destC[1].toFixed(6)}`,
+                              on: activeFreight.origin,
+                              dn: activeFreight.destination,
+                              dr: drvName,
+                              pl: drvPlate,
+                              v: drvVeh,
+                              m: activeFreight.material,
+                              km: String(distKm),
+                              min: String(durMin)
                             });
-                            const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}`;
+                            const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}?${qs.toString()}`;
                             const text = encodeURIComponent(
                               `🚚 *SARA-FLETES: Rastreo de Viaje en Vivo*\n\n` +
-                              `• Chofer: ${assignedDriver?.driverName || "Conductor SARA"} (${assignedDriver?.plate || "PBA-1234"})\n` +
-                              `• Carga: ${activeFreight.material}\n` +
+                              `• Chofer: ${drvName} (${drvPlate})\n` +
+                              `• Vehículo: ${drvVeh}\n` +
+                              `• Ruta: ${activeFreight.origin} ➔ ${activeFreight.destination} (${distKm} km · ~${durMin} min)\n` +
                               `• PIN de Recepción: ${activeFreight.accessCode}\n\n` +
                               `📍 Sigue el vehículo en tiempo real aquí:\n${shareUrl}`
                             );
