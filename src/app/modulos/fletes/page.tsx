@@ -312,37 +312,6 @@ export default function SaraFletesEngine() {
           );
           setDestinationSuggestions(sugs);
           setShowDestSuggestions(sugs.length > 0);
-
-          // Si el texto ingresado coincide fuertemente con un hito clave o una intersección verificada (ej. "18 de noviembre y centenario"),
-          // auto-vincular de inmediato al mapa para que el usuario no tenga que hacer clic obligado en el menú
-          const normVal = val.toLowerCase().trim();
-          const isIntersectionQuery = /\s+(?:y|e|con|esquina|\/)\s+/.test(normVal);
-          const isKeyHito = normVal.includes('terminal') || normVal.includes('onlysoft') || normVal.includes('parque') || normVal.includes('mercado') || normVal.includes('hospital');
-          if ((isKeyHito || (isIntersectionQuery && sugs[0]?.tipo === 'interseccion')) && sugs.length > 0) {
-            const top = sugs[0];
-            const pDest: GeocodedPoint = {
-              nombre: top.titulo,
-              lat: top.lat,
-              lng: top.lng,
-              ciudad: top.ciudad,
-              provincia: top.provincia
-            };
-            destinationPointRef.current = pDest;
-            setDestinationPoint(pDest);
-            if (pOrig) {
-              SaraFreightRoutingService.calcularRutaMasCorta(pOrig, pDest).then((ruta) => {
-                setRutaCalculada(ruta);
-                const tarifa = SaraFreightPricingService.calcularTarifa(
-                  ruta.distanciaKm,
-                  weight,
-                  vehicleType,
-                  material
-                );
-                setTarifaEstimada(tarifa);
-                setProposedPrice(tarifa.tarifaSugeridaUSD);
-              }).catch(() => {});
-            }
-          }
         } catch (e) {
           console.warn('Error buscando sugerencias destino:', e);
         } finally {
@@ -2018,9 +1987,6 @@ export default function SaraFletesEngine() {
                               type="text"
                               enterKeyHint="search"
                               value={destinationText}
-                              onFocus={() => {
-                                if (bottomSheetLevel === 'peek') setBottomSheetLevel('half');
-                              }}
                               onChange={(e) => handleDestinationInputChange(e.target.value)}
                               onKeyDown={async (e) => {
                                 if (e.key === 'Enter') {
@@ -2059,9 +2025,9 @@ export default function SaraFletesEngine() {
                               {isCalculatingRoute ? '...' : 'Ir'}
                             </button>
                           </form>
-                          {/* Menú de sugerencias predictivas de Destino */}
+                          {/* Menú de sugerencias predictivas de Destino (en flujo normal para nunca recortarse) */}
                           {showDestSuggestions && destinationSuggestions.length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-1 bg-slate-950 border border-slate-700/80 rounded-xl shadow-2xl p-1 z-50 max-h-48 overflow-y-auto">
+                            <div className="mt-2 bg-slate-950 border border-slate-700/80 rounded-xl shadow-xl p-1 max-h-48 overflow-y-auto">
                               {destinationSuggestions.map((sug) => (
                                 <button
                                   key={sug.id}
