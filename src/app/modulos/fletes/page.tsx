@@ -83,7 +83,6 @@ import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 import SaraMultimodalTabBar from '@/components/fletes/SaraMultimodalTabBar';
 import SaraViajesMandaditosQuickOrder from '@/components/fletes/SaraViajesMandaditosQuickOrder';
 import SaraMobileBottomSheet, { BottomSheetSnapPoint } from '@/components/fletes/SaraMobileBottomSheet';
-import SaraSavedPlacesBar, { SavedPlaceItem } from '@/components/fletes/SaraSavedPlacesBar';
 import SaraDriverNegotiationDrawer from '@/components/fletes/SaraDriverNegotiationDrawer';
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { saveLastKnownPosition, enqueueOfflineEvent } from '@/lib/fletes/saraFletesOfflineBuffer';
@@ -2022,42 +2021,6 @@ export default function SaraFletesEngine() {
                             </div>
                           )}
                         </div>
-
-                        {/* Barra de Destinos Favoritos 1-Toque (Casa, Trabajo, Obra) */}
-                        <SaraSavedPlacesBar
-                          compact
-                          currentDestination={
-                            destinationPoint && destinationText
-                              ? { nombre: destinationText, lat: destinationPoint.lat, lng: destinationPoint.lng }
-                              : null
-                          }
-                          onSelectPlace={async (place: SavedPlaceItem) => {
-                            destLockedByMapRef.current = true;
-                            setDestinationText(place.address || place.label);
-                            setShowDestSuggestions(false);
-                            const newDest: GeocodedPoint = {
-                              nombre: place.address || place.label,
-                              lat: place.lat,
-                              lng: place.lng,
-                              ciudad: 'Ecuador',
-                              provincia: 'Ecuador'
-                            };
-                            destinationPointRef.current = newDest;
-                            setDestinationPoint(newDest);
-                            const pOrig = originPointRef.current;
-                            if (pOrig) {
-                              setIsCalculatingRoute(true);
-                              try {
-                                const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(pOrig, newDest);
-                                setRutaCalculada(ruta);
-                              } catch (err) {
-                                console.warn('Error calculando ruta a favorito:', err);
-                              } finally {
-                                setIsCalculatingRoute(false);
-                              }
-                            }
-                          }}
-                        />
                       </div>
 
                       <SaraViajesMandaditosQuickOrder
