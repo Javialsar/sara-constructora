@@ -1365,10 +1365,10 @@ export default function MiPerfilFletes() {
       {/* CUERPO PRINCIPAL SPLIT */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         
-        {/* SIDEBAR DE PESTAÑAS */}
-        <aside className="w-full lg:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between">
-          <div className="space-y-1">
-            <div className={`p-3 rounded-xl border mb-4 transition-all ${
+        {/* SIDEBAR RESPONSIVO: Barra horizontal táctil en móvil / Sidebar vertical en escritorio */}
+        <aside className="w-full lg:w-64 bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 px-3 py-2.5 lg:p-4 flex flex-col justify-between shrink-0">
+          <div className="lg:space-y-1">
+            <div className={`hidden lg:block p-3 rounded-xl border mb-4 transition-all ${
               balance < 1.00 ? 'bg-rose-950/40 border-rose-500/70' : 'bg-slate-950 border-slate-800'
             }`}>
               <div className="flex items-center justify-between">
@@ -1408,40 +1408,41 @@ export default function MiPerfilFletes() {
               )}
             </div>
 
+            <nav className="flex flex-row lg:flex-col gap-1.5 lg:gap-1 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
             <button
               onClick={() => setActiveTab('sincronizacion')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'sincronizacion'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <Navigation className="w-4 h-4" />
+              <Navigation className="w-4 h-4 shrink-0" />
               Sincronización & Radar
             </button>
 
             <button
               onClick={() => setActiveTab('vehiculo')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'vehiculo'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <Truck className="w-4 h-4" />
+              <Truck className="w-4 h-4 shrink-0" />
               Mi Cabina y Perfil
             </button>
 
             <button
               onClick={() => setActiveTab('cuentas_bancarias')}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center justify-between gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'cuentas_bancarias'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <Landmark className="w-4 h-4 text-emerald-400" />
+              <div className="flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Cuentas Bancarias & QRs</span>
               </div>
               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
@@ -1453,51 +1454,52 @@ export default function MiPerfilFletes() {
 
             <button
               onClick={() => setActiveTab('documentos')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'documentos'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4 h-4 shrink-0" />
               Mis Documentos
             </button>
 
             <button
               onClick={() => setActiveTab('billetera')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'billetera'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <Wallet className="w-4 h-4" />
+              <Wallet className="w-4 h-4 shrink-0" />
               Billetera y Planes
             </button>
 
             <button
               onClick={() => setActiveTab('historial')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'historial'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <History className="w-4 h-4" />
+              <History className="w-4 h-4 shrink-0" />
               Historial de Viajes
             </button>
 
             <button
               onClick={() => setActiveTab('recargas')}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeTab === 'recargas'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800'
+                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
               }`}
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard className="w-4 h-4 shrink-0" />
               Historial de Recargas
             </button>
+            </nav>
           </div>
 
           <div className="pt-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">

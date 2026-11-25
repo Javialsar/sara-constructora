@@ -382,7 +382,7 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col font-sans">
+    <div className="min-h-screen bg-neutral-950 text-white flex flex-col font-sans overflow-x-hidden">
       {/* Top Navbar */}
       <header className="bg-neutral-900/90 border-b border-neutral-800 px-4 py-3 sticky top-0 z-30 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between">

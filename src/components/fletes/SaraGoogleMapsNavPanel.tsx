@@ -116,7 +116,9 @@ export function SaraGoogleMapsNavPanel({
   onRepeatCurrentStep,
   topOffsetClass = 'top-3',
 }: SaraGoogleMapsNavPanelProps) {
-  const [expanded, setExpanded] = useState<boolean>(true);
+  const [expanded, setExpanded] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 640 : true
+  );
   const activeStepItemRef = useRef<HTMLDivElement | null>(null);
 
   // Desplazar automáticamente la lista hacia la calle activa conforme avanza el viaje
