@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import { SaraFletesRealtimeService, ConductorEstadoRealtime, SolicitudFleteRealtime } from '@/lib/services/saraFletesRealtimeService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
+import { SaraGoogleMapsNavPanel } from '@/components/fletes/SaraGoogleMapsNavPanel';
+import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
+import { snapToRoutePolyline } from '@/lib/fletes/saraGpsTelemetryEngine';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 
 // Importar mapa Leaflet dinámicamente sin SSR
@@ -60,6 +63,13 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [showPinDialog, setShowPinDialog] = useState(false);
+
+  // Recorrido calle por calle en tiempo real (sincronizado con la posición GPS viva del vehículo)
+  const [navSteps, setNavSteps] = useState<PasoNavegacionVial[]>([]);
+  const [activeNavStepIndex, setActiveNavStepIndex] = useState<number>(0);
+  const [remainingMetersToTurn, setRemainingMetersToTurn] = useState<number>(0);
+  const [tripProgressPercent, setTripProgressPercent] = useState<number>(0);
+  const [voiceMuted, setVoiceMuted] = useState<boolean>(true);
 
   useEffect(() => {
     let resolvedOrig: [number, number] | null = null;
@@ -232,20 +242,29 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
         } catch {}
       }
 
-      // 4. Calcular ruta vial real calle por calle si no venía en el snapshot
-      if (!hasRouteFromSnapshot && resolvedOrig && resolvedDest) {
+      // 4. Calcular ruta vial real calle por calle + pasos de navegación (OSRM steps)
+      if (resolvedOrig && resolvedDest) {
         try {
           const ruta = await SaraFreightRoutingService.calcularRutaMasCorta(
             { nombre: origin, lat: resolvedOrig[0], lng: resolvedOrig[1] },
             { nombre: destination, lat: resolvedDest[0], lng: resolvedDest[1] }
           );
-          if (ruta && ruta.coordenadasRuta.length > 0) {
-            setRouteCoords(ruta.coordenadasRuta);
-            setDistanceKm(ruta.distanciaKm);
-            setEtaMinutes(Math.max(1, ruta.duracionMinutos));
+          if (ruta) {
+            if (!hasRouteFromSnapshot && ruta.coordenadasRuta.length > 0) {
+              setRouteCoords(ruta.coordenadasRuta);
+              setDistanceKm(ruta.distanciaKm);
+              setEtaMinutes(Math.max(1, ruta.duracionMinutos));
+            }
+            if (Array.isArray(ruta.pasosNavegacion) && ruta.pasosNavegacion.length > 0) {
+              setNavSteps(ruta.pasosNavegacion);
+              setActiveNavStepIndex(0);
+              setRemainingMetersToTurn(ruta.pasosNavegacion[0].distanciaMetros || 0);
+            }
           }
         } catch {
-          setRouteCoords([resolvedOrig, resolvedDest]);
+          if (!hasRouteFromSnapshot) {
+            setRouteCoords([resolvedOrig, resolvedDest]);
+          }
         }
       }
 
@@ -303,6 +322,42 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [params]);
+
+  // Sincronizar en tiempo real la calle activa y el progreso conforme avanza el vehículo por la ruta
+  useEffect(() => {
+    if (tripStatus === 'completed') {
+      setTripProgressPercent(100);
+      if (navSteps.length > 0) {
+        setActiveNavStepIndex(navSteps.length - 1);
+        setRemainingMetersToTurn(0);
+      }
+      return;
+    }
+
+    const activeRoute = routeCoords.length >= 2 ? routeCoords : [originCoords, destinationCoords];
+    const snap = snapToRoutePolyline(vehicleCoords, activeRoute);
+    setTripProgressPercent(snap.progressPercent);
+
+    if (navSteps.length > 0) {
+      const rawStepsTotalM = navSteps.reduce((sum, s) => sum + (s.distanciaMetros || 0), 0) || snap.totalRouteMeters;
+      const scaleFactor = snap.totalRouteMeters / Math.max(1, rawStepsTotalM);
+      let accStepM = 0;
+      let matchedIdx = navSteps.length - 1;
+      let remM = 0;
+
+      for (let k = 0; k < navSteps.length; k++) {
+        accStepM += (navSteps[k].distanciaMetros || 0) * scaleFactor;
+        if (snap.traveledMeters < accStepM || k === navSteps.length - 1) {
+          matchedIdx = k;
+          remM = Math.max(0, Math.round(accStepM - snap.traveledMeters));
+          break;
+        }
+      }
+
+      setActiveNavStepIndex(matchedIdx);
+      setRemainingMetersToTurn(remM);
+    }
+  }, [vehicleCoords, routeCoords, originCoords, destinationCoords, navSteps, tripStatus]);
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
@@ -362,20 +417,45 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
       <main className="max-w-6xl mx-auto w-full p-4 flex-1 flex flex-col lg:flex-row gap-4">
         {/* Left Side: Map-as-Canvas */}
         <div className="flex-1 bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden min-h-[420px] lg:min-h-[580px] relative shadow-2xl flex flex-col">
-          {/* Status Badge flotante en el mapa */}
-          <div className="absolute top-4 left-4 z-20 bg-neutral-900/90 backdrop-blur-md border border-neutral-700 rounded-2xl px-3.5 py-2 flex items-center space-x-2.5 shadow-xl">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-            <div>
-              <p className="text-[10px] text-neutral-400 font-medium">ESTADO DEL FLETE</p>
-              <p className="text-xs font-black text-emerald-400">
-                {tripStatus === 'in_transit'
-                  ? 'EN RECORRIDO HACIA OBRA'
-                  : tripStatus === 'completed'
-                  ? 'ENTREGA FINALIZADA'
-                  : 'EN CAMINO A CARGA'}
-              </p>
+          {/* Panel flotante de Recorrido Calle por Calle estilo Google Maps (resalta la calle activa en vivo) */}
+          {navSteps.length > 0 ? (
+            <SaraGoogleMapsNavPanel
+              originName={origin}
+              destinationName={destination}
+              steps={navSteps}
+              activeStepIndex={activeNavStepIndex}
+              remainingMetersToNextTurn={remainingMetersToTurn}
+              tripProgressPercent={tripProgressPercent}
+              voiceMuted={voiceMuted}
+              onToggleVoice={() => {
+                const next = !voiceMuted;
+                setVoiceMuted(next);
+                saraVoiceNavigation.setMuted(next);
+              }}
+              onRepeatCurrentStep={() => {
+                if (voiceMuted) {
+                  setVoiceMuted(false);
+                  saraVoiceNavigation.setMuted(false);
+                }
+                const current = navSteps[activeNavStepIndex];
+                if (current) saraVoiceNavigation.anunciarPaso(current);
+              }}
+            />
+          ) : (
+            <div className="absolute top-4 left-4 z-20 bg-neutral-900/90 backdrop-blur-md border border-neutral-700 rounded-2xl px-3.5 py-2 flex items-center space-x-2.5 shadow-xl">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+              <div>
+                <p className="text-[10px] text-neutral-400 font-medium">ESTADO DEL FLETE</p>
+                <p className="text-xs font-black text-emerald-400">
+                  {tripStatus === 'in_transit'
+                    ? 'EN RECORRIDO HACIA OBRA'
+                    : tripStatus === 'completed'
+                    ? 'ENTREGA FINALIZADA'
+                    : 'EN CAMINO A CARGA'}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex-1 w-full h-full">
             <SaraFletesMap
