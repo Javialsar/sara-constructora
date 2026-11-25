@@ -1005,6 +1005,8 @@ export default function MiPerfilFletes() {
   };
 
   const [viajesList, setViajesList] = useState<ViajeHistorialItem[]>([]);
+  const [historialFechaDesde, setHistorialFechaDesde] = useState<string>('');
+  const [historialFechaHasta, setHistorialFechaHasta] = useState<string>('');
 
   useEffect(() => {
     const myPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
@@ -1012,52 +1014,243 @@ export default function MiPerfilFletes() {
     setViajesList(loaded);
   }, [currentUser]);
 
+  // Parser robusto de fechas en español/inglés para filtrar el historial (ej. "24 nov 2026, 09:41 a. m.", "12 Oct 2026, 14:00")
+  const parseFechaHistorial = (fechaStr?: string): Date | null => {
+    if (!fechaStr) return null;
+    const raw = fechaStr.trim().toLowerCase();
+    const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+    }
+    const meses: Record<string, number> = {
+      ene: 0, jan: 0, feb: 1, mar: 2, abr: 3, apr: 3, may: 4, jun: 5,
+      jul: 6, ago: 7, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dic: 11, dec: 11
+    };
+    const m = raw.match(/(\d{1,2})\s+([a-záéíóú]+)\.?\s+(\d{4})/i);
+    if (m) {
+      const day = Number(m[1]);
+      const mesKey = m[2].slice(0, 4).replace('.', '');
+      const month = meses[mesKey] ?? meses[mesKey.slice(0, 3)];
+      const year = Number(m[3]);
+      if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+        return new Date(year, month, day);
+      }
+    }
+    const slash = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (slash) {
+      return new Date(Number(slash[3]), Number(slash[2]) - 1, Number(slash[1]));
+    }
+    const fallback = new Date(fechaStr);
+    return isNaN(fallback.getTime()) ? null : new Date(fallback.getFullYear(), fallback.getMonth(), fallback.getDate());
+  };
+
+  const formatFechaReporte = (isoDate: string): string => {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-').map(Number);
+    if (!y || !m || !d) return isoDate;
+    return new Date(y, m - 1, d).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const filteredViajesList = useMemo(() => {
+    const desdeDate = historialFechaDesde ? parseFechaHistorial(historialFechaDesde) : null;
+    const hastaDate = historialFechaHasta ? parseFechaHistorial(historialFechaHasta) : null;
+    if (!desdeDate && !hastaDate) return viajesList;
+
+    return viajesList.filter((v) => {
+      const fechaViaje = parseFechaHistorial(v.embarque) || parseFechaHistorial(v.llegada);
+      if (!fechaViaje) return true;
+      if (desdeDate && fechaViaje < desdeDate) return false;
+      if (hastaDate && fechaViaje > hastaDate) return false;
+      return true;
+    });
+  }, [viajesList, historialFechaDesde, historialFechaHasta]);
+
+  const totalesViajes = useMemo(() => {
+    const totalTarifa = filteredViajesList.reduce((acc, v) => acc + (Number(v.tarifa) || 0), 0);
+    const totalComision = filteredViajesList.reduce((acc, v) => acc + (Number(v.comision) || 0), 0);
+    const totalUtilidad = filteredViajesList.reduce((acc, v) => acc + (Number(v.utilidad) || 0), 0);
+    return {
+      cantidad: filteredViajesList.length,
+      totalTarifa: +totalTarifa.toFixed(2),
+      totalComision: +totalComision.toFixed(2),
+      totalUtilidad: +totalUtilidad.toFixed(2)
+    };
+  }, [filteredViajesList]);
+
   const historialRecargas = [
     { fecha: '12 Oct 2026, 15:30', referencia: 'TRX-99882211', metodo: 'Tarjeta de Crédito', estado: 'En Verificación', valor: 50.00 },
     { fecha: '01 Oct 2026, 09:15', referencia: 'TRX-11223344', metodo: 'Transferencia Bancaria', estado: 'Aprobado', valor: 100.00 }
   ];
 
+  const getReportHeaderMeta = () => {
+    const conductor = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
+    const vehiculo = currentUser?.user_metadata?.vehiculo || currentUser?.user_metadata?.tipo_vehiculo || 'Camioneta Pickup 1.2T · SARA';
+    const placa = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const hoyTexto = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+    const desdeTexto = historialFechaDesde ? formatFechaReporte(historialFechaDesde) : 'Inicio de registros';
+    const hastaTexto = historialFechaHasta ? formatFechaReporte(historialFechaHasta) : hoyTexto;
+    return { conductor, vehiculo, placa, desdeTexto, hastaTexto };
+  };
+
   const handleDownloadExcel = (type: 'viajes' | 'recargas') => {
-    const dataToExport = type === 'viajes' 
-      ? viajesList.map(v => ({
-          'ID Flete': v.fleteId || v.id,
-          'Cliente': v.cliente,
-          'Ruta': v.route,
-          'Embarque': v.embarque,
-          'Llegada': v.llegada,
-          'Tiempo Estimado': v.tiempo,
-          'Tarifa Cobrada ($)': v.tarifa,
-          'Comisión SARA ($)': v.comision,
-          'Utilidad Conductor ($)': v.utilidad,
-          'Método Pago': v.metodoPago || 'Efectivo / Transferencia',
-          'Calificación': `${v.calificacion || 5} ★`
-        }))
-      : historialRecargas;
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const meta = getReportHeaderMeta();
+    const titulo = type === 'viajes' ? 'HISTORIAL DE VIAJES' : 'HISTORIAL DE RECARGAS';
+    const headerRows: any[][] = [
+      ['GRUPO SARA'],
+      [titulo],
+      [],
+      ['Conductor:', meta.conductor],
+      ['Vehículo:', meta.vehiculo, '', 'PLACA:', meta.placa],
+      ['Fechas: Desde:', meta.desdeTexto, '', 'Hasta:', meta.hastaTexto],
+      []
+    ];
+
+    let tableRows: any[][] = [];
+    if (type === 'viajes') {
+      tableRows = [
+        ['ID Flete', 'Cliente', 'Ruta', 'Embarque', 'Llegada', 'Tiempo', 'Tarifa Cobrada ($)', 'Comisión SARA ($)', 'Utilidad Neta ($)', 'Método Pago', 'Calificación'],
+        ...filteredViajesList.map((v) => [
+          v.fleteId || v.id,
+          v.cliente || 'Cliente SARA',
+          v.route,
+          v.embarque,
+          v.llegada,
+          v.tiempo,
+          +Number(v.tarifa || 0).toFixed(2),
+          +Number(v.comision || 0).toFixed(2),
+          +Number(v.utilidad || 0).toFixed(2),
+          v.metodoPago || 'Efectivo / Transferencia',
+          `${v.calificacion || 5} ★`
+        ]),
+        [
+          'TOTALES',
+          `${totalesViajes.cantidad} viaje(s)`,
+          '',
+          '',
+          '',
+          '',
+          totalesViajes.totalTarifa,
+          totalesViajes.totalComision,
+          totalesViajes.totalUtilidad,
+          '',
+          ''
+        ]
+      ];
+    } else {
+      const totalRecargas = historialRecargas.reduce((acc, r) => acc + Number(r.valor || 0), 0);
+      tableRows = [
+        ['Fecha', 'Referencia', 'Método', 'Estado', 'Valor ($)'],
+        ...historialRecargas.map((r) => [r.fecha, r.referencia, r.metodo, r.estado, +Number(r.valor || 0).toFixed(2)]),
+        ['TOTALES', `${historialRecargas.length} recarga(s)`, '', '', +totalRecargas.toFixed(2)]
+      ];
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...tableRows]);
+    const colCount = type === 'viajes' ? 11 : 5;
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: colCount - 1 } },
+      { s: { r: 3, c: 1 }, e: { r: 3, c: Math.min(5, colCount - 1) } }
+    ];
+    ws['!cols'] = type === 'viajes'
+      ? [
+          { wch: 18 }, { wch: 28 }, { wch: 40 }, { wch: 24 }, { wch: 24 },
+          { wch: 10 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 22 }, { wch: 12 }
+        ]
+      : [{ wch: 22 }, { wch: 18 }, { wch: 24 }, { wch: 18 }, { wch: 14 }];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, type === 'viajes' ? 'Viajes' : 'Recargas');
-    XLSX.writeFile(wb, `SARA-Fletes-${type}.xlsx`);
-    showToast(`Archivo Excel de ${type} descargado exitosamente`);
+    XLSX.utils.book_append_sheet(wb, ws, type === 'viajes' ? 'Historial Viajes' : 'Historial Recargas');
+    XLSX.writeFile(wb, `GRUPO-SARA-Historial-${type}.xlsx`);
+    showToast(`Archivo Excel de ${type} descargado con encabezado oficial y totales.`);
   };
 
   const handleDownloadPDF = (type: 'viajes' | 'recargas') => {
-    const doc = new jsPDF();
-    doc.text(`GRUPO SARA - Historial de ${type === 'viajes' ? 'Viajes' : 'Recargas'}`, 14, 15);
+    const meta = getReportHeaderMeta();
+    const doc = new jsPDF({ orientation: type === 'viajes' ? 'landscape' : 'portrait' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Encabezado oficial GRUPO SARA (formato solicitado)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('GRUPO SARA', pageWidth / 2, 16, { align: 'center' });
+
+    doc.setFontSize(13);
+    doc.text(type === 'viajes' ? 'HISTORIAL DE VIAJES' : 'HISTORIAL DE RECARGAS', pageWidth / 2, 24, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const rightColX = pageWidth / 2 + 10;
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Conductor:', 14, 34);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.conductor, 36, 34);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Vehículo:', 14, 41);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.vehiculo, 36, 41);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('PLACA:', rightColX, 41);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.placa, rightColX + 16, 41);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Fechas: Desde:', 14, 48);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.desdeTexto, 43, 48);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Hasta:', rightColX, 48);
+    doc.setFont('helvetica', 'normal');
+    doc.text(meta.hastaTexto, rightColX + 14, 48);
+
+    doc.setDrawColor(180, 180, 180);
+    doc.line(14, 52, pageWidth - 14, 52);
+
     if (type === 'viajes') {
       autoTable(doc, {
-        head: [['Cliente', 'Ruta', 'Embarque', 'Tarifa', 'Comisión', 'Utilidad']],
-        body: viajesList.map(v => [v.cliente || 'Cliente SARA', v.route, v.embarque, `${v.tarifa.toFixed(2)}`, `${v.comision.toFixed(2)}`, `${v.utilidad.toFixed(2)}`]),
-        startY: 20
+        head: [['Cliente', 'Ruta', 'Embarque', 'Llegada', 'Tiempo', 'Tarifa ($)', 'Comisión ($)', 'Utilidad ($)']],
+        body: filteredViajesList.map((v) => [
+          v.cliente || 'Cliente SARA',
+          v.route,
+          v.embarque,
+          v.llegada,
+          v.tiempo,
+          `$${Number(v.tarifa || 0).toFixed(2)}`,
+          `-$${Number(v.comision || 0).toFixed(2)}`,
+          `$${Number(v.utilidad || 0).toFixed(2)}`
+        ]),
+        foot: [[
+          `TOTALES (${totalesViajes.cantidad} viajes)`,
+          '',
+          '',
+          '',
+          '',
+          `$${totalesViajes.totalTarifa.toFixed(2)}`,
+          `-$${totalesViajes.totalComision.toFixed(2)}`,
+          `$${totalesViajes.totalUtilidad.toFixed(2)}`
+        ]],
+        startY: 56,
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
+        styles: { fontSize: 8.5 }
       });
     } else {
+      const totalRecargas = historialRecargas.reduce((acc, r) => acc + Number(r.valor || 0), 0);
       autoTable(doc, {
-        head: [['Fecha', 'Referencia', 'Método', 'Estado', 'Valor']],
-        body: historialRecargas.map(r => [r.fecha, r.referencia, r.metodo, r.estado, `+$${r.valor}`]),
-        startY: 20
+        head: [['Fecha', 'Referencia', 'Método', 'Estado', 'Valor ($)']],
+        body: historialRecargas.map((r) => [r.fecha, r.referencia, r.metodo, r.estado, `+$${Number(r.valor || 0).toFixed(2)}`]),
+        foot: [[`TOTALES (${historialRecargas.length} recargas)`, '', '', '', `+$${totalRecargas.toFixed(2)}`]],
+        startY: 56,
+        headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold' },
+        footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' }
       });
     }
-    doc.save(`SARA-Fletes-${type}.pdf`);
-    showToast(`Archivo PDF de ${type} generado exitosamente`);
+    doc.save(`GRUPO-SARA-Historial-${type}.pdf`);
+    showToast(`Archivo PDF de ${type} generado con encabezado oficial y totales.`);
   };
 
   if (authLoading) {
@@ -2847,19 +3040,101 @@ export default function MiPerfilFletes() {
           {/* TAB 5: HISTORIAL DE VIAJES */}
           {/* ================================================================ */}
           {activeTab === 'historial' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex flex-wrap justify-between items-center gap-3">
                 <div>
                   <h2 className="text-2xl font-black text-white">Historial Detallado de Viajes</h2>
                   <p className="text-xs text-slate-400">Registro de carreras completadas, comisiones y utilidad neta obtenida.</p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleDownloadExcel('viajes')} className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-700">
+                  <button onClick={() => handleDownloadExcel('viajes')} className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold border border-slate-700 cursor-pointer">
                     <Download className="w-3.5 h-3.5" /> Excel
                   </button>
-                  <button onClick={() => handleDownloadPDF('viajes')} className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-md">
+                  <button onClick={() => handleDownloadPDF('viajes')} className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-md cursor-pointer">
                     <Download className="w-3.5 h-3.5" /> PDF
                   </button>
+                </div>
+              </div>
+
+              {/* Filtros por Rango de Fechas (Desde / Hasta) + Atajos + Totales */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-end justify-between gap-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Fecha Desde
+                    </label>
+                    <input
+                      type="date"
+                      value={historialFechaDesde}
+                      onChange={(e) => setHistorialFechaDesde(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Fecha Hasta
+                    </label>
+                    <input
+                      type="date"
+                      value={historialFechaHasta}
+                      onChange={(e) => setHistorialFechaHasta(e.target.value)}
+                      className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const hoy = new Date().toISOString().slice(0, 10);
+                        setHistorialFechaDesde(hoy);
+                        setHistorialFechaHasta(hoy);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer"
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const now = new Date();
+                        const first = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+                        const today = now.toISOString().slice(0, 10);
+                        setHistorialFechaDesde(first);
+                        setHistorialFechaHasta(today);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 cursor-pointer"
+                    >
+                      Este mes
+                    </button>
+                    {(historialFechaDesde || historialFechaHasta) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHistorialFechaDesde('');
+                          setHistorialFechaHasta('');
+                        }}
+                        className="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-bold border border-amber-500/30 cursor-pointer"
+                      >
+                        Todos
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resumen rápido de totales del periodo */}
+                <div className="flex flex-wrap items-center gap-3 text-xs">
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
+                    <span className="text-[10px] text-slate-400 block">Total Tarifa ({totalesViajes.cantidad})</span>
+                    <span className="font-mono font-black text-white">${totalesViajes.totalTarifa.toFixed(2)}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5">
+                    <span className="text-[10px] text-slate-400 block">Total Comisión</span>
+                    <span className="font-mono font-black text-rose-400">-${totalesViajes.totalComision.toFixed(2)}</span>
+                  </div>
+                  <div className="bg-slate-950 border border-emerald-500/30 rounded-xl px-3 py-1.5">
+                    <span className="text-[10px] text-emerald-300 block">Total Utilidad Neta</span>
+                    <span className="font-mono font-black text-emerald-400">${totalesViajes.totalUtilidad.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
 
@@ -2879,29 +3154,49 @@ export default function MiPerfilFletes() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {viajesList.map((viaje) => (
-                        <tr key={viaje.id} className="hover:bg-slate-800/50 transition-colors">
-                          <td className="p-3.5">
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0 shadow-sm">
-                                {viaje.cliente?.charAt(0) || 'C'}
-                              </div>
-                              <div>
-                                <p className="font-bold text-white text-xs leading-tight">{viaje.cliente || 'Cliente SARA'}</p>
-                                <span className="text-[10px] text-slate-400 font-mono">{viaje.fleteId || 'Flete Express'}</span>
-                              </div>
-                            </div>
+                      {filteredViajesList.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="p-8 text-center text-slate-400">
+                            No se encontraron viajes registrados en el rango de fechas seleccionado.
                           </td>
-                          <td className="p-3.5 font-bold text-white">{viaje.route}</td>
-                          <td className="p-3.5 text-slate-400">{viaje.embarque}</td>
-                          <td className="p-3.5 text-slate-400">{viaje.llegada}</td>
-                          <td className="p-3.5 text-slate-300 font-mono">{viaje.tiempo}</td>
-                          <td className="p-3.5 font-mono font-bold text-white">${viaje.tarifa.toFixed(2)}</td>
-                          <td className="p-3.5 font-mono font-bold text-rose-400">- ${viaje.comision.toFixed(2)}</td>
-                          <td className="p-3.5 font-mono font-black text-emerald-400">${viaje.utilidad.toFixed(2)}</td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredViajesList.map((viaje) => (
+                          <tr key={viaje.id} className="hover:bg-slate-800/50 transition-colors">
+                            <td className="p-3.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs shrink-0 shadow-sm">
+                                  {viaje.cliente?.charAt(0) || 'C'}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-white text-xs leading-tight">{viaje.cliente || 'Cliente SARA'}</p>
+                                  <span className="text-[10px] text-slate-400 font-mono">{viaje.fleteId || 'Flete Express'}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3.5 font-bold text-white">{viaje.route}</td>
+                            <td className="p-3.5 text-slate-400">{viaje.embarque}</td>
+                            <td className="p-3.5 text-slate-400">{viaje.llegada}</td>
+                            <td className="p-3.5 text-slate-300 font-mono">{viaje.tiempo}</td>
+                            <td className="p-3.5 font-mono font-bold text-white">${viaje.tarifa.toFixed(2)}</td>
+                            <td className="p-3.5 font-mono font-bold text-rose-400">- ${viaje.comision.toFixed(2)}</td>
+                            <td className="p-3.5 font-mono font-black text-emerald-400">${viaje.utilidad.toFixed(2)}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
+                    {filteredViajesList.length > 0 && (
+                      <tfoot>
+                        <tr className="bg-slate-950/90 border-t-2 border-slate-700 font-black text-xs">
+                          <td colSpan={5} className="p-3.5 text-right uppercase tracking-wider text-slate-300">
+                            TOTALES ({totalesViajes.cantidad} {totalesViajes.cantidad === 1 ? 'viaje' : 'viajes'}):
+                          </td>
+                          <td className="p-3.5 font-mono text-white text-sm">${totalesViajes.totalTarifa.toFixed(2)}</td>
+                          <td className="p-3.5 font-mono text-rose-400 text-sm">- ${totalesViajes.totalComision.toFixed(2)}</td>
+                          <td className="p-3.5 font-mono text-emerald-400 text-sm">${totalesViajes.totalUtilidad.toFixed(2)}</td>
+                        </tr>
+                      </tfoot>
+                    )}
                   </table>
                 </div>
               </div>
