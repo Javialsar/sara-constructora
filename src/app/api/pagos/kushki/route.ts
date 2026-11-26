@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
+const ALLOWED_DEFERRED_MONTHS = new Set([0, 3, 6, 9, 12]);
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Verificación obligatoria de autenticación Zero-Trust
@@ -11,41 +13,172 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => null);
     if (!body) {
-      return NextResponse.json({ success: false, error: 'Cuerpo de petición inválido' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Cuerpo de petición inválido.' }, { status: 400 });
     }
 
-    const { token, cardNumber, plan, planId, ordenId, amount } = body;
+    const {
+      token,
+      cardNumber,
+      plan,
+      planId,
+      ordenId,
+      orderId,
+      amount,
+      intentType = 'charge',
+      deferredMonths = 0,
+      ticketNumber,
+      description,
+    } = body;
 
-    // 2. PCI DSS Compliance: Rechazo estricto de números de tarjeta en texto claro
+    // 2. PCI DSS Compliance: rechazo estricto de PAN en texto claro
     if (cardNumber) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Violación PCI DSS: Por seguridad financiera, nunca transmita números de tarjeta en texto claro al servidor. Utilice el SDK de Kushki para obtener un token seguro en el cliente (token).'
+          error:
+            'Violación PCI DSS: nunca transmita números de tarjeta en texto claro al servidor. Utilice Kushki.js para tokenización 1-Clic en cliente.',
         },
         { status: 400 }
       );
     }
 
+    const merchantId = process.env.KUSHKI_PRIVATE_MERCHANT_ID;
+    if (!merchantId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Pasarela Kushki no configurada: falta KUSHKI_PRIVATE_MERCHANT_ID en las variables de entorno del servidor.',
+        },
+        { status: 503 }
+      );
+    }
+
+    const isProduction = process.env.NODE_ENV === 'production';
+    const baseUrl = isProduction ? 'https://api.kushkipagos.com' : 'https://api-uat.kushkipagos.com';
+    const supabaseAdmin = createAdminClient();
+    const targetFleteOrderId: string | null = typeof orderId === 'string' && orderId ? orderId : null;
+
+    // 2.1 Operaciones sobre pre-autorización existente (capture / void)
+    if (intentType === 'capture' || intentType === 'void') {
+      if (!ticketNumber || typeof ticketNumber !== 'string') {
+        return NextResponse.json(
+          { success: false, error: 'Se requiere ticketNumber de pre-autorización Kushki.' },
+          { status: 400 }
+        );
+      }
+
+      const numAmount = Number(amount);
+      if (intentType === 'capture' && (!Number.isFinite(numAmount) || numAmount <= 0)) {
+        return NextResponse.json({ success: false, error: 'Monto de captura inválido.' }, { status: 400 });
+      }
+
+      const endpoint =
+        intentType === 'capture'
+          ? `${baseUrl}/card/v1/capture`
+          : `${baseUrl}/card/v1/void/${encodeURIComponent(ticketNumber)}`;
+
+      const gatewayRes = await fetch(endpoint, {
+        method: intentType === 'capture' ? 'POST' : 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Private-Merchant-Id': merchantId,
+        },
+        body:
+          intentType === 'capture'
+            ? JSON.stringify({
+                ticketNumber,
+                amount: {
+                  currency: 'USD',
+                  subtotalIva: 0,
+                  subtotalIva0: Number(numAmount.toFixed(2)),
+                  iva: 0,
+                  ice: 0,
+                },
+                fullResponse: true,
+              })
+            : undefined,
+      });
+
+      const raw = await gatewayRes.json().catch(() => null);
+      if (!gatewayRes.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: raw?.message || `Error ejecutando ${intentType} en Kushki.`,
+            code: raw?.code || 'KUSHKI_ERROR',
+          },
+          { status: 402 }
+        );
+      }
+
+      await supabaseAdmin
+        .from('fletes_payment_intents')
+        .update({
+          status: intentType === 'capture' ? 'CAPTURED' : 'VOIDED',
+          raw_response: raw || {},
+          updated_at: new Date().toISOString(),
+        })
+        .eq('kushki_ticket_number', ticketNumber);
+
+      return NextResponse.json({
+        success: true,
+        status: intentType === 'capture' ? 'CAPTURED' : 'VOIDED',
+        ticketNumber: raw?.ticketNumber || ticketNumber,
+      });
+    }
+
+    // 3. Validación de token para charge / preauth / topup
     if (!token || typeof token !== 'string' || token.trim().length < 8) {
       return NextResponse.json(
-        { success: false, error: 'Token de pago Kushki inválido o ausente. Se requiere tokenización previa en cliente.' },
+        {
+          success: false,
+          error: 'Token de pago Kushki inválido o ausente. Se requiere tokenización previa en cliente (Kushki.js).',
+        },
         { status: 400 }
       );
     }
 
-    // 2.1 Validación y Recálculo del Monto en Servidor (Anti-Tampering OWASP API6)
-    let verifiedAmount: number = 0;
-    const supabaseAdmin = createAdminClient();
+    const parsedDeferred = Number(deferredMonths) || 0;
+    if (!ALLOWED_DEFERRED_MONTHS.has(parsedDeferred)) {
+      return NextResponse.json(
+        { success: false, error: 'Plazo diferido inválido. Solo se permiten 0, 3, 6, 9 o 12 meses.' },
+        { status: 400 }
+      );
+    }
 
-    if (ordenId) {
+    // 4. Validación y recálculo de monto en servidor (Anti-Tampering)
+    let verifiedAmount = 0;
+
+    if (targetFleteOrderId && intentType !== 'topup') {
+      const { data: fleteOrder } = await supabaseAdmin
+        .from('fletes_orders')
+        .select('id, customer_id, quoted_price_usd, guarantee_deposit_usd')
+        .eq('id', targetFleteOrderId)
+        .maybeSingle();
+
+      if (fleteOrder) {
+        if (fleteOrder.customer_id !== user.id) {
+          return NextResponse.json(
+            { success: false, error: 'Acceso denegado: Orden de flete ajena.' },
+            { status: 403 }
+          );
+        }
+        verifiedAmount =
+          intentType === 'preauth' && Number(fleteOrder.guarantee_deposit_usd) > 0
+            ? Number(fleteOrder.guarantee_deposit_usd)
+            : Number(fleteOrder.quoted_price_usd);
+      }
+    }
+
+    if (!verifiedAmount && ordenId) {
       const { data: ordenDb } = await supabaseAdmin
         .from('ordenes_pago')
-        .select('id, monto, user_id, estado')
+        .select('id, monto, user_id')
         .eq('id', ordenId)
         .maybeSingle();
 
-      if (ordenDb && ordenDb.monto > 0) {
+      if (ordenDb && Number(ordenDb.monto) > 0) {
         if (ordenDb.user_id !== user.id) {
           return NextResponse.json({ success: false, error: 'Acceso denegado: Orden de pago ajena.' }, { status: 403 });
         }
@@ -56,183 +189,148 @@ export async function POST(req: NextRequest) {
     if (!verifiedAmount && planId) {
       const { data: planDb } = await supabaseAdmin
         .from('planes_suscripcion')
-        .select('id, precio, nombre')
+        .select('id, precio')
         .eq('id', planId)
         .maybeSingle();
 
-      if (planDb && planDb.precio > 0) {
+      if (planDb && Number(planDb.precio) > 0) {
         verifiedAmount = Number(planDb.precio);
       }
     }
 
-    // Catálogo fallback oficial de planes SaaS del ecosistema
-    const OFFICIAL_PLANS: Record<string, number> = {
-      'PLAN_PRO_ANUAL': 18.00,
-      'FIRMA_NATURAL_1A': 18.00,
-      'FIRMA_JURIDICA_2A': 38.00,
-      'BOLSA_15_DOCS': 3.99,
-      'PASE_MENSUAL_30D': 7.99,
-      'COMBO_ANUAL_VIP': 59.99,
-      'STARTER': 49.00,
-      'PRO': 149.00,
-      'ENTERPRISE': 399.00,
-      'APU_BASICO': 9.99,
-      'APU_PRO': 19.99,
-      'APU_ENTERPRISE': 49.99,
-      'CONSTRUCTORA_BASICO': 29.00,
-      'CONSTRUCTORA_PRO': 79.00,
-      'CONSTRUCTORA_VIP': 189.00
-    };
-
-    if (!verifiedAmount && plan && typeof plan === 'string') {
-      const cleanPlanKey = plan.toUpperCase().replace(/\s+/g, '_');
-      if (OFFICIAL_PLANS[cleanPlanKey]) {
-        verifiedAmount = OFFICIAL_PLANS[cleanPlanKey];
-      }
-    }
-
-    // Si se verificó precio en servidor, validar contra amount del cliente para evitar manipulación
     if (verifiedAmount > 0) {
       if (amount && Math.abs(Number(amount) - verifiedAmount) > 0.05) {
-        return NextResponse.json({
-          success: false,
-          error: `Discrepancia de monto detectada. El valor oficial del plan es $${verifiedAmount.toFixed(2)} USD.`
-        }, { status: 400 });
-      }
-    } else {
-      verifiedAmount = Number(amount);
-      if (!verifiedAmount || verifiedAmount <= 0 || isNaN(verifiedAmount)) {
-        return NextResponse.json({ success: false, error: 'Monto de pago inválido o plan no identificado' }, { status: 400 });
-      }
-    }
-
-    const numAmount = verifiedAmount;
-
-    const merchantId = process.env.KUSHKI_PRIVATE_MERCHANT_ID;
-    const isProduction = process.env.NODE_ENV === 'production';
-
-    // 3. Verificación de configuración formal de pasarela
-    if (isProduction && !merchantId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Pasarela Kushki no configurada en producción (falta KUSHKI_PRIVATE_MERCHANT_ID).'
-        },
-        { status: 503 }
-      );
-    }
-
-    let transactionId = '';
-    let statusApproval: 'aprobada' | 'rechazada' = 'aprobada';
-    let rawGatewayResponse: any = null;
-
-    if (merchantId) {
-      // 4. Invocación oficial a la API de Kushki
-      const kushkiEndpoint = isProduction
-        ? 'https://api.kushkipagos.com/card/v1/charges'
-        : 'https://api-uat.kushkipagos.com/card/v1/charges';
-
-      const chargePayload = {
-        token: token.trim(),
-        amount: {
-          subtotalIva: 0,
-          subtotalIva0: parseFloat(numAmount.toFixed(2)),
-          ice: 0,
-          iva: 0,
-          currency: 'USD'
-        },
-        metadata: {
-          userId: user.id,
-          userEmail: user.email,
-          plan: plan || 'Suscripcion SaaS'
-        }
-      };
-
-      const gatewayRes = await fetch(kushkiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Private-Merchant-Id': merchantId
-        },
-        body: JSON.stringify(chargePayload)
-      });
-
-      rawGatewayResponse = await gatewayRes.json().catch(() => null);
-
-      if (!gatewayRes.ok || rawGatewayResponse?.responseCode !== '000') {
-        const errorMsg = rawGatewayResponse?.message || rawGatewayResponse?.responseText || 'Transacción rechazada por la entidad bancaria';
         return NextResponse.json(
           {
             success: false,
-            error: errorMsg,
-            code: rawGatewayResponse?.responseCode || 'GATEWAY_DECLINED'
+            error: `Discrepancia de monto detectada. Valor oficial verificado: $${verifiedAmount.toFixed(2)} USD.`,
           },
-          { status: 402 }
+          { status: 400 }
         );
       }
-
-      transactionId = rawGatewayResponse.ticketNumber || rawGatewayResponse.transactionId || `KSH-${Date.now()}`;
     } else {
-      // Entorno de pruebas / desarrollo sin credenciales reales
-      const crypto = await import('crypto');
-      transactionId = 'KSH-TEST-' + crypto.randomBytes(6).toString('hex').toUpperCase();
+      verifiedAmount = Number(amount);
+      if (!Number.isFinite(verifiedAmount) || verifiedAmount <= 0) {
+        return NextResponse.json({ success: false, error: 'Monto de pago inválido.' }, { status: 400 });
+      }
     }
 
-    // 5. Persistencia Transaccional Idempotente en Supabase (Con fallo estricto)
-    try {
-      const { data: orden, error: ordenErr } = await supabaseAdmin.from('ordenes_pago').insert({
-        user_id: user.id,
-        modulo: 'saas',
-        referencia_id: transactionId,
-        concepto: `Pago Kushki Tokenizado: ${plan || 'Suscripción'}`,
-        monto: numAmount,
-        moneda: 'USD',
-        estado: 'completada'
-      }).select().single();
+    const numAmount = Number(verifiedAmount.toFixed(2));
+    const isPreauth = intentType === 'preauth';
+    const kushkiEndpoint = isPreauth
+      ? `${baseUrl}/card/v1/preAuthorization`
+      : `${baseUrl}/card/v1/charges`;
 
-      if (ordenErr || !orden) {
-        console.error('[Kushki Route DB Critical Error]:', ordenErr);
-        return NextResponse.json({
+    const payload: Record<string, unknown> = {
+      token: token.trim(),
+      amount: {
+        subtotalIva: 0,
+        subtotalIva0: numAmount,
+        ice: 0,
+        iva: 0,
+        currency: 'USD',
+      },
+      fullResponse: true,
+      metadata: {
+        userId: user.id,
+        userEmail: user.email,
+        orderId: targetFleteOrderId || ordenId || null,
+        intentType,
+        plan: plan || description || 'SARA FLETES',
+      },
+    };
+
+    if (!isPreauth && parsedDeferred > 0) {
+      payload.deferred = {
+        creditType: '02', // Diferido con intereses Ecuador
+        months: parsedDeferred,
+        graceMonths: '00',
+      };
+    }
+
+    const gatewayRes = await fetch(kushkiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Private-Merchant-Id': merchantId,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const rawGatewayResponse = await gatewayRes.json().catch(() => null);
+
+    if (!gatewayRes.ok || (rawGatewayResponse?.details?.responseCode && rawGatewayResponse.details.responseCode !== '000')) {
+      const errorMsg =
+        rawGatewayResponse?.message ||
+        rawGatewayResponse?.details?.responseText ||
+        'Transacción rechazada por Kushki / entidad bancaria.';
+      return NextResponse.json(
+        {
           success: false,
-          error: 'Error crítico de registro contable en base de datos. Transacción retenida para conciliación manual.',
-          transactionId
-        }, { status: 500 });
-      }
+          error: errorMsg,
+          code: rawGatewayResponse?.code || rawGatewayResponse?.details?.responseCode || 'GATEWAY_DECLINED',
+        },
+        { status: 402 }
+      );
+    }
 
-      const { error: txErr } = await supabaseAdmin.from('transacciones').insert({
-        orden_id: orden.id,
-        metodo_pago: 'kushki',
-        monto_pagado: numAmount,
-        stripe_session_id: transactionId,
-        estado_aprobacion: statusApproval,
-        observaciones_admin: merchantId ? 'Validado contra API Kushki en vivo' : 'Transacción simulada en entorno de desarrollo/pruebas'
+    const resolvedTicket =
+      rawGatewayResponse?.ticketNumber || rawGatewayResponse?.details?.ticketNumber || `KSH-${Date.now()}`;
+    const preauthExpiresAt = isPreauth
+      ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+    // 5. Registrar intención real en fletes_payment_intents
+    await supabaseAdmin.from('fletes_payment_intents').insert({
+      order_id: targetFleteOrderId,
+      user_id: user.id,
+      gateway: 'kushki',
+      intent_type: isPreauth ? 'preauth' : intentType === 'topup' ? 'topup' : 'charge',
+      amount_usd: numAmount,
+      deferred_months: parsedDeferred,
+      status: isPreauth ? 'AUTHORIZED' : 'PAID',
+      gateway_ref: resolvedTicket,
+      kushki_ticket_number: resolvedTicket,
+      preauth_expires_at: preauthExpiresAt,
+      raw_response: rawGatewayResponse || {},
+    });
+
+    if (targetFleteOrderId) {
+      await supabaseAdmin
+        .from('fletes_orders')
+        .update({
+          payment_method: 'kushki',
+          payment_status: isPreauth ? 'PREAUTHORIZED' : 'CAPTURED',
+          gateway_ref: resolvedTicket,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', targetFleteOrderId);
+    }
+
+    // Si es recarga directa de billetera aprobada síncronamente, acreditar atómicamente vía RPC
+    if (intentType === 'topup') {
+      await supabaseAdmin.rpc('topup_driver_wallet', {
+        p_driver_id: user.id,
+        p_amount_usd: numAmount,
+        p_gateway: 'kushki',
+        p_gateway_ref: resolvedTicket,
+        p_metadata: { source: 'kushki_direct_charge', deferredMonths: parsedDeferred },
       });
-
-      if (txErr) {
-        console.error('[Kushki Route DB Tx Error]:', txErr);
-        return NextResponse.json({
-          success: false,
-          error: 'Error registrando transacción contable en base de datos.',
-          transactionId
-        }, { status: 500 });
-      }
-    } catch (dbErr: any) {
-      console.error('[Kushki Route DB Fatal Exception]:', dbErr);
-      return NextResponse.json({
-        success: false,
-        error: 'Excepción de base de datos durante el registro contable de la transacción.',
-        transactionId
-      }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      transactionId,
-      message: `Transacción procesada exitosamente para el plan ${plan}.`,
-      status: 'APPROVED'
+      transactionId: resolvedTicket,
+      ticketNumber: resolvedTicket,
+      preauthExpiresAt,
+      status: isPreauth ? 'AUTHORIZED' : 'APPROVED',
+      message: isPreauth
+        ? 'Pre-autorización de garantía aprobada (vigente 7 días calendario).'
+        : 'Pago procesado exitosamente vía Kushki.',
     });
-  } catch (error: any) {
-    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
-    return NextResponse.json({ success: false, error: error.message || 'Error procesando el pago' }, { status });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error procesando el pago en Kushki';
+    const status = message.includes('No autenticado') ? 401 : message.includes('Acceso denegado') ? 403 : 500;
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }

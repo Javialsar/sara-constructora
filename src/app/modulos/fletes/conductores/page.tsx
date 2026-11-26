@@ -65,6 +65,7 @@ import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingServ
 import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
 import { startRealGpsWatcher, snapToRoutePolyline, haversineMeters } from '@/lib/fletes/saraGpsTelemetryEngine';
 import { SaraGoogleMapsNavPanel } from '@/components/fletes/SaraGoogleMapsNavPanel';
+import { DriverV2OperationsPanel } from '@/components/fletes/DriverV2OperationsPanel';
 import { 
   debitDriverCommissionAction, 
   rechargeDriverWalletAction, 
@@ -108,7 +109,7 @@ export default function MiPerfilFletes() {
 
   // Cargar datos bancarios guardados en Supabase o Local
   useEffect(() => {
-    const currentPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
+    const currentPlate = currentUser?.user_metadata?.placa || '';
     getDriverBankInfoAction(currentPlate).then((res) => {
       if (res && res.config) {
         setBankConfig(prev => ({
@@ -185,7 +186,7 @@ export default function MiPerfilFletes() {
   const handleSaveBankConfig = async () => {
     setSavingBankInfo(true);
     try {
-      const currentPlate = currentUser?.user_metadata?.placa || bankConfig.plate || 'PCX-4590';
+      const currentPlate = currentUser?.user_metadata?.placa || bankConfig.plate || '';
       const cleanConfig: DriverBankConfig = {
         ...bankConfig,
         plate: currentPlate,
@@ -261,7 +262,7 @@ export default function MiPerfilFletes() {
 
   // Carga inicial y sincronización autoritativa del saldo de billetera en Servidor Seguro
   useEffect(() => {
-    const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const plate = currentUser?.user_metadata?.placa || '';
     getDriverWalletStateAction(plate)
       .then((state) => {
         if (state && typeof state.saldo === 'number') {
@@ -372,7 +373,7 @@ export default function MiPerfilFletes() {
   const handleDriverCounterOffer = (deltaUSD: number) => {
     if (!incomingRequest) return;
     const newPrice = +(incomingRequest.valorRef + deltaUSD).toFixed(2);
-    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const myPlate = currentUser?.user_metadata?.placa || '';
     const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
 
     SaraFletesRealtimeService.emit({
@@ -535,7 +536,7 @@ export default function MiPerfilFletes() {
         setPlanesConfig(evt.payload);
         showToast('¡Planes y comisiones de fletes sincronizados con Administración!');
       } else if (evt.type === 'DEBITO_COMISION_CONDUCTOR') {
-        const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+        const myPlate = currentUser?.user_metadata?.placa || '';
         if (evt.payload.plate === myPlate) {
           setBalance(evt.payload.nuevoSaldo);
         }
@@ -636,7 +637,7 @@ export default function MiPerfilFletes() {
     if (now - lastLocationPushRef.current < 2500) return;
     lastLocationPushRef.current = now;
 
-    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const myPlate = currentUser?.user_metadata?.placa || '';
     const myName = currentUser?.user_metadata?.full_name || 'Conductor SARA';
 
     // 1. Emitir por Bus Realtime (Broadcast + Supabase Realtime)
@@ -791,7 +792,7 @@ export default function MiPerfilFletes() {
       return;
     }
 
-    const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const myPlate = currentUser?.user_metadata?.placa || '';
     const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
     const code = incomingRequest?.codigoAcceso || ('SARA-' + Math.floor(1000 + Math.random() * 9000));
 
@@ -850,7 +851,7 @@ export default function MiPerfilFletes() {
       const comisionPct = targetConfig?.commissionRate || (plan === 'VIP' ? 30.0 : plan === 'Estandar' ? 20.0 : 10.0);
       const comisionDebito = +(valorFlete * (comisionPct / 100)).toFixed(2);
 
-      const myPlate = currentUser?.user_metadata?.placa || 'PBA-1234';
+      const myPlate = currentUser?.user_metadata?.placa || '';
       const driverName = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
 
       let nuevoSaldo = balance >= comisionDebito ? +(balance - comisionDebito).toFixed(2) : balance;
@@ -939,7 +940,7 @@ export default function MiPerfilFletes() {
     const formatoHora = ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
     const fechaLlegada = `${formatoFecha}, ${formatoHora}`;
     const clienteFinal = incomingRequest.cliente || incomingRequest.clienteNombre || 'Ing. Marco Vivanco (Constructora SARA)';
-    const myPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
+    const myPlate = currentUser?.user_metadata?.placa || '';
 
     const nuevoViaje: ViajeHistorialItem = {
       id: incomingRequest.fleteId || `FLT-${Date.now().toString().slice(-4)}`,
@@ -966,7 +967,7 @@ export default function MiPerfilFletes() {
         fleteId: incomingRequest.fleteId,
         codigoAcceso: accessCode || '0000',
         driverName: currentUser?.user_metadata?.full_name || 'David Sarango Malacatus',
-        plate: currentUser?.user_metadata?.placa || 'PBA-1234',
+        plate: currentUser?.user_metadata?.placa || '',
         tarifaFinal: valorFlete
       }
     });
@@ -1009,7 +1010,7 @@ export default function MiPerfilFletes() {
   const [historialFechaHasta, setHistorialFechaHasta] = useState<string>('');
 
   useEffect(() => {
-    const myPlate = currentUser?.user_metadata?.placa || 'PCX-4590';
+    const myPlate = currentUser?.user_metadata?.placa || '';
     const loaded = SaraFletesRealtimeService.getCompletedTrips(myPlate);
     setViajesList(loaded);
   }, [currentUser]);
@@ -1085,7 +1086,7 @@ export default function MiPerfilFletes() {
   const getReportHeaderMeta = () => {
     const conductor = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
     const vehiculo = currentUser?.user_metadata?.vehiculo || currentUser?.user_metadata?.tipo_vehiculo || 'Camioneta Pickup 1.2T · SARA';
-    const placa = currentUser?.user_metadata?.placa || 'PBA-1234';
+    const placa = currentUser?.user_metadata?.placa || '';
     const hoyTexto = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
     const desdeTexto = historialFechaDesde ? formatFechaReporte(historialFechaDesde) : 'Inicio de registros';
     const hastaTexto = historialFechaHasta ? formatFechaReporte(historialFechaHasta) : hoyTexto;
@@ -1267,7 +1268,7 @@ export default function MiPerfilFletes() {
     {
       id: 'MI-VEHICULO',
       nombreChofer: currentUser?.user_metadata?.full_name || 'Carlos Mendoza',
-      placa: currentUser?.user_metadata?.placa || 'PBA-1234',
+      placa: currentUser?.user_metadata?.placa || '',
       tipoVehiculo: 'VOLQUETA_V3A',
       lat: driverLocation[0],
       lng: driverLocation[1],
@@ -1385,7 +1386,7 @@ export default function MiPerfilFletes() {
                 {currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
               </p>
               <p className="text-[11px] font-mono text-amber-400">
-                Placa: {currentUser?.user_metadata?.placa || 'PBA-1234'}
+                Placa: {currentUser?.user_metadata?.placa || ''}
               </p>
               <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
                 <span className="text-slate-400">Billetera Prepago:</span>
@@ -1508,7 +1509,8 @@ export default function MiPerfilFletes() {
         </aside>
 
         {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA */}
-        <main className="flex-1 p-6 overflow-y-auto max-h-[calc(100vh-73px)] bg-slate-950">
+        <main className="flex-1 p-6 overflow-y-auto max-h-[calc(100vh-73px)] bg-slate-950 space-y-6">
+          {currentUser?.id && <DriverV2OperationsPanel driverId={currentUser.id} />}
           
           {/* ================================================================ */}
           {/* TAB 1: SINCRONIZACIÓN Y RADAR EN VIVO (CON MAPA COMPLETO) */}
@@ -1561,7 +1563,7 @@ export default function MiPerfilFletes() {
                         const nuevoEstado = !rumboACasaActivo;
                         setRumboACasaActivo(nuevoEstado);
                         SaraFletesRealtimeService.setRumboACasa(
-                          currentUser?.user_metadata?.placa || 'PBA-1234',
+                          currentUser?.user_metadata?.placa || '',
                           nuevoEstado,
                           rumboCanton
                         );
@@ -2063,7 +2065,7 @@ export default function MiPerfilFletes() {
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Placa (Letras y Números)</label>
                     <input
                       type="text"
-                      defaultValue={currentUser?.user_metadata?.placa || 'PBA-1234'}
+                      defaultValue={currentUser?.user_metadata?.placa || ''}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -2133,7 +2135,7 @@ export default function MiPerfilFletes() {
                       <Lock className="w-3 h-3" /> Cifrado Zero-Trust SRI Ecuador
                     </span>
                     <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
-                      Placa: {bankConfig.plate || 'PCX-4590'}
+                      Placa: {bankConfig.plate || ''}
                     </span>
                   </div>
                 </div>
@@ -3334,7 +3336,7 @@ export default function MiPerfilFletes() {
           if (checkoutConfig.isSubscription) {
             showToast(`¡Suscripción al ${checkoutConfig.title} activada! Ref: ${txId}`);
           } else {
-            const plate = currentUser?.user_metadata?.placa || 'PBA-1234';
+            const plate = currentUser?.user_metadata?.placa || '';
             rechargeDriverWalletAction({
               plate,
               amountUSD: checkoutConfig.amount,
@@ -3376,7 +3378,7 @@ export default function MiPerfilFletes() {
         fleteId={incomingRequest?.fleteId || 'FLT-DIRECT'}
         codigoAcceso={accessCode || '2889'}
         driverName={currentUser?.user_metadata?.full_name || 'David Sarango Malacatus'}
-        plate={currentUser?.user_metadata?.placa || 'PBA-1234'}
+        plate={currentUser?.user_metadata?.placa || ''}
         currentCoords={driverLocation}
         onSuccess={(epod) => {
           setSavedEpod(epod);
@@ -3397,7 +3399,7 @@ export default function MiPerfilFletes() {
 
       {/* Botón de Pánico SOS 24/7 Flotante */}
       <SaraFloatingSosButton
-        plate={currentUser?.user_metadata?.placa || 'PBA-1234'}
+        plate={currentUser?.user_metadata?.placa || ''}
         driverName={currentUser?.user_metadata?.full_name || 'David Sarango Malacatus'}
         currentCoords={driverLocation}
         fleteId={incomingRequest?.fleteId}
