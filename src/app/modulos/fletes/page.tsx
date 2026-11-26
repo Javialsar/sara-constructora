@@ -92,7 +92,10 @@ import {
   findMatchingCalibratedAnchor,
 } from '@/lib/fletes/saraGpsTelemetryEngine';
 import { useClientDriverTracking } from '@/hooks/useClientDriverTracking';
-import type { MultimodalVerticalKey } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
+import {
+  isVehicleAllowedForModalidad,
+  type MultimodalVerticalKey,
+} from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
 const SaraFletesMap = dynamic(() => import('@/components/fletes/SaraFletesMap'), {
@@ -996,14 +999,15 @@ export default function SaraFletesEngine() {
   }, [originPoint?.lat, originPoint?.lng, userLocation?.[0], userLocation?.[1]]);
 
   const vehiculosZonificados = useMemo<VehiculoMapa[]>(() => {
-    return Object.values(liveDriversMap);
-  }, [liveDriversMap]);
+    return Object.values(liveDriversMap).filter((v) =>
+      isVehicleAllowedForModalidad(serviceType, v.tipoVehiculo)
+    );
+  }, [liveDriversMap, serviceType]);
 
-  // Unidades cercanas filtradas automáticamente por categoría de vehículo seleccionada (Radar Inmediato)
+  // Unidades cercanas filtradas estrictamente por modalidad y categoría seleccionada (nunca camiones en Viajes/Mandaditos)
   const vehiculosDisponiblesTipo = useMemo(() => {
     const matching = vehiculosZonificados.filter(v => v.tipoVehiculo === vehicleType);
     if (matching.length > 0) return matching;
-    // Si no hay exactamente de esa categoría, presentar las unidades activas más cercanas
     return vehiculosZonificados.slice(0, 3);
   }, [vehiculosZonificados, vehicleType]);
 

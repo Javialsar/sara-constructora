@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Zap, 
   Users, 
@@ -59,6 +59,11 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(
     config.vehiculos[0]?.id || ''
   );
+
+  useEffect(() => {
+    setSelectedVehicleId(config.vehiculos[0]?.id || '');
+    setCustomOffer(null);
+  }, [modalidad, config.vehiculos]);
   
   // Parámetros específicos de Viajes
   const [pasajerosCount, setPasajerosCount] = useState<number>(1);
@@ -151,7 +156,11 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
           </label>
         </div>
 
-        <div className="flex overflow-x-auto snap-x gap-2 pb-1 -mx-1 px-1 sm:grid sm:grid-cols-4 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0">
+        <div
+          className={`flex overflow-x-auto snap-x gap-2 pb-1 -mx-1 px-1 sm:grid ${
+            config.vehiculos.length <= 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-4'
+          } sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0`}
+        >
           {config.vehiculos.map((v) => {
             const isSelected = selectedVehicleId === v.id;
             const precio = calcularTarifaVehiculo(v);

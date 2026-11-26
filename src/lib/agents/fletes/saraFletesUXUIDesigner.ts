@@ -73,37 +73,28 @@ export const MODALIDADES_SARA_FLETES: Record<MultimodalVerticalKey, ModalidadCon
     key: 'mandaditos',
     label: 'Mandaditos',
     emoji: '📦',
-    descripcionCorta: 'Envíos inmediatos de documentos, medicinas, comida y paquetes locales.',
+    descripcionCorta: 'Envíos inmediatos en motocicleta: documentos, medicinas, comida y paquetes locales.',
     colorTheme: 'text-emerald-400',
     accentBg: 'bg-emerald-500',
     vehiculos: [
       {
         id: 'DELIVERY_MOTO',
         nombre: 'Moto Express',
-        subtitulo: 'Documentos, llaves, compras rápidas',
+        subtitulo: 'Documentos, llaves y compras rápidas',
         icono: '🛵',
-        capacidadTexto: 'Hasta 15 kg • Caja térmica',
+        capacidadTexto: 'Hasta 15 kg • Motocicleta',
         tarifaBaseMinUSD: 1.25,
         tiempoLlegadaMinutos: 2,
         popular: true
       },
       {
-        id: 'DELIVERY_AUTO',
-        nombre: 'Auto Valijas / Frágil',
-        subtitulo: 'Tortas, flores, cajas delicadas',
-        icono: '🚘',
-        capacidadTexto: 'Hasta 60 kg • Asiento acolchado',
-        tarifaBaseMinUSD: 2.00,
-        tiempoLlegadaMinutos: 5
-      },
-      {
-        id: 'DELIVERY_CARGO_VAN',
-        nombre: 'Furgoneta Delivery',
-        subtitulo: 'Multi-paquetes y distribución ecommerce',
-        icono: '📦',
-        capacidadTexto: 'Hasta 300 kg',
-        tarifaBaseMinUSD: 3.50,
-        tiempoLlegadaMinutos: 9
+        id: 'DELIVERY_MOTO_TERMICA',
+        nombre: 'Moto Caja Térmica',
+        subtitulo: 'Comida, medicinas y paquetes protegidos',
+        icono: '🏍️',
+        capacidadTexto: 'Hasta 20 kg • Caja térmica',
+        tarifaBaseMinUSD: 1.60,
+        tiempoLlegadaMinutos: 3
       }
     ]
   },
@@ -176,10 +167,28 @@ export const MODALIDADES_SARA_FLETES: Record<MultimodalVerticalKey, ModalidadCon
     key: 'renta',
     label: 'Renta',
     emoji: '🔑',
-    descripcionCorta: 'Alquiler directo por horas o días (camionetas, maquinaria, volquetas).',
+    descripcionCorta: 'Alquiler directo por horas o días de todo tipo de vehículos (motos, autos, camionetas, camiones y maquinaria).',
     colorTheme: 'text-purple-400',
     accentBg: 'bg-purple-500',
     vehiculos: [
+      {
+        id: 'RENTA_MOTO',
+        nombre: 'Motocicleta Urbana',
+        subtitulo: 'Movilidad ágil por horas o día completo',
+        icono: '🏍️',
+        capacidadTexto: '$5/hr • $25/día',
+        tarifaBaseMinUSD: 5.00,
+        tiempoLlegadaMinutos: 5
+      },
+      {
+        id: 'RENTA_AUTO',
+        nombre: 'Auto Sedán / SUV',
+        subtitulo: 'Viajes ejecutivos, turismo o diligencias',
+        icono: '🚗',
+        capacidadTexto: '$9/hr • $45/día',
+        tarifaBaseMinUSD: 9.00,
+        tiempoLlegadaMinutos: 8
+      },
       {
         id: 'RENTA_PICKUP',
         nombre: 'Camioneta 4x4',
@@ -220,6 +229,45 @@ export const MODALIDADES_SARA_FLETES: Record<MultimodalVerticalKey, ModalidadCon
     ]
   }
 };
+
+/**
+ * Clasificación estricta de flota permitida por modalidad en mapa, radar y cotizador:
+ * - viajes: solo vehículos de pasajeros para viajes cortos (motos, autos, SUV, minivan).
+ * - mandaditos: exclusivamente motocicletas.
+ * - fletes: exclusivamente vehículos de carga y camiones MTOP.
+ * - renta: todo tipo de vehículos.
+ */
+export function isVehicleAllowedForModalidad(
+  modalidad: MultimodalVerticalKey,
+  tipoVehiculo: string
+): boolean {
+  const code = String(tipoVehiculo || '').toUpperCase();
+  if (modalidad === 'renta') return true;
+
+  const isMoto = code.includes('MOTO') || code.includes('DELIVERY_MOTO');
+  const isPassenger =
+    isMoto ||
+    code.includes('AUTO') ||
+    code.includes('SEDAN') ||
+    code.includes('TAXI') ||
+    code.includes('SUV') ||
+    code.includes('MINIVAN');
+  const isHeavyOrCargo =
+    code.includes('PICKUP') ||
+    code.includes('FURGON') ||
+    code.includes('CAMION') ||
+    code.includes('VOLQUETA') ||
+    code.includes('MULA') ||
+    code.includes('TRAILER') ||
+    code.includes('TRACTO') ||
+    code.includes('CAMABAJA') ||
+    code.includes('PLATAFORMA');
+
+  if (modalidad === 'mandaditos') return isMoto;
+  if (modalidad === 'viajes') return isPassenger && !isHeavyOrCargo;
+  if (modalidad === 'fletes') return isHeavyOrCargo;
+  return true;
+}
 
 export const PRESETS_MANDADITOS = [
   { id: 'doc', label: '📄 Documentos Legales', pesoKg: 1 },
