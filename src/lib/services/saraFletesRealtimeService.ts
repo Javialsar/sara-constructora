@@ -299,25 +299,73 @@ export class SaraFletesRealtimeService {
   private static isInitialized = false;
   private static supabaseRealtimeChannel: any = null;
   private static isSupabaseInitAttempted = false;
+  private static pendingRemoteQueue: FletesRealtimeEvent[] = [];
+  private static recentEventKeys: Map<string, number> = new Map();
+
+  private static getEventDedupKey(event: FletesRealtimeEvent): string | null {
+    const p: any = (event as any).payload;
+    if (!p) return null;
+    if (event.type === 'NUEVA_SOLICITUD_FLETE' && p.id) {
+      return `${event.type}:${p.id}:${p.timestamp || ''}`;
+    }
+    if ((event.type === 'NUEVA_OFERTA_CONDUCTOR' || event.type === 'CHOFER_ACEPTO_FLETE' || event.type === 'CLIENTE_ACEPTO_CONDUCTOR') && p.fleteId) {
+      return `${event.type}:${p.fleteId}:${p.plate || p.id || ''}`;
+    }
+    return null;
+  }
+
+  private static isDuplicateEvent(event: FletesRealtimeEvent): boolean {
+    const key = this.getEventDedupKey(event);
+    if (!key) return false;
+    const now = Date.now();
+    const prev = this.recentEventKeys.get(key);
+    if (prev && now - prev < 2500) return true;
+    this.recentEventKeys.set(key, now);
+    if (this.recentEventKeys.size > 100) {
+      const oldest = this.recentEventKeys.keys().next().value;
+      if (oldest) this.recentEventKeys.delete(oldest);
+    }
+    return false;
+  }
+
+  private static flushRemoteQueue() {
+    if (!this.supabaseRealtimeChannel || this.pendingRemoteQueue.length === 0) return;
+    const queue = [...this.pendingRemoteQueue];
+    this.pendingRemoteQueue = [];
+    for (const evt of queue) {
+      try {
+        this.supabaseRealtimeChannel.send({
+          type: 'broadcast',
+          event: 'fletes_event',
+          payload: evt
+        });
+      } catch {
+        // Ignorar fallo individual
+      }
+    }
+  }
 
   private static initSupabaseRealtime() {
     if (typeof window === 'undefined' || this.isSupabaseInitAttempted) return;
     this.isSupabaseInitAttempted = true;
 
     try {
-      import('../supabase-browser')
-        .then(({ createSupabaseBrowserClient }) => {
+      import('../supabase/client')
+        .then(({ createClient }) => {
           try {
-            const supabase = createSupabaseBrowserClient();
-            if (!supabase || !supabase.channel) return;
+            const supabase = createClient();
+            if (!supabase || !supabase.channel) {
+              this.isSupabaseInitAttempted = false;
+              return;
+            }
 
             const ch = supabase.channel('sara_fletes_radar_global', {
-              config: { broadcast: { self: false } }
+              config: { broadcast: { self: false, ack: false } }
             });
 
             ch.on('broadcast', { event: 'fletes_event' }, (payload: any) => {
               const evt = payload?.payload || payload;
-              if (evt && evt.type) {
+              if (evt && evt.type && !this.isDuplicateEvent(evt as FletesRealtimeEvent)) {
                 this.notifyListeners(evt as FletesRealtimeEvent);
               }
             });
@@ -325,15 +373,23 @@ export class SaraFletesRealtimeService {
             ch.subscribe((status: string) => {
               if (status === 'SUBSCRIBED') {
                 this.supabaseRealtimeChannel = ch;
+                this.flushRemoteQueue();
+              } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                this.supabaseRealtimeChannel = null;
+                this.isSupabaseInitAttempted = false;
+                setTimeout(() => this.initSupabaseRealtime(), 3000);
               }
             });
           } catch (initErr) {
+            this.isSupabaseInitAttempted = false;
             console.warn('[REALTIME] Supabase Realtime fallback local:', initErr);
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          this.isSupabaseInitAttempted = false;
+        });
     } catch {
-      // Ignorar en SSR o entornos sin navegador
+      this.isSupabaseInitAttempted = false;
     }
   }
 
@@ -546,6 +602,7 @@ export class SaraFletesRealtimeService {
     }
 
     // 3. Enviar a través de Supabase Realtime Channel para sincronización entre dispositivos remotos
+    // Si el canal aún está conectando, encolar para envío inmediato al completar SUBSCRIBED (cero pérdidas)
     if (this.supabaseRealtimeChannel) {
       try {
         this.supabaseRealtimeChannel.send({
@@ -554,8 +611,15 @@ export class SaraFletesRealtimeService {
           payload: event
         });
       } catch (wsErr) {
-        console.warn('[REALTIME] Envío remoto omitido:', wsErr);
+        console.warn('[REALTIME] Reencolando envío remoto:', wsErr);
+        this.pendingRemoteQueue.push(event);
       }
+    } else {
+      this.pendingRemoteQueue.push(event);
+      if (this.pendingRemoteQueue.length > 25) {
+        this.pendingRemoteQueue.shift();
+      }
+      this.initSupabaseRealtime();
     }
   }
 

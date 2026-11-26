@@ -1011,6 +1011,44 @@ export default function SaraFletesEngine() {
     return vehiculosZonificados.slice(0, 3);
   }, [vehiculosZonificados, vehicleType]);
 
+  // Pulso periódico (cada 4s) mientras el cliente está buscando conductor para que cualquier chofer
+  // que abra o reconecte su radar en otro navegador/celular reciba el pedido real de inmediato
+  useEffect(() => {
+    if (!activeFreight || activeFreight.status !== 'searching') return;
+    const pOrigCoords: [number, number] = originPoint
+      ? [originPoint.lat, originPoint.lng]
+      : userLocation || [-4.32794, -79.561116];
+    const pDestCoords: [number, number] = destinationPoint
+      ? [destinationPoint.lat, destinationPoint.lng]
+      : pOrigCoords;
+
+    const timer = setInterval(() => {
+      SaraFletesRealtimeService.emit({
+        type: 'NUEVA_SOLICITUD_FLETE',
+        payload: {
+          id: activeFreight.id,
+          origen: activeFreight.origin,
+          destino: activeFreight.destination,
+          material: activeFreight.material,
+          pesoTon: activeFreight.weight || 0.1,
+          tipoVehiculo: activeFreight.vehicleType,
+          tarifaOfertadaUSD: activeFreight.referencePrice,
+          distanciaKm: activeFreight.distanciaKm || rutaCalculada?.distanciaKm || 1,
+          duracionMinutos: activeFreight.duracionMinutos || rutaCalculada?.duracionMinutos || 5,
+          coordsOrigen: pOrigCoords,
+          coordsDestino: pDestCoords,
+          coordenadasRuta: rutaCalculada?.coordenadasRuta,
+          codigoAcceso: activeFreight.accessCode || '',
+          clienteNombre: activeFreight.clienteNombre || 'Cliente SARA',
+          status: 'searching',
+          timestamp: Date.now(),
+        },
+      });
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [activeFreight, originPoint, destinationPoint, userLocation, rutaCalculada]);
+
   // Seguimiento GPS en tiempo real del conductor asignado + Ruta de acercamiento + Audio ETA inteligente
   const matchedRadarDriver = useMemo(() => {
     if (!assignedDriver) return null;
@@ -2125,41 +2163,6 @@ export default function SaraFletesEngine() {
                             type: 'NUEVA_SOLICITUD_FLETE',
                             payload: reqPayload
                           });
-
-                          // 3. Emitir ofertas dinámicas simuladas de respaldo en caso de demora
-                          setTimeout(() => {
-                            setDriverOffers((prev) => {
-                              if (prev.length > 0) return prev;
-                              return [
-                                {
-                                  id: 'OFFER-VIAJE-1',
-                                  driverName: 'David Sarango Malacatus',
-                                  vehicleName: params.vehiculoNombre,
-                                  plate: 'PCX-4590',
-                                  phone: '0993849182',
-                                  offeredPrice: params.tarifaUSD,
-                                  etaMinutes: 3,
-                                  distanceMeters: 450,
-                                  rating: 4.9,
-                                  tripsCount: 312,
-                                  isCounterOffer: false
-                                },
-                                {
-                                  id: 'OFFER-VIAJE-2',
-                                  driverName: 'Manuel Cárdenas',
-                                  vehicleName: params.vehiculoNombre,
-                                  plate: 'LBA-2341',
-                                  phone: '0987654321',
-                                  offeredPrice: +(params.tarifaUSD + 0.50).toFixed(2),
-                                  etaMinutes: 5,
-                                  distanceMeters: 750,
-                                  rating: 4.8,
-                                  tripsCount: 184,
-                                  isCounterOffer: true
-                                }
-                              ];
-                            });
-                          }, 2500);
                         }}
                       />
                       </>

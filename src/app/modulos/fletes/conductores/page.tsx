@@ -464,24 +464,33 @@ export default function MiPerfilFletes() {
             return;
           }
 
-          setTripAccepted(false);
-          setTripState('idle');
-          setIncomingRequest({
-            fleteId: evt.payload.id,
-            origen: evt.payload.origen,
-            destino: evt.payload.destino,
-            cliente: evt.payload.clienteNombre || 'Cliente SARA',
-            material: evt.payload.material ? `${evt.payload.material}` : 'Servicio de Transporte',
-            valorRef: evt.payload.tarifaOfertadaUSD,
-            distanciaKm: evt.payload.distanciaKm,
-            duracionMinutos: evt.payload.duracionMinutos,
-            coordsOrigen: evt.payload.coordsOrigen,
-            coordsDestino: evt.payload.coordsDestino,
-            coordenadasRuta: evt.payload.coordenadasRuta,
-            codigoAcceso: evt.payload.codigoAcceso
+          let isNewForDriver = false;
+          setIncomingRequest((prev: any) => {
+            if (prev && prev.fleteId === evt.payload.id) {
+              return prev;
+            }
+            isNewForDriver = true;
+            return {
+              fleteId: evt.payload.id,
+              origen: evt.payload.origen,
+              destino: evt.payload.destino,
+              cliente: evt.payload.clienteNombre || 'Cliente SARA',
+              material: evt.payload.material ? `${evt.payload.material}` : 'Servicio de Transporte',
+              valorRef: evt.payload.tarifaOfertadaUSD,
+              distanciaKm: evt.payload.distanciaKm,
+              duracionMinutos: evt.payload.duracionMinutos,
+              coordsOrigen: evt.payload.coordsOrigen,
+              coordsDestino: evt.payload.coordsDestino,
+              coordenadasRuta: evt.payload.coordenadasRuta,
+              codigoAcceso: evt.payload.codigoAcceso
+            };
           });
-          playRadarAlertSound();
-          showToast(`¡Nuevo pedido en radar [${targetConfig?.priority || 'ALTA'}]: ${evt.payload.origen} → ${evt.payload.destino}!`);
+          if (isNewForDriver) {
+            setTripAccepted(false);
+            setTripState('idle');
+            playRadarAlertSound();
+            showToast(`¡Nuevo pedido en radar [${targetConfig?.priority || 'ALTA'}]: ${evt.payload.origen} → ${evt.payload.destino}!`);
+          }
         };
 
         if (delaySeconds > 0) {
