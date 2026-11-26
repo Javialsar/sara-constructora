@@ -48,6 +48,20 @@ export interface VehiculoMapa {
   disponible: boolean;
 }
 
+export interface ActiveDriverTrackingProp {
+  driverName: string;
+  plate: string;
+  vehicleType: CategoriaVehiculo;
+  lat: number;
+  lng: number;
+  heading?: number;
+  speedKmh?: number;
+  etaMinutes: number | null;
+  distanceMeters: number | null;
+  hasArrivedPickup: boolean;
+  approachRouteCoords?: [number, number][];
+}
+
 export interface SaraFletesMapProps {
   userLocation: [number, number] | null;
   origenCoords: [number, number] | null;
@@ -74,6 +88,7 @@ export interface SaraFletesMapProps {
   onDestinationDragEnd?: (lat: number, lng: number) => void;
   searchRadiusMeters?: number | null;
   isSearchingDriver?: boolean;
+  activeDriverTracking?: ActiveDriverTrackingProp | null;
 }
 
 // Generadores de Iconos L.divIcon personalizados para evitar problemas de assets externos
@@ -593,6 +608,96 @@ function MapClickHandler({ onMapClick }: { onMapClick?: (lat: number, lng: numbe
   return null;
 }
 
+// Marcador de alta visibilidad para el conductor asignado acercándose en tiempo real (60FPS + ETA flotante)
+function ActiveDriverLiveMarker({ tracking }: { tracking: ActiveDriverTrackingProp }) {
+  const markerRef = useRef<L.Marker | null>(null);
+  const initialPosRef = useRef<[number, number]>([tracking.lat, tracking.lng]);
+  const currentPosRef = useRef<[number, number]>([tracking.lat, tracking.lng]);
+  const rafIdRef = useRef<number | null>(null);
+  const [bearing, setBearing] = useState<number>(tracking.heading || 0);
+
+  useEffect(() => {
+    const startPos = currentPosRef.current;
+    const targetPos: [number, number] = [tracking.lat, tracking.lng];
+    const dLat = targetPos[0] - startPos[0];
+    const dLng = targetPos[1] - startPos[1];
+
+    if (typeof tracking.heading === 'number' && Number.isFinite(tracking.heading) && tracking.heading > 0) {
+      setBearing(tracking.heading);
+    } else if (Math.abs(dLat) >= 1e-7 || Math.abs(dLng) >= 1e-7) {
+      setBearing(calcularBearing(startPos, targetPos));
+    }
+
+    if (Math.abs(dLat) < 1e-7 && Math.abs(dLng) < 1e-7) return;
+
+    if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    const durationMs = 850;
+    const startTime = performance.now();
+
+    const animate = (now: number) => {
+      const t = Math.min(1, (now - startTime) / durationMs);
+      const eased = 1 - (1 - t) * (1 - t);
+      const nextLat = startPos[0] + dLat * eased;
+      const nextLng = startPos[1] + dLng * eased;
+      currentPosRef.current = [nextLat, nextLng];
+      if (markerRef.current) {
+        markerRef.current.setLatLng([nextLat, nextLng]);
+      }
+      if (t < 1) {
+        rafIdRef.current = requestAnimationFrame(animate);
+      } else {
+        rafIdRef.current = null;
+      }
+    };
+
+    rafIdRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafIdRef.current !== null) cancelAnimationFrame(rafIdRef.current);
+    };
+  }, [tracking.lat, tracking.lng, tracking.heading]);
+
+  const cat = CATALOGO_VEHICULOS_SARA[tracking.vehicleType] || CATALOGO_VEHICULOS_SARA.PICKUP_1T;
+  const distLabel =
+    tracking.distanceMeters == null
+      ? ''
+      : tracking.distanceMeters >= 1000
+        ? `${(tracking.distanceMeters / 1000).toFixed(1)} km`
+        : `${Math.round(tracking.distanceMeters)} m`;
+  const etaPill = tracking.hasArrivedPickup
+    ? '¡LLEGÓ!'
+    : `${Math.max(1, tracking.etaMinutes ?? 1)} min${distLabel ? ` · ${distLabel}` : ''}`;
+  const pillBg = tracking.hasArrivedPickup ? '#10b981' : '#06b6d4';
+  const roundedBearing = Math.round(bearing);
+
+  const icon = useMemo(
+    () =>
+      L.divIcon({
+        className: 'sara-active-driver-live-marker',
+        html: `
+          <div style="display:flex;flex-direction:column;align-items:center;pointer-events:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.55));">
+            <div style="background:${pillBg};color:#020617;font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px;border:2px solid #ffffff;white-space:nowrap;margin-bottom:3px;letter-spacing:0.2px;">
+              ${etaPill}
+            </div>
+            <div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
+              <div style="position:absolute;inset:0;border-radius:50%;background:rgba(6,182,212,0.28);animation:ping 1.6s cubic-bezier(0,0,0.2,1) infinite;"></div>
+              <div style="position:absolute;inset:0;transform:rotate(${roundedBearing}deg);transition:transform 0.35s ease-out;">
+                <div style="position:absolute;top:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:9px solid #22d3ee;"></div>
+              </div>
+              <div style="position:relative;width:34px;height:34px;border-radius:50%;background:#0f172a;border:3px solid #22d3ee;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 14px rgba(34,211,238,0.65);">
+                ${cat.icono}
+              </div>
+            </div>
+          </div>
+        `,
+        iconSize: [110, 68],
+        iconAnchor: [55, 46],
+      }),
+    [pillBg, etaPill, roundedBearing, cat.icono]
+  );
+
+  return <Marker ref={markerRef} position={initialPosRef.current} icon={icon} zIndexOffset={1000} />;
+}
+
 export default function SaraFletesMap({
   userLocation,
   origenCoords,
@@ -612,7 +717,8 @@ export default function SaraFletesMap({
   onOriginDragEnd,
   onDestinationDragEnd,
   searchRadiusMeters = null,
-  isSearchingDriver = false
+  isSearchingDriver = false,
+  activeDriverTracking = null
 }: SaraFletesMapProps) {
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('google_streets');
 
@@ -787,6 +893,23 @@ export default function SaraFletesMap({
             isSearchingDriver={Boolean(isSearchingDriver)}
           />
         )}
+
+        {/* 4.2. Ruta de Acercamiento en Tiempo Real (Conductor -> Punto de Recogida) */}
+        {activeDriverTracking?.approachRouteCoords && activeDriverTracking.approachRouteCoords.length >= 2 && (
+          <>
+            <Polyline
+              positions={activeDriverTracking.approachRouteCoords}
+              pathOptions={{ color: '#0f172a', weight: 8, opacity: 0.35 }}
+            />
+            <Polyline
+              positions={activeDriverTracking.approachRouteCoords}
+              pathOptions={{ color: '#06b6d4', weight: 5, opacity: 0.95, dashArray: '8, 10', lineJoin: 'round' }}
+            />
+          </>
+        )}
+
+        {/* 4.3. Marcador en Vivo del Conductor Asignado con Desplazamiento 60FPS + Badge ETA */}
+        {activeDriverTracking && <ActiveDriverLiveMarker tracking={activeDriverTracking} />}
 
         {/* 5. Vehículos Cercanos Zonificados Circulando en Tiempo Real (60FPS Lerp + Bearing) */}
         {vehiculosAnimados.map((vehiculo) => {

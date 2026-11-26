@@ -87,6 +87,7 @@ import SaraDriverNegotiationDrawer from '@/components/fletes/SaraDriverNegotiati
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { saveLastKnownPosition, enqueueOfflineEvent } from '@/lib/fletes/saraFletesOfflineBuffer';
 import { startRealGpsWatcher } from '@/lib/fletes/saraGpsTelemetryEngine';
+import { useClientDriverTracking } from '@/hooks/useClientDriverTracking';
 import type { MultimodalVerticalKey } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
 // Carga dinámica del mapa de Leaflet sin SSR para evitar errores de renderizado
@@ -976,6 +977,41 @@ export default function SaraFletesEngine() {
     return vehiculosZonificados.slice(0, 3);
   }, [vehiculosZonificados, vehicleType]);
 
+  // Seguimiento GPS en tiempo real del conductor asignado + Ruta de acercamiento + Audio ETA inteligente
+  const matchedRadarDriver = useMemo(() => {
+    if (!assignedDriver) return null;
+    return (
+      vehiculosZonificados.find(
+        (v) =>
+          (assignedDriver.plate && v.placa?.toUpperCase() === assignedDriver.plate.toUpperCase()) ||
+          v.id === assignedDriver.id
+      ) || null
+    );
+  }, [assignedDriver, vehiculosZonificados]);
+
+  const isTripTrackingActive = Boolean(
+    activeFreight && (activeFreight.status === 'accepted' || activeFreight.status === 'in_transit')
+  );
+
+  const clientDriverTracking = useClientDriverTracking({
+    orderId: activeFreight?.id || null,
+    isActive: isTripTrackingActive,
+    tripPhase:
+      activeFreight?.status === 'in_transit'
+        ? 'in_transit'
+        : activeFreight?.status === 'accepted'
+          ? 'accepted'
+          : 'other',
+    driverName: assignedDriver?.driverName,
+    vehicleName: assignedDriver?.vehicleName,
+    plate: assignedDriver?.plate,
+    accessCode: activeFreight?.accessCode,
+    pickupCoords: originPoint ? [originPoint.lat, originPoint.lng] : null,
+    destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null,
+    radarDriverCoords: matchedRadarDriver ? { lat: matchedRadarDriver.lat, lng: matchedRadarDriver.lng } : null,
+    initialEtaMinutes: assignedDriver?.etaMinutes ?? null,
+  });
+
   // Recalcular Cotización de Renta Temporal
   useEffect(() => {
     const cot = SaraFreightPricingService.calcularRentaTemporal(
@@ -1565,6 +1601,23 @@ export default function SaraFletesEngine() {
             tipoModalidad={serviceType}
             searchRadiusMeters={activeFreight?.status === 'searching' ? searchRadiusMeters : null}
             isSearchingDriver={activeFreight?.status === 'searching'}
+            activeDriverTracking={
+              isTripTrackingActive && clientDriverTracking.driverPosition
+                ? {
+                    driverName: assignedDriver?.driverName || 'Conductor asignado',
+                    plate: assignedDriver?.plate || '',
+                    vehicleType: activeFreight?.vehicleType || vehicleType,
+                    lat: clientDriverTracking.driverPosition.lat,
+                    lng: clientDriverTracking.driverPosition.lng,
+                    heading: clientDriverTracking.driverPosition.heading,
+                    speedKmh: clientDriverTracking.driverPosition.speedKmh,
+                    etaMinutes: clientDriverTracking.etaMinutes,
+                    distanceMeters: clientDriverTracking.distanceMeters,
+                    hasArrivedPickup: clientDriverTracking.hasArrivedPickup,
+                    approachRouteCoords: clientDriverTracking.approachRouteCoords,
+                  }
+                : null
+            }
             onOriginDragEnd={handleOriginDragEnd}
             onDestinationDragEnd={handleDestinationDragEnd}
             onMapClick={handleMapClick}
@@ -1694,6 +1747,16 @@ export default function SaraFletesEngine() {
                           activeFreight={activeFreight}
                           assignedDriver={assignedDriver}
                           currentCoords={userLocation || (originPoint ? [originPoint.lat, originPoint.lng] : null)}
+                          liveTracking={{
+                            etaMinutes: clientDriverTracking.etaMinutes,
+                            distanceMeters: clientDriverTracking.distanceMeters,
+                            speedKmh: clientDriverTracking.driverPosition?.speedKmh ?? null,
+                            hasArrivedPickup: clientDriverTracking.hasArrivedPickup,
+                            voiceEnabled: clientDriverTracking.voiceEnabled,
+                            lastAnnouncement: clientDriverTracking.lastAnnouncement,
+                            onToggleVoice: clientDriverTracking.toggleVoice,
+                            onReplayVoice: clientDriverTracking.replayVoiceEta,
+                          }}
                           onOpenDriverProfile={() => {
                             if (assignedDriver) {
                               setSelectedDriverForSecurity({
@@ -1721,7 +1784,7 @@ export default function SaraFletesEngine() {
                             const distKm = rutaCalculada?.distanciaKm || activeFreight.distanciaKm || 1.2;
                             const durMin = rutaCalculada?.duracionMinutos || activeFreight.duracionMinutos || Math.max(2, Math.round(distKm * 2.5));
                             const drvName = assignedDriver?.driverName || 'Conductor SARA';
-                            const drvPlate = assignedDriver?.plate || 'PBA-1234';
+                            const drvPlate = assignedDriver?.plate || '';
                             const drvVeh = assignedDriver?.vehicleName || 'Vehículo Asignado SARA';
 
                             SaraFletesRealtimeService.savePublicTrackingSnapshot(trackingToken, {

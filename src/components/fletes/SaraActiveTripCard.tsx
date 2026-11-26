@@ -11,7 +11,10 @@ import {
   PhoneCall, 
   MessageSquare,
   AlertTriangle,
-  Camera
+  Camera,
+  Volume2,
+  VolumeX,
+  RotateCw
 } from 'lucide-react';
 import { SaraMaskedCommModal } from './SaraMaskedCommModal';
 import { SaraSafetyCenterModal } from './SaraSafetyCenterModal';
@@ -47,6 +50,16 @@ interface SaraActiveTripCardProps {
   onShareWhatsApp: () => void;
   onFinishOrCancel: () => void;
   currentCoords?: [number, number] | null;
+  liveTracking?: {
+    etaMinutes: number | null;
+    distanceMeters: number | null;
+    speedKmh: number | null;
+    hasArrivedPickup: boolean;
+    voiceEnabled: boolean;
+    lastAnnouncement: string | null;
+    onToggleVoice: () => void;
+    onReplayVoice: () => void;
+  } | null;
 }
 
 export function SaraActiveTripCard({
@@ -55,7 +68,8 @@ export function SaraActiveTripCard({
   onOpenDriverProfile,
   onShareWhatsApp,
   onFinishOrCancel,
-  currentCoords = null
+  currentCoords = null,
+  liveTracking = null
 }: SaraActiveTripCardProps) {
   const [isCommOpen, setIsCommOpen] = useState(false);
   const [isSafetyOpen, setIsSafetyOpen] = useState(false);
@@ -115,13 +129,21 @@ export function SaraActiveTripCard({
       </div>
 
       {/* PIN DE SEGURIDAD DESTACADO (4 DÍGITOS) */}
-      <div className="bg-gradient-to-r from-amber-500/15 via-slate-900 to-amber-500/15 border-2 border-amber-500/50 p-3.5 rounded-2xl text-center space-y-1">
+      <div
+        className={`border-2 p-3.5 rounded-2xl text-center space-y-1 transition-all ${
+          liveTracking?.hasArrivedPickup || (liveTracking?.etaMinutes !== null && liveTracking?.etaMinutes !== undefined && liveTracking.etaMinutes <= 1)
+            ? 'bg-gradient-to-r from-emerald-500/20 via-slate-900 to-amber-500/20 border-emerald-400 shadow-lg shadow-emerald-500/20'
+            : 'bg-gradient-to-r from-amber-500/15 via-slate-900 to-amber-500/15 border-amber-500/50'
+        }`}
+      >
         <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center justify-center gap-1">
           <ShieldCheck className="w-3.5 h-3.5" />
-          PIN de Seguridad de Embarque y Entrega
+          {liveTracking?.hasArrivedPickup
+            ? '¡Vehículo en el punto! Muestra tu PIN'
+            : 'PIN de Seguridad de Embarque y Entrega'}
         </span>
         <p className="text-3xl font-black font-mono text-white tracking-[0.25em]">
-          {activeFreight.accessCode || '7842'}
+          {activeFreight.accessCode || '—'}
         </p>
         <p className="text-[10px] text-slate-300">
           Entrega este código de 4 dígitos al conductor al iniciar la carga para validar el viaje.
@@ -177,14 +199,71 @@ export function SaraActiveTripCard({
         </div>
 
         <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
-          <span className="text-[10px] text-slate-400 block">Llegada estimada:</span>
-          <p className="text-sm font-bold text-white mt-1 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            ~{assignedDriver?.etaMinutes || 3} min
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] text-slate-400 block">Llegada en vivo:</span>
+            {liveTracking && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={liveTracking.onReplayVoice}
+                  title="Escuchar tiempo de llegada"
+                  className="p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-cyan-300 cursor-pointer"
+                >
+                  <RotateCw className="w-3 h-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={liveTracking.onToggleVoice}
+                  title={liveTracking.voiceEnabled ? 'Silenciar avisos de voz' : 'Activar avisos de voz'}
+                  className={`p-1 rounded-md cursor-pointer ${
+                    liveTracking.voiceEnabled
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                      : 'bg-slate-800 text-slate-500'
+                  }`}
+                >
+                  {liveTracking.voiceEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
+                </button>
+              </div>
+            )}
+          </div>
+          <p className="text-sm font-black font-mono tabular-nums text-white mt-1 flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                liveTracking?.hasArrivedPickup ? 'bg-emerald-400' : 'bg-cyan-400 animate-ping'
+              }`}
+            ></span>
+            {liveTracking?.hasArrivedPickup
+              ? '¡En el punto!'
+              : `~${liveTracking?.etaMinutes ?? assignedDriver?.etaMinutes ?? 3} min`}
           </p>
-          <span className="text-[9px] text-slate-400 truncate block mt-0.5">{activeFreight.material}</span>
+          <span className="text-[9px] text-slate-400 truncate block mt-0.5">
+            {liveTracking?.distanceMeters != null
+              ? liveTracking.distanceMeters >= 1000
+                ? `${(liveTracking.distanceMeters / 1000).toFixed(1)} km restantes`
+                : `${Math.round(liveTracking.distanceMeters)} m restantes`
+              : activeFreight.material}
+          </span>
         </div>
       </div>
+
+      {/* BARRA DE AUDIO ETA EN VIVO */}
+      {liveTracking && (
+        <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/25 px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
+          <div className="flex items-center gap-2 min-w-0">
+            <Volume2 className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-cyan-100 truncate">
+              {liveTracking.lastAnnouncement || 'Avisos de llegada por voz activos'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={liveTracking.onReplayVoice}
+            className="shrink-0 px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 font-bold cursor-pointer"
+          >
+            Escuchar
+          </button>
+        </div>
+      )}
 
       {/* BOTÓN VERDE DIRECTO: COMPARTIR POR WHATSAPP */}
       <button
