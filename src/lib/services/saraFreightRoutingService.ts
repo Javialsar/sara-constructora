@@ -1426,12 +1426,66 @@ export class SaraFreightRoutingService {
     }
     const cleanFon = this.normalizarFonetico(clean);
 
-    // 1. PRIORIDAD 1: Intersecciones exactas verificadas del cantón activo
-    // Primero coincidencias exactas de AMBAS calles (ej. "18 de noviembre y centenario"), luego coincidencias parciales
+    // 1. PRIORIDAD 1: Intersecciones exactas verificadas del cantón activo + Intersecciones dinámicas OSM en vivo
+    // Normalizar prefijos viales ("av.", "calle", "gral.") y detectar formato "Calle A y Calle B"
+    const stripStreetPrefixes = (s: string) =>
+      s
+        .replace(/\b(av\.?|avenida|calle|c\.|gral\.?|general|psje\.?|pasaje)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const splitInter = clean.split(/\s+(?:y|e|con|&|\/)\s+/i).map((p) => stripStreetPrefixes(p));
+    const primaryQuery = splitInter[0] || stripStreetPrefixes(clean);
+    const crossQuery = splitInter[1] || '';
+
+    const calcDistM = (c: [number, number]): number => {
+      if (!ubicacionReferencia) return 0;
+      const dLat = (c[0] - ubicacionReferencia[0]) * 111320;
+      const dLng = (c[1] - ubicacionReferencia[1]) * 111320 * Math.cos((c[0] * Math.PI) / 180);
+      return Math.round(Math.hypot(dLat, dLng));
+    };
+
+    const formatDistLabel = (m: number): string => {
+      if (!ubicacionReferencia || m <= 0) return 'Intersección vial verificada';
+      return m >= 1000 ? `${(m / 1000).toFixed(1)} km · Intersección vial` : `${m} m · Intersección vial`;
+    };
+
+    // 1.A. Consulta paralela al motor real de intersecciones OSM (/api/fletes/intersections)
+    const refLatForInter = ubicacionReferencia?.[0] ?? cantonDetectado?.centroide[0];
+    const refLngForInter = ubicacionReferencia?.[1] ?? cantonDetectado?.centroide[1];
+    let liveOsmIntersections: Array<{
+      title: string;
+      lat: number;
+      lng: number;
+      distanceMeters: number;
+    }> = [];
+
+    if (typeof window !== 'undefined' && primaryQuery.length >= 3 && refLatForInter && refLngForInter) {
+      try {
+        const interUrl = `/api/fletes/intersections?street=${encodeURIComponent(primaryQuery)}&cross=${encodeURIComponent(crossQuery)}&lat=${refLatForInter.toFixed(5)}&lng=${refLngForInter.toFixed(5)}`;
+        const ctrl = new AbortController();
+        const tId = setTimeout(() => ctrl.abort(), 2000);
+        const interRes = await fetch(interUrl, { signal: ctrl.signal });
+        clearTimeout(tId);
+        if (interRes.ok) {
+          const interData = await interRes.json();
+          if (Array.isArray(interData?.intersections)) {
+            liveOsmIntersections = interData.intersections;
+          }
+        }
+      } catch {
+        // Fallback silencioso a intersecciones locales
+      }
+    }
+
+    // 1.B. Intersecciones verificadas locales del cantón activo
     if (cantonDetectado && cantonDetectado.interseccionesExactas) {
-      const exactMatches: Array<{ key: string; k1: string; k2: string; coords: [number, number] }> = [];
-      const partialMatches: Array<{ key: string; k1: string; k2: string; coords: [number, number] }> = [];
+      const exactMatches: Array<{ key: string; k1: string; k2: string; coords: [number, number]; distM: number }> = [];
+      const partialMatches: Array<{ key: string; k1: string; k2: string; coords: [number, number]; distM: number }> = [];
       const seenPairs = new Set<string>();
+
+      const primaryFon = this.normalizarFonetico(primaryQuery);
+      const crossFon = crossQuery ? this.normalizarFonetico(crossQuery) : '';
 
       for (const [key, coords] of Object.entries(cantonDetectado.interseccionesExactas)) {
         const [k1, k2] = key.split('_');
@@ -1439,31 +1493,54 @@ export class SaraFreightRoutingService {
         const pairId = [k1, k2].sort().join('|');
         if (seenPairs.has(pairId)) continue;
 
-        const k1Fon = this.normalizarFonetico(k1);
-        const k2Fon = this.normalizarFonetico(k2);
-        const hasK1 = clean.includes(k1) || cleanFon.includes(k1Fon);
-        const hasK2 = clean.includes(k2) || cleanFon.includes(k2Fon);
+        const k1Clean = stripStreetPrefixes(k1);
+        const k2Clean = stripStreetPrefixes(k2);
+        const k1Fon = this.normalizarFonetico(k1Clean);
+        const k2Fon = this.normalizarFonetico(k2Clean);
 
-        if (hasK1 && hasK2) {
+        const matchK1Primary =
+          k1Clean.includes(primaryQuery) ||
+          primaryQuery.includes(k1Clean) ||
+          k1Fon.includes(primaryFon) ||
+          primaryFon.includes(k1Fon);
+        const matchK2Primary =
+          k2Clean.includes(primaryQuery) ||
+          primaryQuery.includes(k2Clean) ||
+          k2Fon.includes(primaryFon) ||
+          primaryFon.includes(k2Fon);
+
+        const distM = calcDistM(coords);
+
+        if (crossQuery) {
+          const matchK1Cross = k1Clean.includes(crossQuery) || k1Fon.includes(crossFon);
+          const matchK2Cross = k2Clean.includes(crossQuery) || k2Fon.includes(crossFon);
+          if ((matchK1Primary && matchK2Cross) || (matchK2Primary && matchK1Cross)) {
+            seenPairs.add(pairId);
+            exactMatches.push({ key, k1, k2, coords, distM });
+          }
+        } else if (matchK1Primary || matchK2Primary || key.replace('_', ' ').includes(primaryQuery)) {
           seenPairs.add(pairId);
-          exactMatches.push({ key, k1, k2, coords });
-        } else if (hasK1 || hasK2 || key.replace('_', ' ').includes(clean)) {
-          seenPairs.add(pairId);
-          partialMatches.push({ key, k1, k2, coords });
+          // Colocar siempre la calle buscada primero para lectura intuitiva ("Moisés Oliva y Bolívar")
+          const orderedK1 = matchK2Primary && !matchK1Primary ? k2 : k1;
+          const orderedK2 = matchK2Primary && !matchK1Primary ? k1 : k2;
+          partialMatches.push({ key, k1: orderedK1, k2: orderedK2, coords, distM });
         }
       }
 
-      const ordered = exactMatches.length > 0
-        ? [...exactMatches, ...partialMatches.slice(0, 4)]
-        : partialMatches.slice(0, 6);
+      exactMatches.sort((a, b) => a.distM - b.distM);
+      partialMatches.sort((a, b) => a.distM - b.distM);
 
-      for (const { key, k1, k2, coords } of ordered) {
+      const ordered = exactMatches.length > 0
+        ? [...exactMatches, ...partialMatches.slice(0, 6)]
+        : partialMatches.slice(0, 10);
+
+      for (const { key, k1, k2, coords, distM } of ordered) {
         const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
         const tit2 = k2.charAt(0).toUpperCase() + k2.slice(1);
         agregarSugerencia({
           id: `interseccion_${cantonDetectado.nombre}_${key}`,
           titulo: `${tit1} y ${tit2}`,
-          subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · Intersección vial verificada`,
+          subtitulo: `${cantonDetectado.nombre}, ${cantonDetectado.provincia} · ${formatDistLabel(distM)}`,
           lat: coords[0],
           lng: coords[1],
           ciudad: cantonDetectado.nombre,
@@ -1471,6 +1548,20 @@ export class SaraFreightRoutingService {
           tipo: 'interseccion'
         });
       }
+    }
+
+    // 1.C. Fusionar intersecciones reales desde OpenStreetMap Overpass (todas las esquinas reales de la calle)
+    for (const osmInt of liveOsmIntersections) {
+      agregarSugerencia({
+        id: `osm_inter_${osmInt.lat}_${osmInt.lng}`,
+        titulo: osmInt.title,
+        subtitulo: `${cantonDetectado?.nombre || 'Ecuador'} · ${formatDistLabel(osmInt.distanceMeters)}`,
+        lat: osmInt.lat,
+        lng: osmInt.lng,
+        ciudad: cantonDetectado?.nombre || 'Ecuador',
+        provincia: cantonDetectado?.provincia || 'Ecuador',
+        tipo: 'interseccion'
+      });
     }
 
     // 2. PRIORIDAD 2: Vías e hitos locales del cantón activo
@@ -1607,7 +1698,7 @@ export class SaraFreightRoutingService {
       }
     }
 
-    return sugerencias.slice(0, 6);
+    return sugerencias.slice(0, 12);
   }
 
   /**
