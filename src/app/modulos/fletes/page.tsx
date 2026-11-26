@@ -86,7 +86,11 @@ import SaraMobileBottomSheet, { BottomSheetSnapPoint } from '@/components/fletes
 import SaraDriverNegotiationDrawer from '@/components/fletes/SaraDriverNegotiationDrawer';
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { saveLastKnownPosition, enqueueOfflineEvent } from '@/lib/fletes/saraFletesOfflineBuffer';
-import { startRealGpsWatcher } from '@/lib/fletes/saraGpsTelemetryEngine';
+import {
+  startRealGpsWatcher,
+  saveCalibratedDoorAnchor,
+  findMatchingCalibratedAnchor,
+} from '@/lib/fletes/saraGpsTelemetryEngine';
 import { useClientDriverTracking } from '@/hooks/useClientDriverTracking';
 import type { MultimodalVerticalKey } from '@/lib/agents/fletes/saraFletesUXUIDesigner';
 
@@ -173,6 +177,9 @@ export default function SaraFletesEngine() {
 
   // Candados y estado interactivo de mapa para evitar desfasaje y saltos
   const originLockedByMapRef = useRef<boolean>(false);
+  const bestOriginAccuracyRef = useRef<number>(Infinity);
+  const [precisionPinMode, setPrecisionPinMode] = useState<boolean>(false);
+  const [originManuallyConfirmed, setOriginManuallyConfirmed] = useState<boolean>(false);
   const destLockedByMapRef = useRef<boolean>(false);
   const userLocationRef = useRef<[number, number] | null>(null);
   const originPointRef = useRef<GeocodedPoint | null>(null);
@@ -850,32 +857,55 @@ export default function SaraFletesEngine() {
 
     const stopWatcher = startRealGpsWatcher({
       onFix: async (fix) => {
-        const lat = +fix.lat.toFixed(6);
-        const lng = +fix.lng.toFixed(6);
+        let lat = +fix.lat.toFixed(6);
+        let lng = +fix.lng.toFixed(6);
+        let effectiveAccuracy = fix.accuracyM;
+        let calibratedLabel: string | null = null;
         setGpsLoading(false);
 
         if (lat < -5.5 || lat > 2.0 || lng < -92.0 || lng > -74.5) {
           return;
         }
 
+        // Si el navegador (ej. Firefox/PC Wi-Fi) reporta baja precisión (>40m), verificar si el círculo
+        // real de incertidumbre contiene la puerta exacta calibrada previamente por el usuario
+        if (effectiveAccuracy > 40 && !originLockedByMapRef.current) {
+          const anchor = findMatchingCalibratedAnchor(lat, lng, effectiveAccuracy);
+          if (anchor) {
+            lat = +anchor.lat.toFixed(6);
+            lng = +anchor.lng.toFixed(6);
+            effectiveAccuracy = 5;
+            calibratedLabel = anchor.label;
+          }
+        }
+
         const coords: [number, number] = [lat, lng];
         setUserLocation(coords);
-        setUserLocationAccuracy(fix.accuracyM);
+        setUserLocationAccuracy(effectiveAccuracy);
         userLocationRef.current = coords;
 
-        // Actualizar punto de recogida si el usuario no lo fijó manualmente en el mapa
+        // Actualizar punto de recogida inmediatamente si mejora la precisión GPS (o tras 8s)
         const now = Date.now();
-        if (!originLockedByMapRef.current && now - lastReverseGeocodeAt > 8000) {
+        const isPrecisionUpgrade =
+          effectiveAccuracy < bestOriginAccuracyRef.current * 0.85 ||
+          (effectiveAccuracy <= 25 && bestOriginAccuracyRef.current > 25);
+
+        if (!originLockedByMapRef.current && (isPrecisionUpgrade || now - lastReverseGeocodeAt > 8000)) {
           lastReverseGeocodeAt = now;
-          let nombreDetectado = 'Mi Ubicación Actual (GPS)';
+          if (effectiveAccuracy < bestOriginAccuracyRef.current) {
+            bestOriginAccuracyRef.current = effectiveAccuracy;
+          }
+          let nombreDetectado = calibratedLabel || 'Mi Ubicación Actual (GPS)';
           let ciudadDetectada = 'Ecuador';
-          try {
-            const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
-            if (dirActual) {
-              nombreDetectado = dirActual;
-              ciudadDetectada = dirActual.split(',')[1]?.trim() || dirActual.split(',')[0]?.trim() || 'Ecuador';
-            }
-          } catch {}
+          if (!calibratedLabel) {
+            try {
+              const dirActual = await SaraFreightRoutingService.reverseGeocodificar(lat, lng);
+              if (dirActual) {
+                nombreDetectado = dirActual;
+                ciudadDetectada = dirActual.split(',')[1]?.trim() || dirActual.split(',')[0]?.trim() || 'Ecuador';
+              }
+            } catch {}
+          }
 
           const pOrig: GeocodedPoint = {
             nombre: nombreDetectado,
@@ -1159,19 +1189,30 @@ export default function SaraFletesEngine() {
     }
 
     originLockedByMapRef.current = true;
+    setOriginManuallyConfirmed(true);
+    setPrecisionPinMode(false);
+    setUserLocation([exactLat, exactLng]);
+    setUserLocationAccuracy(5);
+    userLocationRef.current = [exactLat, exactLng];
 
-    // Detección de precisión inmediata para Casa (Onlysoft) en Cariamanga (-4.328103, -79.561129)
-    const distOnlysoftM = Math.hypot(exactLat - (-4.328103), exactLng - (-79.561129)) * 111000;
-    const nombrePunto = distOnlysoftM < 120
-      ? 'Casa (Onlysoft), Gran Colombia y Atahualpa (Cariamanga)'
-      : `Punto exacto (${exactLat}, ${exactLng})`;
+    // Reverse geocoding real para etiquetar la puerta exacta confirmada
+    let nombrePunto = `Puerta exacta (${exactLat}, ${exactLng})`;
+    let ciudadPunto = 'Ecuador';
+    try {
+      const dir = await SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng);
+      if (dir) {
+        nombrePunto = dir;
+        ciudadPunto = dir.split(',')[1]?.trim() || dir.split(',')[0]?.trim() || 'Ecuador';
+      }
+    } catch {}
+
+    saveCalibratedDoorAnchor({ lat: exactLat, lng: exactLng, label: nombrePunto });
 
     const newPoint: GeocodedPoint = {
       nombre: nombrePunto,
       lat: exactLat,
       lng: exactLng,
-      ciudad: 'Cariamanga',
-      provincia: 'Loja'
+      ciudad: ciudadPunto
     };
     setOriginPoint(newPoint);
     originPointRef.current = newPoint;
@@ -1195,15 +1236,6 @@ export default function SaraFletesEngine() {
       } finally {
         setIsCalculatingRoute(false);
       }
-    }
-
-    if (distOnlysoftM >= 80) {
-      SaraFreightRoutingService.reverseGeocodificar(exactLat, exactLng).then((dir) => {
-        originLockedByMapRef.current = true;
-        if (dir) {
-          setOriginText(dir);
-        }
-      });
     }
   };
 
@@ -1621,11 +1653,37 @@ export default function SaraFletesEngine() {
             onOriginDragEnd={handleOriginDragEnd}
             onDestinationDragEnd={handleDestinationDragEnd}
             onMapClick={handleMapClick}
+            precisionPinMode={precisionPinMode}
+            onConfirmPrecisionPin={(lat, lng) => handleOriginDragEnd(lat, lng)}
+            onCancelPrecisionPin={() => setPrecisionPinMode(false)}
             onSelectVehiculo={(veh) => {
               setVehicleType(veh.tipoVehiculo);
             }}
           />
         </div>
+
+        {/* ALERTA DE BAJA PRECISIÓN GPS (Wi-Fi / PC / VPN > 35m) — CALIBRACIÓN ESTILO GOOGLE MAPS / UBER */}
+        {!activeFreight &&
+          !precisionPinMode &&
+          !originManuallyConfirmed &&
+          typeof userLocationAccuracy === 'number' &&
+          userLocationAccuracy > 35 && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 max-w-[92vw] sm:max-w-lg bg-slate-950/95 border-2 border-amber-400 text-slate-100 px-3.5 py-2.5 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2 text-xs">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  GPS aproximado (<strong className="font-mono text-amber-300">±{Math.round(userLocationAccuracy)} m</strong> por Wi-Fi/PC). Ajusta tu puerta exacta para evitar errores de tarifa.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrecisionPinMode(true)}
+                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer transition-colors whitespace-nowrap"
+              >
+                🎯 Ajustar Puerta Exacta
+              </button>
+            </div>
+          )}
 
         {/* BANNER FLOTANTE: MODO CLIC EN MAPA ACTIVADO */}
         {mapClickMode && (

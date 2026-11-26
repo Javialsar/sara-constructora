@@ -84,18 +84,24 @@ export class KalmanGpsFilter2D {
     timestamp: number
   ): GpsFixReal | null {
     const acc = Math.max(3, accuracyM || 20);
+    const currentStdDevM = this.variance >= 0 ? Math.sqrt(this.variance) : Infinity;
 
-    // Rechazar lecturas extremadamente ruidosas si ya tenemos un lock estable
-    if (this.variance >= 0 && acc > 65) {
+    // Rechazar lecturas muy ruidosas SOLO si ya tenemos un lock preciso (<= 35m)
+    if (this.variance >= 0 && currentStdDevM <= 35 && acc > 65) {
       return null;
     }
 
-    if (this.variance < 0) {
+    // Re-anclaje inmediato: si el lock inicial fue grueso (Wi-Fi/PC > 45m) y llega una lectura
+    // significativamente más precisa, NUNCA descartarla como "salto imposible" — re-anclar directo.
+    const isStrictPrecisionUpgrade =
+      this.variance >= 0 && (currentStdDevM > 45 || acc < currentStdDevM * 0.65) && acc <= currentStdDevM;
+
+    if (this.variance < 0 || isStrictPrecisionUpgrade) {
       this.lat = rawLat;
       this.lng = rawLng;
       this.variance = acc * acc;
       this.lastTimestamp = timestamp;
-      this.lastHeading = typeof rawHeading === 'number' && !isNaN(rawHeading) ? rawHeading : 0;
+      this.lastHeading = typeof rawHeading === 'number' && !isNaN(rawHeading) ? rawHeading : this.lastHeading;
       return {
         lat: this.lat,
         lng: this.lng,
@@ -113,8 +119,8 @@ export class KalmanGpsFilter2D {
     const distFromLastM = haversineMeters([this.lat, this.lng], [rawLat, rawLng]);
     const impliedSpeedKmh = (distFromLastM / dtSec) * 3.6;
 
-    // Anti-salto GPS: descartar saltos físicamente imposibles (> 165 km/h)
-    if (impliedSpeedKmh > 165 && dtSec < 15) {
+    // Anti-salto GPS: descartar saltos físicamente imposibles (> 165 km/h) solo cuando ya hay lock preciso
+    if (impliedSpeedKmh > 165 && dtSec < 15 && currentStdDevM <= 45) {
       return null;
     }
 
@@ -267,8 +273,8 @@ export function startRealGpsWatcher(options: TelemetryWatcherOptions): () => voi
     },
     {
       enableHighAccuracy: true,
-      maximumAge: 1000,
-      timeout: 12000
+      maximumAge: 0,
+      timeout: 15000
     }
   );
 
@@ -277,4 +283,56 @@ export function startRealGpsWatcher(options: TelemetryWatcherOptions): () => voi
       navigator.geolocation.clearWatch(watchId);
     } catch {}
   };
+}
+
+export interface CalibratedDoorAnchor {
+  lat: number;
+  lng: number;
+  label: string;
+  savedAt: string;
+}
+
+const CALIBRATED_ANCHOR_KEY = 'sara_fletes_calibrated_door_v1';
+
+/**
+ * Guarda la puerta exacta confirmada manualmente por el usuario (ej. OnlySoft)
+ * para corregir el error inherente de triangulación Wi-Fi/PC (±150-250m) en navegadores de escritorio.
+ */
+export function saveCalibratedDoorAnchor(anchor: Omit<CalibratedDoorAnchor, 'savedAt'>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const payload: CalibratedDoorAnchor = {
+      ...anchor,
+      savedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(CALIBRATED_ANCHOR_KEY, JSON.stringify(payload));
+  } catch {
+    // Sin almacenamiento local disponible
+  }
+}
+
+/**
+ * Si el navegador devuelve una lectura gruesa (Wi-Fi/PC > 40m), verifica si el círculo de incertidumbre
+ * contiene la puerta exacta calibrada por el usuario. Si la contiene, devuelve esa coordenada exacta.
+ */
+export function findMatchingCalibratedAnchor(
+  rawLat: number,
+  rawLng: number,
+  accuracyM: number
+): CalibratedDoorAnchor | null {
+  if (typeof window === 'undefined' || accuracyM <= 40) return null;
+  try {
+    const raw = window.localStorage.getItem(CALIBRATED_ANCHOR_KEY);
+    if (!raw) return null;
+    const anchor = JSON.parse(raw) as CalibratedDoorAnchor;
+    if (typeof anchor?.lat !== 'number' || typeof anchor?.lng !== 'number') return null;
+    const dist = haversineMeters([rawLat, rawLng], [anchor.lat, anchor.lng]);
+    // Solo aplicar si la puerta calibrada está dentro del radio de incertidumbre real reportado por el navegador
+    if (dist <= Math.max(accuracyM * 1.15, 250)) {
+      return anchor;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }

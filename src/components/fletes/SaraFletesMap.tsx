@@ -89,6 +89,9 @@ export interface SaraFletesMapProps {
   searchRadiusMeters?: number | null;
   isSearchingDriver?: boolean;
   activeDriverTracking?: ActiveDriverTrackingProp | null;
+  precisionPinMode?: boolean;
+  onConfirmPrecisionPin?: (lat: number, lng: number) => void;
+  onCancelPrecisionPin?: () => void;
 }
 
 // Generadores de Iconos L.divIcon personalizados para evitar problemas de assets externos
@@ -608,6 +611,74 @@ function MapClickHandler({ onMapClick }: { onMapClick?: (lat: number, lng: numbe
   return null;
 }
 
+// Mira Central estilo Uber / Google Maps para fijar la puerta exacta con precisión milimétrica
+function PrecisionCrosshairOverlay({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: (lat: number, lng: number) => void;
+  onCancel: () => void;
+}) {
+  const map = useMap();
+  const [center, setCenter] = useState<[number, number]>(() => {
+    const c = map.getCenter();
+    return [c.lat, c.lng];
+  });
+  const [moving, setMoving] = useState(false);
+
+  useMapEvents({
+    movestart() {
+      setMoving(true);
+    },
+    move() {
+      const c = map.getCenter();
+      setCenter([c.lat, c.lng]);
+    },
+    moveend() {
+      const c = map.getCenter();
+      setCenter([c.lat, c.lng]);
+      setMoving(false);
+    },
+  });
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[1000] flex items-center justify-center">
+      {/* Mira central fija */}
+      <div className="relative flex flex-col items-center -translate-y-5">
+        <div
+          className={`transition-transform duration-150 ${moving ? '-translate-y-2 scale-110' : 'translate-y-0 scale-100'}`}
+        >
+          <div className="bg-slate-950/95 text-emerald-300 border border-emerald-400 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold shadow-xl mb-1.5 whitespace-nowrap">
+            {center[0].toFixed(6)}, {center[1].toFixed(6)}
+          </div>
+          <div className="mx-auto w-9 h-9 rounded-full bg-emerald-500 border-4 border-white shadow-2xl flex items-center justify-center text-white font-black text-base">
+            📍
+          </div>
+        </div>
+        <div className="w-2.5 h-2.5 rounded-full bg-slate-950/70 border border-white mt-0.5 shadow" />
+      </div>
+
+      {/* Barra inferior de confirmación */}
+      <div className="pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-950/95 border border-emerald-500/60 p-2 rounded-2xl shadow-2xl">
+        <button
+          type="button"
+          onClick={() => onConfirm(center[0], center[1])}
+          className="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer transition-colors whitespace-nowrap"
+        >
+          ✅ Confirmar Puerta Exacta
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-[44px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Marcador de alta visibilidad para el conductor asignado acercándose en tiempo real (60FPS + ETA flotante)
 function ActiveDriverLiveMarker({ tracking }: { tracking: ActiveDriverTrackingProp }) {
   const markerRef = useRef<L.Marker | null>(null);
@@ -718,7 +789,10 @@ export default function SaraFletesMap({
   onDestinationDragEnd,
   searchRadiusMeters = null,
   isSearchingDriver = false,
-  activeDriverTracking = null
+  activeDriverTracking = null,
+  precisionPinMode = false,
+  onConfirmPrecisionPin,
+  onCancelPrecisionPin
 }: SaraFletesMapProps) {
   const [activeLayer, setActiveLayer] = useState<MapLayerType>('google_streets');
 
@@ -765,6 +839,13 @@ export default function SaraFletesMap({
         />
 
         <MapClickHandler onMapClick={onMapClick} />
+
+        {precisionPinMode && onConfirmPrecisionPin && onCancelPrecisionPin && (
+          <PrecisionCrosshairOverlay
+            onConfirm={onConfirmPrecisionPin}
+            onCancel={onCancelPrecisionPin}
+          />
+        )}
 
         {/* 1. Marcador de Mi Ubicación Actual (GPS) */}
         {userLocation && (
