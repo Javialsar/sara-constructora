@@ -1707,7 +1707,7 @@ export default function SaraFletesEngine() {
   };
 
   return (
-    <div className="h-screen w-screen bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden select-none">
+    <div className="h-[100dvh] w-screen bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden select-none">
       <ModuloIntroSplash modulo="fletes" />
 
       {/* TOPBAR ULTRA-COMPACTA & ERGONÓMICA */}
@@ -1745,8 +1745,8 @@ export default function SaraFletesEngine() {
         </div>
       </header>
 
-      {/* ÁREA MAP-AS-CANVAS (100% VIEWPORT CON CONTROLES FLOTANTES) */}
-      <div className="relative flex-1 w-full h-[calc(100vh-56px)] overflow-hidden">
+      {/* ÁREA MAP-AS-CANVAS (100% VIEWPORT DINÁMICO CON CONTROLES FLOTANTES) */}
+      <div className="relative flex-1 min-h-0 w-full overflow-hidden">
         
         {/* MAPA VECTORIAL DE FONDO COMPLETO */}
         <div className="absolute inset-0 z-0">

@@ -1439,7 +1439,7 @@ export default function MiPerfilFletes() {
   ];
 
   return (
-    <div className="h-screen bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden">
+    <div className="h-[100dvh] bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden">
       {/* HEADER COMPACTO MÓVIL + ESCRITORIO (1 SOLA FILA LIMPIA, 0 DESBORDES) */}
       <header className="h-14 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center shadow-lg relative z-30 shrink-0 gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -1548,7 +1548,7 @@ export default function MiPerfilFletes() {
       )}
 
       {/* CUERPO PRINCIPAL SPLIT */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden relative">
         
         {/* MENÚ HAMBURGUESA SLIDE-OVER EN MÓVIL / SIDEBAR FIJO EN ESCRITORIO */}
         <aside
@@ -1724,12 +1724,12 @@ export default function MiPerfilFletes() {
           </div>
         </aside>
 
-        {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA (MAPA PRIMERO EN MÓVIL) */}
+        {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA (MAPA PRIMERO EN MÓVIL · 100dvh RESPONSIVE) */}
         <main
-          className={`flex-1 bg-slate-950 ${
+          className={`flex-1 min-h-0 bg-slate-950 ${
             activeTab === 'sincronizacion'
-              ? 'p-0 lg:p-4 overflow-hidden h-[calc(100vh-56px)] flex flex-col'
-              : 'p-4 lg:p-6 overflow-y-auto h-[calc(100vh-56px)] space-y-6'
+              ? 'p-0 lg:p-4 overflow-hidden flex flex-col'
+              : 'p-4 lg:p-6 overflow-y-auto space-y-6 pb-20 lg:pb-6'
           }`}
         >
           {activeTab === 'consola_v2' && currentUser?.id && (
@@ -1827,7 +1827,7 @@ export default function MiPerfilFletes() {
               </div>
 
               {/* MAPA COMPLETO EN VIVO */}
-              <div className="flex-1 w-full min-h-[520px] rounded-2xl overflow-hidden border border-slate-800 relative shadow-2xl">
+              <div className="flex-1 min-h-0 w-full lg:min-h-[520px] rounded-none lg:rounded-2xl overflow-hidden lg:border border-slate-800 relative shadow-2xl">
                 <SaraFletesMap
                   userLocation={driverLocation}
                   origenCoords={incomingRequest ? incomingRequest.coordsOrigen : null}
@@ -1881,7 +1881,7 @@ export default function MiPerfilFletes() {
                   const esViajePasajeros = Boolean(incomingRequest.material?.toLowerCase().includes('viaje'));
 
                   return (
-                    <div className="absolute bottom-2 inset-x-2 sm:inset-x-auto sm:bottom-auto sm:top-4 sm:right-4 z-[500] sm:max-w-sm sm:w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-3.5 sm:p-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-2.5">
+                    <div className="fixed bottom-3 inset-x-2.5 lg:absolute lg:inset-x-auto lg:bottom-auto lg:top-4 lg:right-4 z-[550] lg:max-w-sm lg:w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-3.5 sm:p-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-2.5 max-h-[60dvh] overflow-y-auto">
                       {/* Fila superior: Tipo + Precio + Distancia */}
                       <div className="flex items-center justify-between gap-2">
                         <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shrink-0">
@@ -1975,9 +1975,9 @@ export default function MiPerfilFletes() {
                   );
                 })()}
 
-                {/* OVERLAY: PANEL COMPACTO DE VIAJE EN CURSO (BOTTOM SHEET MÓVIL SIN RECORTES) */}
+                {/* OVERLAY: PANEL COMPACTO DE VIAJE EN CURSO (FIXED EN MÓVIL PARA NUNCA RECORTARSE BAJO BARRA DEL NAVEGADOR) */}
                 {tripAccepted && (
-                  <div className="absolute bottom-2 inset-x-2 lg:bottom-5 lg:left-5 lg:right-24 z-[500] bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 sm:p-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-200">
+                  <div className="fixed bottom-3 inset-x-2.5 lg:absolute lg:bottom-5 lg:left-5 lg:right-24 z-[550] bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 sm:p-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-200">
                     
                     {/* ESTADO 1: EN CAMINO A RECOGER (ESPERANDO PIN PARA INICIAR) */}
                     {tripState === 'heading_to_pickup' && (
