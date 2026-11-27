@@ -1830,6 +1830,16 @@ export default function SaraFletesEngine() {
                           }}
                           onCancelSearch={() => {
                             if (activeFreight) {
+                              if (activeFreight.accessCode) {
+                                fetch('/api/fletes/dispatch', {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    codigoAcceso: activeFreight.accessCode,
+                                    status: 'cancelada',
+                                  }),
+                                }).catch(() => {});
+                              }
                               SaraFletesRealtimeService.emit({
                                 type: 'CANCELAR_SOLICITUD_FLETE',
                                 payload: { fleteId: activeFreight.id }
@@ -2124,7 +2134,24 @@ export default function SaraFletesEngine() {
                           setActiveFreight(simulatedReq);
                           setProposedPrice(params.tarifaUSD);
 
-                          // 1. Guardar en BD / Server Action
+                          // 1. Publicar solicitud REAL en servidor (/api/fletes/dispatch -> Supabase fletes_solicitudes)
+                          fetch('/api/fletes/dispatch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              origen: simulatedReq.origin,
+                              destino: simulatedReq.destination,
+                              tarifa: params.tarifaUSD,
+                              distanciaKm: simulatedReq.distanciaKm || 3.2,
+                              duracionMinutos: simulatedReq.duracionMinutos || 9,
+                              tipoVehiculo: params.vehiculoId || 'AUTO_SEDAN',
+                              material: simulatedReq.material,
+                              codigoAcceso: simulatedReq.accessCode,
+                              coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : userLocation,
+                              coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null,
+                            }),
+                          }).catch((err) => console.warn('Error despachando solicitud en servidor:', err));
+
                           createFletesSolicitud({
                             origen: simulatedReq.origin,
                             destino: simulatedReq.destination,

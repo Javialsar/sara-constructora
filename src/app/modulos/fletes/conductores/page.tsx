@@ -317,57 +317,153 @@ export default function MiPerfilFletes() {
     planRef.current = plan;
   }, [plan]);
 
-  // Reproducción de alerta sonora estilo radar de taxi (Web Audio API nativo sin assets externos)
-  const playRadarAlertSound = () => {
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const [alarmUnlocked, setAlarmUnlocked] = useState<boolean>(false);
+  const dismissedRequestIdsRef = useRef<Set<string>>(new Set());
+
+  const unlockDriverAlarmAudio = () => {
     if (typeof window === 'undefined') return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
-      osc.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.35);
-      gain.gain.setValueAtTime(0.35, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.5);
+      if (AudioCtx) {
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new AudioCtx();
+        }
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => {});
+        }
+        setAlarmUnlocked(true);
+      }
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch {}
+  };
+
+  // Desbloquear Web Audio automáticamente al primer toque en cualquier parte de la cabina
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onFirstGesture = () => {
+      unlockDriverAlarmAudio();
+      window.removeEventListener('pointerdown', onFirstGesture);
+    };
+    window.addEventListener('pointerdown', onFirstGesture, { passive: true });
+    return () => window.removeEventListener('pointerdown', onFirstGesture);
+  }, []);
+
+  // Alarma sonora de despacho real (3 pulsos tipo radar Uber/DiDi + vibración + notificación nativa)
+  const playRadarAlertSound = (origenText?: string, destinoText?: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = audioCtxRef.current || new AudioCtx();
+        audioCtxRef.current = ctx;
+        if (ctx.state === 'suspended') {
+          ctx.resume().catch(() => {});
+        }
+        const now = ctx.currentTime;
+        // 3 pulsos agudos y claros de alerta de pedido entrante
+        [0, 0.24, 0.48].forEach((offset) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(880, now + offset);
+          osc.frequency.exponentialRampToValueAtTime(1318.5, now + offset + 0.14);
+          gain.gain.setValueAtTime(0.45, now + offset);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.2);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + offset);
+          osc.stop(now + offset + 0.21);
+        });
+      }
+      if ('vibrate' in navigator) {
+        navigator.vibrate([250, 120, 250, 120, 350]);
+      }
+      if (origenText && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('🚨 Nuevo Pedido SARA-FLETES', {
+          body: `${origenText} ➔ ${destinoText || 'Destino'}`,
+        });
+      }
     } catch {
-      // Autoplay restringido hasta interacción de usuario
+      // Autoplay restringido hasta primer toque del usuario
     }
   };
 
-  // Simulación de pedido demo para probar radar y sincronización 100% en vivo
-  const handleSimularCarreraDemo = () => {
-    const demoId = `SARA-VIAJES-${Date.now().toString().slice(-5)}`;
-    const demoPayload = {
-      id: demoId,
-      origen: 'Parque Central Cariamanga',
-      destino: 'Mirador El Calvario',
-      material: 'Viaje de 1 pasajero(s)',
-      pesoTon: 0.1,
-      tipoVehiculo: 'PICKUP_1T',
-      tarifaOfertadaUSD: 28.72,
-      distanciaKm: 4.8,
-      duracionMinutos: 12,
-      coordsOrigen: [-4.3298, -79.5611] as [number, number],
-      coordsDestino: [-4.3250, -79.5520] as [number, number],
-      codigoAcceso: '4821',
-      clienteNombre: 'Viajero Cariamanga (Prueba)',
-      status: 'searching' as const,
-      timestamp: Date.now()
+  // Repetir alarma cada 3.5s mientras exista una solicitud entrante sin responder
+  useEffect(() => {
+    if (!incomingRequest || tripAccepted) return;
+    const interval = setInterval(() => {
+      playRadarAlertSound();
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [incomingRequest, tripAccepted]);
+
+  // Sondeo real contra Supabase (/api/fletes/dispatch) cada 2.5s para garantizar entrega 100% real
+  // entre cualquier navegador o dispositivo (Chrome, Firefox, Android, iOS) sin depender solo de WebSockets
+  useEffect(() => {
+    if (!currentUser?.id || tripAccepted) return;
+    let cancelled = false;
+
+    const pollLiveRequests = async () => {
+      if (cancelled || balanceRef.current < 1.0) return;
+      try {
+        const res = await fetch('/api/fletes/dispatch', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data?.requests) ? data.requests : [];
+        if (list.length === 0) return;
+
+        const latest = list.find((r: any) => !dismissedRequestIdsRef.current.has(String(r.id)));
+        if (!latest) return;
+
+        const reqId = String(latest.id);
+        let isNew = false;
+        setIncomingRequest((prev: any) => {
+          if (prev && (prev.fleteId === reqId || prev.codigoAcceso === latest.codigo_acceso)) {
+            return prev;
+          }
+          isNew = true;
+          return {
+            fleteId: reqId,
+            origen: latest.origen || 'Origen GPS',
+            destino: latest.destino || 'Destino',
+            cliente: 'Cliente SARA',
+            material: latest.material || 'Servicio de Transporte',
+            valorRef: Number(latest.tarifa) || 2.0,
+            distanciaKm: Number(latest.distancia_km) || 1.5,
+            duracionMinutos: Number(latest.duracion_minutos) || 5,
+            coordsOrigen:
+              typeof latest.origen_lat === 'number' && typeof latest.origen_lng === 'number'
+                ? [latest.origen_lat, latest.origen_lng]
+                : [-4.32794, -79.561116],
+            coordsDestino:
+              typeof latest.destino_lat === 'number' && typeof latest.destino_lng === 'number'
+                ? [latest.destino_lat, latest.destino_lng]
+                : [-4.3314, -79.5535],
+            codigoAcceso: latest.codigo_acceso || '',
+          };
+        });
+
+        if (isNew) {
+          setTripAccepted(false);
+          setTripState('idle');
+          playRadarAlertSound(latest.origen, latest.destino);
+          showToast(`🚨 ¡Nuevo pedido real recibido!: ${latest.origen} → ${latest.destino}`);
+        }
+      } catch {
+        // Silenciar error transitorio de red
+      }
     };
-    SaraFletesRealtimeService.emit({
-      type: 'NUEVA_SOLICITUD_FLETE',
-      payload: demoPayload
-    });
-    playRadarAlertSound();
-    showToast('🚀 Carrera de demostración emitida en el radar.');
-  };
+
+    pollLiveRequests();
+    const timer = setInterval(pollLiveRequests, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [currentUser?.id, tripAccepted]);
 
   // Contraoferta directa del conductor al cliente (Modo inDrive)
   const handleDriverCounterOffer = (deltaUSD: number) => {
@@ -1600,15 +1696,22 @@ export default function MiPerfilFletes() {
                     )}
                   </div>
 
-                  {/* Botón Simular Carrera Demo en Radar */}
+                  {/* Botón de Activación de Alarma Sonora Real */}
                   <button
                     type="button"
-                    onClick={handleSimularCarreraDemo}
-                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-sm"
-                    title="Probar recepción de pedido o carrera en el radar"
+                    onClick={() => {
+                      unlockDriverAlarmAudio();
+                      playRadarAlertSound();
+                      showToast('🔔 Alarma sonora de pedidos activada y verificada.');
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer border ${
+                      alarmUnlocked
+                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                        : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40'
+                    }`}
+                    title="Habilitar sonido de alarma y notificaciones del navegador"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Simular Pedido de Prueba</span>
+                    <span>{alarmUnlocked ? '🔔 Alarma Activa' : '🔕 Activar Alarma'}</span>
                   </button>
 
                   {/* Estado de Transmisión */}
@@ -2518,7 +2621,7 @@ export default function MiPerfilFletes() {
                 </div>
               </div>
 
-              {/* CARD 4: SIMULADOR DE PASARELA EN VIVO (CÓMO LO VERÁ EL CLIENTE) */}
+              {/* CARD 4: VISTA PREVIA DE PASARELA EN VIVO (CÓMO LO VERÁ EL CLIENTE) */}
               <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
                   <div className="flex items-center gap-2">
@@ -2531,7 +2634,7 @@ export default function MiPerfilFletes() {
                 </div>
 
                 <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 sm:p-5 max-w-xl mx-auto space-y-4 text-white">
-                  {/* Selector de Tabs del Simulador */}
+                  {/* Selector de Tabs de Vista Previa */}
                   <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800">
                     <button
                       type="button"
