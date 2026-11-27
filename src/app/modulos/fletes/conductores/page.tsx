@@ -419,7 +419,11 @@ export default function MiPerfilFletes() {
           return;
         }
 
-        const latest = list.find((r: any) => !dismissedRequestIdsRef.current.has(String(r.id)));
+        const latest = list.find(
+          (r: any) =>
+            !dismissedRequestIdsRef.current.has(String(r.id)) &&
+            !(r.codigo_acceso && dismissedRequestIdsRef.current.has(`pin:${r.codigo_acceso}`))
+        );
         if (!latest) return;
 
         const reqId = String(latest.id);
@@ -885,14 +889,31 @@ export default function MiPerfilFletes() {
     setAccessCode(code);
     setInputPin(code); // precargado para facilitar testing
 
-    // Emisión en tiempo real de aceptación al cliente
+    // Emisión en tiempo real de aceptación al cliente (Realtime + BD /api/fletes/dispatch)
+    fetch('/api/fletes/dispatch', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: incomingRequest.fleteId,
+        codigoAcceso: code,
+        status: 'aceptada',
+        conductorNombre: driverName,
+        conductorPlaca: myPlate,
+        conductorTelefono: currentUser?.user_metadata?.telefono || '',
+        vehiculoNombre: currentUser?.user_metadata?.vehiculo || 'Vehículo Verificado SARA',
+        tarifaAcordada: valorFlete,
+        driverLat: driverLocation?.[0],
+        driverLng: driverLocation?.[1],
+      }),
+    }).catch((err) => console.warn('Error confirmando aceptación en servidor:', err));
+
     SaraFletesRealtimeService.emit({
       type: 'CHOFER_ACEPTO_FLETE',
       payload: {
         fleteId: incomingRequest.fleteId || 'FLT-DIRECT',
         driverName,
         plate: myPlate,
-        vehicleName: 'Camioneta Pickup 1.2T · SARA',
+        vehicleName: currentUser?.user_metadata?.vehiculo || 'Vehículo Verificado SARA',
         codigoAcceso: code,
         precio: valorFlete,
         coords: driverLocation
@@ -901,6 +922,25 @@ export default function MiPerfilFletes() {
 
     showToast(`¡Flete asignado! Dirígete al Punto de Carga (${incomingRequest.origen}) y valida el código del cliente para iniciar.`);
   };
+
+  // Transmitir telemetría GPS real del conductor al cliente cada 2.5s mientras el viaje está aceptado
+  useEffect(() => {
+    if (!tripAccepted || !incomingRequest?.codigoAcceso || !driverLocation) return;
+    const sendGps = () => {
+      fetch('/api/fletes/dispatch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codigoAcceso: incomingRequest.codigoAcceso,
+          driverLat: driverLocation[0],
+          driverLng: driverLocation[1],
+        }),
+      }).catch(() => {});
+    };
+    sendGps();
+    const timer = setInterval(sendGps, 2500);
+    return () => clearInterval(timer);
+  }, [tripAccepted, incomingRequest?.codigoAcceso, driverLocation?.[0], driverLocation?.[1]]);
 
   // INICIAR EL FLETE TRAS VALIDAR EL CÓDIGO GENERADO ENTRE CLIENTE Y CONDUCTOR (DÉBITO DE COMISIÓN)
   const handleStartTrip = async () => {
@@ -1824,7 +1864,16 @@ export default function MiPerfilFletes() {
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               type="button"
-                              onClick={() => setIncomingRequest(null)}
+                              onClick={() => {
+                                if (incomingRequest?.fleteId) {
+                                  dismissedRequestIdsRef.current.add(String(incomingRequest.fleteId));
+                                }
+                                if (incomingRequest?.codigoAcceso) {
+                                  dismissedRequestIdsRef.current.add(`pin:${incomingRequest.codigoAcceso}`);
+                                }
+                                setIncomingRequest(null);
+                                showToast('Solicitud rechazada y ocultada de tu radar.');
+                              }}
                               className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
                             >
                               Rechazar

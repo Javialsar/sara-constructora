@@ -4,12 +4,16 @@ import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * API Real de Despacho SARA-FLETES (/api/fletes/dispatch)
- * Persiste y entrega solicitudes reales desde Supabase (`fletes_solicitudes`) para garantizar
- * entrega 100% confiable entre Cliente y Conductor (Chrome/Firefox/Android/iOS) incluso si
- * WebSockets o BroadcastChannel no están disponibles.
- */
+interface LiveDriverTelemetryEntry {
+  lat: number;
+  lng: number;
+  heading?: number;
+  speedKmh?: number;
+  updatedAt: number;
+}
+
+// Caché ligera en memoria por instancia para telemetría sub-segundo junto con respaldo en BD
+const LIVE_DRIVER_TELEMETRY = new Map<string, LiveDriverTelemetryEntry>();
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,10 +33,15 @@ export async function GET(req: NextRequest) {
       if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
-      return NextResponse.json({ success: true, request: data || null });
+
+      const memTelemetry = LIVE_DRIVER_TELEMETRY.get(codigoAcceso) || null;
+      return NextResponse.json({
+        success: true,
+        request: data || null,
+        driverTelemetry: memTelemetry,
+      });
     }
 
-    // Solo conductores/usuarios autenticados consultan el radar de solicitudes pendientes
     await requireServerAuth(req);
 
     const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -77,7 +86,6 @@ export async function POST(req: NextRequest) {
 
     const codigoAcceso = String(body.codigoAcceso || Math.floor(1000 + Math.random() * 9000));
 
-    // Evitar duplicados si ya existe una solicitud pendiente con el mismo codigoAcceso en los últimos 5 min
     const { data: existing } = await admin
       .from('fletes_solicitudes')
       .select('*')
@@ -144,15 +152,48 @@ export async function PATCH(req: NextRequest) {
   try {
     const admin = createAdminClient();
     const body = await req.json().catch(() => null);
-    const id = typeof body?.id === 'string' ? body.id : null;
-    const codigoAcceso = typeof body?.codigoAcceso === 'string' ? body.codigoAcceso : null;
-    const nextStatus = typeof body?.status === 'string' ? body.status : null;
+    const id = typeof body?.id === 'string' && body.id.length >= 8 ? body.id : null;
+    const codigoAcceso = typeof body?.codigoAcceso === 'string' && body.codigoAcceso ? body.codigoAcceso : null;
 
-    if (!nextStatus || (!id && !codigoAcceso)) {
-      return NextResponse.json({ success: false, error: 'Se requiere id o codigoAcceso y status.' }, { status: 400 });
+    if (!id && !codigoAcceso) {
+      return NextResponse.json({ success: false, error: 'Se requiere id o codigoAcceso.' }, { status: 400 });
     }
 
-    const query = admin.from('fletes_solicitudes').update({ status: nextStatus });
+    // Actualización rápida de telemetría GPS del conductor (sin sobrecargar BD si solo es ping GPS)
+    if (
+      codigoAcceso &&
+      typeof body?.driverLat === 'number' &&
+      typeof body?.driverLng === 'number' &&
+      Number.isFinite(body.driverLat) &&
+      Number.isFinite(body.driverLng)
+    ) {
+      LIVE_DRIVER_TELEMETRY.set(codigoAcceso, {
+        lat: body.driverLat,
+        lng: body.driverLng,
+        heading: typeof body.heading === 'number' ? body.heading : undefined,
+        speedKmh: typeof body.speedKmh === 'number' ? body.speedKmh : undefined,
+        updatedAt: Date.now(),
+      });
+      if (LIVE_DRIVER_TELEMETRY.size > 200) {
+        const oldest = LIVE_DRIVER_TELEMETRY.keys().next().value;
+        if (oldest) LIVE_DRIVER_TELEMETRY.delete(oldest);
+      }
+      if (!body.status) {
+        return NextResponse.json({ success: true, telemetryUpdated: true });
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof body?.status === 'string') updatePayload.status = body.status;
+    if (typeof body?.conductorNombre === 'string') updatePayload.conductor_nombre = body.conductorNombre;
+    if (typeof body?.conductorPlaca === 'string') updatePayload.conductor_placa = body.conductorPlaca;
+    if (typeof body?.conductorTelefono === 'string') updatePayload.conductor_telefono = body.conductorTelefono;
+    if (typeof body?.vehiculoNombre === 'string') updatePayload.vehiculo_nombre = body.vehiculoNombre;
+    if (typeof body?.tarifaAcordada === 'number') updatePayload.tarifa_acordada = body.tarifaAcordada;
+
+    const query = admin.from('fletes_solicitudes').update(updatePayload);
     const { data, error } = id
       ? await query.eq('id', id).select().maybeSingle()
       : await query.eq('codigo_acceso', codigoAcceso!).select().maybeSingle();

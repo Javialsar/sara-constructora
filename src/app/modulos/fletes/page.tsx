@@ -1048,6 +1048,68 @@ export default function SaraFletesEngine() {
     return () => clearInterval(timer);
   }, [activeFreight, originPoint, destinationPoint, userLocation, rutaCalculada]);
 
+  const [liveServerDriverCoords, setLiveServerDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Sondeo bidireccional cada 2s contra /api/fletes/dispatch para recibir aceptación del conductor
+  // y su telemetría GPS en tiempo real en cualquier dispositivo (celular <-> PC)
+  useEffect(() => {
+    if (!activeFreight?.accessCode) {
+      setLiveServerDriverCoords(null);
+      return;
+    }
+    if (!['searching', 'accepted', 'in_transit'].includes(activeFreight.status)) return;
+
+    let cancelled = false;
+    const pollOrderStatus = async () => {
+      if (cancelled) return;
+      try {
+        const res = await fetch(
+          `/api/fletes/dispatch?codigoAcceso=${encodeURIComponent(activeFreight.accessCode || '')}`,
+          { cache: 'no-store' }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const req = data?.request;
+        const tel = data?.driverTelemetry;
+
+        if (tel && typeof tel.lat === 'number' && typeof tel.lng === 'number') {
+          setLiveServerDriverCoords({ lat: tel.lat, lng: tel.lng });
+        }
+
+        if (req && req.status === 'aceptada' && activeFreight.status === 'searching') {
+          const acceptedPrice = Number(req.tarifa_acordada || req.tarifa || activeFreight.referencePrice);
+          setAssignedDriver({
+            id: req.conductor_id || `DRV-${req.codigo_acceso}`,
+            driverName: req.conductor_nombre || 'Conductor Verificado SARA',
+            vehicleName: req.vehiculo_nombre || 'Vehículo Asignado SARA',
+            plate: req.conductor_placa || '',
+            rating: 4.9,
+            tripsCount: 120,
+            etaMinutes: 3,
+            distanceMeters: 450,
+            offeredPrice: acceptedPrice,
+            isCounterOffer: false,
+            phone: req.conductor_telefono || '',
+          });
+          setActiveFreight((prev) =>
+            prev ? { ...prev, status: 'accepted', referencePrice: acceptedPrice } : null
+          );
+          setDriverOffers([]);
+          setBottomSheetLevel('half');
+        }
+      } catch {
+        // Reintento automático en el siguiente ciclo
+      }
+    };
+
+    pollOrderStatus();
+    const timer = setInterval(pollOrderStatus, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [activeFreight?.accessCode, activeFreight?.status, activeFreight?.referencePrice]);
+
   // Seguimiento GPS en tiempo real del conductor asignado + Ruta de acercamiento + Audio ETA inteligente
   const matchedRadarDriver = useMemo(() => {
     if (!assignedDriver) return null;
@@ -1079,7 +1141,9 @@ export default function SaraFletesEngine() {
     accessCode: activeFreight?.accessCode,
     pickupCoords: originPoint ? [originPoint.lat, originPoint.lng] : null,
     destinationCoords: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null,
-    radarDriverCoords: matchedRadarDriver ? { lat: matchedRadarDriver.lat, lng: matchedRadarDriver.lng } : null,
+    radarDriverCoords:
+      liveServerDriverCoords ||
+      (matchedRadarDriver ? { lat: matchedRadarDriver.lat, lng: matchedRadarDriver.lng } : null),
     initialEtaMinutes: assignedDriver?.etaMinutes ?? null,
   });
 
