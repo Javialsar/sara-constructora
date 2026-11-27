@@ -1006,6 +1006,21 @@ export default function MiPerfilFletes() {
       setTripState('in_transit');
       setTripProgressPercent(5);
 
+      // Persistir estado EN CURSO en Supabase para sincronización en tiempo real con el cliente
+      fetch('/api/fletes/dispatch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: activeReq.fleteId || activeReq.id,
+          codigoAcceso: targetCode,
+          status: 'en_curso',
+          conductorNombre: driverName,
+          conductorPlaca: myPlate,
+          driverLat: driverLocation?.[0],
+          driverLng: driverLocation?.[1],
+        }),
+      }).catch((err) => console.warn('Error sincronizando inicio de viaje en servidor:', err));
+
       // Emisión de evento en vivo a todo el ecosistema (cliente y radar)
       SaraFletesRealtimeService.emit({
         type: 'FLETE_INICIADO',
@@ -1088,6 +1103,20 @@ export default function MiPerfilFletes() {
 
     SaraFletesRealtimeService.saveCompletedTrip(myPlate, nuevoViaje);
     setViajesList(prev => [nuevoViaje, ...prev.filter(v => v.id !== nuevoViaje.id && (!v.fleteId || v.fleteId !== nuevoViaje.fleteId))]);
+
+    // Persistir estado COMPLETADA en Supabase para que el cliente reciba la pantalla de calificación en vivo
+    fetch('/api/fletes/dispatch', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: incomingRequest.fleteId,
+        codigoAcceso: accessCode || incomingRequest.codigoAcceso || '0000',
+        status: 'completada',
+        conductorNombre: currentUser?.user_metadata?.full_name || 'David Sarango Malacatus',
+        conductorPlaca: myPlate,
+        tarifaAcordada: valorFlete,
+      }),
+    }).catch((err) => console.warn('Error sincronizando finalización de viaje en servidor:', err));
 
     SaraFletesRealtimeService.emit({
       type: 'FLETE_COMPLETADO',
@@ -1841,7 +1870,7 @@ export default function MiPerfilFletes() {
                   />
                 )}
 
-                {/* OVERLAY: SOLICITUD ENTRANTE FLOTANTE CON CÁLCULO DE COMISIÓN Y DESCUENTO DE SALDO */}
+                {/* OVERLAY: SOLICITUD ENTRANTE (BOTTOM SHEET MÓVIL LIMPIO / TARJETA FLOTANTE DESKTOP) */}
                 {incomingRequest && !tripAccepted && (() => {
                   const valorRef = incomingRequest.valorRef || 3.50;
                   const targetConfig = plan === 'VIP' ? planVIPConfig : plan === 'Estandar' ? planEstandarConfig : planBasicoConfig;
@@ -1849,53 +1878,46 @@ export default function MiPerfilFletes() {
                   const comisionUSD = +(valorRef * (comisionPct / 100)).toFixed(2);
                   const saldoPostViaje = +(balance - comisionUSD).toFixed(2);
                   const saldoSuficiente = balance >= 1.00 && balance >= comisionUSD;
+                  const esViajePasajeros = Boolean(incomingRequest.material?.toLowerCase().includes('viaje'));
 
                   return (
-                    <div className="absolute top-6 right-6 z-[500] max-w-sm w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-5 rounded-2xl shadow-2xl animate-in fade-in zoom-in">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                          <Sparkles className="w-3.5 h-3.5" />
-                          {incomingRequest.material?.toLowerCase().includes('viaje') ? '¡Nuevo Viaje en Radar!' : '¡Nuevo Flete en Radar!'}
+                    <div className="absolute bottom-2 inset-x-2 sm:inset-x-auto sm:bottom-auto sm:top-4 sm:right-4 z-[500] sm:max-w-sm sm:w-full bg-slate-900/95 backdrop-blur-md border-2 border-amber-500 p-3.5 sm:p-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-200 space-y-2.5">
+                      {/* Fila superior: Tipo + Precio + Distancia */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="bg-amber-500 text-slate-950 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shrink-0">
+                          <Sparkles className="w-3 h-3" />
+                          {esViajePasajeros ? 'Nuevo Viaje' : 'Nuevo Flete'}
                         </span>
-                        <div className="text-right">
-                          <span className="text-base font-mono text-emerald-400 font-black">
-                            ${valorRef.toFixed(2)} USD
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-[11px] font-mono text-slate-400">
+                            {incomingRequest.distanciaKm} km
+                          </span>
+                          <span className="text-lg font-mono text-emerald-400 font-black tabular-nums">
+                            ${valorRef.toFixed(2)}
                           </span>
                         </div>
                       </div>
 
-                      <div className="space-y-2 text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800 mb-3">
-                        <p className="flex items-start gap-2">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 flex-shrink-0"></span>
-                          <span><strong>Origen:</strong> {incomingRequest.origen}</span>
-                        </p>
-                        <p className="flex items-start gap-2">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 mt-1 flex-shrink-0"></span>
-                          <span><strong>Destino:</strong> {incomingRequest.destino}</span>
-                        </p>
-                        <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
-                          Carga: {incomingRequest.material} • Distancia: {incomingRequest.distanciaKm} km
-                        </p>
-                      </div>
-
-                      {/* DESGLOSE TRANSPARENTE DE COMISIÓN Y SALDO */}
-                      <div className="bg-slate-950/80 border border-slate-800 p-2.5 rounded-xl mb-4 space-y-1.5 text-xs">
-                        <div className="flex justify-between text-slate-400">
-                          <span>Tarifa de Carrera:</span>
-                          <span className="font-mono text-white font-bold">${valorRef.toFixed(2)} USD</span>
+                      {/* Ruta compacta Origen -> Destino */}
+                      <div className="space-y-1.5 text-xs text-slate-200 bg-slate-950/90 px-3 py-2.5 rounded-xl border border-slate-800">
+                        <div className="flex items-start gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
+                          <p className="line-clamp-1">
+                            <span className="text-slate-400">Origen: </span>
+                            <strong className="text-white">{incomingRequest.origen}</strong>
+                          </p>
                         </div>
-                        <div className="flex justify-between text-rose-400">
-                          <span>Comisión SARA ({plan} - {comisionPct}%):</span>
-                          <span className="font-mono font-bold">-${comisionUSD.toFixed(2)} USD</span>
+                        <div className="flex items-start gap-2">
+                          <span className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0"></span>
+                          <p className="line-clamp-1">
+                            <span className="text-slate-400">Destino: </span>
+                            <strong className="text-white">{incomingRequest.destino}</strong>
+                          </p>
                         </div>
-                        <div className="pt-1 border-t border-slate-800 flex justify-between items-center text-[11px]">
-                          <span className="text-slate-400">Tu Saldo Actual:</span>
-                          <span className="font-mono font-bold text-amber-400">${balance.toFixed(2)} USD</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-slate-400">Saldo tras aceptar:</span>
-                          <span className={`font-mono font-bold ${saldoPostViaje < 1.00 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            ${saldoPostViaje.toFixed(2)} USD
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-slate-800/80">
+                          <span className="truncate">{incomingRequest.material}</span>
+                          <span className={`font-mono font-bold shrink-0 ml-2 ${saldoPostViaje < 1.00 ? 'text-rose-400' : 'text-slate-300'}`}>
+                            Comisión -${comisionUSD.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -1903,14 +1925,14 @@ export default function MiPerfilFletes() {
                       {!saldoSuficiente ? (
                         <div className="space-y-2">
                           <p className="text-[11px] text-rose-400 font-bold text-center">
-                            ⚠️ Saldo insuficiente para cubrir la comisión de este flete (${comisionUSD.toFixed(2)} USD).
+                            Saldo insuficiente para la comisión (${comisionUSD.toFixed(2)} USD).
                           </p>
                           <button
                             type="button"
                             onClick={() => setActiveTab('billetera')}
-                            className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-rose-600/30"
+                            className="w-full min-h-[44px] bg-rose-600 hover:bg-rose-500 text-white font-black py-2.5 rounded-xl text-xs transition-colors"
                           >
-                            Recargar Billetera Ahora
+                            Recargar Billetera
                           </button>
                         </div>
                       ) : (
@@ -1928,24 +1950,24 @@ export default function MiPerfilFletes() {
                                 setIncomingRequest(null);
                                 showToast('Solicitud rechazada y ocultada de tu radar.');
                               }}
-                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+                              className="min-h-[46px] bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                             >
                               Rechazar
                             </button>
                             <button
                               type="button"
                               onClick={handleAcceptTrip}
-                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25 cursor-pointer"
+                              className="min-h-[46px] bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-colors shadow-lg shadow-amber-500/25 cursor-pointer"
                             >
-                              Aceptar (-${comisionUSD.toFixed(2)})
+                              Aceptar (${valorRef.toFixed(2)})
                             </button>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleDriverCounterOffer(1.00)}
-                            className="w-full bg-slate-950 hover:bg-slate-800 text-amber-300 border border-amber-500/40 font-bold py-2 rounded-xl text-[11px] transition-colors flex items-center justify-center gap-1.5"
+                            className="w-full min-h-[38px] bg-slate-950 hover:bg-slate-800 text-amber-300 border border-amber-500/40 font-bold py-1.5 rounded-xl text-[11px] transition-colors flex items-center justify-center cursor-pointer"
                           >
-                            <span>Contraofertar +$1.00 USD (${(valorRef + 1.00).toFixed(2)})</span>
+                            Contraofertar +$1.00 (${(valorRef + 1.00).toFixed(2)})
                           </button>
                         </div>
                       )}
@@ -1953,138 +1975,130 @@ export default function MiPerfilFletes() {
                   );
                 })()}
 
-                {/* OVERLAY: BANNER INTERACTIVO DE FLETE EN CURSO (ESTILO UBER / DIDI / INDRIVE) */}
+                {/* OVERLAY: PANEL COMPACTO DE VIAJE EN CURSO (BOTTOM SHEET MÓVIL SIN RECORTES) */}
                 {tripAccepted && (
-                  <div className="absolute bottom-6 left-4 sm:left-6 right-20 sm:right-24 z-[500] bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 sm:p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-3 sm:gap-4 animate-in slide-in-from-bottom duration-300">
+                  <div className="absolute bottom-2 inset-x-2 lg:bottom-5 lg:left-5 lg:right-24 z-[500] bg-slate-900/95 backdrop-blur-md border border-amber-500/40 p-3 sm:p-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom duration-200">
                     
-                    {/* ESTADO 1: EN CAMINO AL PUNTO DE CARGA (ESPERANDO VALIDACIÓN DE PIN PARA INICIAR FLETE) */}
+                    {/* ESTADO 1: EN CAMINO A RECOGER (ESPERANDO PIN PARA INICIAR) */}
                     {tripState === 'heading_to_pickup' && (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-                            <Navigation className="w-6 h-6 animate-pulse" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                                Paso 1: Llegada al Punto de Carga
-                              </span>
-                              <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                                Tarifa: ${incomingRequest?.valorRef ? incomingRequest.valorRef.toFixed(2) : '3.50'} USD
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 lg:gap-4">
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
+                              <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 truncate">
+                                Paso 1 · En camino a recoger
                               </span>
                             </div>
-                            <h4 className="font-black text-white text-base mt-0.5">En Camino hacia el Punto de Carga</h4>
-                            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                              <span className="text-slate-400">Recoger en:</span>
-                              <strong className="text-white bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                                {incomingRequest?.origen || 'Punto de Carga'}
-                              </strong>
-                              <span className="text-amber-500 font-bold">➔</span>
-                              <span className="text-slate-400">Entregar en:</span>
-                              <strong className="text-emerald-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                                {incomingRequest?.destino || 'Punto de Entrega'}
-                              </strong>
+                            <div className="flex items-center gap-2 shrink-0">
                               {incomingRequest?.distanciaKm && (
-                                <span className="text-slate-400 font-mono text-[11px]">
-                                  ({incomingRequest.distanciaKm} km · ~{incomingRequest.duracionMinutos || 5} min)
+                                <span className="text-[11px] font-mono text-slate-400">
+                                  {incomingRequest.distanciaKm} km · ~{incomingRequest.duracionMinutos || 2}m
                                 </span>
                               )}
+                              <span className="text-sm font-mono font-black text-emerald-400 tabular-nums">
+                                ${incomingRequest?.valorRef ? incomingRequest.valorRef.toFixed(2) : '3.50'}
+                              </span>
                             </div>
                           </div>
-                        </div>
 
-                        {/* CAJA DE VALIDACIÓN DE CÓDIGO GENERADO ENTRE CLIENTE Y CONDUCTOR */}
-                        <div className="flex items-center gap-3 bg-slate-950 px-4 py-2.5 rounded-xl border border-slate-800">
-                          <div className="text-right">
-                            <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                              Código PIN del Cliente
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => setInputPin(accessCode || '2889')}
-                              className="text-[9px] text-amber-400 font-bold hover:underline"
-                            >
-                              Auto-completar ({accessCode || '2889'})
-                            </button>
+                          <div className="bg-slate-950/90 border border-slate-800 rounded-xl px-2.5 py-2 space-y-1 text-xs">
+                            <p className="flex items-center gap-2 text-white truncate">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                              <span className="truncate font-bold">{incomingRequest?.origen || 'Punto de recogida'}</span>
+                            </p>
+                            <p className="flex items-center gap-2 text-slate-300 truncate">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                              <span className="truncate">{incomingRequest?.destino || 'Destino'}</span>
+                            </p>
                           </div>
-                          <input
-                            type="text"
-                            maxLength={4}
-                            value={inputPin}
-                            onChange={(e) => setInputPin(e.target.value)}
-                            placeholder={accessCode || '2889'}
-                            className="w-20 text-center font-mono font-black text-lg py-1 bg-slate-900 border border-amber-500/50 text-amber-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                          />
                         </div>
 
-                        {/* BOTÓN OBLIGATORIO: INICIAR EL FLETE */}
-                        <button
-                          type="button"
-                          onClick={handleStartTrip}
-                          disabled={isStartingTrip}
-                          className="relative z-10 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-6 py-3 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 flex items-center gap-2 active:scale-95 cursor-pointer disabled:opacity-60"
-                        >
-                          {isStartingTrip ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                              <span>Iniciando Flete...</span>
-                            </>
-                          ) : (
-                            <>
-                              <Truck className="w-4 h-4 stroke-[2.5]" />
-                              <span>Iniciar el Flete</span>
-                            </>
-                          )}
-                        </button>
-                      </>
+                        {/* PIN + Botón Iniciar en una sola fila compacta (siempre visible en móvil) */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                            <div className="leading-tight">
+                              <span className="text-[9px] font-black uppercase text-slate-400 block">PIN</span>
+                              <button
+                                type="button"
+                                onClick={() => setInputPin(accessCode || '')}
+                                className="text-[10px] text-amber-400 font-mono font-bold hover:underline cursor-pointer"
+                              >
+                                {accessCode || '----'}
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              maxLength={4}
+                              value={inputPin}
+                              onChange={(e) => setInputPin(e.target.value)}
+                              placeholder={accessCode || 'PIN'}
+                              className="w-16 text-center font-mono font-black text-base py-1 bg-slate-900 border border-amber-500/50 text-amber-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={handleStartTrip}
+                            disabled={isStartingTrip}
+                            className="flex-1 lg:flex-none min-h-[46px] bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black px-4 sm:px-6 rounded-xl text-xs transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-60 whitespace-nowrap"
+                          >
+                            {isStartingTrip ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                                <span>Iniciando...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Navigation className="w-4 h-4 stroke-[2.5]" />
+                                <span>Iniciar Viaje</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     )}
 
-                    {/* ESTADO 2: FLETE EN RECORRIDO (CARGA A BORDO · RUTA EN CURSO) */}
+                    {/* ESTADO 2: EN RECORRIDO HACIA DESTINO */}
                     {tripState === 'in_transit' && (
-                      <>
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
-                            <Truck className="w-6 h-6 animate-bounce" />
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                              Paso 2: Carga en Tránsito
+                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 lg:gap-4">
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                              Paso 2 · En ruta al destino
                             </span>
-                            <h4 className="font-black text-white text-base mt-0.5">En Recorrido hacia el Punto de Entrega</h4>
-                            <p className="text-xs text-slate-300">Destino: <strong className="text-emerald-400">{incomingRequest?.destino}</strong> ({incomingRequest?.distanciaKm || 1.8} km)</p>
+                            <span className="text-[11px] font-mono font-bold text-slate-300 tabular-nums">
+                              {tripProgressPercent}% · PIN {accessCode} ✓
+                            </span>
                           </div>
-                        </div>
 
-                        {/* TELEMETRÍA DE RECORRIDO EN VIVO */}
-                        <div className="flex flex-col items-center gap-1 bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 text-center">
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="text-slate-400">Progreso:</span>
-                            <span className="font-mono font-black text-emerald-400">{tripProgressPercent}%</span>
-                            <span className="text-slate-600">·</span>
-                            <span className="text-slate-300 font-mono text-[11px]">~38 km/h</span>
-                          </div>
-                          <div className="w-36 bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                          <p className="text-xs text-slate-200 truncate">
+                            <span className="text-slate-400">Destino: </span>
+                            <strong className="text-white">{incomingRequest?.destino}</strong>
+                            {incomingRequest?.distanciaKm ? (
+                              <span className="text-slate-400 font-mono"> ({incomingRequest.distanciaKm} km)</span>
+                            ) : null}
+                          </p>
+
+                          <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden border border-slate-800">
                             <div
                               className="bg-gradient-to-r from-amber-500 to-emerald-500 h-full transition-all duration-700"
                               style={{ width: `${tripProgressPercent}%` }}
                             ></div>
                           </div>
-                          <span className="text-[9px] font-mono text-emerald-400 font-bold">
-                            PIN Validado: {accessCode} ✓
-                          </span>
                         </div>
 
-                        {/* BOTÓN DIRECTO: FINALIZAR VIAJE */}
                         <button
                           type="button"
                           onClick={handleCompleteTrip}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-8 py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all shadow-xl shadow-emerald-600/30 flex items-center gap-2 active:scale-95 cursor-pointer"
+                          className="w-full lg:w-auto min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-black px-6 rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer shrink-0"
                         >
-                          <CheckCircle className="w-5 h-5" />
+                          <CheckCircle className="w-4 h-4" />
                           <span>Finalizar Viaje</span>
                         </button>
-                      </>
+                      </div>
                     )}
 
                   </div>

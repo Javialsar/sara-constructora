@@ -808,9 +808,9 @@ export default function SaraFletesEngine() {
         const currentReq = activeFreightRef.current;
         setDriverToRate({
           fleteId: evt.payload.fleteId,
-          driverName: evt.payload.driverName || 'David Sarango',
-          plate: evt.payload.plate || 'PBA-1234',
-          vehicleName: 'Camioneta Pickup 1.2T · SARA',
+          driverName: evt.payload.driverName || 'Conductor Verificado SARA',
+          plate: evt.payload.plate || '',
+          vehicleName: 'Vehículo Verificado SARA',
           price: currentReq?.referencePrice || evt.payload.tarifaFinal || 3.50
         });
         setPaymentMethod('efectivo');
@@ -1050,8 +1050,8 @@ export default function SaraFletesEngine() {
 
   const [liveServerDriverCoords, setLiveServerDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Sondeo bidireccional cada 2s contra /api/fletes/dispatch para recibir aceptación del conductor
-  // y su telemetría GPS en tiempo real en cualquier dispositivo (celular <-> PC)
+  // Sondeo bidireccional cada 1.5s contra /api/fletes/dispatch para recibir aceptación, inicio,
+  // finalización y telemetría GPS en tiempo real en cualquier dispositivo (celular <-> PC)
   useEffect(() => {
     if (!activeFreight?.accessCode) {
       setLiveServerDriverCoords(null);
@@ -1076,26 +1076,69 @@ export default function SaraFletesEngine() {
           setLiveServerDriverCoords({ lat: tel.lat, lng: tel.lng });
         }
 
-        if (req && req.status === 'aceptada' && activeFreight.status === 'searching') {
-          const acceptedPrice = Number(req.tarifa_acordada || req.tarifa || activeFreight.referencePrice);
-          setAssignedDriver({
-            id: req.conductor_id || `DRV-${req.codigo_acceso}`,
-            driverName: req.conductor_nombre || 'Conductor Verificado SARA',
-            vehicleName: req.vehiculo_nombre || 'Vehículo Asignado SARA',
-            plate: req.conductor_placa || '',
-            rating: 4.9,
-            tripsCount: 120,
-            etaMinutes: 3,
-            distanceMeters: 450,
-            offeredPrice: acceptedPrice,
-            isCounterOffer: false,
-            phone: req.conductor_telefono || '',
-          });
+        if (!req) return;
+        const dbStatus = String(req.status || '').toLowerCase();
+        const acceptedPrice = Number(req.tarifa_acordada || req.tarifa || activeFreight.referencePrice);
+
+        const buildDriverFromReq = (): DriverOffer => ({
+          id: req.conductor_id || `DRV-${req.codigo_acceso}`,
+          driverName: req.conductor_nombre || 'Conductor Verificado SARA',
+          vehicleName: req.vehiculo_nombre || 'Vehículo Asignado SARA',
+          plate: req.conductor_placa || '',
+          rating: 4.9,
+          tripsCount: 120,
+          etaMinutes: 3,
+          distanceMeters: 450,
+          offeredPrice: acceptedPrice,
+          isCounterOffer: false,
+          phone: req.conductor_telefono || '',
+        });
+
+        if (dbStatus === 'aceptada' && activeFreight.status === 'searching') {
+          setAssignedDriver(buildDriverFromReq());
           setActiveFreight((prev) =>
             prev ? { ...prev, status: 'accepted', referencePrice: acceptedPrice } : null
           );
           setDriverOffers([]);
           setBottomSheetLevel('half');
+          try {
+            if (typeof window !== 'undefined' && 'AudioContext' in window) {
+              const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+              const osc = ctx.createOscillator();
+              const gain = ctx.createGain();
+              osc.type = 'sine';
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              osc.frequency.setValueAtTime(1174, ctx.currentTime + 0.12);
+              gain.gain.setValueAtTime(0.18, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+              osc.connect(gain);
+              gain.connect(ctx.destination);
+              osc.start();
+              osc.stop(ctx.currentTime + 0.36);
+            }
+          } catch {}
+        } else if (dbStatus === 'en_curso' && activeFreight.status !== 'in_transit') {
+          setAssignedDriver((prev) => prev || buildDriverFromReq());
+          setActiveFreight((prev) =>
+            prev ? { ...prev, status: 'in_transit', referencePrice: acceptedPrice } : null
+          );
+          setDriverOffers([]);
+          setBottomSheetLevel('half');
+        } else if (dbStatus === 'completada') {
+          setDriverToRate({
+            fleteId: req.id || activeFreight.id,
+            driverName: req.conductor_nombre || 'Conductor Verificado SARA',
+            plate: req.conductor_placa || '',
+            vehicleName: req.vehiculo_nombre || 'Vehículo Asignado SARA',
+            price: acceptedPrice,
+          });
+          setPaymentMethod('efectivo');
+          setPaymentDetails(null);
+          setIsPaymentGatewayOpen(false);
+          setIsRatingModalOpen(true);
+          resetViajeCliente();
+        } else if (dbStatus === 'cancelada') {
+          resetViajeCliente();
         }
       } catch {
         // Reintento automático en el siguiente ciclo
@@ -1103,12 +1146,12 @@ export default function SaraFletesEngine() {
     };
 
     pollOrderStatus();
-    const timer = setInterval(pollOrderStatus, 2000);
+    const timer = setInterval(pollOrderStatus, 1500);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [activeFreight?.accessCode, activeFreight?.status, activeFreight?.referencePrice]);
+  }, [activeFreight?.accessCode, activeFreight?.status, activeFreight?.referencePrice, activeFreight?.id, resetViajeCliente]);
 
   // Seguimiento GPS en tiempo real del conductor asignado + Ruta de acercamiento + Audio ETA inteligente
   const matchedRadarDriver = useMemo(() => {
@@ -1445,16 +1488,22 @@ export default function SaraFletesEngine() {
     const asignadoId = 'FLT-' + Math.floor(1000 + Math.random() * 9000);
     const code = generateAccessCode();
 
-    await createFletesSolicitud({
-      origen: orig,
-      destino: dest,
-      tarifa: precioFinal,
-      distanciaKm: distKm,
-      vehiculoKey: vehicleType,
-      material,
-      peso: weight,
-      codigoAcceso: code
-    });
+    fetch('/api/fletes/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        origen: orig,
+        destino: dest,
+        tarifa: precioFinal,
+        distanciaKm: distKm,
+        duracionMinutos: durMin,
+        tipoVehiculo: vehicleType,
+        material,
+        codigoAcceso: code,
+        coordsOrigen: originPoint ? [originPoint.lat, originPoint.lng] : userLocation,
+        coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null,
+      }),
+    }).catch((err) => console.warn('Error despachando flete en servidor:', err));
 
     setActiveFreight({
       id: asignadoId,
@@ -2104,7 +2153,7 @@ export default function SaraFletesEngine() {
                           setActiveFreight(simulatedReq);
                           setProposedPrice(params.tarifaUSD);
 
-                          // 1. Publicar solicitud REAL en servidor (/api/fletes/dispatch -> Supabase fletes_solicitudes)
+                          // 1. Publicar solicitud REAL en servidor (/api/fletes/dispatch -> Supabase fletes_solicitudes, fila única sin duplicados)
                           fetch('/api/fletes/dispatch', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -2121,17 +2170,6 @@ export default function SaraFletesEngine() {
                               coordsDestino: destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : null,
                             }),
                           }).catch((err) => console.warn('Error despachando solicitud en servidor:', err));
-
-                          createFletesSolicitud({
-                            origen: simulatedReq.origin,
-                            destino: simulatedReq.destination,
-                            tarifa: params.tarifaUSD,
-                            distanciaKm: simulatedReq.distanciaKm || 3.2,
-                            vehiculoKey: 'PICKUP_1T',
-                            material: simulatedReq.material,
-                            peso: 0.1,
-                            codigoAcceso: simulatedReq.accessCode
-                          }).catch((err) => console.warn('Error guardando flete:', err));
 
                           const pOrigCoords: [number, number] = originPoint ? [originPoint.lat, originPoint.lng] : (userLocation || [-4.328103, -79.561129]);
                           const pDestCoords: [number, number] = destinationPoint ? [destinationPoint.lat, destinationPoint.lng] : [-4.331405, -79.553528];

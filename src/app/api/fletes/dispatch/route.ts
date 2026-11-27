@@ -22,22 +22,35 @@ export async function GET(req: NextRequest) {
     const codigoAcceso = searchParams.get('codigoAcceso')?.trim();
 
     if (codigoAcceso) {
-      const { data, error } = await admin
+      const { data: rows, error } = await admin
         .from('fletes_solicitudes')
         .select('*')
         .eq('codigo_acceso', codigoAcceso)
+        .order('updated_at', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(5);
 
       if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
+      const list = Array.isArray(rows) ? rows : [];
+      // Priorizar el estado más avanzado si hubiera duplicados con el mismo PIN
+      const priorityOrder = ['completada', 'en_curso', 'aceptada', 'cancelada', 'pendiente'];
+      const data =
+        list.sort((a, b) => {
+          const pa = priorityOrder.indexOf(String(a.status || 'pendiente'));
+          const pb = priorityOrder.indexOf(String(b.status || 'pendiente'));
+          const ra = pa === -1 ? 99 : pa;
+          const rb = pb === -1 ? 99 : pb;
+          if (ra !== rb) return ra - rb;
+          return new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime();
+        })[0] || null;
+
       const memTelemetry = LIVE_DRIVER_TELEMETRY.get(codigoAcceso) || null;
       return NextResponse.json({
         success: true,
-        request: data || null,
+        request: data,
         driverTelemetry: memTelemetry,
       });
     }
@@ -186,23 +199,37 @@ export async function PATCH(req: NextRequest) {
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
-    if (typeof body?.status === 'string') updatePayload.status = body.status;
+    if (typeof body?.status === 'string') {
+      updatePayload.status = body.status;
+      if (body.status === 'en_curso') updatePayload.started_at = new Date().toISOString();
+      if (body.status === 'completada') updatePayload.completed_at = new Date().toISOString();
+    }
     if (typeof body?.conductorNombre === 'string') updatePayload.conductor_nombre = body.conductorNombre;
     if (typeof body?.conductorPlaca === 'string') updatePayload.conductor_placa = body.conductorPlaca;
     if (typeof body?.conductorTelefono === 'string') updatePayload.conductor_telefono = body.conductorTelefono;
     if (typeof body?.vehiculoNombre === 'string') updatePayload.vehiculo_nombre = body.vehiculoNombre;
     if (typeof body?.tarifaAcordada === 'number') updatePayload.tarifa_acordada = body.tarifaAcordada;
 
-    const query = admin.from('fletes_solicitudes').update(updatePayload);
-    const { data, error } = id
-      ? await query.eq('id', id).select().maybeSingle()
-      : await query.eq('codigo_acceso', codigoAcceso!).select().maybeSingle();
+    const runUpdate = async (payload: Record<string, unknown>) => {
+      const q = admin.from('fletes_solicitudes').update(payload);
+      return codigoAcceso
+        ? q.eq('codigo_acceso', codigoAcceso).select()
+        : q.eq('id', id!).select();
+    };
+
+    let { data, error } = await runUpdate(updatePayload);
+    if (error && error.message?.includes('column') && typeof body?.status === 'string') {
+      const retry = await runUpdate({ status: body.status });
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, request: data });
+    const updatedRow = Array.isArray(data) ? data[0] || null : data;
+    return NextResponse.json({ success: true, request: updatedRow });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Error actualizando estado de despacho';
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

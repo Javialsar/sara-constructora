@@ -110,11 +110,15 @@ export function SaraActiveTripCard({
               <span className="text-[10px] font-bold text-amber-400">★ {assignedDriver?.rating || 4.9}</span>
             </div>
             <p className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <span>{assignedDriver?.vehicleName || 'Camioneta Pickup'}</span>
-              <span className="text-slate-600">•</span>
-              <span className="font-mono text-slate-200 font-bold bg-slate-900 px-1 rounded border border-slate-800">
-                {assignedDriver?.plate || 'LBA-4590'}
-              </span>
+              <span>{assignedDriver?.vehicleName || 'Vehículo Verificado SARA'}</span>
+              {assignedDriver?.plate && (
+                <>
+                  <span className="text-slate-600">•</span>
+                  <span className="font-mono text-slate-200 font-bold bg-slate-900 px-1 rounded border border-slate-800">
+                    {assignedDriver.plate}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>
