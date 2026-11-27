@@ -1662,18 +1662,18 @@ export default function SaraFletesEngine() {
       <ModuloIntroSplash modulo="fletes" />
 
       {/* TOPBAR ULTRA-COMPACTA & ERGONÓMICA */}
-      <header className="h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 flex justify-between items-center z-30 shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center z-30 shrink-0 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <ModuleBrandLogo modulo="fletes" size="sm" showBackToHolding={false} />
-          <SaraNetworkStatusPill className="hidden sm:inline-flex" />
+          <SaraNetworkStatusPill className="hidden lg:inline-flex" />
         </div>
 
         {/* Acceso para conductores y selector de perfil */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Link
             href="/modulos/fletes/conductores"
             className="inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-400/50 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
-            title="Portal de Conductores y Transportistas (Radar de Viajes, Billetera y Ofertas)"
+            title="Portal de Conductores y Transportistas"
           >
             <Truck className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">Soy Conductor</span>
@@ -1681,7 +1681,7 @@ export default function SaraFletesEngine() {
           </Link>
           <Link
             href="/fletes?elegir=1"
-            className="text-slate-400 hover:text-white border border-slate-800 hover:border-slate-600 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+            className="hidden sm:inline-flex text-slate-400 hover:text-white border border-slate-800 hover:border-slate-600 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
             title="Elegir entre perfil de Cliente o Conductor"
           >
             Cambiar perfil
@@ -1689,7 +1689,7 @@ export default function SaraFletesEngine() {
           <button
             type="button"
             onClick={() => setIsExitModalOpen(true)}
-            className="text-slate-400 hover:text-white text-xs px-2 py-1.5 transition-colors"
+            className="text-slate-400 hover:text-white text-xs px-2 py-1.5 transition-colors cursor-pointer"
           >
             Salir
           </button>
@@ -1767,29 +1767,6 @@ export default function SaraFletesEngine() {
           />
         </div>
 
-        {/* ALERTA DE BAJA PRECISIÓN GPS (Wi-Fi / PC / VPN > 35m) — CALIBRACIÓN ESTILO GOOGLE MAPS / UBER */}
-        {!activeFreight &&
-          !precisionPinMode &&
-          !originManuallyConfirmed &&
-          typeof userLocationAccuracy === 'number' &&
-          userLocationAccuracy > 35 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 max-w-[92vw] sm:max-w-lg bg-slate-950/95 border-2 border-amber-400 text-slate-100 px-3.5 py-2.5 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex items-center gap-2 text-xs">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>
-                  GPS aproximado (<strong className="font-mono text-amber-300">±{Math.round(userLocationAccuracy)} m</strong> por Wi-Fi/PC). Ajusta tu puerta exacta para evitar errores de tarifa.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPrecisionPinMode(true)}
-                className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer transition-colors whitespace-nowrap"
-              >
-                🎯 Ajustar Puerta Exacta
-              </button>
-            </div>
-          )}
-
         {/* BANNER FLOTANTE: MODO CLIC EN MAPA ACTIVADO */}
         {mapClickMode && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-full text-xs flex items-center gap-2.5 shadow-2xl border-2 border-slate-950 animate-bounce">
@@ -1843,32 +1820,11 @@ export default function SaraFletesEngine() {
 
           {/* CONTENIDO DEL PANEL CON SCROLL SUAVE */}
           {!isPanelCollapsed && (
-            <div className="space-y-4">
+            <div className="space-y-3 pb-16 lg:pb-2">
               
               {/* MODO CLIENTE / PÚBLICO GENERAL */}
               {(
                 <>
-                  {/* SELECTOR MULTIMODAL UNIFICADO: VIAJES (UBER/DIDI), MANDADITOS, FLETES (CARGA) Y RENTA */}
-                  <div className="sticky top-0 z-20 pb-1 bg-slate-900/90 backdrop-blur-md">
-                    <SaraMultimodalTabBar
-                      activeTab={serviceType}
-                      onChangeTab={(tab) => {
-                        setServiceType(tab);
-                        // Si el flete estaba activo o buscando, resetearlo para permitir interactuar con la nueva modalidad
-                        if (activeFreight) {
-                          setActiveFreight(null);
-                          setDriverOffers([]);
-                        }
-                        // En móvil: Viajes/Mandaditos sin destino permanecen compactos (estilo DiDi/Uber); Fletes/Renta usan vista media
-                        if (tab === 'viajes' || tab === 'mandaditos') {
-                          setBottomSheetLevel(destinationPoint ? 'half' : 'peek');
-                        } else if (bottomSheetLevel === 'peek') {
-                          setBottomSheetLevel('half');
-                        }
-                      }}
-                    />
-                  </div>
-
                   {/* -------------------------------------------------------- */}
                   {/* ESTADO GLOBAL: FLETE O VIAJE ACTIVO Y SEGUIMIENTO EN VIVO */}
                   {/* -------------------------------------------------------- */}
@@ -2010,58 +1966,9 @@ export default function SaraFletesEngine() {
                       {/* -------------------------------------------------------- */}
                       {(serviceType === 'viajes' || serviceType === 'mandaditos') && (
                     <div className="space-y-2.5">
-                      {/* PASO 1 (Estilo DiDi / inDrive / Uber): Solo Recogida + "¿A dónde vas?" cuando aún no se eligió destino */}
+                      {/* PASO 1 (Estilo DiDi / inDrive / Uber): Solo buscador "¿A dónde vas?" para máxima visibilidad del mapa */}
                       {!destinationPoint ? (
-                      <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2">
-                        {/* Punto de Recogida (Editable + Re-sincronizar GPS + Fijar en mapa) */}
-                        <div className="flex items-center justify-between gap-1.5 pb-1.5 border-b border-slate-800/80">
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.7)]"></span>
-                            <span className="text-[11px] font-semibold text-emerald-300 truncate" title={originText}>
-                              {originText || 'Casa (Onlysoft), Cariamanga'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                originLockedByMapRef.current = false;
-                                const baseCoords: [number, number] = userLocationRef.current && userLocationRef.current[0] >= -5.5 && userLocationRef.current[0] <= 2.0 && userLocationRef.current[1] >= -92.0 && userLocationRef.current[1] <= -75.0
-                                  ? userLocationRef.current
-                                  : [-4.328103, -79.561129];
-                                const dOnly = Math.hypot(baseCoords[0] - (-4.328103), baseCoords[1] - (-79.561129)) * 111000;
-                                const nom = dOnly < 150 ? 'Casa (Onlysoft), Gran Colombia y Atahualpa' : 'Mi Ubicación Actual (GPS)';
-                                const pOrig: GeocodedPoint = {
-                                  nombre: nom,
-                                  lat: baseCoords[0],
-                                  lng: baseCoords[1],
-                                  ciudad: 'Cariamanga',
-                                  provincia: 'Loja'
-                                };
-                                setOriginPoint(pOrig);
-                                originPointRef.current = pOrig;
-                                setOriginText(nom);
-                              }}
-                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-blue-400 hover:text-blue-300 border border-slate-700 transition-colors cursor-pointer"
-                              title="Volver a mi ubicación GPS actual"
-                            >
-                              🎯 GPS
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
-                              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors border cursor-pointer ${
-                                mapClickMode === 'origen'
-                                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 animate-pulse'
-                                  : 'bg-slate-900 text-slate-300 hover:text-white border-slate-700'
-                              }`}
-                              title="Haz clic aquí y luego toca en el mapa tu ubicación exacta de recogida"
-                            >
-                              {mapClickMode === 'origen' ? 'Toca el mapa...' : '📍 Fijar'}
-                            </button>
-                          </div>
-                        </div>
-
+                      <div className="bg-slate-950 p-2.5 rounded-2xl border border-slate-800">
                         <div ref={destInputWrapperRef} className="relative">
                           <form
                             onSubmit={async (e) => {
@@ -2661,13 +2568,30 @@ export default function SaraFletesEngine() {
         }}
       />
 
+      {/* BARRA INFERIOR DE MODALIDADES (ICONOS EXPANSIVOS ESTILO APP MÓVIL — SIN CUBRIR EL MAPA) */}
+      {!activeFreight && (
+        <div className="fixed bottom-3 left-3 right-3 z-40 lg:left-4 lg:right-auto lg:w-[376px]">
+          <SaraMultimodalTabBar
+            activeTab={serviceType}
+            onChangeTab={(tab) => {
+              setServiceType(tab);
+              if (tab === 'viajes' || tab === 'mandaditos') {
+                setBottomSheetLevel(destinationPoint ? 'half' : 'peek');
+              } else if (bottomSheetLevel === 'peek') {
+                setBottomSheetLevel('half');
+              }
+            }}
+          />
+        </div>
+      )}
+
       {/* Botón de Pánico SOS 24/7 Flotante (Ergonómico, Top-Right) */}
       <SaraFloatingSosButton
         userType="cliente"
         fleteId={activeFreight?.id}
-        driverName={assignedDriver?.driverName || "David Sarango"}
-        plate={assignedDriver?.plate || "PCX-4590"}
-        currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : [-4.328103, -79.561129]}
+        driverName={assignedDriver?.driverName || 'Conductor SARA'}
+        plate={assignedDriver?.plate || ''}
+        currentCoords={originPoint ? [originPoint.lat, originPoint.lng] : undefined}
         className="top-[72px] left-3 bottom-auto lg:top-20 lg:right-6 lg:left-auto"
       />
     </div>
