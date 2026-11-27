@@ -1465,8 +1465,9 @@ export class SaraFreightRoutingService {
         .replace(/\s+/g, ' ')
         .trim();
 
-    const splitInter = clean.split(/\s+(?:y|e|con|&|\/)\s+/i).map((p) => stripStreetPrefixes(p));
-    const primaryQuery = splitInter[0] || stripStreetPrefixes(clean);
+    const cleanedTrailingConnector = clean.replace(/\s+(?:y|e|con|&|\/)\s*$/i, '').trim();
+    const splitInter = cleanedTrailingConnector.split(/\s+(?:y|e|con|&|\/)\s+/i).map((p) => stripStreetPrefixes(p));
+    const primaryQuery = splitInter[0] || stripStreetPrefixes(cleanedTrailingConnector);
     const crossQuery = splitInter[1] || '';
 
     const calcDistM = (c: [number, number]): number => {
@@ -1529,29 +1530,33 @@ export class SaraFreightRoutingService {
         const k1Fon = this.normalizarFonetico(k1Clean);
         const k2Fon = this.normalizarFonetico(k2Clean);
 
-        const matchK1Primary =
-          k1Clean.includes(primaryQuery) ||
-          primaryQuery.includes(k1Clean) ||
-          k1Fon.includes(primaryFon) ||
-          primaryFon.includes(k1Fon);
-        const matchK2Primary =
-          k2Clean.includes(primaryQuery) ||
-          primaryQuery.includes(k2Clean) ||
-          k2Fon.includes(primaryFon) ||
-          primaryFon.includes(k2Fon);
+        // Coincidencia estricta: evitar falsos positivos con calles de 1-2 letras (ej. "Calle C", "Calle Y" en "Sucre")
+        const streetMatches = (streetClean: string, streetFon: string, queryClean: string, queryFon: string): boolean => {
+          if (!streetClean || !queryClean || queryClean.length < 2) return false;
+          if (streetClean.includes(queryClean)) return true;
+          if (queryFon.length >= 3 && streetFon.includes(queryFon)) return true;
+          if (streetClean.length >= 4 && queryClean.includes(streetClean)) return true;
+          if (streetFon.length >= 4 && queryFon.includes(streetFon)) return true;
+          return false;
+        };
+
+        const matchK1Primary = streetMatches(k1Clean, k1Fon, primaryQuery, primaryFon);
+        const matchK2Primary = streetMatches(k2Clean, k2Fon, primaryQuery, primaryFon);
 
         const distM = calcDistM(coords);
 
         if (crossQuery) {
-          const matchK1Cross = k1Clean.includes(crossQuery) || k1Fon.includes(crossFon);
-          const matchK2Cross = k2Clean.includes(crossQuery) || k2Fon.includes(crossFon);
+          const matchK1Cross = streetMatches(k1Clean, k1Fon, crossQuery, crossFon);
+          const matchK2Cross = streetMatches(k2Clean, k2Fon, crossQuery, crossFon);
           if ((matchK1Primary && matchK2Cross) || (matchK2Primary && matchK1Cross)) {
             seenPairs.add(pairId);
-            exactMatches.push({ key, k1, k2, coords, distM });
+            const orderedK1 = matchK2Primary && !matchK1Primary ? k2 : k1;
+            const orderedK2 = matchK2Primary && !matchK1Primary ? k1 : k2;
+            exactMatches.push({ key, k1: orderedK1, k2: orderedK2, coords, distM });
           }
-        } else if (matchK1Primary || matchK2Primary || key.replace('_', ' ').includes(primaryQuery)) {
+        } else if (matchK1Primary || matchK2Primary) {
           seenPairs.add(pairId);
-          // Colocar siempre la calle buscada primero para lectura intuitiva ("Moisés Oliva y Bolívar")
+          // Colocar siempre la calle buscada primero para lectura intuitiva ("Sucre y Bernardo Valdivieso")
           const orderedK1 = matchK2Primary && !matchK1Primary ? k2 : k1;
           const orderedK2 = matchK2Primary && !matchK1Primary ? k1 : k2;
           partialMatches.push({ key, k1: orderedK1, k2: orderedK2, coords, distM });

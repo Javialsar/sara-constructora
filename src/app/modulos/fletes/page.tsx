@@ -483,27 +483,26 @@ export default function SaraFletesEngine() {
   // En móvil arranca compacto (estilo DiDi / Uber: 69% mapa libre + hoja inferior limpia)
   const [bottomSheetLevel, setBottomSheetLevel] = useState<'peek' | 'half' | 'full'>('peek');
 
-  // Sincronizar datos restaurados desde draft al iniciar (ignorando coordenadas obsoletas de versiones previas)
+  // Encerar siempre al ingresar al módulo del cliente: no restaurar rutas ni destinos de viajes anteriores
   useEffect(() => {
     if (draftLoaded) {
-      const isStaleOrigin =
-        draft.originPoint &&
-        (Math.abs(draft.originPoint.lat - (-4.3248)) < 0.0005 ||
-          Math.abs(draft.originPoint.lat - (-4.3285)) < 0.0002 ||
-          Math.abs(draft.originPoint.lat - (-4.32785)) < 0.0002);
-      if (draft.originText && !isStaleOrigin) setOriginText(draft.originText);
-      if (draft.originPoint && !isStaleOrigin) setOriginPoint(draft.originPoint);
-      if (draft.destinationText) setDestinationText(draft.destinationText);
-      if (draft.destinationPoint) setDestinationPoint(draft.destinationPoint);
-      if (draft.material) setMaterial(draft.material);
-      if (draft.weight) setWeight(draft.weight);
-      if (draft.unitType) setUnitType(draft.unitType);
-      if (draft.helpersCount !== undefined) setHelpersCount(draft.helpersCount);
-      if (draft.tasaBotaderoEnabled !== undefined) setTasaBotaderoEnabled(draft.tasaBotaderoEnabled);
-      if (draft.proposedPrice !== null) setProposedPrice(draft.proposedPrice);
-      if (draft.sacosCementoCount) setSacosCementoCount(draft.sacosCementoCount);
-      if (draft.activeStep) setActiveStep(draft.activeStep);
+      resetDraft();
+      setDestinationText('');
+      setDestinationPoint(null);
+      destinationPointRef.current = null;
+      setRutaCalculada(null);
+      setActiveFreight(null);
+      setDriverOffers([]);
+      setAssignedDriver(null);
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem('sara_fletes_rt_active_request');
+          window.localStorage.removeItem('sara_fletes_rt_accepted_dispatch');
+          window.localStorage.removeItem('sara_fletes_rt_trip_in_progress');
+        } catch {}
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftLoaded]);
 
   // Motor puro y reactivo de asignación de vehículo (Carga vs Tipo de Vehículo)

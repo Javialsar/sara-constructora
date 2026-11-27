@@ -504,57 +504,19 @@ export default function MiPerfilFletes() {
 
   // Cargar solicitud activa existente y suscribirse a eventos de clientes en vivo
   useEffect(() => {
-    // 1. Limpiar cualquier solicitud de prueba o pendiente vieja guardada en localStorage
-    const acceptedDispatch = SaraFletesRealtimeService.getAcceptedDispatch();
-    const activeReq = SaraFletesRealtimeService.getActiveRequest();
-    const tripInProgress = SaraFletesRealtimeService.getTripInProgress();
-
-    const isStaleDemo = Boolean(
-      activeReq &&
-        (activeReq.clienteNombre?.includes('(Prueba)') ||
-          (activeReq.origen === 'Parque Central Cariamanga' && activeReq.destino === 'Mirador El Calvario'))
-    );
-    if (isStaleDemo && typeof window !== 'undefined') {
+    // 1. Encerar siempre al ingresar al módulo del conductor:
+    // limpiar rutas/despachos anteriores de localStorage para que el mapa abra 100% limpio
+    // y el radar en vivo (/api/fletes/dispatch) reciba inmediatamente los pedidos reales del cliente
+    if (typeof window !== 'undefined') {
       try {
         window.localStorage.removeItem('sara_fletes_rt_active_request');
+        window.localStorage.removeItem('sara_fletes_rt_accepted_dispatch');
+        window.localStorage.removeItem('sara_fletes_rt_trip_in_progress');
       } catch {}
     }
-
-    const isAcceptedOrInProgress = Boolean(
-      !isStaleDemo && (acceptedDispatch || tripInProgress || (activeReq && activeReq.status === 'accepted'))
-    );
-
-    // Solo restaurar desde localStorage si el viaje ya estaba realmente aceptado o en curso;
-    // los pedidos nuevos siempre llegan en vivo desde /api/fletes/dispatch y Supabase Realtime
-    if (isAcceptedOrInProgress) {
-      const fleteInfo = activeReq || acceptedDispatch || ({} as any);
-      setIncomingRequest({
-        fleteId: tripInProgress?.fleteId || acceptedDispatch?.fleteId || fleteInfo.id || '',
-        origen: fleteInfo.origen || acceptedDispatch?.origen || '',
-        destino: fleteInfo.destino || acceptedDispatch?.destino || '',
-        cliente: fleteInfo.clienteNombre || 'Cliente SARA',
-        material: fleteInfo.material || 'Servicio de Transporte',
-        valorRef: acceptedDispatch?.precioAcordado || fleteInfo.tarifaOfertadaUSD || 0,
-        distanciaKm: fleteInfo.distanciaKm || acceptedDispatch?.distanciaKm || 0,
-        duracionMinutos: fleteInfo.duracionMinutos || acceptedDispatch?.duracionMinutos || 0,
-        coordsOrigen: fleteInfo.coordsOrigen || acceptedDispatch?.coordsOrigen,
-        coordsDestino: fleteInfo.coordsDestino || acceptedDispatch?.coordsDestino,
-        coordenadasRuta: fleteInfo.coordenadasRuta || acceptedDispatch?.coordenadasRuta,
-        codigoAcceso: tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso,
-        assignedDriverName: tripInProgress?.driverName || acceptedDispatch?.driverName || fleteInfo.assignedDriverName,
-        assignedPlate: tripInProgress?.plate || acceptedDispatch?.plate || fleteInfo.assignedPlate
-      });
-
-      const currentCode = tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso || '';
-      setAccessCode(currentCode);
-      setInputPin(currentCode);
-      setTripAccepted(true);
-      if (tripInProgress || fleteInfo.status === 'in_transit') {
-        setTripState('in_transit');
-      } else {
-        setTripState('heading_to_pickup');
-      }
-    }
+    setIncomingRequest(null);
+    setTripAccepted(false);
+    setTripState('idle');
 
     // 2. Suscribirse a solicitudes y despachos en tiempo real
     const unsub = SaraFletesRealtimeService.subscribe((evt) => {
