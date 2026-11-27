@@ -7,14 +7,12 @@ import {
   Phone,
   MessageCircle,
   Share2,
-  MapPin,
   Clock,
-  ShieldCheck,
-  CheckCircle2,
   Navigation,
-  ExternalLink,
-  ChevronRight,
-  AlertCircle
+  ChevronUp,
+  ChevronDown,
+  Copy,
+  Check
 } from 'lucide-react';
 import { SaraFletesRealtimeService, ConductorEstadoRealtime, SolicitudFleteRealtime } from '@/lib/services/saraFletesRealtimeService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
@@ -43,13 +41,13 @@ interface PublicTrackingPageProps {
 export default function PublicTrackingPage({ params }: PublicTrackingPageProps) {
   const [token, setToken] = useState<string>('');
   const [driverName, setDriverName] = useState('Conductor SARA');
-  const [plate, setPlate] = useState('PBA-1234');
-  const [vehicleType, setVehicleType] = useState('Vehículo Asignado SARA');
-  const [driverPhone, setDriverPhone] = useState('+593987654321');
+  const [plate, setPlate] = useState('');
+  const [vehicleType, setVehicleType] = useState('Vehículo Verificado SARA');
+  const [driverPhone, setDriverPhone] = useState('');
   const [rating, setRating] = useState(4.9);
   const [tripStatus, setTripStatus] = useState<'heading_to_pickup' | 'in_transit' | 'completed'>('heading_to_pickup');
-  const [origin, setOrigin] = useState('Casa (Onlysoft), Cariamanga');
-  const [destination, setDestination] = useState('Destino en Cariamanga');
+  const [origin, setOrigin] = useState('Punto de recogida');
+  const [destination, setDestination] = useState('Destino');
   const [originCoords, setOriginCoords] = useState<[number, number]>([-4.328103, -79.561129]);
   const [destinationCoords, setDestinationCoords] = useState<[number, number]>([-4.331405, -79.553528]);
   const [vehicleCoords, setVehicleCoords] = useState<[number, number]>([-4.328103, -79.561129]);
@@ -63,6 +61,7 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
   const [showPinDialog, setShowPinDialog] = useState(false);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
 
   // Recorrido calle por calle en tiempo real (sincronizado con la posición GPS viva del vehículo)
   const [navSteps, setNavSteps] = useState<PasoNavegacionVial[]>([]);
@@ -146,9 +145,9 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
             setDestinationCoords(resolvedDest);
           }
         }
-        if (sp.get('on') && origin === 'Casa (Onlysoft), Cariamanga') setOrigin(sp.get('on')!);
-        if (sp.get('dn') && destination === 'Destino en Cariamanga') setDestination(sp.get('dn')!);
-        if (sp.get('dr') && !resolvedPlate) setDriverName(sp.get('dr')!);
+        if (sp.get('on')) setOrigin(sp.get('on')!);
+        if (sp.get('dn')) setDestination(sp.get('dn')!);
+        if (sp.get('dr')) setDriverName(sp.get('dr')!);
         if (sp.get('pl') && !resolvedPlate) {
           resolvedPlate = sp.get('pl')!;
           setPlate(resolvedPlate);
@@ -268,8 +267,32 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
         }
       }
 
-      // 4b. Polling de respaldo cada 6s contra PostgreSQL para sincronización multi-dispositivo garantizada
-      pollInterval = setInterval(async () => {
+      // 4b. Polling en vivo cada 2.5s contra /api/fletes/dispatch (si hay PIN) y /api/fletes/tracking/[token]
+      const urlPin = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('pin')?.trim() : null;
+      const pollLive = async () => {
+        if (urlPin) {
+          try {
+            const dr = await fetch(`/api/fletes/dispatch?codigoAcceso=${encodeURIComponent(urlPin)}`, { cache: 'no-store' });
+            if (dr.ok) {
+              const dj = await dr.json();
+              const req = dj?.request;
+              const tel = dj?.driverTelemetry;
+              if (req) {
+                const st = String(req.status || '').toLowerCase();
+                if (st === 'en_curso') setTripStatus('in_transit');
+                else if (st === 'completada') setTripStatus('completed');
+                else if (st === 'aceptada') setTripStatus('heading_to_pickup');
+                if (req.conductor_nombre) setDriverName(req.conductor_nombre);
+                if (req.conductor_placa) setPlate(req.conductor_placa);
+                if (req.vehiculo_nombre) setVehicleType(req.vehiculo_nombre);
+              }
+              if (tel && typeof tel.lat === 'number' && typeof tel.lng === 'number') {
+                setVehicleCoords([tel.lat, tel.lng]);
+                setLastGpsUpdate(tel.updatedAt || Date.now());
+              }
+            }
+          } catch {}
+        }
         if (!activeToken) return;
         try {
           const r = await fetch(`/api/fletes/tracking/${encodeURIComponent(activeToken)}`, { cache: 'no-store' });
@@ -286,7 +309,9 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
             }
           }
         } catch {}
-      }, 6000);
+      };
+      pollLive();
+      pollInterval = setInterval(pollLive, 2500);
     });
 
     // 5. Escuchar telemetría en vivo (BroadcastChannel + localStorage + Supabase Realtime)
@@ -381,44 +406,81 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
     }
   };
 
-  return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col font-sans overflow-x-hidden">
-      {/* Top Navbar */}
-      <header className="bg-neutral-900/90 border-b border-neutral-800 px-4 py-3 sticky top-0 z-30 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-              <Truck className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-sm tracking-tight text-white">SARA-FLETES</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">
-                  EN VIVO
-                </span>
-              </div>
-              <p className="text-[11px] text-neutral-400">Rastreo Satelital Público (Zero-Login)</p>
-            </div>
-          </div>
+  const isPassengerTrip = material.toLowerCase().includes('viaje') || material.toLowerCase().includes('pasajero');
+  const statusLabel =
+    tripStatus === 'in_transit'
+      ? isPassengerTrip ? 'En ruta al destino' : 'En recorrido hacia obra'
+      : tripStatus === 'completed'
+        ? isPassengerTrip ? 'Viaje finalizado' : 'Entrega finalizada'
+        : isPassengerTrip ? 'Conductor en camino' : 'En camino al punto de carga';
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleShareWhatsApp}
-              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition-all"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Compartir por WhatsApp</span>
-            </button>
+  return (
+    <div className="h-[100dvh] w-screen bg-slate-950 text-white flex flex-col font-sans overflow-hidden">
+      {/* BARRA SUPERIOR COMPACTA DE 1 FILA */}
+      <header className="h-12 bg-slate-900/95 border-b border-slate-800 px-3 sm:px-4 shrink-0 z-30 backdrop-blur-md flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <Truck className="w-4 h-4 text-emerald-400" />
           </div>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-black text-sm tracking-tight text-white truncate">SARA Fletes</span>
+            <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-300 font-black px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              EN VIVO
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="min-w-[36px] min-h-[36px] px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer"
+            title="Copiar enlace de rastreo"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{copiedLink ? 'Copiado' : 'Copiar'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleShareWhatsApp}
+            className="min-h-[36px] bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold px-3 rounded-xl flex items-center gap-1.5 shadow cursor-pointer"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Compartir</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-6xl mx-auto w-full p-4 flex-1 flex flex-col lg:flex-row gap-4">
-        {/* Left Side: Map-as-Canvas */}
-        <div className="flex-1 bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden min-h-[420px] lg:min-h-[580px] relative shadow-2xl flex flex-col">
-          {/* Panel flotante de Recorrido Calle por Calle estilo Google Maps (resalta la calle activa en vivo) */}
-          {navSteps.length > 0 ? (
+      {/* CONTENEDOR PRINCIPAL: MAPA A PANTALLA COMPLETA + HOJA INFERIOR EXPANDIBLE EN MÓVIL / PANEL LATERAL EN DESKTOP */}
+      <main className="flex-1 min-h-0 flex flex-col lg:flex-row relative overflow-hidden">
+        {/* MAPA SATELITAL SIEMPRE VISIBLE (absolute inset-0 garantiza alto real en Leaflet móvil) */}
+        <div className="flex-1 min-h-0 relative bg-slate-900">
+          <div className="absolute inset-0 z-0">
+            <SaraFletesMap
+              userLocation={vehicleCoords}
+              origenCoords={originCoords}
+              destinoCoords={destinationCoords}
+              origenNombre={origin}
+              destinoNombre={destination}
+              rutaCoordenadas={routeCoords.length > 0 ? routeCoords : [originCoords, destinationCoords]}
+              vehiculosCercanos={[
+                {
+                  id: `live_${plate || 'sara'}`,
+                  nombreChofer: driverName,
+                  placa: plate,
+                  tipoVehiculo: isPassengerTrip ? 'AUTO_SEDAN' : 'PICKUP_1T',
+                  lat: vehicleCoords[0],
+                  lng: vehicleCoords[1],
+                  rating: rating,
+                  disponible: false
+                } as VehiculoMapa
+              ]}
+            />
+          </div>
+
+          {/* PANEL FLOTANTE DE RECORRIDO CALLE POR CALLE */}
+          {navSteps.length > 0 && tripStatus !== 'completed' ? (
             <SaraGoogleMapsNavPanel
               originName={origin}
               destinationName={destination}
@@ -442,217 +504,218 @@ export default function PublicTrackingPage({ params }: PublicTrackingPageProps) 
               }}
             />
           ) : (
-            <div className="absolute top-4 left-4 z-20 bg-neutral-900/90 backdrop-blur-md border border-neutral-700 rounded-2xl px-3.5 py-2 flex items-center space-x-2.5 shadow-xl">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
-              <div>
-                <p className="text-[10px] text-neutral-400 font-medium">ESTADO DEL FLETE</p>
-                <p className="text-xs font-black text-emerald-400">
-                  {tripStatus === 'in_transit'
-                    ? 'EN RECORRIDO HACIA OBRA'
-                    : tripStatus === 'completed'
-                    ? 'ENTREGA FINALIZADA'
-                    : 'EN CAMINO A CARGA'}
-                </p>
-              </div>
+            <div className="absolute top-3 left-3 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-xl">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-xs font-black text-emerald-300">{statusLabel}</span>
             </div>
           )}
-
-          <div className="flex-1 w-full h-full">
-            <SaraFletesMap
-              userLocation={vehicleCoords}
-              origenCoords={originCoords}
-              destinoCoords={destinationCoords}
-              origenNombre={origin}
-              destinoNombre={destination}
-              rutaCoordenadas={routeCoords.length > 0 ? routeCoords : [originCoords, destinationCoords]}
-              vehiculosCercanos={[
-                {
-                  id: `live_${plate}`,
-                  nombreChofer: driverName,
-                  placa: plate,
-                  tipoVehiculo: 'PICKUP_1T',
-                  lat: vehicleCoords[0],
-                  lng: vehicleCoords[1],
-                  rating: rating,
-                  disponible: false
-                } as VehiculoMapa
-              ]}
-            />
-          </div>
         </div>
 
-        {/* Right Side: Driver & Journey Details Card */}
-        <div className="w-full lg:w-96 flex flex-col gap-4">
-          {/* Driver Card */}
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-2xl bg-neutral-800 border border-neutral-700 flex items-center justify-center text-amber-400 font-black text-lg">
-                  {driverName.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-white">{driverName}</h3>
-                  <div className="flex items-center gap-1.5 text-xs text-neutral-400">
-                    <span className="font-mono font-bold text-amber-400">{plate}</span>
-                    <span>•</span>
-                    <span className="text-emerald-400 font-semibold flex items-center">
-                      ★ {rating}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <span className="text-[10px] bg-blue-500/10 text-blue-300 font-bold px-2 py-1 rounded-full border border-blue-500/20">
-                Verificado
-              </span>
-            </div>
-
-            <div className="text-xs space-y-1 text-neutral-300">
-              <p className="text-neutral-400 text-[11px]">Vehículo Asignado:</p>
-              <p className="font-semibold text-white">{vehicleType}</p>
-            </div>
-
-            {/* Contacto Seguro con Protección de Privacidad LOPDP */}
-            <div className="pt-1 space-y-2">
-              {phoneUnlocked ? (
-                <div className="grid grid-cols-2 gap-2 animate-in fade-in">
-                  <a
-                    href={`tel:${driverPhone}`}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 text-xs transition-colors shadow"
-                  >
-                    <Phone className="w-3.5 h-3.5" />
-                    <span>{driverPhone}</span>
-                  </a>
-                  <button
-                    onClick={handleShareWhatsApp}
-                    className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-neutral-700 text-xs transition-colors"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>WhatsApp</span>
-                  </button>
-                </div>
+        {/* HOJA INFERIOR MÓVIL (COMPACTA POR DEFECTO PARA VER EL MAPA, EXPANDIBLE AL TOCAR) / SIDEBAR DESKTOP */}
+        <section
+          className={`fixed bottom-0 inset-x-0 z-30 lg:static lg:w-96 lg:h-full bg-slate-950/98 lg:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-800 rounded-t-3xl lg:rounded-none shadow-2xl transition-all duration-200 flex flex-col ${
+            sheetExpanded ? 'max-h-[75dvh]' : 'max-h-[210px]'
+          } lg:max-h-none`}
+        >
+          {/* Barra táctil para expandir/contraer en móvil */}
+          <button
+            type="button"
+            onClick={() => setSheetExpanded((v) => !v)}
+            className="lg:hidden w-full pt-2 pb-1.5 px-4 flex flex-col items-center gap-1 cursor-pointer shrink-0"
+          >
+            <span className="w-10 h-1 rounded-full bg-slate-700" />
+            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              {sheetExpanded ? (
+                <>Ocultar detalles <ChevronDown className="w-3 h-3" /></>
               ) : (
-                <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-2.5 space-y-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-neutral-400 flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-neutral-500" />
-                      Teléfono Conductor:
-                    </span>
-                    <span className="font-mono text-neutral-400 font-bold">
-                      {driverPhone ? `${driverPhone.slice(0, 4)} *** **${driverPhone.slice(-2)}` : 'Protegido'}
-                    </span>
-                  </div>
-
-                  {showPinDialog ? (
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          maxLength={6}
-                          placeholder="PIN de 4 dígitos"
-                          value={pinInput}
-                          onChange={(e) => {
-                            setPinInput(e.target.value);
-                            setPinError(null);
-                          }}
-                          className="bg-neutral-900 border border-neutral-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono w-full focus:outline-none focus:border-emerald-500"
-                        />
-                        <button
-                          onClick={async () => {
-                            const pin = pinInput.trim();
-                            if (!/^\d{4,6}$/.test(pin)) {
-                              setPinError('Ingresa un PIN numérico de 4 dígitos');
-                              return;
-                            }
-                            try {
-                              const res = await fetch(`/api/fletes/tracking/${encodeURIComponent(token)}`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ pin })
-                              });
-                              const data = await res.json();
-                              if (res.ok && data?.valid) {
-                                if (data.phone) setDriverPhone(data.phone);
-                                setPhoneUnlocked(true);
-                                setPinError(null);
-                              } else {
-                                setPinError(data?.error || 'Código PIN incorrecto');
-                              }
-                            } catch {
-                              setPinError('No se pudo validar el PIN con el servidor');
-                            }
-                          }}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shrink-0"
-                        >
-                          Ver
-                        </button>
-                      </div>
-                      {pinError && <p className="text-[10px] text-rose-400 font-semibold">{pinError}</p>}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowPinDialog(true)}
-                      className="w-full text-center text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold py-1 hover:underline"
-                    >
-                      Desbloquear Contacto Directo con PIN
-                    </button>
-                  )}
-                </div>
+                <>Ver ruta y contacto <ChevronUp className="w-3 h-3" /></>
               )}
+            </span>
+          </button>
+
+          <div className="px-4 pb-4 lg:p-4 overflow-y-auto space-y-3 flex-1">
+            {/* FILA PRINCIPAL SIEMPRE VISIBLE: ESTADO + ETA + DISTANCIA */}
+            <div className="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 rounded-2xl px-3 py-2.5">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <span className="text-xs font-black text-emerald-400 truncate">{statusLabel}</span>
+                </div>
+                <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {origin} ➔ {destination}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 text-right">
+                <div className="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-xl">
+                  <p className="text-xs font-mono font-black text-white leading-none">~{etaMinutes} min</p>
+                  <p className="text-[10px] font-mono text-slate-400 mt-0.5">{distanceKm} km</p>
+                </div>
+              </div>
+            </div>
+
+            {/* CONDUCTOR COMPACTO */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black text-sm shrink-0">
+                    {driverName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-xs sm:text-sm font-black text-white truncate">{driverName}</h3>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400 truncate">
+                      <span className="truncate">{vehicleType}</span>
+                      {plate && (
+                        <>
+                          <span>•</span>
+                          <span className="font-mono font-bold text-amber-400 shrink-0">{plate}</span>
+                        </>
+                      )}
+                      <span>•</span>
+                      <span className="text-emerald-400 font-bold shrink-0">★ {rating}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-blue-500/15 text-blue-300 font-bold px-2 py-0.5 rounded-full border border-blue-500/25 shrink-0">
+                  Verificado
+                </span>
+              </div>
+
+              {/* Contacto Seguro con PIN */}
+              <div className="pt-1">
+                {phoneUnlocked ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={`tel:${driverPhone}`}
+                      className="min-h-[40px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs transition-colors"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>{driverPhone}</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={handleShareWhatsApp}
+                      className="min-h-[40px] bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 rounded-xl flex items-center justify-center gap-1.5 border border-slate-700 text-xs transition-colors cursor-pointer"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 flex items-center gap-1">
+                        <Phone className="w-3 h-3 text-slate-500" />
+                        Contacto conductor:
+                      </span>
+                      <span className="font-mono text-slate-400 font-bold">
+                        {driverPhone ? `${driverPhone.slice(0, 4)} *** **${driverPhone.slice(-2)}` : 'Protegido'}
+                      </span>
+                    </div>
+
+                    {showPinDialog ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="PIN de 4 dígitos"
+                            value={pinInput}
+                            onChange={(e) => {
+                              setPinInput(e.target.value);
+                              setPinError(null);
+                            }}
+                            className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono w-full focus:outline-none focus:border-emerald-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const pin = pinInput.trim();
+                              if (!/^\d{4,6}$/.test(pin)) {
+                                setPinError('Ingresa un PIN numérico de 4 dígitos');
+                                return;
+                              }
+                              try {
+                                const res = await fetch(`/api/fletes/tracking/${encodeURIComponent(token)}`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ pin })
+                                });
+                                const data = await res.json();
+                                if (res.ok && data?.valid) {
+                                  if (data.phone) setDriverPhone(data.phone);
+                                  setPhoneUnlocked(true);
+                                  setPinError(null);
+                                } else {
+                                  setPinError(data?.error || 'Código PIN incorrecto');
+                                }
+                              } catch {
+                                setPinError('No se pudo validar el PIN');
+                              }
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shrink-0 cursor-pointer"
+                          >
+                            Ver
+                          </button>
+                        </div>
+                        {pinError && <p className="text-[10px] text-rose-400 font-semibold">{pinError}</p>}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowPinDialog(true)}
+                        className="w-full text-center text-[11px] text-emerald-400 hover:text-emerald-300 font-bold py-0.5 hover:underline cursor-pointer"
+                      >
+                        Desbloquear contacto con PIN
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* DETALLES DE RUTA */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+              <div className="space-y-2.5 relative pl-4 border-l-2 border-dashed border-slate-700 ml-1.5">
+                <div>
+                  <div className="absolute -left-1.5 top-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-slate-900" />
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase">
+                    {isPassengerTrip ? 'Recogida' : 'Punto de Carga'}
+                  </p>
+                  <p className="text-xs text-white font-medium">{origin}</p>
+                </div>
+
+                <div>
+                  <div className="absolute -left-1.5 bottom-0.5 w-3 h-3 rounded-full bg-amber-500 ring-4 ring-slate-900" />
+                  <p className="text-[10px] text-amber-400 font-bold uppercase">
+                    {isPassengerTrip ? 'Destino' : 'Punto de Descarga'}
+                  </p>
+                  <p className="text-xs text-white font-medium">{destination}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-xs">
+                <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-emerald-400" /> Llegada est.
+                  </span>
+                  <p className="text-sm font-black font-mono text-white mt-0.5">~{etaMinutes} min</p>
+                </div>
+                <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Navigation className="w-3 h-3 text-sky-400" /> Distancia
+                  </span>
+                  <p className="text-sm font-black font-mono text-white mt-0.5">{distanceKm} km</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                <span className="text-slate-400 text-[11px]">{isPassengerTrip ? 'Servicio' : 'Carga'}</span>
+                <span className="font-bold text-amber-300 truncate ml-2">{material}</span>
+              </div>
             </div>
           </div>
-
-          {/* Route Progression Card */}
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 shadow-xl space-y-4">
-            <h4 className="text-xs font-black tracking-wider uppercase text-neutral-400">
-              Detalles del Traslado
-            </h4>
-
-            {/* Origin & Destination timeline */}
-            <div className="space-y-3 relative pl-4 border-l-2 border-dashed border-neutral-700 ml-2">
-              <div>
-                <div className="absolute -left-1.5 top-0 w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-neutral-900" />
-                <p className="text-[10px] text-emerald-400 font-bold uppercase">Punto de Carga</p>
-                <p className="text-xs text-white font-medium">{origin}</p>
-              </div>
-
-              <div>
-                <div className="absolute -left-1.5 bottom-0 w-3 h-3 rounded-full bg-amber-500 ring-4 ring-neutral-900" />
-                <p className="text-[10px] text-amber-400 font-bold uppercase">Punto de Descarga (Obra)</p>
-                <p className="text-xs text-white font-medium">{destination}</p>
-              </div>
-            </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-neutral-800">
-              <div className="bg-neutral-800/60 p-2.5 rounded-xl border border-neutral-700/60">
-                <span className="text-[10px] text-neutral-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-emerald-400" /> Tiempo Estimado
-                </span>
-                <p className="text-sm font-black text-white mt-0.5">~{etaMinutes} min</p>
-              </div>
-
-              <div className="bg-neutral-800/60 p-2.5 rounded-xl border border-neutral-700/60">
-                <span className="text-[10px] text-neutral-400 flex items-center gap-1">
-                  <Navigation className="w-3 h-3 text-blue-400" /> Distancia Total
-                </span>
-                <p className="text-sm font-black text-white mt-0.5">{distanceKm} km</p>
-              </div>
-            </div>
-
-            <div className="bg-neutral-800/40 p-3 rounded-xl border border-neutral-700/40 text-xs">
-              <span className="text-neutral-400 text-[10px] block">Material Declarado:</span>
-              <span className="font-bold text-amber-300">{material}</span>
-            </div>
-
-            <button
-              onClick={handleCopyLink}
-              className="w-full bg-neutral-800 hover:bg-neutral-700 text-neutral-200 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-neutral-700 transition-colors"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>{copiedLink ? '¡Enlace Copiado al Portapapeles!' : 'Copiar Enlace de Rastreo'}</span>
-            </button>
-          </div>
-        </div>
+        </section>
       </main>
     </div>
   );

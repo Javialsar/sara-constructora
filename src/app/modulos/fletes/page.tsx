@@ -1989,7 +1989,8 @@ export default function SaraFletesEngine() {
                               v: drvVeh,
                               m: activeFreight.material,
                               km: String(distKm),
-                              min: String(durMin)
+                              min: String(durMin),
+                              ...(activeFreight.accessCode ? { pin: activeFreight.accessCode } : {})
                             });
                             const shareUrl = `${window.location.origin}/fletes/rastreo/${trackingToken}?${qs.toString()}`;
                             const text = encodeURIComponent(
