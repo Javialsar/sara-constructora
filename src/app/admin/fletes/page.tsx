@@ -52,40 +52,8 @@ export default function AdminFletes() {
     });
   }, []);
 
-  const [drivers, setDrivers] = useState<Driver[]>([
-    { 
-      id: '1', name: 'Carlos Mendoza', phone: '0991234567', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', plan: 'Estandar', status: 'pending', 
-      walletBalance: 0, province: 'Pichincha', city: 'Quito', address: 'Av. Simón Bolívar',
-      documents: [
-        { type: 'Cédula de Identidad', status: 'Subido' }, 
-        { type: 'Licencia de Conducir (Tipo C/E)', status: 'Subido' }, 
-        { type: 'Matrícula del Vehículo', status: 'Subido' }
-      ] 
-    },
-    { 
-      id: '2', name: 'Luis Toapanta', phone: '0987654321', vehicle: 'Camión Chevrolet 5 Ton', plate: 'GCA-9876', plan: 'Basico', status: 'approved',
-      walletBalance: 45.50, province: 'Guayas', city: 'Guayaquil', address: 'Vía a la Costa',
-      documents: [
-        { type: 'Cédula de Identidad', status: 'Verificado' }, 
-        { type: 'Licencia de Conducir (Tipo C/E)', status: 'Verificado' }, 
-        { type: 'Matrícula del Vehículo', status: 'Verificado' }
-      ]
-    },
-    { 
-      id: '3', name: 'Marco Vinicio', phone: '0971122334', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', plan: 'VIP', status: 'pending',
-      walletBalance: 20.00, province: 'Azuay', city: 'Cuenca', address: 'Av. Las Américas',
-      documents: [
-        { type: 'Cédula de Identidad', status: 'Verificado' }, 
-        { type: 'Licencia de Conducir (Tipo C/E)', status: 'Subido' }, 
-        { type: 'Matrícula del Vehículo', status: 'Subido' }
-      ]
-    }
-  ]);
-
-  const [recharges, setRecharges] = useState<RechargeRequest[]>([
-    { id: 'R1', driverId: '1', driverName: 'Carlos Mendoza', vehicle: 'Volqueta Hino 12m3', plate: 'PBA-1234', amount: 50.00, date: '12 Oct 2026, 15:30', status: 'pending', receiptUrl: 'https://images.unsplash.com/photo-1620857329598-6e5458ce04eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80' },
-    { id: 'R2', driverId: '3', driverName: 'Marco Vinicio', vehicle: 'Camioneta Doble Cabina', plate: 'LBB-4321', amount: 100.00, date: '12 Oct 2026, 16:15', status: 'pending', receiptUrl: 'https://images.unsplash.com/photo-1620857329598-6e5458ce04eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80' }
-  ]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [recharges, setRecharges] = useState<RechargeRequest[]>([]);
 
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
   const [previewDoc, setPreviewDoc] = useState<{type: string, url: string, rechargeReq?: any} | null>(null);
@@ -310,7 +278,7 @@ export default function AdminFletes() {
               <label className="text-xs font-bold text-slate-500 uppercase">Buscar Placa / Nombre</label>
               <div className="relative mt-1">
                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                 <input type="text" value={searchPlaca} onChange={e => setSearchPlaca(e.target.value)} placeholder="Ej. PBA-1234" className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
+                 <input type="text" value={searchPlaca} onChange={e => setSearchPlaca(e.target.value)} placeholder="Buscar placa o nombre" className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-amber-500" />
               </div>
             </div>
             <div>

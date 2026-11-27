@@ -79,7 +79,7 @@ export default function LiveSyncShowcase({ realProjects, realStays, onOpenChecko
               }`}
             >
               <Truck className="w-4 h-4" />
-              <span>Radar Fletes</span>
+              <span>Radar GoBee</span>
             </button>
           </div>
         </div>
@@ -208,18 +208,18 @@ export default function LiveSyncShowcase({ realProjects, realStays, onOpenChecko
 
               <div className="flex flex-wrap gap-4">
                 <Link
-                  href="/fletes"
-                  className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-lg shadow-blue-600/20"
+                  href="/modulos/fletes"
+                  className="px-6 py-3 rounded-xl bg-[#FDBE3B] hover:bg-[#F5B024] text-[#111827] font-black text-xs flex items-center gap-2 transition-colors shadow-lg shadow-amber-500/20"
                 >
-                  <span>Abrir Consola de Fletes</span>
+                  <span>Abrir GoBee</span>
                   <ExternalLink className="w-4 h-4" />
                 </Link>
 
                 <button
                   onClick={() => onOpenCheckout({
-                    title: "Recarga de Billetera Prepago SARA Fletes",
+                    title: "Recarga de Billetera Prepago GoBee Conductor",
                     amount: 50.00,
-                    badgeText: "Red de Fletes SARA",
+                    badgeText: "GoBee · Grupo Sara",
                     isSubscription: false
                   })}
                   className="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 flex items-center gap-2 transition-colors"
@@ -237,7 +237,7 @@ export default function LiveSyncShowcase({ realProjects, realStays, onOpenChecko
                 <div className="flex items-center gap-3">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                   <div>
-                    <div className="text-xs font-bold text-white">Camión Hino 5T (PBA-1234)</div>
+                    <div className="text-xs font-bold text-white">Gobee Cargo · Unidad 5T</div>
                     <div className="text-[10px] text-slate-400">Ruta: Quito → Machachi</div>
                   </div>
                 </div>

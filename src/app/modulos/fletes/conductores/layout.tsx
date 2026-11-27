@@ -1,31 +1,29 @@
-import type { Metadata, Viewport } from "next"
-import { manifestPath, PWA_APPS } from "@/lib/pwa/apps"
-
-const driverApp = PWA_APPS["fletes-conductor"]
+import type { Metadata, Viewport } from 'next';
+import { manifestPath } from '@/lib/pwa/apps';
 
 export const viewport: Viewport = {
-  themeColor: driverApp.themeColor,
-}
+  themeColor: '#0F172A',
+};
 
 export const metadata: Metadata = {
-  title: "SARA Conductor | Radar de Viajes, Ofertas y Billetera de Transportista",
-  description: driverApp.description,
-  manifest: manifestPath("fletes-conductor"),
+  title: 'Gobee Conductor | Radar en Vivo, Billetera y e-POD · Grupo Sara',
+  description: 'Gobee · Un servicio de Grupo Sara. Cabina profesional de conductores con radar PostGIS, Backhaul y billetera.',
+  manifest: manifestPath('fletes-conductor'),
   appleWebApp: {
     capable: true,
-    title: driverApp.name,
-    statusBarStyle: "black-translucent",
+    title: 'Gobee Conductor',
+    statusBarStyle: 'black-translucent',
   },
   robots: {
     index: false,
     follow: false,
   },
-}
+};
 
 export default function FletesDriverLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  return <>{children}</>
+  return <>{children}</>;
 }

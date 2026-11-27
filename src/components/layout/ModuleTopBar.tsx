@@ -63,8 +63,8 @@ const ECOSYSTEM_MODULES: {
   {
     key: 'fletes',
     themeKey: 'fletes',
-    name: 'SARA Fletes',
-    subtitle: 'Logística Pesada MTOP & Backhaul',
+    name: 'GoBee',
+    subtitle: 'Movilidad, Envíos & Carga · Grupo Sara',
     href: '/modulos/fletes',
     icon: Truck,
   },

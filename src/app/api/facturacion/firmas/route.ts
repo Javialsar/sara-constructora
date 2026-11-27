@@ -1,18 +1,65 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { SaraBankReconciliationService } from '@/lib/services/bankReconciliationService';
-import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+function verifyHmacSignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
+  if (!signatureHeader || !secret) return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const provided = signatureHeader.replace(/^sha256=/i, '').trim();
+  if (expected.length !== provided.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(provided, 'utf8'));
+}
+
+async function resolveAuthenticatedUser(req: NextRequest) {
+  // 1. Verificar JWT Bearer si fue enviado por cliente API
+  const authHeader = req.headers.get('authorization');
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (token && token !== 'null' && token !== 'undefined') {
+      const admin = createAdminClient();
+      const { data, error } = await admin.auth.getUser(token);
+      if (data?.user && !error) {
+        return data.user;
+      }
+    }
+    return null;
+  }
+
+  // 2. Verificar sesión autenticada mediante supabase.auth.getUser() (cookies HttpOnly)
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
+
+function isUserAdmin(user: { app_metadata?: Record<string, unknown> }): boolean {
+  const role = String(user.app_metadata?.role || 'cliente');
+  return Boolean(
+    user.app_metadata?.es_admin === true ||
+    user.app_metadata?.sara_master === true ||
+    role === 'admin' ||
+    role === 'superadmin'
+  );
+}
+
 export async function GET(req: NextRequest) {
   try {
-    // 0. Autenticación obligatoria Zero-Trust
-    const { user, isAdmin } = await requireServerAuth(req);
+    const user = await resolveAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autenticado: Se requiere sesión activa válida.' },
+        { status: 401 }
+      );
+    }
+
+    const isAdmin = isUserAdmin(user);
     const supabaseAdmin = createAdminClient();
 
-    // Si es administrador puede ver el universo completo; si es usuario regular, estrictamente sus propias solicitudes
     let query = supabaseAdmin.from('sri_solicitudes_firmas').select('*');
     if (!isAdmin) {
       query = query.eq('user_id', user.id);
@@ -22,10 +69,11 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.warn('Error al consultar sri_solicitudes_firmas:', error.message);
+      return NextResponse.json({ success: false, error: 'Error consultando solicitudes de firma.' }, { status: 500 });
     }
 
-    const realList = (dbSolicitudes || []).map((row: any) => {
-      const refStr = row.transaccion_pago_ref || '';
+    const solicitudes = (dbSolicitudes || []).map((row: Record<string, unknown>) => {
+      const refStr = String(row.transaccion_pago_ref || '');
       let metodoPago: 'TRANSFERENCIA' | 'TARJETA_STRIPE' | 'DEUNA' = 'TRANSFERENCIA';
       if (refStr.toUpperCase().includes('DEUNA')) {
         metodoPago = 'DEUNA';
@@ -34,34 +82,41 @@ export async function GET(req: NextRequest) {
       }
 
       const numComprobante = refStr.includes(':') ? refStr.split(':')[1]?.trim() : refStr;
-      const isAprobado = row.estado_solicitud !== 'PENDIENTE_VALIDACION' && row.estado_solicitud !== 'PAGO_PENDIENTE';
-      const estadoTramite = row.estado_solicitud === 'PAGO_PENDIENTE' ? 'PENDIENTE_VALIDACION' : row.estado_solicitud;
+      const estadoRaw = String(row.estado_solicitud || 'PENDIENTE_VALIDACION');
+      const isAprobado = estadoRaw !== 'PENDIENTE_VALIDACION' && estadoRaw !== 'PAGO_PENDIENTE';
+      const estadoTramite = estadoRaw === 'PAGO_PENDIENTE' ? 'PENDIENTE_VALIDACION' : estadoRaw;
 
-      const fechaSol = row.created_at ? new Date(row.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+      const createdAt = row.created_at ? String(row.created_at) : new Date().toISOString();
+      const updatedAt = row.updated_at ? String(row.updated_at) : createdAt;
+      const fechaSol = new Date(createdAt).toISOString().split('T')[0];
       const isActivo = estadoTramite === 'EMITIDO_ACTIVO';
-      const fechaEmision = isActivo 
-        ? (row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : fechaSol) 
-        : undefined;
+      const fechaEmision = isActivo ? new Date(updatedAt).toISOString().split('T')[0] : undefined;
 
-      let fechaCaducidad: string | undefined = undefined;
+      let fechaCaducidad: string | undefined;
       if (isActivo) {
-        const d = new Date(row.updated_at || row.created_at || Date.now());
-        d.setFullYear(d.getFullYear() + (row.vigencia_anios || 1));
+        const d = new Date(updatedAt);
+        d.setFullYear(d.getFullYear() + Number(row.vigencia_anios || 1));
         fechaCaducidad = d.toISOString().split('T')[0];
       }
+
+      const vigenciaAnios = Number(row.vigencia_anios || 1);
+      const tipoPersona = (row.tipo_persona || 'NATURAL') as 'NATURAL' | 'JURIDICA';
 
       return {
         id: row.id,
         cedula_ruc: row.identificacion,
         nombres: row.nombres,
-        tipo_persona: (row.tipo_persona || 'NATURAL') as 'NATURAL' | 'JURIDICA',
+        tipo_persona: tipoPersona,
         email: row.correo,
         telefono: row.telefono,
-        plan_nombre: row.vigencia_anios === 1
-          ? 'Firma P. Natural (1 Año)'
-          : (row.tipo_persona === 'JURIDICA' ? 'Firma Representante Legal (2 Años)' : `Firma P. Natural (${row.vigencia_anios} Años)`),
-        vigencia_anios: row.vigencia_anios || 1,
-        precio_usd: Number(row.monto_cobrado_usd || 18.00),
+        plan_nombre:
+          vigenciaAnios === 1
+            ? 'Firma P. Natural (1 Año)'
+            : tipoPersona === 'JURIDICA'
+            ? 'Firma Representante Legal (2 Años)'
+            : `Firma P. Natural (${vigenciaAnios} Años)`,
+        vigencia_anios: vigenciaAnios,
+        precio_usd: Number(row.monto_cobrado_usd || 18.0),
         metodo_pago: metodoPago,
         numero_comprobante: numComprobante || 'PENDIENTE',
         pago_validado: isAprobado,
@@ -71,108 +126,48 @@ export async function GET(req: NextRequest) {
         fecha_caducidad: fechaCaducidad,
         archivo_p12_disponible: isActivo,
         documento_cedula_url: row.documento_cedula_url,
-        video_selfie_url: row.video_selfie_url
+        video_selfie_url: row.video_selfie_url,
       };
     });
 
-    // Registros base históricos para auditoría del ecosistema (SOLO visibles para administradores)
-    const demoBase = isAdmin ? [
-      {
-        id: 'sol-base-001',
-        cedula_ruc: '1792984512001',
-        nombres: 'ING. CARLOS MENDOZA',
-        tipo_persona: 'NATURAL' as const,
-        email: 'carlos.mendoza@mendozaconstr.ec',
-        telefono: '+593998124912',
-        plan_nombre: 'Firma P. Natural (1 Año)',
-        vigencia_anios: 1,
-        precio_usd: 18.00,
-        metodo_pago: 'TRANSFERENCIA' as const,
-        numero_comprobante: '98124912',
-        pago_validado: true,
-        estado_tramite: 'EMITIDO_ACTIVO',
-        fecha_solicitud: '2026-08-10',
-        fecha_emision: '2026-08-10',
-        fecha_caducidad: '2027-08-10',
-        archivo_p12_disponible: true
-      },
-      {
-        id: 'sol-base-002',
-        cedula_ruc: '0104589234',
-        nombres: 'ARQ. PATRICIA VEGA',
-        tipo_persona: 'NATURAL' as const,
-        email: 'pvega@vegaconsulting.com',
-        telefono: '+593987654321',
-        plan_nombre: 'Firma P. Natural (1 Año)',
-        vigencia_anios: 1,
-        precio_usd: 18.00,
-        metodo_pago: 'TARJETA_STRIPE' as const,
-        numero_comprobante: 'STRIPE_981264',
-        pago_validado: true,
-        estado_tramite: 'POR_VENCER',
-        fecha_solicitud: '2025-11-10',
-        fecha_emision: '2025-11-10',
-        fecha_caducidad: '2026-11-10',
-        archivo_p12_disponible: true
-      },
-      {
-        id: 'sol-base-003',
-        cedula_ruc: '1791245896001',
-        nombres: 'HORMIGONES DEL AUSTRO S.A.',
-        tipo_persona: 'JURIDICA' as const,
-        email: 'gerencia@hormigonesaustro.com',
-        telefono: '+593991234567',
-        plan_nombre: 'Firma Representante Legal (2 Años)',
-        vigencia_anios: 2,
-        precio_usd: 38.00,
-        metodo_pago: 'TRANSFERENCIA' as const,
-        numero_comprobante: '45891234',
-        pago_validado: false,
-        estado_tramite: 'PENDIENTE_VALIDACION',
-        fecha_solicitud: '2026-10-25',
-        archivo_p12_disponible: false
-      }
-    ] : [];
-
-    // Evitar duplicar si la cédula ya está en las solicitudes reales
-    const idsReales = new Set(realList.map(r => r.cedula_ruc));
-    const demoFiltradas = demoBase.filter(d => !idsReales.has(d.cedula_ruc));
-
-    const totalConsolidado = [...realList, ...demoFiltradas];
-
     return NextResponse.json({
       success: true,
-      solicitudes: totalConsolidado
+      solicitudes,
     });
-  } catch (error: any) {
-    console.error('Error al obtener solicitudes de firma:', error);
-    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
-    return NextResponse.json(
-      { error: error.message || 'Error al obtener solicitudes' },
-      { status }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error al obtener solicitudes';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    // 0. Autenticación y Autorización Zero-Trust: Solo administradores pueden mutar estados de firmas
-    const { user, isAdmin } = await requireServerAuth(req);
-    if (!isAdmin) {
+    const user = await resolveAuthenticatedUser(req);
+    if (!user) {
       return NextResponse.json(
-        { error: 'Acceso denegado: Se requieren privilegios de Administrador para gestionar trámites de firma.' },
+        { success: false, error: 'No autenticado: Se requiere sesión activa válida.' },
+        { status: 401 }
+      );
+    }
+
+    if (!isUserAdmin(user)) {
+      return NextResponse.json(
+        { success: false, error: 'Acceso denegado: Se requieren privilegios de Administrador para gestionar trámites de firma.' },
         { status: 403 }
       );
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ success: false, error: 'Cuerpo inválido.' }, { status: 400 });
+    }
+
     const { id, accion } = body;
 
     if (!accion) {
-      return NextResponse.json({ error: 'accion es obligatoria' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'accion es obligatoria' }, { status: 400 });
     }
 
-    // Acción Masiva de Auto-Validación Autónoma por IA
     if (accion === 'AUTO_VALIDAR_IA_MASIVO') {
       const resAuto = await SaraBankReconciliationService.autoValidarPendientes();
       return NextResponse.json({
@@ -180,12 +175,12 @@ export async function PATCH(req: NextRequest) {
         accion: 'AUTO_VALIDAR_IA_MASIVO',
         totalAprobadas: resAuto.totalAprobadas,
         detalles: resAuto.detalles,
-        mensaje: `Agente Autónomo SARA-PAGOS validó ${resAuto.totalAprobadas} solicitudes pendientes sin intervención humana.`
+        mensaje: `Agente Autónomo SARA-PAGOS validó ${resAuto.totalAprobadas} solicitudes pendientes sin intervención humana.`,
       });
     }
 
     if (!id) {
-      return NextResponse.json({ error: 'id es obligatorio para esta acción' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'id es obligatorio para esta acción' }, { status: 400 });
     }
 
     let nuevoEstado = 'EN_TRAMITE_ARCOTEL';
@@ -200,34 +195,79 @@ export async function PATCH(req: NextRequest) {
     }
 
     const supabaseAdmin = createAdminClient();
-
-    // Actualizar en base de datos Supabase
     const { data: updated, error } = await supabaseAdmin
       .from('sri_solicitudes_firmas')
       .update({
         estado_solicitud: nuevoEstado,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
       .single();
 
     if (error) {
-      console.warn('Advertencia actualizando sri_solicitudes_firmas en Supabase:', error.message);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
       id,
       estado_solicitud: nuevoEstado,
-      updated
+      updated,
     });
-  } catch (error: any) {
-    console.error('Error en PATCH de firmas:', error);
-    const status = error.message?.includes('No autenticado') ? 401 : error.message?.includes('Acceso denegado') ? 403 : 500;
-    return NextResponse.json(
-      { error: error.message || 'Error al actualizar firma' },
-      { status }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error al actualizar firma';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
+  }
+}
+
+/**
+ * Webhook firmado con HMAC-SHA256 para notificaciones de entidad certificadora (ARCOTEL / SRI)
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const webhookSecret = process.env.SRI_FIRMAS_WEBHOOK_SECRET || process.env.KUSHKI_PRIVATE_MERCHANT_ID;
+    if (!webhookSecret) {
+      return NextResponse.json(
+        { success: false, error: 'Secreto HMAC de webhooks no configurado en servidor.' },
+        { status: 503 }
+      );
+    }
+
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-sara-signature') || req.headers.get('x-webhook-signature');
+
+    if (!verifyHmacSignature(rawBody, signature, webhookSecret)) {
+      return NextResponse.json(
+        { success: false, error: 'Firma HMAC inválida o ausente.' },
+        { status: 401 }
+      );
+    }
+
+    const event = JSON.parse(rawBody);
+    const solicitudId = String(event?.solicitudId || '');
+    const estado = String(event?.estado || '').toUpperCase();
+
+    if (!solicitudId || !['EN_TRAMITE_ARCOTEL', 'EMITIDO_ACTIVO', 'SUSPENDIDO'].includes(estado)) {
+      return NextResponse.json({ success: false, error: 'Payload de webhook inválido.' }, { status: 400 });
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { error } = await supabaseAdmin
+      .from('sri_solicitudes_firmas')
+      .update({
+        estado_solicitud: estado,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', solicitudId);
+
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, solicitudId, estado });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error procesando webhook de firmas';
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

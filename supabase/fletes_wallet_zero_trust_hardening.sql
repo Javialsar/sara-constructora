@@ -110,12 +110,12 @@ BEGIN
         );
     END IF;
 
-    -- 2. Bloqueo exclusivo del conductor con FOR UPDATE
+    -- 2. Bloqueo exclusivo del conductor con FOR UPDATE (strict user_id match, sin placas demo)
     SELECT c.id, c.saldo_billetera, COALESCE(p.comision, 10.00) AS comision_pct
     INTO v_conductor
     FROM public.fletes_conductores c
     LEFT JOIN public.fletes_planes p ON c.plan_id = p.id
-    WHERE c.user_id = p_user_id OR (c.user_id IS NULL AND c.placa = 'PBA-1234')
+    WHERE c.user_id = p_user_id
     ORDER BY c.created_at ASC
     LIMIT 1
     FOR UPDATE OF c;
@@ -210,11 +210,11 @@ BEGIN
         RAISE EXCEPTION 'MONTO_INVALIDO: La recarga debe ser mayor a 0';
     END IF;
 
-    -- 2. Bloqueo exclusivo del conductor
+    -- 2. Bloqueo exclusivo del conductor (strict user_id match, sin placas demo)
     SELECT id, saldo_billetera
     INTO v_conductor
     FROM public.fletes_conductores
-    WHERE user_id = p_user_id OR (user_id IS NULL AND placa = 'PBA-1234')
+    WHERE user_id = p_user_id
     ORDER BY created_at ASC
     LIMIT 1
     FOR UPDATE;
@@ -288,12 +288,15 @@ CREATE POLICY "Conductor ve sus transacciones" ON public.fletes_billetera_transa
 
 -- Cierre de Brecha de Seguridad en Renta de Vehículos (Cédula, Teléfono y PIN)
 DROP POLICY IF EXISTS "Usuarios pueden ver sus reservas" ON public.fletes_reservas_renta;
+DROP POLICY IF EXISTS "Usuarios ven exclusivamente sus reservas" ON public.fletes_reservas_renta;
 CREATE POLICY "Usuarios ven exclusivamente sus reservas" ON public.fletes_reservas_renta
     FOR SELECT USING (auth.uid() = usuario_id OR auth.uid() IS NULL);
 
 -- Alertas SOS: Inserción para usuarios o anónimos en ruta; lectura para administradores y central
+DROP POLICY IF EXISTS "Insercion de alertas SOS" ON public.fletes_alertas_sos;
 CREATE POLICY "Insercion de alertas SOS" ON public.fletes_alertas_sos
     FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Lectura alertas SOS central" ON public.fletes_alertas_sos;
 CREATE POLICY "Lectura alertas SOS central" ON public.fletes_alertas_sos
     FOR SELECT USING (true);

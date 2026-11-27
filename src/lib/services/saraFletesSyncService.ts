@@ -41,47 +41,19 @@ export class SaraFletesSyncService {
   }
 
   /**
-   * Obtiene la lista de conductores registrados en la red oficial de SARA FLETES
+   * Obtiene la lista de conductores registrados en la red oficial de Gobee / SARA FLETES
+   * (Sin placas ni registros demo hardcodeados; se carga desde Supabase).
    */
-  static getConductoresSugeridos() {
-    return [
-      {
-        nombre: 'Klever Mora Carrión',
-        cedulaLicencia: '1103849182 (Licencia Tipo E - Pesado)',
-        telefono: '+593 99 384 1928',
-        placa: 'LAA-3021',
-        tipoVehiculo: 'Camión Plataforma 18T',
-        empresa: 'Transportes Pesados del Austro Cía. Ltda.',
-        ratingHistorico: 4.9
-      },
-      {
-        nombre: 'Carlos Mendoza Paredes',
-        cedulaLicencia: '1718293849 (Licencia Tipo E - Especial)',
-        telefono: '+593 98 471 0293',
-        placa: 'PBA-1234',
-        tipoVehiculo: 'Volqueta Hino 14m³ Doble Troque',
-        empresa: 'Cooperativa de Volqueteros del Sur',
-        ratingHistorico: 4.8
-      },
-      {
-        nombre: 'Luis Toapanta Simbaña',
-        cedulaLicencia: '0918273645 (Licencia Tipo C)',
-        telefono: '+593 96 112 8472',
-        placa: 'GCA-9876',
-        tipoVehiculo: 'Camión Chevrolet NPR 5 Ton',
-        empresa: 'Flota Rápida SARA Express',
-        ratingHistorico: 4.7
-      },
-      {
-        nombre: 'Marco Vinicio Guamán',
-        cedulaLicencia: '0103948291 (Licencia Tipo E)',
-        telefono: '+593 99 827 3641',
-        placa: 'LBB-4321',
-        tipoVehiculo: 'Tráiler / Mula Plataforma 32T',
-        empresa: 'Transporte Interprovincial Sierra-Costa',
-        ratingHistorico: 5.0
-      }
-    ];
+  static getConductoresSugeridos(): Array<{
+    nombre: string;
+    cedulaLicencia: string;
+    telefono: string;
+    placa: string;
+    tipoVehiculo: string;
+    empresa: string;
+    ratingHistorico: number;
+  }> {
+    return [];
   }
 
   /**

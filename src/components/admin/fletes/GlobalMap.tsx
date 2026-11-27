@@ -89,24 +89,6 @@ const INITIAL_DRIVERS: DriverMapItem[] = [
     cliente: '' 
   },
   { 
-    id: 'FLT-02', 
-    name: 'Carlos Mendoza', 
-    plan: 'Estándar', 
-    status: 'En Viaje', 
-    vehicle: 'Camión Hino 5T', 
-    plate: 'PBA-1234', 
-    tipoVehiculo: 'CAMION_5T', 
-    latitud: -0.1807, 
-    longitud: -78.4678, 
-    pais: 'Ecuador', 
-    provincia: 'Pichincha', 
-    canton: 'Quito', 
-    ciudad: 'Quito', 
-    origen: 'Quito Centro', 
-    destino: 'Valle de Tumbaco', 
-    cliente: 'Constructora Atlas S.A.' 
-  },
-  { 
     id: 'FLT-03', 
     name: 'Luis Toapanta', 
     plan: 'Basico', 

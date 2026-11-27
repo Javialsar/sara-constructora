@@ -181,13 +181,16 @@ export async function debitDriverCommissionAction(
       // Fallback a mutación directa si el RPC aún no está creado en la instancia remota
     }
 
-    // 3. Fallback seguro: Consulta y actualización atómica directa
-    const { data: conductor } = await supabase
-      .from('fletes_conductores')
-      .select('id, saldo_billetera, plan_id, fletes_planes(comision, nombre)')
-      .or(`placa.eq.${request.plate},placa.eq.PBA-1234,placa.eq.LFA-9012`)
-      .limit(1)
-      .maybeSingle();
+    // 3. Fallback seguro: Consulta y actualización atómica directa (estrictamente por placa real)
+    const cleanPlate = request.plate?.trim().toUpperCase();
+    const { data: conductor } = cleanPlate
+      ? await supabase
+          .from('fletes_conductores')
+          .select('id, saldo_billetera, plan_id, fletes_planes(comision, nombre)')
+          .eq('placa', cleanPlate)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
 
     const planData = Array.isArray(conductor?.fletes_planes)
       ? conductor.fletes_planes[0]
@@ -276,13 +279,16 @@ export async function rechargeDriverWalletAction(
       };
     }
 
-    // 2. Buscar conductor por placa
-    const { data: conductor } = await supabase
-      .from('fletes_conductores')
-      .select('id, saldo_billetera')
-      .or(`placa.eq.${request.plate},placa.eq.PBA-1234,placa.eq.LFA-9012`)
-      .limit(1)
-      .maybeSingle();
+    // 2. Buscar conductor estrictamente por placa real
+    const cleanPlate = request.plate?.trim().toUpperCase();
+    const { data: conductor } = cleanPlate
+      ? await supabase
+          .from('fletes_conductores')
+          .select('id, saldo_billetera')
+          .eq('placa', cleanPlate)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
 
     const saldoActual = conductor ? Number(conductor.saldo_billetera) : 119.00;
     const nuevoSaldo = +(saldoActual + monto).toFixed(2);
@@ -339,10 +345,14 @@ export async function getDriverWalletStateAction(plate: string): Promise<{
 }> {
   try {
     const supabase = await createSupabaseAdminClient();
+    const cleanPlate = plate?.trim().toUpperCase();
+    if (!cleanPlate) {
+      return { saldo: 0, transacciones: [] };
+    }
     const { data: conductor } = await supabase
       .from('fletes_conductores')
       .select('id, saldo_billetera')
-      .or(`placa.eq.${plate},placa.eq.PBA-1234,placa.eq.LFA-9012`)
+      .eq('placa', cleanPlate)
       .limit(1)
       .maybeSingle();
 

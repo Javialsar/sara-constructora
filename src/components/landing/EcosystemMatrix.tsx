@@ -115,16 +115,16 @@ export default function EcosystemMatrix({ onOpenCheckout, onOpenQuoteModal, init
     },
     {
       id: 'fletes',
-      title: 'SARA-FLETES',
-      tagline: 'Fletes & Renta Vehicular Abierta',
-      desc: 'Plataforma para todo público: fletes locales, mudanzas, transporte pesado y alquiler de camionetas/camiones por horas o días (tipo Uber, inDrive y DiDi).',
+      title: 'GoBee',
+      tagline: 'Movilidad, Envíos & Carga · Grupo Sara',
+      desc: 'GoBee · Un servicio de Grupo Sara. Pide GoBee Go (urbano), GoBee XL (SUV/doble cabina), GoBee Express (moto/envíos) o GoBee Cargo (fletes y materiales de obra) con rastreo GPS 24/7.',
       logoUrl: logos.fletes,
       iconFallback: Truck,
-      href: '/fletes',
-      accentColor: 'from-amber-500 to-amber-700',
-      badge: 'Abierto a Todo Público',
-      stats: 'Carga & Renta 24/7',
-      pricePreview: { title: 'Flete Local Inmediato', amount: 3.00, isSub: false }
+      href: '/modulos/fletes',
+      accentColor: 'from-amber-400 to-amber-600',
+      badge: 'By Grupo Sara',
+      stats: 'Go · XL · Express · Cargo',
+      pricePreview: { title: 'Viaje GoBee Go', amount: 2.00, isSub: false }
     },
     {
       id: 'talento',

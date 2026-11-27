@@ -1,17 +1,100 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
 const ALLOWED_DEFERRED_MONTHS = new Set([0, 3, 6, 9, 12]);
 
+function verifyHmacSignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
+  if (!signatureHeader || !secret) return false;
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const provided = signatureHeader.replace(/^sha256=/i, '').trim();
+  if (expected.length !== provided.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(expected, 'utf8'), Buffer.from(provided, 'utf8'));
+}
+
+async function resolveAuthenticatedUser(req: NextRequest) {
+  const authHeader = req.headers.get('authorization');
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (token && token !== 'null' && token !== 'undefined') {
+      const admin = createAdminClient();
+      const { data, error } = await admin.auth.getUser(token);
+      if (data?.user && !error) return data.user;
+    }
+    return null;
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verificación obligatoria de autenticación Zero-Trust
-    const { user } = await requireServerAuth(req);
+    const rawBody = await req.text();
+    const merchantId = process.env.KUSHKI_PRIVATE_MERCHANT_ID;
+    const webhookSecret = process.env.KUSHKI_WEBHOOK_SECRET || merchantId || '';
 
-    const body = await req.json().catch(() => null);
+    // 0. Soporte para Webhook firmado con HMAC-SHA256 si viene encabezado de firma Kushki
+    const webhookSig = req.headers.get('x-kushki-signature') || req.headers.get('x-signature');
+    if (webhookSig) {
+      if (!webhookSecret || !verifyHmacSignature(rawBody, webhookSig, webhookSecret)) {
+        return NextResponse.json(
+          { success: false, error: 'Firma HMAC de webhook Kushki inválida.' },
+          { status: 401 }
+        );
+      }
+      const event = JSON.parse(rawBody);
+      const ticket = String(event?.ticketNumber || event?.transactionReference || '');
+      const txStatus = String(event?.transactionStatus || event?.status || '').toUpperCase();
+      if (!ticket) {
+        return NextResponse.json({ success: false, error: 'ticketNumber ausente en webhook.' }, { status: 400 });
+      }
+      const admin = createAdminClient();
+      const { data: intent } = await admin
+        .from('fletes_payment_intents')
+        .select('*')
+        .eq('gateway_ref', ticket)
+        .maybeSingle();
+
+      if (intent && (txStatus === 'APPROVAL' || txStatus === 'APPROVED' || txStatus === 'CAPTURED')) {
+        await admin
+          .from('fletes_payment_intents')
+          .update({ status: 'PAID', raw_response: event, updated_at: new Date().toISOString() })
+          .eq('id', intent.id);
+
+        if (intent.intent_type === 'topup') {
+          await admin.rpc('topup_driver_wallet', {
+            p_driver_id: intent.user_id,
+            p_amount_usd: Number(intent.amount_usd),
+            p_gateway: 'kushki',
+            p_gateway_ref: ticket,
+            p_metadata: { webhook: true },
+          });
+        }
+      }
+      return NextResponse.json({ success: true, webhookVerified: true, ticketNumber: ticket });
+    }
+
+    // 1. Verificación obligatoria de autenticación Zero-Trust vía supabase.auth.getUser()
+    const user = await resolveAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'No autenticado: Se requiere una sesión activa válida.' },
+        { status: 401 }
+      );
+    }
+
+    let body: Record<string, unknown> | null = null;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      body = null;
+    }
     if (!body) {
       return NextResponse.json({ success: false, error: 'Cuerpo de petición inválido.' }, { status: 400 });
     }
@@ -28,7 +111,30 @@ export async function POST(req: NextRequest) {
       deferredMonths = 0,
       ticketNumber,
       description,
-    } = body;
+      fareParams,
+    } = body as {
+      token?: string;
+      cardNumber?: string;
+      plan?: string;
+      planId?: string;
+      ordenId?: string;
+      orderId?: string;
+      amount?: number;
+      intentType?: string;
+      deferredMonths?: number;
+      ticketNumber?: string;
+      description?: string;
+      fareParams?: {
+        category: string;
+        originLat: number;
+        originLng: number;
+        destLat: number;
+        destLng: number;
+        distanceKm?: number;
+        weightTon?: number;
+        backhaul?: boolean;
+      };
+    };
 
     // 2. PCI DSS Compliance: rechazo estricto de PAN en texto claro
     if (cardNumber) {
@@ -42,7 +148,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const merchantId = process.env.KUSHKI_PRIVATE_MERCHANT_ID;
     if (!merchantId) {
       return NextResponse.json(
         {
@@ -147,10 +252,34 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Validación y recálculo de monto en servidor (Anti-Tampering)
+    // 4. Validación y cálculo de tarifa en servidor mediante RPC atómica PostGIS (Anti-Tampering)
     let verifiedAmount = 0;
 
-    if (targetFleteOrderId && intentType !== 'topup') {
+    if (fareParams && intentType !== 'topup') {
+      const { data: rpcFare, error: rpcErr } = await supabaseAdmin.rpc('calculate_gobee_fare', {
+        p_category: fareParams.category,
+        p_origin_lat: fareParams.originLat,
+        p_origin_lng: fareParams.originLng,
+        p_dest_lat: fareParams.destLat,
+        p_dest_lng: fareParams.destLng,
+        p_distance_km: fareParams.distanceKm ?? null,
+        p_weight_ton: fareParams.weightTon ?? 0,
+        p_backhaul: Boolean(fareParams.backhaul),
+      });
+
+      if (!rpcErr && rpcFare?.fixed_fare_usd) {
+        const minBid = Number(rpcFare.min_bid_usd);
+        const maxBid = Number(rpcFare.max_bid_usd);
+        const requested = Number(amount);
+        if (Number.isFinite(requested) && requested >= minBid && requested <= maxBid) {
+          verifiedAmount = requested;
+        } else {
+          verifiedAmount = Number(rpcFare.fixed_fare_usd);
+        }
+      }
+    }
+
+    if (!verifiedAmount && targetFleteOrderId && intentType !== 'topup') {
       const { data: fleteOrder } = await supabaseAdmin
         .from('fletes_orders')
         .select('id, customer_id, quoted_price_usd, guarantee_deposit_usd')
@@ -203,16 +332,24 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: `Discrepancia de monto detectada. Valor oficial verificado: $${verifiedAmount.toFixed(2)} USD.`,
+            error: `Discrepancia de monto detectada. Valor oficial verificado en servidor: $${verifiedAmount.toFixed(2)} USD.`,
           },
           { status: 400 }
         );
       }
-    } else {
+    } else if (intentType === 'topup') {
       verifiedAmount = Number(amount);
-      if (!Number.isFinite(verifiedAmount) || verifiedAmount <= 0) {
-        return NextResponse.json({ success: false, error: 'Monto de pago inválido.' }, { status: 400 });
+      if (!Number.isFinite(verifiedAmount) || verifiedAmount < 5 || verifiedAmount > 5000) {
+        return NextResponse.json(
+          { success: false, error: 'Monto de recarga inválido (rango permitido: $5.00 – $5,000.00 USD).' },
+          { status: 400 }
+        );
       }
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Se requiere orderId, ordenId, planId o fareParams para validar la tarifa en servidor.' },
+        { status: 400 }
+      );
     }
 
     const numAmount = Number(verifiedAmount.toFixed(2));
@@ -236,13 +373,13 @@ export async function POST(req: NextRequest) {
         userEmail: user.email,
         orderId: targetFleteOrderId || ordenId || null,
         intentType,
-        plan: plan || description || 'SARA FLETES',
+        plan: plan || description || 'Gobee · Grupo Sara',
       },
     };
 
     if (!isPreauth && parsedDeferred > 0) {
       payload.deferred = {
-        creditType: '02', // Diferido con intereses Ecuador
+        creditType: '02',
         months: parsedDeferred,
         graceMonths: '00',
       };
@@ -280,7 +417,6 @@ export async function POST(req: NextRequest) {
       ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    // 5. Registrar intención real en fletes_payment_intents
     await supabaseAdmin.from('fletes_payment_intents').insert({
       order_id: targetFleteOrderId,
       user_id: user.id,
@@ -307,7 +443,6 @@ export async function POST(req: NextRequest) {
         .eq('id', targetFleteOrderId);
     }
 
-    // Si es recarga directa de billetera aprobada síncronamente, acreditar atómicamente vía RPC
     if (intentType === 'topup') {
       await supabaseAdmin.rpc('topup_driver_wallet', {
         p_driver_id: user.id,
@@ -323,6 +458,7 @@ export async function POST(req: NextRequest) {
       transactionId: resolvedTicket,
       ticketNumber: resolvedTicket,
       preauthExpiresAt,
+      verifiedAmountUSD: numAmount,
       status: isPreauth ? 'AUTHORIZED' : 'APPROVED',
       message: isPreauth
         ? 'Pre-autorización de garantía aprobada (vigente 7 días calendario).'
@@ -330,7 +466,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error procesando el pago en Kushki';
-    const status = message.includes('No autenticado') ? 401 : message.includes('Acceso denegado') ? 403 : 500;
-    return NextResponse.json({ success: false, error: message }, { status });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

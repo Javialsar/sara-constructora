@@ -177,11 +177,20 @@ ALTER TABLE public.fletes_vehiculos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fletes_reservas_renta ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fletes_viajes_tracking ENABLE ROW LEVEL SECURITY;
 
--- Políticas de lectura pública para mapa de clientes
+-- Políticas de lectura pública para mapa de clientes (idempotentes)
+DROP POLICY IF EXISTS "Lectura pública de zonas activas" ON public.fletes_zonas;
 CREATE POLICY "Lectura pública de zonas activas" ON public.fletes_zonas FOR SELECT USING (activa = true);
+
+DROP POLICY IF EXISTS "Lectura pública de vehículos disponibles" ON public.fletes_vehiculos;
 CREATE POLICY "Lectura pública de vehículos disponibles" ON public.fletes_vehiculos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Lectura pública de tracking activo" ON public.fletes_viajes_tracking;
 CREATE POLICY "Lectura pública de tracking activo" ON public.fletes_viajes_tracking FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Usuarios pueden ver sus reservas" ON public.fletes_reservas_renta;
 CREATE POLICY "Usuarios pueden ver sus reservas" ON public.fletes_reservas_renta FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Inserción pública de reservas de renta" ON public.fletes_reservas_renta;
 CREATE POLICY "Inserción pública de reservas de renta" ON public.fletes_reservas_renta FOR INSERT WITH CHECK (true);
 
 -- 9. SEMILLA INICIAL DE ZONAS OPERATIVAS (ECUADOR)
@@ -194,13 +203,5 @@ VALUES
     ('ZONA-GUAYAS-GYE', 'Guayaquil & Samborondón', 'Guayas', 'Guayaquil', -2.185200, -79.924800, 40.00)
 ON CONFLICT (codigo_zona) DO NOTHING;
 
--- 10. SEMILLA INICIAL DE FLOTA VEHICULAR (INCLUYENDO ZONA CARIAMANGA)
-INSERT INTO public.fletes_vehiculos 
-    (placa, nombre_chofer, telefono_chofer, marca, modelo, anio, categoria, modalidad, permite_sin_chofer, tarifa_hora, tarifa_dia, deposito_garantia, capacidad_ton, volumen_m3, latitud, longitud, calificacion_promedio)
-VALUES
-    ('LBA-3421', 'Manuel Cárdenas', '+593 99 384 1928', 'Chevrolet', 'D-Max 4x4 Diésel', 2023, 'PICKUP_1T', 'HIBRIDO', true, 12.00, 65.00, 250.00, 1.20, 2.50, -4.325000, -79.558800, 4.95),
-    ('GCA-9876', 'Luis Toapanta', '+593 96 112 8472', 'Hyundai', 'H100 Furgón Cerrado', 2022, 'FURGON_3T', 'HIBRIDO', false, 18.00, 95.00, 350.00, 3.50, 14.00, -4.326400, -79.551500, 4.80),
-    ('PBA-1234', 'Carlos Mendoza', '+593 98 471 0293', 'Chevrolet', 'NPR 5 Toneladas', 2021, 'CAMION_5T', 'HIBRIDO', false, 25.00, 140.00, 450.00, 5.00, 18.00, -4.332700, -79.552900, 4.85),
-    ('UBA-5512', 'Jorge Encalada', '+593 99 120 4857', 'Hino', '700 Volqueta 14m3', 2024, 'VOLQUETA_V3A', 'FLETE_CARGA', false, 35.00, 220.00, 500.00, 14.00, 14.00, -4.334000, -79.559800, 4.90),
-    ('LBB-4321', 'Marco Vinicio Guamán', '+593 99 827 3641', 'Kenworth', 'T800 Tráiler Plataforma 32T', 2022, 'TRACTO_3S3', 'FLETE_CARGA', false, 55.00, 380.00, 800.00, 32.00, 35.00, -4.322000, -79.563200, 5.00)
-ON CONFLICT (placa) DO NOTHING;
+-- 10. FLOTA VEHICULAR: Sin placas ni registros demo en producción.
+-- Los vehículos se registran exclusivamente a través del onboarding verificado de conductores Gobee.

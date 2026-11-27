@@ -138,15 +138,15 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal, initialLogos }:
     {
       id: "fletes",
       indexNum: "07",
-      tag: "Transporte Pesado Satelital",
-      title: "SARA-FLETES",
-      description: "Flota de volquetas, plataformas y camiones pesados con despacho satelital 24/7 y monitoreo GPS en tiempo real para abastecimiento continuo en proyectos de construcción.",
+      tag: "Movilidad, Envíos & Carga · Grupo Sara",
+      title: "GoBee",
+      description: "GoBee · Un servicio de Grupo Sara. Pide GoBee Go (urbano), GoBee XL (SUV/doble cabina), GoBee Express (moto/envíos) o GoBee Cargo (fletes y materiales de obra) con despacho en tiempo real y rastreo GPS 24/7.",
       logo: logos.fletes || "/images/sara-fletes.png",
-      accentColor: "text-cyan-400",
-      glowColor: "from-cyan-500/30 via-cyan-500/10 to-transparent",
-      badgeColor: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30",
-      label: "SARA FLETES · LOGÍSTICA",
-      href: "/fletes"
+      accentColor: "text-[#FDBE3B]",
+      glowColor: "from-[#FDBE3B]/35 via-amber-500/15 to-transparent",
+      badgeColor: "bg-[#FDBE3B]/15 text-[#FDBE3B] border-[#FDBE3B]/40",
+      label: "GOBEE · UN SERVICIO DE GRUPO SARA",
+      href: "/modulos/fletes"
     },
     {
       id: "talento",
@@ -331,15 +331,41 @@ export default function Hero({ onOpenCheckout, onOpenQuoteModal, initialLogos }:
                 {/* Resplandor ambiental suave difuso detrás del logotipo */}
                 <div className={`absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-gradient-to-tr ${currentSlide.glowColor} blur-3xl opacity-70 pointer-events-none`} />
 
-                {/* Logotipo oficial 3D transparente flotando libremente */}
-                <img
-                  src={currentSlide.logo}
-                  alt={currentSlide.title}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/logo-hero.png"
-                  }}
-                  className="relative z-10 max-h-[300px] sm:max-h-[380px] md:max-h-[440px] w-auto h-auto object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-500 ease-out"
-                />
+                {/* Logotipo oficial 3D transparente flotando libremente o Emblema GoBee */}
+                {currentSlide.id === "fletes" ? (
+                  <div className="relative z-10 flex flex-col items-center justify-center text-center p-8 rounded-[36px] bg-gradient-to-b from-[#111827]/95 to-[#0F172A]/95 border-2 border-[#FDBE3B]/60 shadow-[0_24px_60px_rgba(253,190,59,0.22)] w-full max-w-md hover:scale-[1.02] transition-transform duration-500">
+                    <div className="w-24 h-24 rounded-3xl bg-[#FDBE3B] text-[#111827] flex items-center justify-center shadow-xl shadow-amber-500/30 mb-5">
+                      <svg viewBox="0 0 24 24" className="w-12 h-12 fill-current" aria-hidden="true">
+                        <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+                      </svg>
+                    </div>
+                    <span className="font-display text-6xl sm:text-7xl font-black tracking-tight text-white">
+                      Go<span className="text-[#FDBE3B]">Bee</span>
+                    </span>
+                    <span className="mt-2 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-slate-300">
+                      Un servicio de Grupo Sara
+                    </span>
+                    <div className="mt-6 grid grid-cols-2 gap-2 w-full">
+                      {["GoBee Go", "GoBee XL", "GoBee Express", "GoBee Cargo"].map((cat) => (
+                        <span
+                          key={cat}
+                          className="px-3 py-2 rounded-xl bg-white/[0.05] border border-[#FDBE3B]/25 text-xs font-extrabold text-[#FDBE3B]"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    src={currentSlide.logo}
+                    alt={currentSlide.title}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "/logo-hero.png"
+                    }}
+                    className="relative z-10 max-h-[300px] sm:max-h-[380px] md:max-h-[440px] w-auto h-auto object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.95)] hover:scale-105 transition-transform duration-500 ease-out"
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
           </div>

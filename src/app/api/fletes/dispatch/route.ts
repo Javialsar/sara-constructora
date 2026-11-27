@@ -4,17 +4,7 @@ import { requireServerAuth } from '@/lib/auth/serverAuthGuard';
 
 export const dynamic = 'force-dynamic';
 
-interface LiveDriverTelemetryEntry {
-  lat: number;
-  lng: number;
-  heading?: number;
-  speedKmh?: number;
-  updatedAt: number;
-}
-
-// Caché ligera en memoria por instancia para telemetría sub-segundo junto con respaldo en BD
-const LIVE_DRIVER_TELEMETRY = new Map<string, LiveDriverTelemetryEntry>();
-
+// Sin estado en memoria: toda telemetría y despacho se persiste en PostgreSQL + PostGIS
 export async function GET(req: NextRequest) {
   try {
     const admin = createAdminClient();
@@ -35,7 +25,6 @@ export async function GET(req: NextRequest) {
       }
 
       const list = Array.isArray(rows) ? rows : [];
-      // Priorizar el estado más avanzado si hubiera duplicados con el mismo PIN
       const priorityOrder = ['completada', 'en_curso', 'aceptada', 'cancelada', 'pendiente'];
       const data =
         list.sort((a, b) => {
@@ -44,14 +33,43 @@ export async function GET(req: NextRequest) {
           const ra = pa === -1 ? 99 : pa;
           const rb = pb === -1 ? 99 : pb;
           if (ra !== rb) return ra - rb;
-          return new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime();
+          return (
+            new Date(b.updated_at || b.created_at || 0).getTime() -
+            new Date(a.updated_at || a.created_at || 0).getTime()
+          );
         })[0] || null;
 
-      const memTelemetry = LIVE_DRIVER_TELEMETRY.get(codigoAcceso) || null;
+      // Leer telemetría en vivo desde PostGIS (gobee_driver_presence) en lugar de Map en memoria
+      let driverTelemetry: {
+        lat: number;
+        lng: number;
+        heading?: number;
+        speedKmh?: number;
+        updatedAt: number;
+      } | null = null;
+
+      if (data?.conductor_placa) {
+        const { data: presence } = await admin
+          .from('gobee_driver_presence')
+          .select('lat, lng, heading, speed_kmh, updated_at')
+          .eq('plate', String(data.conductor_placa).toUpperCase())
+          .maybeSingle();
+
+        if (presence) {
+          driverTelemetry = {
+            lat: Number(presence.lat),
+            lng: Number(presence.lng),
+            heading: Number(presence.heading || 0),
+            speedKmh: Number(presence.speed_kmh || 0),
+            updatedAt: new Date(presence.updated_at).getTime(),
+          };
+        }
+      }
+
       return NextResponse.json({
         success: true,
         request: data,
-        driverTelemetry: memTelemetry,
+        driverTelemetry,
       });
     }
 
@@ -172,27 +190,37 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Se requiere id o codigoAcceso.' }, { status: 400 });
     }
 
-    // Actualización rápida de telemetría GPS del conductor (sin sobrecargar BD si solo es ping GPS)
+    // Persistencia de telemetría GPS del conductor en PostGIS (sin Map en memoria)
     if (
-      codigoAcceso &&
       typeof body?.driverLat === 'number' &&
       typeof body?.driverLng === 'number' &&
       Number.isFinite(body.driverLat) &&
       Number.isFinite(body.driverLng)
     ) {
-      LIVE_DRIVER_TELEMETRY.set(codigoAcceso, {
-        lat: body.driverLat,
-        lng: body.driverLng,
-        heading: typeof body.heading === 'number' ? body.heading : undefined,
-        speedKmh: typeof body.speedKmh === 'number' ? body.speedKmh : undefined,
-        updatedAt: Date.now(),
-      });
-      if (LIVE_DRIVER_TELEMETRY.size > 200) {
-        const oldest = LIVE_DRIVER_TELEMETRY.keys().next().value;
-        if (oldest) LIVE_DRIVER_TELEMETRY.delete(oldest);
+      try {
+        const { user } = await requireServerAuth(req);
+        const plate = String(body.conductorPlaca || user.user_metadata?.placa || '').trim().toUpperCase();
+        if (plate) {
+          await admin.rpc('upsert_gobee_driver_presence', {
+            p_driver_id: user.id,
+            p_driver_name: String(body.conductorNombre || user.user_metadata?.full_name || 'Conductor Gobee'),
+            p_plate: plate,
+            p_category: String(body.category || 'gobee_go'),
+            p_is_online: true,
+            p_lat: body.driverLat,
+            p_lng: body.driverLng,
+            p_heading: typeof body.heading === 'number' ? body.heading : 0,
+            p_speed_kmh: typeof body.speedKmh === 'number' ? body.speedKmh : 0,
+            p_accuracy_m: typeof body.accuracyM === 'number' ? body.accuracyM : 15,
+            p_active_order_id: null,
+          });
+        }
+      } catch {
+        // Si es actualización anónima de seguimiento, continuar solo con actualización de estado si existe
       }
+
       if (!body.status) {
-        return NextResponse.json({ success: true, telemetryUpdated: true });
+        return NextResponse.json({ success: true, telemetryUpdated: true, storage: 'postgis' });
       }
     }
 
