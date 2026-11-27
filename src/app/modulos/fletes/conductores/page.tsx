@@ -413,7 +413,11 @@ export default function MiPerfilFletes() {
         if (!res.ok) return;
         const data = await res.json();
         const list = Array.isArray(data?.requests) ? data.requests : [];
-        if (list.length === 0) return;
+        if (list.length === 0) {
+          // Si ya no hay solicitudes pendientes en BD y el conductor no ha aceptado viaje, limpiar tarjeta obsoleta
+          setIncomingRequest((prev: any) => (prev && !tripAccepted ? null : prev));
+          return;
+        }
 
         const latest = list.find((r: any) => !dismissedRequestIdsRef.current.has(String(r.id)));
         if (!latest) return;
@@ -421,7 +425,11 @@ export default function MiPerfilFletes() {
         const reqId = String(latest.id);
         let isNew = false;
         setIncomingRequest((prev: any) => {
-          if (prev && (prev.fleteId === reqId || prev.codigoAcceso === latest.codigo_acceso)) {
+          if (
+            prev &&
+            (prev.fleteId === reqId ||
+              (latest.codigo_acceso && prev.codigoAcceso === latest.codigo_acceso && prev.origen === latest.origen))
+          ) {
             return prev;
           }
           isNew = true;
@@ -496,46 +504,55 @@ export default function MiPerfilFletes() {
 
   // Cargar solicitud activa existente y suscribirse a eventos de clientes en vivo
   useEffect(() => {
-    // 1. Revisar si hay un flete activo reciente o ya aceptado en el bus
+    // 1. Limpiar cualquier solicitud de prueba o pendiente vieja guardada en localStorage
     const acceptedDispatch = SaraFletesRealtimeService.getAcceptedDispatch();
     const activeReq = SaraFletesRealtimeService.getActiveRequest();
     const tripInProgress = SaraFletesRealtimeService.getTripInProgress();
 
-    const isAcceptedOrInProgress = Boolean(acceptedDispatch || tripInProgress || (activeReq && activeReq.status === 'accepted'));
+    const isStaleDemo = Boolean(
+      activeReq &&
+        (activeReq.clienteNombre?.includes('(Prueba)') ||
+          (activeReq.origen === 'Parque Central Cariamanga' && activeReq.destino === 'Mirador El Calvario'))
+    );
+    if (isStaleDemo && typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('sara_fletes_rt_active_request');
+      } catch {}
+    }
 
-    if (acceptedDispatch || activeReq || tripInProgress) {
+    const isAcceptedOrInProgress = Boolean(
+      !isStaleDemo && (acceptedDispatch || tripInProgress || (activeReq && activeReq.status === 'accepted'))
+    );
+
+    // Solo restaurar desde localStorage si el viaje ya estaba realmente aceptado o en curso;
+    // los pedidos nuevos siempre llegan en vivo desde /api/fletes/dispatch y Supabase Realtime
+    if (isAcceptedOrInProgress) {
       const fleteInfo = activeReq || acceptedDispatch || ({} as any);
       setIncomingRequest({
-        fleteId: tripInProgress?.fleteId || acceptedDispatch?.fleteId || fleteInfo.id || 'FLT-ACTIVO',
-        origen: fleteInfo.origen || acceptedDispatch?.origen || 'Punto de Carga',
-        destino: fleteInfo.destino || acceptedDispatch?.destino || 'Punto de Entrega',
+        fleteId: tripInProgress?.fleteId || acceptedDispatch?.fleteId || fleteInfo.id || '',
+        origen: fleteInfo.origen || acceptedDispatch?.origen || '',
+        destino: fleteInfo.destino || acceptedDispatch?.destino || '',
         cliente: fleteInfo.clienteNombre || 'Cliente SARA',
-        material: fleteInfo.material || (fleteInfo.pesoTon ? `Carga (${fleteInfo.pesoTon} Ton)` : 'Viaje de Pasajeros'),
-        valorRef: acceptedDispatch?.precioAcordado || fleteInfo.tarifaOfertadaUSD || 2.50,
-        distanciaKm: fleteInfo.distanciaKm || acceptedDispatch?.distanciaKm || 1.8,
-        duracionMinutos: fleteInfo.duracionMinutos || acceptedDispatch?.duracionMinutos || 5,
-        coordsOrigen: fleteInfo.coordsOrigen || acceptedDispatch?.coordsOrigen || [-4.3298, -79.5611],
-        coordsDestino: fleteInfo.coordsDestino || acceptedDispatch?.coordsDestino || [-4.3287, -79.5606],
+        material: fleteInfo.material || 'Servicio de Transporte',
+        valorRef: acceptedDispatch?.precioAcordado || fleteInfo.tarifaOfertadaUSD || 0,
+        distanciaKm: fleteInfo.distanciaKm || acceptedDispatch?.distanciaKm || 0,
+        duracionMinutos: fleteInfo.duracionMinutos || acceptedDispatch?.duracionMinutos || 0,
+        coordsOrigen: fleteInfo.coordsOrigen || acceptedDispatch?.coordsOrigen,
+        coordsDestino: fleteInfo.coordsDestino || acceptedDispatch?.coordsDestino,
         coordenadasRuta: fleteInfo.coordenadasRuta || acceptedDispatch?.coordenadasRuta,
         codigoAcceso: tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso,
         assignedDriverName: tripInProgress?.driverName || acceptedDispatch?.driverName || fleteInfo.assignedDriverName,
         assignedPlate: tripInProgress?.plate || acceptedDispatch?.plate || fleteInfo.assignedPlate
       });
 
-      const currentCode = tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso || '2889';
+      const currentCode = tripInProgress?.codigoValidado || acceptedDispatch?.codigoAcceso || fleteInfo.codigoAcceso || '';
       setAccessCode(currentCode);
       setInputPin(currentCode);
-
-      if (isAcceptedOrInProgress) {
-        setTripAccepted(true);
-        if (tripInProgress || fleteInfo.status === 'in_transit') {
-          setTripState('in_transit');
-        } else {
-          setTripState('heading_to_pickup');
-        }
+      setTripAccepted(true);
+      if (tripInProgress || fleteInfo.status === 'in_transit') {
+        setTripState('in_transit');
       } else {
-        setTripAccepted(false);
-        setTripState('idle');
+        setTripState('heading_to_pickup');
       }
     }
 
@@ -1721,23 +1738,6 @@ export default function MiPerfilFletes() {
                       {balance < 1.00 ? 'Radar En Pausa (Sin Saldo)' : `Transmitiendo en ${driverCity}`}
                     </span>
                   </div>
-                </div>
-              </div>
-
-              {/* MTOP Compliance Ribbon */}
-              <div className="bg-slate-900/90 border border-slate-800 px-4 py-2 rounded-xl flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-300">⚖️ Control MTOP:</span>
-                  <span className="text-slate-400">
-                    Balanza más cercana: <strong className="text-slate-200">{balanzasCercanas[0]?.nombre || 'Sin balanzas en radio 50km'}</strong>
-                    {balanzasCercanas[0] && ` (~${balanzasCercanas[0].distanciaKm} km)`}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 font-mono font-bold bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded">
-                    PBV: {evaluacionMtop.pbvCalculadoTon}T / {evaluacionMtop.pbvMaximoLegalTon}T ({evaluacionMtop.porcentajeOcupacionPbv}%)
-                  </span>
-                  <span className="text-slate-500 text-[11px]">Norma MTOP Acuerdo N° 018</span>
                 </div>
               </div>
 
@@ -3509,14 +3509,6 @@ export default function MiPerfilFletes() {
         }}
       />
 
-      {/* Botón de Pánico SOS 24/7 Flotante */}
-      <SaraFloatingSosButton
-        plate={currentUser?.user_metadata?.placa || ''}
-        driverName={currentUser?.user_metadata?.full_name || 'David Sarango Malacatus'}
-        currentCoords={driverLocation}
-        fleteId={incomingRequest?.fleteId}
-        userType="conductor"
-      />
     </div>
   );
 }
