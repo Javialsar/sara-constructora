@@ -2057,7 +2057,7 @@ export default function SaraFletesEngine() {
                           </form>
                           {/* Menú de sugerencias predictivas de Destino (en flujo normal para nunca recortarse) */}
                           {showDestSuggestions && destinationSuggestions.length > 0 && (
-                            <div className="mt-2 bg-slate-950 border border-slate-700/80 rounded-xl shadow-xl p-1 max-h-48 overflow-y-auto">
+                            <div className="mt-2 bg-slate-950 border border-slate-700/80 rounded-xl shadow-xl p-1 max-h-72 overflow-y-auto">
                               {destinationSuggestions.map((sug) => (
                                 <button
                                   key={sug.id}

@@ -1405,19 +1405,50 @@ export class SaraFreightRoutingService {
     // Detectar cantón activo de contexto
     let cantonDetectado = this.detectarCanton(norm, ubicacionReferencia);
     
-    // Si no se detectó cantón por texto, pero la query contiene vías o intersecciones de algún cantón, chequear
+    // Si no se detectó cantón por texto, buscar el cantón cuyas vías o intersecciones coincidan con la calle escrita
     if (!cantonDetectado) {
+      const cleanSoloCalle = clean
+        .replace(/\b(av\.?|avenida|calle|c\.|gral\.?|general|psje\.?|pasaje)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      let bestCanton: typeof CANTONES_ECUADOR[keyof typeof CANTONES_ECUADOR] | null = null;
+      let bestDist = Infinity;
+
       for (const cant of Object.values(CANTONES_ECUADOR)) {
+        let matched = false;
         if (cant.interseccionesExactas) {
           for (const key of Object.keys(cant.interseccionesExactas)) {
             const [k1, k2] = key.split('_');
-            if (clean.includes(k1) && clean.includes(k2)) {
-              cantonDetectado = cant;
+            if (
+              (k1 && k2 && clean.includes(k1) && clean.includes(k2)) ||
+              (cleanSoloCalle.length >= 4 && ((k1 && k1.includes(cleanSoloCalle)) || (k2 && k2.includes(cleanSoloCalle))))
+            ) {
+              matched = true;
               break;
             }
           }
         }
-        if (cantonDetectado) break;
+        if (!matched && cant.viasPrincipales && cleanSoloCalle.length >= 4) {
+          for (const via of Object.keys(cant.viasPrincipales)) {
+            if (via.includes(cleanSoloCalle) || cleanSoloCalle.includes(via)) {
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (matched) {
+          const d = ubicacionReferencia
+            ? Math.hypot(cant.centroide[0] - ubicacionReferencia[0], cant.centroide[1] - ubicacionReferencia[1])
+            : 0;
+          if (d < bestDist) {
+            bestDist = d;
+            bestCanton = cant;
+          }
+        }
+      }
+      if (bestCanton) {
+        cantonDetectado = bestCanton;
       }
     }
 
@@ -1531,8 +1562,8 @@ export class SaraFreightRoutingService {
       partialMatches.sort((a, b) => a.distM - b.distM);
 
       const ordered = exactMatches.length > 0
-        ? [...exactMatches, ...partialMatches.slice(0, 6)]
-        : partialMatches.slice(0, 10);
+        ? [...exactMatches, ...partialMatches.slice(0, 12)]
+        : partialMatches.slice(0, 25);
 
       for (const { key, k1, k2, coords, distM } of ordered) {
         const tit1 = k1.charAt(0).toUpperCase() + k1.slice(1);
@@ -1698,7 +1729,7 @@ export class SaraFreightRoutingService {
       }
     }
 
-    return sugerencias.slice(0, 12);
+    return sugerencias.slice(0, 25);
   }
 
   /**
