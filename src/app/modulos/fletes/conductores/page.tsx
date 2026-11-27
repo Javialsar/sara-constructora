@@ -36,7 +36,10 @@ import {
   Check,
   Eye,
   Trash2,
-  ShieldCheck
+  ShieldCheck,
+  Menu,
+  X,
+  Globe2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -91,7 +94,8 @@ export default function MiPerfilFletes() {
   const [authLoading, setAuthLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [activeTab, setActiveTab] = useState<'sincronizacion' | 'vehiculo' | 'cuentas_bancarias' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
+  const [activeTab, setActiveTab] = useState<'sincronizacion' | 'consola_v2' | 'vehiculo' | 'cuentas_bancarias' | 'documentos' | 'billetera' | 'historial' | 'recargas'>('sincronizacion');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [planesList, setPlanesList] = useState<any[]>([]);
   const [biometricVerified, setBiometricVerified] = useState<boolean>(false);
   const [isBiometricModalOpen, setIsBiometricModalOpen] = useState<boolean>(false);
@@ -1403,155 +1407,185 @@ export default function MiPerfilFletes() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans flex flex-col text-slate-100">
-      {/* HEADER NAVBAR */}
-      <header className="bg-slate-900 border-b border-slate-800 p-4 flex flex-wrap justify-between items-center shadow-lg relative z-20 gap-3">
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-500 p-2.5 rounded-xl text-slate-950 shadow-md">
-            <Truck className="w-6 h-6 stroke-[2.5]" />
+    <div className="h-screen bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden">
+      {/* HEADER COMPACTO MÓVIL + ESCRITORIO (1 SOLA FILA LIMPIA, 0 DESBORDES) */}
+      <header className="h-14 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center shadow-lg relative z-30 shrink-0 gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Botón Hamburguesa ☰ solo en móvil/tablet */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Abrir menú del conductor"
+            className="lg:hidden min-w-[40px] min-h-[40px] rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center cursor-pointer shrink-0"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="bg-amber-500 p-1.5 sm:p-2 rounded-xl text-slate-950 shadow-md shrink-0">
+            <Truck className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl font-black text-white">
-                SARA <span className="text-amber-500">Cabina de Transportista</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-black text-white truncate">
+                SARA <span className="text-amber-500">Conductor</span>
               </h1>
-              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+              <span className="hidden sm:inline-flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                 Activo
               </span>
-              <SaraNetworkStatusPill />
+              <SaraNetworkStatusPill className="hidden lg:inline-flex" />
               <button
                 type="button"
                 onClick={() => setIsBiometricModalOpen(true)}
-                className={`inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border transition-all ${
+                className={`hidden xl:inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border transition-all ${
                   biometricVerified
                     ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
                     : 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
                 }`}
-                title="Verificación biométrica facial en vivo (Selfie Liveness Check)"
               >
                 <ShieldCheck className="w-3 h-3" />
-                {biometricVerified ? 'Biometría Turno OK' : 'Verificar Identidad'}
+                {biometricVerified ? 'Biometría OK' : 'Verificar Identidad'}
               </button>
             </div>
-            <p className="text-xs text-slate-400">
-              Panel de control de unidad, radar de pedidos, billetera y documentación oficial
-            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* BADGE DESTACADO DE SALDO DE BILLETERA */}
-          <div
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Alarma rápida en móvil */}
+          <button
+            type="button"
+            onClick={() => {
+              unlockDriverAlarmAudio();
+              playRadarAlertSound();
+              showToast('🔔 Alarma sonora de pedidos activada.');
+            }}
+            className={`lg:hidden px-2.5 py-1.5 rounded-xl text-[11px] font-black border cursor-pointer ${
+              alarmUnlocked
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+            }`}
+            title="Activar alarma sonora"
+          >
+            {alarmUnlocked ? '🔔' : '🔕'}
+          </button>
+
+          {/* BADGE COMPACTO DE SALDO */}
+          <button
+            type="button"
             onClick={() => setActiveTab('billetera')}
-            className={`cursor-pointer px-3.5 py-1.5 rounded-xl border flex items-center gap-2.5 transition-all shadow-md ${
+            className={`cursor-pointer px-2.5 sm:px-3 py-1.5 rounded-xl border flex items-center gap-1.5 sm:gap-2 transition-all ${
               balance < 1.00
-                ? 'bg-rose-500/20 border-rose-500 text-rose-300 ring-2 ring-rose-500/30 animate-pulse'
+                ? 'bg-rose-500/20 border-rose-500 text-rose-300 animate-pulse'
                 : balance < 5.00
                   ? 'bg-amber-500/15 border-amber-500/50 text-amber-300'
                   : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
             }`}
           >
-            <div className={`p-1.5 rounded-lg ${balance < 1.00 ? 'bg-rose-500 text-white' : 'bg-slate-800 text-emerald-400'}`}>
-              {balance < 1.00 ? <AlertTriangle className="w-4 h-4 animate-bounce" /> : <Wallet className="w-4 h-4" />}
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
-                {balance < 1.00 ? '¡Saldo Crítico!' : 'Saldo Billetera'}
-              </span>
-              <span className="text-sm font-black font-mono leading-none tracking-tight">
-                ${balance.toFixed(2)} <span className="text-[10px] font-normal text-slate-400 font-sans">USD</span>
-              </span>
-            </div>
-            {balance < 1.00 && (
-              <span className="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md ml-1 shadow">
-                Recargar
-              </span>
-            )}
-          </div>
+            <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="text-xs sm:text-sm font-black font-mono tabular-nums leading-none">
+              ${balance.toFixed(2)}
+            </span>
+          </button>
 
           <Link
             href="/fletes?elegir=1"
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3.5 py-2 rounded-lg text-xs font-bold transition-colors"
+            className="hidden lg:inline-flex bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
           >
             Cambiar perfil
           </Link>
           <button
+            type="button"
             onClick={async () => {
               await supabase.auth.signOut();
               router.push('/modulos/fletes/auth?rol=conductor');
             }}
-            className="text-xs text-rose-400 hover:text-rose-300 font-bold"
+            className="hidden lg:inline-flex text-xs text-rose-400 hover:text-rose-300 font-bold cursor-pointer"
           >
             Cerrar Sesión
           </button>
         </div>
       </header>
 
+      {/* BACKDROP MÓVIL DEL MENÚ HAMBURGUESA */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-40 lg:hidden"
+        />
+      )}
+
       {/* CUERPO PRINCIPAL SPLIT */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         
-        {/* SIDEBAR RESPONSIVO: Barra horizontal táctil en móvil / Sidebar vertical en escritorio */}
-        <aside className="w-full lg:w-64 bg-slate-900 border-b lg:border-b-0 lg:border-r border-slate-800 px-3 py-2.5 lg:p-4 flex flex-col justify-between shrink-0">
-          <div className="lg:space-y-1">
-            <div className={`hidden lg:block p-3 rounded-xl border mb-4 transition-all ${
+        {/* MENÚ HAMBURGUESA SLIDE-OVER EN MÓVIL / SIDEBAR FIJO EN ESCRITORIO */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-72 lg:static lg:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out overflow-y-auto ${
+            mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+          }`}
+        >
+          <div className="space-y-1.5">
+            {/* Cabecera del drawer móvil */}
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-slate-800 lg:hidden">
+              <span className="font-black text-sm text-white">Menú Conductor</span>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="min-w-[36px] min-h-[36px] rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className={`p-3 rounded-xl border mb-3 transition-all ${
               balance < 1.00 ? 'bg-rose-950/40 border-rose-500/70' : 'bg-slate-950 border-slate-800'
             }`}>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Chofer Asignado</p>
-                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
-                  plan === 'VIP' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                  plan === 'Estandar' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                  'bg-slate-700 text-slate-300'
-                }`}>
-                  {plan} · {plan === 'VIP' ? 'Prioridad Alta' : plan === 'Estandar' ? 'Prioridad Media' : 'Prioridad Baja'}
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Chofer</p>
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  {plan}
                 </span>
               </div>
-              <p className="font-bold text-white text-sm mt-0.5">
-                {currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
-              </p>
-              <p className="text-[11px] font-mono text-amber-400">
-                Placa: {currentUser?.user_metadata?.placa || ''}
+              <p className="font-bold text-white text-sm mt-0.5 truncate">
+                {currentUser?.user_metadata?.full_name || 'Conductor SARA'}
               </p>
               <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Billetera Prepago:</span>
+                <span className="text-slate-400">Saldo:</span>
                 <span className={`font-mono font-black ${balance < 1.00 ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}`}>
                   ${balance.toFixed(2)} USD
                 </span>
               </div>
-              {balance < 1.00 && (
-                <div className="mt-2 pt-2 border-t border-rose-500/30">
-                  <p className="text-[10px] text-rose-300 font-bold leading-tight">
-                    ⚠️ Saldo menor a $1.00. Radar silenciado.
-                  </p>
-                  <button
-                    onClick={() => setActiveTab('billetera')}
-                    className="mt-1 w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] py-1 rounded-md transition-colors"
-                  >
-                    Recargar Ahora
-                  </button>
-                </div>
-              )}
             </div>
 
-            <nav className="flex flex-row lg:flex-col gap-1.5 lg:gap-1 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
+            <nav className="flex flex-col gap-1">
             <button
-              onClick={() => setActiveTab('sincronizacion')}
-              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('sincronizacion'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'sincronizacion'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <Navigation className="w-4 h-4 shrink-0" />
-              Sincronización & Radar
+              Mapa & Radar en Vivo
             </button>
 
             <button
-              onClick={() => setActiveTab('vehiculo')}
-              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('consola_v2'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'consola_v2'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`}
+            >
+              <Globe2 className="w-4 h-4 shrink-0 text-sky-400" />
+              Intérprete, Backhaul & e-POD
+            </button>
+
+            <button
+              onClick={() => { setActiveTab('vehiculo'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'vehiculo'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <Truck className="w-4 h-4 shrink-0" />
@@ -1559,30 +1593,25 @@ export default function MiPerfilFletes() {
             </button>
 
             <button
-              onClick={() => setActiveTab('cuentas_bancarias')}
-              className={`shrink-0 lg:w-full flex items-center justify-between gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('cuentas_bancarias'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'cuentas_bancarias'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <Landmark className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Cuentas Bancarias & QRs</span>
               </div>
-              <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${
-                activeTab === 'cuentas_bancarias' ? 'bg-slate-950 text-amber-400' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              }`}>
-                Cobro
-              </span>
             </button>
 
             <button
-              onClick={() => setActiveTab('documentos')}
-              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('documentos'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'documentos'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <FileText className="w-4 h-4 shrink-0" />
@@ -1590,11 +1619,11 @@ export default function MiPerfilFletes() {
             </button>
 
             <button
-              onClick={() => setActiveTab('billetera')}
-              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('billetera'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'billetera'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <Wallet className="w-4 h-4 shrink-0" />
@@ -1602,11 +1631,11 @@ export default function MiPerfilFletes() {
             </button>
 
             <button
-              onClick={() => setActiveTab('historial')}
-              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('historial'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'historial'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <History className="w-4 h-4 shrink-0" />
@@ -1614,11 +1643,11 @@ export default function MiPerfilFletes() {
             </button>
 
             <button
-              onClick={() => setActiveTab('recargas')}
-              className={`shrink-0 lg:w-full flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setActiveTab('recargas'); setMobileMenuOpen(false); }}
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'recargas'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
-                  : 'text-slate-300 hover:bg-slate-800 bg-slate-950/60 lg:bg-transparent'
+                  : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
               <CreditCard className="w-4 h-4 shrink-0" />
@@ -1627,56 +1656,76 @@ export default function MiPerfilFletes() {
             </nav>
           </div>
 
-          <div className="pt-4 border-t border-slate-800 text-[10px] text-slate-500 text-center">
-            SARA Fletes v2.4 • Red Ecuatoriana
+          {/* Acciones de cuenta al pie del drawer móvil */}
+          <div className="pt-3 mt-4 border-t border-slate-800 space-y-2">
+            <button
+              type="button"
+              onClick={() => { setIsBiometricModalOpen(true); setMobileMenuOpen(false); }}
+              className="w-full min-h-[40px] rounded-xl bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer lg:hidden"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              {biometricVerified ? 'Biometría OK' : 'Verificar Identidad'}
+            </button>
+            <div className="flex items-center justify-between gap-2 lg:hidden">
+              <Link
+                href="/fletes?elegir=1"
+                className="flex-1 text-center py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-bold"
+              >
+                Cambiar perfil
+              </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.push('/modulos/fletes/auth?rol=conductor');
+                }}
+                className="flex-1 py-2 rounded-xl bg-rose-950/60 text-rose-300 border border-rose-500/30 text-xs font-bold cursor-pointer"
+              >
+                Salir
+              </button>
+            </div>
+            <div className="text-[10px] text-slate-500 text-center hidden lg:block">
+              SARA Fletes v2.4 • Red Ecuatoriana
+            </div>
           </div>
         </aside>
 
-        {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA */}
-        <main className="flex-1 p-6 overflow-y-auto max-h-[calc(100vh-73px)] bg-slate-950 space-y-6">
-          {currentUser?.id && <DriverV2OperationsPanel driverId={currentUser.id} />}
+        {/* CONTENIDO PRINCIPAL SEGÚN TAB ACTIVA (MAPA PRIMERO EN MÓVIL) */}
+        <main
+          className={`flex-1 bg-slate-950 ${
+            activeTab === 'sincronizacion'
+              ? 'p-0 lg:p-4 overflow-hidden h-[calc(100vh-56px)] flex flex-col'
+              : 'p-4 lg:p-6 overflow-y-auto h-[calc(100vh-56px)] space-y-6'
+          }`}
+        >
+          {activeTab === 'consola_v2' && currentUser?.id && (
+            <DriverV2OperationsPanel driverId={currentUser.id} />
+          )}
           
           {/* ================================================================ */}
-          {/* TAB 1: SINCRONIZACIÓN Y RADAR EN VIVO (CON MAPA COMPLETO) */}
+          {/* TAB 1: SINCRONIZACIÓN Y RADAR EN VIVO (MAPA A PANTALLA COMPLETA) */}
           {/* ================================================================ */}
           {activeTab === 'sincronizacion' && (
-            <div className="space-y-4 h-full flex flex-col">
+            <div className="h-full flex flex-col lg:space-y-3">
               {/* BANNER DE ALERTA CRÍTICA SI EL SALDO ES MENOR A $1.00 */}
               {balance < 1.00 && (
-                <div className="bg-gradient-to-r from-rose-950 via-slate-900 to-rose-950 border-2 border-rose-500 p-4 rounded-2xl shadow-2xl flex flex-wrap items-center justify-between gap-4 animate-in fade-in duration-300">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl">
-                      <AlertTriangle className="w-6 h-6 animate-bounce" />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-rose-200 text-sm flex items-center gap-2">
-                        <span>⚠️ Te estás quedando sin saldo:</span>
-                        <span className="font-mono bg-rose-500/30 px-2 py-0.5 rounded text-white font-black">${balance.toFixed(2)} USD</span>
-                      </h4>
-                      <p className="text-xs text-rose-300/90 mt-0.5">
-                        Tu saldo es menor a $1.00 USD. Tu radar ha sido <strong>silenciado automáticamente</strong> y no recibirás notificaciones de carreras hasta que realices una recarga.
-                      </p>
-                    </div>
-                  </div>
+                <div className="bg-rose-950/95 border-b lg:border-2 border-rose-500 px-3 py-2.5 lg:rounded-2xl flex items-center justify-between gap-2 shrink-0">
+                  <span className="text-xs font-bold text-rose-200">
+                    ⚠️ Saldo bajo (${balance.toFixed(2)}). Recarga para recibir pedidos.
+                  </span>
                   <button
                     onClick={() => setActiveTab('billetera')}
-                    className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2 rounded-xl text-xs transition-colors shadow-lg shadow-rose-600/30 flex items-center gap-1.5"
+                    className="bg-rose-600 text-white font-black px-3 py-1.5 rounded-lg text-[11px] shrink-0 cursor-pointer"
                   >
-                    <CreditCard className="w-4 h-4" />
-                    Recargar Saldo Inmediato
+                    Recargar
                   </button>
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                    Sincronización Fletes (Radar Activo en Tiempo Real)
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Tu unidad está transmitiendo coordenadas GPS y recibiendo viajes cercanos según tu jerarquía ({plan === 'VIP' ? 'Prioridad Alta' : plan === 'Estandar' ? 'Prioridad Media' : 'Prioridad Baja'}).
-                  </p>
-                </div>
+              <div className="hidden lg:flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <h2 className="text-lg font-black text-white flex items-center gap-2">
+                  Radar Activo en Tiempo Real
+                </h2>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Switch Rumbo a mi Casa */}
                   <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
@@ -1691,9 +1740,9 @@ export default function MiPerfilFletes() {
                           nuevoEstado,
                           rumboCanton
                         );
-                        showToast(nuevoEstado ? `🏠 Modo Rumbo a Casa activado hacia ${rumboCanton}. Filtrando cargas directas.` : 'Modo Rumbo a Casa desactivado.');
+                        showToast(nuevoEstado ? `🏠 Modo Rumbo a Casa activado hacia ${rumboCanton}.` : 'Modo Rumbo a Casa desactivado.');
                       }}
-                      className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all ${
+                      className={`px-2 py-0.5 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
                         rumboACasaActivo ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >

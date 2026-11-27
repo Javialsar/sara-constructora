@@ -118,7 +118,9 @@ export function HoldSosButton({ orderId, role }: HoldSosButtonProps) {
           style={{ width: `${progress}%` }}
         />
         <ShieldAlert className="w-4 h-4 relative z-10" />
-        <span className="relative z-10">Mantén presionado 2.5s para SOS</span>
+        <span className="relative z-10">
+          <span className="hidden sm:inline">Mantén presionado 2.5s para </span>SOS
+        </span>
       </button>
     </div>
   );
