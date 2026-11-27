@@ -1206,10 +1206,13 @@ export default function MiPerfilFletes() {
     };
   }, [filteredViajesList]);
 
-  const historialRecargas = [
-    { fecha: '12 Oct 2026, 15:30', referencia: 'TRX-99882211', metodo: 'Tarjeta de Crédito', estado: 'En Verificación', valor: 50.00 },
-    { fecha: '01 Oct 2026, 09:15', referencia: 'TRX-11223344', metodo: 'Transferencia Bancaria', estado: 'Aprobado', valor: 100.00 }
-  ];
+  const historialRecargas: Array<{
+    fecha: string;
+    referencia: string;
+    metodo: string;
+    estado: string;
+    valor: number;
+  }> = [];
 
   const getReportHeaderMeta = () => {
     const conductor = currentUser?.user_metadata?.full_name || 'David Sarango Malacatus';
@@ -1432,7 +1435,9 @@ export default function MiPerfilFletes() {
               <span className="hidden sm:inline-flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
                 Activo
               </span>
-              <SaraNetworkStatusPill className="hidden lg:inline-flex" />
+              <div className="hidden lg:inline-flex">
+                <SaraNetworkStatusPill />
+              </div>
               <button
                 type="button"
                 onClick={() => setIsBiometricModalOpen(true)}
@@ -2292,24 +2297,11 @@ export default function MiPerfilFletes() {
                     <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                       <Landmark className="w-5 h-5" />
                     </span>
-                    <h2 className="text-xl sm:text-2xl font-black text-white">Cuentas Bancarias & Códigos QR de Cobro</h2>
+                    <h2 className="text-lg sm:text-2xl font-black text-white">Cuentas Bancarias & QR</h2>
                   </div>
-                  <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-                    Registra tus cuentas bancarias y códigos QR oficiales de cobro (DeUna!, Payphone, Banco Guayaquil). 
-                    Cuando un cliente finalice el viaje, la pasarela de pagos le presentará automáticamente estos datos y QRs 
-                    para que te transfiera o pague con tarjeta sin intermediarios.
+                  <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                    Registra tu cuenta bancaria y códigos QR (Deuna!, PayPhone, Banco Guayaquil) para cobrar directo al cliente.
                   </p>
-                  <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Pasarela Sincronizada en Vivo
-                    </span>
-                    <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                      <Lock className="w-3 h-3" /> Cifrado Zero-Trust SRI Ecuador
-                    </span>
-                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
-                      Placa: {bankConfig.plate || ''}
-                    </span>
-                  </div>
                 </div>
 
                 <button
@@ -2975,25 +2967,25 @@ export default function MiPerfilFletes() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800 text-[11px]">
-                    <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-blue-400 flex-shrink-0" />
-                      <div>
-                        <p className="font-bold text-white">Tarjetas</p>
-                        <p className="text-slate-400 text-[10px]">Crédito y Débito</p>
+                    <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 text-center sm:text-left min-w-0">
+                      <CreditCard className="w-4 h-4 text-blue-400 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-white truncate">Tarjetas</p>
+                        <p className="text-slate-400 text-[10px] truncate">Crédito / Débito</p>
                       </div>
                     </div>
-                    <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
-                      <Building className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      <div>
-                        <p className="font-bold text-white">Transferencias</p>
-                        <p className="text-slate-400 text-[10px]">Bancos del Ecuador</p>
+                    <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 text-center sm:text-left min-w-0">
+                      <Building className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-white truncate">Bancos</p>
+                        <p className="text-slate-400 text-[10px] truncate">Transferencia</p>
                       </div>
                     </div>
-                    <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center gap-2">
-                      <QrCode className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                      <div>
-                        <p className="font-bold text-white">Código QR</p>
-                        <p className="text-slate-400 text-[10px]">Billeteras Móviles</p>
+                    <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 text-center sm:text-left min-w-0">
+                      <QrCode className="w-4 h-4 text-amber-400 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-white truncate">QR Deuna!</p>
+                        <p className="text-slate-400 text-[10px] truncate">Inmediato</p>
                       </div>
                     </div>
                   </div>
@@ -3419,19 +3411,25 @@ export default function MiPerfilFletes() {
                 </div>
               </div>
 
-              {/* Métricas Resumen a Ancho Completo */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                  <p className="text-[10px] font-black uppercase text-slate-500">Total Histórico Recargado</p>
-                  <p className="text-2xl font-black text-white font-mono mt-1">$150.00 USD</p>
+              {/* Métricas Resumen Compactas */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-xl">
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">Recargado</p>
+                  <p className="text-base sm:text-2xl font-black text-white font-mono mt-1">
+                    ${historialRecargas.reduce((s, r) => s + r.valor, 0).toFixed(2)}
+                  </p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                  <p className="text-[10px] font-black uppercase text-slate-500">Transacciones Aprobadas</p>
-                  <p className="text-2xl font-black text-emerald-400 font-mono mt-1">1 Acreditada</p>
+                <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-xl">
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">Aprobadas</p>
+                  <p className="text-base sm:text-2xl font-black text-emerald-400 font-mono mt-1">
+                    {historialRecargas.filter((r) => r.estado === 'Aprobado').length}
+                  </p>
                 </div>
-                <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-                  <p className="text-[10px] font-black uppercase text-slate-500">En Verificación</p>
-                  <p className="text-2xl font-black text-amber-400 font-mono mt-1">1 Pendiente</p>
+                <div className="bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-xl">
+                  <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500">Pendientes</p>
+                  <p className="text-base sm:text-2xl font-black text-amber-400 font-mono mt-1">
+                    {historialRecargas.filter((r) => r.estado !== 'Aprobado').length}
+                  </p>
                 </div>
               </div>
 

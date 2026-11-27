@@ -109,63 +109,20 @@ export interface ViajeHistorialItem {
   placa?: string;
 }
 
-export const DEFAULT_VIAJES_HISTORIAL: ViajeHistorialItem[] = [
-  { 
-    id: 1, 
-    fleteId: 'FLT-8821', 
-    cliente: 'Ing. Marco Vivanco (Constructora SARA)', 
-    route: 'MAtecons Chile -> El Dorado (Cariamanga)', 
-    embarque: '12 Oct 2026, 14:00', 
-    llegada: '12 Oct 2026, 14:15', 
-    tiempo: '15 min', 
-    tarifa: 3.50, 
-    comision: 0.18, 
-    utilidad: 3.32, 
-    metodoPago: 'Efectivo', 
-    calificacion: 5 
-  },
-  { 
-    id: 2, 
-    fleteId: 'FLT-7649', 
-    cliente: 'Arq. Elena Rodríguez (Obra San Vicente)', 
-    route: 'Centro Cariamanga -> Vía Colaisaca', 
-    embarque: '10 Oct 2026, 09:15', 
-    llegada: '10 Oct 2026, 09:45', 
-    tiempo: '30 min', 
-    tarifa: 8.00, 
-    comision: 0.40, 
-    utilidad: 7.60, 
-    metodoPago: 'Transferencia Banco Pichincha', 
-    calificacion: 5 
-  },
-  { 
-    id: 3, 
-    fleteId: 'FLT-6102', 
-    cliente: 'Ferretería Disensa Cariamanga', 
-    route: 'Terminal Terrestre -> San Vicente', 
-    embarque: '08 Oct 2026, 16:30', 
-    llegada: '08 Oct 2026, 16:50', 
-    tiempo: '20 min', 
-    tarifa: 4.50, 
-    comision: 0.23, 
-    utilidad: 4.27, 
-    metodoPago: 'Deuna QR', 
-    calificacion: 5 
-  },
-];
+export const DEFAULT_VIAJES_HISTORIAL: ViajeHistorialItem[] = [];
 
 export const DEFAULT_DRIVER_BANK_CONFIG: DriverBankConfig = {
-  plate: 'PCX-4590',
+  plate: '',
   bankName: 'Banco Pichincha',
   accountType: 'Cuenta de Ahorros',
-  accountNumber: '2208741904',
-  holderName: 'David Sarango Malacatus',
-  holderId: '1103849182',
-  phone: '0995544332',
-  email: 'david.sarango@gruposara.com',
-  deunaPhone: '0995544332',
-  payphonePhone: '0995544332',
-  guayaquilAccount: '1098452109'
+  accountNumber: '',
+  holderName: '',
+  holderId: '',
+  phone: '',
+  email: '',
+  deunaPhone: '',
+  payphonePhone: '',
+  guayaquilAccount: ''
 };
 
 export interface OfertaConductorRealtime {
