@@ -634,6 +634,7 @@ export default function SaraFletesEngine() {
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [driverToRate, setDriverToRate] = useState<{
     fleteId: string;
+    codigoAcceso?: string;
     driverName: string;
     plate: string;
     vehicleName: string;
@@ -809,9 +810,10 @@ export default function SaraFletesEngine() {
         const currentReq = activeFreightRef.current;
         setDriverToRate({
           fleteId: evt.payload.fleteId,
-          driverName: evt.payload.driverName || 'Conductor Verificado SARA',
+          codigoAcceso: evt.payload.codigoAcceso || currentReq?.accessCode || undefined,
+          driverName: evt.payload.driverName || 'Conductor Verificado GoBee',
           plate: evt.payload.plate || '',
-          vehicleName: 'Vehículo Verificado SARA',
+          vehicleName: 'Vehículo Verificado GoBee',
           price: currentReq?.referencePrice || evt.payload.tarifaFinal || 3.50
         });
         setPaymentMethod('efectivo');
@@ -1128,9 +1130,10 @@ export default function SaraFletesEngine() {
         } else if (dbStatus === 'completada') {
           setDriverToRate({
             fleteId: req.id || activeFreight.id,
-            driverName: req.conductor_nombre || 'Conductor Verificado SARA',
+            codigoAcceso: req.codigo_acceso || activeFreight.accessCode || undefined,
+            driverName: req.conductor_nombre || 'Conductor Verificado GoBee',
             plate: req.conductor_placa || '',
-            vehicleName: req.vehiculo_nombre || 'Vehículo Asignado SARA',
+            vehicleName: req.vehiculo_nombre || 'Vehículo Asignado GoBee',
             price: acceptedPrice,
           });
           setPaymentMethod('efectivo');

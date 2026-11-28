@@ -13,6 +13,7 @@ import { SaraFletesRealtimeService } from '@/lib/services/saraFletesRealtimeServ
 
 export interface DriverToRate {
   fleteId: string;
+  codigoAcceso?: string;
   driverName: string;
   plate: string;
   vehicleName: string;
@@ -65,12 +66,13 @@ export function SaraDriverRatingModal({
       }
     });
 
-    // Persistencia en BD para garantizar entrega multi-dispositivo (teléfono cliente -> PC/móvil conductor)
+    // Persistencia en BD por codigoAcceso + id para garantizar entrega multi-dispositivo
     fetch('/api/fletes/dispatch', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: driverToRate.fleteId,
+        codigoAcceso: driverToRate.codigoAcceso || undefined,
         status: 'pagada',
       }),
     }).catch(() => {});

@@ -884,7 +884,8 @@ export default function MiPerfilFletes() {
       } catch {}
     };
 
-    const timer = setInterval(checkPaidStatus, 2000);
+    checkPaidStatus();
+    const timer = setInterval(checkPaidStatus, 1500);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -916,6 +917,7 @@ export default function MiPerfilFletes() {
     if (!keepSummary) {
       setCompletedTripSummary(null);
       setSavedEpod(null);
+      paymentNotifiedTripRef.current = null;
       saraVoiceNavigation.stop();
     }
   };
@@ -1308,6 +1310,7 @@ export default function MiPerfilFletes() {
 
     const summary = {
       fleteId: incomingRequest.fleteId,
+      codigoAcceso: accessCode || incomingRequest.codigoAcceso || '',
       origen: incomingRequest.origen,
       destino: incomingRequest.destino,
       cliente: incomingRequest.cliente,
