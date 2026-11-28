@@ -682,45 +682,23 @@ function PrecisionCrosshairOverlay({
         <div className="w-2.5 h-2.5 rounded-full bg-slate-950/70 border border-white mt-0.5 shadow" />
       </div>
 
-      {/* Barra inferior de confirmación + pegado directo de coordenadas Google Maps */}
-      <div className="pointer-events-auto absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col sm:flex-row items-center gap-2 bg-slate-950/95 border border-emerald-500/60 p-2.5 rounded-2xl shadow-2xl max-w-[94vw]">
-        <div className="flex items-center gap-1.5 w-full sm:w-auto">
-          <input
-            type="text"
-            value={coordPaste}
-            onChange={(e) => setCoordPaste(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleApplyPastedCoords();
-            }}
-            placeholder="Pegar lat, lng de Google Maps"
-            className="min-h-[40px] w-48 sm:w-52 rounded-xl border border-slate-700 bg-slate-900 px-2.5 font-mono text-[11px] text-white placeholder:text-slate-500 focus:border-emerald-400 focus:outline-none"
-          />
-          {coordPaste.trim().length > 5 && (
-            <button
-              type="button"
-              onClick={handleApplyPastedCoords}
-              className="min-h-[40px] px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs cursor-pointer"
-            >
-              Ir
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onConfirm(center[0], center[1])}
-            className="min-h-[42px] px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs cursor-pointer transition-colors whitespace-nowrap"
-          >
-            ✅ Confirmar Puerta Exacta
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
-          >
-            Cancelar
-          </button>
-        </div>
+      {/* Botón compacto de confirmación sin tarjeta invasiva */}
+      <div className="pointer-events-auto absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onConfirm(center[0], center[1])}
+          className="min-h-[44px] px-5 py-2 rounded-full bg-[#FDBE3B] hover:bg-[#F5B024] text-[#111827] font-black text-xs shadow-xl cursor-pointer transition-colors whitespace-nowrap"
+        >
+          Confirmar punto
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Cancelar selección en mapa"
+          className="min-w-[44px] min-h-[44px] rounded-full bg-[#111827]/90 hover:bg-[#111827] text-white font-bold text-xs shadow-xl cursor-pointer flex items-center justify-center"
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

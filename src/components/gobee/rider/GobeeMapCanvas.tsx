@@ -2,8 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { Crosshair, Loader2, MapPin, Navigation, ShieldCheck, Car } from 'lucide-react';
+import { Crosshair, Loader2, MapPin, Navigation, ShieldCheck } from 'lucide-react';
 import type { ActiveDriverTrackingProp, VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 import type { CategoriaVehiculo } from '@/lib/services/saraFreightPricingService';
 import { GOBEE_BRAND, type GobeeGeoPoint } from '@/lib/gobee/gobeeTypes';
@@ -62,30 +61,17 @@ export function GobeeMapCanvas({
       aria-label="Mapa interactivo Gobee"
       className="relative w-full h-[68dvh] sm:h-[70dvh] bg-[#FAFAFA] overflow-hidden"
     >
-      {/* Barra superior flotante con identidad Gobee */}
+      {/* Barra superior flotante con identidad GoBee */}
       <div className="pointer-events-none absolute top-3 inset-x-3 z-[400] flex items-center justify-between gap-2">
         <div className="pointer-events-auto flex items-center gap-2.5 rounded-2xl bg-white/95 backdrop-blur-md px-3.5 py-2 shadow-lg border border-black/5">
           <div className="w-8 h-8 rounded-xl bg-[#FDBE3B] flex items-center justify-center shadow-sm">
             <Navigation className="w-4 h-4 text-[#111827] fill-[#111827]" />
           </div>
           <div className="leading-tight">
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-base tracking-tight text-[#111827]">Gobee</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-[#FDBE3B]/25 text-[#111827]">
-                Cliente
-              </span>
-            </div>
+            <span className="font-black text-base tracking-tight text-[#111827]">GoBee</span>
             <p className="text-[10px] font-medium text-neutral-500">{GOBEE_BRAND.seal}</p>
           </div>
         </div>
-
-        <Link
-          href="/modulos/fletes/conductores"
-          className="pointer-events-auto min-h-[44px] flex items-center gap-1.5 rounded-2xl bg-[#111827] hover:bg-neutral-800 text-white px-3.5 py-2 text-xs font-bold shadow-lg transition-colors"
-        >
-          <Car className="w-3.5 h-3.5 text-[#FDBE3B]" />
-          <span>Modo Conductor</span>
-        </Link>
       </div>
 
       {/* Indicador de Pin Magnético activo */}
