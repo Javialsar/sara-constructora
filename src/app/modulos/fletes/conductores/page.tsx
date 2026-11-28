@@ -401,8 +401,44 @@ export default function MiPerfilFletes() {
   }, [plan]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const lastVoiceAlertAtRef = useRef<number>(0);
   const [alarmUnlocked, setAlarmUnlocked] = useState<boolean>(false);
   const dismissedRequestIdsRef = useRef<Set<string>>(new Set());
+
+  const speakIncomingTripAlert = (destinoText?: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    if (voiceMuted) return;
+    const now = Date.now();
+    // Evitar solapamiento si la alarma se repite cada 3.5s: anunciar por voz cada 7s
+    if (now - lastVoiceAlertAtRef.current < 7000) return;
+    lastVoiceAlertAtRef.current = now;
+
+    try {
+      const synth = window.speechSynthesis;
+      if (synth.speaking) synth.cancel();
+
+      const text = destinoText
+        ? `Tienes una solicitud de viaje hacia ${destinoText}`
+        : 'Tienes una solicitud de viaje';
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-EC';
+      utterance.rate = 1.02;
+      utterance.pitch = 1.05;
+      utterance.volume = 1.0;
+
+      const voices = synth.getVoices();
+      const esVoice =
+        voices.find((v) => v.lang.toLowerCase().startsWith('es-ec')) ||
+        voices.find((v) => v.lang.toLowerCase().startsWith('es-419')) ||
+        voices.find((v) => v.lang.toLowerCase().startsWith('es'));
+      if (esVoice) utterance.voice = esVoice;
+
+      synth.speak(utterance);
+    } catch {
+      // Silenciar si el navegador restringe SpeechSynthesis
+    }
+  };
 
   const unlockDriverAlarmAudio = () => {
     if (typeof window === 'undefined') return;
@@ -416,6 +452,10 @@ export default function MiPerfilFletes() {
           audioCtxRef.current.resume().catch(() => {});
         }
         setAlarmUnlocked(true);
+      }
+      // Precargar voces de SpeechSynthesis en el primer toque móvil
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
       }
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission().catch(() => {});
@@ -434,8 +474,8 @@ export default function MiPerfilFletes() {
     return () => window.removeEventListener('pointerdown', onFirstGesture);
   }, []);
 
-  // Alarma sonora de despacho real (3 pulsos tipo radar Uber/DiDi + vibración + notificación nativa)
-  const playRadarAlertSound = (origenText?: string, destinoText?: string) => {
+  // Alarma sonora + voz de despacho real ("Tienes una solicitud de viaje" + 3 pulsos + vibración + notificación)
+  const playRadarAlertSound = (origenText?: string, destinoText?: string, forceVoice = false) => {
     if (typeof window === 'undefined') return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -464,8 +504,15 @@ export default function MiPerfilFletes() {
       if ('vibrate' in navigator) {
         navigator.vibrate([250, 120, 250, 120, 350]);
       }
+      if (forceVoice) {
+        lastVoiceAlertAtRef.current = 0;
+      }
+      // Reproducir voz en español justo después del tono de alerta
+      setTimeout(() => {
+        speakIncomingTripAlert(destinoText);
+      }, 320);
       if (origenText && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('🚨 Nuevo Pedido GoBee', {
+        new Notification('🚨 Tienes una solicitud de viaje · GoBee', {
           body: `${origenText} ➔ ${destinoText || 'Destino'}`,
         });
       }
