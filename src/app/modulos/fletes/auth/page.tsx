@@ -46,7 +46,18 @@ function GobeeAuthForm() {
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [placa, setPlaca] = useState('');
+  const [serviciosHabilitados, setServiciosHabilitados] = useState<string[]>(['viajes', 'mandaditos', 'fletes']);
   const [loading, setLoading] = useState(false);
+
+  const toggleServicioRegistro = (srv: string) => {
+    setServiciosHabilitados((prev) => {
+      if (prev.includes(srv)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((s) => s !== srv);
+      }
+      return [...prev, srv];
+    });
+  };
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
@@ -104,6 +115,7 @@ function GobeeAuthForm() {
             telefono: telefono.trim() || '0990000000',
             userRole,
             placa: placa.trim().toUpperCase(),
+            serviciosHabilitados: isDriverMode ? serviciosHabilitados : undefined,
           }),
         });
 
@@ -255,6 +267,38 @@ function GobeeAuthForm() {
                   </div>
                 )}
               </div>
+
+              {isDriverMode && (
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Servicios que ofrecerás con tu vehículo
+                  </span>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'viajes', label: 'Viajes' },
+                      { id: 'mandaditos', label: 'Mandaditos' },
+                      { id: 'fletes', label: 'Fletes' },
+                      { id: 'renta', label: 'Renta' },
+                    ].map((srv) => {
+                      const active = serviciosHabilitados.includes(srv.id);
+                      return (
+                        <button
+                          key={srv.id}
+                          type="button"
+                          onClick={() => toggleServicioRegistro(srv.id)}
+                          className={`min-h-[36px] rounded-xl text-[11px] font-bold border transition-colors cursor-pointer ${
+                            active
+                              ? 'bg-[#FDBE3B]/20 border-[#FDBE3B] text-[#FDBE3B]'
+                              : 'bg-[#090f1d] border-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {srv.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
 

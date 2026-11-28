@@ -73,7 +73,7 @@ export const MODALIDADES_SARA_FLETES: Record<MultimodalVerticalKey, ModalidadCon
     key: 'mandaditos',
     label: 'Mandaditos',
     emoji: '📦',
-    descripcionCorta: 'Envíos inmediatos en motocicleta: documentos, medicinas, comida y paquetes locales.',
+    descripcionCorta: 'Envíos y compras inmediatas en moto, auto o camioneta según los servicios habilitados por cada conductor.',
     colorTheme: 'text-emerald-400',
     accentBg: 'bg-emerald-500',
     vehiculos: [
@@ -82,19 +82,37 @@ export const MODALIDADES_SARA_FLETES: Record<MultimodalVerticalKey, ModalidadCon
         nombre: 'Moto Express',
         subtitulo: 'Documentos, llaves y compras rápidas',
         icono: '🛵',
-        capacidadTexto: 'Hasta 15 kg • Motocicleta',
+        capacidadTexto: 'Hasta 15 kg • Moto',
         tarifaBaseMinUSD: 1.25,
         tiempoLlegadaMinutos: 2,
         popular: true
       },
       {
         id: 'DELIVERY_MOTO_TERMICA',
-        nombre: 'Moto Caja Térmica',
+        nombre: 'Moto Térmica',
         subtitulo: 'Comida, medicinas y paquetes protegidos',
         icono: '🏍️',
         capacidadTexto: 'Hasta 20 kg • Caja térmica',
         tarifaBaseMinUSD: 1.60,
         tiempoLlegadaMinutos: 3
+      },
+      {
+        id: 'DELIVERY_AUTO',
+        nombre: 'Auto Mandadito',
+        subtitulo: 'Supermercado, cajas y envíos en maletero',
+        icono: '🚗',
+        capacidadTexto: 'Hasta 80 kg • Auto Sedán',
+        tarifaBaseMinUSD: 1.85,
+        tiempoLlegadaMinutos: 4
+      },
+      {
+        id: 'DELIVERY_PICKUP',
+        nombre: 'Pickup Express',
+        subtitulo: 'Compras grandes, ferretería y bultos',
+        icono: '🛻',
+        capacidadTexto: 'Hasta 350 kg • Camioneta',
+        tarifaBaseMinUSD: 2.40,
+        tiempoLlegadaMinutos: 6
       }
     ]
   },

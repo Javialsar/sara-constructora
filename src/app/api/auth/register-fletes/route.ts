@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       userRole = 'transportista',
       placa,
       empresa,
+      serviciosHabilitados,
     } = body;
 
     // 1. Validaciones básicas de integridad
@@ -69,6 +70,12 @@ export async function POST(req: NextRequest) {
         telefono: cleanTelefono,
         phone: cleanTelefono,
         placa: userRole === 'transportista' ? cleanPlaca : undefined,
+        servicios_habilitados:
+          userRole === 'transportista' && Array.isArray(serviciosHabilitados) && serviciosHabilitados.length > 0
+            ? serviciosHabilitados.map(String)
+            : userRole === 'transportista'
+            ? ['viajes', 'mandaditos', 'fletes']
+            : undefined,
         empresa: cleanEmpresa || undefined,
         role: userRole,
         rol: userRole,

@@ -165,8 +165,19 @@ export default function MiPerfilFletes() {
   const [profileName, setProfileName] = useState('');
   const [profilePhone, setProfilePhone] = useState('');
   const [profilePlate, setProfilePlate] = useState('');
-  const [profileVehicleType, setProfileVehicleType] = useState('Volqueta de Obra (14m³)');
+  const [profileVehicleType, setProfileVehicleType] = useState('Camioneta Pickup (1.2 Ton)');
+  const [enabledServices, setEnabledServices] = useState<string[]>(['viajes', 'mandaditos', 'fletes']);
   const [savingProfile, setSavingProfile] = useState(false);
+
+  const toggleDriverService = (serviceKey: string) => {
+    setEnabledServices((prev) => {
+      if (prev.includes(serviceKey)) {
+        if (prev.length === 1) return prev; // Al menos 1 servicio debe permanecer activo
+        return prev.filter((s) => s !== serviceKey);
+      }
+      return [...prev, serviceKey];
+    });
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -175,6 +186,9 @@ export default function MiPerfilFletes() {
     setProfilePlate(String(currentUser.user_metadata?.placa || ''));
     if (currentUser.user_metadata?.tipo_vehiculo) {
       setProfileVehicleType(String(currentUser.user_metadata.tipo_vehiculo));
+    }
+    if (Array.isArray(currentUser.user_metadata?.servicios_habilitados) && currentUser.user_metadata.servicios_habilitados.length > 0) {
+      setEnabledServices(currentUser.user_metadata.servicios_habilitados.map(String));
     }
   }, [currentUser]);
 
@@ -191,13 +205,14 @@ export default function MiPerfilFletes() {
           phone: cleanPhone,
           placa: cleanPlate,
           tipo_vehiculo: profileVehicleType,
+          servicios_habilitados: enabledServices,
         },
       });
       if (updError) throw updError;
       if (data?.user) {
         setCurrentUser(data.user);
       }
-      showToast('✅ Datos de tu cabina y perfil guardados correctamente.');
+      showToast('✅ Perfil y servicios habilitados guardados correctamente.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'No se pudo guardar el perfil.';
       showToast(`⚠️ ${msg}`);
@@ -2403,13 +2418,65 @@ export default function MiPerfilFletes() {
                       onChange={(e) => setProfileVehicleType(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
                     >
-                      <option>Volqueta de Obra (14m³)</option>
-                      <option>Camión Liviano (5 Ton)</option>
+                      <option>Motocicleta</option>
+                      <option>Moto con Caja Térmica</option>
+                      <option>Auto Sedán</option>
+                      <option>SUV / Confort Plus</option>
+                      <option>Minivan Grupal (6-8 pax)</option>
                       <option>Camioneta Pickup (1.2 Ton)</option>
                       <option>Furgón Urbano (3.5 Ton)</option>
+                      <option>Camión Liviano (5 Ton)</option>
                       <option>Camión Mediano (10 Ton)</option>
+                      <option>Volqueta de Obra (14m³)</option>
                       <option>Tráiler / Mula Plataforma (32 Ton)</option>
                     </select>
+                  </div>
+
+                  {/* Selector de Servicios Habilitados para el Vehículo */}
+                  <div className="md:col-span-2 pt-1 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="block text-xs font-bold text-slate-200">
+                        ¿Para qué servicios usarás tu vehículo en GoBee?
+                      </label>
+                      <span className="text-[10px] font-bold text-[#FDBE3B]">
+                        {enabledServices.length} seleccionado{enabledServices.length === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'viajes', emoji: '🚕', label: 'Viajes', desc: 'Pasajeros urbanos' },
+                        { id: 'mandaditos', emoji: '📦', label: 'Mandaditos', desc: 'Compras y envíos' },
+                        { id: 'fletes', emoji: '🚛', label: 'Fletes', desc: 'Carga y mudanzas' },
+                        { id: 'renta', emoji: '🔑', label: 'Renta', desc: 'Por horas o días' },
+                      ].map((srv) => {
+                        const active = enabledServices.includes(srv.id);
+                        return (
+                          <button
+                            key={srv.id}
+                            type="button"
+                            onClick={() => toggleDriverService(srv.id)}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                              active
+                                ? 'bg-[#FDBE3B]/15 border-[#FDBE3B] text-white shadow-sm'
+                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-lg leading-none">{srv.emoji}</span>
+                              <span
+                                className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                  active ? 'bg-[#FDBE3B] text-[#111827]' : 'bg-slate-800 text-slate-500'
+                                }`}
+                              >
+                                {active ? '✓' : ''}
+                              </span>
+                            </div>
+                            <span className="text-xs font-black leading-tight">{srv.label}</span>
+                            <span className="text-[10px] text-slate-400 leading-tight">{srv.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
