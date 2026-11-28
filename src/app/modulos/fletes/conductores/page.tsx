@@ -64,6 +64,7 @@ import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
 import { SaraDriverBiometricCheckModal } from '@/components/fletes/SaraDriverBiometricCheckModal';
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
 import { GobeeBrandBadge } from '@/components/gobee/GobeeBrandBadge';
+import GobeeOwnerRentaCard from '@/components/fletes/GobeeOwnerRentaCard';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
 import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
@@ -211,6 +212,24 @@ export default function MiPerfilFletes() {
       if (updError) throw updError;
       if (data?.user) {
         setCurrentUser(data.user);
+      }
+      // Sincronizar disponibilidad en catálogo real de Renta (fletes_vehiculos)
+      if (cleanPlate) {
+        fetch('/api/fletes/renta', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'sync_vehicle',
+            placa: cleanPlate,
+            conductorId: data?.user?.id || currentUser?.id,
+            nombre: cleanName,
+            telefono: cleanPhone,
+            tipoVehiculo: profileVehicleType,
+            rentaHabilitada: enabledServices.includes('renta'),
+            lat: driverLocation[0],
+            lng: driverLocation[1],
+          }),
+        }).catch(() => {});
       }
       showToast('✅ Perfil y servicios habilitados guardados correctamente.');
     } catch (err: unknown) {
@@ -1981,6 +2000,16 @@ export default function MiPerfilFletes() {
                   </button>
                 </div>
               )}
+
+              {/* TARJETA DE RESERVAS DE RENTA ACTIVAS DEL PROPIETARIO (VALIDAR CÓDIGO + LIBERAR VEHÍCULO) */}
+              <div className="px-3 pt-2 lg:px-0 lg:pt-0 shrink-0">
+                <GobeeOwnerRentaCard
+                  ownerPlate={profilePlate || currentUser?.user_metadata?.placa || ''}
+                  ownerId={currentUser?.id}
+                  rentaEnabled={enabledServices.includes('renta')}
+                  onNotify={(msg) => showToast(msg)}
+                />
+              </div>
 
               <div className="hidden lg:flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <h2 className="text-lg font-black text-white flex items-center gap-2">

@@ -83,6 +83,7 @@ import { GobeeBrandBadge } from '@/components/gobee/GobeeBrandBadge';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 import SaraMultimodalTabBar from '@/components/fletes/SaraMultimodalTabBar';
 import SaraViajesMandaditosQuickOrder from '@/components/fletes/SaraViajesMandaditosQuickOrder';
+import GobeeRentaFlow from '@/components/fletes/GobeeRentaFlow';
 import SaraMobileBottomSheet, { BottomSheetSnapPoint } from '@/components/fletes/SaraMobileBottomSheet';
 import SaraDriverNegotiationDrawer from '@/components/fletes/SaraDriverNegotiationDrawer';
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
@@ -2327,169 +2328,31 @@ export default function SaraFletesEngine() {
                   )}
 
                   {/* -------------------------------------------------------- */}
-                  {/* SECCIÓN B: RENTA TEMPORAL (POR HORAS / DÍAS TIPO UBER RENT) */}
+                  {/* SECCIÓN B: GOBEE RENTA GLOBAL (CIUDAD + CALENDARIO + ABONO 20% + MAPA) */}
                   {/* -------------------------------------------------------- */}
-                  {serviceType === 'renta' && !reservaRentaActiva && (
-                    <div className="space-y-3">
-                      {/* Duración rápida */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                            Duración de Renta
-                          </label>
-                          <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px] font-bold">
-                            <button
-                              type="button"
-                              onClick={() => { setRentaDuracionTipo('HORAS'); setRentaDuracionValor(4); }}
-                              className={`px-2.5 py-1 rounded-md transition-all ${rentaDuracionTipo === 'HORAS' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'}`}
-                            >
-                              Por Horas
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setRentaDuracionTipo('DIAS'); setRentaDuracionValor(2); }}
-                              className={`px-2.5 py-1 rounded-md transition-all ${rentaDuracionTipo === 'DIAS' ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400'}`}
-                            >
-                              Por Días
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {rentaDuracionTipo === 'HORAS' ? (
-                            [2, 4, 8].map((h) => (
-                              <button
-                                key={h}
-                                type="button"
-                                onClick={() => setRentaDuracionValor(h)}
-                                className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                  rentaDuracionValor === h
-                                    ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-black'
-                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                                }`}
-                              >
-                                {h} Horas
-                              </button>
-                            ))
-                          ) : (
-                            [1, 3, 7].map((d) => (
-                              <button
-                                key={d}
-                                type="button"
-                                onClick={() => setRentaDuracionValor(d)}
-                                className={`py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                  rentaDuracionValor === d
-                                    ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-black'
-                                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
-                                }`}
-                              >
-                                {d} {d === 1 ? 'Día' : 'Días'} {d >= 7 ? '(20% Off)' : ''}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Switch: ¿Con Chofer? */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-bold text-white flex items-center gap-1.5">
-                            <UserCheck className="w-4 h-4 text-amber-500" />
-                            ¿Con Chofer Profesional?
-                          </p>
-                          <p className="text-[10px] text-slate-400">
-                            {rentaConChofer ? 'Operador calificado incluido en la tarifa.' : 'Conducción libre (requiere garantía).'}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setRentaConChofer(!rentaConChofer)}
-                          className={`w-11 h-6 rounded-full p-0.5 transition-colors flex items-center ${
-                            rentaConChofer ? 'bg-amber-500 justify-end' : 'bg-slate-800 justify-start'
-                          }`}
-                        >
-                          <span className="w-5 h-5 rounded-full bg-slate-950 shadow-md"></span>
-                        </button>
-                      </div>
-
-                      {/* Cotización de Renta */}
-                      {cotizacionRenta && (
-                        <div className="bg-gradient-to-br from-slate-950 to-slate-900 border-2 border-amber-500/40 p-3.5 rounded-2xl shadow-xl space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-amber-400">
-                              Resumen de Alquiler
-                            </span>
-                            <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded">
-                              {rentaDuracionValor} {rentaDuracionTipo.toLowerCase()}
-                            </span>
-                          </div>
-
-                          <div className="flex items-baseline justify-between">
-                            <div>
-                              <p className="text-2xl font-black text-amber-500 font-mono">
-                                ${cotizacionRenta.tarifaTotalUSD.toFixed(2)}{' '}
-                                <span className="text-xs font-semibold text-slate-400">USD</span>
-                              </p>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
-                                Depósito garantía: <strong>${cotizacionRenta.depositoGarantiaUSD.toFixed(2)} USD</strong> (reembolsable)
-                              </p>
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={handleConfirmarRenta}
-                            disabled={isProcessingRenta}
-                            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-2.5 rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2 text-xs"
-                          >
-                            {isProcessingRenta ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Confirmando Reserva...
-                              </>
-                            ) : (
-                              <>
-                                <KeyRound className="w-4 h-4" />
-                                Reservar por ${cotizacionRenta.tarifaTotalUSD.toFixed(2)} USD
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* RENTA CONFIRMADA */}
-                  {serviceType === 'renta' && reservaRentaActiva && (
-                    <div className="bg-slate-950 border border-emerald-500/50 p-4 rounded-2xl text-center space-y-3">
-                      <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto" />
-                      <div>
-                        <h3 className="font-black text-white text-base">¡Vehículo Reservado!</h3>
-                        <p className="text-xs text-slate-400">
-                          {reservaRentaActiva.vehiculoNombre} ({reservaRentaActiva.duracionTexto})
-                        </p>
-                      </div>
-
-                      <div className="bg-emerald-950/40 border border-emerald-500/40 p-3 rounded-xl">
-                        <p className="text-[10px] font-black uppercase text-emerald-400 mb-0.5">
-                          PIN Digital de Desbloqueo
-                        </p>
-                        <p className="text-2xl font-black text-emerald-400 font-mono tracking-widest">
-                          {reservaRentaActiva.pinDesbloqueo}
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-1">
-                          Presenta este PIN al recibir la unidad
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setReservaRentaActiva(null)}
-                        className="text-xs text-amber-400 underline font-bold"
-                      >
-                        Hacer otra reserva
-                      </button>
-                    </div>
+                  {serviceType === 'renta' && (
+                    <GobeeRentaFlow
+                      defaultCity={originPoint?.ciudad || 'Loja'}
+                      clientName={clienteNombre || 'Cliente GoBee'}
+                      clientPhone={rentaClienteTelefono || ''}
+                      onFocusPickupOnMap={(lat, lng, label) => {
+                        originLockedByMapRef.current = true;
+                        const pickupPoint: GeocodedPoint = {
+                          nombre: label,
+                          lat,
+                          lng,
+                          ciudad: originPoint?.ciudad || 'Ecuador',
+                          provincia: originPoint?.provincia || 'Ecuador',
+                        };
+                        originPointRef.current = pickupPoint;
+                        setOriginPoint(pickupPoint);
+                        setOriginText(label);
+                        setDestinationPoint(null);
+                        destinationPointRef.current = null;
+                        setRutaCalculada(null);
+                        setBottomSheetLevel('peek');
+                      }}
+                    />
                   )}
                     </>
                   )}
