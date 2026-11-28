@@ -774,8 +774,6 @@ export default function MiPerfilFletes() {
           setBalance(evt.payload.nuevoSaldo);
         }
       } else if (evt.type === 'FLETE_CALIFICADO') {
-        const montoStr = typeof evt.payload.montoTotal === 'number' ? ` · $${evt.payload.montoTotal.toFixed(2)} USD` : '';
-        showToast(`✅ El pago es exitoso${montoStr} (${evt.payload.rating} ⭐). Listo para un nuevo viaje.`);
         SaraFletesRealtimeService.updateTripFeedback(evt.payload.fleteId, evt.payload.rating, evt.payload.comentario, evt.payload.metodoPago);
         setViajesList(prev => prev.map(v => (v.fleteId === evt.payload.fleteId || v.id === evt.payload.fleteId) ? {
           ...v,
@@ -783,34 +781,115 @@ export default function MiPerfilFletes() {
           comentario: evt.payload.comentario || v.comentario,
           metodoPago: evt.payload.metodoPago || v.metodoPago
         } : v));
-
-        // Anuncio de voz de confirmación de pago al conductor
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-          try {
-            const synth = window.speechSynthesis;
-            if (synth.speaking) synth.cancel();
-            const utter = new SpeechSynthesisUtterance('El pago es exitoso');
-            utter.lang = 'es-EC';
-            utter.rate = 1.02;
-            const voices = synth.getVoices();
-            const esVoice =
-              voices.find((v) => v.lang.toLowerCase().startsWith('es-ec')) ||
-              voices.find((v) => v.lang.toLowerCase().startsWith('es-419')) ||
-              voices.find((v) => v.lang.toLowerCase().startsWith('es'));
-            if (esVoice) utter.voice = esVoice;
-            synth.speak(utter);
-          } catch {}
-        }
-
-        // Encerar automáticamente la cabina del conductor para quedar listo para el siguiente viaje
-        setTimeout(() => {
-          resetCabinaConductor(false);
-        }, 1200);
+        announcePaymentSuccessAndReset(
+          evt.payload.fleteId || `paid-${Date.now()}`,
+          evt.payload.montoTotal,
+          evt.payload.rating
+        );
       }
     });
 
     return () => unsub();
   }, [currentUser, planVIPConfig, planEstandarConfig, planBasicoConfig]);
+
+  const paymentNotifiedTripRef = useRef<string | null>(null);
+
+  const announcePaymentSuccessAndReset = (tripKey: string, montoTotal?: number, rating?: number) => {
+    if (paymentNotifiedTripRef.current === tripKey) return;
+    paymentNotifiedTripRef.current = tripKey;
+
+    const montoStr = typeof montoTotal === 'number' ? ` · $${montoTotal.toFixed(2)} USD` : '';
+    const ratingStr = typeof rating === 'number' ? ` (${rating} ⭐)` : '';
+    showToast(`✅ Pago exitoso${montoStr}${ratingStr}. Pantalla lista para un nuevo viaje.`);
+
+    // 1. Tono musical ascendente de confirmación de pago (Web Audio API)
+    if (typeof window !== 'undefined') {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = audioCtxRef.current || new AudioCtx();
+          audioCtxRef.current = ctx;
+          if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+          const now = ctx.currentTime;
+          [523.25, 659.25, 783.99].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.11);
+            gain.gain.setValueAtTime(0.32, now + idx * 0.11);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.11 + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.11);
+            osc.stop(now + idx * 0.11 + 0.19);
+          });
+        }
+        if ('vibrate' in navigator) {
+          navigator.vibrate([120, 80, 200]);
+        }
+      } catch {}
+
+      // 2. Audio de voz en español: "Pago exitoso"
+      if ('speechSynthesis' in window) {
+        try {
+          const synth = window.speechSynthesis;
+          if (synth.speaking) synth.cancel();
+          const utter = new SpeechSynthesisUtterance('Pago exitoso');
+          utter.lang = 'es-EC';
+          utter.rate = 1.0;
+          utter.volume = 1.0;
+          const voices = synth.getVoices();
+          const esVoice =
+            voices.find((v) => v.lang.toLowerCase().startsWith('es-ec')) ||
+            voices.find((v) => v.lang.toLowerCase().startsWith('es-419')) ||
+            voices.find((v) => v.lang.toLowerCase().startsWith('es'));
+          if (esVoice) utter.voice = esVoice;
+          setTimeout(() => {
+            try {
+              synth.speak(utter);
+            } catch {}
+          }, 260);
+        } catch {}
+      }
+    }
+
+    // 3. Encerar automáticamente la cabina del conductor tras reproducir "Pago exitoso"
+    setTimeout(() => {
+      resetCabinaConductor(false);
+    }, 2000);
+  };
+
+  // Respaldo de sondeo contra PostgreSQL cuando el conductor está en el Resumen Financiero esperando pago
+  useEffect(() => {
+    if (!completedTripSummary) return;
+    const targetPin = completedTripSummary.codigoAcceso || accessCode || '';
+    const targetId = completedTripSummary.fleteId || '';
+    if (!targetPin && !targetId) return;
+
+    let cancelled = false;
+    const checkPaidStatus = async () => {
+      if (cancelled) return;
+      try {
+        const query = targetPin ? `codigoAcceso=${encodeURIComponent(targetPin)}` : '';
+        if (!query) return;
+        const res = await fetch(`/api/fletes/dispatch?${query}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.request?.status === 'pagada') {
+          announcePaymentSuccessAndReset(
+            targetId || targetPin,
+            Number(completedTripSummary.tarifaFinal || data.request.tarifa || 0) || undefined
+          );
+        }
+      } catch {}
+    };
+
+    const timer = setInterval(checkPaidStatus, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [completedTripSummary, accessCode]);
 
   // Estado de navegación guiada por voz (Turn-by-Turn estilo Google Maps)
   const [navSteps, setNavSteps] = useState<PasoNavegacionVial[]>([]);

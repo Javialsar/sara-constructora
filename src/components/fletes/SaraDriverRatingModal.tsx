@@ -50,21 +50,35 @@ export function SaraDriverRatingModal({
 
   if (!isOpen || !driverToRate) return null;
 
-  const handleSubmit = () => {
-    setIsSubmittingRating(true);
+  const notifyPaymentCompleted = (withRating: boolean) => {
     SaraFletesRealtimeService.emit({
       type: 'FLETE_CALIFICADO',
       payload: {
         fleteId: driverToRate.fleteId,
         driverName: driverToRate.driverName,
         plate: driverToRate.plate,
-        rating: ratingStars,
-        comentario: ratingComment,
-        tags: selectedRatingTags,
+        rating: withRating ? ratingStars : 5,
+        comentario: withRating ? ratingComment : '',
+        tags: withRating ? selectedRatingTags : [],
         metodoPago: paymentMethod,
         montoTotal: driverToRate.price
       }
     });
+
+    // Persistencia en BD para garantizar entrega multi-dispositivo (teléfono cliente -> PC/móvil conductor)
+    fetch('/api/fletes/dispatch', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: driverToRate.fleteId,
+        status: 'pagada',
+      }),
+    }).catch(() => {});
+  };
+
+  const handleSubmit = () => {
+    setIsSubmittingRating(true);
+    notifyPaymentCompleted(true);
 
     const metodoTexto = paymentMethod === 'efectivo' 
       ? 'Efectivo en mano' 
@@ -333,10 +347,13 @@ export function SaraDriverRatingModal({
         <div className="text-center pt-1">
           <button
             type="button"
-            onClick={onClose}
+            onClick={() => {
+              notifyPaymentCompleted(false);
+              onClose();
+            }}
             className="text-xs text-slate-400 hover:text-slate-300 underline font-medium cursor-pointer"
           >
-            Omitir calificación por ahora
+            Omitir calificación y confirmar pago
           </button>
         </div>
       </div>

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       }
 
       const list = Array.isArray(rows) ? rows : [];
-      const priorityOrder = ['completada', 'en_curso', 'aceptada', 'cancelada', 'pendiente'];
+      const priorityOrder = ['pagada', 'completada', 'en_curso', 'aceptada', 'cancelada', 'pendiente'];
       const data =
         list.sort((a, b) => {
           const pa = priorityOrder.indexOf(String(a.status || 'pendiente'));
