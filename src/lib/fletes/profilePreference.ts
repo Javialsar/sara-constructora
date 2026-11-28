@@ -196,8 +196,18 @@ export function isTransportistaFromMetadata(
         ? userMeta.role.trim()
         : undefined;
 
-  if (resolvedRole === 'transportista') return true;
-  if (resolvedRole === 'cliente_fletes') return false;
+  const normalizedRole = resolvedRole?.toLowerCase();
+  if (
+    normalizedRole === 'transportista' ||
+    normalizedRole === 'conductor' ||
+    normalizedRole === 'driver' ||
+    normalizedRole === 'chofer' ||
+    normalizedRole === 'admin' ||
+    normalizedRole === 'superadmin'
+  ) {
+    return true;
+  }
+  if (normalizedRole === 'cliente_fletes') return false;
 
   const resolvedPlaca =
     typeof appMeta.placa === 'string' && appMeta.placa.trim() !== ''

@@ -79,6 +79,7 @@ import {
   SolicitudFleteRealtime 
 } from '@/lib/services/saraFletesRealtimeService';
 import ModuleBrandLogo from '@/components/layout/ModuleBrandLogo';
+import { GobeeBrandBadge } from '@/components/gobee/GobeeBrandBadge';
 import type { VehiculoMapa } from '@/components/fletes/SaraFletesMap';
 import SaraMultimodalTabBar from '@/components/fletes/SaraMultimodalTabBar';
 import SaraViajesMandaditosQuickOrder from '@/components/fletes/SaraViajesMandaditosQuickOrder';
@@ -1711,10 +1712,12 @@ export default function SaraFletesEngine() {
       <ModuloIntroSplash modulo="fletes" />
 
       {/* TOPBAR ULTRA-COMPACTA & ERGONÓMICA */}
-      <header className="h-14 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center z-30 shrink-0 gap-2">
+      <header className="h-16 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center z-30 shrink-0 gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <ModuleBrandLogo modulo="fletes" size="sm" showBackToHolding={false} />
-          <SaraNetworkStatusPill className="hidden lg:inline-flex" />
+          <GobeeBrandBadge role="Cliente" theme="dark" />
+          <div className="hidden lg:block">
+            <SaraNetworkStatusPill />
+          </div>
         </div>
 
         {/* Acciones de sesión del cliente (sin enlaces cruzados a conductor) */}
@@ -1722,7 +1725,7 @@ export default function SaraFletesEngine() {
           <button
             type="button"
             onClick={() => setIsExitModalOpen(true)}
-            className="text-slate-400 hover:text-white text-xs px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-slate-600 font-bold transition-colors cursor-pointer"
+            className="min-h-[38px] text-slate-300 hover:text-white text-xs px-3 py-1.5 rounded-xl border border-slate-700 hover:border-slate-500 bg-slate-950/60 font-bold transition-colors cursor-pointer"
           >
             Salir
           </button>

@@ -63,6 +63,7 @@ import { SaraFloatingSosButton } from '@/components/fletes/SaraFloatingSosButton
 import { SaraEpodModal } from '@/components/fletes/SaraEpodModal';
 import { SaraDriverBiometricCheckModal } from '@/components/fletes/SaraDriverBiometricCheckModal';
 import SaraNetworkStatusPill from '@/components/fletes/SaraNetworkStatusPill';
+import { GobeeBrandBadge } from '@/components/gobee/GobeeBrandBadge';
 import { SaraMtopBalanzasService, LIMITES_VEHICULOS_MTOP } from '@/lib/services/saraMtopBalanzasService';
 import { SaraFreightRoutingService } from '@/lib/services/saraFreightRoutingService';
 import { saraVoiceNavigation, type PasoNavegacionVial } from '@/lib/fletes/saraVoiceNavigation';
@@ -159,6 +160,39 @@ export default function MiPerfilFletes() {
   const [docLicencia, setDocLicencia] = useState(false);
   const [docMatricula, setDocMatricula] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Estados de cambio de contraseña del conductor en Mi Cabina y Perfil
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const handleChangeDriverPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordFeedback(null);
+    if (newPassword.length < 8) {
+      setPasswordFeedback({ type: 'err', text: 'La nueva contraseña debe tener al menos 8 caracteres.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordFeedback({ type: 'err', text: 'Las contraseñas no coinciden.' });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error: pwdError } = await supabase.auth.updateUser({ password: newPassword });
+      if (pwdError) throw pwdError;
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordFeedback({ type: 'ok', text: 'Contraseña actualizada correctamente.' });
+      showToast('✅ Contraseña actualizada con éxito.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo actualizar la contraseña.';
+      setPasswordFeedback({ type: 'err', text: msg });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
   
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -1441,45 +1475,36 @@ export default function MiPerfilFletes() {
   return (
     <div className="h-[100dvh] bg-slate-950 font-sans flex flex-col text-slate-100 overflow-hidden">
       {/* HEADER COMPACTO MÓVIL + ESCRITORIO (1 SOLA FILA LIMPIA, 0 DESBORDES) */}
-      <header className="h-14 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center shadow-lg relative z-30 shrink-0 gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <header className="h-16 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex justify-between items-center shadow-lg relative z-30 shrink-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {/* Botón Hamburguesa ☰ solo en móvil/tablet */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
             aria-label="Abrir menú del conductor"
-            className="lg:hidden min-w-[40px] min-h-[40px] rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center cursor-pointer shrink-0"
+            className="lg:hidden min-w-[40px] min-h-[40px] rounded-xl bg-slate-800 hover:bg-slate-700 text-[#FDBE3B] flex items-center justify-center cursor-pointer shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div className="bg-[#FDBE3B] p-1.5 sm:p-2 rounded-xl text-[#111827] shadow-md shrink-0">
-            <Truck className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-black text-white truncate">
-                Go<span className="text-[#FDBE3B]">Bee</span> <span className="text-slate-300 font-bold text-xs">Conductor</span>
-              </h1>
-              <span className="hidden sm:inline-flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                Activo
-              </span>
-              <div className="hidden lg:inline-flex">
-                <SaraNetworkStatusPill />
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBiometricModalOpen(true)}
-                className={`hidden xl:inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border transition-all ${
-                  biometricVerified
-                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
-                    : 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
-                }`}
-              >
-                <ShieldCheck className="w-3 h-3" />
-                {biometricVerified ? 'Biometría OK' : 'Verificar Identidad'}
-              </button>
-            </div>
+          <GobeeBrandBadge role="Conductor" theme="dark" />
+          <div className="hidden lg:flex items-center gap-2">
+            <span className="inline-flex bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+              Activo
+            </span>
+            <SaraNetworkStatusPill />
+            <button
+              type="button"
+              onClick={() => setIsBiometricModalOpen(true)}
+              className={`hidden xl:inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full border transition-all ${
+                biometricVerified
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                  : 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
+              }`}
+            >
+              <ShieldCheck className="w-3 h-3" />
+              {biometricVerified ? 'Biometría OK' : 'Verificar Identidad'}
+            </button>
           </div>
         </div>
 
@@ -2217,21 +2242,44 @@ export default function MiPerfilFletes() {
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre del Chofer Registrado</label>
                     <input
                       type="text"
-                      defaultValue={currentUser?.user_metadata?.full_name || 'Carlos Mendoza'}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                      defaultValue={currentUser?.user_metadata?.full_name || ''}
+                      placeholder="Nombre completo"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                      <span>Correo Electrónico</span>
+                      <span className="text-[10px] font-bold text-emerald-400">Verificado</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={currentUser?.email || ''}
+                      readOnly
+                      className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-300 font-mono cursor-not-allowed"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Celular / WhatsApp</label>
                     <input
                       type="text"
-                      defaultValue="0991234567"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                      defaultValue={currentUser?.user_metadata?.telefono || currentUser?.user_metadata?.phone || ''}
+                      placeholder="0990000000"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Placa (Letras y Números)</label>
+                    <input
+                      type="text"
+                      defaultValue={currentUser?.user_metadata?.placa || ''}
+                      placeholder="Ej. LBA-4590"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-[#FDBE3B]"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Tipo de Vehículo</label>
-                    <select className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                    <select className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]">
                       <option>Volqueta de Obra (14m³)</option>
                       <option>Camión Liviano (5 Ton)</option>
                       <option>Camioneta Pickup (1.2 Ton)</option>
@@ -2240,15 +2288,70 @@ export default function MiPerfilFletes() {
                       <option>Tráiler / Mula Plataforma (32 Ton)</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Placa (Letras y Números)</label>
-                    <input
-                      type="text"
-                      defaultValue={currentUser?.user_metadata?.placa || ''}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
                 </div>
+
+                {/* Seguridad de la Cuenta: Cambio de Contraseña */}
+                <form
+                  onSubmit={handleChangeDriverPassword}
+                  className="pt-4 border-t border-slate-800 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-[#FDBE3B]" />
+                        Seguridad y Cambio de Contraseña
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Actualiza tu clave de acceso a GoBee Conductor en cualquier momento.
+                      </p>
+                    </div>
+                  </div>
+
+                  {passwordFeedback && (
+                    <div
+                      className={`rounded-xl px-3.5 py-2.5 text-xs font-semibold border ${
+                        passwordFeedback.type === 'ok'
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                          : 'bg-rose-500/10 border-rose-500/40 text-rose-300'
+                      }`}
+                    >
+                      {passwordFeedback.text}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Nueva Contraseña</label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Confirmar Contraseña</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Repite la nueva contraseña"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      disabled={changingPassword || !newPassword || !confirmPassword}
+                      className="min-h-[42px] px-5 rounded-xl bg-[#FDBE3B] hover:bg-[#F5B024] disabled:opacity-45 text-[#111827] font-black text-xs transition-colors cursor-pointer"
+                    >
+                      {changingPassword ? 'Actualizando...' : 'Cambiar Contraseña'}
+                    </button>
+                  </div>
+                </form>
 
                 {/* Ubicación en vivo */}
                 <div className="pt-4 border-t border-slate-800 space-y-3">

@@ -159,8 +159,8 @@ export default function SaraMobileBottomSheet({
         </div>
       )}
 
-      {/* Contenido scrollable interno */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 pb-4 pt-1">
+      {/* Contenido scrollable interno con margen inferior seguro para la barra de modalidades */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3.5 pb-24 pt-1">
         {children}
       </div>
     </motion.section>

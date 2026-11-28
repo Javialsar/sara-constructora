@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   ShieldCheck,
@@ -325,14 +326,14 @@ export function SaraSafetyCenterModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-950/85 backdrop-blur-md p-0 sm:p-4 animate-in fade-in"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-slate-950/85 backdrop-blur-md p-0 sm:p-4 animate-in fade-in"
       role="dialog"
       aria-modal="true"
-      aria-label="Centro de Seguridad SARA"
+      aria-label="Centro de Seguridad GoBee"
     >
       <div className="bg-slate-950 border border-slate-800 sm:border-emerald-500/40 rounded-t-3xl sm:rounded-3xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
         {/* Cabecera */}
@@ -566,6 +567,7 @@ export function SaraSafetyCenterModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
