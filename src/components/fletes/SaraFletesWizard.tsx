@@ -13,9 +13,11 @@ import {
   Check, 
   ChevronRight, 
   ChevronLeft,
-  Info
+  Info,
+  Loader2
 } from 'lucide-react';
 import { CategoriaVehiculo, CATALOGO_VEHICULOS_SARA } from '@/lib/services/saraFreightPricingService';
+import type { SugerenciaDireccion } from '@/lib/services/saraFreightRoutingService';
 import { AssignVehicleResult } from '@/lib/fletes/assignVehicleCategory';
 
 export interface MaterialOption {
@@ -113,6 +115,14 @@ interface SaraFletesWizardProps {
   onMarkOriginOnMap: () => void;
   onMarkDestOnMap: () => void;
   mapClickMode: 'origen' | 'destino' | null;
+  originSuggestions?: SugerenciaDireccion[];
+  destinationSuggestions?: SugerenciaDireccion[];
+  showOriginSuggestions?: boolean;
+  showDestSuggestions?: boolean;
+  isSearchingOrigin?: boolean;
+  isSearchingDest?: boolean;
+  onSelectOriginSuggestion?: (sug: SugerenciaDireccion) => void;
+  onSelectDestinationSuggestion?: (sug: SugerenciaDireccion) => void;
 
   // Paso 2: Material y Volumen / Peso
   selectedMaterial: string;
@@ -160,6 +170,14 @@ export function SaraFletesWizard({
   onMarkOriginOnMap,
   onMarkDestOnMap,
   mapClickMode,
+  originSuggestions = [],
+  destinationSuggestions = [],
+  showOriginSuggestions = false,
+  showDestSuggestions = false,
+  isSearchingOrigin = false,
+  isSearchingDest = false,
+  onSelectOriginSuggestion,
+  onSelectDestinationSuggestion,
   selectedMaterial,
   onSelectMaterial,
   weight,
@@ -287,10 +305,12 @@ export function SaraFletesWizard({
                       type="text"
                       value={originText}
                       onChange={(e) => onOriginChange(e.target.value)}
-                      placeholder="Escribe obra, ferretería o dirección..."
-                      className="w-full min-h-[42px] bg-slate-900 border border-slate-700/80 rounded-xl pl-3 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 select-text"
+                      placeholder="Escribe calle principal o intersección..."
+                      className="w-full min-h-[42px] bg-slate-900 border border-slate-700/80 rounded-xl pl-3 pr-9 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 select-text"
                     />
-                    {originText && (
+                    {isSearchingOrigin ? (
+                      <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+                    ) : originText ? (
                       <button
                         type="button"
                         onClick={() => onOriginChange('')}
@@ -299,6 +319,30 @@ export function SaraFletesWizard({
                       >
                         ×
                       </button>
+                    ) : null}
+
+                    {showOriginSuggestions && originSuggestions.length > 0 && onSelectOriginSuggestion && (
+                      <ul className="mt-1.5 rounded-xl bg-slate-900 border border-emerald-500/40 shadow-2xl divide-y divide-slate-800 max-h-44 overflow-y-auto z-30">
+                        {originSuggestions.map((sug, idx) => (
+                          <li key={`orig-sug-${idx}`}>
+                            <button
+                              type="button"
+                              onClick={() => onSelectOriginSuggestion(sug)}
+                              className="w-full text-left px-3 py-2 hover:bg-emerald-500/15 flex items-start gap-2 transition-colors cursor-pointer"
+                            >
+                              <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-white truncate">{sug.titulo}</p>
+                                {(sug.subtitulo || sug.ciudad) && (
+                                  <p className="text-[10px] text-slate-400 truncate">
+                                    {sug.subtitulo || [sug.ciudad, sug.provincia].filter(Boolean).join(', ')}
+                                  </p>
+                                )}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                 </div>
@@ -325,10 +369,12 @@ export function SaraFletesWizard({
                       type="text"
                       value={destinationText}
                       onChange={(e) => onDestinationChange(e.target.value)}
-                      placeholder="Escribe destino final de entrega..."
-                      className="w-full min-h-[42px] bg-slate-900 border border-slate-700/80 rounded-xl pl-3 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#FDBE3B] select-text"
+                      placeholder="Escribe calle principal o intersección..."
+                      className="w-full min-h-[42px] bg-slate-900 border border-slate-700/80 rounded-xl pl-3 pr-9 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#FDBE3B] select-text"
                     />
-                    {destinationText && (
+                    {isSearchingDest ? (
+                      <Loader2 className="w-3.5 h-3.5 text-[#FDBE3B] animate-spin absolute right-2.5 top-1/2 -translate-y-1/2" />
+                    ) : destinationText ? (
                       <button
                         type="button"
                         onClick={() => onDestinationChange('')}
@@ -337,6 +383,30 @@ export function SaraFletesWizard({
                       >
                         ×
                       </button>
+                    ) : null}
+
+                    {showDestSuggestions && destinationSuggestions.length > 0 && onSelectDestinationSuggestion && (
+                      <ul className="mt-1.5 rounded-xl bg-slate-900 border border-[#FDBE3B]/45 shadow-2xl divide-y divide-slate-800 max-h-44 overflow-y-auto z-30">
+                        {destinationSuggestions.map((sug, idx) => (
+                          <li key={`dest-sug-${idx}`}>
+                            <button
+                              type="button"
+                              onClick={() => onSelectDestinationSuggestion(sug)}
+                              className="w-full text-left px-3 py-2 hover:bg-[#FDBE3B]/15 flex items-start gap-2 transition-colors cursor-pointer"
+                            >
+                              <MapPin className="w-3.5 h-3.5 text-[#FDBE3B] shrink-0 mt-0.5" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-white truncate">{sug.titulo}</p>
+                                {(sug.subtitulo || sug.ciudad) && (
+                                  <p className="text-[10px] text-slate-400 truncate">
+                                    {sug.subtitulo || [sug.ciudad, sug.provincia].filter(Boolean).join(', ')}
+                                  </p>
+                                )}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                 </div>
@@ -347,33 +417,11 @@ export function SaraFletesWizard({
                 <button
                   type="button"
                   onClick={onSwapRoute}
-                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 border border-slate-700 flex items-center justify-center transition-all shadow-md active:scale-95"
+                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#FDBE3B] hover:text-[#111827] text-slate-300 border border-slate-700 flex items-center justify-center transition-all shadow-md active:scale-95 cursor-pointer"
                   title="Invertir origen y destino"
                 >
                   <ArrowUpDown className="w-4 h-4" />
                 </button>
-              </div>
-            </div>
-
-            {/* CHIPS DE DESTINOS FRECUENTES */}
-            <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
-              <span className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Destinos Frecuentes de Construcción:
-              </span>
-              <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                {DESTINOS_FRECUENTES.map((dest, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onSelectDestinoFrecuente(dest)}
-                    className="bg-slate-900 hover:bg-slate-850 hover:border-amber-500/60 border border-slate-800 text-slate-300 hover:text-white px-2.5 py-1 rounded-xl text-[11px] font-semibold whitespace-nowrap transition-colors flex items-center gap-1 shrink-0"
-                  >
-                    <span>
-                      {dest.tipo === 'cantera' ? '🪨' : dest.tipo === 'escombrera' ? '🚜' : dest.tipo === 'puerto' ? '🚢' : '🏗️'}
-                    </span>
-                    <span>{dest.nombre}</span>
-                  </button>
-                ))}
               </div>
             </div>
           </div>
@@ -382,9 +430,9 @@ export function SaraFletesWizard({
             type="button"
             onClick={() => setActiveStep(2)}
             disabled={!originText || !destinationText}
-            className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-600 text-slate-950 font-black py-3 rounded-2xl text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95"
+            className="w-full min-h-[46px] bg-[#FDBE3B] hover:bg-[#F5B024] disabled:bg-slate-800 disabled:text-slate-600 text-[#111827] font-black py-3 rounded-2xl text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
           >
-            <span>Continuar a Selección de Carga</span>
+            <span>Continuar a Carga</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

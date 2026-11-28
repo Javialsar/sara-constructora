@@ -2240,6 +2240,20 @@ export default function SaraFletesEngine() {
                         onMarkOriginOnMap={() => setMapClickMode(mapClickMode === 'origen' ? null : 'origen')}
                         onMarkDestOnMap={() => setMapClickMode(mapClickMode === 'destino' ? null : 'destino')}
                         mapClickMode={mapClickMode}
+                        originSuggestions={originSuggestions}
+                        destinationSuggestions={destinationSuggestions}
+                        showOriginSuggestions={showOriginSuggestions}
+                        showDestSuggestions={showDestSuggestions}
+                        isSearchingOrigin={isSearchingOrigin}
+                        isSearchingDest={isSearchingDest}
+                        onSelectOriginSuggestion={(sug) => {
+                          void handleSelectOriginSuggestion(sug);
+                          updateDraft({ originText: sug.titulo });
+                        }}
+                        onSelectDestinationSuggestion={(sug) => {
+                          void handleSelectDestinationSuggestion(sug);
+                          updateDraft({ destinationText: sug.titulo });
+                        }}
                         selectedMaterial={material}
                         onSelectMaterial={(matName) => {
                           setMaterial(matName);
