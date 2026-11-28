@@ -85,8 +85,17 @@ export default function AdminLayout({
       }
       
       if (user) {
-        const role = user.user_metadata?.role
-        if (role !== 'admin' && role !== 'tecnico' && pathname !== '/admin/login') {
+        const appMeta = user.app_metadata || {}
+        const verifiedRole = String(appMeta.role || '')
+        const isMasterAdmin = Boolean(
+          appMeta.es_admin === true ||
+          appMeta.sara_master === true ||
+          verifiedRole === 'admin' ||
+          verifiedRole === 'superadmin'
+        )
+        const isTecnico = verifiedRole === 'tecnico'
+
+        if (!isMasterAdmin && !isTecnico && pathname !== '/admin/login') {
           window.location.href = '/admin/login?error=unauthorized'
           return
         }
@@ -98,12 +107,10 @@ export default function AdminLayout({
             setUserInitials(parts.length > 1 ? parts[0][0] + parts[1][0] : name.substring(0, 2).toUpperCase())
         }
         
-        if (user.user_metadata?.role) {
-            if (user.user_metadata.role === 'tecnico') {
-                setUserRole('Técnico')
-            } else if (user.user_metadata.role === 'admin') {
-                setUserRole('Administrador')
-            }
+        if (isTecnico && !isMasterAdmin) {
+            setUserRole('Técnico')
+        } else if (isMasterAdmin) {
+            setUserRole('Administrador')
         }
       }
 

@@ -26,11 +26,12 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function adminLoginAction(formData: FormData) {
-  const email = formData.get('email') as string
+  const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
+  const rawRedirectTo = (formData.get('redirectTo') as string) || ''
 
   if (!email || !password) {
-    return { error: 'Por favor ingrese sus credenciales.' }
+    return { error: 'Por favor ingrese sus credenciales corporativas.' }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -40,19 +41,79 @@ export async function adminLoginAction(formData: FormData) {
     password,
   })
 
-  if (error) {
-    return { error: 'Credenciales inválidas.' }
+  if (error || !data.user) {
+    return { error: 'Credenciales inválidas. Verifique su correo y contraseña.' }
   }
 
-  // Check admin role via user metadata
-  const role = data.user?.user_metadata?.role
-  const hasAccess = role === 'admin' || role === 'tecnico'
-  if (!hasAccess) {
+  const user = data.user
+  const appMeta = user.app_metadata || {}
+  const appRole = String(appMeta.role || '')
+  let hasVerifiedAdminAccess = Boolean(
+    appMeta.es_admin === true ||
+    appMeta.sara_master === true ||
+    appRole === 'admin' ||
+    appRole === 'superadmin' ||
+    appRole === 'tecnico'
+  )
+
+  // Respaldo Zero-Trust contra BD: si el administrador fue creado antes de migrar app_metadata,
+  // verificamos su registro activo con es_admin = true en public.clientes y sincronizamos app_metadata.
+  if (!hasVerifiedAdminAccess) {
+    try {
+      const adminClient = await createSupabaseAdminClient()
+      const { data: clienteAdmin } = await adminClient
+        .from('clientes')
+        .select('id, nombre, apellido, es_admin, estado')
+        .eq('id', user.id)
+        .eq('es_admin', true)
+        .eq('estado', 'activo')
+        .maybeSingle()
+
+      if (clienteAdmin) {
+        const fullName =
+          user.user_metadata?.full_name ||
+          `${clienteAdmin.nombre || ''} ${clienteAdmin.apellido || ''}`.trim()
+
+        await adminClient.auth.admin.updateUserById(user.id, {
+          app_metadata: {
+            ...appMeta,
+            role: 'admin',
+            es_admin: true,
+            sara_master: true,
+          },
+          user_metadata: {
+            ...(user.user_metadata || {}),
+            ...(fullName ? { full_name: fullName } : {}),
+            role: 'admin',
+          },
+        })
+
+        // Refrescar el JWT en cookies para que src/proxy.ts reciba el app_metadata actualizado de inmediato
+        await supabase.auth.refreshSession()
+        hasVerifiedAdminAccess = true
+      }
+    } catch (syncError) {
+      console.error('Error sincronizando app_metadata de administrador:', syncError)
+    }
+  }
+
+  if (!hasVerifiedAdminAccess) {
     await supabase.auth.signOut()
-    return { error: 'No tiene permisos de acceso al panel.' }
+    return {
+      error:
+        'Acceso denegado: Esta cuenta no cuenta con privilegios de Administrador del Ecosistema GRUPO SARA.',
+    }
   }
 
-  redirect('/admin')
+  const safeRedirect =
+    rawRedirectTo.startsWith('/admin') &&
+    !rawRedirectTo.startsWith('//') &&
+    !rawRedirectTo.includes('\\') &&
+    !rawRedirectTo.startsWith('/admin/login')
+      ? rawRedirectTo
+      : '/admin'
+
+  redirect(safeRedirect)
 }
 
 export async function registerAction(formData: FormData) {
@@ -120,9 +181,16 @@ export async function adminLogoutAction() {
 export async function createInternalUserAction(formData: FormData) {
   const adminSupabase = await createSupabaseServerClient()
   
-  // Verify caller is admin
+  // Verify caller is admin (Zero-Trust: app_metadata)
   const { data: { user } } = await adminSupabase.auth.getUser()
-  if (user?.user_metadata?.role !== 'admin') {
+  const callerAppMeta = user?.app_metadata || {}
+  const callerIsAdmin = Boolean(
+    callerAppMeta.es_admin === true ||
+    callerAppMeta.sara_master === true ||
+    callerAppMeta.role === 'admin' ||
+    callerAppMeta.role === 'superadmin'
+  )
+  if (!callerIsAdmin) {
     return { error: 'No autorizado. Solo los administradores pueden crear cuentas.' }
   }
 
@@ -136,10 +204,11 @@ export async function createInternalUserAction(formData: FormData) {
   }
 
   if (password.length < 6) {
-    return { error: 'La contrasea debe tener al menos 6 caracteres.' }
+    return { error: 'La contraseña debe tener al menos 6 caracteres.' }
   }
 
   const adminClient = await createSupabaseAdminClient()
+  const isRoleAdmin = role === 'admin' || role === 'superadmin'
 
   // create user directly with admin api, avoids logging out current user
   const { data, error } = await adminClient.auth.admin.createUser({
@@ -149,6 +218,11 @@ export async function createInternalUserAction(formData: FormData) {
     user_metadata: {
       full_name: nombre,
       role: role
+    },
+    app_metadata: {
+      role: role,
+      es_admin: isRoleAdmin,
+      sara_master: isRoleAdmin
     }
   })
 

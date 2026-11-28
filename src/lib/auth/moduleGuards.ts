@@ -164,7 +164,7 @@ export const SARA_MODULES: Record<SaraModule, ModuleDefinition> = {
     name: 'GRUPO SARA - Acceso Corporativo Maestro',
     shortName: 'Master Admin',
     description: 'Administración central del holding y acceso universal.',
-    loginUrl: '/login',
+    loginUrl: '/admin/login',
     portalUrl: '/admin',
     allowedRoles: ['admin', 'superadmin'],
     color: 'slate'
