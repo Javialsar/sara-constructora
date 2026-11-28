@@ -2522,7 +2522,7 @@ export default function SaraFletesEngine() {
         </div>
       )}
 
-      {/* MODAL INTEGRADO DE PAGO Y CALIFICACIÓN AL CONDUCTOR (COMPONENTE MODULAR) */}
+      {/* MODAL INTEGRADO DE PAGO Y CALIFICACIÓN AL CONDUCTOR (2 PASOS LIMPIOS) */}
       <SaraDriverRatingModal
         isOpen={isRatingModalOpen}
         driverToRate={driverToRate}
@@ -2532,7 +2532,14 @@ export default function SaraFletesEngine() {
           setDriverToRate(null);
           resetViajeCliente();
         }}
-        onOpenPaymentGateway={() => setIsPaymentGatewayOpen(true)}
+        onOpenPaymentGateway={(method) => {
+          if (method === 'transferencia') {
+            setPaymentMethod('transferencia');
+          } else {
+            setPaymentMethod('tarjeta');
+          }
+          setIsPaymentGatewayOpen(true);
+        }}
         onRatingSubmitted={(msg) => {
           setIsRatingModalOpen(false);
           setPaymentSuccessToast(msg);
@@ -2544,6 +2551,7 @@ export default function SaraFletesEngine() {
       {isPaymentGatewayOpen && driverToRate && (
         <SaraFreightPaymentGatewayModal
           isOpen={isPaymentGatewayOpen}
+          initialMethod={paymentMethod === 'transferencia' ? 'transferencia' : 'tarjeta'}
           onClose={() => setIsPaymentGatewayOpen(false)}
           onPaymentSuccess={(details) => {
             setPaymentDetails({

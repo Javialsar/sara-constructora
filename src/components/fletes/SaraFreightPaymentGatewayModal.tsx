@@ -34,6 +34,7 @@ export interface SaraFreightPaymentGatewayModalProps {
   driverVehicle: string;
   fleteId?: string;
   driverBankInfo?: DriverBankInfo;
+  initialMethod?: 'tarjeta' | 'transferencia' | 'qr';
 }
 
 export default function SaraFreightPaymentGatewayModal({
@@ -45,16 +46,18 @@ export default function SaraFreightPaymentGatewayModal({
   driverPlate,
   driverVehicle,
   fleteId,
-  driverBankInfo
+  driverBankInfo,
+  initialMethod = 'tarjeta'
 }: SaraFreightPaymentGatewayModalProps) {
   return (
     <SaraUnifiedPaymentGatewayModal
       isOpen={isOpen}
       onClose={onClose}
       modulo="FLETES"
+      metodoInicial={initialMethod}
       referenciaOperacionId={fleteId || `FLT-${Date.now().toString().slice(-6)}`}
-      tituloModal="Pasarela de Pago Digital · SARA-FLETES"
-      subtituloModal={`Liquidación de Transporte Pesado · ${driverVehicle} (${driverPlate})`}
+      tituloModal="Pasarela de Pago Digital · GoBee"
+      subtituloModal={`Pago del Servicio · ${driverVehicle}${driverPlate ? ` (${driverPlate})` : ''}`}
       amount={amount}
       beneficiario={{
         tipo: 'transportista',

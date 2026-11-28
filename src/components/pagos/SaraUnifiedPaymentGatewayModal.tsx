@@ -126,6 +126,7 @@ export interface SaraUnifiedPaymentGatewayModalProps {
   compradorDefault?: Partial<DatosFacturacionAdquirente>;
   emitirFacturaAutomatica?: boolean;
   metodosHabilitados?: MetodoPagoUniversal[];
+  metodoInicial?: MetodoPagoUniversal;
   permitirDiferido?: boolean;
   onPaymentSuccess: (details: PaymentSuccessDetails) => void;
 }
@@ -187,10 +188,11 @@ export default function SaraUnifiedPaymentGatewayModal({
     email: 'pagos@gruposara.com',
     telefonoContacto: '+593 99 284 9102'
   },
+  metodoInicial = 'tarjeta',
   onPaymentSuccess
 }: SaraUnifiedPaymentGatewayModalProps) {
   // Método de pago activo
-  const [selectedMethod, setSelectedMethod] = useState<MetodoPagoUniversal>('tarjeta');
+  const [selectedMethod, setSelectedMethod] = useState<MetodoPagoUniversal>(metodoInicial);
   const [selectedBank, setSelectedBank] = useState<'pichincha' | 'guayaquil'>('pichincha');
   const [selectedQrPlatform] = useState<'deuna' | 'payphone'>('deuna');
 
@@ -236,6 +238,7 @@ export default function SaraUnifiedPaymentGatewayModal({
       hasNotifiedParentRef.current = false;
       return;
     }
+    setSelectedMethod(metodoInicial);
     try {
       const savedBilling = localStorage.getItem('sara_billing_profile_sri');
       if (savedBilling) {
@@ -555,7 +558,7 @@ export default function SaraUnifiedPaymentGatewayModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="unified-payment-modal-title"
-      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[10000] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
       onKeyDown={(e) => {
         if (e.key === 'Escape') handleSafeClose();
       }}
