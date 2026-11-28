@@ -155,8 +155,10 @@ function GobeeAuthForm() {
                 {isDriverMode ? 'Conductor' : 'Cliente'}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              {isLogin ? 'Ingresa para activar tu radar en vivo' : 'Activa tu cuenta de conductor en 1 minuto'}
+            <p className="text-xs text-slate-300 mt-1.5 leading-relaxed max-w-[300px] mx-auto">
+              {isDriverMode
+                ? 'Plataforma de conductores para recibir Viajes, Mandaditos, Fletes y Renta en tiempo real con rutas GPS y cobro directo.'
+                : 'Solicita Viajes, Mandaditos, Fletes de obra o Renta de vehículos con seguimiento satelital en vivo.'}
             </p>
           </div>
         </div>

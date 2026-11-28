@@ -161,6 +161,51 @@ export default function MiPerfilFletes() {
   const [docMatricula, setDocMatricula] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Estados de perfil editable del conductor en Mi Cabina y Perfil
+  const [profileName, setProfileName] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profilePlate, setProfilePlate] = useState('');
+  const [profileVehicleType, setProfileVehicleType] = useState('Volqueta de Obra (14m³)');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    setProfileName(String(currentUser.user_metadata?.full_name || ''));
+    setProfilePhone(String(currentUser.user_metadata?.telefono || currentUser.user_metadata?.phone || ''));
+    setProfilePlate(String(currentUser.user_metadata?.placa || ''));
+    if (currentUser.user_metadata?.tipo_vehiculo) {
+      setProfileVehicleType(String(currentUser.user_metadata.tipo_vehiculo));
+    }
+  }, [currentUser]);
+
+  const handleSaveDriverProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const cleanName = profileName.trim();
+      const cleanPhone = profilePhone.trim();
+      const cleanPlate = profilePlate.trim().toUpperCase();
+      const { data, error: updError } = await supabase.auth.updateUser({
+        data: {
+          full_name: cleanName,
+          telefono: cleanPhone,
+          phone: cleanPhone,
+          placa: cleanPlate,
+          tipo_vehiculo: profileVehicleType,
+        },
+      });
+      if (updError) throw updError;
+      if (data?.user) {
+        setCurrentUser(data.user);
+      }
+      showToast('✅ Datos de tu cabina y perfil guardados correctamente.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo guardar el perfil.';
+      showToast(`⚠️ ${msg}`);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   // Estados de cambio de contraseña del conductor en Mi Cabina y Perfil
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -2242,9 +2287,10 @@ export default function MiPerfilFletes() {
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Nombre del Chofer Registrado</label>
                     <input
                       type="text"
-                      defaultValue={currentUser?.user_metadata?.full_name || ''}
+                      value={profileName}
+                      onChange={(e) => setProfileName(e.target.value)}
                       placeholder="Nombre completo"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#020617] [&:-webkit-autofill]:[-webkit-text-fill-color:#ffffff]"
                     />
                   </div>
                   <div>
@@ -2263,23 +2309,29 @@ export default function MiPerfilFletes() {
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Celular / WhatsApp</label>
                     <input
                       type="text"
-                      defaultValue={currentUser?.user_metadata?.telefono || currentUser?.user_metadata?.phone || ''}
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
                       placeholder="0990000000"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#020617] [&:-webkit-autofill]:[-webkit-text-fill-color:#ffffff]"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Placa (Letras y Números)</label>
                     <input
                       type="text"
-                      defaultValue={currentUser?.user_metadata?.placa || ''}
+                      value={profilePlate}
+                      onChange={(e) => setProfilePlate(e.target.value.toUpperCase())}
                       placeholder="Ej. LBA-4590"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-[#FDBE3B]"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-[#FDBE3B] [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#020617] [&:-webkit-autofill]:[-webkit-text-fill-color:#ffffff]"
                     />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs font-semibold text-slate-300 mb-1">Tipo de Vehículo</label>
-                    <select className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]">
+                    <select
+                      value={profileVehicleType}
+                      onChange={(e) => setProfileVehicleType(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-[#FDBE3B]"
+                    >
                       <option>Volqueta de Obra (14m³)</option>
                       <option>Camión Liviano (5 Ton)</option>
                       <option>Camioneta Pickup (1.2 Ton)</option>
@@ -2288,6 +2340,19 @@ export default function MiPerfilFletes() {
                       <option>Tráiler / Mula Plataforma (32 Ton)</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Botón Guardar Cambios del Perfil */}
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={savingProfile}
+                    onClick={() => void handleSaveDriverProfile()}
+                    className="min-h-[44px] px-6 rounded-xl bg-[#FDBE3B] hover:bg-[#F5B024] disabled:opacity-50 text-[#111827] font-black text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{savingProfile ? 'Guardando...' : 'Guardar Cambios del Perfil'}</span>
+                  </button>
                 </div>
 
                 {/* Seguridad de la Cuenta: Cambio de Contraseña */}

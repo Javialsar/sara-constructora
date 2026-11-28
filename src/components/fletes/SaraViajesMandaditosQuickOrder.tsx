@@ -170,44 +170,88 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
                 key={v.id}
                 type="button"
                 onClick={() => handleSelectVehicle(v.id)}
-                className={`min-w-[116px] sm:min-w-0 shrink-0 snap-start p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between active:scale-95 ${
+                className={`min-w-[104px] sm:min-w-0 shrink-0 snap-start px-2.5 py-2 rounded-xl border text-left transition-all relative flex flex-col justify-between active:scale-95 cursor-pointer ${
                   isSelected
                     ? modalidad === 'viajes'
-                      ? 'bg-amber-500/20 border-2 border-amber-400 text-white shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/50'
-                      : 'bg-emerald-500/20 border-2 border-emerald-400 text-white shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400/50'
+                      ? 'bg-[#FDBE3B]/15 border-2 border-[#FDBE3B] text-white shadow-md shadow-amber-500/10'
+                      : 'bg-emerald-500/20 border-2 border-emerald-400 text-white shadow-md shadow-emerald-500/10'
                     : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-900'
                 }`}
               >
                 {v.popular && (
-                  <span className="absolute -top-2 right-2 text-[8px] font-black uppercase bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-full shadow-sm">
-                    Popular
+                  <span className="absolute -top-2 right-1.5 text-[8px] font-black uppercase bg-[#FDBE3B] text-[#111827] px-1.5 py-0.5 rounded-full shadow-sm leading-none">
+                    Top
                   </span>
                 )}
 
-                <div className="flex items-center justify-between w-full">
-                  <span className="text-2xl">{v.icono}</span>
-                  <span className="text-[9px] font-bold text-slate-300 flex items-center gap-0.5">
-                    <Zap className="w-2.5 h-2.5 text-amber-400" />
-                    {v.tiempoLlegadaMinutos} min
+                <div className="flex items-center justify-between w-full gap-1">
+                  <span className="text-lg leading-none">{v.icono}</span>
+                  <span className="text-[9px] font-bold text-slate-300 flex items-center gap-0.5 whitespace-nowrap">
+                    <Zap className="w-2.5 h-2.5 text-[#FDBE3B]" />
+                    {v.tiempoLlegadaMinutos}m
                   </span>
                 </div>
 
-                <div className="mt-2">
-                  <p className="font-black text-xs text-white leading-tight truncate">{v.nombre}</p>
-                  <p className="text-[10px] text-slate-300 truncate mt-0.5">{v.capacidadTexto}</p>
+                <div className="mt-1.5">
+                  <p className="font-black text-[11px] text-white leading-tight truncate">{v.nombre}</p>
+                  <p className="text-[9px] text-slate-400 truncate">{v.capacidadTexto}</p>
                 </div>
 
-                <div className="mt-2 pt-1 border-t border-slate-800/80 flex items-baseline justify-between">
-                  <span className={`text-sm font-black font-mono ${
-                    modalidad === 'viajes' ? 'text-amber-400 font-black' : 'text-emerald-400 font-black'
-                  }`}>
+                <div className="mt-1.5 pt-1 border-t border-slate-800/80 flex items-baseline justify-between">
+                  <span
+                    className={`text-xs font-black font-mono tabular-nums ${
+                      modalidad === 'viajes' ? 'text-[#FDBE3B]' : 'text-emerald-400'
+                    }`}
+                  >
                     ${precio.toFixed(2)}
                   </span>
-                  <span className="text-[9px] text-slate-400 font-bold">USD</span>
+                  <span className="text-[8px] text-slate-400 font-bold">USD</span>
                 </div>
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* BOTÓN DE ACCIÓN PRINCIPAL DIRECTO BAJO LOS VEHÍCULOS (SIN STICKY QUE TAPE TARJETAS) */}
+      <div className="space-y-1.5">
+        <button
+          type="button"
+          disabled={isRequesting || !selectedVehicle}
+          onClick={handleConfirmar}
+          className={`w-full min-h-[48px] py-3 px-4 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.99] ${
+            modalidad === 'viajes'
+              ? 'bg-[#FDBE3B] hover:bg-[#F5B024] text-[#111827] shadow-amber-500/20'
+              : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+          } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
+        >
+          {isRequesting ? (
+            <>
+              <span className="animate-spin text-base">⏳</span>
+              <span>Buscando conductor...</span>
+            </>
+          ) : (
+            <>
+              <span className="truncate">{modalidad === 'viajes' ? 'Solicitar Viaje' : 'Pedir Mandadito'}</span>
+              {selectedVehicle && (
+                <span className="text-xs opacity-85 font-bold truncate max-w-[110px]">
+                  · {selectedVehicle.nombre}
+                </span>
+              )}
+              <span className="bg-slate-950/20 px-2 py-0.5 rounded-lg font-mono font-black tabular-nums shrink-0 text-xs">
+                ${tarifaFinal.toFixed(2)}
+              </span>
+              <ArrowRight className="w-4 h-4 shrink-0" />
+            </>
+          )}
+        </button>
+
+        <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 font-medium">
+          <span className="flex items-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            Tarifa transparente
+          </span>
+          <span className="shrink-0">Conductor recibe 88–90%</span>
         </div>
       </div>
 
@@ -353,48 +397,6 @@ export const SaraViajesMandaditosQuickOrder: React.FC<SaraViajesMandaditosQuickO
         </div>
       )}
 
-      {/* BOTÓN DE ACCIÓN PRINCIPAL EN 1 TOQUE (< 2.5 SEGUNDOS) */}
-      <div className="pt-2 sticky bottom-0 z-10 bg-slate-950/95 backdrop-blur-md pb-1 space-y-2">
-        <button
-          type="button"
-          disabled={isRequesting || !selectedVehicle}
-          onClick={handleConfirmar}
-          className={`w-full min-h-[48px] py-3.5 px-4 rounded-xl font-black text-sm transition-all flex items-center justify-center gap-2 shadow-xl active:scale-98 ${
-            modalidad === 'viajes'
-              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/25 ring-1 ring-amber-400/50'
-              : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/25 ring-1 ring-emerald-400/50'
-          } disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
-        >
-          {isRequesting ? (
-            <>
-              <span className="animate-spin text-base">⏳</span>
-              <span>Buscando conductor más cercano...</span>
-            </>
-          ) : (
-            <>
-              <span className="truncate">{modalidad === 'viajes' ? 'Solicitar Viaje' : 'Pedir Mandadito Express'}</span>
-              {selectedVehicle && (
-                <span className="text-xs opacity-90 font-mono font-bold truncate max-w-[130px]">
-                  ({selectedVehicle.nombre})
-                </span>
-              )}
-              <span className="bg-slate-950/25 px-2.5 py-1 rounded-lg font-mono font-black tabular-nums shrink-0">
-                ${tarifaFinal.toFixed(2)} USD
-              </span>
-              <ArrowRight className="w-4 h-4 ml-0.5 shrink-0" />
-            </>
-          )}
-        </button>
-
-        {/* FOOTER TRANSPARENCIA WIN-WIN */}
-        <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 font-medium">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            Tarifa protegida sin tarifas ocultas
-          </span>
-          <span className="shrink-0">Conductor recibe el 88-90%</span>
-        </div>
-      </div>
     </div>
   );
 };
