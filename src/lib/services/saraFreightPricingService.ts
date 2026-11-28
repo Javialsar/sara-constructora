@@ -146,6 +146,8 @@ export const CATALOGO_VEHICULOS_SARA: Record<CategoriaVehiculo, ParametrosVehicu
 };
 
 export const FACTORES_MATERIAL: Record<string, number> = {
+  'Mudanza / Muebles': 1.05,
+  'Mercadería / Cajas': 1.00,
   'Cemento (Sacos)': 1.05,
   'Arena / Ripio': 1.00,
   'Varillas de Acero': 1.15,
