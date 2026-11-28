@@ -75,7 +75,7 @@ export function SaraDriverRatingModal({
     setTimeout(() => {
       setIsSubmittingRating(false);
       onClose();
-      onRatingSubmitted(`Pago de $${driverToRate.price.toFixed(2)} USD registrado (${metodoTexto}) y calificación de ${ratingStars} ⭐ enviada. ¡Gracias por preferir SARA Fletes!`);
+      onRatingSubmitted(`Pago de $${driverToRate.price.toFixed(2)} USD registrado (${metodoTexto}) y calificación de ${ratingStars} ⭐ enviada. ¡Gracias por viajar con GoBee!`);
       setRatingComment('');
     }, 500);
   };
@@ -85,40 +85,47 @@ export function SaraDriverRatingModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="driver-rating-title"
-      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-2 sm:p-4 overflow-y-auto"
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
       tabIndex={-1}
     >
-      <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 my-auto text-white">
+      <div className="bg-slate-900 border-2 border-emerald-500/70 rounded-3xl p-4 sm:p-6 max-w-md w-full max-h-[94dvh] overflow-y-auto shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 my-auto text-white">
         {/* Header */}
         <div className="text-center space-y-1">
-          <span className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
-            🏁 ¡Flete Completado con Éxito!
+          <span className="inline-block text-[10px] font-black uppercase text-emerald-400 bg-emerald-950/80 border border-emerald-500/30 px-3 py-1 rounded-full">
+            🏁 ¡Viaje Completado con Éxito!
           </span>
-          <h3 id="driver-rating-title" className="font-black text-white text-xl mt-2">Pago y Calificación del Viaje</h3>
+          <h3 id="driver-rating-title" className="font-black text-white text-lg sm:text-xl mt-1.5">Pago y Calificación del Viaje</h3>
           <p className="text-xs text-slate-400">
-            Selecciona tu forma de pago y califica la atención de tu transportista.
+            Confirma tu método de pago y califica el servicio recibido.
           </p>
         </div>
 
-        {/* Tarjeta del Conductor y Monto Total */}
-        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-black text-lg shadow-inner shrink-0">
-              {driverToRate.driverName.charAt(0)}
+        {/* Tarjeta del Conductor y Monto Total (100% responsive sin desborde en móvil) */}
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-xl bg-[#FDBE3B]/20 text-[#FDBE3B] border border-[#FDBE3B]/40 flex items-center justify-center font-black text-base shadow-inner shrink-0">
+              {driverToRate.driverName.charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h4 className="font-bold text-white text-sm truncate">{driverToRate.driverName}</h4>
-              <p className="text-xs text-slate-400 truncate">{driverToRate.vehicleName}</p>
-              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.2 rounded border border-amber-500/20">
-                Placa: {driverToRate.plate}
-              </span>
+              <p className="text-xs text-slate-400 truncate">
+                {driverToRate.vehicleName.replace(/SARA/gi, 'GoBee')}
+              </p>
+              {driverToRate.plate && driverToRate.plate.trim().length > 0 && (
+                <span className="inline-block mt-1 text-[10px] font-mono font-bold text-[#FDBE3B] bg-[#FDBE3B]/10 px-2 py-0.5 rounded border border-[#FDBE3B]/30">
+                  Placa: {driverToRate.plate}
+                </span>
+              )}
             </div>
           </div>
-          <div className="text-right shrink-0">
-            <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wider">Total a Pagar:</span>
-            <span className="font-mono font-black text-emerald-400 text-lg">
-              ${driverToRate.price.toFixed(2)} USD
+
+          <div className="pt-2.5 border-t border-slate-800/90 flex items-center justify-between gap-2">
+            <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">
+              Total a Pagar
+            </span>
+            <span className="font-mono tabular-nums font-black text-emerald-400 text-xl">
+              ${driverToRate.price.toFixed(2)} <span className="text-xs font-bold text-emerald-300">USD</span>
             </span>
           </div>
         </div>

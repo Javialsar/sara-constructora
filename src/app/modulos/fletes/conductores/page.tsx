@@ -759,7 +759,8 @@ export default function MiPerfilFletes() {
           setBalance(evt.payload.nuevoSaldo);
         }
       } else if (evt.type === 'FLETE_CALIFICADO') {
-        showToast(`⭐ ¡El cliente calificó tu servicio con ${evt.payload.rating} Estrellas! ${evt.payload.comentario ? `"${evt.payload.comentario}"` : ''}`);
+        const montoStr = typeof evt.payload.montoTotal === 'number' ? ` · $${evt.payload.montoTotal.toFixed(2)} USD` : '';
+        showToast(`✅ El pago es exitoso${montoStr} (${evt.payload.rating} ⭐). Listo para un nuevo viaje.`);
         SaraFletesRealtimeService.updateTripFeedback(evt.payload.fleteId, evt.payload.rating, evt.payload.comentario, evt.payload.metodoPago);
         setViajesList(prev => prev.map(v => (v.fleteId === evt.payload.fleteId || v.id === evt.payload.fleteId) ? {
           ...v,
@@ -767,6 +768,29 @@ export default function MiPerfilFletes() {
           comentario: evt.payload.comentario || v.comentario,
           metodoPago: evt.payload.metodoPago || v.metodoPago
         } : v));
+
+        // Anuncio de voz de confirmación de pago al conductor
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          try {
+            const synth = window.speechSynthesis;
+            if (synth.speaking) synth.cancel();
+            const utter = new SpeechSynthesisUtterance('El pago es exitoso');
+            utter.lang = 'es-EC';
+            utter.rate = 1.02;
+            const voices = synth.getVoices();
+            const esVoice =
+              voices.find((v) => v.lang.toLowerCase().startsWith('es-ec')) ||
+              voices.find((v) => v.lang.toLowerCase().startsWith('es-419')) ||
+              voices.find((v) => v.lang.toLowerCase().startsWith('es'));
+            if (esVoice) utter.voice = esVoice;
+            synth.speak(utter);
+          } catch {}
+        }
+
+        // Encerar automáticamente la cabina del conductor para quedar listo para el siguiente viaje
+        setTimeout(() => {
+          resetCabinaConductor(false);
+        }, 1200);
       }
     });
 
