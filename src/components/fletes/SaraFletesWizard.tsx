@@ -255,66 +255,90 @@ export function SaraFletesWizard({
               </div>
 
               {/* Campos de texto de Origen y Destino */}
-              <div className="flex-1 space-y-2.5">
+              <div className="flex-1 min-w-0 space-y-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-black uppercase text-emerald-400 tracking-wider">
-                      Punto de Carga (Obra / Ferretería)
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <label className="text-[11px] font-black uppercase text-emerald-400 tracking-wider truncate">
+                      Punto de Carga
                     </label>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={onMarkOriginOnMap}
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-all ${
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer ${
                           mapClickMode === 'origen'
                             ? 'bg-emerald-500 text-slate-950 font-black'
-                            : 'text-emerald-400 bg-emerald-950/40 border border-emerald-500/30'
+                            : 'text-emerald-300 bg-emerald-950/60 border border-emerald-500/35 hover:border-emerald-400'
                         }`}
                       >
-                        📍 Marcar
+                        📍 Mapa
                       </button>
                       <button
                         type="button"
                         onClick={onUseGpsOrigin}
-                        className="text-[9px] text-blue-400 bg-blue-950/40 border border-blue-500/30 px-1.5 py-0.5 rounded font-bold"
+                        className="text-[10px] text-sky-300 bg-sky-950/60 border border-sky-500/35 hover:border-sky-400 px-2 py-0.5 rounded-md font-bold cursor-pointer"
                       >
                         GPS
                       </button>
                     </div>
                   </div>
-                  <input
-                    type="text"
-                    value={originText}
-                    onChange={(e) => onOriginChange(e.target.value)}
-                    placeholder="Escribe dirección de obra o hito 🟢"
-                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={originText}
+                      onChange={(e) => onOriginChange(e.target.value)}
+                      placeholder="Escribe obra, ferretería o dirección..."
+                      className="w-full min-h-[42px] bg-slate-900 border border-slate-700/80 rounded-xl pl-3 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 select-text"
+                    />
+                    {originText && (
+                      <button
+                        type="button"
+                        onClick={() => onOriginChange('')}
+                        aria-label="Limpiar punto de carga"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
-                      Punto de Descarga (Entrega)
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <label className="text-[11px] font-black uppercase text-[#FDBE3B] tracking-wider truncate">
+                      Punto de Descarga
                     </label>
                     <button
                       type="button"
                       onClick={onMarkDestOnMap}
-                      className={`text-[9px] font-bold px-1.5 py-0.5 rounded transition-all ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all cursor-pointer shrink-0 ${
                         mapClickMode === 'destino'
-                          ? 'bg-amber-500 text-slate-950 font-black'
-                          : 'text-amber-400 bg-amber-950/40 border border-amber-500/30'
+                          ? 'bg-[#FDBE3B] text-[#111827] font-black'
+                          : 'text-[#FDBE3B] bg-amber-950/50 border border-[#FDBE3B]/35 hover:border-[#FDBE3B]'
                       }`}
                     >
-                      📍 Marcar
+                      📍 Mapa
                     </button>
                   </div>
-                  <input
-                    type="text"
-                    value={destinationText}
-                    onChange={(e) => onDestinationChange(e.target.value)}
-                    placeholder="Escribe destino final de entrega 🚩"
-                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={destinationText}
+                      onChange={(e) => onDestinationChange(e.target.value)}
+                      placeholder="Escribe destino final de entrega..."
+                      className="w-full min-h-[42px] bg-slate-900 border border-slate-700/80 rounded-xl pl-3 pr-8 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#FDBE3B] select-text"
+                    />
+                    {destinationText && (
+                      <button
+                        type="button"
+                        onClick={() => onDestinationChange('')}
+                        aria-label="Limpiar punto de descarga"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs flex items-center justify-center cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 

@@ -233,9 +233,9 @@ export default function SaraFletesEngine() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Manejo de escritura con búsqueda predictiva en Origen
+  // Manejo de escritura con búsqueda predictiva en Origen (bloquear GPS para que no sobrescriba al escribir)
   const handleOriginInputChange = (val: string) => {
-    originLockedByMapRef.current = false;
+    originLockedByMapRef.current = true;
     setOriginText(val);
 
     if (originDebounceRef.current) clearTimeout(originDebounceRef.current);
